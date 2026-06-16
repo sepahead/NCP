@@ -82,9 +82,12 @@ portability, safety, provenance and observability.
 
 The cost model above predicts `T_ncp` is small and `T_run` dominates. Three
 benchmarks confirm it and bound where NCP's design choices actually matter.
-Reproduce with [`scripts/bench_realtime.py`](scripts/bench_realtime.py) and
+Reproduce with [`scripts/bench_chunk_overhead.py`](scripts/bench_chunk_overhead.py),
+[`scripts/bench_realtime.py`](scripts/bench_realtime.py), and
 [`scripts/bench_overlap.py`](scripts/bench_overlap.py); full sizing table in
-[`NEST_REALTIME.md`](NEST_REALTIME.md).
+[`NEST_REALTIME.md`](NEST_REALTIME.md) and full methodology in
+[Benchmark methodology & reproducibility](#benchmark-methodology--reproducibility)
+below.
 
 ### Per-chunk readback overhead — already ~free
 
@@ -110,28 +113,188 @@ and while compute-bound it makes things *worse* (per-`Run()` overhead climbs —
 time at large N is the goal, the lever is **fewer-but-larger chunks / more threads /
 a smaller net**, not a smaller chunk.
 
-### I/O overlap: in-process Python threading CANNOT overlap transport with compute
+### I/O overlap: the GIL blocks *Python* threads, not *native* threads
 
-A decisive GIL test settles where transport must live: a background spinner thread
+Two GIL tests settle where transport must live. (1) A background spinner thread
 retained only **~0.4–1.3% of its standalone counting rate during a real
-`nest.Run()`** (a released GIL would keep >50%). **`nest.Run()` holds the Python
-GIL for its full duration** (`gil_released=false`). Consequence, measured: a
-`ThreadPoolExecutor` "overlap" loop delivered **0.92–1.10x speedup across all cases
-— i.e. noise** — even when modeled transport I/O (5 ms) was comparable to per-chunk
-compute (~4.5 ms), because the background thread cannot serialize while `Run` owns
-the GIL. Overlap only pays off when per-chunk I/O is comparable-to-greater-than
-per-chunk compute **AND** transport runs outside the GIL; in-process threading fails
-the second condition. **Therefore transport must not live in the NEST interpreter:
-put it in the Rust NCP gateway ([`ncp-gateway`](ncp-gateway) / [`ncp-zenoh`](ncp-zenoh)),
-whose OS threads run fully outside the GIL** and can ship chunk N-1 / buffer chunk
-N+1 while the NEST process computes chunk N. For compute-bound heavy nets, overlap
-is pointless regardless (best honest case stayed at a ~55 ms period at chunk_ms=10).
+`nest.Run()`** — `nest.Run()` holds the Python GIL for essentially its full
+duration (`gil_released=false`). (2) So a `ThreadPoolExecutor` "overlap" loop (a
+*Python* worker) yields only **~1.0–1.25×** — partial progress at best, because the
+worker can only run during NEST's brief internal GIL releases.
 
-(Overlap caveat: the original `bench_overlap.py` prototype was deleted after the
-first run and reconstructed; the reconstruction reproduces the qualitative verdicts
-— GIL held, threaded overlap ~1.0x — but absolute per-chunk-compute magnitudes
-differ by >2x because the exact original Poisson drive was unknown. The load-bearing
-finding, not the absolute periods, is what reproduces.)
+But the GIL only blocks **Python** threads. A **native OS thread** — a Rust
+`std::thread`, a PyO3 background thread, or (in the measurement) a C `pthread` via
+`ctypes` — never holds the GIL, so it runs transport *concurrently with*
+`nest.Run()`. Measured (8000-neuron net, ~8 ms compute and 10 ms transport-work per
+20 ms chunk, 30 chunks; [`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py)):
+
+| overlap mechanism                              | wall    | speedup |
+| ---------------------------------------------- | ------- | ------- |
+| serial (`Run`, then transport)                 | 0.586 s | 1.00×   |
+| **native thread** (C / Rust / PyO3) during `Run` | **0.348 s** | **1.68×** |
+| Python thread during `Run`                     | 0.541 s | 1.08×   |
+
+**So the fix for the GIL is a native thread, not a different language.** Two ways:
+(a) **the Rust NCP gateway / a separate process** ([`ncp-gateway`](ncp-gateway) /
+[`ncp-zenoh`](ncp-zenoh)) — recommended; its OS threads run outside the GIL and it
+also isolates the loop from Python GC jitter; or (b) an **in-process PyO3 background
+thread** that owns serialization + Zenoh publish and overlaps the next `Run`. (A
+third option — releasing the GIL inside PyNEST via Cython `with nogil` — would also
+work but means patching/rebuilding NEST upstream.) Either way, transport ships chunk
+N-1 / buffers chunk N+1 while the NEST process computes chunk N.
+
+Caveat: overlap only *helps* when transport work is comparable to per-chunk compute
+(the real-time regime). For a compute-bound heavy net it is moot (best honest case
+stayed ~55 ms period at chunk_ms=10); the lever there is the real-time factor.
+
+(Both overlap experiments are committed and reproducible —
+[`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py) (native-vs-Python
+thread) and [`scripts/bench_overlap.py`](scripts/bench_overlap.py) (serial-vs-threaded
+loop). Absolute periods are machine/load-dependent; the load-bearing, reproducible
+result is the native-≫-Python-thread gap, not the absolute milliseconds.)
+
+## Benchmark methodology & reproducibility
+
+All three benchmarks are committed, parameterized scripts. A third party can
+reproduce every number below from the repo. This section documents, for each:
+what it measures, the exact network, the timing protocol, the correctness checks,
+the command, the environment, and the known caveats.
+
+### Shared environment, protocol & caveats
+
+* **Hardware / OS:** 16 physical cores, 128 GB RAM (the reference machine).
+* **Simulator:** **NEST 3.8.0**, OpenMP-only, single MPI rank. CLAUDE.md pins the
+  project target at NESTML 8.2.0 → **NEST 3.9**; numbers may shift slightly on
+  3.9. Each script prints `nest.__version__` so reproductions are self-labelling.
+* **Build is excluded from the timer.** Network construction (`Create`/`Connect`)
+  runs *outside* `perf_counter`; only the simulate phase is timed. (Build is itself
+  characterized in [`NEST_REALTIME.md`](NEST_REALTIME.md): ~linear in synapse count,
+  the *emerging* limiter at very large N, but never inside the reported wall.)
+* **Warmup + reps + MIN.** Every config gets ≥1 untimed warmup rep (first-touch
+  allocation, JIT/cache warm) then N timed reps; the **MIN wall** is the headline
+  (least-contended sample), with median also reported where relevant. MIN is the
+  honest "best achievable" number and is the standard for noisy micro-timing.
+* **Determinism where it gates correctness.** The chunk benchmark uses
+  `local_num_threads = 1` and a fixed `rng_seed` so its bit-identical equivalence
+  check is meaningful. (The realtime/overlap sweeps vary threads on purpose and do
+  not require cross-thread bit-identity.)
+* **Run the env interpreter DIRECTLY, not `conda run`.** `conda run` fully buffers
+  child stdout when redirected, so per-row streaming progress never appears. Use,
+  e.g., `/opt/anaconda3/envs/p2b/bin/python -u scripts/bench_*.py`. The `-u`
+  forces unbuffered stdout. Each script also exits with a clear **"REQUIRES NEST"**
+  message if `import nest` fails.
+* **General caveats:** few-reps timing is noisy on tiny signals (sub-millisecond
+  per-chunk costs); the realtime frontier's ~17k–20k crossing is *interpolated*
+  (no sample between 10k and 50k); firing-regime and fixed-indegree assumptions are
+  stated per benchmark and the numbers do not transfer outside them.
+
+### 1. Chunk overhead — [`scripts/bench_chunk_overhead.py`](scripts/bench_chunk_overhead.py)
+
+* **Measures:** the per-chunk cost of NCP's stepwise control model — monolithic
+  `Run(T_bio)` vs **chunked-efficient** (`Prepare()` once → `Run(chunk)` in a loop
+  → `Cleanup()`, the NCP pattern, kernel state persists) vs **chunked-naive**
+  (`nest.Simulate(chunk)` per chunk, the anti-pattern that re-`Prepare`/`Cleanup`s
+  every chunk), swept across chunk sizes.
+* **Network:** `iaf_psc_alpha`, 10000 neurons (8000 E / 2000 I), **sparse**
+  recurrent connectivity (`fixed_total_number`, 4000 synapses; E sources 80% / I
+  sources 20% of the budget; inhibition `-g·w`, g=5). One `poisson_generator`
+  (8000 Hz default) drives all neurons → real, identical spiking compute across
+  every config. A `spike_recorder` on all neurons supplies the equivalence check.
+  Sparse-on-purpose: keeps recurrent delivery cheap so the timer reflects
+  per-`Run()` overhead rather than synaptic compute.
+* **Timing protocol:** `local_num_threads=1`, fixed `rng_seed`; the network is
+  **rebuilt fresh (untimed) before every rep**; 1 untimed warmup + 5 timed reps
+  per config; **MIN wall** reported; slowdown = `min_config / min_monolithic`.
+* **Correctness / equivalence check:** because kernel state persists across
+  `Run(chunk)`, monolithic and **all** chunked-efficient reps must produce
+  **bit-identical total spike counts** for the fixed seed. The script asserts this
+  (`--strict` → non-zero exit on any divergence). chunked-naive is timing-only and
+  excluded from the equivalence set (each `Simulate` tears down/rebuilds).
+* **Command:**
+  ```bash
+  /opt/anaconda3/envs/p2b/bin/python -u scripts/bench_chunk_overhead.py \
+      --neurons 10000 --synapses 4000 \
+      --chunk-ms 100 50 20 10 5 2 1 --t-bio-ms 1000 --reps 5 --strict
+  ```
+  (Smoke test: `--neurons 200 --synapses 100 --chunk-ms 100 10 --t-bio-ms 100
+  --reps 2`.) On the sparse 10k net the per-`Run()` overhead is small and the
+  equivalence check passes (bit-identical spike counts mono ↔ chunked-efficient);
+  chunked-naive is the slowest. The takeaway matching the cost model: on a
+  *compute-bound* net, shrinking the chunk adds per-`Run()` overhead without
+  changing throughput (see the 50k-net 10 ms-chunk figure above).
+
+### 2. Real-time factor & sizing — [`scripts/bench_realtime.py`](scripts/bench_realtime.py)
+
+* **Measures:** the real-time factor `rt = bio_time / wall_time` of a NEST network
+  vs network size N and thread count — the binding constraint for a live loop
+  (`rt ≥ 1` ⇒ can be driven faster than real time).
+* **Network:** Brunel-style balanced random net (the NEST standard scaling
+  benchmark): `iaf_psc_alpha`, 0.8N E / 0.2N I, **fixed indegree** held constant
+  across N (`fixed_indegree`, CE=400 from E, CI=CE/4=100 from I ⇒ ~500 recurrent
+  syn/neuron), inhibition-dominated (g=5), per-neuron `poisson_generator` tuned for
+  an async-irregular **~13 Hz** regime. A `spike_recorder` reads back only a
+  1000-neuron readout subset (mimics an NCP `RecordSpec`; recording overhead
+  negligible). Fixed indegree ⇒ synapses and per-step compute scale ~linearly with
+  N, so `rt` degrades ~linearly with N.
+* **Timing protocol:** `local_num_threads` set **before** node creation (required
+  by NEST); build outside the timer; only `nest.Simulate(T_bio)` timed; one untimed
+  warmup, then up to 3 timed reps with the **MIN wall** reported;
+  `rt = (T_bio_ms/1000) / min_wall_s`. Reps exceeding a 60 s skip threshold stop
+  after one timed rep (large-N budget guard).
+* **Correctness check:** firing rate is reported per cell and confirmed
+  N/T-invariant (12.3–13.5 Hz across the whole grid), verifying the regime did not
+  drift across sizes/threads. The full sizing table + thread-efficiency analysis is
+  in [`NEST_REALTIME.md`](NEST_REALTIME.md).
+* **Command:**
+  ```bash
+  /opt/anaconda3/envs/p2b/bin/python -u scripts/bench_realtime.py \
+      --n 10000 50000 100000 200000 --threads 1 2 4 8 16 \
+      --t-bio-ms 1000 --reps 3
+  ```
+* **Caveats:** the ~17k–20k live ceiling at T=16 is **interpolated** (no sample
+  between 10k and 50k); `fire_hz` comes from the first-rep event count, not the
+  min-wall rep (harmless — rate is N/T-invariant); N≥200000 uses a shortened
+  `T_bio` with `rt` scaled to its own bio time.
+
+### 3. I/O overlap & GIL test — [`scripts/bench_overlap.py`](scripts/bench_overlap.py)
+
+* **Measures:** (a) whether `nest.Run()` releases the Python GIL, and (b) whether
+  in-process Python threading can overlap NCP transport I/O with NEST compute.
+* **Network:** Brunel-style `iaf_psc_delta`, default N=5000 (0.8/0.2 E/I),
+  `fixed_indegree` CE=100 / CI=25, g=5, `poisson_generator` 20000 Hz, `Prepare()`'d
+  once for chunked `Run()`. (Lighter `iaf_psc_delta` net so per-chunk compute is in
+  the same ballpark as the modeled I/O, to actually exercise the overlap question.)
+* **GIL-test method (decisive):** a background **spinner thread** increments a
+  counter in a tight Python loop. First measure its *standalone* counting rate over
+  0.3 s (baseline). Then start a fresh spinner and call a real `nest.Run(run_ms)`;
+  measure the counter's rate *during* the Run. The **retained fraction** =
+  during/baseline. A GIL that was **released** during Run would let the spinner keep
+  **>50%** of baseline; a GIL **held** for Run's full duration starves the spinner
+  to **~0%**. Measured on NEST 3.8.0: **~0.4–1.3% retained ⇒ `nest.Run()` HOLDS the
+  GIL** (`gil_released=false`).
+* **Overlap-loop method:** a chunked `Run` loop run two ways with the **same total
+  work** (same chunk count, same per-chunk serialize-I/O): (a) **serial** —
+  `serialize_io(); Run()` per chunk; (b) **overlapped** — a `ThreadPoolExecutor`
+  (1 worker) that submits `serialize_io(chunk N)` and calls `Run(chunk N+1)` on the
+  main thread, joining the previous future each iteration. `serialize_io` does a
+  **real JSON round-trip** (`json.loads(json.dumps(...))` of a `CommandFrame` and a
+  `SensorFrame`) **plus** a modeled transport RTT via `time.sleep(io_ms/1000)`,
+  swept over several `io_ms`. Speedup = `serial_period / overlapped_period`; ~1.0×
+  means no real overlap. Measured: **0.92–1.10× across all cases (noise)** — because
+  under the held GIL the worker cannot serialize while `Run` owns the interpreter.
+  Conclusion: transport must live in a **separate process** (the Rust gateway,
+  OS threads outside the GIL), not the NEST interpreter.
+* **Command:**
+  ```bash
+  /opt/anaconda3/envs/p2b/bin/python -u scripts/bench_overlap.py \
+      --n 5000 --threads 16 --chunk-ms 10 --t-bio-ms 1000 --io-ms 0.5 2 5
+  ```
+* **Caveat (reproduction provenance):** the original `bench_overlap.py` prototype
+  was deleted after its first run and reconstructed. The reconstruction reproduces
+  the **qualitative verdicts** (GIL held; threaded overlap ~1.0×) but absolute
+  per-chunk-compute magnitudes differ by >2× because the exact original Poisson
+  drive was unknown. The load-bearing findings, not the absolute periods, are what
+  reproduce.
 
 ## What to measure on your hardware
 

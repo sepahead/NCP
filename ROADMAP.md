@@ -180,17 +180,19 @@ mitigations. Full numbers + method in [`NEST_REALTIME.md`](NEST_REALTIME.md) and
   advertise a live loop it cannot sustain. This also fits the provenance-first
   posture: a real-time claim becomes a checked discriminator, not an assumption.
 
-- **Keep transport off the NEST compute path (GIL-grounded).** A decisive GIL test
-  showed **`nest.Run()` holds the Python GIL for its full duration** (a background
-  thread retained ~0% of baseline during Run), so in-process Python threading
-  delivered **~1.0x overlap** even when transport I/O matched per-chunk compute.
-  Document and enforce that the per-tick transport (CommandFrame/SensorFrame
-  serialization + Zenoh RTT) lives in the **Rust gateway / a separate process**,
-  whose OS threads run outside the GIL and can ship chunk N-1 / buffer chunk N+1
-  while the NEST process computes chunk N. *Why:* this is the only configuration in
-  which transport I/O actually overlaps compute; the streaming control plane already
-  bypasses the gateway's per-request RPC, and this codifies *why* the NEST kernel and
-  the transport stack must not share an interpreter.
+- **Run transport on a native thread, off the NEST *Python* thread (GIL-grounded,
+  measured).** `nest.Run()` holds the Python GIL for essentially its full duration,
+  so an in-process *Python* thread overlaps transport with compute only ~1.0–1.25×.
+  A **native OS thread**, however, overlaps fully — measured **1.68×** for a C
+  pthread (a faithful proxy for a Rust `std::thread` / PyO3 background thread) vs
+  **1.08×** for a Python thread ([`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py)).
+  So run the per-tick transport (CommandFrame/SensorFrame serialization + Zenoh RTT)
+  on a native thread: either the **Rust gateway / a separate process** (recommended —
+  also isolates the loop from Python GC jitter) or an **in-process PyO3 background
+  thread**. (Releasing the GIL inside PyNEST via Cython `with nogil` would also work,
+  but requires an upstream NEST patch.) *Why:* this is the configuration in which
+  transport I/O actually overlaps compute; it codifies that the NEST kernel and the
+  transport stack must not share the *Python* thread — not merely the interpreter.
 
 - **`CommandFrame.horizon` + `ttl_ms` HOLD as the principled real-time mitigation.**
   When the real-time budget cannot be met (or the link drops), the actuator replays

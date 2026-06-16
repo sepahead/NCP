@@ -1,0 +1,78 @@
+name: Bug report
+description: Report a defect in NCP (a crash, incorrect behavior, or spec/conformance mismatch).
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. NCP is pre-1.0 and experimental — the wire format may still change.
+        Please search existing issues first, and include enough detail for someone else to reproduce.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug, including what you expected to happen instead.
+      placeholder: |
+        I expected ... but instead ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, ordered steps. A small code snippet or command sequence is ideal.
+      placeholder: |
+        1. Run `...`
+        2. Send a frame on the ... plane
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: ncp-version
+    attributes:
+      label: ncp_version
+      description: The NCP protocol/crate version (e.g. 0.3.1, or a git commit SHA).
+      placeholder: "0.3.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: crate
+    attributes:
+      label: Affected crate / binding
+      description: Which component is affected?
+      multiple: true
+      options:
+        - ncp-core
+        - ncp-zenoh
+        - ncp-gateway
+        - ncp-python (PyO3)
+        - ncp-cpp
+        - spec / schema / proto
+        - other / not sure
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: OS name and version.
+      placeholder: "macOS 14.5 / Ubuntu 24.04 / Windows 11"
+    validations:
+      required: true
+  - type: input
+    id: rust-version
+    attributes:
+      label: Rust version
+      description: Output of `rustc --version`.
+      placeholder: "rustc 1.78.0 (9b00956e5 2024-04-29)"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / output
+      description: Paste any logs, backtraces, or error output. This is automatically formatted as code, so no backticks needed.
+      render: shell
+    validations:
+      required: false

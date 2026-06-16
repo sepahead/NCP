@@ -1,164 +1,164 @@
-# NCP — Neuro-Cybernetic Protocol (Rust reference SDK)
+# NCP — Neuro-Cybernetic Protocol
 
-A versioned, **transport-agnostic, project-agnostic** standard for letting an
-Engram-driven NEST simulation serve external robot / UAV / simulation systems —
-for **perception, action, both, or neither**. This workspace is the **normative
-Rust reference implementation**; NCP is intended to become a reusable standard
-(in the spirit of MCP/ACP), and Rust is the canonical high-performance
-implementation.
+> A safety-gated, provenance-first wire protocol for a spiking neural simulation to perceive and act through robots, UAVs, and analysis clients.
 
-Why NCP exists at all — an unbiased rationale vs ROS 2/DDS, Zenoh, MUSIC, the
-Neurorobotics Platform, MCP/ACP, gRPC, dm_env_rpc, and the "compose, don't invent"
-alternative — is in [`RATIONALE.md`](RATIONALE.md).
+[![CI](https://github.com/sepehrmn/NCP/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehrmn/NCP/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust 1.81+](https://img.shields.io/badge/rust-1.81%2B-orange.svg)](https://www.rust-lang.org)
+[![status: experimental](https://img.shields.io/badge/status-experimental%20(pre--1.0)-orange.svg)](#status)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Code of Conduct](https://img.shields.io/badge/Contributor%20Covenant-2.1-purple.svg)](CODE_OF_CONDUCT.md)
+[![Cite](https://img.shields.io/badge/cite-CITATION.cff-blueviolet.svg)](CITATION.cff)
 
-The human-readable spec is [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md);
-the polyglot payload contract is [`proto/ncp.proto`](proto/ncp.proto)
-with JSON-Schema mirrors in [`schemas/`](schemas/). The Rust types
-here serialize to **exactly** that JSON, so the Rust, Python and TypeScript peers
-interoperate over any transport.
+## What is NCP
 
-> **Extractable by design.** This workspace has no dependency on the surrounding
-> Paper2Brain repo and can be lifted into its own repository / published to
-> crates.io with no refactoring. It lives here because Paper2Brain is the
-> protocol's documented home.
+NCP is a versioned, transport-agnostic wire contract that lets a running NEST spiking neural network serve external robot, UAV, and analysis clients — for **perception, action, both, or neither** — over QoS-differentiated planes with a safety-gated action plane and scientific provenance on every frame. The reference implementation is a Rust SDK with Python, C/C++, and TypeScript peers that all speak the identical wire.
+
+**Honesty boundary (binding):** returned `V_m`/spikes are raw simulation outputs of a specified model, never a validated reproduction. Every frame carries `is_simulation_output=true` and `calibrated_posterior=false`. A neuro-controller is a **control artifact**, never a paper-reproduction claim.
+
+## Topology
+
+One commander (an Engram/NEST brain) coordinates one or more bodies over four QoS planes, each carrying the reliability, priority, and conflation its job needs.
+
+```mermaid
+flowchart LR
+    subgraph Commander["Commander — Engram / NEST brain"]
+        BRAIN["spiking network<br/>(perception · action · both · neither)"]
+    end
+
+    subgraph Bodies["Bodies & clients"]
+        ROBOT["robot / UAV body"]
+        OBS["analysis / observer client"]
+    end
+
+    BRAIN -- "/rpc · control · reliable request/reply" --> ROBOT
+    ROBOT -- "/sensor · perception · best-effort, conflating" --> BRAIN
+    BRAIN -- "/command · action · express · RealTime · safety-gated (mode, ttl_ms)" --> ROBOT
+    BRAIN -. "/observation · read-only tap" .-> OBS
+    ROBOT -. "/observation · read-only tap" .-> OBS
+```
+
+| Plane | Key | QoS | Purpose |
+|---|---|---|---|
+| **Control** | `{realm}/rpc` | reliable, request/reply (queryable) | session lifecycle |
+| **Perception** | `{realm}/session/{id}/sensor[/{name}]` | best-effort, conflate-to-latest (lossy-OK) | plant → brain |
+| **Action** | `{realm}/session/{id}/command[/{name}]` | express, RealTime, safety-gated (`mode`, `ttl_ms`) | brain → plant |
+| **Observation** | `{realm}/session/{id}/observation` | read-only pub/sub | free diagnostic tap |
+
+Because the data planes are pub/sub, **observers attach for free**: an analysis client subscribes read-only with zero changes to the control path — the structural reason to choose a data-centric bus over point-to-point RPC for a fleet plus watchers.
+
+## Highlights
+
+- **Transport-agnostic core.** `ncp-core` is `serde`-only — no transport, no async. The wire is JSON/protobuf, identical across mediums; Zenoh is the recommended (and currently shipped) transport.
+- **Four QoS planes.** Control RPC, conflating perception, express RealTime action, and a read-only observation tap — each pays only the cost its job needs.
+- **Safety-gated action plane.** A `mode` enum (`init`/`active`/`hold`/`estop`) is an explicit wire authority, backed by a latched ESTOP, `ttl_ms` HOLD fail-safe, a fail-closed command watchdog, and geofence checks.
+- **Per-frame provenance.** `is_simulation_output` and `calibrated_posterior` are mandatory, fail-closed fields — a machine-checkable epistemic discriminator on the hot path.
+- **Conformance-tested wire.** A field-set-parity drift guard checks serialized Rust messages against the vendored JSON schemas, so the Rust types and the contract cannot silently diverge.
+- **Polyglot peers.** Rust is normative; Python via PyO3, a C ABI for C/C++, and TypeScript types via ts-rs — every peer is wire-identical off the same core, so the safety/codec logic is written once, not reimplemented per language.
 
 ## Crates
 
 | Crate | Role |
 |---|---|
-| **`ncp-core`** | Pure protocol: wire types (serde), version guard, key scheme, reference rate codec, action-plane safety governor, in-process `Bus`/`LocalBus` and control loop. `serde`-only — no transport, no async. |
-| **`ncp-zenoh`** | The recommended **decoupled** transport: Zenoh *queryable* (control-plane RPC) + *pub/sub* (perception/action/observation data planes), each with the QoS its job needs (see [`Plane`]). |
-| **`ncp-gateway`** | **Engram's Rust edge**: runs the Zenoh bus and bridges control-plane RPC to the Python `SessionService` over a localhost socket (NEST stays Python). |
-| **`ncp-python`** | **Python binding** (PyO3): the Rust core (version guard, key scheme, codec, safety, message validation) as an importable `ncp` module — so Python peers are wire-identical without reimplementing. |
-| **`ncp-cpp`** | **C / C++ binding**: a stable C ABI (`extern "C"` + `include/ncp.h`) over the same core, so C and C++ projects link `ncp_cpp` instead of reimplementing the wire. |
+| **`ncp-core`** | Pure protocol: wire types (serde), version guard, key scheme, reference rate codec, action-plane safety governor, in-process bus + control loop. `serde`-only, no transport. |
+| **`ncp-zenoh`** | The recommended decoupled transport: Zenoh *queryable* (control RPC) + *pub/sub* (perception/action/observation), each with its plane's QoS. |
+| **`ncp-python`** | Python binding (PyO3): the Rust core as an importable `ncp` module, so Python peers are wire-identical without reimplementing. |
+| **`ncp-cpp`** | C / C++ binding: a stable C ABI (`extern "C"` + `include/ncp.h`) over the same core. |
+| **`ncp-gateway`** | Engram's Rust edge: runs the Zenoh bus and bridges control-plane RPC to the Python `SessionService` over a localhost socket (NEST stays Python). |
 
-## One Rust core, four languages
+## Quickstart
 
-NCP is written in Rust and **works from Python, TypeScript and C++** off the
-*same* core, so every peer is wire-identical:
-
-- **Rust** — depend on `ncp-core` (+ `ncp-zenoh`) directly.
-- **Python** — `import ncp` (the `ncp-python` PyO3 extension): `ncp.Keys`,
-  `ncp.check_version`, `ncp.encode_rates`/`decode_command`, `ncp.govern`,
-  `ncp.validate`. Build with `maturin develop -m ncp-python/Cargo.toml`.
-- **TypeScript** — the canonical types in `ncp-core/bindings/*.ts` are **generated
-  from the Rust types** by ts-rs (`cargo test -p ncp-core --features ts`); import
-  them and keep your transport (WebSocket / Tauri-Zenoh) in TS. (Zenoh is native,
-  so the *transport* doesn't compile to browser WASM; the *types* come from Rust.)
-- **C / C++** — include `ncp-cpp/include/ncp.h` and link `ncp_cpp`
-  (`cargo build -p ncp-cpp`); see `ncp-cpp/examples/demo.cpp`.
-
-### Docs
-- [`RATIONALE.md`](RATIONALE.md) — why NCP exists, unbiased vs the alternatives.
-- [`INTEGRATING.md`](INTEGRATING.md) — per-language quickstart + 10-adopter-lens evaluation (simple, minimally invasive).
-- [`NEST_REALTIME.md`](NEST_REALTIME.md) — can NCP read NEST live without stopping it (like MUSIC)? Yes; 10-way analysis.
-- [`PERFORMANCE.md`](PERFORMANCE.md) — does NCP bottleneck NEST? The one real bottleneck (recorder readback) found + fixed; per-tick cost model.
-- [`RESILIENCE.md`](RESILIENCE.md) — robustness over a poor/jammed link (packetized predictive control, fail-safe, and where Partial Information Decomposition fits), pruned to what's worth building. Primitives shipped in `ncp-core`: `ActionBuffer` (predictive replay + ttl HOLD), `CommandWatchdog`, `LinkMonitor` (seq-gap + CUSUM) + `LinkStatus`.
-- [`NEUROMORPHIC.md`](NEUROMORPHIC.md) — NCP as the stable interface for neuromorphic hardware (Loihi/Lava, SpiNNaker/PyNN, BrainScaleS) and the sim-before-deploy / differential-testing workflow.
-- [`PLASTICITY.md`](PLASTICITY.md) — single neuron / population / custom-parameter neurons / multimeter, and long- + short-term + reward-modulated plasticity driven by plant (UAV) feedback (`Observable::Weight`, the reward stimulus channel).
-
-**Multiple UAVs, varying sensors/actuators:** one session per UAV; each named
-sensor/actuator on its own sub-key (`…/session/{uav}/sensor/{name}`,
-`…/command/{name}`); Engram taps a UAV's whole set with `…/sensor/**` and the fleet
-with `{realm}/session/**` (`Keys::sensor_glob`/`command_glob`/`fleet_glob`,
-`ZenohBus::put_sensor_named`/`subscribe_command_named`/`subscribe_fleet`). `seq` is
-per-entity-stream; instantiate one `LinkMonitor`/`ActionBuffer` per entity.
-
-## The three planes
-
-Perception and action are **separate planes** — opposite-signed on rate, payload
-size, fan-in/out, failure isolation and safety authority — so they ride separate
-keys with separate QoS. The control-plane RPC (session lifecycle) is a fourth,
-rare, request/reply key. The **NEST brain is *not* split**: a closed sensorimotor
-loop is one `nest.Run(chunk)` binding sense→act; only the wire diverges.
-
-```text
-{realm}/rpc                              control-plane RPC   queryable, reliable
-{realm}/session/{id}/sensor[/{name}]     perception plane    pub/sub, DROP, conflate to latest (lossy-OK)
-{realm}/session/{id}/command[/{name}]    action plane        pub/sub, express + DROP + RealTime, safety-gated (ttl/HOLD/ESTOP)
-{realm}/session/{id}/observation         neural / diagnostic pub/sub — free read-only observer tap (e.g. an analysis/observer client)
-```
-
-The pub/sub data planes mean **observers attach for free**: an analysis/observer
-client subscribes read-only to `…/sensor` / `…/command` / `…/observation` with zero
-changes to the control path — the structural reason to choose a data-centric bus
-over point-to-point gRPC for a fleet + watchers.
-
-## Quick start
-
-```rust
-use ncp_core::{OpenSession, NetworkRef, NetworkRefKind, RecordSpec, RecordTarget, Observable};
-let open = OpenSession {
-    session_id: "uav3-percept".into(),
-    network: NetworkRef { kind: NetworkRefKind::Builtin, ref_: "iaf_psc_alpha".into(),
-        population_sizes: [("feat".into(), 1)].into_iter().collect(), ..Default::default() },
-    record: RecordSpec { targets: vec![RecordTarget {
-        port: "spk".into(), target: "feat".into(), observable: Observable::Spikes, ..Default::default() }] },
-    ..Default::default()
-};
-// serde_json::to_string(&open) is wire-identical to the Python/TS clients.
-```
-
-Over Zenoh (async):
-
-```rust
-use ncp_zenoh::{ZenohBus, ZenohNcpClient};
-let bus = ZenohBus::open().await?;             // realm engram/ncp
-let client = ZenohNcpClient::new(bus.clone());
-let opened = client.open(&open).await?;        // control-plane RPC (queryable)
-bus.put_sensor("uav3", &serde_json::to_vec(&sensor_frame)?).await?;  // perception plane
-bus.subscribe_commands("uav3", |_k, bytes| { /* decode CommandFrame → actuator */ }).await?;
-```
-
-## Run the Engram gateway (NEST stays Python)
-
-```bash
-# 1) Python side: the NCP server (SessionService + NestBackend) over a localhost socket
-conda run -n p2b python -m backend.neurocontrol.bridge_server --backend nest
-
-# 2) Rust side: the Zenoh edge that fronts it
-cargo run -p ncp-gateway      # NCP_REALM, NCP_BRIDGE_ADDR=127.0.0.1:28474 configurable
-```
-
-## Cross-repo consumption
-
-NCP is **one canonical crate** that every peer depends on (a standard has one
-implementation, not vendored copies). Consumers declare it as an ordinary
-dependency:
+NCP is **not yet published to crates.io** (pre-1.0). Depend on it as a pinned git dependency:
 
 ```toml
-# a robot/UAV client's Cargo.toml   (optional, behind an `ncp` feature)
-ncp-core  = { version = "*", optional = true }
-ncp-zenoh = { version = "*", optional = true }
-
-# an analysis/observer client's ncp-observer crate
-ncp-core  = "*"
-ncp-zenoh = "*"
+[dependencies]
+ncp-core  = { git = "https://github.com/sepehrmn/NCP", tag = "v0.1.0" }
+ncp-zenoh = { git = "https://github.com/sepehrmn/NCP", tag = "v0.1.0" }  # transport, optional
 ```
 
-For external adopters this is a `crates.io` (or `git`) dependency; for
-local development against a checkout it can be a `path` dependency instead — a
-one-line change that needs no code edits (the crate is self-contained).
+A minimal, wire-correct snippet using `ncp-core` — build a safety-gated `CommandFrame`, then refuse an incompatible peer version:
 
-## Build & test
+```rust
+use ncp_core::{check_version, ChannelValue, CommandFrame, Mode, NCP_VERSION};
+
+// A controller's actuation, gated by mode + a time-to-live fail-safe.
+let cmd = CommandFrame {
+    seq: 42,                       // echoes the SensorFrame.seq it was computed from
+    mode: Mode::Active,            // init / active / hold / estop
+    ttl_ms: 200.0,                 // HOLD fires if the actuator outlives this
+    channels: [(
+        "velocity_setpoint".to_string(),
+        ChannelValue::vec3(0.5, 0.0, -0.2, Some("m/s")),
+    )].into_iter().collect(),
+    ..Default::default()
+};
+let wire = serde_json::to_string(&cmd)?;   // wire-identical to the Python / TS peers
+
+// Fail closed on an incompatible peer (pre-1.0: minor is breaking).
+assert!(check_version(NCP_VERSION, true)?);     // exact match -> Ok(true)
+assert!(check_version("0.9", true).is_err());   // 0.x minor diff -> rejected
+```
+
+- **Spec:** [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md) is the human-readable source of truth; the JSON Schemas in [`schemas/`](schemas/) are the de-facto payload contract.
+- **Conformance + benchmarks:**
 
 ```bash
-scripts/check.sh             # full conformance/smoke matrix (all crates + bindings)
-
-cargo test -p ncp-core       # pure, fast (serde only) — wire-compat + codec + safety + loop
-cargo test -p ncp-core --features ts          # (re)generate the TypeScript types
-cargo test -p ncp-zenoh --test loopback       # real Zenoh runtime: streaming control loop
-cargo build -p ncp-gateway   # the Engram edge binary
-cargo build -p ncp-cpp       # the C/C++ ABI (+ ncp-cpp/include/ncp.h)
+scripts/check.sh              # full conformance / smoke matrix (all crates + bindings)
+cargo test -p ncp-core        # pure, fast: wire-compat + codec + safety + control loop
+python scripts/bench_realtime.py   # NEST real-time-factor sweep (see NEST_REALTIME.md)
+python scripts/bench_overlap.py    # transport/compute overlap (GIL) measurement
 ```
 
-## Scientific boundary (binding)
+## Spec & documentation
 
-Returned `V_m`/spikes are **raw simulation outputs of a specified model**, never a
-validated reproduction: every `ObservationFrame` carries `calibrated_posterior=false`
-and `is_simulation_output=true`. A neuro-controller is a **control artifact**,
-never a paper-reproduction claim.
+- [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md) — the protocol spec (messages, planes, entity model).
+- [`RATIONALE.md`](RATIONALE.md) — why NCP exists, adversarially reviewed against ROS 2/DDS, Zenoh, MUSIC, the Neurorobotics Platform, MCP/ACP, gRPC, and dm_env_rpc.
+- [`RESILIENCE.md`](RESILIENCE.md) — robustness over a poor/jammed link: predictive replay, fail-safe HOLD, watchdog, link monitor.
+- [`PERFORMANCE.md`](PERFORMANCE.md) — does NCP bottleneck NEST? The one real bottleneck found and fixed, plus a per-tick cost model.
+- [`NEST_REALTIME.md`](NEST_REALTIME.md) — can NCP read NEST live without stopping it (like MUSIC)? Yes; measured real-time-factor sweep.
+- [`ROADMAP.md`](ROADMAP.md) — the prioritized, honest pre-1.0 plan (auth, identity, conformance corpus, observability).
+- [`SECURITY.md`](SECURITY.md) — threat model and the disclosed action-plane limitation.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to build, test, and propose changes.
+
+## Status
+
+NCP is **pre-1.0 and experimental.** Specifically:
+
+- **The wire may change.** Minor versions are treated as breaking; the version guard fails closed rather than coercing. **Pin a version** (the `tag = "v0.1.0"` above) for anything you build against.
+- **Single reference implementation.** Rust is normative; Python/C/TS are bindings off the same core, verified by a field-set-parity drift guard — not yet a multi-implementation conformance program.
+- **The action plane is currently unauthenticated.** On an open realm it is effectively world-writable: anyone who can reach the realm can publish commands. The local `mode`/`ttl_ms` governor is defense-in-depth, **not** network security. Deploy only on a trusted, closed realm. See [`SECURITY.md`](SECURITY.md) and the P0 work in [`ROADMAP.md`](ROADMAP.md).
+
+## Citing
+
+A Zenodo DOI will be minted on the first tagged release; until then, cite the repository (see [`CITATION.cff`](CITATION.cff)).
+
+```bibtex
+@software{mahmoudian_ncp,
+  author  = {Sepehr Mahmoudian},
+  title   = {NCP — Neuro-Cybernetic Protocol},
+  year    = {2026},
+  version = {0.1.0},
+  url     = {https://github.com/sepehrmn/NCP}
+}
+```
+
+## Contributing
+
+Contributions are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) for the build/test workflow and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) (Contributor Covenant 2.1) for community expectations.
 
 ## License
 
-MIT.
+MIT © 2026 Sepehr Mahmoudian. See [`LICENSE`](LICENSE).
+
+## Acknowledgements / prior art
+
+NCP builds in the spirit of established work and claims no novel control science:
+
+- **MCP / ACP** — versioned, schema-first capability handshakes for agents inform NCP's control-plane versioning and capability negotiation.
+- **MUSIC** (Djurfeldt et al. 2010) and the **ROS-MUSIC toolchain** (Weidel et al. 2016) — the continuous-(V_m/rate) vs event-(spikes) channel taxonomy and the first real-time NEST-to-robot closed loops; NCP is informed by, not a replacement for, this lineage.
+- **HBP Neurorobotics Platform / NRP-core** — the closest data-model prior art for declaring what to record and inject.
+- **Zenoh** — the data-centric transport whose queryables, conflation, express priority, and routed subscriptions NCP inherits (credited to the substrate, not invented here).
+
+NCP's actual contribution is a **typed, provenance-first, safety-gated wire contract** that complements this work — not novel control science, and not the first SNN-in-the-loop robot loop.
+</content>
+</invoke>
