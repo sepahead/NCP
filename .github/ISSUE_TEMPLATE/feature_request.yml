@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a new capability or a change to NCP.
+title: "feat: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement. NCP is pre-1.0 — changes that touch the wire format
+        (frames, planes, schema/proto) carry extra cost, so please flag wire impact below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem are you trying to solve? What is the use case, and why is the current behavior insufficient?
+      placeholder: |
+        When ... I cannot ... because ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed change
+      description: Describe the solution you'd like. Be as concrete as you can (API shape, frame fields, behavior).
+    validations:
+      required: true
+  - type: dropdown
+    id: wire-impact
+    attributes:
+      label: Does this change the wire format?
+      description: Does it alter frames, planes, the schema, or the proto definitions in a way other peers must understand?
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider, and why did you discard them?
+    validations:
+      required: false

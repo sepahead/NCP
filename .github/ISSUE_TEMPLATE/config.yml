@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & discussions
+    url: https://github.com/sepehrmn/NCP/discussions
+    about: Ask questions, share ideas, or discuss design before opening an issue.
+  - name: Protocol specification
+    url: https://github.com/sepehrmn/NCP/blob/main/NEURO_CYBERNETIC_PROTOCOL.md
+    about: Read the NCP spec before reporting wire-format or conformance behavior.
+  - name: Security policy
+    url: https://github.com/sepehrmn/NCP/blob/main/SECURITY.md
+    about: Report security issues privately — do not open a public issue.

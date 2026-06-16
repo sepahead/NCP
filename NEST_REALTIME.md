@@ -129,6 +129,15 @@ then up to 3 timed reps with the **MIN wall** reported. NEST 3.8.0, OpenMP-only,
 single MPI rank, 16 physical cores, 128 GB RAM. Reproduce with
 [`scripts/bench_realtime.py`](scripts/bench_realtime.py).
 
+The full benchmark methodology — this real-time sweep plus the chunk-overhead and
+I/O-overlap/GIL benchmarks, with the timing protocol, correctness/equivalence
+checks, exact commands, environment, and caveats (including the `conda run`
+stdout-buffering caveat: run the env interpreter directly with `-u`) — is
+documented once in
+[`PERFORMANCE.md` → Benchmark methodology & reproducibility](PERFORMANCE.md#benchmark-methodology--reproducibility).
+This section keeps the sizing results; see there for the method shared across all
+three benchmarks.
+
 ### Real-time factor vs network size and threads
 
 `rt` (bio-s per wall-s); **bold** = real time or faster.
