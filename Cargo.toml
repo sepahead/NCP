@@ -31,7 +31,7 @@ license = "MIT"
 authors = ["Sepehr Mahmoudian"]
 repository = "https://github.com/sepehrmn/NCP"
 homepage = "https://github.com/sepehrmn/NCP"
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 
 [workspace.dependencies]
 ncp-core = { path = "ncp-core", version = "0.2.0" }

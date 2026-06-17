@@ -15,13 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.85.0").
-      # 1.85 is the floor: transitive deps in Cargo.lock (e.g. time-core, unzip-n)
-      # now require the `edition2024` cargo feature, stabilized in Rust 1.85.
+      # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.88.0").
+      # 1.88 is the floor: transitive deps in Cargo.lock (darling, time/time-core,
+      # rcgen, serde_with, home) declare rust-version 1.88, and edition2024 deps
+      # need >=1.85 — the old 1.81.0 pin could not even parse their manifests.
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.85.0"
+          toolchain: "1.88.0"
           components: rustfmt, clippy
 
       - name: Cache cargo build artifacts

@@ -67,11 +67,12 @@ version guard, so peers must speak `0.2`.
   tree.
 
 ### Fixed
-- **CI was red on every push and PR.** Transitive deps in `Cargo.lock` (e.g.
-  `time-core`, `unzip-n`) now require the `edition2024` cargo feature, which the
-  pinned `1.81.0` toolchain cannot parse. Bumped the MSRV / CI toolchain to
-  **1.85.0** (`Cargo.toml`, `ci.yml`, `release.yml`, README badge), unblocking the
-  fmt/clippy/test gate and the dependabot dependency PRs.
+- **CI was red on every push and PR.** Transitive deps in `Cargo.lock` (`darling`,
+  `time`/`time-core`, `rcgen`, `serde_with`, `home`) declare `rust-version 1.88`,
+  and edition2024 deps need ≥1.85 — the pinned `1.81.0` toolchain could not even
+  parse their manifests. Bumped the MSRV / CI toolchain to **1.88.0** (`Cargo.toml`,
+  `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
+  the dependabot dependency PRs.
 
 [Unreleased]: https://github.com/sepehrmn/NCP/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/sepehrmn/NCP/releases/tag/v0.2.0
