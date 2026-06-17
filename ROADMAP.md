@@ -11,7 +11,7 @@
 ## Status: what NCP v0.x is, and is not
 
 NCP v0.x is a versioned, transport-agnostic wire contract that serves a running
-NEST spiking neural network to external robot/UAV/analysis clients over
+NEST point- and rate-neuron network to external robot/UAV/analysis clients over
 QoS-differentiated Zenoh planes, with scientific provenance baked into every frame
 (`is_simulation_output=true`, `calibrated_posterior=false`) and a safety-gated
 action plane (`mode ∈ {init,active,hold,estop}`, `ttl_ms` fail-safe). It is a

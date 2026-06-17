@@ -1,6 +1,6 @@
 # NCP — Neuro-Cybernetic Protocol
 
-> A single versioned, typed, cross-language **wire contract** for a running spiking neural simulation to perceive and act through robots, UAVs, and analysis clients — safety-gated and provenance-first.
+> A single versioned, typed, cross-language **wire contract** for a running NEST point- and rate-neuron simulation (spiking, binary, and rate-based models) to perceive and act through robots, UAVs, and analysis clients — safety-gated and provenance-first.
 
 [![CI](https://github.com/sepehrmn/NCP/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehrmn/NCP/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -12,7 +12,7 @@
 
 ## What is NCP
 
-NCP is a versioned, transport-agnostic wire contract that lets a running NEST spiking neural network serve external robot, UAV, and analysis clients — for **perception, action, both, or neither** — over QoS-differentiated planes with a safety-gated action plane and scientific provenance on every frame. The reference implementation is a Rust SDK with Python, C/C++, and TypeScript peers that all speak the identical wire.
+NCP is a versioned, transport-agnostic wire contract that lets a running NEST network — point neurons (spiking, binary) and rate-based models — serve external robot, UAV, and analysis clients — for **perception, action, both, or neither** — over QoS-differentiated planes with a safety-gated action plane and scientific provenance on every frame. The reference implementation is a Rust SDK with Python, C/C++, and TypeScript peers that all speak the identical wire.
 
 **Honesty boundary (binding):** returned `V_m`/spikes are raw simulation outputs of a specified model, never a validated reproduction. Every frame carries `is_simulation_output=true` and `calibrated_posterior=false`. A neuro-controller is a **control artifact**, never a paper-reproduction claim.
 
@@ -23,7 +23,7 @@ One commander (an Engram/NEST brain) coordinates one or more bodies over four Qo
 ```mermaid
 flowchart LR
     subgraph Commander["Commander — Engram / NEST brain"]
-        BRAIN["spiking network<br/>(perception · action · both · neither)"]
+        BRAIN["neural network · point + rate<br/>(perception · action · both · neither)"]
     end
 
     subgraph Bodies["Bodies & clients"]

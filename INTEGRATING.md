@@ -1,7 +1,7 @@
 # Integrating NCP into a new project
 
 NCP is designed so adopting it is **simple and minimally invasive** — and, for the
-"a NEST spiking network served live to external clients" use case, better than the
+"a NEST point/rate neural network served live to external clients" use case, better than the
 alternatives (the honest comparison, including where it is *not*, is in
 [`RATIONALE.md`](RATIONALE.md)).
 

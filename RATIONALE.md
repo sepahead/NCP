@@ -9,8 +9,9 @@
 ## Thesis (and an honest caveat about it)
 
 NCP occupies a specific design point: a **versioned, transport-agnostic,
-project-agnostic wire contract that serves a running NEST spiking neural network
-to external, possibly-remote robot/UAV/analysis clients** — with neural
+project-agnostic wire contract that serves a running NEST network of point and
+rate neurons (spiking, binary, and rate-based models) to external,
+possibly-remote robot/UAV/analysis clients** — with neural
 record/stimulus semantics, a scientific-provenance boundary on every frame,
 QoS-differentiated planes, a first-class command-mode safety concept, and a
 read-only observer tap.
