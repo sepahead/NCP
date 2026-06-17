@@ -1,1 +1,5 @@
 /target
+
+# TS package
+node_modules/
+ncp-ts/node_modules/
