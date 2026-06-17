@@ -8,5 +8,11 @@ export type RecordTarget = {
     observable: Observable;
     ids: Array<bigint>;
     cadence_ms: number;
+    /**
+     * Generic named multimeter recordables (model-specific: e.g. `g_ex`/`g_in`
+     * for conductance models, `w` for aeif, `rate` for rate models). Empty =
+     * just `observable`. Resolved via NEST multimeter `record_from`. (#10)
+     */
+    recordables: Array<string>;
 };
 //# sourceMappingURL=RecordTarget.d.ts.map
