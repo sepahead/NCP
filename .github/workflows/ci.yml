@@ -50,6 +50,11 @@ jobs:
       - name: Proto <-> JSON-Schema parity
         run: python3 scripts/check_proto_schema_parity.py
 
+      # Conformance corpus: golden message instances validated against the
+      # schemas — the language-agnostic interop corpus any peer can run.
+      - name: Conformance vectors
+        run: python3 scripts/check_conformance_vectors.py
+
   buf:
     name: buf lint + build
     runs-on: ubuntu-latest
