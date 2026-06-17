@@ -35,8 +35,11 @@ authorization, modelled on the established robotics-control-bus mechanisms:
   signing**) so a replayed or forged command is rejectable.
 
 This is tracked as ROADMAP **P0** (authenticate the action plane) and
-[#7](https://github.com/sepehrmn/NCP/issues/7). Until it ships, the closed-realm
-guidance above stands.
+[#7](https://github.com/sepehrmn/NCP/issues/7). A per-plane Zenoh ACL template
+(default-deny; only authenticated controllers may publish commands; observers are
+read-only) is provided at [`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5)
+— pair it with mutual TLS so the controller identity is proven. Until this ships
+in a deployment, the closed-realm guidance above stands.
 
 ## Supported versions
 
