@@ -63,6 +63,7 @@ enum Observable {
   SPIKES = 2;                 // wire string "spikes"
   RATE = 3;                   // wire string "rate"
   WEIGHT = 4;                 // wire string "weight"
+  BINARY_STATE = 5;           // wire string "binary_state" — spin_detector (binary neurons)
 }
 
 enum StimulusKind {
@@ -71,6 +72,7 @@ enum StimulusKind {
   RATE_HZ = 2;                // wire string "rate_hz"
   SPIKE_TIMES = 3;            // wire string "spike_times"
   WEIGHT_SET = 4;             // wire string "weight_set"
+  RATE_INJECT = 5;            // wire string "rate_inject" — continuous-rate drive (rate neurons)
 }
 
 enum NetworkRefKind {
@@ -141,6 +143,7 @@ message RecordTarget {
   Observable observable = 3;
   repeated int64 ids = 4;      // empty = all
   double cadence_ms = 5;
+  repeated string recordables = 6;  // generic named multimeter recordables (g_ex, g_in, w, rate, …)
 }
 
 // Nested spec wrapper (matches the JSON: record.targets / stimulus.targets).
@@ -153,6 +156,7 @@ message StimulusTarget {
   string target = 2;
   StimulusKind kind = 3;
   repeated int64 ids = 4;
+  map<string, double> params = 5;  // named params (e.g. siegert drift_factor / diffusion_factor)
 }
 
 message StimulusSpec {
@@ -233,6 +237,7 @@ message Observation {
   repeated double values = 5;    // analog values (parallel to times)
   repeated int64 senders = 6;    // spike sender ids (parallel to times)
   string unit = 7;
+  string recordable = 8;         // named recordable this series carries (g_ex, w, …); "" = observable
 }
 
 message ObservationFrame {
