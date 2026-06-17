@@ -2,8 +2,10 @@
 //
 // The action/command plane is world-writable on an open realm (see SECURITY.md):
 // anyone who can reach `{realm}/session/*/command` can drive an actuator. This
-// config closes that with a default-DENY ACL that only lets an *authenticated*
-// controller PUBLISH commands, while observers may only SUBSCRIBE/read.
+// config closes that with a default-DENY ACL in which only the *authenticated*
+// `engram` subject may PUBLISH commands; the robot publishes only its sensors and
+// reads commands; observers may only READ. The three planes get distinct
+// per-subject permissions, so a perception-only client can never command.
 //
 // TEMPLATE — adapt `realm`, cert common-names, and interfaces to your deployment,
 // and pair with TLS (mutual auth) so `cert_common_names` is actually proven.
@@ -17,51 +19,104 @@
     default_permission: "deny",
 
     rules: [
-      // Controllers may PUBLISH on the action (command) and stimulus planes.
+      // ── Engram (the simulation/brain): the ONLY subject permitted to PUBLISH
+      // on the safety-critical action (command) plane. Also emits neural data on
+      // the observation plane, reads sensors to compute, and answers the
+      // session-lifecycle RPC queryable.
       {
-        id: "controller-writes-command",
+        id: "engram-publishes-command-observation",
         messages: ["put", "delete"],
         flows: ["ingress", "egress"],
         permission: "allow",
         key_exprs: [
           "engram/ncp/session/*/command/**",
-          "engram/ncp/session/*/sensor/**", // controller reads sensors (perception)
+          "engram/ncp/session/*/observation",
         ],
       },
-      // Anyone authenticated may READ the perception/observation planes (the
-      // free read-only observer tap) but NOT write the action plane.
+      {
+        id: "engram-reads-sensor",
+        messages: ["declare_subscriber", "get"],
+        flows: ["ingress", "egress"],
+        permission: "allow",
+        key_exprs: ["engram/ncp/session/*/sensor/**"],
+      },
+      {
+        id: "engram-serves-rpc",
+        messages: ["declare_queryable", "reply"],
+        flows: ["ingress", "egress"],
+        permission: "allow",
+        key_exprs: ["engram/ncp/rpc"],
+      },
+
+      // ── Robot / plant (the body): publishes its own sensors and subscribes
+      // commands. It can NEVER publish on the command or observation planes — it
+      // holds no rule that PUTs there, so default-deny blocks it.
+      {
+        id: "robot-publishes-sensor",
+        messages: ["put", "delete"],
+        flows: ["ingress", "egress"],
+        permission: "allow",
+        key_exprs: ["engram/ncp/session/*/sensor/**"],
+      },
+      {
+        id: "robot-reads-command",
+        messages: ["declare_subscriber", "get"],
+        flows: ["ingress", "egress"],
+        permission: "allow",
+        key_exprs: ["engram/ncp/session/*/command/**"],
+      },
+
+      // ── Session lifecycle: any authenticated client (robot/observer) may QUERY
+      // the RPC key to open/close a session. WITHOUT this `get`, a default-deny
+      // realm would block every session from ever opening.
+      {
+        id: "client-queries-rpc",
+        messages: ["get"],
+        flows: ["ingress", "egress"],
+        permission: "allow",
+        key_exprs: ["engram/ncp/rpc"],
+      },
+
+      // ── Observers (analysis taps): READ-ONLY on the perception + observation
+      // planes. Never the action plane — a perception-only client cannot command.
       {
         id: "observer-reads",
         messages: ["declare_subscriber", "get"],
         flows: ["ingress", "egress"],
         permission: "allow",
         key_exprs: [
-          "engram/ncp/session/*/observation",
           "engram/ncp/session/*/sensor/**",
+          "engram/ncp/session/*/observation",
         ],
       },
-      // The session service answers the control-plane RPC queryable.
-      {
-        id: "service-rpc",
-        messages: ["declare_queryable", "reply"],
-        flows: ["ingress", "egress"],
-        permission: "allow",
-        key_exprs: ["engram/ncp/rpc"],
-      },
     ],
 
-    // Identity: map proven mTLS client-cert common-names to subjects.
+    // Identity: map PROVEN mTLS client-cert common-names to subjects. Pair this
+    // with mutual TLS (see SECURITY.md "Enabling transport authentication") so
+    // these common-names are actually proven — an open realm without mTLS makes
+    // every subject trivially spoofable and this ACL meaningless.
     subjects: [
-      { id: "controller", cert_common_names: ["controller.*"] },
+      { id: "engram", cert_common_names: ["engram-service.*", "engram.*"] },
+      { id: "robot", cert_common_names: ["robot.*", "uav.*", "body.*"] },
       { id: "observer", cert_common_names: ["observer.*", "analysis.*"] },
-      { id: "service", cert_common_names: ["engram-service.*"] },
     ],
 
-    // Bind rules to subjects (a perception-only observer can never command).
+    // Bind rules to subjects. THE SAFETY INVARIANT: only `engram` holds a rule
+    // that PUTs on `…/command/**`; neither `robot` nor `observer` ever can.
     policies: [
-      { rules: ["controller-writes-command"], subjects: ["controller"] },
-      { rules: ["observer-reads"], subjects: ["observer", "controller"] },
-      { rules: ["service-rpc"], subjects: ["service"] },
+      {
+        rules: [
+          "engram-publishes-command-observation",
+          "engram-reads-sensor",
+          "engram-serves-rpc",
+        ],
+        subjects: ["engram"],
+      },
+      {
+        rules: ["robot-publishes-sensor", "robot-reads-command", "client-queries-rpc"],
+        subjects: ["robot"],
+      },
+      { rules: ["observer-reads", "client-queries-rpc"], subjects: ["observer"] },
     ],
   },
 }

@@ -64,6 +64,15 @@ and **`T_run` dominates**. NCP adds no meaningful slowdown.
 - **Raw spike streaming** at high rate produces large JSON. Use `RATE`/counts for
   the control loop; stream raw spikes only on the observation/analysis plane
   (an analysis/observer client), which is loss-tolerant.
+- **Bulk column codec for the observation plane (#6).** When raw spikes/V_m traces
+  *are* streamed on the analysis plane, the JSON/`repeated double` serialize cost
+  scales O(events) (~11 ms for 50k spikes). `ncp-core::bulk` packs those arrays as
+  a self-describing little-endian **column block** (proto `BulkObservation.block`):
+  fixed-width, parse-free (bulk `copy_from_slice`, no tokenizer), random-access via
+  a column directory, and ~2× smaller with the `f32`/`i32` column widths. It is an
+  additive, negotiated wire option carried **only** on the observation/analysis
+  plane — never the hot action loop (Sensor/Command stay JSON/protobuf). The
+  canonical JSON `ObservationFrame` remains the always-available representation.
 
 ## Compared with SOTA (June 2026)
 

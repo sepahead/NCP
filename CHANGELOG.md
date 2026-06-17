@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-17
+
 Pre-1.0 / pre-release: the wire contract may still change. The crates are versioned
-`0.1.0` in `Cargo.toml`; not yet tagged or published to crates.io.
+`0.2.0` in `Cargo.toml` and the wire `ncp_version` string is `"0.2"`; tagged
+`v0.2.0` (the first proto-bearing baseline, used by the `buf breaking` gate). The
+`0.1`→`0.2` changes are additive, but a pre-1.0 minor bump is fail-closed by the
+version guard, so peers must speak `0.2`.
 
 ### Added
 - Initial protocol + Rust reference SDK (`ncp-core`, `ncp-zenoh`, `ncp-gateway`,
@@ -30,6 +35,21 @@ Pre-1.0 / pre-release: the wire contract may still change. The crates are versio
   target), a golden-vector **conformance corpus** (`conformance/vectors/` +
   `scripts/check_conformance_vectors.py`, in CI), and `deploy/zenoh-access-control.json5`
   (per-plane ACL template).
+- **Bulk column codec (#6):** `ncp-core::bulk` — a packed little-endian, parse-free,
+  random-access column block (`f32`/`f64`/`i32`/`i64`) for bulk observation arrays
+  (spike trains, V_m traces), with the `BulkObservation` proto envelope. Additive,
+  observation-plane-only (never the hot action loop); fully bounds-checked decode of
+  untrusted bytes. A binary golden vector (`conformance/vectors/bulk_observation.bin`)
+  + a Python reference decoder make it cross-language conformance-checked, byte-pinned
+  to the Rust encoder.
+- **Conformance corpus now spans JSON *and* binary (#9):** the validator checks the
+  bulk binary vector via a stdlib reference decoder; `GOVERNANCE.md` documents the
+  governance model + neutral-home path.
+- **Action-plane authentication (#7):** corrected and completed the per-plane Zenoh
+  ACL template into a functional default-deny policy (distinct engram/robot/observer
+  subjects; only `engram` may publish commands; clients may query the RPC), and added
+  concrete TLS+ACL enablement steps to `SECURITY.md` (DDS-Security / MAVLink-2-signing
+  comparators already documented).
 - `@sepehrmn/ncp` TypeScript package (`ncp-ts`): generated wire types, a
   transport-agnostic `NeuroSimClient`, and a WebSocket transport. The client
   surfaces server `{kind:"error"}` frames as thrown errors and rejects unsafe
@@ -46,4 +66,12 @@ Pre-1.0 / pre-release: the wire contract may still change. The crates are versio
   wire contract ships with the reference implementation rather than living out of
   tree.
 
-[Unreleased]: https://github.com/sepehrmn/NCP/commits/main
+### Fixed
+- **CI was red on every push and PR.** Transitive deps in `Cargo.lock` (e.g.
+  `time-core`, `unzip-n`) now require the `edition2024` cargo feature, which the
+  pinned `1.81.0` toolchain cannot parse. Bumped the MSRV / CI toolchain to
+  **1.85.0** (`Cargo.toml`, `ci.yml`, `release.yml`, README badge), unblocking the
+  fmt/clippy/test gate and the dependabot dependency PRs.
+
+[Unreleased]: https://github.com/sepehrmn/NCP/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sepehrmn/NCP/releases/tag/v0.2.0

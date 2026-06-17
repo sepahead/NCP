@@ -36,10 +36,41 @@ authorization, modelled on the established robotics-control-bus mechanisms:
 
 This is tracked as ROADMAP **P0** (authenticate the action plane) and
 [#7](https://github.com/sepehrmn/NCP/issues/7). A per-plane Zenoh ACL template
-(default-deny; only authenticated controllers may publish commands; observers are
-read-only) is provided at [`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5)
-— pair it with mutual TLS so the controller identity is proven. Until this ships
-in a deployment, the closed-realm guidance above stands.
+(default-deny; only the authenticated `engram` subject may publish commands, the
+robot publishes only its sensors, observers are read-only) is provided at
+[`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5) — pair it
+with mutual TLS so each subject's identity is proven. Until this ships in a
+deployment, the closed-realm guidance above stands.
+
+## Enabling transport authentication (TLS + ACL)
+
+The ACL only binds authorization to identity if that identity is **proven** by
+mutual TLS — without mTLS the `cert_common_names` are spoofable and the ACL is
+meaningless. To stand up an authenticated realm:
+
+1. **Issue certificates.** Create a CA, then per-subject client certs whose Common
+   Names match the ACL `subjects` globs: `engram-service` (the brain),
+   `robot-<id>`/`uav-<id>` (each body), `observer-<id>`/`analysis-<id>` (taps).
+   Keep the CA key offline; rotate leaf certs per deployment policy.
+2. **Enable mutual TLS on the Zenoh endpoints.** In the router (and every peer)
+   config, use a TLS listen endpoint and require client auth — e.g.
+   `listen/endpoints: ["tls/0.0.0.0:7447"]` plus the `transport/link/tls` block
+   (`root_ca_certificate`, `listen_certificate`, `listen_private_key`, and
+   **`enable_mutual_authentication: true`**); each peer presents its
+   `connect_certificate`/`connect_private_key`. mTLS is what turns a cert Common
+   Name into a *proven* `subjects` match.
+3. **Apply the ACL.** Merge [`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5)
+   into the router/session config (`zenohd --config …` or the embedded
+   `with_config` block). `default_permission: "deny"` rejects anything not
+   explicitly allowed.
+4. **Verify the invariant.** With the realm up, confirm an `observer`/`robot`
+   identity is *rejected* when it `put`s on `…/session/*/command/**`, and that
+   `engram` succeeds — the action plane is then authenticated, not world-writable.
+
+Schema field names follow the Zenoh 1.x access-control config; validate against
+your Zenoh version (authoritative: the zenoh.io configuration docs) before relying
+on it. Live mTLS deployment validation is the remaining P0 item on
+[#7](https://github.com/sepehrmn/NCP/issues/7).
 
 ## Supported versions
 

@@ -13,13 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.81.0").
+      # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.85.0").
+      # 1.85 is the floor: transitive deps in Cargo.lock (e.g. time-core, unzip-n)
+      # now require the `edition2024` cargo feature, stabilized in Rust 1.85.
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.81.0"
+          toolchain: "1.85.0"
           components: rustfmt, clippy
 
       - name: Cache cargo build artifacts
@@ -60,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install buf
         uses: bufbuild/buf-setup-action@v1
       # The normative wire IDL (proto/ncp.proto) must build and lint. Language-

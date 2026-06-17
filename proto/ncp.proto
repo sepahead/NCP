@@ -255,6 +255,29 @@ message ObservationFrame {
   bool is_simulation_output = 9;          // always true
 }
 
+// (#6) Bulk numeric observation carried as a packed little-endian COLUMN BLOCK
+// instead of `repeated double`/`int64` — the parse-free, random-access encoding
+// for large spike trains and analog traces. The metadata stays in this thin
+// envelope; `block` carries the columns (`times`/`values`/`senders`) as the
+// self-describing block defined by `ncp-core::bulk` (magic "NCPB", version 1:
+// header + per-column directory of byte offsets + name pool + LE column data).
+//
+// BOUNDARY: this rides the OBSERVATION/ANALYSIS plane only — never the hot action
+// loop (Sensor/Command/Stimulus stay JSON/protobuf). It is an ADDITIVE, negotiated
+// option; the JSON `ObservationFrame` above remains the canonical representation.
+// A binary golden vector lives in `conformance/` so any-language peers can verify
+// their packed-LE codec. See PERFORMANCE.md / RATIONALE.md and issue #6.
+message BulkObservation {
+  string ncp_version = 1;
+  string kind = 2;                        // "bulk_observation"
+  string port = 3;
+  string target = 4;
+  Observable observable = 5;
+  string unit = 6;
+  string recordable = 7;                  // (#10) named recordable this series carries ("" = `observable`)
+  bytes block = 8;                        // packed LE column block ("NCPB" v1); columns: times,values,senders
+}
+
 message CloseSession {
   string ncp_version = 1;
   string kind = 2;                  // "close_session"

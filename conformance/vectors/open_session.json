@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.1",
+  "ncp_version": "0.2",
   "kind": "open_session",
   "session_id": "vec-open-1",
   "network": { "kind": "builtin", "ref": "iaf_cond_exp", "population_sizes": { "feat": 4 } },

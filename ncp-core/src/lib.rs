@@ -36,6 +36,7 @@
 //! assert!(json.contains("\"kind\":\"open_session\""));
 //! ```
 
+pub mod bulk;
 pub mod bus;
 pub mod codec;
 pub mod keys;
@@ -44,6 +45,7 @@ pub mod resilience;
 pub mod safety;
 pub mod transport;
 
+pub use bulk::{observation_from_bulk, BulkBlock, BulkError, Column, BULK_MAGIC, BULK_VERSION};
 pub use bus::{Bus, BusError, LocalBus, NcpBusClient, NcpBusServer, QueryHandler, SubCallback};
 pub use codec::{default_uav_velocity_codec, CodecSpec, DecoderChannelMap, EncoderChannelMap};
 pub use keys::{valid_id_segment, Keys, DEFAULT_REALM};
@@ -87,7 +89,7 @@ mod wire_tests {
     #[test]
     fn step_request_roundtrip_from_python_json() {
         let json = r#"{
-            "ncp_version": "0.1",
+            "ncp_version": "0.2",
             "kind": "step_request",
             "session_id": "s1",
             "advance_ms": 50.0,
@@ -126,10 +128,12 @@ mod wire_tests {
 
     #[test]
     fn version_guard() {
-        // Wire is pre-1.0 (0.1), so the minor is breaking: an exact (major,
+        // Wire is pre-1.0 (0.2), so the minor is breaking: an exact (major,
         // minor) match is required and a same-major/different-minor is rejected.
-        assert!(check_version("0.1", true).unwrap()); // exact match ok
-        assert!(check_version("0.9", true).is_err()); // 0.x minor diff is breaking -> Err under strict
+        assert!(check_version("0.2", true).unwrap()); // exact match ok
+        assert!(check_version("0.1", true).is_err()); // old 0.1 wire is now a breaking minor diff -> Err under strict
+        assert!(!check_version("0.1", false).unwrap()); // ...and Ok(false) when lenient
+        assert!(check_version("0.9", true).is_err()); // any other 0.x minor diff is breaking
         assert!(!check_version("0.9", false).unwrap()); // ...and Ok(false) when lenient
         assert!(!check_version("1.0", false).unwrap()); // different major incompatible
         assert!(check_version("1.0", true).is_err());

@@ -18,11 +18,13 @@ projection) with [SemVer](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 **Pre-1.0 caveat (current):** while `0.x`, a **minor bump is treated as
 breaking** — the version guard fails closed on any `0.x` minor difference
-(`check_version`). Pin an exact version (`tag = "v0.1.0"`) for anything you build
+(`check_version`). Pin an exact version (`tag = "v0.2.0"`) for anything you build
 against. `0.x` is explicitly unstable.
 
-The current wire is **`0.1`** (`ncp_version = "0.1"`); receivers check the
-**major** of `ncp_version` for compatibility (see §version negotiation).
+The current wire is **`0.2`** (`ncp_version = "0.2"`); receivers check the
+**major** of `ncp_version` for compatibility (see §version negotiation). `0.2`
+added the neuron-family wire (#10) and the bulk column codec (#6) over `0.1` —
+both additive, but a pre-1.0 minor bump, so a `0.1` peer is fail-closed rejected.
 
 ## Enforcement: `buf breaking`
 
@@ -32,8 +34,8 @@ rules (configured in `buf.yaml`):
 - **`WIRE` / `WIRE_JSON`** — binary and JSON wire compatibility (the contract).
 - **`FILE` / `PACKAGE`** — source/codegen-level stability.
 
-CI runs `buf lint`; `buf breaking` against the last released tag gates the wire
-across releases (enable once a `v0.2.0` baseline is cut — see `.github/workflows/ci.yml`).
+CI runs `buf lint`; `buf breaking` gates the wire against the last released tag
+(`v0.2.0`, the first proto-bearing baseline — see `.github/workflows/ci.yml`).
 A change that trips `WIRE`/`WIRE_JSON` **must** bump MAJOR (or MINOR while `0.x`).
 
 ## Per-session version negotiation (target)

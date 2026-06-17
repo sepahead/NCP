@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 /// Protocol version (semver). While pre-1.0 (`0.x`) receivers check the full
 /// `(major, minor)`; once `>=1.0` they check the **major** only. See
 /// [`check_version`].
-pub const NCP_VERSION: &str = "0.1";
+pub const NCP_VERSION: &str = "0.2";
 
 fn ncp_version() -> String {
     NCP_VERSION.to_string()

@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.81.0").
+      # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.85.0").
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.81.0"
+          toolchain: "1.85.0"
 
       - name: Cache cargo build artifacts
         uses: Swatinem/rust-cache@v2

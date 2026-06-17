@@ -14,12 +14,95 @@ by checking concrete *instances* — the language-agnostic interop corpus.
 from __future__ import annotations
 
 import json
+import struct
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = REPO / "schemas"
 VECTOR_DIR = REPO / "conformance" / "vectors"
+
+# ── Binary bulk-codec vectors (#6) ──────────────────────────────────────────
+# The observation plane may carry bulk numeric arrays as a packed little-endian
+# COLUMN BLOCK (ncp-core::bulk; proto `BulkObservation.block`) instead of
+# repeated double/int64. This is the language-agnostic reference DECODER for that
+# block, so a peer in any language can verify its codec against the committed
+# `conformance/vectors/*.bin` (the Rust encoder is byte-pinned to the same files
+# by `bulk::tests::matches_committed_golden_vector`).
+_BULK_MAGIC = b"NCPB"
+_BULK_VERSION = 1
+_DT = {1: ("<f", 4, "f32"), 2: ("<d", 8, "f64"), 3: ("<i", 4, "i32"), 4: ("<q", 8, "i64")}
+
+
+def decode_bulk(buf: bytes) -> list[tuple[str, str, list]]:
+    """Decode a packed bulk column block -> [(name, dtype, values), ...].
+
+    Fully bounds-checked, like the Rust `BulkBlock::decode`; raises ValueError on
+    a malformed/truncated/oversize block rather than over-reading."""
+    if len(buf) < 12:
+        raise ValueError("bulk block shorter than header")
+    if buf[0:4] != _BULK_MAGIC:
+        raise ValueError("bad magic")
+    if buf[4] != _BULK_VERSION:
+        raise ValueError(f"unsupported version {buf[4]}")
+    if buf[5] != 0:
+        raise ValueError(f"unsupported flags {buf[5]:#x}")
+    n_cols = struct.unpack_from("<H", buf, 6)[0]
+    total = struct.unpack_from("<I", buf, 8)[0]
+    if total != len(buf):
+        raise ValueError(f"total_len {total} != buffer {len(buf)}")
+    if 12 + n_cols * 16 > len(buf):
+        raise ValueError("directory out of bounds")
+    cols = []
+    for i in range(n_cols):
+        base = 12 + i * 16
+        name_off = struct.unpack_from("<I", buf, base)[0]
+        name_len = struct.unpack_from("<H", buf, base + 4)[0]
+        dtype = buf[base + 6]
+        n_rows = struct.unpack_from("<I", buf, base + 8)[0]
+        data_off = struct.unpack_from("<I", buf, base + 12)[0]
+        if dtype not in _DT:
+            raise ValueError(f"unknown dtype {dtype}")
+        fmt, width, name = _DT[dtype]
+        if name_off + name_len > len(buf) or data_off + n_rows * width > len(buf):
+            raise ValueError("offset/length out of bounds")
+        col_name = buf[name_off : name_off + name_len].decode("utf-8")
+        vals = [struct.unpack_from(fmt, buf, data_off + j * width)[0] for j in range(n_rows)]
+        cols.append((col_name, name, vals))
+    return cols
+
+
+# Expected decode of each committed binary vector (the conformance assertion).
+_BULK_EXPECTED = {
+    "bulk_observation.bin": [
+        ("times", "f64", [1.5, 2.5, 9.0]),
+        ("senders", "i64", [7, 7, 9]),
+    ],
+}
+
+
+def check_bulk_vectors() -> int:
+    """Validate every `conformance/vectors/*.bin` decodes to its expected columns.
+    Returns the error count."""
+    errs = 0
+    for bp in sorted(VECTOR_DIR.glob("*.bin")):
+        expected = _BULK_EXPECTED.get(bp.name)
+        try:
+            got = decode_bulk(bp.read_bytes())
+        except ValueError as e:
+            print(f"  ✗ {bp.name}: decode failed: {e}")
+            errs += 1
+            continue
+        if expected is None:
+            print(f"  ? {bp.name}: decoded {len(got)} column(s) (no expectation registered)")
+            continue
+        if got != expected:
+            print(f"  ✗ {bp.name}: decoded {got} != expected {expected}")
+            errs += 1
+        else:
+            cols = ", ".join(f"{n}:{dt}[{len(v)}]" for n, dt, v in got)
+            print(f"  ✓ {bp.name} (bulk: {cols})")
+    return errs
 
 
 def load_schemas() -> dict:
@@ -100,11 +183,20 @@ def main() -> int:
             total_errs += len(errs)
         else:
             print(f"  ✓ {vp.name} ({kind})")
+
+    # Binary bulk-codec vectors (#6) — packed little-endian column blocks.
+    bulk_errs = check_bulk_vectors()
+    total_errs += bulk_errs
+    n_bin = len(list(VECTOR_DIR.glob("*.bin")))
+
     print()
     if total_errs:
         print(f"FAIL: {total_errs} conformance error(s).")
         return 1
-    print(f"PASS: {len(vectors)} golden vectors conform to the schemas.")
+    print(
+        f"PASS: {len(vectors)} JSON + {n_bin} binary golden vectors conform "
+        f"(schemas + bulk codec)."
+    )
     return 0
 
 
