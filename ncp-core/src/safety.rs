@@ -353,6 +353,9 @@ impl SafetyGovernor {
 pub struct CommandWatchdog {
     last_recv_s: Option<f64>,
     ttl_s: f64,
+    /// Highest accepted command `seq`. The deadline refreshes only on a strictly
+    /// advancing seq, so a stale/duplicate command cannot extend liveness.
+    last_seq: i64,
 }
 
 impl CommandWatchdog {
@@ -360,8 +363,18 @@ impl CommandWatchdog {
         Self::default()
     }
 
-    /// Record an accepted command received at local time `now_s` with its `ttl_ms`.
-    pub fn on_command(&mut self, now_s: f64, ttl_ms: f64) {
+    /// Record an accepted command received at local time `now_s` with its `ttl_ms`
+    /// and `seq`. The deadline refreshes only when `seq` strictly advances — a
+    /// duplicate/stale/replayed command (`seq <= last`) must NOT extend liveness, or
+    /// a trickle of stale frames would keep the plant "fresh" forever. `seq == 0` is
+    /// the all-zero-seq escape hatch (pull/sim streams that do not stamp seq).
+    pub fn on_command(&mut self, now_s: f64, ttl_ms: f64, seq: i64) {
+        if seq != 0 && seq <= self.last_seq {
+            return; // stale/duplicate command does not refresh the deadline
+        }
+        if seq != 0 {
+            self.last_seq = seq;
+        }
         self.last_recv_s = Some(now_s);
         self.ttl_s = ttl_ms.max(0.0) / 1000.0;
     }
@@ -393,9 +406,28 @@ mod tests {
     fn command_watchdog_enforces_ttl() {
         let mut wd = CommandWatchdog::new();
         assert!(wd.should_hold(0.0), "no command yet -> HOLD");
-        wd.on_command(1.0, 200.0); // ttl 200 ms
+        wd.on_command(1.0, 200.0, 1); // ttl 200 ms
         assert!(!wd.should_hold(1.1), "within ttl -> apply");
         assert!(wd.should_hold(1.3), "0.3 s > 0.2 s ttl -> HOLD");
+    }
+
+    #[test]
+    fn duplicate_command_does_not_extend_ttl() {
+        let mut wd = CommandWatchdog::new();
+        wd.on_command(1.0, 200.0, 5); // accepted; ttl 200 ms
+        // Stale/duplicate commands (seq <= 5) must NOT refresh the deadline.
+        wd.on_command(1.15, 200.0, 5); // duplicate
+        wd.on_command(1.15, 200.0, 3); // older
+        assert!(
+            wd.should_hold(1.25),
+            "deadline anchored at the seq=5 command; stale frames must not extend it"
+        );
+        // A strictly-advancing command refreshes it.
+        wd.on_command(1.2, 200.0, 6);
+        assert!(!wd.should_hold(1.3), "seq=6 advances -> refreshed");
+        // The all-zero-seq escape hatch still refreshes (pull/sim streams).
+        wd.on_command(1.5, 200.0, 0);
+        assert!(!wd.should_hold(1.6), "seq=0 stream still refreshes");
     }
 
     fn channels_with(name: &str, x: f64, unit: &str) -> crate::messages::Map<ChannelValue> {
@@ -706,7 +738,7 @@ mod tests {
         assert_eq!(out.mode, Mode::Hold, "NaN clock must fail safe to HOLD");
 
         let mut wd = CommandWatchdog::new();
-        wd.on_command(1.0, 200.0);
+        wd.on_command(1.0, 200.0, 1);
         assert!(wd.should_hold(f64::NAN), "watchdog HOLDs on a NaN clock");
     }
 

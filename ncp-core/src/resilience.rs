@@ -25,6 +25,9 @@ pub struct ActionBuffer {
     /// supervisor [`reset`]s it — a later non-ESTOP command does NOT clear it.
     /// A plain HOLD command stays non-latching (it self-clears on the next Active).
     estop: bool,
+    /// Highest accepted command `seq`, for monotonic-forward acceptance (drop
+    /// stale/duplicate/reordered frames). `0` is the all-zero-seq escape hatch.
+    last_seq: i64,
 }
 
 impl ActionBuffer {
@@ -32,13 +35,25 @@ impl ActionBuffer {
         Self::default()
     }
 
-    /// Ingest a command accepted at local time `now_s`.
+    /// Ingest a command accepted at local time `now_s`. A stale/duplicate/reordered
+    /// command (`seq <=` the last accepted) is DROPPED — a replayed older horizon
+    /// must not overwrite a newer one or rewind the replay clock (`recv_s`) /
+    /// refresh the deadline. `seq == 0` is the all-zero-seq escape hatch (pull/sim
+    /// streams). An ESTOP latches regardless of ordering — a fail-safe is never
+    /// dropped.
     pub fn on_command(&mut self, now_s: f64, command: CommandFrame) {
-        self.watchdog.on_command(now_s, command.ttl_ms);
-        self.recv_s = now_s;
         if command.mode == Mode::Estop {
-            self.estop = true; // latch
+            self.estop = true; // latch even if the frame is stale/out-of-order
         }
+        let advancing = command.seq == 0 || command.seq > self.last_seq;
+        if !advancing {
+            return; // stale/duplicate/reordered frame (ESTOP already latched above)
+        }
+        if command.seq != 0 {
+            self.last_seq = command.seq;
+        }
+        self.watchdog.on_command(now_s, command.ttl_ms, command.seq);
+        self.recv_s = now_s;
         self.latest = Some(command);
     }
 
@@ -374,6 +389,80 @@ mod tests {
         assert!(
             buf.active(0.05).is_some(),
             "after reset, Active applies again"
+        );
+    }
+
+    #[test]
+    fn action_buffer_drops_stale_or_reordered_command() {
+        let mut buf = ActionBuffer::new();
+        buf.on_command(
+            1.0,
+            CommandFrame {
+                seq: 5,
+                mode: Mode::Active,
+                channels: vec3(0.5),
+                ..Default::default()
+            },
+        );
+        assert_eq!(buf.active(1.0).unwrap()["velocity_setpoint"].data[0], 0.5);
+        // An older/reordered command (seq 3 <= 5) is dropped: the held setpoint and
+        // the replay clock stay put.
+        buf.on_command(
+            1.01,
+            CommandFrame {
+                seq: 3,
+                mode: Mode::Active,
+                channels: vec3(0.9),
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            buf.active(1.0).unwrap()["velocity_setpoint"].data[0],
+            0.5,
+            "a stale/reordered command must not overwrite the newer setpoint"
+        );
+        // A stale ESTOP (seq 2 <= 5) is still latched — a fail-safe is never dropped.
+        buf.on_command(
+            1.02,
+            CommandFrame {
+                seq: 2,
+                mode: Mode::Estop,
+                channels: vec3(0.0),
+                ..Default::default()
+            },
+        );
+        assert!(buf.is_estopped(), "a stale ESTOP must still latch");
+        assert!(buf.should_hold(1.02), "latched ESTOP -> HOLD");
+    }
+
+    #[test]
+    fn action_buffer_ignores_replayed_command() {
+        let mut buf = ActionBuffer::new();
+        buf.on_command(
+            1.0,
+            CommandFrame {
+                seq: 10,
+                ttl_ms: 200.0,
+                mode: Mode::Active,
+                channels: vec3(0.3),
+                ..Default::default()
+            },
+        );
+        // Replaying the SAME seq at a much later time must not rewind the replay
+        // clock / refresh the deadline (else a dead link stays "fresh").
+        buf.on_command(
+            5.0,
+            CommandFrame {
+                seq: 10,
+                ttl_ms: 200.0,
+                mode: Mode::Active,
+                channels: vec3(0.3),
+                ..Default::default()
+            },
+        );
+        assert!(
+            buf.should_hold(1.3),
+            "the duplicate seq=10 replay at t=5 must not refresh the t=1 deadline"
         );
     }
 
