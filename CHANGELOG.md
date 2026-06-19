@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-20
+
+Contract-vs-implementation reconciliations from a 10-lens protocol soundness audit.
+No wire change — `ncp_version` stays `"0.2"`; the changes are a behavioral safety
+fix, a fail-safe deserialization default, and doc corrections, so existing peers
+and conformance vectors are unaffected. Crates/package `0.2.3`.
+
+### Fixed
+- **Real-time: `CommandFrame.seq` now echoes the originating `SensorFrame.seq`.**
+  `NeuroControlLoop::tick()` overwrote it with the loop's own free-running counter,
+  breaking the normative split-plane V↔A join (an observer pairing action to sensor
+  on `seq` would mispair). The loop's tick counter now lives only on `ControlStatus`.
+- **Safety: a `CommandFrame` that omits `mode` now deserializes to `HOLD`, not
+  `ACTIVE`.** An untrusted/partial wire frame must never default to actuating; added
+  a fail-safe serde field default. Programmatic `CommandFrame::default()` is unchanged.
+
+### Documentation
+- **Transport QoS corrected to match the Zenoh binding.** It sets best-effort
+  `CongestionControl::Drop` + priority + `express` only — NOT conflation/keep-last,
+  reliability, or a wire TTL/`LIFESPAN`; `ttl_ms` is enforced plant-side by
+  `CommandWatchdog`. Fixed the key scheme, the DDS-mapping table (now labelled
+  "DDS mapping, not set today"), README, and RESILIENCE.
+- **Versioning policy clarified.** `check_version`/`negotiate` are fail-closed
+  *library* entry points, not yet auto-invoked on the data-plane receive path;
+  per-session `open_session` negotiation remains a ROADMAP P1 target.
+
 ## [0.2.2] - 2026-06-19
 
 Hardening pass against ROADMAP P0/P1/P2 and a full-repo review. No wire change —
@@ -150,7 +176,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepehrmn/NCP/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/sepehrmn/NCP/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/sepehrmn/NCP/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/sepehrmn/NCP/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sepehrmn/NCP/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sepehrmn/NCP/releases/tag/v0.2.0
