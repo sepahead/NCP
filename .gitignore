@@ -10,3 +10,6 @@ ncp-ts/node_modules/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Internal review scratch (not a shipped artifact)
+REVIEW_AND_PLAN.md
