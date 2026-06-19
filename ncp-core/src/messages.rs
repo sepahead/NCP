@@ -983,7 +983,15 @@ mod tests {
         // core-wire-1: a present-but-garbage minor or a trailing component must
         // REJECT (Err in strict mode), never silently coerce to minor 0. Tested
         // here against the live "0.2": none of these may parse to (0, 2).
-        for bad in ["0.GARBAGE", "0.2.1", "0.2x", "0.", "0.2.0", "x.2", "0.0.0.0"] {
+        for bad in [
+            "0.GARBAGE",
+            "0.2.1",
+            "0.2x",
+            "0.",
+            "0.2.0",
+            "x.2",
+            "0.0.0.0",
+        ] {
             assert!(
                 check_version(bad, true).is_err(),
                 "malformed version {bad:?} must be rejected, not coerced"
@@ -1000,11 +1008,8 @@ mod tests {
     fn contract_hash_matches_proto() {
         // Drift guard: recompute the FNV-1a of the real proto and assert it equals
         // the pinned CONTRACT_HASH, so any proto edit must bump the constant.
-        let proto = std::fs::read(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../proto/ncp.proto"
-        ))
-        .expect("proto/ncp.proto readable from the workspace");
+        let proto = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../proto/ncp.proto"))
+            .expect("proto/ncp.proto readable from the workspace");
         assert_eq!(
             fnv1a_hex(&proto),
             CONTRACT_HASH,

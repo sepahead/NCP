@@ -174,7 +174,8 @@ impl LinkMonitor {
             if seq > e {
                 // Missed e..=seq-1. `missed` is positive (guarded by `seq > e`).
                 let missed = seq - e;
-                self.lost = self.lost.saturating_add(missed); // exact unless it would overflow
+                // `saturating_add`: exact unless the lost count would overflow.
+                self.lost = self.lost.saturating_add(missed);
                 // Remember the (bounded) head of the gap so a later out-of-order
                 // arrival can be reconciled. The loop short-circuits at the cap,
                 // so a billion-seq gap costs at most MISSING_CAP inserts.

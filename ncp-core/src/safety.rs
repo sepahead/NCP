@@ -336,10 +336,7 @@ impl SafetyGovernor {
             let k = max_speed / mag;
             let data: Vec<f64> = vel.data.iter().map(|c| c * k).collect();
             let unit = vel.unit.clone();
-            channels.insert(
-                self.velocity_channel.clone(),
-                ChannelValue { data, unit },
-            );
+            channels.insert(self.velocity_channel.clone(), ChannelValue { data, unit });
         }
         Ok(())
     }
