@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-06-20
+
+Release-coherence fix. **No wire change** — `ncp_version` stays `0.2` and the conformance vectors are
+unchanged. v0.2.6 was tagged but its crate manifests and the `@sepehrmn/ncp` npm package still
+self-identified as `0.2.5` (the manifest version bump was omitted), so a consumer pinning `tag=v0.2.6`
+compiled a crate reporting `0.2.5`. This release bumps the workspace crates and the npm package to
+`0.2.7` so the git tag, the Cargo manifests, and the npm package agree. Consumers should re-pin from
+v0.2.6 to v0.2.7. (v0.2.6 is left intact — tags are immutable once consumed.)
+
 ## [0.2.6] - 2026-06-20
 
 Rebrand-only release. **No wire shape change** — `ncp_version` stays `"0.2"` and the JSON/binary
@@ -278,7 +287,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepahead/NCP/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/sepahead/NCP/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/sepahead/NCP/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/sepahead/NCP/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/sepahead/NCP/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/sepahead/NCP/compare/v0.2.3...v0.2.4
