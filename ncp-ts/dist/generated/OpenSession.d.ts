@@ -15,5 +15,12 @@ export type OpenSession = {
     stimulus: StimulusSpec;
     sim: SimConfig;
     bindings: Array<EntityBinding>;
+    /**
+     * Caller's [`CONTRACT_HASH`], carried in the handshake so a peer can
+     * fail-closed-reject a post-agreement schema mutation. Defaults to our own
+     * hash so every session advertises it; `None` (serialized `null`) = not
+     * advertised, accepted within a compatible `ncp_version`.
+     */
+    contract_hash: string | null;
 };
 //# sourceMappingURL=OpenSession.d.ts.map

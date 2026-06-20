@@ -13,5 +13,11 @@ export type SessionOpened = {
     };
     provenance: SimProvenance | null;
     error: string | null;
+    /**
+     * Server's [`CONTRACT_HASH`] — the reply half of the symmetric handshake (see
+     * [`OpenSession::contract_hash`]). A client rejects a `SessionOpened` whose
+     * hash does not match its own. `None` (serialized `null`) = not advertised.
+     */
+    contract_hash: string | null;
 };
 //# sourceMappingURL=SessionOpened.d.ts.map

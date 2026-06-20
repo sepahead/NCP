@@ -169,6 +169,31 @@ for i in "${!present_values[@]}"; do
   fi
 done
 
+# --- wire-version coherence (separate axis from SDK semver) ------------------
+# The ncp_version *wire* string (e.g. "0.3") is bumped in BOTH the Rust reference
+# (ncp-core) and the TypeScript peer (ncp-ts); a release that bumps one but not the
+# other ships peers that fail-closed-reject each other (the exact drift that left
+# ncp-ts at "0.2" after the 0.3 wire bump). Assert they agree when both are present.
+core_wire() {
+  local f="$REPO_ROOT/ncp-core/src/messages.rs"
+  [[ -f "$f" ]] || return
+  grep -m1 -oE 'NCP_VERSION: &str = "[^"]+"' "$f" | grep -oE '"[^"]+"' | tr -d '"'
+}
+ts_wire() {
+  local f="$REPO_ROOT/ncp-ts/src/client.ts"
+  [[ -f "$f" ]] || return
+  grep -m1 -oE "NCP_VERSION = '[^']+'" "$f" | grep -oE "'[^']+'" | tr -d "'"
+}
+CORE_WIRE="$(core_wire || true)"
+TS_WIRE="$(ts_wire || true)"
+if [[ -n "$CORE_WIRE" ]]; then
+  printf '  %-22s %s\n' "wire (ncp-core)" "$CORE_WIRE"
+  [[ -n "$TS_WIRE" ]] && printf '  %-22s %s\n' "wire (ncp-ts)" "$TS_WIRE"
+  if [[ -n "$TS_WIRE" && "$TS_WIRE" != "$CORE_WIRE" ]]; then
+    problems+=("ncp-ts wire NCP_VERSION '$TS_WIRE' != ncp-core '$CORE_WIRE'")
+  fi
+fi
+
 # --- optional tag check -----------------------------------------------------
 if [[ -n "$TAG" ]]; then
   if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
