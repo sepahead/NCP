@@ -402,8 +402,14 @@ impl ZenohControlTransport {
             Arc::new(std::sync::Mutex::new(None));
         let sink = latest.clone();
         bus.subscribe_sensors(&session_id, move |_key, bytes| {
-            if let Ok(sf) = serde_json::from_slice::<ncp_core::SensorFrame>(&bytes) {
-                *sink.lock().unwrap() = Some(sf);
+            match serde_json::from_slice::<ncp_core::SensorFrame>(&bytes) {
+                Ok(sf) => *sink.lock().unwrap() = Some(sf),
+                // The data plane drops on parse failure; surface a diagnostic so a
+                // version-incompatible peer is observable, not silently ignored.
+                Err(e) => match ncp_core::diagnose_version(&bytes) {
+                    Some(ve) => eprintln!("ncp: dropped sensor frame ({ve})"),
+                    None => eprintln!("ncp: dropped unparseable sensor frame: {e}"),
+                },
             }
         })
         .await?;
@@ -434,6 +440,30 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
     }
 }
 
+/// Validate an RPC reply's own `kind` discriminator before the typed decode: an
+/// error frame surfaces as `Err`, and a wrong-but-valid-JSON reply is rejected
+/// rather than silently decoding into an all-default `Resp`. Pure (no transport),
+/// so it is unit-testable.
+fn check_reply_kind(reply: &[u8], expect_kind: &str) -> Result<()> {
+    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(reply) {
+        match ncp_core::message_kind(&v) {
+            Some("error") => {
+                return Err(ZenohError(format!(
+                    "NCP error: {}",
+                    v.get("error").and_then(|e| e.as_str()).unwrap_or("unknown")
+                )));
+            }
+            Some(k) if k != expect_kind => {
+                return Err(ZenohError(format!(
+                    "NCP reply kind mismatch: expected {expect_kind:?}, got {k:?}"
+                )));
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 /// Convenience: a typed NCP client over Zenoh.
 pub struct ZenohNcpClient {
     bus: ZenohBus,
@@ -446,40 +476,34 @@ impl ZenohNcpClient {
 
     /// Open a session; returns the parsed `SessionOpened`.
     pub async fn open(&self, msg: &ncp_core::OpenSession) -> Result<ncp_core::SessionOpened> {
-        self.rpc(msg).await
+        self.rpc(msg, "session_opened").await
     }
 
     /// Step a session; returns the parsed `ObservationFrame`.
     pub async fn step(&self, msg: &ncp_core::StepRequest) -> Result<ncp_core::ObservationFrame> {
-        self.rpc(msg).await
+        self.rpc(msg, "observation_frame").await
     }
 
     /// Run a session for a duration; returns the parsed `ObservationFrame`.
     pub async fn run(&self, msg: &ncp_core::RunRequest) -> Result<ncp_core::ObservationFrame> {
-        self.rpc(msg).await
+        self.rpc(msg, "observation_frame").await
     }
 
     /// Close a session.
     pub async fn close(&self, msg: &ncp_core::CloseSession) -> Result<ncp_core::SessionClosed> {
-        self.rpc(msg).await
+        self.rpc(msg, "session_closed").await
     }
 
-    async fn rpc<Req, Resp>(&self, msg: &Req) -> Result<Resp>
+    async fn rpc<Req, Resp>(&self, msg: &Req, expect_kind: &str) -> Result<Resp>
     where
         Req: serde::Serialize,
         Resp: serde::de::DeserializeOwned,
     {
         let req = serde_json::to_vec(msg).map_err(err("serialize request"))?;
         let reply = self.bus.request(&req).await?;
-        // Surface an error frame as an Err rather than a parse failure.
-        if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&reply) {
-            if ncp_core::message_kind(&v) == Some("error") {
-                return Err(ZenohError(format!(
-                    "NCP error: {}",
-                    v.get("error").and_then(|e| e.as_str()).unwrap_or("unknown")
-                )));
-            }
-        }
+        // Reject an error frame or a wrong-`kind` reply before the typed decode,
+        // so a misrouted reply cannot silently become an all-default `Resp`.
+        check_reply_kind(&reply, expect_kind)?;
         serde_json::from_slice(&reply).map_err(err("parse reply"))
     }
 }
@@ -495,6 +519,22 @@ mod tests {
         assert!(Plane::Action.express());
         assert_eq!(Plane::Control.congestion(), CongestionControl::Block);
         assert!(!Plane::Perception.express());
+    }
+
+    #[test]
+    fn check_reply_kind_rejects_wrong_kind_and_error_frames() {
+        // Right kind -> Ok.
+        assert!(
+            check_reply_kind(br#"{"kind":"session_opened","ok":true}"#, "session_opened").is_ok()
+        );
+        // Wrong-but-valid-JSON kind -> Err (not a silent all-default decode).
+        assert!(
+            check_reply_kind(br#"{"kind":"observation_frame"}"#, "session_opened").is_err()
+        );
+        // An error frame -> Err.
+        assert!(
+            check_reply_kind(br#"{"kind":"error","error":"boom"}"#, "session_opened").is_err()
+        );
     }
 
     #[test]

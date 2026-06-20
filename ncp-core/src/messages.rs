@@ -933,6 +933,16 @@ pub fn negotiate(
     verify_contract(peer_contract_hash)
 }
 
+/// Best-effort version diagnostic for a raw inbound frame. If it carries an
+/// `ncp_version` incompatible with ours, return the typed error so a receiver can
+/// log WHY a frame was dropped — the data plane otherwise drops silently. Returns
+/// `None` when the frame is compatible, carries no version, or is unparseable.
+pub fn diagnose_version(bytes: &[u8]) -> Option<NcpVersionError> {
+    let v: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let ver = v.get("ncp_version")?.as_str()?;
+    check_version(ver, true).err()
+}
+
 /// Read the `kind` discriminator off any NCP JSON (for client reply dispatch).
 pub fn message_kind(json: &serde_json::Value) -> Option<&str> {
     json.get("kind").and_then(|v| v.as_str())
@@ -1059,6 +1069,17 @@ mod tests {
         assert!(negotiate(NCP_VERSION, Some("deadbeefdeadbeef")).is_err());
         // Version mismatch rejects regardless of the hash.
         assert!(negotiate("0.1", Some(CONTRACT_HASH)).is_err());
+    }
+
+    #[test]
+    fn diagnose_version_flags_mismatch() {
+        // Compatible frame -> None; an incompatible version -> Some(err).
+        let ok = format!(r#"{{"kind":"sensor_frame","ncp_version":"{NCP_VERSION}"}}"#);
+        assert!(diagnose_version(ok.as_bytes()).is_none());
+        assert!(diagnose_version(br#"{"kind":"sensor_frame","ncp_version":"0.1"}"#).is_some());
+        // No version / unparseable -> None (best-effort, never panics).
+        assert!(diagnose_version(br#"{"kind":"sensor_frame"}"#).is_none());
+        assert!(diagnose_version(b"not json").is_none());
     }
 
     #[test]
