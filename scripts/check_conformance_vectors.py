@@ -125,11 +125,47 @@ def resolve(schema: dict, root: dict) -> dict:
     return (root.get("$defs") or {}).get(name, {})
 
 
+def _type_ok(inst, t: str) -> bool:
+    """JSON-Schema primitive type-check (bool is NOT an int/number here)."""
+    if t == "null":
+        return inst is None
+    if t == "boolean":
+        return isinstance(inst, bool)
+    if t == "integer":
+        return isinstance(inst, int) and not isinstance(inst, bool)
+    if t == "number":
+        return isinstance(inst, (int, float)) and not isinstance(inst, bool)
+    if t == "string":
+        return isinstance(inst, str)
+    if t == "array":
+        return isinstance(inst, list)
+    if t == "object":
+        return isinstance(inst, dict)
+    return True  # unknown type keyword: don't block
+
+
 def validate(inst, schema: dict, root: dict, path: str, errs: list) -> None:
     schema = resolve(schema, root)
-    # anyOf (nullable unions): pass if any branch validates structurally.
+    # anyOf (nullable unions): valid iff SOME branch validates with zero errors.
+    # (The old bare `return` accepted ANYTHING, so every nullable field — units,
+    # seed, duration_ms, horizon_dt_ms, recordable, provenance — went unchecked.)
     if "anyOf" in schema:
+        for branch in schema["anyOf"]:
+            sub: list = []
+            validate(inst, branch, root, path, sub)
+            if not sub:
+                return
+        errs.append(f"{path}: value {inst!r} matched no anyOf branch")
         return
+    # Primitive `type` check — makes anyOf branch-trying meaningful (a {"type":
+    # "null"} branch must actually reject a non-null), and catches wrong-typed
+    # scalars the structural checks below would otherwise wave through.
+    t = schema.get("type")
+    if t is not None:
+        types = t if isinstance(t, list) else [t]
+        if not any(_type_ok(inst, tt) for tt in types):
+            errs.append(f"{path}: expected type {t}, got {type(inst).__name__}")
+            return
     enum = schema.get("enum")
     if enum is not None and inst not in enum:
         errs.append(f"{path}: value {inst!r} not in enum {enum}")
@@ -166,6 +202,7 @@ def main() -> int:
         print(f"no vectors in {VECTOR_DIR}")
         return 1
     total_errs = 0
+    covered: set = set()
     for vp in vectors:
         inst = json.loads(vp.read_text(encoding="utf-8"))
         kind = inst.get("kind")
@@ -174,6 +211,7 @@ def main() -> int:
             print(f"  ✗ {vp.name}: no schema for kind {kind!r}")
             total_errs += 1
             continue
+        covered.add(kind)
         errs: list = []
         validate(inst, schema, schema, vp.stem, errs)
         if errs:
@@ -183,6 +221,15 @@ def main() -> int:
             total_errs += len(errs)
         else:
             print(f"  ✓ {vp.name} ({kind})")
+
+    # Corpus-coverage gate: every schema `kind` MUST have at least one golden
+    # vector, else the corpus silently omits message types from interop proof.
+    uncovered = sorted(set(by_kind) - covered)
+    if uncovered:
+        print(f"  ✗ corpus coverage: no JSON vector for kind(s): {', '.join(uncovered)}")
+        total_errs += len(uncovered)
+    else:
+        print(f"  ✓ corpus coverage: all {len(by_kind)} schema kind(s) have a vector")
 
     # Binary bulk-codec vectors (#6) — packed little-endian column blocks.
     bulk_errs = check_bulk_vectors()

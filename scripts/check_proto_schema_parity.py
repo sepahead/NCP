@@ -46,6 +46,28 @@ SCHEMA_DIR = REPO / "schemas"
 # (the enum is defined for typed convenience only). Reported, not failed.
 _STRING_MODELED_HINT = "modeled as a `string` field in proto"
 
+# Reverse-pass allowlist: proto messages that intentionally have NO standalone
+# JSON Schema (so the proto->schema reverse parity check below doesn't flag them).
+# Every entry MUST carry a rationale — the default is that a new proto message
+# WITHOUT a schema is a drift bug. The JSON Schemas are generated from the
+# backend/neurocontrol Pydantic models (see schemas/index.json), so a proto
+# message absent from that model set is either (a) a sub-structure modeled inline
+# in a parent schema, or (b) a binary message proven by a different conformance
+# path — both must be named here with the reason.
+_PROTO_MSG_NO_SCHEMA = {
+    # `map<string, ChannelValue>` wrapper. On the JSON wire a SetpointStep is just
+    # an object; it is modeled inline as the items of CommandFrame.horizon
+    # (`{"type":"object","additionalProperties":{"$ref":"ChannelValue"}}`), so it
+    # has no standalone schema `title`.
+    "SetpointStep": "map wrapper; modeled inline as CommandFrame.horizon items",
+    # Binary bulk message: its payload is a packed little-endian column block
+    # (`block` bytes). Conformance is proven by the committed `*.bin` golden
+    # vector + the language-agnostic `decode_bulk` reference decoder in
+    # check_conformance_vectors.py, not by a JSON-Schema instance. It is
+    # deliberately NOT in the Pydantic-generated schema corpus.
+    "BulkObservation": "binary block message; proven by *.bin vector + bulk codec",
+}
+
 
 def parse_proto(text: str):
     """Return (messages, enums).
@@ -129,11 +151,13 @@ def main() -> int:
     # De-dup objects/enums shared across schema files (e.g. Observable, ChannelValue).
     seen_obj: dict[str, frozenset] = {}
     seen_enum: dict[str, tuple] = {}
+    schema_titles: set[str] = set()  # every object/enum title the schemas define
 
     for schema_path in sorted(SCHEMA_DIR.glob("*.schema.json")):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         where = schema_path.name
         for title, kind, payload in walk_schema_objects(schema):
+            schema_titles.add(title)
             if kind == "object":
                 fields = frozenset(payload)
                 if seen_obj.get(title) == fields:
@@ -199,8 +223,32 @@ def main() -> int:
                     f"scientific-boundary field {disc!r}"
                 )
 
+    # REVERSE PASS (proto -> schema): a proto message with neither a JSON Schema
+    # of the same title NOR an allowlist entry is silent drift — the forward pass
+    # above can only see schemas, so a proto-only message would otherwise go
+    # unnoticed. Symmetric for enums.
+    checked_reverse = 0
+    for name in sorted(messages):
+        if name in schema_titles or name in _PROTO_MSG_NO_SCHEMA:
+            checked_reverse += 1
+            continue
+        failures.append(
+            f"[reverse] proto message {name!r} has no JSON Schema and no "
+            f"_PROTO_MSG_NO_SCHEMA allowlist entry (add a schema, or allowlist "
+            f"it with a rationale if it is intentionally not a JSON-wire message)"
+        )
+    for name in sorted(enums):
+        if name not in schema_titles:
+            notes.append(
+                f"[reverse] proto enum {name!r} has no schema enum of that title "
+                f"(typed-only convenience enum?)"
+            )
+
     print("proto <-> JSON-Schema parity guard")
-    print(f"  checked {checked_objs} message field-sets, {checked_enums} annotated enums")
+    print(
+        f"  checked {checked_objs} message field-sets, {checked_enums} annotated "
+        f"enums, {checked_reverse} proto messages (reverse)"
+    )
     if notes:
         print("\n  notes (non-fatal):")
         for n in notes:

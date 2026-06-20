@@ -28,6 +28,12 @@ cargo build -p ncp-python
 step "ncp-cpp build (C ABI for C++; cbindgen header)"
 cargo build -p ncp-cpp
 
+step "proto ↔ JSON-Schema parity guard (two-way: field-sets, enums, reverse pass)"
+python3 scripts/check_proto_schema_parity.py
+
+step "conformance corpus (golden JSON+binary vectors vs schemas; coverage gate)"
+python3 scripts/check_conformance_vectors.py
+
 step "ACL template guard (P0/#7: valid Zenoh tokens + command-plane authority)"
 python3 scripts/check_acl_template.py
 
