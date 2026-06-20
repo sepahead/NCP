@@ -7,34 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-21
+
+**Wire bump `0.2` → `0.3` (breaking, pre-1.0 minor-is-breaking).** A `0.2` peer is
+fail-closed rejected by the version guard; all consumers must re-pin to `tag = v0.3.0`.
+The `buf breaking` baseline moves to `v0.3.0` (the first tag of wire `0.3`).
+
+### Added
+
+- **Symmetric, fail-closed contract-hash handshake.** `OpenSession` and
+  `SessionOpened` carry a new `contract_hash` field (proto field 9; serde
+  `Option<String>` defaulting to our own `CONTRACT_HASH`). The client half
+  (`ncp-zenoh::ZenohNcpClient::open`) now calls `negotiate(version, hash)` instead of
+  only `check_version`, rejecting a `SessionOpened` whose advertised hash differs; the
+  server half (engram's `SessionService.handle`) verifies the incoming
+  `OpenSession.contract_hash` before dispatch. This turns the contract-pinning from a
+  local-only function into an on-the-wire, peer-negotiated check (closes the ROADMAP P1
+  "carry the hash in the handshake envelope" item).
+- **Cross-language contract-hash parity.** The Python peer
+  (`backend/neurocontrol/protocol.py`) gains a byte-identical port of `canonical_proto`
+  / `contract_hash_of_proto` / `verify_contract` / `negotiate`, so Rust and Python
+  independently recompute the same `CONTRACT_HASH` from the proto (verified against the
+  vendored proto in engram's tests).
+
 ### Changed
 
-- **`CONTRACT_HASH` is now comment-insensitive.** The hash is computed over a
+- **`CONTRACT_HASH` is comment-insensitive** (landed in this cycle): hashed over a
   *canonicalized* proto (`ncp_core::canonical_proto` — `//` and `/* */` comments
-  stripped while respecting string literals, then per-line whitespace normalized and
-  blank lines dropped) via the new `ncp_core::contract_hash_of_proto`, instead of the
-  raw `proto/ncp.proto` bytes. A comment- or formatting-only edit no longer flips the
-  hash — the exact churn the `v0.2.5`/`v0.2.6` entries below documented (each rebumped
-  `CONTRACT_HASH` for a no-wire-change comment edit). The pinned value therefore
-  changes once, to its canonical form (`07f829cabbd1684a` → `563668907fbc5190`); only
-  a genuine field/type/enum change moves it now. `CONTRACT_HASH` is internal to
-  `ncp-core` and not yet wired into the runtime handshake, so this is not a wire change
-  and needs no consumer re-pin (it ships in the next tagged release). New tests
-  `contract_hash_ignores_comments_and_formatting` (comment/whitespace edits don't move
-  the hash; a new field does; string-literal `//` survives). *Remaining for v0.3.0:*
-  carry the hash in the `OpenSession`/`SessionOpened` envelope as a symmetric
-  fail-closed handshake, and recompute it identically in the Python/TS/C++ peers.
+  stripped respecting string literals, whitespace normalized) via
+  `contract_hash_of_proto`, so a comment-/formatting-only edit no longer flips it (the
+  churn the `v0.2.5`/`v0.2.6` entries documented). With the new envelope field the
+  pinned value is `3e639fb1aa20e530`.
+- `NCP_VERSION` `0.2` → `0.3` (Rust `ncp-core` and Python `backend/neurocontrol`);
+  every JSON Schema's `ncp_version` default and all golden conformance vectors bump to
+  `0.3`; ts-rs bindings regenerated for the new field.
+- `scripts/check-version-coherence.sh` now also verifies the `README.md` bibtex
+  `version = {…}` against Cargo/npm/CITATION (the drift that left the bibtex at `0.2.7`).
 
 ### Fixed
 
-- `README.md` bibtex citation example pinned a stale `version = {0.2.7}`; corrected to
-  `0.2.8` to match `CITATION.cff` and the crate/package version.
-
-### Changed
-
-- `scripts/check-version-coherence.sh` now also extracts and verifies the `README.md`
-  bibtex `version = {…}` against the Cargo/npm/CITATION versions, so a stale citation
-  example fails the guard (this was the exact drift that left the bibtex at `0.2.7`).
+- `README.md` bibtex citation example was stale (`0.2.7`); now coherent with the release.
 
 ## [0.2.8] - 2026-06-20
 

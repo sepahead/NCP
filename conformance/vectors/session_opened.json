@@ -1,10 +1,12 @@
 {
-  "ncp_version": "0.2",
+  "ncp_version": "0.3",
   "kind": "session_opened",
   "session_id": "vec-open-1",
   "ok": true,
   "backend": "rapier3d",
-  "resolved": { "feat": 4 },
+  "resolved": {
+    "feat": 4
+  },
   "provenance": {
     "network_ref": "iaf_cond_exp",
     "backend": "rapier3d",
@@ -14,5 +16,6 @@
     "advisory_only": true,
     "note": null
   },
-  "error": null
+  "error": null,
+  "contract_hash": "3e639fb1aa20e530"
 }

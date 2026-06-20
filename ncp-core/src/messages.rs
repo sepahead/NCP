@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 /// Protocol version (semver). While pre-1.0 (`0.x`) receivers check the full
 /// `(major, minor)`; once `>=1.0` they check the **major** only. See
 /// [`check_version`].
-pub const NCP_VERSION: &str = "0.2";
+pub const NCP_VERSION: &str = "0.3";
 
 fn ncp_version() -> String {
     NCP_VERSION.to_string()
@@ -384,6 +384,11 @@ pub struct OpenSession {
     pub stimulus: StimulusSpec,
     pub sim: SimConfig,
     pub bindings: Vec<EntityBinding>,
+    /// Caller's [`CONTRACT_HASH`], carried in the handshake so a peer can
+    /// fail-closed-reject a post-agreement schema mutation. Defaults to our own
+    /// hash so every session advertises it; `None` (serialized `null`) = not
+    /// advertised, accepted within a compatible `ncp_version`.
+    pub contract_hash: Option<String>,
 }
 
 impl Default for OpenSession {
@@ -397,6 +402,7 @@ impl Default for OpenSession {
             stimulus: StimulusSpec::default(),
             sim: SimConfig::default(),
             bindings: Vec::new(),
+            contract_hash: Some(CONTRACT_HASH.to_string()),
         }
     }
 }
@@ -414,6 +420,10 @@ pub struct SessionOpened {
     pub resolved: Map<i64>,
     pub provenance: Option<SimProvenance>,
     pub error: Option<String>,
+    /// Server's [`CONTRACT_HASH`] — the reply half of the symmetric handshake (see
+    /// [`OpenSession::contract_hash`]). A client rejects a `SessionOpened` whose
+    /// hash does not match its own. `None` (serialized `null`) = not advertised.
+    pub contract_hash: Option<String>,
 }
 
 impl Default for SessionOpened {
@@ -427,6 +437,7 @@ impl Default for SessionOpened {
             resolved: Map::new(),
             provenance: None,
             error: None,
+            contract_hash: Some(CONTRACT_HASH.to_string()),
         }
     }
 }
@@ -893,7 +904,7 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
 /// actual proto by the `contract_hash_matches_proto` test, so a proto edit that
 /// forgets to bump this constant fails CI — but a comment- or whitespace-only edit
 /// no longer flips it (the churn the `v0.2.5`/`v0.2.6` releases documented).
-pub const CONTRACT_HASH: &str = "563668907fbc5190";
+pub const CONTRACT_HASH: &str = "3e639fb1aa20e530";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
 /// adequate for the contract-pinning integrity-vs-accidental-drift use. It is
@@ -1146,14 +1157,14 @@ mod tests {
     fn check_version_rejects_malformed_minor_no_coercion() {
         // core-wire-1: a present-but-garbage minor or a trailing component must
         // REJECT (Err in strict mode), never silently coerce to minor 0. Tested
-        // here against the live "0.2": none of these may parse to (0, 2).
+        // here against the live "0.3": none of these may parse to (0, 3).
         for bad in [
             "0.GARBAGE",
-            "0.2.1",
-            "0.2x",
+            "0.3.1",
+            "0.3x",
             "0.",
-            "0.2.0",
-            "x.2",
+            "0.3.0",
+            "x.3",
             "0.0.0.0",
         ] {
             assert!(
@@ -1161,9 +1172,9 @@ mod tests {
                 "malformed version {bad:?} must be rejected, not coerced"
             );
         }
-        // Exact match passes; a missing minor means 0 and so mismatches 0.2.
-        assert_eq!(check_version("0.2", true), Ok(true));
-        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,2)");
+        // Exact match passes; a missing minor means 0 and so mismatches 0.3.
+        assert_eq!(check_version("0.3", true), Ok(true));
+        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,3)");
         // Non-strict mode surfaces the same rejection as Ok(false), not a coerced pass.
         assert_eq!(check_version("0.1", false), Ok(false));
     }

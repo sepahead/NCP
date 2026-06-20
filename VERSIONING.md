@@ -17,24 +17,25 @@ projection) with [SemVer](https://semver.org): `MAJOR.MINOR.PATCH`.
 - **PATCH** — clarifications/docs with no wire effect.
 
 **Wire version vs crate/package version.** The `ncp_version` *wire* string
-(currently `0.2`) versions the contract; the Rust crates and the `@sepehrmn/ncp`
+(currently `0.3`) versions the contract; the Rust crates and the `@sepehrmn/ncp`
 package carry their own SemVer (see `Cargo.toml` / `package.json` for the current
 SDK version — the manifests are the single source of truth) for the SDK. They usually move
-together, but a PATCH that touches only code/docs/build artifacts (e.g. `0.2.0` →
-`0.2.1`) leaves the wire at `0.2`. **Pin `tag = "v0.2.0"`** for the wire baseline
+together, but a PATCH that touches only code/docs/build artifacts (e.g. `0.3.0` →
+`0.3.1`) leaves the wire at `0.3`. **Pin `tag = "v0.3.0"`** for the wire baseline
 (what the `buf breaking` gate compares against); the crate at that-or-later tag is
-wire-`0.2`-compatible.
+wire-`0.3`-compatible.
 
 **Pre-1.0 caveat (current):** while `0.x`, a **minor bump is treated as
 breaking** — the version guard fails closed on any `0.x` minor difference
-(`check_version`). Pin an exact version (`tag = "v0.2.0"`) for anything you build
+(`check_version`). Pin an exact version (`tag = "v0.3.0"`) for anything you build
 against. `0.x` is explicitly unstable.
 
-The current wire is **`0.2`** (`ncp_version = "0.2"`); receivers check the full
+The current wire is **`0.3`** (`ncp_version = "0.3"`); receivers check the full
 `ncp_version` and pre-1.0 require an exact `(major, minor)` match — any `0.x`
-minor difference is fail-closed (see §version negotiation). `0.2`
-added the neuron-family wire (#10) and the bulk column codec (#6) over `0.1` —
-both additive, but a pre-1.0 minor bump, so a `0.1` peer is fail-closed rejected.
+minor difference is fail-closed (see §version negotiation). `0.3`
+added the symmetric `contract_hash` handshake field on `OpenSession`/`SessionOpened`
+over `0.2` — additive, but a pre-1.0 minor bump, so a `0.2` peer is fail-closed
+rejected. (`0.2` had added the neuron-family wire (#10) and bulk column codec (#6).)
 
 ## Enforcement: `buf breaking`
 
@@ -44,8 +45,8 @@ rules (configured in `buf.yaml`):
 - **`WIRE` / `WIRE_JSON`** — binary and JSON wire compatibility (the contract).
 - **`FILE` / `PACKAGE`** — source/codegen-level stability.
 
-CI runs `buf lint`; `buf breaking` gates the wire against the last released tag
-(`v0.2.0`, the first proto-bearing baseline — see `.github/workflows/ci.yml`).
+CI runs `buf lint`; `buf breaking` gates the wire against the first tag of the
+current wire (`v0.3.0`, the wire-`0.3` baseline — see `.github/workflows/ci.yml`).
 A change that trips `WIRE`/`WIRE_JSON` **must** bump MAJOR (or MINOR while `0.x`).
 
 ## Per-session version negotiation (target)

@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.2",
+  "ncp_version": "0.3",
   "kind": "run_request",
   "session_id": "vec-open-1",
   "duration_ms": 1000.0,
@@ -8,6 +8,13 @@
     "kind": "stimulus_frame",
     "session_id": "vec-open-1",
     "t": 0.0,
-    "values": { "drive": { "data": [1.0], "unit": "Hz" } }
+    "values": {
+      "drive": {
+        "data": [
+          1.0
+        ],
+        "unit": "Hz"
+      }
+    }
   }
 }

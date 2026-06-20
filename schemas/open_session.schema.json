@@ -295,7 +295,7 @@
   },
   "properties": {
     "ncp_version": {
-      "default": "0.2",
+      "default": "0.3",
       "title": "Ncp Version",
       "type": "string"
     },
@@ -327,6 +327,18 @@
       },
       "title": "Bindings",
       "type": "array"
+    },
+    "contract_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "3e639fb1aa20e530",
+      "title": "Contract Hash"
     }
   },
   "required": [

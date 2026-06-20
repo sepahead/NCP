@@ -578,13 +578,16 @@ impl ZenohNcpClient {
         Self { bus }
     }
 
-    /// Open a session; returns the parsed `SessionOpened`. Enforces the version
+    /// Open a session; returns the parsed `SessionOpened`. Enforces the full
     /// handshake the core was built for ("negotiate, reject, never coerce"): a
-    /// `SessionOpened` whose `ncp_version` is incompatible is rejected, not coerced.
+    /// `SessionOpened` whose `ncp_version` is incompatible **or** whose advertised
+    /// `contract_hash` does not match ours is rejected, not coerced. This is the
+    /// client half of the symmetric contract-hash handshake — the server verifies
+    /// the `OpenSession.contract_hash` we send (defaulted to our own).
     pub async fn open(&self, msg: &ncp_core::OpenSession) -> Result<ncp_core::SessionOpened> {
         let opened: ncp_core::SessionOpened = self.rpc(msg, "session_opened").await?;
-        ncp_core::check_version(&opened.ncp_version, true)
-            .map_err(|e| ZenohError(format!("session_opened version: {e}")))?;
+        ncp_core::negotiate(&opened.ncp_version, opened.contract_hash.as_deref())
+            .map_err(|e| ZenohError(format!("session_opened handshake: {e}")))?;
         Ok(opened)
     }
 
