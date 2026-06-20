@@ -885,13 +885,15 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
     Ok(true)
 }
 
-/// FNV-1a (64-bit) hex digest of the normative wire contract (`proto/ncp.proto`).
+/// FNV-1a (64-bit) hex digest of the **canonicalized** normative wire contract
+/// ([`canonical_proto`] of `proto/ncp.proto` — comments and formatting stripped).
 /// Peers exchange this alongside `ncp_version` in the control-plane handshake and
 /// reject a mismatch, so a post-agreement schema mutation (the "rug-pull" failure
 /// class) is *detectable* rather than silently coerced. It is recomputed from the
 /// actual proto by the `contract_hash_matches_proto` test, so a proto edit that
-/// forgets to bump this constant fails CI.
-pub const CONTRACT_HASH: &str = "07f829cabbd1684a";
+/// forgets to bump this constant fails CI — but a comment- or whitespace-only edit
+/// no longer flips it (the churn the `v0.2.5`/`v0.2.6` releases documented).
+pub const CONTRACT_HASH: &str = "563668907fbc5190";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
 /// adequate for the contract-pinning integrity-vs-accidental-drift use. It is
@@ -904,6 +906,84 @@ pub fn fnv1a_hex(bytes: &[u8]) -> String {
         h = h.wrapping_mul(0x0000_0100_0000_01b3);
     }
     format!("{h:016x}")
+}
+
+/// Canonicalize a `.proto` source so the contract hash depends only on the
+/// *semantic* wire definition, not on comments or incidental whitespace.
+///
+/// Protobuf comments and formatting never affect the wire encoding (the field
+/// numbers, types, and modifiers do), yet hashing the raw bytes made a
+/// comment-only edit flip [`CONTRACT_HASH`] and force a spurious version bump
+/// (see the `v0.2.5`/`v0.2.6` CHANGELOG entries). This pass removes `//` line
+/// comments and `/* … */` block comments — while respecting string literals so a
+/// `//` *inside* a quoted default is preserved — then trims each line and drops
+/// blank lines, collapsing pure-formatting churn. It is deliberately
+/// dependency-free (no protoc/buf): adequate for the accidental-drift threat
+/// model this hash targets (adversarial integrity is the transport's job).
+pub fn canonical_proto(bytes: &[u8]) -> Vec<u8> {
+    let text = String::from_utf8_lossy(bytes);
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    let mut in_string: Option<char> = None;
+    while let Some(c) = chars.next() {
+        if let Some(quote) = in_string {
+            out.push(c);
+            if c == '\\' {
+                // Preserve the escaped char verbatim (e.g. \" or \\).
+                if let Some(next) = chars.next() {
+                    out.push(next);
+                }
+            } else if c == quote {
+                in_string = None;
+            }
+            continue;
+        }
+        match c {
+            '"' | '\'' => {
+                in_string = Some(c);
+                out.push(c);
+            }
+            '/' if chars.peek() == Some(&'/') => {
+                // Line comment: skip to (but keep) the newline.
+                for n in chars.by_ref() {
+                    if n == '\n' {
+                        out.push('\n');
+                        break;
+                    }
+                }
+            }
+            '/' if chars.peek() == Some(&'*') => {
+                // Block comment: skip until the closing `*/`.
+                chars.next(); // consume '*'
+                let mut prev = '\0';
+                for n in chars.by_ref() {
+                    if prev == '*' && n == '/' {
+                        break;
+                    }
+                    prev = n;
+                }
+            }
+            _ => out.push(c),
+        }
+    }
+    // Normalize whitespace: trim each line, drop blank lines, single '\n' join.
+    let normalized = out
+        .lines()
+        .map(str::trim_end)
+        .map(str::trim_start)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    normalized.into_bytes()
+}
+
+/// The contract hash of a `.proto` source: [`fnv1a_hex`] of its
+/// [`canonical_proto`] form. This is the value pinned in [`CONTRACT_HASH`] and
+/// the function a peer uses to recompute the contract identity from its own copy
+/// of the proto, so two peers agree iff their *semantic* contracts agree —
+/// independent of comments or formatting.
+pub fn contract_hash_of_proto(bytes: &[u8]) -> String {
+    fnv1a_hex(&canonical_proto(bytes))
 }
 
 /// Verify a peer-advertised contract hash against ours. `None` = the peer did not
@@ -1090,14 +1170,55 @@ mod tests {
 
     #[test]
     fn contract_hash_matches_proto() {
-        // Drift guard: recompute the FNV-1a of the real proto and assert it equals
-        // the pinned CONTRACT_HASH, so any proto edit must bump the constant.
+        // Drift guard: recompute the canonical contract hash of the real proto and
+        // assert it equals the pinned CONTRACT_HASH, so any *semantic* proto edit
+        // must bump the constant (a comment-only edit must NOT — see below).
         let proto = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../proto/ncp.proto"))
             .expect("proto/ncp.proto readable from the workspace");
         assert_eq!(
-            fnv1a_hex(&proto),
+            contract_hash_of_proto(&proto),
             CONTRACT_HASH,
-            "proto changed without bumping CONTRACT_HASH (or vice versa)"
+            "proto's semantic contract changed without bumping CONTRACT_HASH (or vice versa)"
+        );
+    }
+
+    #[test]
+    fn contract_hash_ignores_comments_and_formatting() {
+        let proto = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../proto/ncp.proto"))
+            .expect("proto/ncp.proto readable from the workspace");
+        let base = contract_hash_of_proto(&proto);
+
+        // Inserting comments and blank lines must NOT change the contract hash.
+        let mut commented = String::from_utf8_lossy(&proto).into_owned();
+        commented
+            .push_str("\n// a brand-new trailing comment\n/* and a block\n   comment */\n\n\n");
+        commented = commented.replace(
+            "message OpenSession {",
+            "message OpenSession { // inline note",
+        );
+        assert_eq!(
+            contract_hash_of_proto(commented.as_bytes()),
+            base,
+            "comment/whitespace-only edits must not change the contract hash"
+        );
+
+        // A real wire change (a new field) MUST change the hash.
+        let semantic = String::from_utf8_lossy(&proto).replace(
+            "string ncp_version = 1;",
+            "string ncp_version = 1;\n  string injected = 99;",
+        );
+        assert_ne!(
+            contract_hash_of_proto(semantic.as_bytes()),
+            base,
+            "a semantic wire change must change the contract hash"
+        );
+
+        // A `//` inside a string literal must be preserved (not treated as a comment).
+        assert!(
+            String::from_utf8(canonical_proto(b"string k = 1; // c\nstring s = \"a//b\";"))
+                .unwrap()
+                .contains("\"a//b\""),
+            "string-literal contents must survive canonicalization"
         );
     }
 

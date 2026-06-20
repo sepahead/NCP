@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`CONTRACT_HASH` is now comment-insensitive.** The hash is computed over a
+  *canonicalized* proto (`ncp_core::canonical_proto` — `//` and `/* */` comments
+  stripped while respecting string literals, then per-line whitespace normalized and
+  blank lines dropped) via the new `ncp_core::contract_hash_of_proto`, instead of the
+  raw `proto/ncp.proto` bytes. A comment- or formatting-only edit no longer flips the
+  hash — the exact churn the `v0.2.5`/`v0.2.6` entries below documented (each rebumped
+  `CONTRACT_HASH` for a no-wire-change comment edit). The pinned value therefore
+  changes once, to its canonical form (`07f829cabbd1684a` → `563668907fbc5190`); only
+  a genuine field/type/enum change moves it now. `CONTRACT_HASH` is internal to
+  `ncp-core` and not yet wired into the runtime handshake, so this is not a wire change
+  and needs no consumer re-pin (it ships in the next tagged release). New tests
+  `contract_hash_ignores_comments_and_formatting` (comment/whitespace edits don't move
+  the hash; a new field does; string-literal `//` survives). *Remaining for v0.3.0:*
+  carry the hash in the `OpenSession`/`SessionOpened` envelope as a symmetric
+  fail-closed handshake, and recompute it identically in the Python/TS/C++ peers.
+
 ### Fixed
 
 - `README.md` bibtex citation example pinned a stale `version = {0.2.7}`; corrected to

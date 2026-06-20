@@ -90,13 +90,18 @@ than coercing). But it is a one-sided local guard with no integrity binding.
   typed incompatibility from a two-way exchange, not just a local reject. *Why:*
   this turns "I refuse" into "we agreed (or explicitly did not)," which is what a
   multi-peer protocol needs.
-- **Pin and verify the wire-contract definition. (Landed.)** `ncp_core::CONTRACT_HASH`
-  (FNV-1a of `proto/ncp.proto`) + `verify_contract` + `negotiate(version, hash)` let
-  peers reject a post-agreement schema mutation; a conformance test recomputes the
-  hash from the real proto so a forgotten bump fails CI. *Remaining:* carry the hash
-  in the control-plane handshake envelope (today `negotiate` takes it as a param),
-  and upgrade FNV → a signed/cryptographic digest if the threat model needs
-  adversarial (not just accidental) integrity.
+- **Pin and verify the wire-contract definition. (Landed; hardened.)**
+  `ncp_core::CONTRACT_HASH` + `verify_contract` + `negotiate(version, hash)` let peers
+  reject a post-agreement schema mutation; a conformance test recomputes the hash from
+  the real proto so a forgotten bump fails CI. The hash is now **comment-insensitive**:
+  it is FNV-1a of the *canonicalized* proto (`canonical_proto` strips comments and
+  normalizes whitespace, respecting string literals) via `contract_hash_of_proto`, so a
+  comment- or formatting-only edit no longer flips it — closing the spurious-rebump
+  churn the `v0.2.5`/`v0.2.6` releases documented. *Remaining:* carry the hash in the
+  control-plane handshake envelope (today `negotiate` takes it as a param), recompute it
+  identically in the Python/TS/C++ peers (today only Rust computes it), and upgrade FNV
+  → a signed/cryptographic digest if the threat model needs adversarial (not just
+  accidental) integrity.
 - **Keep failing closed. (Hardened.)** `check_version` no longer coerces a malformed
   minor to 0 (the latent fail-open the review found): minor parsing is now as strict
   as major. *Remaining:* the documented "minor is breaking" rule + a
