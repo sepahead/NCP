@@ -205,6 +205,10 @@ impl ZenohBus {
     where
         F: Fn(String, Vec<u8>) + Send + Sync + 'static,
     {
+        // Guard the glob entry point too: a malformed/wildcard id must be rejected
+        // here, not silently widen the subscription in a release build (debug_assert
+        // in the key builder is compiled out).
+        check_id("session", session_id)?;
         self.subscribe(&self.keys.session_glob(session_id), callback)
             .await
     }
@@ -310,6 +314,9 @@ impl ZenohBus {
     where
         F: Fn(String, Vec<u8>) + Send + Sync + 'static,
     {
+        // Guard the glob entry point too (release builds drop the key-builder
+        // debug_assert), so a wildcard-bearing id cannot widen the subscription.
+        check_id("session", session_id)?;
         self.subscribe(&self.keys.sensor_glob(session_id), callback)
             .await
     }
@@ -474,9 +481,14 @@ impl ZenohNcpClient {
         Self { bus }
     }
 
-    /// Open a session; returns the parsed `SessionOpened`.
+    /// Open a session; returns the parsed `SessionOpened`. Enforces the version
+    /// handshake the core was built for ("negotiate, reject, never coerce"): a
+    /// `SessionOpened` whose `ncp_version` is incompatible is rejected, not coerced.
     pub async fn open(&self, msg: &ncp_core::OpenSession) -> Result<ncp_core::SessionOpened> {
-        self.rpc(msg, "session_opened").await
+        let opened: ncp_core::SessionOpened = self.rpc(msg, "session_opened").await?;
+        ncp_core::check_version(&opened.ncp_version, true)
+            .map_err(|e| ZenohError(format!("session_opened version: {e}")))?;
+        Ok(opened)
     }
 
     /// Step a session; returns the parsed `ObservationFrame`.
