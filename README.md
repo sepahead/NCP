@@ -76,8 +76,8 @@ NCP is **not yet published to crates.io** (pre-1.0). Depend on it as a pinned gi
 
 ```toml
 [dependencies]
-ncp-core  = { git = "https://github.com/sepehrmn/NCP", tag = "v0.2.0" }
-ncp-zenoh = { git = "https://github.com/sepehrmn/NCP", tag = "v0.2.0" }  # transport, optional
+ncp-core  = { git = "https://github.com/sepehrmn/NCP", tag = "v0.2.5" }
+ncp-zenoh = { git = "https://github.com/sepehrmn/NCP", tag = "v0.2.5" }  # transport, optional
 ```
 
 A minimal, wire-correct snippet using `ncp-core` — build a safety-gated `CommandFrame`, then refuse an incompatible peer version:
@@ -125,13 +125,13 @@ python scripts/bench_overlap.py    # transport/compute overlap (GIL) measurement
 - [`GOVERNANCE.md`](GOVERNANCE.md) — the governance model, the mechanical interop gates, and the path to a neutral home.
 - [`SECURITY.md`](SECURITY.md) — threat model, the disclosed action-plane limitation, and the TLS + ACL enablement steps.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to build, test, and propose changes.
-- [`CHANGELOG.md`](CHANGELOG.md) — per-release notes (current: `v0.2.4`).
+- [`CHANGELOG.md`](CHANGELOG.md) — per-release notes (current: `v0.2.5`).
 
 ## Status
 
 NCP is **pre-1.0 and experimental.** Specifically:
 
-- **The wire may change.** Minor versions are treated as breaking; the version guard fails closed rather than coercing. **Pin a version** (the `tag = "v0.2.0"` above — the wire `0.2` baseline) for anything you build against.
+- **The wire may change.** Minor versions are treated as breaking; the version guard fails closed rather than coercing. **Pin the latest tag** (`tag = "v0.2.5"` above — the wire is `0.2`, with `v0.2.0` the buf-breaking baseline) for anything you build against.
 - **Single reference implementation.** `proto/ncp.proto` is the normative contract; `ncp-core` (Rust) is the reference implementation and Python/C/TS are bindings off the same contract, verified by field-set-parity drift guards — not yet a multi-implementation conformance program.
 - **The action plane is currently unauthenticated.** On an open realm it is effectively world-writable: anyone who can reach the realm can publish commands. The local `mode`/`ttl_ms` governor is defense-in-depth, **not** network security. Deploy only on a trusted, closed realm. See [`SECURITY.md`](SECURITY.md) and the P0 work in [`ROADMAP.md`](ROADMAP.md).
 
@@ -144,7 +144,7 @@ A Zenodo DOI will be minted when the project is archived to Zenodo; until then, 
   author  = {Sepehr Mahmoudian},
   title   = {NCP — Neuro-Cybernetic Protocol},
   year    = {2026},
-  version = {0.2.4},
+  version = {0.2.5},
   url     = {https://github.com/sepehrmn/NCP}
 }
 ```

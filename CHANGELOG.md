@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-06-20
+
+Conformance, validation, versioning, and supply-chain hardening — the v0.2.4
+follow-on found by a 20-lens review. **No wire shape change** — `ncp_version` stays
+`"0.2"` and the JSON/binary vectors are unchanged. **Compat note:** the proto's
+version-policy comments were corrected (no field/enum/wire change), which rebumps
+`CONTRACT_HASH` (`c35c4897a317049f` → `4c31db5c8eafbcf7`). Peers that exchange the
+contract hash in `negotiate()` must run the same release, so upgrade the fleet
+together — this is the designed contract-revision signal, not a wire break.
+
+### Fixed
+- **Conformance validator is now honest.** `check_conformance_vectors.py` no longer
+  short-circuits `anyOf` (every nullable field — units, seed, durations, recordable,
+  provenance — was previously unchecked) and gained primitive `type` checks, so a
+  `{"type":"null"}` branch actually rejects a non-null and wrong-typed scalars fail.
+- **Two-way proto↔schema parity.** `check_proto_schema_parity.py` added a reverse
+  pass: a proto message with no JSON Schema (e.g. `BulkObservation`) and no
+  documented allowlist entry now fails, closing the schema-only blind spot.
+- **Language bindings validate like the reference.** `ncp-python` and `ncp-cpp`
+  `validate()` previously only did a typed serde round-trip (silently defaulting a
+  missing required field, round-tripping a tampered discriminator clean); they now
+  delegate to `ncp_core::validate` first, and `link_status` was added to both
+  dispatch tables (the one wire kind they were missing).
+- **Version policy text matched the code.** The proto comments and the spec /
+  VERSIONING docs said receivers check the "major only"; corrected to the actual
+  exact `(major, minor)` pre-1.0 fail-closed rule (the README was already right).
+
+### Added
+- **`validate()` pins the scientific-boundary discriminators.** A frame asserting
+  `calibrated_posterior=true` or `is_simulation_output=false` (top-level on
+  `observation_frame`, or in `session_opened.provenance`) is now rejected, not
+  trusted — mirroring the proto "always false"/"always true" contract.
+- **Corpus coverage 4 → 13 kinds** with a coverage gate (every schema `kind` must
+  have a golden vector), a `required_fields()`↔schema drift test, and a
+  cross-language `ncp-cpp` corpus test that drives every JSON vector through the
+  C ABI.
+- **Supply-chain gate:** `cargo-deny` (advisories / licenses / bans / sources) +
+  `deny.toml`, `--locked` on all CI cargo steps and the release publish dry-runs, a
+  release tag↔version guard, and a `cargo check` of `ncp-python` (was never compiled
+  in CI). The local `check.sh` now runs the parity + conformance gates too.
+
+### Security
+- **Glob subscribes enforce `check_id`** and the client `open()` runs the version
+  handshake (carried over from the v0.2.4 transport work). `cargo-deny` documents
+  three transitive advisories pinned by `zenoh 1.9.0` (lz4_flex block-API OOB,
+  `paste`/`rustls-pemfile` unmaintained) with remove-when conditions.
+
 ## [0.2.4] - 2026-06-20
 
 Safety, validation, and security hardening — the remaining major findings from the
@@ -217,7 +264,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepehrmn/NCP/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/sepehrmn/NCP/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/sepehrmn/NCP/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/sepehrmn/NCP/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/sepehrmn/NCP/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/sepehrmn/NCP/compare/v0.2.1...v0.2.2
