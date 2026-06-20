@@ -891,7 +891,7 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
 /// class) is *detectable* rather than silently coerced. It is recomputed from the
 /// actual proto by the `contract_hash_matches_proto` test, so a proto edit that
 /// forgets to bump this constant fails CI.
-pub const CONTRACT_HASH: &str = "4c31db5c8eafbcf7";
+pub const CONTRACT_HASH: &str = "07f829cabbd1684a";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
 /// adequate for the contract-pinning integrity-vs-accidental-drift use. It is

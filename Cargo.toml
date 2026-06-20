@@ -29,8 +29,8 @@ version = "0.2.5"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["Sepehr Mahmoudian"]
-repository = "https://github.com/sepehrmn/NCP"
-homepage = "https://github.com/sepehrmn/NCP"
+repository = "https://github.com/sepahead/NCP"
+homepage = "https://github.com/sepahead/NCP"
 rust-version = "1.88.0"
 
 [workspace.dependencies]

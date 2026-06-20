@@ -2,7 +2,7 @@
 
 > A single versioned, typed, cross-language **wire contract** for a running NEST point- and rate-neuron simulation (spiking, binary, and rate-based models) to perceive and act through robots, UAVs, and analysis clients — safety-gated and provenance-first.
 
-[![CI](https://github.com/sepehrmn/NCP/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehrmn/NCP/actions/workflows/ci.yml)
+[![CI](https://github.com/sepahead/NCP/actions/workflows/ci.yml/badge.svg)](https://github.com/sepahead/NCP/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
 [![status: experimental](https://img.shields.io/badge/status-experimental%20(pre--1.0)-orange.svg)](#status)
@@ -76,8 +76,8 @@ NCP is **not yet published to crates.io** (pre-1.0). Depend on it as a pinned gi
 
 ```toml
 [dependencies]
-ncp-core  = { git = "https://github.com/sepehrmn/NCP", tag = "v0.2.5" }
-ncp-zenoh = { git = "https://github.com/sepehrmn/NCP", tag = "v0.2.5" }  # transport, optional
+ncp-core  = { git = "https://github.com/sepahead/NCP", tag = "v0.2.5" }
+ncp-zenoh = { git = "https://github.com/sepahead/NCP", tag = "v0.2.5" }  # transport, optional
 ```
 
 A minimal, wire-correct snippet using `ncp-core` — build a safety-gated `CommandFrame`, then refuse an incompatible peer version:
@@ -145,7 +145,7 @@ A Zenodo DOI will be minted when the project is archived to Zenodo; until then, 
   title   = {NCP — Neuro-Cybernetic Protocol},
   year    = {2026},
   version = {0.2.5},
-  url     = {https://github.com/sepehrmn/NCP}
+  url     = {https://github.com/sepahead/NCP}
 }
 ```
 

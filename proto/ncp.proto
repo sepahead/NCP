@@ -33,7 +33,7 @@
 //     which emits int64 as strings), so values above 2^53 lose precision in a
 //     binary64/JS consumer — bounded fields (ids/seq/counters) are safe, `seed`
 //     is range-guarded by the client, and the full ProtoJSON-canonical
-//     int64-as-strings migration is tracked in sepehrmn/NCP#5,
+//     int64-as-strings migration is tracked in sepahead/NCP#5,
 //   - `record`/`stimulus` on OpenSession are NESTED specs (RecordSpec /
 //     StimulusSpec), each wrapping a repeated list of targets,
 //   - unknown fields are ignored on deserialize (additive forward-compatibility

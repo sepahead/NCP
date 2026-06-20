@@ -99,7 +99,7 @@ jobs:
       - name: buf breaking (vs v0.2.0)
         uses: bufbuild/buf-breaking-action@v1
         with:
-          against: "https://github.com/sepehrmn/NCP.git#tag=v0.2.0,subdir=."
+          against: "https://github.com/sepahead/NCP.git#tag=v0.2.0,subdir=."
 
   ts-dist:
     name: ts dist up-to-date

@@ -54,7 +54,7 @@ PUT-authority invariants are mechanically enforced by
 [`scripts/check_acl_template.py`](scripts/check_acl_template.py).
 
 This is tracked as ROADMAP **P0** (authenticate the action plane) and
-[#7](https://github.com/sepehrmn/NCP/issues/7). A per-plane Zenoh ACL template
+[#7](https://github.com/sepahead/NCP/issues/7). A per-plane Zenoh ACL template
 (default-deny; only the authenticated `engram` subject may publish commands, the
 robot publishes only its sensors, observers are read-only) is provided at
 [`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5) — pair it
@@ -91,7 +91,7 @@ meaningless. To stand up an authenticated realm:
 Schema field names follow the Zenoh 1.x access-control config; validate against
 your Zenoh version (authoritative: the zenoh.io configuration docs) before relying
 on it. Live mTLS deployment validation is the remaining P0 item on
-[#7](https://github.com/sepehrmn/NCP/issues/7).
+[#7](https://github.com/sepahead/NCP/issues/7).
 
 ## Supported versions
 

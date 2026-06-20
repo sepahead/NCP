@@ -8,7 +8,7 @@ pre-1.0.
 
 ## Current model (pre-1.0): maintainer stewardship
 
-- The canonical repository is **[sepehrmn/NCP](https://github.com/sepehrmn/NCP)**.
+- The canonical repository is **[sepahead/NCP](https://github.com/sepahead/NCP)**.
   The maintainer is the steward of the wire contract and the final decision-maker
   on changes during `0.x`.
 - The **normative artifact** is `proto/ncp.proto` (the wire IDL). Everything else
@@ -52,7 +52,7 @@ independent of who maintains it.
 The intent is for NCP to outgrow single-maintainer stewardship as adoption grows.
 The migration path, in order of increasing neutrality:
 
-1. **Now** — maintainer-stewarded in `sepehrmn/NCP`, with the mechanical interop
+1. **Now** — maintainer-stewarded in `sepahead/NCP`, with the mechanical interop
    gates above doing the heavy lifting.
 2. **Multi-implementer** — once ≥2 independent peers ship against the corpus, add
    named maintainers from those implementations and require their review for wire

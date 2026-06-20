@@ -47,5 +47,5 @@ npm run regen   # cargo test -p ncp-core --features ts → sync → tsc build
 ```
 
 `ncp-ts/dist` is committed so the package is consumable directly as a git
-dependency (`"@sepehrmn/ncp": "github:sepehrmn/NCP#<tag>"`) without a build step on
+dependency (`"@sepehrmn/ncp": "github:sepahead/NCP#<tag>"`) without a build step on
 the consumer side. Rebuild and commit `dist` whenever the types or client change.
