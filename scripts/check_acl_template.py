@@ -8,8 +8,15 @@ This guard runs in CI without a Zenoh runtime and fails closed on:
 
   1. an invalid `messages` token (e.g. the `get` that zenohd rejects — the real
      token for the querier/get side is `query`), and
-  2. a violation of the safety invariant: only the `engram` (commander) policy may
-     be bound to a rule that PUTs on the `.../command/**` plane.
+  2. a violation of either PUT-authority invariant: only the `engram` (commander)
+     policy may PUT on the `.../command/**` plane, AND only the `robot` (body)
+     policy may PUT on the `.../sensor/**` plane. The perception plane is a control
+     input too — a spoofed SensorFrame steers the controller and can defeat the
+     geofence (false-data injection) — so it is restricted symmetrically to the
+     action plane.
+
+On every run it also self-tests (a tampered template MUST be rejected) so the
+guard cannot silently rot into a no-op.
 
 It is intentionally a lightweight stdlib-only parse (no json5 dep): it strips `//`
 comments, quotes bare keys, and drops trailing commas, which is sufficient for this
@@ -51,21 +58,17 @@ def load_json5(text: str) -> dict:
     return json.loads(text)
 
 
-def main() -> int:
-    text = ACL_PATH.read_text(encoding="utf-8")
-    try:
-        cfg = load_json5(text)
-    except json.JSONDecodeError as e:  # pragma: no cover - structural failure
-        print(f"FAIL: could not parse {ACL_PATH.name}: {e}", file=sys.stderr)
-        return 1
-
+def check(cfg: dict) -> list[str]:
+    """Return ACL problems (empty == OK). Pure, so it is self-testable."""
     ac = cfg.get("access_control", {})
     rules = ac.get("rules", [])
     policies = ac.get("policies", [])
     errors: list[str] = []
 
-    # (1) every messages token must be a real Zenoh ACL token.
+    # (1) every messages token must be a real Zenoh ACL token; track PUT authority
+    # on the two control planes (command = action, sensor = perception/FDI input).
     command_put_rules: set[str] = set()
+    sensor_put_rules: set[str] = set()
     for rule in rules:
         rid = rule.get("id", "<unnamed>")
         for tok in rule.get("messages", []):
@@ -74,14 +77,18 @@ def main() -> int:
                     f"rule {rid!r}: invalid messages token {tok!r} "
                     f"(zenohd would reject the config; did you mean 'query'?)"
                 )
-        # Track rules that PUT on the command plane (the safety-critical authority).
         keys = rule.get("key_exprs", [])
-        if any(t in ("put", "delete") for t in rule.get("messages", [])) and any(
-            "/command/" in k or k.endswith("/command") for k in keys
-        ):
+        puts = any(t in ("put", "delete") for t in rule.get("messages", []))
+        if puts and any("/command/" in k or k.endswith("/command") for k in keys):
             command_put_rules.add(rid)
+        # The perception (sensor) plane is ALSO a control input: a spoofed sensor
+        # frame steers the controller and can defeat the geofence (false-data
+        # injection). Restrict sensor PUTs to the body, symmetric to command PUTs.
+        if puts and any("/sensor/" in k or k.endswith("/sensor") for k in keys):
+            sensor_put_rules.add(rid)
 
-    # (2) only the `engram` commander policy may bind a command-put rule.
+    # (2) PUT authority on each control plane is restricted to exactly one subject:
+    #     command -> engram (commander); sensor -> robot (body).
     for pol in policies:
         subjects = set(pol.get("subjects", []))
         for rid in pol.get("rules", []):
@@ -90,16 +97,96 @@ def main() -> int:
                     f"policy for subjects {sorted(subjects)} binds command-put rule "
                     f"{rid!r}: only 'engram' (the commander) may publish on the action plane"
                 )
+            if rid in sensor_put_rules and subjects != {"robot"}:
+                errors.append(
+                    f"policy for subjects {sorted(subjects)} binds sensor-put rule "
+                    f"{rid!r}: only 'robot' (the body) may publish on the perception "
+                    f"plane — a spoofed sensor frame is an FDI command channel"
+                )
 
+    return errors
+
+
+def _selftest() -> list[str]:
+    """Negative self-tests (stdlib-only): a tampered template MUST be rejected, so
+    the guard cannot silently rot into a no-op. Run on every invocation."""
+    failures: list[str] = []
+    cases = [
+        # (description, tampered config, must-be-rejected)
+        (
+            "a non-robot sensor-put policy",
+            {
+                "access_control": {
+                    "rules": [
+                        {
+                            "id": "x",
+                            "messages": ["put"],
+                            "key_exprs": ["engram/ncp/session/*/sensor/**"],
+                        }
+                    ],
+                    "policies": [{"rules": ["x"], "subjects": ["observer"]}],
+                }
+            },
+        ),
+        (
+            "a non-engram command-put policy",
+            {
+                "access_control": {
+                    "rules": [
+                        {
+                            "id": "y",
+                            "messages": ["put"],
+                            "key_exprs": ["engram/ncp/session/*/command/**"],
+                        }
+                    ],
+                    "policies": [{"rules": ["y"], "subjects": ["robot"]}],
+                }
+            },
+        ),
+        (
+            "an invalid 'get' messages token",
+            {
+                "access_control": {
+                    "rules": [
+                        {"id": "z", "messages": ["get"], "key_exprs": ["engram/ncp/rpc"]}
+                    ],
+                    "policies": [],
+                }
+            },
+        ),
+    ]
+    for desc, cfg in cases:
+        if not check(cfg):
+            failures.append(f"{desc} was NOT rejected")
+    return failures
+
+
+def main() -> int:
+    self_failures = _selftest()
+    if self_failures:
+        print("FAIL: ACL guard self-test failed (the guard is broken):", file=sys.stderr)
+        for f in self_failures:
+            print(f"  - {f}", file=sys.stderr)
+        return 1
+
+    text = ACL_PATH.read_text(encoding="utf-8")
+    try:
+        cfg = load_json5(text)
+    except json.JSONDecodeError as e:  # pragma: no cover - structural failure
+        print(f"FAIL: could not parse {ACL_PATH.name}: {e}", file=sys.stderr)
+        return 1
+
+    errors = check(cfg)
     if errors:
         print("FAIL: ACL template guard found problems:", file=sys.stderr)
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         return 1
 
+    n_rules = len(cfg.get("access_control", {}).get("rules", []))
     print(
-        f"OK: {ACL_PATH.name} — {len(rules)} rules, tokens valid, "
-        f"command-put restricted to the engram commander"
+        f"OK: {ACL_PATH.name} — {n_rules} rules, tokens valid, "
+        f"command-put restricted to engram, sensor-put to robot"
     )
     return 0
 

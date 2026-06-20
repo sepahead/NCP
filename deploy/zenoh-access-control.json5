@@ -50,7 +50,11 @@
 
       // ── Robot / plant (the body): publishes its own sensors and subscribes
       // commands. It can NEVER publish on the command or observation planes — it
-      // holds no rule that PUTs there, so default-deny blocks it.
+      // holds no rule that PUTs there, so default-deny blocks it. NB: the sensor
+      // plane is itself a CONTROL INPUT — a spoofed SensorFrame steers the brain
+      // and can defeat the geofence (false-data injection) — so sensor-PUT is
+      // restricted to `robot` (enforced by scripts/check_acl_template.py),
+      // symmetric to command-PUT being restricted to `engram`.
       {
         id: "robot-publishes-sensor",
         messages: ["put", "delete"],
