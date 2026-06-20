@@ -34,18 +34,28 @@ jobs:
       # ncp-python (PyO3) is excluded from the cargo gate: its test binary needs
       # libpython on the runtime linker path, and it is built/tested via maturin
       # + pytest (the PyPI path), not the cargo workspace. See ROADMAP.md.
+      # --locked everywhere: CI must build the exact committed Cargo.lock, so a
+      # dependency cannot silently float to a new (possibly yanked/breaking)
+      # version between the lock commit and the run (supply-chain hygiene).
       - name: Clippy (deny warnings)
-        run: cargo clippy --workspace --exclude ncp-python --all-targets -- -D warnings
+        run: cargo clippy --workspace --exclude ncp-python --all-targets --locked -- -D warnings
 
       - name: Build workspace
-        run: cargo build --workspace --exclude ncp-python
+        run: cargo build --workspace --exclude ncp-python --locked
 
       - name: Test workspace
-        run: cargo test --workspace --exclude ncp-python
+        run: cargo test --workspace --exclude ncp-python --locked
+
+      # ncp-python is excluded from the build/test gate (its cdylib needs a
+      # libpython link step CI does not set up), but `cargo check` has no link
+      # step, so it still type-checks the PyO3 binding — closing the gap where the
+      # binding was never compiled in CI. Full maturin+pytest packaging: ROADMAP.md.
+      - name: Check ncp-python (type-check; no Python link)
+        run: cargo check -p ncp-python --locked
 
       # Regenerate + ensure the TS bindings build (ncp-core `ts` feature).
       - name: Test ncp-core with TS bindings
-        run: cargo test -p ncp-core --features ts
+        run: cargo test -p ncp-core --features ts --locked
 
       # Guard the protobuf IDL against the JSON Schemas (field-set + enum
       # wire-string parity). Closes the third side of the serde/schema/proto
@@ -79,9 +89,13 @@ jobs:
         run: buf build
       - name: buf lint
         run: buf lint
-      # Gate the JSON + binary wire against the last released baseline (v0.2.0,
-      # the first proto-bearing tag). A WIRE/WIRE_JSON-breaking change fails here
-      # and must bump the version (see VERSIONING.md). Bump the tag each release.
+      # Gate the JSON + binary wire against the FIRST tag of the current wire
+      # version (v0.2.0, the wire-0.2 baseline). A WIRE/WIRE_JSON-breaking change
+      # fails here and must bump the version (see VERSIONING.md).
+      # IMPORTANT: do NOT bump this baseline on a patch/minor-doc release — the
+      # whole v0.2.x lineage is checked against the wire-0.2 origin, so a break
+      # introduced anywhere in 0.2.x is still caught. Move it ONLY when cutting a
+      # new wire (e.g. to v0.3.0, the first tag of wire 0.3).
       - name: buf breaking (vs v0.2.0)
         uses: bufbuild/buf-breaking-action@v1
         with:
@@ -106,3 +120,17 @@ jobs:
         run: bun run build
       - name: dist must match the committed build
         run: git diff --exit-code -- ncp-ts/dist
+
+  cargo-deny:
+    name: cargo-deny (advisories, licenses, bans, sources)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      # Supply-chain gate over the committed Cargo.lock: RustSec vulnerability +
+      # yanked advisories, a default-deny license allowlist, banned/wildcard deps,
+      # and source restrictions. Config + documented advisory ignores: deny.toml.
+      - name: cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check

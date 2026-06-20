@@ -1,0 +1,54 @@
+# cargo-deny — supply-chain gate for the NCP workspace.
+# Run locally with `cargo deny check`; CI runs it via cargo-deny-action.
+
+[advisories]
+# RustSec advisory DB. A known-vulnerable crate fails the build. A yanked crate
+# (pulled from crates.io after publish) is also denied — it must not be in the lock.
+yanked = "deny"
+# Each ignore is a TRANSITIVE advisory pinned by zenoh = "1.9.0" (we do not own the
+# constraint) with no fix reachable from our lock. Documented, not silent; drop the
+# entry the moment a zenoh bump lets us update past it.
+ignore = [
+  # lz4_flex LZ4 *block*-API out-of-bounds read on invalid data. Fixed in 0.11.6 /
+  # 0.12.1, but zenoh-transport 1.9.0 requires lz4_flex "^0.10.0" (no patched 0.10
+  # exists), so the lock is stuck at 0.10.0. Exposure is zenoh's internal batch
+  # compression only. Remove when zenoh bumps its lz4_flex bound.
+  "RUSTSEC-2026-0041",
+  # paste — unmaintained proc-macro (no vuln), pulled in transitively. No fix.
+  "RUSTSEC-2024-0436",
+  # rustls-pemfile — unmaintained (no vuln), transitive via zenoh-link-commons. No fix.
+  "RUSTSEC-2025-0134",
+]
+
+[licenses]
+# Default-deny: a dependency whose license is NOT in this allowlist fails. The set
+# below is exactly what the committed Cargo.lock resolves to (verified locally with
+# `cargo deny check licenses`); adding a dep with a new license is a deliberate
+# review step, not a silent pass.
+confidence-threshold = 0.9
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "MPL-2.0",
+  "CDLA-Permissive-2.0",
+]
+
+[bans]
+# Multiple versions of one crate (bloat / drift) warns; a wildcard `*` dependency
+# (no version bound — unreproducible) is denied.
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+# Only crates.io and the project's own git repos are permitted dependency sources.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = [
+  "https://github.com/sepehrmn/NCP",
+]
