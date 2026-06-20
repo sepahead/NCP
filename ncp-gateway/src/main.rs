@@ -17,9 +17,16 @@
 //! Config via env:
 //!   NCP_REALM        key-expression realm           (default `engram/ncp`)
 //!   NCP_BRIDGE_ADDR  Python bridge_server.py addr    (default `127.0.0.1:28474`)
+//!   NCP_ZENOH_CONFIG path to a Zenoh ACL/TLS config  (default: hardened, scouting off)
+//!
+//! Security: the realm is *addressing*, not a credential. By default this gateway
+//! opens the hardened config (multicast scouting disabled). For an enforced
+//! deployment set `NCP_ZENOH_CONFIG` to the shipped per-plane ACL config
+//! (`deploy/zenoh-access-control.json5`) paired with mutual TLS; if it is set but the
+//! file is missing/malformed the gateway refuses to start (fail-closed).
 
 use ncp_core::keys::Keys;
-use ncp_zenoh::ZenohBus;
+use ncp_zenoh::{ZenohBus, NCP_ZENOH_CONFIG_ENV};
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::time::Duration;
@@ -57,7 +64,27 @@ async fn main() {
     let bridge_addr =
         std::env::var("NCP_BRIDGE_ADDR").unwrap_or_else(|_| DEFAULT_BRIDGE_ADDR.to_string());
 
-    let bus = match ZenohBus::open_realm(Keys::new(realm.clone())).await {
+    // Honor NCP_ZENOH_CONFIG explicitly: when set, load the shipped ACL/TLS config
+    // file (fail-closed — a missing/malformed file aborts startup). When unset, fall
+    // back to the hardened default (multicast scouting off). The realm is addressing,
+    // not a credential — enforcement comes from this config, not the realm string.
+    let keys = Keys::new(realm.clone());
+    let open = match std::env::var_os(NCP_ZENOH_CONFIG_ENV) {
+        Some(path) => {
+            println!("[ncp-gateway] loading Zenoh config from {NCP_ZENOH_CONFIG_ENV}={path:?}");
+            ZenohBus::with_config_file(std::path::Path::new(&path), keys).await
+        }
+        None => {
+            eprintln!(
+                "[ncp-gateway] {NCP_ZENOH_CONFIG_ENV} unset: opening hardened default \
+                 (multicast scouting OFF, no ACL/TLS). The realm is addressing, not a \
+                 credential — set {NCP_ZENOH_CONFIG_ENV} to deploy/zenoh-access-control.json5 \
+                 (with mTLS) for an enforced deployment. See SECURITY.md."
+            );
+            ZenohBus::open_realm(keys).await
+        }
+    };
+    let bus = match open {
         Ok(b) => b,
         Err(e) => {
             eprintln!("[ncp-gateway] failed to open Zenoh session: {e}");

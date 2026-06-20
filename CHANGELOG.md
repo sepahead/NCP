@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-06-20
+
+### Security
+
+- `ncp-zenoh`: secure-by-default transport. `ZenohBus::open`/`open_realm` now open a
+  **hardened default** config with multicast scouting disabled, so a default
+  deployment no longer auto-advertises on the LAN (peers still connect via explicit
+  `connect`/`listen` endpoints). Added `ZenohBus::open_secure`,
+  `ZenohBus::with_config_file`, and the `NCP_ZENOH_CONFIG` env hook (honored by
+  `open`/`open_realm` and the `ncp-gateway` binary) to load the shipped per-plane ACL
+  config (`deploy/zenoh-access-control.json5`). Loading fails closed — a missing or
+  malformed config aborts the open rather than falling back to an open default, and
+  `open_secure` refuses to start when `NCP_ZENOH_CONFIG` is unset. Documented that the
+  realm is *addressing, not a credential*. No wire/proto change.
+
 ## [0.2.7] - 2026-06-20
 
 Release-coherence fix. **No wire change** — `ncp_version` stays `0.2` and the conformance vectors are
@@ -287,7 +302,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepahead/NCP/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/sepahead/NCP/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/sepahead/NCP/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/sepahead/NCP/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/sepahead/NCP/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/sepahead/NCP/compare/v0.2.4...v0.2.5

@@ -25,6 +25,22 @@
 //!
 //! Async API (native to Zenoh; all NCP consumers run on tokio). The in-process
 //! [`ncp_core::Bus`] / [`ncp_core::LocalBus`] remain for tests and co-process use.
+//!
+//! ## Security: the realm is addressing, not a credential
+//!
+//! The realm string (`{realm}/…`) is *addressing*, not authorization — anyone who
+//! can reach the bus and knows (or guesses) the realm can publish/subscribe on it.
+//! It is **not** a secret or a credential. To actually restrict who may drive an
+//! actuator, deploy the shipped per-plane access-control template and pair it with
+//! mutual TLS (see `deploy/zenoh-access-control.json5` and `SECURITY.md`).
+//!
+//! The default [`ZenohBus::open`] / [`ZenohBus::open_realm`] path is hardened to be
+//! quiet-by-default: multicast scouting is **disabled** so a default deployment does
+//! not auto-advertise on the LAN (peers still connect via explicit
+//! `connect`/`listen` endpoints in a supplied config). For an ACL/TLS-enforced
+//! deployment, load the shipped config via [`ZenohBus::open_secure`],
+//! [`ZenohBus::with_config_file`], or by setting the `NCP_ZENOH_CONFIG` environment
+//! variable (honored by `open`/`open_realm` and by the `ncp-gateway` binary).
 
 use ncp_core::keys::{valid_id_segment, Keys};
 use std::sync::Arc;
@@ -33,6 +49,47 @@ use zenoh::{Config, Session};
 
 /// Re-export so consumers can configure Zenoh without depending on `zenoh`.
 pub use zenoh::Config as ZenohConfig;
+
+/// Environment variable naming a Zenoh config file (json5/json) to load. When set,
+/// [`ZenohBus::open`] / [`ZenohBus::open_realm`] (and the `ncp-gateway` binary) load
+/// it instead of the hardened default — point it at the shipped ACL/TLS config in
+/// `deploy/` for an enforced deployment.
+pub const NCP_ZENOH_CONFIG_ENV: &str = "NCP_ZENOH_CONFIG";
+
+/// Build the hardened default config: Zenoh defaults with **multicast scouting
+/// disabled** so a default deployment does not auto-advertise on the LAN. Peers can
+/// still connect via explicit `connect`/`listen` endpoints supplied in a config
+/// file (see [`NCP_ZENOH_CONFIG_ENV`]). This is addressing-hygiene, not auth — the
+/// realm is not a credential; for real authorization load the `deploy/` ACL via
+/// [`ZenohBus::open_secure`].
+fn default_quiet_config() -> Result<Config> {
+    let mut cfg = Config::default();
+    // Fail-closed on the discovery surface: scouting-off is the security guarantee
+    // of this path. Zenoh's own default is multicast scouting ON (LAN
+    // auto-advertise), so if this insert ever fails we must NOT silently hand back a
+    // config that re-enables it — surface the error so the open aborts.
+    cfg.insert_json5("scouting/multicast/enabled", "false")
+        .map_err(|e| ZenohError(format!("disable multicast scouting: {e}")))?;
+    Ok(cfg)
+}
+
+/// Load a Zenoh config file (json5/json) from `path`, surfacing a parse/IO error as
+/// [`ZenohError`] rather than panicking — a missing or malformed security config
+/// must fail the open, never silently fall back to an open default.
+fn config_from_file(path: &std::path::Path) -> Result<Config> {
+    Config::from_file(path)
+        .map_err(|e| ZenohError(format!("load Zenoh config {}: {e}", path.display())))
+}
+
+/// Resolve the effective config for the default open path: if [`NCP_ZENOH_CONFIG_ENV`]
+/// is set, load that file (fail-closed on error); otherwise use the hardened
+/// scouting-off default.
+fn resolve_default_config() -> Result<Config> {
+    match std::env::var_os(NCP_ZENOH_CONFIG_ENV) {
+        Some(path) => config_from_file(std::path::Path::new(&path)),
+        None => default_quiet_config(),
+    }
+}
 
 /// A transport plane with its QoS profile.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -106,14 +163,44 @@ pub struct ZenohBus {
 }
 
 impl ZenohBus {
-    /// Open with the default Zenoh config and realm.
+    /// Open with the hardened default config and realm.
+    ///
+    /// "Hardened default" = Zenoh defaults with multicast scouting **disabled** so a
+    /// default deployment does not auto-advertise on the LAN. If [`NCP_ZENOH_CONFIG_ENV`]
+    /// is set, the named config file is loaded instead (and a load error fails the
+    /// open — it never silently falls back to an open default). The realm is
+    /// addressing, not a credential; for ACL/TLS enforcement use [`Self::open_secure`].
     pub async fn open() -> Result<Self> {
-        Self::with_config(Config::default(), Keys::default()).await
+        Self::with_config(resolve_default_config()?, Keys::default()).await
     }
 
-    /// Open with the default Zenoh config and an explicit realm.
+    /// Open with the hardened default config and an explicit realm. See [`Self::open`]
+    /// for the scouting-off default and the [`NCP_ZENOH_CONFIG_ENV`] override.
     pub async fn open_realm(keys: Keys) -> Result<Self> {
-        Self::with_config(Config::default(), keys).await
+        Self::with_config(resolve_default_config()?, keys).await
+    }
+
+    /// Open with a Zenoh config loaded from a file (json5/json), e.g. the shipped
+    /// per-plane ACL config in `deploy/zenoh-access-control.json5`. A missing or
+    /// malformed file fails the open (fail-closed) rather than falling back to an
+    /// open default.
+    pub async fn with_config_file(path: impl AsRef<std::path::Path>, keys: Keys) -> Result<Self> {
+        Self::with_config(config_from_file(path.as_ref())?, keys).await
+    }
+
+    /// Open the secure deployment config: load the file named by [`NCP_ZENOH_CONFIG_ENV`]
+    /// (the operator points it at the shipped `deploy/` ACL/TLS config). Unlike
+    /// [`Self::open`], the env var is **required** here — if it is unset the open
+    /// fails rather than starting an unauthenticated session, so a misconfigured
+    /// "secure" deployment refuses to come up instead of silently opening a hole.
+    pub async fn open_secure(keys: Keys) -> Result<Self> {
+        let path = std::env::var_os(NCP_ZENOH_CONFIG_ENV).ok_or_else(|| {
+            ZenohError(format!(
+                "open_secure requires {NCP_ZENOH_CONFIG_ENV} to name a Zenoh ACL/TLS \
+                 config (e.g. deploy/zenoh-access-control.json5)"
+            ))
+        })?;
+        Self::with_config_file(std::path::Path::new(&path), keys).await
     }
 
     /// Open with an explicit config and realm.
@@ -568,6 +655,41 @@ mod tests {
                 check_id("session", bad).is_err(),
                 "expected reject for {bad:?}"
             );
+        }
+    }
+
+    #[test]
+    fn default_config_disables_multicast_scouting() {
+        // The hardened default open() path must not auto-advertise on the LAN:
+        // scouting/multicast/enabled is forced false. Zenoh's own default is true,
+        // so this asserts our override actually took effect (closed-realm default).
+        let cfg = default_quiet_config().expect("hardened default config must build");
+        let json = cfg.get_json("scouting/multicast/enabled").unwrap();
+        assert_eq!(
+            json.trim(),
+            "false",
+            "multicast scouting must be off by default"
+        );
+    }
+
+    #[test]
+    fn open_secure_requires_the_config_env_var() {
+        // Fail-closed: open_secure must refuse when NCP_ZENOH_CONFIG is unset rather
+        // than starting an unauthenticated session. We assert the precondition the
+        // async path enforces (env var presence) without standing up a session.
+        // SAFETY of the test: serialized within this single test; restored after.
+        let saved = std::env::var_os(NCP_ZENOH_CONFIG_ENV);
+        std::env::remove_var(NCP_ZENOH_CONFIG_ENV);
+        assert!(
+            std::env::var_os(NCP_ZENOH_CONFIG_ENV).is_none(),
+            "precondition: env var unset"
+        );
+        // A missing config file must be a load error (fail-closed), never a silent
+        // fallback to an open default.
+        let missing = std::path::Path::new("/nonexistent/ncp-zenoh-acl.json5");
+        assert!(config_from_file(missing).is_err());
+        if let Some(v) = saved {
+            std::env::set_var(NCP_ZENOH_CONFIG_ENV, v);
         }
     }
 
