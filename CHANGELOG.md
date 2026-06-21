@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per-`Run()` cost that *vanishes* for big networks. Adds implementer caveats (snap
   `chunk_ms` to a `min_delay` multiple; prefer scheduled-time generators).
 - **Corrected the MUSIC latency claim** in `NEST_REALTIME.md`/`PERFORMANCE.md`: MUSIC is
-  buffered pairwise `MPI_Send`/`MPI_Recv` (Djurfeldt 2010, PMC3240549) with a tick-bound
+  buffered pairwise `MPI_Send`/`MPI_Recv` (Djurfeldt 2010, PMC2846392) with a tick-bound
   closed-loop floor (~70 ms @ 1 ms tick → ~350 ms @ 50 ms; Weidel 2016), **not** a
   low-microsecond shared-memory hop — NCP's ~0.1–1 ms transport is *under* that floor, so
   NCP is not slower (if anything faster) on single-loop reaction latency. The GIL-held

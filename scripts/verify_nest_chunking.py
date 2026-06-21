@@ -83,6 +83,15 @@ def _reset(nest, threads: int, seed: int, resolution: float) -> None:
     nest.rng_seed = seed
 
 
+# All synaptic delays equal DELAY_MS so min_delay == DELAY_MS unambiguously. Chunked vs
+# monolithic are bit-identical only when each chunk is an integer multiple of min_delay
+# (NEST advances/communicates in min_delay slices; a non-aligned chunk with multiple RNG
+# sources can legitimately diverge — the "not an integer multiple of the minimal delay"
+# case). The default t_bio/chunks all land on this 1.0 ms grid; the guard in main() warns
+# if custom args don't.
+DELAY_MS = 1.0
+
+
 def _build(nest, n: int, *, plastic: bool, poisson_hz: float):
     """A small balanced network. With plastic=True, recurrent E->E synapses are
     stdp_synapse so weights evolve (for the bit-identical-plasticity test)."""
@@ -91,13 +100,13 @@ def _build(nest, n: int, *, plastic: bool, poisson_hz: float):
     inh = nest.Create("iaf_psc_alpha", ni)
     alln = exc + inh
     pg = nest.Create("poisson_generator", params={"rate": poisson_hz})
-    nest.Connect(pg, alln, syn_spec={"weight": 20.0})
-    ee_syn = {"synapse_model": "stdp_synapse", "weight": 20.0, "delay": 1.5} if plastic else {
-        "weight": 20.0, "delay": 1.5
+    nest.Connect(pg, alln, syn_spec={"weight": 20.0, "delay": DELAY_MS})
+    ee_syn = {"synapse_model": "stdp_synapse", "weight": 20.0, "delay": DELAY_MS} if plastic else {
+        "weight": 20.0, "delay": DELAY_MS
     }
     nest.Connect(exc, alln, {"rule": "fixed_indegree", "indegree": min(400, ne)}, ee_syn)
     nest.Connect(inh, alln, {"rule": "fixed_indegree", "indegree": min(100, ni)},
-                 {"weight": -100.0, "delay": 1.5})
+                 {"weight": -100.0, "delay": DELAY_MS})
     sr = nest.Create("spike_recorder")
     nest.Connect(alln, sr)
     return exc, sr
@@ -135,7 +144,17 @@ def main() -> int:
         sys.exit(f"REQUIRES NEST: `import nest` failed ({exc}). Install NEST 3.x.")
     ver = getattr(nest, "__version__", "unknown")
     nest.set_verbosity("M_ERROR")
-    print(f"RESULT nest_version={ver} n={a.n} threads={a.threads} t_bio={a.t_bio} resolution={a.resolution}")
+    print(f"RESULT nest_version={ver} n={a.n} threads={a.threads} t_bio={a.t_bio} "
+          f"resolution={a.resolution} min_delay={DELAY_MS}")
+
+    # Bit-identity (Test C) holds only when each chunk is an integer multiple of
+    # min_delay (= DELAY_MS here). Warn — don't silently mislead — if custom args break that.
+    for nchunks in a.chunks:
+        chunk = a.t_bio / nchunks
+        if abs(round(chunk / DELAY_MS) * DELAY_MS - chunk) > 1e-9:
+            print(f"WARN chunk {chunk:.4f} ms (t_bio/{nchunks}) is NOT a multiple of "
+                  f"min_delay={DELAY_MS} ms — chunked vs monolithic may legitimately differ; "
+                  f"choose --t-bio/--chunks so t_bio/N is an integer multiple of {DELAY_MS}.")
 
     failures: list[str] = []
 

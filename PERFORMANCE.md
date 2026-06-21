@@ -83,7 +83,7 @@ step, the NEST Server does a REST round trip. NCP's chunked `Prepare`/`Run` +
 same **O(new)** MUSIC achieves. The one structural difference is the transport
 hop — and the common intuition about it is **backwards**: MUSIC is not a
 low-microsecond shared-memory hop. It exchanges over **buffered pairwise
-`MPI_Send`/`MPI_Recv`** ([Djurfeldt et al. 2010, PMC3240549](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240549/)),
+`MPI_Send`/`MPI_Recv`** ([Djurfeldt et al. 2010, PMC2846392](https://pmc.ncbi.nlm.nih.gov/articles/PMC2846392/)),
 and its *closed-loop* latency is buffering/tick-bound: ≈**70 ms at a 1 ms tick** rising
 to ≈**350 ms at a 50 ms tick** ([Weidel et al. 2016, *Front. Neuroinform.* 10:31](https://www.frontiersin.org/articles/10.3389/fninf.2016.00031/full)).
 NCP's per-exchange transport (≈0.1 ms Zenoh loopback, ≈0.2–1 ms WS+JSON) is one to two
@@ -149,14 +149,15 @@ Two GIL tests settle where transport must live. (1) A background spinner thread
 retained only **~0.4–1.3% of its standalone counting rate during a real
 `nest.Run()`** — `nest.Run()` holds the Python GIL for essentially its full
 duration (`gil_released=false`). (2) So a `ThreadPoolExecutor` "overlap" loop (a
-*Python* worker) yields only **~1.0–1.25×** — partial progress at best, because the
+*Python* worker) yields only **~0.92–1.10× (noise)** — no real overlap, because the
 worker can only run during NEST's brief internal GIL releases.
 
 But the GIL only blocks **Python** threads. A **native OS thread** — a Rust
 `std::thread`, a PyO3 background thread, or (in the measurement) a C `pthread` via
 `ctypes` — never holds the GIL, so it runs transport *concurrently with*
-`nest.Run()`. Measured (8000-neuron net, ~8 ms compute and 10 ms transport-work per
-20 ms chunk, 30 chunks; [`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py)):
+`nest.Run()`. Measured wall-clock with a `ctypes` off-GIL busy-spin transport stand-in
+(8000-neuron net, ~8 ms compute and 10 ms transport-work per 20 ms chunk, 30 chunks;
+[`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py)):
 
 | overlap mechanism                              | wall    | speedup |
 | ---------------------------------------------- | ------- | ------- |
@@ -180,8 +181,9 @@ N-1 / buffers chunk N+1 while the NEST process computes chunk N.
 > a PyO3 worker that releases the GIL). A naive `threading.Thread` whose body is Python
 > serialization (e.g. Pydantic `model_dump`) lands at the **~1.08×** Python-thread row,
 > not 1.68× — so option (b) above **must serialize in Rust**, not Python. And the gain
-> is contingent on `T_transport ≈ T_run`: the overlap speedup falls off as ~1.80× at
-> 10 ms-work → ~1.07× at 0.6 ms → ~1.01× at 0.1 ms, so at rate-loop `T_ncp` (sub-ms) the
+> is contingent on `T_transport ≈ T_run`: the overlap speedup falls off from its analytic
+> ceiling `max(compute,work)/(compute+work)` ≈ **1.80× at 10 ms-work** (measured 1.68×)
+> → ~1.07× at 0.6 ms → ~1.01× at 0.1 ms, so at rate-loop `T_ncp` (sub-ms) the
 > real benefit is single-digit percent, not 68%.
 >
 > **What engram actually deploys:** the in-process Python NEST path

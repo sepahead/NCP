@@ -78,7 +78,7 @@ jobs:
         run: python3 scripts/check_behavior_vectors.py
 
       # P0/#7: the per-plane ACL template must use valid Zenoh tokens and keep
-      # command-plane PUT authority restricted to the engram commander.
+      # command-plane PUT authority restricted to the `commander` subject.
       - name: ACL template guard
         run: python3 scripts/check_acl_template.py
 

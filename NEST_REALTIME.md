@@ -68,7 +68,7 @@ to a fleet + observers" case.
 
 **On latency, the common intuition is backwards.** MUSIC is *not* a low-microsecond
 shared-memory hop — it uses **buffered pairwise `MPI_Send`/`MPI_Recv`** (Djurfeldt et
-al., *Neuroinformatics* 2010, [PMC3240549](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240549/)),
+al., *Neuroinformatics* 2010, [PMC2846392](https://pmc.ncbi.nlm.nih.gov/articles/PMC2846392/)),
 and its *closed-loop* latency is buffering- and tick-bound: the ROS-MUSIC measurements
 (Weidel et al., *Front. Neuroinform.* 2016, 10:31) report ≈**70 ms at a 1 ms tick**,
 rising ≈linearly to ≈**350 ms at a 50 ms tick**, and compounding with the number of
@@ -79,9 +79,9 @@ slower than MUSIC — if anything faster**. MUSIC's real edge is elsewhere (§9 
 "use MUSIC, not NCP, when" box below): synchronizing *several* simulators on one clock,
 and bulk intra-HPC spike throughput via collective MPI. The one honest latency
 asymmetry that *does* favour MUSIC is structural, not transport: because Python is
-NEST's only binding, NCP pays a PyNEST/SLI round-trip per chunk (~0.1 ms of fixed
-host overhead, measured ~107 µs per `device.set`, ~17.5 µs per `get` on NEST 3.9),
-which puts a soft floor of ≈1–2 ms on `chunk_ms` in the small-network regime — a floor
+NEST's only binding, NCP pays a PyNEST/SLI round-trip per chunk (~0.1 ms of fixed host
+overhead — order ~10–100 µs per PyNEST device call), which puts a soft floor of ≈1–2 ms
+on `chunk_ms` in the small-network regime — a floor
 MUSIC's C++/MPI tick does not have. It only bites below ~2 ms ticks on tiny networks,
 i.e. below the real-time-controllable size anyway.
 
@@ -118,7 +118,8 @@ long runs (the `NestSession` path slices a growing events array — O(history) p
 step). Pick `chunk_ms` for your latency/throughput point as you would a MUSIC tick.
 Per-exchange transport latency is network-bound but **small in absolute terms**
 (≈0.1–1 ms) — below MUSIC's tick/buffering-bound *closed-loop* floor (§8), not above
-it. See [`RATIONALE.md`](RATIONALE.md) §MUSIC for the full comparison.
+it. See [`RATIONALE.md`](RATIONALE.md) → "Why existing solutions were insufficient" for
+the full comparison.
 
 **Use MUSIC, not NCP, when** you need to co-schedule **several simulators on one
 shared clock** (e.g. NEST ↔ NEURON in a single MPI world, §9), or you need **bulk
@@ -142,7 +143,7 @@ tuning trick. The detail matters, so here it is from first principles.
 
 ### 1. `calibrate()` is now `pre_run_hook()`, and it runs once per `Prepare()`, not per `Run()`
 
-In NEST 3.x the per-node lifecycle hook formerly called `calibrate()` was renamed
+In NEST 3.4 the per-node lifecycle hook formerly called `calibrate()` was renamed
 **`pre_run_hook()`** (alongside `init_state()` / `init_buffers()`). It precomputes the
 time-step-dependent constants a node needs — e.g. the exact integration propagators for
 `iaf_psc_alpha` (`exp(-h/tau_m)` and friends), which depend on the resolution `h` and
@@ -217,13 +218,14 @@ advances under MUSIC by calling `music_runtime->tick()` once per `min_delay` sli
 NEST MUSIC tutorial's runtime loop: *simulate a slice → `tick()` to communicate →
 repeat*); (iii) **every** NEST simulation — monolithic, chunked, or MUSIC — is internally
 sliced into `min_delay` intervals anyway: `run()` clamps `to_step_ = std::min(from_step_ +
-to_do_, get_min_delay())` and gathers/delivers spikes only at slice end. So both MUSIC and
+to_do_, kernel().connection_manager.get_min_delay())` and gathers/delivers spikes only at
+slice end. So both MUSIC and
 NCP chunk at `min_delay`; NCP's `chunk_ms` is just a coarser, user-chosen multiple.
 
 So NCP and MUSIC use the **identical** NEST execution model (calibrate once, advance in
 slices, exchange at boundaries). They differ in **one** axis — the transport at the
 boundary: MUSIC exchanges over **buffered pairwise MPI `Send`/`Recv`** within one
-co-launched allocation (Djurfeldt et al., *Neuroinform.* 2010, PMC3240549); NCP uses
+co-launched allocation (Djurfeldt et al., *Neuroinform.* 2010, PMC2846392); NCP uses
 Zenoh / a localhost gateway / WebSocket to reach remote, heterogeneous, multi-language
 clients (§8 above). That is a transport trade, not a recalibration tax — and, perhaps
 counter-intuitively, **not even a closed-loop-latency loss for NCP** (see the latency
