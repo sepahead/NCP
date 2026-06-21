@@ -23,7 +23,19 @@ serde_json = { workspace = true }
 # `cargo test --features ts` writes ncp-core/bindings/*.ts. Off by default.
 # serde-compat so ts-rs honours the existing `#[serde(rename)]` (e.g. "V_m", "ref").
 ts-rs = { version = "12", features = ["serde-compat"], optional = true }
+# JSON-Schema generation from the Rust serde types — NCP OWNS its schema projection
+# proto-first (the serde types are the conformance-locked reference impl of the proto,
+# and their `#[serde(rename)]` carry the enum wire strings). `cargo run --features schema
+# --bin gen-schemas` regenerates schemas/*.schema.json. Off by default. Replaces the
+# previous inversion where schemas were generated from a downstream consumer's models.
+schemars = { version = "1", optional = true }
 
 [features]
 default = []
 ts = ["dep:ts-rs"]
+schema = ["dep:schemars"]
+
+[[bin]]
+name = "gen-schemas"
+path = "src/bin/gen-schemas.rs"
+required-features = ["schema"]

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Proto-first, NCP-owned JSON-Schema generation (`gen-schemas`).** A new
+  `ncp-core` `schema` feature derives `schemars::JsonSchema` on the wire types and a
+  `gen-schemas` binary (`cargo run -p ncp-core --features schema --bin gen-schemas`)
+  emits `schemas/*.schema.json` **from the serde reference types** — which are the
+  conformance-locked reference impl of `proto/ncp.proto` and carry the enum wire
+  strings in their `#[serde(rename)]`. This is the ownership infrastructure that
+  removes the inversion where schemas were generated from a downstream consumer
+  (engram's Pydantic). Off by default (zero impact on the default build/CI). The
+  generator is verified to emit faithful field-sets and wire-string enums; the
+  **cutover** (replacing the committed schemas, adapting the parity/conformance
+  guards to the schemars shape + preserving the `kind` const, and migrating engram to
+  consume rather than produce) is staged as the next step.
+
 ### Changed
 
 - **Consumer pin tooling is now consumer-agnostic (decoupling).** NCP no longer names

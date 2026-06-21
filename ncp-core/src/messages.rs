@@ -37,6 +37,7 @@ pub type Map<T> = BTreeMap<String, T>;
 /// What to record off a population/neuron/synapse.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Observable {
     #[serde(rename = "spikes")]
     Spikes,
@@ -55,6 +56,7 @@ pub enum Observable {
 /// How a stimulus drives a target.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum StimulusKind {
     #[default]
     #[serde(rename = "current_pA")]
@@ -74,6 +76,7 @@ pub enum StimulusKind {
 /// What kind of network reference `NetworkRef.ref` is.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum NetworkRefKind {
     #[serde(rename = "handle")]
     Handle,
@@ -89,6 +92,7 @@ pub enum NetworkRefKind {
 /// Stream vs batch simulation.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum SimMode {
     #[default]
     #[serde(rename = "stream")]
@@ -102,6 +106,7 @@ pub enum SimMode {
 // never errors the whole frame). Serialize stays derived; the rename attrs apply.
 #[derive(Serialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Mode {
     #[serde(rename = "init")]
     Init,
@@ -137,6 +142,7 @@ impl<'de> Deserialize<'de> for Mode {
 /// Hierarchical entity role for addressing sensors/actuators.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum EntityRole {
     #[serde(rename = "system")]
     System,
@@ -152,6 +158,7 @@ pub enum EntityRole {
 /// Channel arity (carries the vec semantics so the envelope stays generic).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ChannelKind {
     #[default]
     #[serde(rename = "scalar")]
@@ -167,6 +174,7 @@ pub enum ChannelKind {
 /// Who a peer is in the closed-loop handshake.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Role {
     #[default]
     #[serde(rename = "controller")]
@@ -181,6 +189,7 @@ pub enum Role {
 /// carries the semantics (1=scalar, 3=vec3, 4=quat, N=array).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ChannelValue {
     #[serde(default)]
     pub data: Vec<f64>,
@@ -208,6 +217,7 @@ impl ChannelValue {
 /// A hierarchical client-side entity address, e.g. `uav1/sensor/cam0`.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct EntityRef {
     pub path: String,
@@ -218,6 +228,7 @@ pub struct EntityRef {
 /// Binds a client entity to a stimulus or record port.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct EntityBinding {
     pub entity: EntityRef,
@@ -241,6 +252,7 @@ impl Default for EntityBinding {
 /// What to simulate.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct NetworkRef {
     pub kind: NetworkRefKind,
@@ -257,6 +269,7 @@ pub struct NetworkRef {
 /// Integration / streaming configuration.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SimConfig {
     pub dt_ms: f64,
@@ -283,6 +296,7 @@ impl Default for SimConfig {
 /// One recording: client `port` name ← `observable` of `target` population.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct RecordTarget {
     pub port: String,
@@ -311,6 +325,7 @@ impl Default for RecordTarget {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct RecordSpec {
     pub targets: Vec<RecordTarget>,
@@ -319,6 +334,7 @@ pub struct RecordSpec {
 /// One stimulus input port.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct StimulusTarget {
     pub port: String,
@@ -332,6 +348,7 @@ pub struct StimulusTarget {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct StimulusSpec {
     pub targets: Vec<StimulusTarget>,
@@ -344,6 +361,7 @@ pub struct StimulusSpec {
 /// reproduction: `calibrated_posterior=false`, `is_simulation_output=true`.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SimProvenance {
     pub network_ref: String,
@@ -374,6 +392,7 @@ impl Default for SimProvenance {
 /// Request a simulation: declare what to record and what to stimulate.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct OpenSession {
     pub ncp_version: String,
@@ -410,6 +429,7 @@ impl Default for OpenSession {
 /// Ack of `open_session` with resolved sizes and provenance.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SessionOpened {
     pub ncp_version: String,
@@ -445,6 +465,7 @@ impl Default for SessionOpened {
 /// The values to inject this step (keyed by stimulus port).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct StimulusFrame {
     pub ncp_version: String,
@@ -469,6 +490,7 @@ impl Default for StimulusFrame {
 /// Advance one chunk; optional stimulus; returns an `ObservationFrame`.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct StepRequest {
     pub ncp_version: String,
@@ -493,6 +515,7 @@ impl Default for StepRequest {
 /// Batch: advance `duration_ms` holding a stimulus; returns an `ObservationFrame`.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct RunRequest {
     pub ncp_version: String,
@@ -518,6 +541,7 @@ impl Default for RunRequest {
 /// `times`+`senders` are parallel for spikes.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct Observation {
     pub port: String,
@@ -535,6 +559,7 @@ pub struct Observation {
 /// The returned neural data, keyed by record port.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct ObservationFrame {
     pub ncp_version: String,
@@ -569,6 +594,7 @@ impl Default for ObservationFrame {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct CloseSession {
     pub ncp_version: String,
@@ -588,6 +614,7 @@ impl Default for CloseSession {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SessionClosed {
     pub ncp_version: String,
@@ -612,6 +639,7 @@ impl Default for SessionClosed {
 /// Declares a named channel a controller produces or consumes.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct ChannelSpec {
     pub name: String,
@@ -641,6 +669,7 @@ impl Default for ChannelSpec {
 /// (no command-path clamp consumes it yet).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SafetyLimits {
     pub max_speed_mps: Option<f64>,
@@ -663,6 +692,7 @@ impl Default for SafetyLimits {
 /// Handshake: who the controller is and what it speaks.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct Capabilities {
     pub ncp_version: String,
@@ -697,6 +727,7 @@ impl Default for Capabilities {
 /// split perception/action planes must preserve — join on `seq`, not arrival).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SensorFrame {
     pub ncp_version: String,
@@ -724,6 +755,7 @@ impl Default for SensorFrame {
 /// metadata. `seq` should echo the originating `SensorFrame.seq`.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct CommandFrame {
     pub ncp_version: String,
@@ -774,6 +806,7 @@ impl Default for CommandFrame {
 /// Controller → plant / telemetry: loop health and mode.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct ControlStatus {
     pub ncp_version: String,
@@ -808,6 +841,7 @@ impl Default for ControlStatus {
 /// point the only sound response is to fail safe, not add redundancy.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct LinkStatus {
     pub ncp_version: String,
