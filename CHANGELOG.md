@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Behavioral conformance corpus.** `conformance/behavior/vectors.json` is a
+  language-neutral `{function, input, expect}` decision corpus that pins *runtime
+  behavior* (not just wire shape): `check_version` accept/reject/raise, `contract_status`
+  advisory match/mismatch/absent, `validate` required-field + scientific-boundary, and the
+  safety-governor HOLD/ESTOP/speed-clamp/watchdog outcomes. The Rust reference is pinned to
+  it by `ncp-core/tests/behavior_conformance.rs` (gates in CI via `cargo test`, so the
+  corpus can never claim an outcome the reference does not produce), and the Python binding
+  is replayed against the identical corpus by `scripts/check_behavior_vectors.py` (skips
+  with exit 0 until maturin builds `ncp` in CI; the Rust half gates regardless). Wired into
+  `scripts/check.sh` and the CI conformance job. Wire `0.4` unchanged.
+- **`contract_status` exposed to Python.** `ncp.contract_status(peer_hash)` returns the
+  advisory tag (`"match"` / `"not_advertised"` / `"mismatch"`), mirroring
+  `ncp_core::contract_status`, so the Python peer can run the advisory handshake check (and
+  the behavioral corpus covers it in both languages). Additive; wire `0.4` unchanged.
+
 ## [0.4.3] - 2026-06-21
 
 Patch — **wire `0.4` unchanged** (no consumer re-pin). Cross-language parity + governance.

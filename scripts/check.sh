@@ -34,6 +34,9 @@ python3 scripts/check_proto_schema_parity.py
 step "conformance corpus (golden JSON+binary vectors vs schemas; coverage gate)"
 python3 scripts/check_conformance_vectors.py
 
+step "behavioral conformance corpus (decision vectors vs the ncp binding; skips if unbuilt)"
+python3 scripts/check_behavior_vectors.py
+
 step "ACL template guard (P0/#7: valid Zenoh tokens + command-plane authority)"
 python3 scripts/check_acl_template.py
 

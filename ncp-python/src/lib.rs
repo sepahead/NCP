@@ -79,6 +79,22 @@ fn check_version(version: &str, strict: bool) -> PyResult<bool> {
     ncp_core::check_version(version, strict).map_err(val)
 }
 
+/// Classify a peer-advertised contract hash against ours — the **advisory** half of
+/// the handshake (`ncp_version`/`check_version` is the hard gate). Never raises;
+/// returns a stable tag: `"match"` (peer == ours), `"not_advertised"` (peer sent
+/// `None`), or `"mismatch"` (peer advertised a different hash — log it, the session
+/// still proceeds). Mirrors `ncp_core::contract_status` / `ContractStatus`.
+#[pyfunction]
+#[pyo3(signature = (peer_hash = None))]
+fn contract_status(peer_hash: Option<&str>) -> &'static str {
+    use ncp_core::ContractStatus;
+    match ncp_core::contract_status(peer_hash) {
+        ContractStatus::Match => "match",
+        ContractStatus::NotAdvertised => "not_advertised",
+        ContractStatus::Mismatch { .. } => "mismatch",
+    }
+}
+
 /// Rate-encode a `SensorFrame` JSON to `{population: rate_hz}` JSON, via the Rust
 /// codec. `sensor_json` may be `"null"` for the no-sensor case.
 #[pyfunction]
@@ -222,6 +238,7 @@ fn ncp(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("DEFAULT_REALM", ncp_core::DEFAULT_REALM)?;
     m.add_class::<Keys>()?;
     m.add_function(wrap_pyfunction!(check_version, m)?)?;
+    m.add_function(wrap_pyfunction!(contract_status, m)?)?;
     m.add_function(wrap_pyfunction!(encode_rates, m)?)?;
     m.add_function(wrap_pyfunction!(decode_command, m)?)?;
     m.add_function(wrap_pyfunction!(govern, m)?)?;

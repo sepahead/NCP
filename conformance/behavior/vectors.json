@@ -1,0 +1,129 @@
+{
+  "description": "Behavioral conformance corpus: language-neutral {function, input, expect} decision vectors that pin every independent NCP implementation to the SAME runtime decisions as the ncp-core reference. Complements conformance/vectors/*.json (which pins wire/serde shape) by pinning behavior: check_version accept/reject, contract_status advisory match/mismatch/absent, validate required-field + scientific-boundary, and the safety-governor HOLD/ESTOP/clamp/watchdog outcomes. Every vector here is asserted against ncp-core by ncp-core/tests/behavior_conformance.rs (so the corpus can never claim an outcome the reference does not produce) and replayed through the Python binding by scripts/check_behavior_vectors.py.",
+  "ncp_version": "0.4",
+  "contract_hash": "2cf0763ad61e4f1c",
+  "cases": {
+    "check_version": [
+      {"name": "self_compatible", "input": {"version": "0.4", "strict": false}, "expect": {"compatible": true}},
+      {"name": "self_compatible_strict", "input": {"version": "0.4", "strict": true}, "expect": {"compatible": true}},
+      {"name": "minor_missing_is_zero", "input": {"version": "0", "strict": false}, "expect": {"compatible": false}},
+      {"name": "pre1_minor_is_breaking", "input": {"version": "0.5", "strict": false}, "expect": {"compatible": false}},
+      {"name": "pre1_lower_minor_incompatible", "input": {"version": "0.3", "strict": false}, "expect": {"compatible": false}},
+      {"name": "major_bump_incompatible", "input": {"version": "1.0", "strict": false}, "expect": {"compatible": false}},
+      {"name": "strict_mismatch_raises", "input": {"version": "0.5", "strict": true}, "expect": {"error": true}},
+      {"name": "patch_component_rejected", "input": {"version": "0.4.0", "strict": false}, "expect": {"error": true}},
+      {"name": "garbage_minor_rejected", "input": {"version": "0.GARBAGE", "strict": false}, "expect": {"error": true}},
+      {"name": "empty_rejected", "input": {"version": "", "strict": false}, "expect": {"error": true}}
+    ],
+    "contract_status": [
+      {"name": "match", "input": {"peer_hash": "2cf0763ad61e4f1c"}, "expect": {"status": "match"}},
+      {"name": "not_advertised", "input": {"peer_hash": null}, "expect": {"status": "not_advertised"}},
+      {"name": "mismatch", "input": {"peer_hash": "deadbeefdeadbeef"}, "expect": {"status": "mismatch"}}
+    ],
+    "validate": [
+      {"name": "open_session_ok", "input": {"kind": "open_session", "message": {"kind": "open_session", "session_id": "s", "network": {"kind": "builtin", "ref": "iaf_psc_alpha"}}}, "expect": {"valid": true}},
+      {"name": "open_session_missing_network", "input": {"kind": "open_session", "message": {"kind": "open_session", "session_id": "s"}}, "expect": {"valid": false}},
+      {"name": "step_request_missing_session_id", "input": {"kind": "step_request", "message": {"kind": "step_request"}}, "expect": {"valid": false}},
+      {"name": "run_request_missing_duration", "input": {"kind": "run_request", "message": {"kind": "run_request", "session_id": "s"}}, "expect": {"valid": false}},
+      {"name": "command_frame_no_required_ok", "input": {"kind": "command_frame", "message": {"kind": "command_frame"}}, "expect": {"valid": true}},
+      {"name": "unknown_kind_rejected", "input": {"kind": "frobnicate", "message": {"kind": "frobnicate", "session_id": "s"}}, "expect": {"valid": false}},
+      {"name": "observation_frame_ok", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "session_id": "s", "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": true}},
+      {"name": "observation_frame_calibrated_true_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "session_id": "s", "calibrated_posterior": true, "is_simulation_output": true}}, "expect": {"valid": false}},
+      {"name": "observation_frame_not_sim_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "session_id": "s", "calibrated_posterior": false, "is_simulation_output": false}}, "expect": {"valid": false}},
+      {"name": "session_opened_provenance_ok", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "session_id": "s", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": false, "is_simulation_output": true}}}, "expect": {"valid": true}},
+      {"name": "session_opened_provenance_calibrated_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "session_id": "s", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": true, "is_simulation_output": true}}}, "expect": {"valid": false}}
+    ],
+    "govern": [
+      {
+        "name": "clean_active_passthrough",
+        "input": {
+          "limits": {"command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "active", "velocity_setpoint_magnitude": 2.0}
+      },
+      {
+        "name": "stale_sensor_holds",
+        "input": {
+          "limits": {"command_timeout_ms": 200.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 6.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "no_last_sensor_holds",
+        "input": {
+          "limits": {"command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": null
+        },
+        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "nonpositive_timeout_default_deny_holds",
+        "input": {
+          "limits": {"command_timeout_ms": 0.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "geofence_breach_estops",
+        "input": {
+          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [10.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "geofence_missing_position_holds",
+        "input": {
+          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "overspeed_clamped",
+        "input": {
+          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "active", "velocity_setpoint_magnitude": 1.0}
+      },
+      {
+        "name": "within_speed_passthrough",
+        "input": {
+          "limits": {"max_speed_mps": 5.0, "command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "active", "velocity_setpoint_magnitude": 2.0}
+      },
+      {
+        "name": "speed_limit_velocity_channel_absent_holds",
+        "input": {
+          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"thrust": {"data": [0.9], "unit": "N"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+      }
+    ]
+  }
+}

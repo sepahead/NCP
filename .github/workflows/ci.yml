@@ -68,6 +68,13 @@ jobs:
       - name: Conformance vectors
         run: python3 scripts/check_conformance_vectors.py
 
+      # Behavioral conformance: the same decision corpus the Rust reference is
+      # pinned to (ncp-core/tests/behavior_conformance.rs, run by the cargo test
+      # step above) replayed through the Python binding. Skips with exit 0 until
+      # the maturin job builds `ncp` (ROADMAP.md); the Rust half already gates.
+      - name: Behavioral vectors (Python binding)
+        run: python3 scripts/check_behavior_vectors.py
+
       # P0/#7: the per-plane ACL template must use valid Zenoh tokens and keep
       # command-plane PUT authority restricted to the engram commander.
       - name: ACL template guard
