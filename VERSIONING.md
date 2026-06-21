@@ -49,26 +49,62 @@ CI runs `buf lint`; `buf breaking` gates the wire against the first tag of the
 current wire (`v0.3.0`, the wire-`0.3` baseline — see `.github/workflows/ci.yml`).
 A change that trips `WIRE`/`WIRE_JSON` **must** bump MAJOR (or MINOR while `0.x`).
 
-## Per-session version negotiation (target)
+## Per-session version + contract handshake (landed in v0.3.0)
 
-Today `check_version` / `negotiate` are provided as **fail-closed library entry
-points**: a peer (or gateway) calls `negotiate(peer_version, peer_hash)` at session
-setup and refuses a mismatch (reject, never coerce). They are **not yet
-auto-invoked on the data-plane receive path** — there is no automatic per-frame or
-per-session version rejection wired into the transport, so a version-mismatched
-data-plane frame is currently handled by the deserializer (typically a parse
-failure / dropped frame), not an explicit version error. The target (ROADMAP P1)
-is to wire `negotiate` into an explicit `open_session` handshake, modelled on
-MCP's lifecycle:
+`check_version` / `negotiate` are **fail-closed library entry points**: a peer (or
+gateway) calls `negotiate(peer_version, peer_hash)` at session setup and refuses a
+mismatch (reject, never coerce). As of **v0.3.0** this is wired into an explicit
+`open_session` handshake (it is still not auto-invoked on the *data-plane* receive
+path — a version-mismatched frame there is handled by the deserializer as a parse
+failure / dropped frame, not an explicit version error):
 
-1. The client sends its `ncp_version` in `OpenSession`.
-2. The server, if it cannot serve a compatible major, replies with
-   `SessionOpened{ ok: false, error: "unsupported ncp_version: requested <X>, supported <Y>" }`
-   and the session does not open (fail closed, never silently coerce).
+1. The client sends its `ncp_version` **and** `contract_hash` in `OpenSession`.
+2. The server verifies both (`negotiate`) before doing any work; if it cannot serve
+   a compatible major/minor, or the contract hash differs, it replies
+   `SessionOpened{ ok: false, error: "…" }` and the session does not open (fail
+   closed, never silently coerce). The reference server half is engram's
+   `SessionService.handle`; the client half is `ncp-zenoh::ZenohNcpClient::open`,
+   which `negotiate`s the `SessionOpened.contract_hash` it gets back.
 3. Peers MAY support multiple versions but MUST agree on exactly one per session.
 
 This turns "I refuse" into "we agreed (or explicitly did not)", which is what a
 multi-peer protocol needs.
+
+## Contract hash (the wire-identity digest)
+
+`ncp_version` says *which version* a peer speaks; `CONTRACT_HASH` says *which exact
+contract* — it is the FNV-1a digest of the **canonicalized** `proto/ncp.proto`
+(`canonical_proto` strips `//` and `/* */` comments — respecting string literals —
+and normalizes whitespace). Two peers agree iff their *semantic* contracts agree,
+**independent of comments or formatting** (a comment-only edit no longer flips the
+hash — the churn the `v0.2.5`/`v0.2.6` releases documented). It is **not** a
+cryptographic MAC: adversarial integrity is the transport's job (mTLS); the hash
+detects *accidental* drift / a post-agreement "rug-pull" schema mutation.
+
+**Why it is a hardcoded constant** (`ncp_core::CONTRACT_HASH`, and the mirrored
+`backend/neurocontrol/protocol.py::CONTRACT_HASH`) rather than computed at runtime:
+
+- **The proto is not on disk at runtime.** `contract_hash_of_proto` reads the
+  `.proto` via `CARGO_MANIFEST_DIR`, which only exists in the source tree at
+  build/test time. A shipped binary / wheel / C ABI has no proto to hash, so the
+  advertised value must be embedded.
+- **It is a contract *identity*, not a derived quantity.** A pinned constant makes
+  "which wire do I claim to speak" explicit, greppable, and reviewable, and makes a
+  bump a deliberate, visible diff.
+- **It is the shared cross-language anchor.** Rust and Python pin the *same* string
+  and each recomputes it from its own proto copy in a test; the constant is the
+  single value both are checked against, so a canonicalization bug in one language
+  fails CI instead of silently yielding two hashes that reject each other.
+- **Drift cannot ship.** `contract_hash_matches_proto` (Rust) and
+  `test_contract_hash_matches_vendored_proto` (Python) assert the constant equals the
+  computed value, so it is "hardcoded, but *provably equal* to the computed value."
+
+The considered-and-rejected alternative is to drop the constant and compute it once
+at startup from a compile-time-embedded proto
+(`LazyLock::new(|| contract_hash_of_proto(include_str!(".../ncp.proto").as_bytes()))`).
+That removes the forgot-to-bump error class but loses `const`-usability, the
+greppable value, and the deliberate-bump property — and still needs a per-language
+anchor for cross-language parity. The constant-plus-CI-guard form is intentional.
 
 ## Deprecation
 

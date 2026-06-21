@@ -898,12 +898,47 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
 
 /// FNV-1a (64-bit) hex digest of the **canonicalized** normative wire contract
 /// ([`canonical_proto`] of `proto/ncp.proto` — comments and formatting stripped).
-/// Peers exchange this alongside `ncp_version` in the control-plane handshake and
-/// reject a mismatch, so a post-agreement schema mutation (the "rug-pull" failure
-/// class) is *detectable* rather than silently coerced. It is recomputed from the
-/// actual proto by the `contract_hash_matches_proto` test, so a proto edit that
-/// forgets to bump this constant fails CI — but a comment- or whitespace-only edit
-/// no longer flips it (the churn the `v0.2.5`/`v0.2.6` releases documented).
+/// Peers exchange this alongside `ncp_version` in the control-plane handshake (the
+/// `contract_hash` field of [`OpenSession`] / [`SessionOpened`]) and reject a
+/// mismatch, so a post-agreement schema mutation (the "rug-pull" failure class) is
+/// *detectable* rather than silently coerced. It is recomputed from the actual proto
+/// by the `contract_hash_matches_proto` test, so a proto edit that forgets to bump
+/// this constant fails CI — but a comment- or whitespace-only edit no longer flips it
+/// (the churn the `v0.2.5`/`v0.2.6` releases documented).
+///
+/// # Why a hardcoded constant (and not computed at runtime)?
+///
+/// The value is **baked in, not derived at runtime**, and that is deliberate.
+///
+/// 1. **The proto is not on disk at runtime.** [`contract_hash_of_proto`] reads
+///    `proto/ncp.proto` via `CARGO_MANIFEST_DIR`, a path that only exists in the
+///    *source tree* at build/test time. A shipped `ncp-core` (binary, the PyO3
+///    wheel, the C ABI) has no `.proto` to hash, so the value a running peer
+///    advertises must be embedded.
+/// 2. **It is a contract *identity*, not a derived quantity.** Hardcoding makes
+///    "which wire do I claim to speak" an explicit, greppable, reviewable fact, and
+///    makes bumping it a deliberate, visible diff rather than an invisible
+///    recompute.
+/// 3. **It is the shared cross-language anchor.** The Rust and Python peers
+///    (`ncp_core::CONTRACT_HASH` and `backend/neurocontrol/protocol.py::CONTRACT_HASH`)
+///    pin the *same* string and each independently recomputes it from its own copy of
+///    the proto in a test. The pinned constant is the single value both are checked
+///    against — a canonicalization bug in one language is caught by CI instead of
+///    silently producing two hashes that reject each other.
+/// 4. **Drift is impossible to ship, not merely unlikely.** The
+///    `contract_hash_matches_proto` test asserts `contract_hash_of_proto(proto) ==
+///    CONTRACT_HASH`, so the constant cannot diverge from the proto it claims to
+///    represent without failing CI. It is "hardcoded, but *provably equal* to the
+///    computed value."
+///
+/// The considered alternative is to drop the constant entirely and compute it once at
+/// startup from a compile-time-embedded proto:
+/// `LazyLock::new(|| contract_hash_of_proto(include_str!(".../ncp.proto").as_bytes()))`.
+/// That removes the forgot-to-bump class of errors, but loses the `const`-usability,
+/// the greppable/reviewable value, and the "bumping it is a deliberate event"
+/// property — and still needs a per-language anchor for cross-language parity. The
+/// constant-plus-CI-guard form is kept on purpose. See `VERSIONING.md` (§"Contract
+/// hash") for the full rationale and the handshake design.
 pub const CONTRACT_HASH: &str = "3e639fb1aa20e530";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
