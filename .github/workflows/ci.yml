@@ -46,10 +46,11 @@ jobs:
       - name: Test workspace
         run: cargo test --workspace --exclude ncp-python --locked
 
-      # ncp-python is excluded from the build/test gate (its cdylib needs a
-      # libpython link step CI does not set up), but `cargo check` has no link
-      # step, so it still type-checks the PyO3 binding — closing the gap where the
-      # binding was never compiled in CI. Full maturin+pytest packaging: ROADMAP.md.
+      # ncp-python is excluded from the cargo build/test gate (its cdylib needs a
+      # libpython link step the workspace build does not set up); `cargo check` has no
+      # link step, so it stays here as a fast type-check. The binding is actually
+      # COMPILED + IMPORTED + behaviorally gated in the dedicated `ncp-python` job
+      # below (maturin wheel + corpus + smoke).
       - name: Check ncp-python (type-check; no Python link)
         run: cargo check -p ncp-python --locked
 
@@ -70,8 +71,9 @@ jobs:
 
       # Behavioral conformance: the same decision corpus the Rust reference is
       # pinned to (ncp-core/tests/behavior_conformance.rs, run by the cargo test
-      # step above) replayed through the Python binding. Skips with exit 0 until
-      # the maturin job builds `ncp` (ROADMAP.md); the Rust half already gates.
+      # step above) replayed through the Python binding. In THIS job the binding is
+      # not built, so it skips with exit 0; the dedicated `ncp-python` job below
+      # runs it with NCP_REQUIRE_BINDING=1 so the binding's parity HARD-gates there.
       - name: Behavioral vectors (Python binding)
         run: python3 scripts/check_behavior_vectors.py
 
@@ -95,6 +97,42 @@ jobs:
         run: |
           cargo run -q -p ncp-core --features schema --bin gen-schemas -- "${RUNNER_TEMP:-/tmp}/ncp-schemas-fresh"
           diff -ru "${RUNNER_TEMP:-/tmp}/ncp-schemas-fresh" schemas/ -x README.md
+
+  ncp-python:
+    name: ncp-python (maturin build + behavioral gate)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build + test deps
+        run: pip install maturin pytest
+      # Build the abi3 wheel from the EXACT committed lock (--locked) and install it,
+      # so the `ncp` binding is actually compiled + importable in CI — it was
+      # previously only `cargo check`ed, so the binding's RUNTIME conformance to
+      # ncp-core was never exercised (a regression of the CommandFrame.mode
+      # ACTIVE-vs-HOLD class could have shipped green).
+      - name: Build + install the ncp wheel (abi3, --locked)
+        run: |
+          maturin build -m ncp-python/Cargo.toml --features extension-module --locked --out target/wheels
+          pip install --no-index --find-links target/wheels ncp
+      # HARD-gate the shared behavioral corpus through the binding: NCP_REQUIRE_BINDING=1
+      # turns the skip into a failure, so this step cannot pass green if the wheel did
+      # not build/import (no skip-as-pass). Proves ncp-python decides identically to the
+      # Rust/C++ peers on check_version / contract_status / validate / govern.
+      - name: Behavioral conformance (binding, required)
+        run: NCP_REQUIRE_BINDING=1 python scripts/check_behavior_vectors.py
+      # Codec round-trip smoke (encode_rates -> decode_command) — the one binding path
+      # the decision corpus does not cover — plus the exported contract pins.
+      - name: Binding smoke test
+        run: python -m pytest ncp-python/tests -q
 
   buf:
     name: buf lint + build

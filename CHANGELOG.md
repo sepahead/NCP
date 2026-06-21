@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ncp-python is now built + behaviorally gated in CI.** A dedicated `ncp-python` CI
+  job builds the abi3 wheel via maturin (`--locked`) and installs it, then runs the
+  behavioral corpus through the binding with `NCP_REQUIRE_BINDING=1` (which turns the
+  previous skip-as-pass into a HARD failure if the wheel didn't build/import) plus a
+  codec round-trip smoke test (`encode_rates`→`decode_command`, the one binding path
+  the decision corpus doesn't cover). Closes the long-standing gap where the binding
+  was only `cargo check`ed, so a runtime regression of the `CommandFrame.mode`
+  ACTIVE-vs-HOLD class could have shipped green. The bare conformance step in
+  `build-test` still skips cleanly (no binding there); the Rust/C++ runners gate
+  regardless.
+
 - **Cross-language behavioral parity (all four peers).** All four SDK peers now replay
   the shared decision corpus (`conformance/behavior/vectors.json`), so a divergence in
   any one peer's decision logic fails CI:

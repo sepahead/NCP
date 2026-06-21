@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -36,14 +37,25 @@ def _velocity_magnitude(frame: dict) -> float:
 
 
 def main() -> int:
+    # In the maturin CI job the binding MUST be importable — NCP_REQUIRE_BINDING=1
+    # turns the skip into a hard failure, so this gate can never silently pass green
+    # because the wheel wasn't built (skip-as-pass). The bare cargo job leaves the
+    # skip intact (the Rust/C++ runners gate the corpus there regardless).
+    require = os.environ.get("NCP_REQUIRE_BINDING") == "1"
     try:
         import ncp  # built by maturin from ncp-python
     except ImportError:
+        if require:
+            print(
+                "FAIL check_behavior_vectors: NCP_REQUIRE_BINDING=1 but the `ncp` binding "
+                "is not importable — build it with `maturin develop -m "
+                "ncp-python/Cargo.toml --features extension-module`."
+            )
+            return 1
         print(
             "SKIP check_behavior_vectors: the `ncp` binding is not built "
             "(maturin develop -m ncp-python/Cargo.toml --features extension-module). "
-            "The Rust reference still gates this corpus via "
-            "ncp-core/tests/behavior_conformance.rs."
+            "The Rust/C++ runners still gate this corpus."
         )
         return 0
 
@@ -54,6 +66,17 @@ def main() -> int:
     def check(cond: bool, msg: str) -> None:
         if not cond:
             failures.append(msg)
+
+    # The binding's pinned constants must match the corpus header (the same pins the
+    # TS runner asserts) — proves the wheel embeds the contract the corpus describes.
+    check(
+        corpus["ncp_version"] == ncp.NCP_VERSION,
+        f"corpus ncp_version {corpus['ncp_version']} != ncp.NCP_VERSION {ncp.NCP_VERSION}",
+    )
+    check(
+        corpus["contract_hash"] == ncp.CONTRACT_HASH,
+        f"corpus contract_hash {corpus['contract_hash']} != ncp.CONTRACT_HASH {ncp.CONTRACT_HASH}",
+    )
 
     # ── check_version ────────────────────────────────────────────────────────
     for c in cases["check_version"]:
