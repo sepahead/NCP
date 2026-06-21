@@ -99,8 +99,8 @@ provenance, and observability — and cedes no closed-loop-latency crown to MUSI
 
 Nor does NCP claim a latency edge over a tuned ROS 2/DDS stack: in single-machine
 64-byte ping-pong, Cyclone DDS reaches ~8 µs (UDP multicast) versus Zenoh-p2p
-~10 µs ([Zhang et al. 2023, arXiv:2303.09419](https://arxiv.org/abs/2303.09419));
-Zenoh's ~7 µs figure needs its *experimental* low-latency profile. NCP chooses
+~10 µs (zenoh-pico ~5 µs) ([Liang et al. 2023, arXiv:2303.09419](https://arxiv.org/abs/2303.09419)).
+NCP chooses
 Zenoh for its **features** — per-plane QoS, shared memory, data-centric P2P
 discovery, fleet many-to-many — not raw intra-host latency. The broader measured
 lesson holds across every neuro-robotic system: inter-process **transport**, not

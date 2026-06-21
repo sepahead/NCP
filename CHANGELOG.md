@@ -33,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `prepare_nodes()` log line (Prepare+N×Run → 1; Simulate×N → N), measures the fixed
   per-`Run` overhead, and asserts **bit-identical spike times + STDP weights** for
   chunked vs monolithic.
+- **Citation + version corrections** (cross-project triple-check vs primary sources):
+  the DDS/Zenoh latency benchmark is by **Liang et al. 2023** (arXiv:2303.09419 —
+  Liang, Yuan & Lin), not "Zhang"; dropped an unsupported "Zenoh ~7 µs experimental
+  low-latency profile" claim that the cited paper does not contain (added the paper's
+  actual zenoh-pico ~5 µs single-machine figure); and bumped six stale `v0.4.3` tag
+  pins in the README to the released **`v0.4.4`** (the BibTeX/manifests/CHANGELOG were
+  already 0.4.4).
 
 ### Changed
 
