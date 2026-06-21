@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-06-21
+
+Patch — **wire `0.4` unchanged** (no consumer re-pin). Cross-language parity + governance.
+
+### Added
+
+- **C++ contract-hash parity.** The C ABI now exposes `ncp_contract_hash()` and an
+  advisory `ncp_contract_status(peer_hash)` (`1`=match, `0`=not advertised, `2`=mismatch),
+  mirroring `ncp_core::ContractStatus` — so all four peers (Rust, Python, TS, C++) share
+  the contract-hash mechanism. (`ncp.h` updated.)
+- **TS scientific-boundary validator.** `ncp-ts` exports `assertScientificBoundary()` +
+  `NcpScientificBoundaryError`, enforcing the mandatory `is_simulation_output=true` /
+  `calibrated_posterior=false` discriminators on an inbound `observation_frame` /
+  `session_opened.provenance`, so a TS consumer can reject a frame that quietly claims
+  calibrated / non-simulation status (mirrors the boundary pins `ncp_core::validate`
+  enforces).
+- **Governance:** a reproducible P0 mTLS+ACL validation checklist (`SECURITY.md`) and a
+  pre-tag release runbook (`CONTRIBUTING.md`); the repo now enforces immutable `v*` tags
+  via a GitHub ruleset (no delete/force-update).
+
 ## [0.4.2] - 2026-06-21
 
 Patch — **wire `0.4` unchanged** (no consumer re-pin). NCP now **owns its JSON-Schema

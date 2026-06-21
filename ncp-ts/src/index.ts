@@ -12,7 +12,14 @@
 export type * from './generated'
 
 // Client orchestration, JSON-wire helpers, and the WebSocket transport.
-export { NeuroSimClient, NCP_VERSION, NCP_CONTRACT_HASH, contractStatus } from './client'
+export {
+  NeuroSimClient,
+  NCP_VERSION,
+  NCP_CONTRACT_HASH,
+  contractStatus,
+  assertScientificBoundary,
+  NcpScientificBoundaryError,
+} from './client'
 export type {
   Send,
   Wire,

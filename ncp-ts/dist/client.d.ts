@@ -28,6 +28,19 @@ export declare const NCP_CONTRACT_HASH = "2cf0763ad61e4f1c";
  *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
  *  string = an advisory message describing the mismatch (for logging/telemetry). */
 export declare function contractStatus(peerHash: string | null | undefined): string | null;
+/** Thrown when a frame violates the NCP scientific-boundary discriminators. */
+export declare class NcpScientificBoundaryError extends Error {
+}
+/**
+ * Enforce the **mandatory, fail-closed scientific-boundary discriminators** on an
+ * inbound `observation_frame` (or a `session_opened.provenance` block): NCP output is
+ * a *control artifact*, never a validated reproduction, so `is_simulation_output` MUST
+ * be `true` and `calibrated_posterior` MUST be `false`. A TS consumer should call this
+ * on frames it reads so a peer cannot quietly hand it a frame claiming calibrated /
+ * non-simulation status. Mirrors the boundary pins `ncp_core::validate` enforces in the
+ * Rust/Python/C++ peers. Throws [`NcpScientificBoundaryError`] on a violation.
+ */
+export declare function assertScientificBoundary(frame: Record<string, unknown>): void;
 /**
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for

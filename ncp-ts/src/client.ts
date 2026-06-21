@@ -50,6 +50,41 @@ export function contractStatus(peerHash: string | null | undefined): string | nu
   )
 }
 
+/** Thrown when a frame violates the NCP scientific-boundary discriminators. */
+export class NcpScientificBoundaryError extends Error {}
+
+/**
+ * Enforce the **mandatory, fail-closed scientific-boundary discriminators** on an
+ * inbound `observation_frame` (or a `session_opened.provenance` block): NCP output is
+ * a *control artifact*, never a validated reproduction, so `is_simulation_output` MUST
+ * be `true` and `calibrated_posterior` MUST be `false`. A TS consumer should call this
+ * on frames it reads so a peer cannot quietly hand it a frame claiming calibrated /
+ * non-simulation status. Mirrors the boundary pins `ncp_core::validate` enforces in the
+ * Rust/Python/C++ peers. Throws [`NcpScientificBoundaryError`] on a violation.
+ */
+export function assertScientificBoundary(frame: Record<string, unknown>): void {
+  const kind = frame.kind
+  // The discriminators live top-level on observation_frame, and inside
+  // session_opened.provenance.
+  const carrier =
+    kind === 'session_opened' && frame.provenance && typeof frame.provenance === 'object'
+      ? (frame.provenance as Record<string, unknown>)
+      : frame
+  if (!('is_simulation_output' in carrier) && !('calibrated_posterior' in carrier)) {
+    return // not a boundary-carrying frame (e.g. a control reply)
+  }
+  if (carrier.is_simulation_output !== true) {
+    throw new NcpScientificBoundaryError(
+      `NCP boundary: is_simulation_output must be true (got ${JSON.stringify(carrier.is_simulation_output)}) — output is a control artifact, not a validated reproduction`,
+    )
+  }
+  if (carrier.calibrated_posterior !== false) {
+    throw new NcpScientificBoundaryError(
+      `NCP boundary: calibrated_posterior must be false (got ${JSON.stringify(carrier.calibrated_posterior)})`,
+    )
+  }
+}
+
 /**
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for

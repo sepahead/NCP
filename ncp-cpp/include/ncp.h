@@ -34,6 +34,14 @@ char *ncp_default_realm(void);
 /* 1 if major-compatible, 0 if not, -1 if unparseable/NULL. */
 int32_t ncp_check_version(const char *version, bool strict);
 
+/* This peer's contract hash (ncp_core::CONTRACT_HASH). Caller frees. */
+char *ncp_contract_hash(void);
+
+/* Advisory contract-hash status vs ours: 1=match, 0=not advertised (NULL),
+ * 2=MISMATCH, -1=invalid. ADVISORY (a mismatch is a signal, not a rejection;
+ * ncp_check_version is the hard gate). */
+int32_t ncp_contract_status(const char *peer_hash);
+
 /* Key-expression builders. Caller frees. */
 char *ncp_key_rpc(const char *realm);
 char *ncp_key_sensor(const char *realm, const char *session_id);

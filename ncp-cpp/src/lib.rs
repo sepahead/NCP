@@ -63,7 +63,7 @@ pub unsafe extern "C" fn ncp_string_free(s: *mut c_char) {
     })
 }
 
-/// The NCP protocol version (e.g. "0.3"). Caller frees.
+/// The NCP protocol version (e.g. "0.4"). Caller frees.
 #[no_mangle]
 pub extern "C" fn ncp_version() -> *mut c_char {
     ffi_guard(std::ptr::null_mut(), || {
@@ -92,6 +92,30 @@ pub unsafe extern "C" fn ncp_check_version(version: *const c_char, strict: bool)
             Ok(false) => 0,
             Err(_) => -1,
         },
+    })
+}
+
+/// This peer's contract hash (`ncp_core::CONTRACT_HASH`). Caller frees.
+#[no_mangle]
+pub extern "C" fn ncp_contract_hash() -> *mut c_char {
+    ffi_guard(std::ptr::null_mut(), || {
+        cstr_out(ncp_core::CONTRACT_HASH.to_string())
+    })
+}
+
+/// Advisory contract-hash status vs ours (mirrors `ncp_core::ContractStatus`):
+/// `1` = match, `0` = not advertised (NULL), `2` = MISMATCH, `-1` = invalid input.
+/// This is ADVISORY — a mismatch is a signal, not a rejection; `ncp_check_version`
+/// is the hard compatibility gate.
+///
+/// # Safety
+/// `peer_hash` must be NULL or a valid C string.
+#[no_mangle]
+pub unsafe extern "C" fn ncp_contract_status(peer_hash: *const c_char) -> i32 {
+    ffi_guard(-1, || match ncp_core::contract_status(cstr_in(peer_hash)) {
+        ncp_core::ContractStatus::Match => 1,
+        ncp_core::ContractStatus::NotAdvertised => 0,
+        ncp_core::ContractStatus::Mismatch { .. } => 2,
     })
 }
 
@@ -348,6 +372,19 @@ mod tests {
 
     fn cstr(s: &str) -> CString {
         CString::new(s).unwrap()
+    }
+
+    #[test]
+    fn contract_hash_and_status() {
+        // The C ABI exposes the same CONTRACT_HASH as the Rust core (cross-language anchor).
+        let h = unsafe { take(ncp_contract_hash()) }.unwrap();
+        assert_eq!(h, ncp_core::CONTRACT_HASH);
+        // Advisory status: 1=match, 0=not advertised (NULL), 2=mismatch.
+        let ours = cstr(ncp_core::CONTRACT_HASH);
+        assert_eq!(unsafe { ncp_contract_status(ours.as_ptr()) }, 1);
+        assert_eq!(unsafe { ncp_contract_status(std::ptr::null()) }, 0);
+        let bad = cstr("deadbeefdeadbeef");
+        assert_eq!(unsafe { ncp_contract_status(bad.as_ptr()) }, 2);
     }
 
     #[test]
