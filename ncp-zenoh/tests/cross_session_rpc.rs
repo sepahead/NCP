@@ -95,23 +95,33 @@ async fn ncp_rpc_over_real_zenoh_tcp_link() {
     let client_bus = ZenohBus::with_config(connect_cfg(port), Keys::default())
         .await
         .expect("open client session (connect)");
-    // Let the link + queryable declaration propagate across the tcp link.
-    tokio::time::sleep(Duration::from_millis(400)).await;
     let client = ZenohNcpClient::new(client_bus);
-
-    // open — includes the version gate + advisory contract-hash handshake on the reply.
-    let opened = client
-        .open(&OpenSession {
-            session_id: "uav1".into(),
-            network: NetworkRef {
-                kind: NetworkRefKind::Builtin,
-                ref_: "iaf_psc_alpha".into(),
-                ..Default::default()
-            },
+    let open_msg = OpenSession {
+        session_id: "uav1".into(),
+        network: NetworkRef {
+            kind: NetworkRefKind::Builtin,
+            ref_: "iaf_psc_alpha".into(),
             ..Default::default()
-        })
-        .await
-        .expect("open over zenoh tcp link");
+        },
+        ..Default::default()
+    };
+
+    // Readiness POLL instead of a blind sleep (robust on a slow CI runner): retry the
+    // first RPC until the queryable is reachable across the link. `request()` returns
+    // Err immediately when no peer has answered yet (no internal timeout), so each
+    // attempt is cheap; fail loudly after a hard deadline rather than hang.
+    let mut opened = None;
+    for _ in 0..100 {
+        match client.open(&open_msg).await {
+            Ok(o) => {
+                opened = Some(o);
+                break;
+            }
+            Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
+        }
+    }
+    let opened =
+        opened.expect("queryable never became reachable over the zenoh tcp link within ~10s");
     assert!(opened.ok, "session must open");
     let prov = opened
         .provenance

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Unknown enum variants are now forward-compatible (additive-non-breaking).** An
+  adversarial review found a real hole: the descriptive wire enums (`Observable`,
+  `StimulusKind`, `NetworkRefKind`, `EntityRole`, `ChannelKind`, `Role`) derived
+  `Deserialize` with no catch-all, so a peer that introduced a new enum string *within
+  the same wire version* made every older peer **hard-reject the whole frame** — while
+  `buf breaking` reports added enum values as non-breaking (gate and impl disagreed).
+  Added a `#[serde(other)] Unknown` sentinel to each (mirroring `Mode`'s existing
+  fail-safe-to-`Hold`), so an unrecognized value deserializes to `Unknown` instead of
+  erroring. It is a **deserialization catch-all only** (`schemars(skip)` + `ts(skip)`),
+  so the JSON Schema, the TS types, and `CONTRACT_HASH` are **unchanged** — pure
+  runtime tolerance, no wire change. New test
+  `unknown_enum_variant_is_forward_compatible_not_rejected`.
+
 ### Added
 
 - **Live cross-process / cross-language end-to-end tests (`e2e/`).** Proves the wire

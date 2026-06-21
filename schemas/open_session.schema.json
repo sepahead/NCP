@@ -46,13 +46,17 @@
     },
     "EntityRole": {
       "description": "Hierarchical entity role for addressing sensors/actuators.",
-      "enum": [
-        "system",
-        "actor",
-        "sensor",
-        "actuator"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "system",
+            "actor",
+            "sensor",
+            "actuator"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "NetworkRef": {
       "description": "What to simulate.",
@@ -95,13 +99,17 @@
     },
     "NetworkRefKind": {
       "description": "What kind of network reference `NetworkRef.ref` is.",
-      "enum": [
-        "handle",
-        "builtin",
-        "model_id",
-        "spec"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "handle",
+            "builtin",
+            "model_id",
+            "spec"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "Observable": {
       "description": "What to record off a population/neuron/synapse.",

@@ -2,13 +2,17 @@
   "$defs": {
     "ChannelKind": {
       "description": "Channel arity (carries the vec semantics so the envelope stays generic).",
-      "enum": [
-        "scalar",
-        "vec3",
-        "quat",
-        "array"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "scalar",
+            "vec3",
+            "quat",
+            "array"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "ChannelSpec": {
       "description": "Declares a named channel a controller produces or consumes.",
@@ -52,11 +56,15 @@
     },
     "Role": {
       "description": "Who a peer is in the closed-loop handshake.",
-      "enum": [
-        "controller",
-        "plant"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "controller",
+            "plant"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "SafetyLimits": {
       "description": "Bounds the action plane. `max_speed_mps`, `geofence_radius_m` and\n`command_timeout_ms` are enforced by the action-plane safety governor;\n`max_tilt_rad` is advisory metadata and is **not** enforced in this layer\n(no command-path clamp consumes it yet).",

@@ -51,6 +51,13 @@ pub enum Observable {
     /// Binary / multi-state neurons: discrete state via spin_detector, not V_m. (#10)
     #[serde(rename = "binary_state")]
     BinaryState,
+    /// Forward-compat sentinel: an observable string this build does not recognize
+    /// (e.g. one a newer additive peer introduced) deserializes here instead of
+    /// hard-rejecting the whole frame. Serializes as `"unknown"`.
+    #[serde(rename = "unknown", other)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    Unknown,
 }
 
 /// How a stimulus drives a target.
@@ -71,6 +78,12 @@ pub enum StimulusKind {
     /// step_rate_generator); rate models cannot receive spikes. (#10)
     #[serde(rename = "rate_inject")]
     RateInject,
+    /// Forward-compat sentinel (see `Observable::Unknown`): an unrecognized stimulus
+    /// kind deserializes here rather than hard-rejecting the frame.
+    #[serde(rename = "unknown", other)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    Unknown,
 }
 
 /// What kind of network reference `NetworkRef.ref` is.
@@ -87,6 +100,11 @@ pub enum NetworkRefKind {
     ModelId,
     #[serde(rename = "spec")]
     Spec,
+    /// Forward-compat sentinel (see `Observable::Unknown`).
+    #[serde(rename = "unknown", other)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    Unknown,
 }
 
 /// Stream vs batch simulation.
@@ -153,6 +171,11 @@ pub enum EntityRole {
     Sensor,
     #[serde(rename = "actuator")]
     Actuator,
+    /// Forward-compat sentinel (see `Observable::Unknown`).
+    #[serde(rename = "unknown", other)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    Unknown,
 }
 
 /// Channel arity (carries the vec semantics so the envelope stays generic).
@@ -169,6 +192,11 @@ pub enum ChannelKind {
     Quat,
     #[serde(rename = "array")]
     Array,
+    /// Forward-compat sentinel (see `Observable::Unknown`).
+    #[serde(rename = "unknown", other)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    Unknown,
 }
 
 /// Who a peer is in the closed-loop handshake.
@@ -181,6 +209,11 @@ pub enum Role {
     Controller,
     #[serde(rename = "plant")]
     Plant,
+    /// Forward-compat sentinel (see `Observable::Unknown`).
+    #[serde(rename = "unknown", other)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    Unknown,
 }
 
 // ───────────────────────── primitives ─────────────────────────
@@ -1292,6 +1325,48 @@ fn check_scientific_boundary(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unknown_enum_variant_is_forward_compatible_not_rejected() {
+        // Additive, non-breaking evolution: a peer that introduces a new enum string
+        // (within the same wire version) must NOT make every older peer hard-reject the
+        // whole frame. Each descriptive wire enum deserializes an unrecognized value to
+        // its `Unknown` sentinel instead of erroring (Mode fail-safes to Hold separately).
+        assert_eq!(
+            serde_json::from_str::<Observable>("\"lfp_v5\"").unwrap(),
+            Observable::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<StimulusKind>("\"optogenetic\"").unwrap(),
+            StimulusKind::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<NetworkRefKind>("\"future_kind\"").unwrap(),
+            NetworkRefKind::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<ChannelKind>("\"tensor\"").unwrap(),
+            ChannelKind::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<Role>("\"observer\"").unwrap(),
+            Role::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<EntityRole>("\"swarm\"").unwrap(),
+            EntityRole::Unknown
+        );
+        // Known values still parse exactly; the sentinel only catches the unrecognized.
+        assert_eq!(
+            serde_json::from_str::<Observable>("\"spikes\"").unwrap(),
+            Observable::Spikes
+        );
+        // And a whole record_target carrying an unknown observable still deserializes —
+        // the forward-compat property at the message level, not just the bare enum.
+        let rt: RecordTarget =
+            serde_json::from_str(r#"{"port":"p","target":"t","observable":"lfp_v5"}"#).unwrap();
+        assert_eq!(rt.observable, Observable::Unknown);
+    }
 
     #[test]
     fn check_version_rejects_malformed_minor_no_coercion() {
