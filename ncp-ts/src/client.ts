@@ -27,7 +27,7 @@ import type {
 } from './generated'
 
 /** The protocol version this client stamps on every request (`ncp_version`). */
-export const NCP_VERSION = '0.4'
+export const NCP_VERSION = '0.5'
 
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
@@ -36,7 +36,7 @@ export const NCP_VERSION = '0.4'
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export const NCP_CONTRACT_HASH = '2cf0763ad61e4f1c'
+export const NCP_CONTRACT_HASH = '24e8e6e31e1dec8a'
 
 /** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
  *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a

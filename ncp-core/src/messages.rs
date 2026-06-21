@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 /// Protocol version (semver). While pre-1.0 (`0.x`) receivers check the full
 /// `(major, minor)`; once `>=1.0` they check the **major** only. See
 /// [`check_version`].
-pub const NCP_VERSION: &str = "0.4";
+pub const NCP_VERSION: &str = "0.5";
 
 fn ncp_version() -> String {
     NCP_VERSION.to_string()
@@ -1007,7 +1007,7 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
 /// property — and still needs a per-language anchor for cross-language parity. The
 /// constant-plus-CI-guard form is kept on purpose. See `VERSIONING.md` (§"Contract
 /// hash") for the full rationale and the handshake design.
-pub const CONTRACT_HASH: &str = "2cf0763ad61e4f1c";
+pub const CONTRACT_HASH: &str = "24e8e6e31e1dec8a";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
 /// adequate for the contract-pinning integrity-vs-accidental-drift use. It is
@@ -1393,14 +1393,14 @@ mod tests {
     fn check_version_rejects_malformed_minor_no_coercion() {
         // core-wire-1: a present-but-garbage minor or a trailing component must
         // REJECT (Err in strict mode), never silently coerce to minor 0. Tested
-        // here against the live "0.4": none of these may parse to (0, 4).
+        // here against the live "0.5": none of these may parse to (0, 5).
         for bad in [
             "0.GARBAGE",
-            "0.4.1",
-            "0.4x",
+            "0.5.1",
+            "0.5x",
             "0.",
-            "0.4.0",
-            "x.4",
+            "0.5.0",
+            "x.5",
             "0.0.0.0",
         ] {
             assert!(
@@ -1408,9 +1408,9 @@ mod tests {
                 "malformed version {bad:?} must be rejected, not coerced"
             );
         }
-        // Exact match passes; a missing minor means 0 and so mismatches 0.4.
-        assert_eq!(check_version("0.4", true), Ok(true));
-        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,4)");
+        // Exact match passes; a missing minor means 0 and so mismatches 0.5.
+        assert_eq!(check_version("0.5", true), Ok(true));
+        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,5)");
         // Non-strict mode surfaces the same rejection as Ok(false), not a coerced pass.
         assert_eq!(check_version("0.1", false), Ok(false));
     }

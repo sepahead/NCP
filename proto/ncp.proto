@@ -1,4 +1,4 @@
-// Neuro-Cybernetic Protocol (NCP) v0.4 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
+// Neuro-Cybernetic Protocol (NCP) v0.5 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
 //
 // proto-native: this `.proto` is the single source of truth for the NCP wire —
 // message structure, field numbers, types, and the binary encoding. Every other
@@ -24,16 +24,17 @@
 //
 // Wire conventions:
 //   - every message carries a `kind` string discriminator and an `ncp_version`
-//     string ("0.4"); receivers check the FULL `ncp_version` — pre-1.0 the minor
+//     string ("0.5"); receivers check the FULL `ncp_version` — pre-1.0 the minor
 //     is breaking, so an exact (major, minor) match is required and any 0.x minor
 //     difference is fail-closed rejected (never coerced),
 //   - integer fields (ids, sizes, seq, seed) are int64, matching the Rust `i64`
 //     types and the JSON `"integer"` schema type; the JSON projection emits them
 //     as JSON numbers (a deliberate, human-readable deviation from ProtoJSON,
 //     which emits int64 as strings), so values above 2^53 lose precision in a
-//     binary64/JS consumer — bounded fields (ids/seq/counters) are safe, `seed`
-//     is range-guarded by the client, and the full ProtoJSON-canonical
-//     int64-as-strings migration is tracked in sepahead/NCP#5,
+//     binary64/JS consumer — bounded fields (ids/seq/counters) are safe and `seed`
+//     is range-guarded by the client. int64-as-JSON-numbers is the RATIFIED v0.5
+//     wire decision (sepahead/NCP#5 resolved: KEEP numbers — a second wire break to
+//     adopt ProtoJSON int64-as-strings is not worth it for a range-guarded edge),
 //   - `record`/`stimulus` on OpenSession are NESTED specs (RecordSpec /
 //     StimulusSpec), each wrapping a repeated list of targets,
 //   - unknown fields are ignored on deserialize (additive forward-compatibility
@@ -59,6 +60,14 @@ message ChannelValue {
   string unit = 2;            // optional; "" = unset
 }
 
+// Enums. NOTE on forward-compat: the descriptive enums below (Observable,
+// StimulusKind, NetworkRefKind, EntityRole, ChannelKind, Role) carry a
+// *deserialize-only* "unknown" sentinel in the reference serde/Pydantic types so an
+// older peer tolerates an additive value from a newer one. That sentinel is
+// DELIBERATELY NOT a proto enum constant: proto3 open-enum semantics already give
+// binary forward-compat (an unknown number is preserved), and adding an "unknown"
+// constant would both flip CONTRACT_HASH and make "unknown" an *emittable* wire
+// value. So the proto enums list only the real, emittable values.
 enum Observable {
   OBSERVABLE_UNSPECIFIED = 0;
   V_M = 1;                    // wire string "V_m"
@@ -115,6 +124,12 @@ enum Mode {
   ESTOP = 4;                  // wire string "estop"
 }
 
+enum SimMode {
+  SIM_MODE_UNSPECIFIED = 0;
+  STREAM = 1;                 // wire string "stream"
+  BATCH = 2;                  // wire string "batch"
+}
+
 // ───────────────────────── entity addressing ─────────────────────────
 
 message EntityRef {
@@ -169,7 +184,7 @@ message SimConfig {
   double dt_ms = 1;
   double chunk_ms = 2;
   int64 seed = 3;              // 0 = unset
-  string mode = 4;            // "stream" | "batch"
+  SimMode mode = 4;           // wire strings "stream" | "batch"
   double duration_ms = 5;
 }
 
@@ -351,7 +366,7 @@ message CommandFrame {
   int64 seq = 3;
   double t = 4;
   string frame_id = 5;
-  string mode = 6;            // init|active|hold|estop
+  Mode mode = 6;              // wire strings init|active|hold|estop
   double ttl_ms = 7;
   map<string, ChannelValue> channels = 8;        // tick 0
   repeated SetpointStep horizon = 9;             // packetized predictive control: tick i+1
@@ -364,7 +379,7 @@ message ControlStatus {
   string kind = 2;                  // "control_status"
   int64 seq = 3;
   double t = 4;
-  string mode = 5;            // init|active|hold|estop
+  Mode mode = 5;              // wire strings init|active|hold|estop
   double sim_time_ms = 6;
   double loop_latency_ms = 7;
   bool safety_ok = 8;

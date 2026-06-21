@@ -303,7 +303,7 @@
       "type": "array"
     },
     "contract_hash": {
-      "default": "2cf0763ad61e4f1c",
+      "default": "24e8e6e31e1dec8a",
       "description": "Caller's [`CONTRACT_HASH`], carried in the handshake as an **advisory**\nidentity signal (see [`ContractStatus`]): a mismatch is logged, not rejected —\n`ncp_version` is the hard compatibility gate. Defaults to our own hash so\nevery session advertises it; `None` (serialized `null`) = not advertised.",
       "type": [
         "string",
@@ -316,7 +316,7 @@
       "type": "string"
     },
     "ncp_version": {
-      "default": "0.4",
+      "default": "0.5",
       "type": "string"
     },
     "network": {

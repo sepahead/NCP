@@ -50,7 +50,7 @@
       "type": "string"
     },
     "contract_hash": {
-      "default": "2cf0763ad61e4f1c",
+      "default": "24e8e6e31e1dec8a",
       "description": "Server's [`CONTRACT_HASH`] — the reply half of the handshake (see\n[`OpenSession::contract_hash`]). A client treats a hash difference as an\n**advisory** ([`ContractStatus::Mismatch`], logged not rejected); the version\nis the hard gate. `None` (serialized `null`) = not advertised.",
       "type": [
         "string",
@@ -70,7 +70,7 @@
       "type": "string"
     },
     "ncp_version": {
-      "default": "0.4",
+      "default": "0.5",
       "type": "string"
     },
     "ok": {

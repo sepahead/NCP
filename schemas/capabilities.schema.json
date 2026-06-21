@@ -134,7 +134,7 @@
       "type": "string"
     },
     "ncp_version": {
-      "default": "0.4",
+      "default": "0.5",
       "type": "string"
     },
     "role": {

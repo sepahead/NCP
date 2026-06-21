@@ -14,6 +14,6 @@
     "step_request",
     "stimulus_frame"
   ],
-  "ncp_version": "0.4",
+  "ncp_version": "0.5",
   "note": "Generated from the ncp-core serde reference types (cargo run --features schema --bin gen-schemas); do not edit by hand."
 }

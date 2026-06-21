@@ -37,8 +37,8 @@ CODEC = json.dumps(
 
 
 def test_module_pins_exported():
-    assert ncp.NCP_VERSION == "0.4"
-    assert ncp.CONTRACT_HASH == "2cf0763ad61e4f1c"
+    assert ncp.NCP_VERSION == "0.5"
+    assert ncp.CONTRACT_HASH == "24e8e6e31e1dec8a"
 
 
 def test_codec_roundtrip_encode_then_decode():
@@ -55,6 +55,6 @@ def test_codec_roundtrip_encode_then_decode():
 
 def test_decision_functions_callable():
     # Smoke only — exhaustive cross-language parity is the corpus's job.
-    assert ncp.check_version("0.4", False) is True
-    assert ncp.contract_status("2cf0763ad61e4f1c") == "match"
+    assert ncp.check_version("0.5", False) is True
+    assert ncp.contract_status("24e8e6e31e1dec8a") == "match"
     assert ncp.validate("command_frame", '{"kind":"command_frame"}')  # non-empty canonical JSON
