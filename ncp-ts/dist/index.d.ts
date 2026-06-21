@@ -8,7 +8,7 @@
  * wire-identical. Do not re-declare these types downstream — import them from here.
  */
 export type * from './generated';
-export { NeuroSimClient, NCP_VERSION } from './client';
+export { NeuroSimClient, NCP_VERSION, NCP_CONTRACT_HASH, contractStatus } from './client';
 export type { Send, Wire, ErrorFrame, ChannelInput, NetworkInput, RecordInput, StimulusInput, SimInput, SessionOpenedReply, SessionClosedReply, ObservationFrameReply, ObservationData, } from './client';
 export { WebSocketNeuroSim } from './ws';
 //# sourceMappingURL=index.d.ts.map

@@ -12,16 +12,22 @@ parity guard keeps from drifting apart.
 
 ## Source of truth & regeneration (IMPORTANT)
 
-These files are **generated, not hand-edited**. In the engram deployment they are emitted from the
-Paper2Brain Pydantic models via `backend/neurocontrol/export_schemas.py`, and a drift guard checks
-the committed copy against a fresh export. See the `note` in [`index.json`](index.json):
+These files are **generated, not hand-edited**. Today they are emitted from the engram
+Pydantic models via `backend/neurocontrol/export_schemas.py` and re-vendored here; a
+drift guard checks the committed copy against a fresh export. NCP also ships its own
+**proto-first** generator — `cargo run -p ncp-core --features schema --bin gen-schemas`
+derives the schemas directly from the `ncp-core` serde reference types (the
+conformance-locked reference implementation, which carry the enum wire strings) — and a
+**schema-default safety guard** (`scripts/check_schema_defaults.py`) asserts every
+committed field DEFAULT matches that Rust reference (it caught `CommandFrame.mode`
+defaulting to the actuating `"active"` instead of the fail-safe `"hold"`). The full
+cutover to NCP-owned generation (replacing the committed schemas, adapting the
+parity/conformance guards to the schemars shape, migrating engram to a pure consumer)
+is staged; until then the Pydantic export is the transitional source and the default
+guard bridges the two.
 
-```text
-"Generated from backend/neurocontrol Pydantic models; do not edit by hand."
-```
-
-Do not edit a `*.schema.json` by hand — regenerate from the Pydantic source and commit the result.
-[`index.json`](index.json) lists the message set (`ncp_version` `0.3`): `capabilities`,
+Do not edit a `*.schema.json` by hand — regenerate and commit the result.
+[`index.json`](index.json) lists the message set (`ncp_version` `0.4`): `capabilities`,
 `open_session` / `session_opened`, `close_session` / `session_closed`, `run_request`,
 `step_request`, `sensor_frame` / `stimulus_frame` / `observation_frame` / `command_frame`,
 `control_status`, `link_status`.

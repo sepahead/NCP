@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-21
+
+Patch release — **wire `0.4` unchanged** (no consumer re-pin required; v0.4.0 and v0.4.1
+interoperate). Safety fix + cross-language parity + documentation consistency.
+
+### Fixed
+
+- **Safety: `CommandFrame.mode` fail-safe default.** The committed JSON Schema (generated
+  from engram's Pydantic) documented an omitted `mode` defaulting to the *actuating*
+  `"active"`, contradicting the normative Rust reference (`default_command_mode()` →
+  `Mode::Hold`). A `CommandFrame` built without an explicit mode must fail-safe to
+  `hold`, never actuate. Fixed the engram Pydantic default to `Mode.HOLD`; the schema now
+  reads `"hold"`. (The proto↔schema parity guard checks field-sets, not defaults, so it
+  never caught this — see the new guard below.)
+- Documentation drift: the `OpenSession`/`SessionOpened.contract_hash` field docs (Rust +
+  the ts-rs-generated TS bindings) and the proto comments still described the handshake as
+  *fail-closed-rejecting* a hash mismatch; corrected to **advisory** (the v0.4 behavior).
+
+### Added
+
+- **Schema-default safety guard** (`scripts/check_schema_defaults.py`, wired into CI): every
+  committed schema field DEFAULT must equal the normative Rust reference (runs the
+  proto-first `gen-schemas`). Closes the gap the parity guard left; would have caught the
+  `mode` bug above.
+- **TypeScript contract-hash parity.** `ncp-ts` now exports `NCP_CONTRACT_HASH` and an
+  advisory `contractStatus()` (mirrors `ncp_core::contract_status`); `NeuroSimClient.open`
+  sends the hash and logs a reply-mismatch advisory (does not throw). The
+  version-coherence guard now also pins `CONTRACT_HASH` across `ncp-core` ↔ `ncp-ts`.
+
+### Documentation
+
+- Markdown consistency pass: version strings synced to `0.4` across
+  `NEURO_CYBERNETIC_PROTOCOL.md`, `CONTRIBUTING.md`, `proto/README.md`, `schemas/README.md`,
+  `ncp-python` docs, `VERSIONING.md`. `CONTRIBUTING.md`/`NEURO_CYBERNETIC_PROTOCOL.md`
+  updated to the additive-is-non-breaking + advisory-handshake policy. `SECURITY.md` notes
+  `contract_hash` is a drift detector, not a security control. `schemas/README.md` documents
+  the proto-first `gen-schemas` path + the staged cutover. Consumer names removed from the
+  versioning prose (protocol is consumer-agnostic).
+
 ## [0.4.0] - 2026-06-21
 
 **Decoupling + robustness release (wire `0.3` → `0.4`).** Batches the structural fixes

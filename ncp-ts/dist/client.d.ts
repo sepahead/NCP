@@ -17,6 +17,18 @@ import type { ChannelValue, NetworkRef, Observation, ObservationFrame, RecordTar
 /** The protocol version this client stamps on every request (`ncp_version`). */
 export declare const NCP_VERSION = "0.4";
 /**
+ * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
+ * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
+ * against the proto in those peers' CI. Carried in `open()` and compared to the
+ * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
+ * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
+ */
+export declare const NCP_CONTRACT_HASH = "2cf0763ad61e4f1c";
+/** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
+ *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
+ *  string = an advisory message describing the mismatch (for logging/telemetry). */
+export declare function contractStatus(peerHash: string | null | undefined): string | null;
+/**
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for
  * precision-safety, but `JSON.stringify` cannot serialize a `bigint` and

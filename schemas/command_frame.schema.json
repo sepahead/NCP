@@ -67,7 +67,7 @@
     },
     "mode": {
       "$ref": "#/$defs/Mode",
-      "default": "active"
+      "default": "hold"
     },
     "ttl_ms": {
       "default": 200.0,

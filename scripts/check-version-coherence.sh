@@ -194,6 +194,31 @@ if [[ -n "$CORE_WIRE" ]]; then
   fi
 fi
 
+# --- CONTRACT_HASH coherence across the bindings ----------------------------
+# Every peer pins the same CONTRACT_HASH constant (cross-language anchor; each
+# recomputes it from its own proto in CI). A release that bumps one but not the
+# others ships peers that log spurious contract-mismatch advisories. Assert the
+# Rust (ncp-core) and TS (ncp-ts) constants agree when both are present.
+core_hash() {
+  local f="$REPO_ROOT/ncp-core/src/messages.rs"
+  [[ -f "$f" ]] || return
+  grep -m1 -oE 'CONTRACT_HASH: &str = "[^"]+"' "$f" | grep -oE '"[^"]+"' | tr -d '"'
+}
+ts_hash() {
+  local f="$REPO_ROOT/ncp-ts/src/client.ts"
+  [[ -f "$f" ]] || return
+  grep -m1 -oE "NCP_CONTRACT_HASH = '[^']+'" "$f" | grep -oE "'[^']+'" | tr -d "'"
+}
+CORE_HASH="$(core_hash || true)"
+TS_HASH="$(ts_hash || true)"
+if [[ -n "$CORE_HASH" ]]; then
+  printf '  %-22s %s\n' "CONTRACT_HASH (core)" "$CORE_HASH"
+  [[ -n "$TS_HASH" ]] && printf '  %-22s %s\n' "CONTRACT_HASH (ts)" "$TS_HASH"
+  if [[ -n "$TS_HASH" && "$TS_HASH" != "$CORE_HASH" ]]; then
+    problems+=("ncp-ts NCP_CONTRACT_HASH '$TS_HASH' != ncp-core '$CORE_HASH'")
+  fi
+fi
+
 # --- optional tag check -----------------------------------------------------
 if [[ -n "$TAG" ]]; then
   if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then

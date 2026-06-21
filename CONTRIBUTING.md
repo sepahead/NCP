@@ -91,11 +91,15 @@ fails, the wire has drifted — fix the drift, do not weaken the test.
 NCP's value is a stable, versioned wire contract that independent peers and
 language bindings can rely on. **Never silently break the wire.**
 
-Any change to a wire-visible type, enum variant, field, or key — anything that
-alters bytes/JSON on the wire or their meaning — **must** include, in the same PR:
+**Additive vs incompatible (since v0.4 — see [VERSIONING.md](VERSIONING.md)).** Adding
+an *optional* field or a new message type is **non-breaking** — unknown fields are
+ignored, so it does **not** require an `ncp_version` bump (it does change
+`CONTRACT_HASH`, an advisory signal). An **incompatible** change — removing/renaming a
+field, changing a type, removing an enum value, or changing the meaning of existing
+bytes — is breaking and **must** include, in the same PR:
 
 1. An explicit **`ncp_version` bump**. The version constant lives in
-   `ncp-core/src/messages.rs` (`NCP_VERSION`, currently `"0.3"`).
+   `ncp-core/src/messages.rs` (`NCP_VERSION`, currently `"0.4"`).
 2. A corresponding update to the **specification**
    (`NEURO_CYBERNETIC_PROTOCOL.md`), the **`.proto` definitions** (`proto/`),
    and the **JSON Schemas** (`schemas/`).

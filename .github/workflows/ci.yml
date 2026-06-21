@@ -73,6 +73,14 @@ jobs:
       - name: ACL template guard
         run: python3 scripts/check_acl_template.py
 
+      # Safety: every committed schema field DEFAULT must equal the normative Rust
+      # reference (ncp-core). The parity guard checks field-sets/enums but not
+      # defaults; this closes that gap (it caught CommandFrame.mode defaulting to the
+      # actuating "active" instead of the fail-safe "hold"). Runs the proto-first
+      # generator, so it needs the schema feature build.
+      - name: Schema-default safety guard
+        run: python3 scripts/check_schema_defaults.py
+
   buf:
     name: buf lint + build
     runs-on: ubuntu-latest

@@ -30,6 +30,27 @@ import type {
 export const NCP_VERSION = '0.4'
 
 /**
+ * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
+ * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
+ * against the proto in those peers' CI. Carried in `open()` and compared to the
+ * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
+ * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
+ */
+export const NCP_CONTRACT_HASH = '2cf0763ad61e4f1c'
+
+/** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
+ *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
+ *  string = an advisory message describing the mismatch (for logging/telemetry). */
+export function contractStatus(peerHash: string | null | undefined): string | null {
+  if (peerHash == null || peerHash === NCP_CONTRACT_HASH) return null
+  return (
+    `NCP contract-hash differs: peer ${JSON.stringify(peerHash)}, ours ` +
+    `${JSON.stringify(NCP_CONTRACT_HASH)} — versions compatible so the session ` +
+    `proceeds, but the peers are on different contract revisions (advisory)`
+  )
+}
+
+/**
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for
  * precision-safety, but `JSON.stringify` cannot serialize a `bigint` and
@@ -115,8 +136,14 @@ export class NeuroSimClient {
       stimulus: { targets: stimulus },
       sim,
       bindings: [],
+      contract_hash: NCP_CONTRACT_HASH,
     })
-    return unwrap<SessionOpenedReply>(reply)
+    const opened = unwrap<SessionOpenedReply>(reply)
+    // Advisory contract-hash check (the reply half): log a mismatch, do not throw —
+    // the version is the hard gate (mirrors ncp-zenoh::open / engram service.handle).
+    const advisory = contractStatus((opened as { contract_hash?: string | null }).contract_hash)
+    if (advisory) console.warn(`[ncp] ${advisory}`)
+    return opened
   }
 
   /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */

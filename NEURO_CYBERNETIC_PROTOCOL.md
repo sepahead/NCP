@@ -1,4 +1,4 @@
-# Neuro-Cybernetic Protocol (NCP) v0.2
+# Neuro-Cybernetic Protocol (NCP) v0.4
 
 A versioned, **transport-agnostic, project-agnostic** standard for letting a
 running NEST simulation serve external robot / UAV / simulation systems —
@@ -58,12 +58,21 @@ document is the human-readable spec.
 
 ## 1. Versioning & compatibility
 
-Every message carries `ncp_version` (semver). Consumers **ignore unknown fields**
-(additive forward-compatibility within a compatible wire version). Pre-1.0 the
-**minor is breaking**: a receiver checks the full version and an exact
-`(major, minor)` match is required — any `0.x` minor difference is fail-closed
-rejected, never coerced. NCP is **0.2** — pre-1.0, the wire shape may still
-change; pin the exact version you build against.
+Every message carries `ncp_version` (semver). Consumers **ignore unknown fields**, so
+adding an *optional* field or a new message type is **non-breaking** and does not bump
+the version (since v0.4). An **incompatible** change (removing/retyping/renaming a
+field, removing an enum value) is breaking; pre-1.0 the **minor is breaking** for those
+— a receiver checks the full version and an exact `(major, minor)` match is required,
+any `0.x` minor difference is fail-closed rejected, never coerced.
+
+Two layers separate *compatibility* from *identity*: `ncp_version` is the hard
+compatibility gate (above), while `contract_hash` (carried in
+`OpenSession`/`SessionOpened`; `ncp_core::CONTRACT_HASH`, FNV-1a of the
+wire-semantically-canonicalized proto) is an **advisory** identity signal — a
+mismatch within a compatible version is *logged, not rejected* (the peers are on
+different but compatible contract revisions). A strict `verify_contract` opt-in
+exists for deployments that mandate an exact revision. NCP is **0.4** — pre-1.0, the
+wire may still change; pin the exact version you build against.
 
 ## 2. Entity model (perception, action, neither; 0..N of each)
 

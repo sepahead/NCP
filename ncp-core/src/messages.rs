@@ -403,10 +403,10 @@ pub struct OpenSession {
     pub stimulus: StimulusSpec,
     pub sim: SimConfig,
     pub bindings: Vec<EntityBinding>,
-    /// Caller's [`CONTRACT_HASH`], carried in the handshake so a peer can
-    /// fail-closed-reject a post-agreement schema mutation. Defaults to our own
-    /// hash so every session advertises it; `None` (serialized `null`) = not
-    /// advertised, accepted within a compatible `ncp_version`.
+    /// Caller's [`CONTRACT_HASH`], carried in the handshake as an **advisory**
+    /// identity signal (see [`ContractStatus`]): a mismatch is logged, not rejected —
+    /// `ncp_version` is the hard compatibility gate. Defaults to our own hash so
+    /// every session advertises it; `None` (serialized `null`) = not advertised.
     pub contract_hash: Option<String>,
 }
 
@@ -440,9 +440,10 @@ pub struct SessionOpened {
     pub resolved: Map<i64>,
     pub provenance: Option<SimProvenance>,
     pub error: Option<String>,
-    /// Server's [`CONTRACT_HASH`] — the reply half of the symmetric handshake (see
-    /// [`OpenSession::contract_hash`]). A client rejects a `SessionOpened` whose
-    /// hash does not match its own. `None` (serialized `null`) = not advertised.
+    /// Server's [`CONTRACT_HASH`] — the reply half of the handshake (see
+    /// [`OpenSession::contract_hash`]). A client treats a hash difference as an
+    /// **advisory** ([`ContractStatus::Mismatch`], logged not rejected); the version
+    /// is the hard gate. `None` (serialized `null`) = not advertised.
     pub contract_hash: Option<String>,
 }
 

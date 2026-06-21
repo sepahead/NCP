@@ -16,10 +16,10 @@ export type OpenSession = {
     sim: SimConfig;
     bindings: Array<EntityBinding>;
     /**
-     * Caller's [`CONTRACT_HASH`], carried in the handshake so a peer can
-     * fail-closed-reject a post-agreement schema mutation. Defaults to our own
-     * hash so every session advertises it; `None` (serialized `null`) = not
-     * advertised, accepted within a compatible `ncp_version`.
+     * Caller's [`CONTRACT_HASH`], carried in the handshake as an **advisory**
+     * identity signal (see [`ContractStatus`]): a mismatch is logged, not rejected —
+     * `ncp_version` is the hard compatibility gate. Defaults to our own hash so
+     * every session advertises it; `None` (serialized `null`) = not advertised.
      */
     contract_hash: string | null;
 };

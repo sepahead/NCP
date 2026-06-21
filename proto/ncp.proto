@@ -195,9 +195,9 @@ message OpenSession {
   SimConfig sim = 7;
   repeated EntityBinding bindings = 8;
   // Caller's contract-hash (ncp_core::CONTRACT_HASH — FNV-1a of the canonicalized
-  // proto). Carried in the handshake so a peer fail-closed-rejects a post-agreement
-  // schema mutation, symmetric with SessionOpened.contract_hash. Empty/absent =
-  // not advertised (accepted within a compatible ncp_version). (#P1 handshake)
+  // proto). Carried in the handshake as an ADVISORY identity signal: a peer LOGS a
+  // mismatch (it does not reject — ncp_version is the hard gate), symmetric with
+  // SessionOpened.contract_hash. Empty/absent = not advertised. (#P1 handshake)
   string contract_hash = 9;
 }
 
@@ -210,9 +210,9 @@ message SessionOpened {
   map<string, int64> resolved = 6;     // target -> neuron count
   SimProvenance provenance = 7;
   string error = 8;
-  // Server's contract-hash, the reply half of the symmetric handshake (see
-  // OpenSession.contract_hash). A client rejects a SessionOpened whose hash does
-  // not match its own. Empty/absent = not advertised. (#P1 handshake)
+  // Server's contract-hash, the reply half of the handshake (see
+  // OpenSession.contract_hash). A client treats a hash difference as ADVISORY
+  // (logged, not rejected). Empty/absent = not advertised. (#P1 handshake)
   string contract_hash = 9;
 }
 

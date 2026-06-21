@@ -17,13 +17,13 @@ projection) with [SemVer](https://semver.org): `MAJOR.MINOR.PATCH`.
 - **PATCH** — clarifications/docs with no wire effect.
 
 **Wire version vs crate/package version.** The `ncp_version` *wire* string
-(currently `0.3`) versions the contract; the Rust crates and the `@sepehrmn/ncp`
+(currently `0.4`) versions the contract; the Rust crates and the `@sepehrmn/ncp`
 package carry their own SemVer (see `Cargo.toml` / `package.json` for the current
 SDK version — the manifests are the single source of truth) for the SDK. They usually move
 together, but a PATCH that touches only code/docs/build artifacts (e.g. `0.3.0` →
-`0.3.1`) leaves the wire at `0.3`. **Pin `tag = "v0.3.0"`** for the wire baseline
+`0.4.1`) leaves the wire at `0.4`. **Pin `tag = "v0.4.0"`** for the wire baseline
 (what the `buf breaking` gate compares against); the crate at that-or-later tag is
-wire-`0.3`-compatible.
+wire-`0.4`-compatible.
 
 **Additive evolution is NON-breaking (since v0.4).** Adding an *optional* field or a
 new message type does **not** bump the minor — protobuf/serde ignore unknown fields,
@@ -56,7 +56,7 @@ rules (configured in `buf.yaml`):
 - **`FILE` / `PACKAGE`** — source/codegen-level stability.
 
 CI runs `buf lint`; `buf breaking` gates the wire against the first tag of the
-current wire (`v0.3.0`, the wire-`0.3` baseline — see `.github/workflows/ci.yml`).
+current wire (`v0.4.0`, the wire-`0.4` baseline — see `.github/workflows/ci.yml`).
 A change that trips `WIRE`/`WIRE_JSON` **must** bump MAJOR (or MINOR while `0.x`).
 
 ## Per-session version + contract handshake
@@ -79,8 +79,8 @@ The two checks are **separated by concern** (since v0.4):
    configs).
 
 Separating the two means additive evolution and naming-only proto changes never break
-a version-compatible `engram→crebain` / `engram→pid_vla` flow, while drift is still
-surfaced for operators.
+any version-compatible commander↔plant flow, while drift is still surfaced for
+operators.
 
 ## Contract hash (the wire-identity digest)
 

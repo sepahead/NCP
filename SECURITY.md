@@ -18,6 +18,13 @@ locally at the receiver: a stale or out-of-mode command is rejected regardless
 of who sent it. This is a local safety governor, **not** a substitute for
 network-level authentication.
 
+> **`contract_hash` is not a security control.** The handshake's `contract_hash`
+> (`ncp_core::CONTRACT_HASH`) is an FNV-1a digest that *detects accidental contract
+> drift* between peers — it is **advisory** (a mismatch is logged, not rejected; see
+> `VERSIONING.md`) and is **not** a cryptographic MAC. It provides no integrity or
+> authenticity guarantee against an adversary; that is the transport's job (mTLS +
+> the ACL below). Do not rely on it as an authentication or anti-tampering gate.
+
 ## Threat model & hardening path
 
 The headline risk is a **confused-deputy / world-writable command surface**: on an
