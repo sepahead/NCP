@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-06-21
+
+Patch — **wire `0.4` unchanged** (no consumer re-pin). Cross-language behavioral parity.
+
 ### Added
 
 - **ncp-python is now built + behaviorally gated in CI.** A dedicated `ncp-python` CI
