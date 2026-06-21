@@ -143,6 +143,14 @@ and while compute-bound it makes things *worse* (per-`Run()` overhead climbs —
 time at large N is the goal, the lever is **fewer-but-larger chunks / more threads /
 a smaller net**, not a smaller chunk.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/realtime_dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/plots/realtime_light.svg">
+  <img alt="Real-time factor rt = bio-s/wall-s vs OpenMP thread count (1-16) on a 16-core box, log-log. Only N=10,000 crosses the dashed rt=1.0 real-time line - 1.18x at 4 threads up to 2.13x at 16; N=50,000/100,000/200,000 stay below real-time (best 0.35x at N=50k, T=16). The ~17-20k live ceiling is interpolated. NEST 3.8.0, ~500 syn/neuron, ~13 Hz async-irregular." src="docs/plots/realtime_light.svg">
+</picture>
+
+<sub>**Real-time factor vs threads** (`rt = bio-s / wall-s`, log–log). Only the 10k-neuron net clears the dashed `rt = 1.0` line (1.18× → 2.13× over 4–16 threads); larger nets stay offline (best 0.35× at N=50k, T=16). `rt` degrades ~linearly with N; the ~10–20k live ceiling is interpolated (no sample between 10k and 50k). Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
+
 ### I/O overlap: the GIL blocks *Python* threads, not *native* threads
 
 Two GIL tests settle where transport must live. (1) A background spinner thread
@@ -165,6 +173,14 @@ But the GIL only blocks **Python** threads. A **native OS thread** — a Rust
 | **native thread** (C / Rust / PyO3) during `Run` | **0.348 s** | **1.68×** |
 | Python thread during `Run`                     | 0.541 s | 1.08×   |
 
+<picture>
+  <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/overlap_dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/plots/overlap_light.svg">
+  <img alt="Left: I/O-overlap speedup vs transport-work per chunk (log x). The analytic ceiling (compute+work)/max(compute,work) falls from 1.80x at 10 ms to ~1.01x at 0.1 ms; the measured native-thread point (1.68x at 10 ms) sits below the ideal line; the sub-millisecond rate-loop regime yields only single-digit-percent gain. Right: serial 1.00x, Python-thread 1.08x (solid, measured), native-thread 1.68x (hatched - idealized off-GIL ceiling, not measured transport). NEST 3.8.0, 8000-neuron net, bench_gil_overlap.py." src="docs/plots/overlap_light.svg">
+</picture>
+
+<sub>**The I/O-overlap ceiling, read honestly.** Left: the analytic ceiling `(compute+work)/max(compute,work)` falls from 1.80× at 10 ms transport-work to ~1.01× at 0.1 ms — at a sub-ms rate-loop `T_ncp` the gain is single-digit-%. Right: the 1.68× native-thread bar is **hatched** because it is an idealized off-GIL `ctypes` ceiling, *not* a measured transport result; a naive Python-serialize thread lands at 1.08×. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
+
 **So the fix for the GIL is a native thread, not a different language.** Two ways:
 (a) **the Rust NCP gateway / a separate process** ([`ncp-gateway`](ncp-gateway) /
 [`ncp-zenoh`](ncp-zenoh)) — recommended; its OS threads run outside the GIL and it
@@ -182,7 +198,7 @@ N-1 / buffers chunk N+1 while the NEST process computes chunk N.
 > serialization (e.g. Pydantic `model_dump`) lands at the **~1.08×** Python-thread row,
 > not 1.68× — so option (b) above **must serialize in Rust**, not Python. And the gain
 > is contingent on `T_transport ≈ T_run`: the overlap speedup falls off from its analytic
-> ceiling `max(compute,work)/(compute+work)` ≈ **1.80× at 10 ms-work** (measured 1.68×)
+> ceiling `(compute+work)/max(compute,work)` ≈ **1.80× at 10 ms-work** (measured 1.68×)
 > → ~1.07× at 0.6 ms → ~1.01× at 0.1 ms, so at rate-loop `T_ncp` (sub-ms) the
 > real benefit is single-digit percent, not 68%.
 >

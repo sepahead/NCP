@@ -22,20 +22,36 @@ One commander (e.g. an Engram/NEST brain, or any neuromorphic controller) coordi
 
 ```mermaid
 flowchart LR
-    subgraph Commander["Commander — e.g. an Engram / NEST brain"]
-        BRAIN["neural network · point + rate<br/>(perception · action · both · neither)"]
+    subgraph Commander["Commander · e.g. an Engram / NEST brain"]
+        BRAIN("`🧠 NEST brain<br/>**the commander**<br/>point + rate neurons`")
     end
-
-    subgraph Bodies["Bodies & clients"]
-        ROBOT["robot / UAV body"]
-        OBS["analysis / observer client"]
+    subgraph Plant["Body / plant"]
+        ROBOT("🤖 robot / UAV body")
     end
+    OBS("`👁 analysis /<br/>observer client<br/>**attaches for free**`")
 
-    BRAIN -- "/rpc · control · reliable request/reply" --> ROBOT
-    ROBOT -- "/sensor · perception · best-effort, conflating" --> BRAIN
-    BRAIN -- "/command · action · express · RealTime · safety-gated (mode, ttl_ms)" --> ROBOT
-    BRAIN -. "/observation · read-only tap" .-> OBS
-    ROBOT -. "/observation · read-only tap" .-> OBS
+    BRAIN ==>|"🔒 ACTION · /command<br/>express · RealTime · safety-gated<br/>mode {init·active·hold·estop} · ttl_ms"| ROBOT
+    BRAIN -->|"🛂 CONTROL · /rpc<br/>reliable · request / reply"| ROBOT
+    ROBOT -.->|"📡 PERCEPTION · /sensor<br/>best-effort · DROP · lossy-OK"| BRAIN
+    BRAIN -.->|"👁 OBSERVATION · /observation<br/>read-only tap"| OBS
+    ROBOT -.-> OBS
+
+    class BRAIN commander
+    class ROBOT body
+    class OBS observer
+
+    linkStyle default stroke:#8B949E,stroke-width:1.5px;
+    linkStyle 0 stroke:#D55E00,stroke-width:4px;
+    linkStyle 1 stroke:#0072B2,stroke-width:2.5px;
+    linkStyle 2 stroke:#56B4E9,stroke-width:2.5px;
+    linkStyle 3 stroke:#8B949E,stroke-width:1.5px,stroke-dasharray:3 3;
+    linkStyle 4 stroke:#8B949E,stroke-width:1.5px,stroke-dasharray:3 3;
+
+    classDef commander fill:#1F2A37,color:#FFFFFF,stroke:#9DA7B3,stroke-width:2px;
+    classDef body      fill:#6E7681,color:#FFFFFF,stroke:#C9D1D9,stroke-width:2px;
+    classDef observer  fill:#586069,color:#FFFFFF,stroke:#C9D1D9,stroke-width:1.5px,stroke-dasharray:4 3;
+    style Commander fill:none,stroke:#9DA7B3,stroke-width:1px,stroke-dasharray:5 4
+    style Plant fill:none,stroke:#9DA7B3,stroke-width:1px,stroke-dasharray:5 4
 ```
 
 | Plane | Key | QoS | Purpose |
@@ -147,16 +163,27 @@ body, or analysis client speaks the same wire:
 
 ```mermaid
 flowchart TB
-    NCP["NCP — the wire contract<br/>ncp-core · ncp-zenoh · ncp-gateway<br/>peers: ncp-python · ncp-cpp · @sepehrmn/ncp (ncp-ts)"]
-    ENGRAM["Engram / Paper2Brain<br/>(example commander: NEST brain + SessionService)"]
-    CREBAIN["crebain<br/>(example body: robot / UAV plant)"]
-    PIDVLA["pid_vla<br/>(example analysis / observer client)"]
+    subgraph Consumers["NCP consumers · all pin tag v0.5.0"]
+        ENGRAM["Engram / Paper2Brain<br/>(example commander: NEST brain + SessionService)"]
+        CREBAIN["crebain<br/>(example body: robot / UAV plant)"]
+        PIDVLA["pid_vla<br/>(example analysis / observer client)"]
+    end
+    NCP["🔑 NCP — the wire contract<br/>ncp-core · ncp-zenoh · ncp-gateway<br/>peers: ncp-python · ncp-cpp · @sepehrmn/ncp (ncp-ts)"]
     PIDRS["pid-rs<br/>(PID estimators — science library)"]
 
-    ENGRAM -->|"pins tag v0.5.0"| NCP
-    CREBAIN -->|"pins tag v0.5.0"| NCP
-    PIDVLA -->|"pins tag v0.5.0"| NCP
-    PIDVLA -->|"git submodule (not an NCP consumer)"| PIDRS
+    ENGRAM --> NCP
+    CREBAIN --> NCP
+    PIDVLA --> NCP
+    PIDVLA -.->|"git submodule · NOT an NCP wire consumer"| PIDRS
+
+    classDef contract  fill:#6D28D9,color:#FFFFFF,stroke:#B9A9E6,stroke-width:3px;
+    classDef structure fill:#D7DCE1,color:#0B0F14,stroke:#57606A,stroke-width:1.5px;
+    class NCP contract;
+    class ENGRAM,CREBAIN,PIDVLA,PIDRS structure;
+    class Consumers structure;
+
+    linkStyle default stroke:#8B949E,stroke-width:1.5px;
+    linkStyle 3 stroke:#57606A,stroke-width:1.5px,stroke-dasharray:6 4;
 ```
 
 ## FAQ

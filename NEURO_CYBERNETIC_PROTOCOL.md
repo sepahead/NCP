@@ -79,20 +79,31 @@ The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handsh
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as Client (e.g. a robot / analysis peer)
-    participant S as Server (e.g. an Engram SessionService)
+    accTitle: NCP session lifecycle
+    accDescr: Client opens a session; the server applies a HARD ncp_version check (exact major.minor, fail-closed) and an ADVISORY contract_hash check (logged on mismatch). If incompatible, SessionOpened ok=false and no session is created. If compatible, SessionOpened ok=true carries provenance (is_simulation_output=true, calibrated_posterior=false), then a per-chunk loop of StepRequest or RunRequest answered by ObservationFrame (same provenance polarities on every frame), then CloseSession and SessionClosed.
+    box rgba(86,180,233,0.12) Client · robot / analysis peer
+        participant C as Client (e.g. a robot / analysis peer)
+    end
+    box rgba(0,114,178,0.12) Server · Engram SessionService
+        participant S as Server (e.g. an Engram SessionService)
+    end
     C->>S: OpenSession{ ncp_version="0.5", contract_hash, network, record, stimulus, sim }
-    Note over S: check_version (HARD: exact major.minor, fail-closed)<br/>negotiate(contract_hash) (ADVISORY: log on mismatch)
-    alt incompatible ncp_version
-        S-->>C: SessionOpened{ ok=false, error }
-    else compatible
-        S-->>C: SessionOpened{ ok=true, backend, resolved, provenance, contract_hash }
+    rect rgba(109,40,217,0.16)
+    Note over S: check_version (HARD: exact major.minor, fail-closed)<br/>≈ negotiate() → contract_hash compare (ADVISORY: log on mismatch)
+    alt incompatible ncp_version (HARD gate: 0.4 ≠ 0.5)
+        S-->>C: ✖︎ SessionOpened{ ok=false, error } · NO session (fail-closed)
+    else compatible (0.5 == 0.5)
+        S-->>C: ✔︎ SessionOpened{ ok=true, backend, resolved, provenance, contract_hash }
+        Note over C,S: contract_hash mismatch on this arm = ADVISORY only (logged, session proceeds)<br/>provenance polarities are FIXED invariants: is_simulation_output=true · calibrated_posterior=false
+        rect rgba(215,220,225,0.20)
         loop per chunk
             C->>S: StepRequest / RunRequest{ advance_ms|duration_ms, stimulus }
             S-->>C: ObservationFrame{ seq, records, is_simulation_output=true, calibrated_posterior=false }
         end
+        end
         C->>S: CloseSession{ session_id }
         S-->>C: SessionClosed{ ok=true }
+    end
     end
 ```
 

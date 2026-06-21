@@ -52,12 +52,32 @@ handshake field; `0.2` the neuron-family wire (#10) and bulk column codec (#6).
 
 ```mermaid
 flowchart TB
-    V4["wire 0.4 — prior baseline (v0.4.0)<br/>SimConfig/CommandFrame/ControlStatus .mode = string<br/>CONTRACT_HASH 2cf0763ad61e4f1c"]
-    V5["wire 0.5 — current baseline (v0.5.0)<br/>.mode promoted to SimMode / Mode enums<br/>CONTRACT_HASH 24e8e6e31e1dec8a (recomputed)"]
-    V4 -->|"BREAKING: string→enum (buf WIRE/WIRE_JSON)"| V5
-    V5 --> H{"handshake: check_version(peer)"}
-    H -->|"peer is 0.4 ≠ 0.5 (exact major.minor)"| REJ["fail-closed: rejected"]
-    H -->|"peer is 0.5"| OK["open · contract_hash diff = ADVISORY (logged)"]
+    V["wire 0.4 → 0.5 · string→enum (buf WIRE/WIRE_JSON)<br/>CONTRACT_HASH 2cf0763ad61e4f1c → 24e8e6e31e1dec8a"]
+    H{{"🔑 check_version(peer)<br/>HARD · exact major.minor · fail-closed"}}
+    REJ{{"■ 0.4 ≠ 0.5 → rejected<br/>(fail-closed · Err, NO coerce)"}}
+    OK(["▶ 0.5 → session opens"])
+    ADV["≈ contract_hash diff · ADVISORY<br/>(logged, NOT rejected)"]
+
+    V --> H
+    H -->|"peer 0.4 ≠ 0.5 (exact major.minor)"| REJ
+    H -->|"peer 0.5"| OK
+    OK -.->|"≈ contract_hash diff"| ADV
+
+    linkStyle default stroke:#8B949E,stroke-width:1.5px;
+    linkStyle 1 stroke:#D55E00,stroke-width:3px;
+    linkStyle 2 stroke:#009E73,stroke-width:2px;
+    linkStyle 3 stroke:#999999,stroke-width:1.5px,stroke-dasharray:2 2;
+
+    classDef structure   fill:#D7DCE1,color:#0B0F14,stroke:#57606A,stroke-width:1px;
+    classDef contract    fill:#6D28D9,color:#FFFFFF,stroke:#B9A9E6,stroke-width:3px;
+    classDef estop       fill:#D55E00,color:#0B0F14,stroke:#1B1F24,stroke-width:4px;
+    classDef active      fill:#009E73,color:#0B0F14,stroke:#1B1F24,stroke-width:2px;
+    classDef observation fill:#999999,color:#0B0F14,stroke:#1B1F24,stroke-width:2px,stroke-dasharray:2 2;
+    class V structure
+    class H contract
+    class REJ estop
+    class OK active
+    class ADV observation
 ```
 
 ## Enforcement: `buf breaking`
