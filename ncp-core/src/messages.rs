@@ -1369,6 +1369,27 @@ mod tests {
     }
 
     #[test]
+    fn unknown_field_in_a_nested_message_is_ignored_not_rejected() {
+        // Forward-compat must hold for an unknown field NESTED inside a message, not
+        // only at the top level: every struct is `#[serde(default)]` with no
+        // `deny_unknown_fields`, so a newer peer can add a field at any depth and an
+        // older peer still decodes the frame (it ignores what it does not know).
+        // (1) an unknown field inside the nested `NetworkRef` of an `OpenSession`.
+        let open: OpenSession = serde_json::from_str(
+            r#"{"session_id":"s","network":{"kind":"builtin","ref":"iaf_psc_alpha","future_nested":[1,2]}}"#,
+        )
+        .unwrap();
+        assert_eq!(open.network.ref_, "iaf_psc_alpha");
+        // (2) an unknown field TWO levels deep: a recorded series inside an
+        // `ObservationFrame` (`records[port]` -> `Observation`).
+        let obs: ObservationFrame = serde_json::from_str(
+            r#"{"session_id":"s","records":{"vm":{"port":"vm","target":"n0","observable":"V_m","future_series_field":"tbd"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(obs.records["vm"].observable, Observable::Vm);
+    }
+
+    #[test]
     fn check_version_rejects_malformed_minor_no_coercion() {
         // core-wire-1: a present-but-garbage minor or a trailing component must
         // REJECT (Err in strict mode), never silently coerce to minor 0. Tested
