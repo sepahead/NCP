@@ -135,17 +135,18 @@ def defs(th) -> str:
     <feComposite in2="b" operator="in" result="g"/>
     <feMerge>{glow_merge}</feMerge>
   </filter>
-  <marker id="arrowAction" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['action']}"/></marker>
-  <marker id="arrowControl" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['control']}"/></marker>
-  <marker id="replyControl" markerWidth="9" markerHeight="9" refX="3" refY="4" orient="auto"><path d="M7,0 L0,4 L7,8" fill="none" stroke="{th['control']}" stroke-width="1.4" stroke-linejoin="round"/></marker>
-  <marker id="arrowPercep" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['perception']}"/></marker>
-  <marker id="tapObserve" markerWidth="10" markerHeight="10" refX="4.5" refY="4.5" orient="auto"><circle cx="4.5" cy="4.5" r="3" fill="none" stroke="{th['observation']}" stroke-width="1.3"/></marker>
-  <marker id="arrowContract" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['contract']}"/></marker>
-  <marker id="submoduleArrow" markerWidth="10" markerHeight="10" refX="6" refY="4.5" orient="auto"><path d="M2,1 L7,4.5 L2,8" fill="none" stroke="{th['observation']}" stroke-width="1.4" stroke-linejoin="round"/></marker>
-  <marker id="arrowActive" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['active']}"/></marker>
-  <marker id="arrowEstop" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['action']}"/></marker>
-  <marker id="arrowHold" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['hold']}"/></marker>
-  <marker id="arrowMut" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="{th['tmut']}"/></marker>
+  <marker id="arrowAction" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['action']}"/></marker>
+  <marker id="arrowControl" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['control']}"/></marker>
+  <marker id="replyControl" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M2,1.5 L9,5.5 L2,9.5" fill="none" stroke="{th['control']}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arrowPercep" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['perception']}"/></marker>
+  <marker id="tapObserve" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto"><circle cx="5" cy="5" r="3.2" fill="none" stroke="{th['observation']}" stroke-width="1.5"/></marker>
+  <marker id="arrowContract" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['contract']}"/></marker>
+  <marker id="submoduleArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M2,1.5 L9,5.5 L2,9.5" fill="none" stroke="{th['observation']}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arrowActive" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['active']}"/></marker>
+  <marker id="arrowEstop" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['action']}" stroke="#ffd9c2" stroke-width="0.6"/></marker>
+  <marker id="arrowHold" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['hold']}"/></marker>
+  <marker id="arrowMut" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['tmut']}"/></marker>
+  <marker id="arrowConfig" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th['configfail']}"/></marker>
   <filter id="glowContract" x="-90%" y="-90%" width="280%" height="280%" color-interpolation-filters="sRGB">
     <feGaussianBlur in="{glow_in}" stdDeviation="3.4" result="b"/>
     <feFlood flood-color="{th['contract']}" flood-opacity="{th['glow_op']}"/>
@@ -372,11 +373,12 @@ def topology(th):
     # CONTROL C1 (commander ⇄ body), solid, lane y=168, bidirectional
     ctl = th["control"]
     s.append(path("M120,252 L120,168 L740,168 L740,252", stroke=ctl, sw=2.5, marker="arrowControl"))
-    s.append(path("M126,174 L120,168", stroke=ctl, sw=2.5, marker="replyControl"))  # reply chevron at commander
+    s.append(path("M120,240 L120,248", stroke=ctl, sw=2.5, marker="replyControl"))  # reply chevron pointing into commander
     # ACTION A1 — the hero bus, dead-straight at y=300
     act = th["action"]
-    s.append(line(244, 300, 616, 300, act, 9, op=th["halo_op"], filt="halo"))
-    s.append(line(244, 300, 616, 300, "url(#busAction)", 4, marker="arrowAction"))
+    # fat translucent halo (a bbox filter degenerates on a flat line), then solid bright core
+    s.append(line(244, 300, 620, 300, act, 12, op=0.22))
+    s.append(line(244, 300, 620, 300, th["action_hi"], 4.5, marker="arrowAction"))
     for tx in (300, 372, 444, 516):
         s.append(line(tx, 295, tx, 305, act, 1, op=0.7))
 
@@ -465,8 +467,7 @@ def topology(th):
         s.append(T(lx, ly + 18, desig, 10, 700, hue, mono=True))
         s.append(line(lx + 22, ly + 14, lx + 44, ly + 14, hue, sw, dash=dash))
         s.append(T(lx + 52, ly + 18, concept, 10.5, 700, hue, track=0.6))
-        s.append(T(lx + 52 + len(concept) * 7.4 + 8, ly + 18, tail, 9.5, 500, th["tmut"]))
-        lx += 200
+        lx += 196
     s.append("</svg>")
     return "".join(s)
 
@@ -493,17 +494,17 @@ def ecosystem(th):
     ctr, obs, ctl = th["contract"], th["observation"], th["control"]
 
     # pin + submodule edges (under the cards)
-    for d in ("M300,192 L342,192 Q350,192 350,200 L350,242 Q350,250 358,250 L380,250",
+    for d in ("M300,192 L342,192 Q350,192 350,200 L350,266 Q350,274 358,274 L380,274",
               "M300,298 L380,298",
-              "M300,404 L342,404 Q350,404 350,396 L350,328 Q350,320 358,320 L380,320"):
+              "M300,404 L342,404 Q350,404 350,396 L350,330 Q350,322 358,322 L380,322"):
         s.append(path(d, stroke=ctr, sw=2, marker="arrowContract"))
-    for tx, ty in ((318, 298), (348, 298)):
+    for tx, ty in ((364, 298), (372, 298)):
         s.append(line(tx, 294, tx, 302, ctr, 1, op=0.7))
-    s.append(path("M300,430 L632,430", stroke=obs, sw=1.5, dash="6 4", marker="submoduleArrow"))
+    s.append(path("M300,412 L632,412", stroke=obs, sw=1.5, dash="6 4", marker="submoduleArrow"))
 
     # consumer cards (left column)
     for x, y, des, hue, icon, name, sub in [
-            (56, 150, "E1", ctl, ic_brain, "Engram / Paper2Brain", "example commander · NEST + SessionService"),
+            (56, 150, "E1", ctl, ic_brain, "Engram / Paper2Brain", "commander · NEST + SessionService"),
             (56, 256, "C1", obs, ic_robot, "crebain", "example body · robot / UAV plant"),
             (56, 362, "P1", obs, ic_eye, "pid_vla", "example analysis · observer client")]:
         s.append(card(th, x, y, 244, 84, hue, des))
@@ -536,7 +537,7 @@ def ecosystem(th):
     s.append(T(qx + 27, qy + 20.5, "L1", 10, 700, th["tmut"], mono=True, anchor="middle"))
     s.append(ic_book(qx + 16, qy + 42, 20, th["tmut"]))
     s.append(T(qx + 44, qy + 48, "pid-rs", 13, 700, th["tmut"]))
-    s.append(T(qx + 44, qy + 63, "PID estimators · science lib", 9, 500, th["tmut"]))
+    s.append(T(qx + 44, qy + 63, "PID estimators · sci lib", 9, 500, th["tmut"]))
 
     # pin chips (the three identical v0.5.0 LEDs) + submodule chip
     def pinchip(cx_, cy_):
@@ -547,10 +548,10 @@ def ecosystem(th):
                 + rect(x + 7, y + 6, 10, 10, rx=2, fill=ctr)
                 + T(x + 23, y + 15, "v0.5.0", 9.5, 700, th["tsec"], mono=True))
     s.append(pinchip(326, 192))
-    s.append(pinchip(335, 298))
+    s.append(pinchip(326, 298))
     s.append(pinchip(326, 404))
     sw_, sh_ = 214, 30
-    sx, sy = 466 - sw_ / 2, 410 - sh_ / 2
+    sx, sy = 478 - sw_ / 2, 412 - sh_ / 2
     s.append(rect(sx - 1.5, sy - 1.5, sw_ + 3, sh_ + 3, rx=8, fill=th["bg_bot"]))
     s.append(rect(sx, sy, sw_, sh_, rx=8, fill=th["surf_chip"], stroke=obs, sw=1, dash="4 4", op=0.85))
     s.append(T(sx + 12, sy + 13, "git submodule", 10.5, 700, th["tmut"]))
@@ -563,8 +564,8 @@ def ecosystem(th):
     s.append(T(78, ly + 17, "pin tag v0.5.0 (depends-on)", 9.5, 600, th["tsec"]))
     s.append(line(300, ly + 13, 322, ly + 13, obs, 1.5, dash="6 4"))
     s.append(T(330, ly + 17, "git submodule · NOT an NCP wire consumer", 9.5, 600, th["tsec"]))
-    s.append(rect(640, ly + 8, 12, 10, rx=2, fill="url(#contractHero)"))
-    s.append(T(658, ly + 17, "the wire contract (only filled node)", 9.5, 600, th["tsec"]))
+    s.append(rect(600, ly + 8, 12, 10, rx=2, fill="url(#contractHero)"))
+    s.append(T(618, ly + 17, "the wire contract (only filled node)", 9, 600, th["tsec"]))
     s.append("</svg>")
     return "".join(s)
 
@@ -591,11 +592,11 @@ def versioning(th):
     for tx in (300, 324, 348):
         s.append(line(tx, 256, tx, 264, ctl, 1, op=0.7))
     # reject fork (up)
-    s.append(path("M516,260 L532,260 Q540,260 540,252 L540,154 Q540,146 548,146 L568,146",
+    s.append(path("M508,260 L532,260 Q540,260 540,252 L540,154 Q540,146 548,146 L568,146",
                   stroke=verm, sw=3, marker="arrowEstop"))
     # accept fork (down) — the ONE halo
-    s.append(line(540, 268, 540, 350, grn, 8, op=th["halo_op"], filt="halo"))
-    s.append(path("M516,260 L532,260 Q540,260 540,268 L540,342 Q540,350 548,350 L568,350",
+    s.append(line(540, 268, 540, 350, grn, 11, op=0.22))
+    s.append(path("M508,260 L532,260 Q540,260 540,268 L540,342 Q540,350 548,350 L568,350",
                   stroke=grn, sw=3, marker="arrowActive"))
     # advisory drop (dashed)
     s.append(path("M678,400 L678,432", stroke=obs, sw=1.5, dash="3 3", marker="tapObserve"))
@@ -613,7 +614,7 @@ def versioning(th):
     # ---- N2 GATE (diamond) ----
     s.append(diamond(440, 260, 76, th, ctr))
     s.append(ic_key(426, 212, 26, ctr))
-    s.append(T(440, 252, "check_version", 12.5, 700, th["tprim"], mono=True, anchor="middle"))
+    s.append(T(440, 253, "check_version", 11.5, 700, th["tprim"], mono=True, anchor="middle"))
     s.append(T(440, 268, "HARD", 9.5, 700, ctr, anchor="middle", track=0.6))
     s.append(T(440, 281, "exact major.minor", 9.5, 600, th["tsec"], anchor="middle"))
     s.append(T(440, 294, "FAIL-CLOSED", 9.5, 700, verm, anchor="middle", track=0.6))
@@ -660,9 +661,8 @@ def versioning(th):
                 + rect(x + 7, y + 6, 10, 10, rx=2, fill=sq_hue)
                 + T(x + 22, y + 15, eyebrow, 9.5, 700, sq_hue)
                 + T(x + 22 + len(eyebrow) * 6.3 + 8, y + 15, key, 9, 500, th["tmut"], mono=True))
-    s.append(echip(320, 260, ctl, "OPEN", "negotiate(peer)", w=170))
-    s.append(echip(605, 122, verm, "0.4", "exact major.minor", w=168))
-    s.append(echip(605, 326, grn, "0.5", "(major, minor) match", w=176))
+    s.append(echip(320, 260, ctl, "", "negotiate", w=84))
+    # fork branch conditions are shown on the destination cards (peer 0.4 != 0.5 / peer 0.5)
 
     # ---- legend ----
     ly = 500
@@ -738,7 +738,10 @@ def fsm(th):
     CF = (96, 330, 200, 72)    # CONFIG-FAIL-CLOSED
 
     # ---- edges (painted first) ----
-    s.append(line(110, 124, 110, 150, obs, 2, marker="arrowMut"))            # E0 INIT→ACTIVE
+    s.append('<circle cx="110" cy="120" r="4" fill="%s"/>' % obs)
+    s.append('<circle cx="110" cy="120" r="7" fill="none" stroke="%s" stroke-width="1.3"/>' % obs)
+    s.append(T(122, 123, "INIT", 8.5, 700, th["tmut"], mono=True))
+    s.append(line(110, 127, 110, 150, obs, 2, marker="arrowMut"))            # E0 INIT→ACTIVE
     s.append(path("M214,150 C214,120 250,120 250,150", stroke=grn, sw=2.5, marker="arrowActive"))  # E1 self
     s.append(path("M296,172 L430,172", stroke=amb, sw=2.5, marker="arrowHold"))   # E2 ACTIVE→HOLD
     s.append(path("M430,200 L296,200", stroke=grn, sw=2.5, marker="arrowActive"))  # E3 HOLD→ACTIVE
@@ -752,10 +755,10 @@ def fsm(th):
     s.append(path("M530,222 L530,330", stroke=verm, sw=3.5, marker="arrowEstop"))  # E5 HOLD→ESTOP
     s.append(path("M642,356 C680,356 680,392 642,392", stroke=verm, sw=3.5, marker="arrowEstop"))  # E6 self latched
     # E7 ESTOP→ACTIVE recover (operator-gated, dashed green, long way round bottom-left)
-    s.append(path("M470,416 L470,470 Q470,478 462,478 L72,478 Q64,478 64,470 L64,194 Q64,186 72,186 L96,186",
+    s.append(path("M470,416 L470,470 Q470,478 462,478 L72,478 Q64,478 64,470 L64,194 Q64,186 72,186 L100,186",
                   stroke=grn, sw=2, dash="5 4", marker="arrowActive"))
-    s.append(path("M150,222 L150,330", stroke=pink, sw=2, dash="5 3", marker="arrowMut"))  # E8 ACTIVE→CONFIG
-    s.append(path("M188,402 C224,402 224,434 188,434", stroke=pink, sw=2, dash="5 3", marker="arrowMut"))  # E9 self
+    s.append(path("M150,222 L150,330", stroke=pink, sw=2, dash="5 3", marker="arrowConfig"))  # E8 ACTIVE→CONFIG
+    s.append(path("M170,402 C170,440 206,440 206,402", stroke=pink, sw=2, dash="5 3", marker="arrowConfig"))  # E9 self
 
     # ---- state cards ----
     s.append(card(th, *AC, grn, "S1"))
@@ -794,9 +797,9 @@ def fsm(th):
 
     # ---- edge labels ----
     s.append(klabel(235, 116, "clamp speed · truncate horizon", "fresh sensor", grn, compact=True))
-    s.append(klabel(363, 172, "stale · NaN · timeout", "↓ HOLD", amb, compact=True))
-    s.append(klabel(363, 200, "fresh in-bounds", "↑ recover", grn, compact=True))
-    s.append(klabel(338, 285, "geofence · NaN pos · burst", "BREACH", verm, compact=True))
+    s.append(klabel(363, 158, "stale · NaN · timeout", "↓ HOLD", amb, compact=True))
+    s.append(klabel(363, 214, "fresh in-bounds", "↑ recover", grn, compact=True))
+    s.append(klabel(376, 285, "geofence · NaN pos · burst", "BREACH", verm, compact=True))
     s.append(klabel(560, 278, "geofence · link burst", "BREACH", verm, compact=True))
     s.append(klabel(726, 374, "every frame zeroed", "LATCHED", verm, compact=True))
     s.append(klabel(286, 478, "supervisor reset() then in-bounds", "reset()", grn, compact=True))
@@ -806,8 +809,8 @@ def fsm(th):
     iy = 496
     s.append(rect(28, iy, W - 56, 26, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1))
     s.append(rect(28, iy, 4, 26, rx=2, fill=verm))
-    s.append(T(44, iy + 16.5, "INVARIANT · HOLD / ESTOP / CONFIG-FAIL-CLOSED all emit a ZEROED frame — fail-safe to zero, NOT latch-last.  ESTOP latches until reset();  CONFIG-FAIL-CLOSED is permanent (safety_ok=false).",
-               9, 500, th["tsec"], italic=True))
+    s.append(T(44, iy + 16.5, "INVARIANT · HOLD / ESTOP / CONFIG-FAIL-CLOSED emit a ZEROED frame — fail-safe to zero, not latch-last.  ESTOP latches until reset(); CONFIG-FAIL-CLOSED is permanent.",
+               8.5, 500, th["tsec"], italic=True))
     s.append("</svg>")
     return "".join(s)
 
@@ -842,9 +845,9 @@ def sequence(th):
                                     (320, 168, "loop  [per chunk]", verm, "step ⟳ observe · provenance every frame"),
                                     (508, 92, "CLOSE", ctl, "teardown")]:
         s.append(rect(210, fy, 400, fh, rx=10, fill=th["surf_chip"], op=0.32, stroke=th["border"], sw=0.8, dash="2 3"))
-        tw = 18 + len(tag) * 6.0
+        tw = 22 + len(tag) * 6.0
         s.append(rect(210, fy, tw, 18, rx=6, fill=thue))
-        s.append(T(218, fy + 13, tag, 9.5, 700, "#ffffff" if tag.startswith("loop") else "#ffffff", mono=True))
+        s.append(T(218, fy + 13, tag, 9.5, 700, "#ffffff", mono=True))
         s.append(T(210 + tw + 10, fy + 13, note, 9, 500, th["tmut"], italic=True))
 
     # lifelines
@@ -863,7 +866,7 @@ def sequence(th):
     s.append(card(th, 484, 92, 180, 64, obs, "S0"))
     s.append(ic_wave(628, 104, 22, obs))
     s.append(T(528, 120, "SERVER", 14, 700, th["tprim"]))
-    s.append(T(528, 136, "sim backend · is_simulation_output", 9, 500, th["tsec"], mono=True))
+    s.append(T(528, 136, "simulation backend", 10, 500, th["tsec"]))
 
     # message chip helper (2-line: eyebrow + mono key)
     def mchip(cx, cy, desig, hue, eyebrow, key, w):
@@ -876,31 +879,31 @@ def sequence(th):
                 + T(x + 30, y + 24, key, 8.5, 500, th["tmut"], mono=True))
 
     # OPEN gate note on SERVER lifeline
-    s.append(rect(486, 230, 150, 44, rx=10, fill="url(#surface)", stroke=th["border"], sw=1.25, filt="soft"))
+    s.append(rect(486, 230, 172, 44, rx=10, fill="url(#surface)", stroke=th["border"], sw=1.25, filt="soft"))
     s.append(rect(486 + 6, 230 + 8, 4, 28, rx=2, fill=ctr))
-    s.append(T(498, 246, "check_version  HARD/fail-closed", 8.5, 500, th["tmut"], mono=True))
-    s.append(T(498, 262, "contract_hash  ADVISORY/logged", 8.5, 500, th["tmut"], mono=True))
+    s.append(T(498, 246, "check_version  HARD/fail-closed", 8, 500, th["tmut"], mono=True))
+    s.append(T(498, 262, "contract_hash  ADVISORY/logged", 8, 500, th["tmut"], mono=True))
 
     # E1 OpenSession →
     s.append(line(251, 214, 569, 214, ctl, 2.5, marker="arrowControl"))
     s.append(mchip(410, 214, "C1", ctl, "OpenSession  →", "ncp_version · contract_hash · network · …", 300))
     # E2 SessionOpened ← (+ outcome pills)
     s.append(line(569, 288, 251, 288, ctl, 2.5, dash="4 4", marker="replyControl"))
-    s.append(mchip(410, 288, "C1", ctl, "SessionOpened  ←", "ok · backend · resolved · provenance", 282))
+    s.append(mchip(410, 288, "C2", ctl, "SessionOpened  ←", "ok · backend · resolved · provenance", 282))
     s.append(rect(282, 302, 132, 16, rx=6, fill=grn))
     s.append(T(348, 313, "ok=true → opens", 8.5, 700, "#06281e" if th["name"] == "dark" else "#ffffff", anchor="middle", mono=True))
     s.append(rect(420, 302, 150, 16, rx=6, fill="none", stroke=pink, sw=1.2))
     s.append(T(495, 313, "ok=false → NO session", 8.5, 700, pink, anchor="middle", mono=True))
     # E3 StepRequest →
     s.append(line(251, 372, 569, 372, ctl, 2.5, marker="arrowControl"))
-    s.append(mchip(410, 372, "C1", ctl, "StepRequest / RunRequest  →", "advance_ms (0⇒chunk_ms) · stimulus", 300))
+    s.append(mchip(410, 372, "C3", ctl, "StepRequest / RunRequest  →", "advance_ms (0⇒chunk_ms) · stimulus", 300))
 
     # E4 ObservationFrame ← (HERO)
     s.append(line(569, 432, 251, 432, verm, 9, op=th["halo_op"], filt="halo"))
-    s.append(line(569, 432, 251, 432, "url(#busAction)", 4, marker="arrowAction"))
+    s.append(line(569, 432, 251, 432, th["action_hi"], 4, marker="arrowAction"))
     for tx in (320, 410, 500):
         s.append(line(tx, 427, tx, 437, verm, 1, op=0.7))
-    cw, ch, cy0 = 312, 38, 414
+    cw, ch, cy0 = 236, 38, 414
     cx0 = 410 - cw / 2
     s.append(rect(cx0 - 1.5, cy0 - 1.5, cw + 3, ch + 3, rx=10, fill=th["bg_bot"]))
     s.append(rect(cx0, cy0, cw, ch, rx=10, fill="url(#surface)", stroke=verm, sw=1.5, filt="glow"))
@@ -913,21 +916,21 @@ def sequence(th):
     py = cy0 + ch + 5
     s.append(rect(254, py, 160, 17, rx=6, fill=grn))
     s.append(T(334, py + 12, "is_simulation_output = true", 8.5, 700, "#06281e" if th["name"] == "dark" else "#ffffff", anchor="middle", mono=True))
-    s.append(rect(420, py, 168, 17, rx=6, fill=pink))
-    s.append(T(504, py + 12, "calibrated_posterior = false", 8.5, 700, "#3a1029" if th["name"] == "dark" else "#ffffff", anchor="middle", mono=True))
+    s.append(rect(420, py, 150, 17, rx=6, fill=pink))
+    s.append(T(493, py + 12, "calibrated_posterior = false", 8.5, 700, "#3a1029" if th["name"] == "dark" else "#ffffff", anchor="middle", mono=True))
     s.append(T(410, py + 30, "fixed provenance invariants on every frame — the honesty boundary", 9, 500, th["tmut"], italic=True, anchor="middle"))
 
     # E5 CloseSession →  / E6 SessionClosed ←
     s.append(line(251, 540, 569, 540, ctl, 2.5, marker="arrowControl"))
-    s.append(mchip(410, 540, "C1", ctl, "CloseSession  →", "session_id", 200))
+    s.append(mchip(410, 540, "C4", ctl, "CloseSession  →", "session_id", 200))
     s.append(line(569, 580, 251, 580, ctl, 2.5, dash="4 4", marker="replyControl"))
-    s.append(mchip(410, 580, "C1", ctl, "SessionClosed  ←", "ok=true", 180))
+    s.append(mchip(410, 580, "C5", ctl, "SessionClosed  ←", "ok=true", 180))
 
     # legend
     ly = 618
     s.append(line(40, ly, 64, ly, ctl, 2.5, marker="arrowControl"))
     s.append(T(72, ly + 4, "CONTROL · request/reply", 9, 600, th["tsec"]))
-    s.append(line(300, ly, 324, ly, "url(#busAction)", 4, marker="arrowAction"))
+    s.append(line(300, ly, 324, ly, th["action_hi"], 4, marker="arrowAction"))
     s.append(T(332, ly + 4, "ObservationFrame · provenance-bearing (hero)", 9, 600, th["tsec"]))
     s.append("</svg>")
     return "".join(s)
