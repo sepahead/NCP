@@ -140,7 +140,7 @@ for desc in "${descriptors[@]}"; do
   done
 
   # 3) Standard npm/bun re-pin. (Same bash-3.2 empty-array guard as the cargo loop —
-  # a cargo-only consumer like pid_vla has no npm_jsons and must not abort here.)
+  # a cargo-only consumer like prisoma has no npm_jsons and must not abort here.)
   for rel in ${npm_jsons[@]+"${npm_jsons[@]}"}; do
     f="$consumer_dir/$rel"
     if [[ -f "$f" ]]; then

@@ -8,7 +8,7 @@ the exact medium the Rust `ncp-gateway` bridges) and drives it from clients in
 **different languages**, asserting each completes the open→step→close lifecycle with
 the contract intact (handshake, the scientific-boundary discriminators).
 
-It proves what a single repo's CI cannot: that a Rust consumer (a crebain/pid_vla
+It proves what a single repo's CI cannot: that a Rust consumer (a crebain/prisoma
 peer) interoperates with the Python engram server across a genuine process +
 language boundary — without needing NEST or zenoh-python. The backend is orthogonal
 to the wire: `MockBackend` emits real `Observation` frames, so this is a faithful

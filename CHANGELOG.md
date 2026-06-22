@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the example analysis/observer consumer `pid_vla` → `prisoma` throughout the
+  docs, diagrams, and code comments. Naming only — **no wire effect** (`proto/ncp.proto`,
+  `CONTRACT_HASH`, `NCP_VERSION` unchanged); the separate `pid-rs` submodule is untouched.
+
 ## [0.5.0] - 2026-06-21
 
 The stable-wire cut. The deliberate, once-before-adoption breaking change that makes
@@ -84,7 +90,7 @@ checklist closed in full.
     `cargo test`.
   - `ncp-core/examples/ncp_tcp_client.rs` + `e2e/run_cross_language_e2e.py` — a **Rust**
     client drives the **real Python** engram server (`bridge_server --backend mock`)
-    over a localhost-TCP socket, proving a crebain/pid_vla-style Rust peer interoperates
+    over a localhost-TCP socket, proving a crebain/prisoma-style Rust peer interoperates
     with the Python server across a genuine process + language boundary.
   - (engram side) a cross-process pytest spawns the real `SessionService` as a separate
     process and asserts the lifecycle + **forward/backward compatibility** (unknown
@@ -140,7 +146,7 @@ checklist closed in full.
     `ncp-cpp` (ABI comments + demo), `ncp-python`, `ncp-ts`, the README, the
     `NEURO_CYBERNETIC_PROTOCOL` spec, `INTEGRATING.md`, and the gateway README: Engram
     is now consistently presented as ONE example commander/backend, not THE consumer.
-  - **Flow-preserving:** the live `engram↔crebain`/`engram↔pid_vla` rendezvous stays
+  - **Flow-preserving:** the live `engram↔crebain`/`engram↔prisoma` rendezvous stays
     `"engram/ncp"`, now named explicitly by each consumer (their deployment choice)
     rather than inherited from NCP's default. Wire `0.4` unchanged; the proto, schemas,
     and golden vectors were already neutral and are untouched.
@@ -295,7 +301,7 @@ consumers re-pin to `tag = v0.4.0` **once**, and future additive changes need no
   was refactored to hash only the *wire-semantic* content (message/field/enum), dropping
   the non-wire `syntax`/`package`/`import`/`option` lines, so naming changes no longer
   move `CONTRACT_HASH`. (The deployment *realm* `engram/ncp` is unchanged — it names the
-  deployment, not the protocol, and is the live `engram↔crebain`/`pid_vla` rendezvous.)
+  deployment, not the protocol, and is the live `engram↔crebain`/`prisoma` rendezvous.)
 - **The contract handshake is now ADVISORY, not fail-closed.** `negotiate` gates on
   `ncp_version` (hard compatibility) and returns a `ContractStatus` (`Match` /
   `NotAdvertised` / `Mismatch`); a hash mismatch is **logged, not rejected**, so a

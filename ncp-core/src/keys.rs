@@ -18,7 +18,7 @@
 /// agrees on one realm string so their keyspaces line up. NCP names no consumer here;
 /// a deployment picks its own realm (via `Keys::new` / `ZenohBus::open_realm` / the
 /// `NCP_REALM` env var). E.g. an Engram fleet might standardise on `"engram/ncp"`, and
-/// its consumers (a pid_vla observer, a crebain bridge) target that same string — that
+/// its consumers (a prisoma observer, a crebain bridge) target that same string — that
 /// choice lives in the *deployment*, not in the protocol.
 pub const DEFAULT_REALM: &str = "ncp";
 

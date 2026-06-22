@@ -1,7 +1,7 @@
 //! A minimal **Rust NCP client** that drives an NCP server over a plain TCP socket
 //! with newline-delimited JSON — the medium the `ncp-gateway` bridges to a Python
 //! backend. Run against the reference Python server (engram's `bridge_server
-//! --backend mock`) to prove a Rust consumer (e.g. a crebain/pid_vla peer) interops
+//! --backend mock`) to prove a Rust consumer (e.g. a crebain/prisoma peer) interops
 //! with the Python server over a real cross-process, cross-language boundary:
 //!
 //! ```text

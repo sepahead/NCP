@@ -506,7 +506,7 @@ def ecosystem(th):
     for x, y, des, hue, icon, name, sub in [
             (56, 150, "E1", ctl, ic_brain, "Engram / Paper2Brain", "commander · NEST + SessionService"),
             (56, 256, "C1", obs, ic_robot, "crebain", "example body · robot / UAV plant"),
-            (56, 362, "P1", obs, ic_eye, "pid_vla", "example analysis · observer client")]:
+            (56, 362, "P1", obs, ic_eye, "prisoma", "example analysis · observer client")]:
         s.append(card(th, x, y, 244, 84, hue, des))
         s.append(icon(x + 18, y + 40, 24, hue))
         s.append(T(x + 52, y + 48, name, 14, 700, th["tprim"]))
@@ -573,8 +573,8 @@ def ecosystem(th):
 ECOSYSTEM_ALT = ("NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, "
     "ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepehrmn/ncp; wire 0.5, contract 24e8e6e3). Three "
     "example consumers in a left column each pin tag v0.5.0 to it: Engram/Paper2Brain (example commander), "
-    "crebain (example body), pid_vla (example observer client). A separate pid-rs node (PID estimators "
-    "science library) links to pid_vla by a distinct dashed grey edge labelled 'git submodule · NOT an NCP "
+    "crebain (example body), prisoma (example observer client). A separate pid-rs node (PID estimators "
+    "science library) links to prisoma by a distinct dashed grey edge labelled 'git submodule · NOT an NCP "
     "wire consumer' and does not connect to the contract.")
 
 
