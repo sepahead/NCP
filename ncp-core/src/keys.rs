@@ -25,9 +25,9 @@ pub const DEFAULT_REALM: &str = "ncp";
 /// Is `s` safe to interpolate into a single key segment? A valid segment is
 /// non-empty and contains none of the Zenoh key-expression delimiters/wildcards
 /// (`/` `*` `$` `#` `?`) nor any ASCII whitespace. The transport boundary
-/// (`ncp-zenoh`) rejects on this; the key builders `debug_assert!` on it so a
+/// (`ncp-zenoh`) rejects on this; the key builders `assert!` on it so a
 /// caller passing a wildcard-bearing id (key-injection / cross-session leak) is
-/// caught in debug builds.
+/// caught in both debug and release builds (fail-closed).
 pub fn valid_id_segment(s: &str) -> bool {
     !s.is_empty()
         && !s
@@ -62,7 +62,7 @@ impl Keys {
     }
 
     fn session(&self, id: &str) -> String {
-        debug_assert!(
+        assert!(
             valid_id_segment(id),
             "session id {id:?} is not a valid key segment"
         );
@@ -76,7 +76,7 @@ impl Keys {
 
     /// One named sensor on the perception plane: `…/session/{id}/sensor/{name}`.
     pub fn sensor_named(&self, id: &str, name: &str) -> String {
-        debug_assert!(
+        assert!(
             valid_id_segment(name),
             "sensor name {name:?} is not a valid key segment"
         );
@@ -90,7 +90,7 @@ impl Keys {
 
     /// One named actuator on the action plane: `…/session/{id}/command/{name}`.
     pub fn command_named(&self, id: &str, name: &str) -> String {
-        debug_assert!(
+        assert!(
             valid_id_segment(name),
             "command name {name:?} is not a valid key segment"
         );
@@ -185,9 +185,9 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn session_key_builder_rejects_wildcard_id_in_debug() {
-        // The builder `debug_assert!`s the id; a wildcard id must trip it
-        // (tests run with debug assertions on).
+    fn session_key_builder_rejects_wildcard_id() {
+        // The builder `assert!`s the id; a wildcard id must trip it in both
+        // debug and release builds (fail-closed key-injection guard).
         let _ = Keys::default().sensor("../*");
     }
 }

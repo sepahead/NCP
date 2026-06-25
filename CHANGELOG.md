@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-06-25
+
+Code, CI, and documentation fixes — **no wire change**. `NCP_VERSION` stays
+`0.5` and `CONTRACT_HASH` stays `24e8e6e31e1dec8a`; **`v0.5.0` remains the wire
+baseline** (the `buf breaking` origin) and a `v0.5.0` peer is wire-identical to a
+`v0.5.2` peer.
+
+### Fixed
+
+- **`ncp-cpp/examples/demo.cpp`**: the demo checked for version `"0.1"` but
+  `ncp_version()` returns `"0.5"` — the pass condition was impossible and the
+  demo always exited 1. Fixed to `"0.5"`. The `ncp.h` comment was stale too.
+- **`ncp-core/src/keys.rs`**: key-segment validation (`debug_assert!` → `assert!`)
+  is now enforced in release builds, not just debug. A caller passing a
+  wildcard/slash-bearing session id (key-injection / cross-session leak) now
+  panics fail-closed in every build, matching the runtime `check_id` guard
+  `ncp-zenoh` already enforces at the transport boundary.
+- **`ncp-python/src/lib.rs`**: docstring example showed `NCP_VERSION` as `"0.4"`;
+  corrected to `"0.5"`.
+- **`ncp-python/tests/test_smoke.py`**: `validate` smoke assertion was truthy-only
+  (would pass on any non-empty string); now checks the canonical JSON contains
+  the expected `kind` field.
+- **`ROADMAP.md`**: stale release list (`v0.2.0`–`v0.2.8`) updated to
+  `through v0.5.x`.
+
+### Added
+
+- **C++ demo smoke in CI**: `ncp-cpp/examples/demo.cpp` is now compiled and run
+  in the `build-test` CI job, so a stale version string or a broken C ABI
+  surface fails the gate (the demo version mismatch above shipped unnoticed
+  because it was never CI'd).
+- **Binding coverage notes**: `ncp-cpp/README.md` and `ncp-ts/README.md` now
+  document which `ncp-core` modules are exposed through the binding and which
+  are Rust-core-only, so the READMEs don't overstate the binding surface.
+
 ## [0.5.1] - 2026-06-22
 
 Documentation, diagram, and tooling patch — **no wire change**. `NCP_VERSION` stays

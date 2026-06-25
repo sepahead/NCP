@@ -49,3 +49,19 @@ npm run regen   # cargo test -p ncp-core --features ts → sync → tsc build
 `ncp-ts/dist` is committed so the package is consumable directly as a git
 dependency (`"@sepehrmn/ncp": "github:sepahead/NCP#<tag>"`) without a build step on
 the consumer side. Rebuild and commit `dist` whenever the types or client change.
+
+## Coverage
+
+This package exports **wire types + client orchestration**: the generated message
+types (`src/generated/*.ts`), the `NeuroSimClient` (`open`/`step`/`run`/`close`),
+the WebSocket transport, and the cross-language decision functions
+(`checkVersion`, `contractStatus`, `assertScientificBoundary`). This is the
+surface a TS peer needs to be wire-identical to the Rust/Python/C++ peers.
+
+The following `ncp-core` modules are **not** exported in TypeScript (they are
+Rust-core-only): the rate codec (`CodecSpec`, `encode`/`decode`), the safety
+governor (`SafetyGovernor`, `CommandWatchdog`), the bulk column codec
+(`ncp-core::bulk`), the in-process bus, the control-loop runner
+(`NeuroControlLoop`), and the resilience layer (`ActionBuffer`, `LinkMonitor`).
+A TS consumer builds requests via the client and delegates safety/codec decisions
+to the Rust peer on the other end of the wire.

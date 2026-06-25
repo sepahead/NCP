@@ -38,6 +38,24 @@ Notes (see the header and `src/lib.rs` for the full contract):
 - Every `extern "C"` body is wrapped in `std::panic::catch_unwind` and returns its
   `NULL`/`-1` sentinel on panic — no unwind ever crosses the C ABI.
 
+## Coverage
+
+The C ABI exposes JSON-string wrappers for the core decision functions — version
+guard, contract hash, key-expression builders (the four primary plane keys),
+rate codec (`encode`/`decode`), safety governor (`govern`), and message
+validation. This covers the wire-level operations a C/C++ peer needs to be
+wire-identical to the Rust/Python/TS peers.
+
+The following `ncp-core` modules are **not** exposed through the C ABI (use
+`ncp-core` directly from Rust for full API access): the full key-scheme
+(`sensor_named`, `command_named`, `*_glob`, `fleet_glob`), `SafetyGovernor` /
+`CommandWatchdog` as typed structs (only the one-shot `ncp_govern` JSON wrapper
+is exposed), the bulk column codec (`ncp-core::bulk`), the in-process bus
+(`LocalBus`), the control-loop runner (`NeuroControlLoop`), and the resilience
+layer (`ActionBuffer`, `LinkMonitor`). These are transport-internal or
+Rust-ergonomic APIs not naturally expressed over a C ABI; the JSON wire surface
+is the interop boundary.
+
 ## License
 
 Licensed under either of [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE) at your option.

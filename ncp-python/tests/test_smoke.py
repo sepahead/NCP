@@ -57,4 +57,5 @@ def test_decision_functions_callable():
     # Smoke only — exhaustive cross-language parity is the corpus's job.
     assert ncp.check_version("0.5", False) is True
     assert ncp.contract_status("24e8e6e31e1dec8a") == "match"
-    assert ncp.validate("command_frame", '{"kind":"command_frame"}')  # non-empty canonical JSON
+    result = ncp.validate("command_frame", '{"kind":"command_frame"}')
+    assert '"kind":"command_frame"' in result  # canonical JSON, not just truthy

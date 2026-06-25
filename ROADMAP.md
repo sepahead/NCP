@@ -169,7 +169,7 @@ interop gates + the neutral-home path.
   maturin is the canonical PyO3-to-PyPI path; a published wheel is table stakes for
   the Python peer to be usable without a Rust toolchain.
 - **Zenodo DOI via the GitHub–Zenodo archive.** Tagged releases now exist
-  (`v0.2.0`/`v0.2.1`/`v0.2.2`/`v0.2.3`/`v0.2.4`/`v0.2.5`/`v0.2.6`/`v0.2.7`/`v0.2.8`); enable the GitHub–Zenodo integration so a release is archived
+  (through `v0.5.x`); enable the GitHub–Zenodo integration so a release is archived
   and a DOI minted, then add it to the existing `CITATION.cff`. *Why:* a DOI is the
   minimum citable artifact; the repo currently has a `CITATION.cff` with no DOI.
 - **Defer JOSS.** A JOSS submission is viable only after roughly six months of

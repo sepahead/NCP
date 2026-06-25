@@ -43,6 +43,17 @@ jobs:
       - name: Build workspace
         run: cargo build --workspace --exclude ncp-python --locked
 
+      # Smoke the C++ demo against the built library: it exercises the C ABI
+      # (version, keys, codec, validate) end-to-end from a real C++ binary. The
+      # demo exits nonzero on any mismatch, so a stale version string or a broken
+      # ABI surface fails the gate. (Previously this demo was never run in CI,
+      # which let a version "0.1" vs "0.5" mismatch ship unnoticed.)
+      - name: C++ demo smoke (build + run)
+        run: |
+          c++ -std=c++17 -I ncp-cpp/include ncp-cpp/examples/demo.cpp \
+              -L target/debug -lncp_cpp -Wl,-rpath,target/debug -o /tmp/ncp_demo
+          /tmp/ncp_demo
+
       - name: Test workspace
         run: cargo test --workspace --exclude ncp-python --locked
 

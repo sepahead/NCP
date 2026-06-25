@@ -25,7 +25,7 @@ extern "C" {
 /* Release any string returned by an ncp_* function. NULL is ignored. */
 void ncp_string_free(char *s);
 
-/* Protocol version (e.g. "0.1"). Caller frees. */
+/* Protocol version (e.g. "0.5"). Caller frees. */
 char *ncp_version(void);
 
 /* Default realm — the neutral ncp_core::DEFAULT_REALM (a deployment sets its own). Caller frees. */

@@ -31,7 +31,7 @@ int main() {
   std::cout << "DEFAULT_REALM = " << take(ncp_default_realm()) << "\n";
   std::cout << "command key   = "
             << take(ncp_key_command("ncp", "uav3")) << "\n";
-  std::cout << "check 0.1     = " << ncp_check_version("0.1", false) << "\n";
+  std::cout << "check 0.5     = " << ncp_check_version("0.5", false) << "\n";
   std::cout << "check 1.0     = " << ncp_check_version("1.0", false) << "\n";
 
   const char *codec =
@@ -50,7 +50,7 @@ int main() {
   std::cout << "validate ok   = " << (valid ? "true" : "false") << "\n";
 
   // Exit nonzero if anything basic is wrong, so the smoke test can assert.
-  bool pass = take(ncp_version()) == "0.1" && ncp_check_version("0.1", false) == 1 &&
+  bool pass = take(ncp_version()) == "0.5" && ncp_check_version("0.5", false) == 1 &&
               ncp_check_version("1.0", false) == 0 && valid;
   std::cout << (pass ? "C++ NCP demo: OK" : "C++ NCP demo: FAILED") << "\n";
   return pass ? 0 : 1;
