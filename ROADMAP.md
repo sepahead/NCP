@@ -56,7 +56,11 @@ safety invariant), wired into `scripts/check.sh`.
   `controller_id` is *proven* by the transport rather than self-asserted. *Why:*
   this closes the textbook confused-deputy / world-writable failure class — the
   template now ships a *loadable* mechanism; only live enforcement validation
-  remains (it needs a real deployment, so it is out of CI's reach).
+  remains (it needs a real deployment, so it is out of CI's reach). The
+  [`scripts/verify_acl_deployment.py`](scripts/verify_acl_deployment.py) script
+  automates the five-step P0 closure checklist (both PUT-authority invariants +
+  the mTLS no-cert rejection) against a live realm, producing the P0 evidence in
+  one command.
 
 P0 is the gate for any deployment beyond a trusted, closed realm. Until live mTLS
 enforcement is validated, the `SECURITY.md` "closed realm only" guidance stands.

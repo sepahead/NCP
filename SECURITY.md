@@ -121,6 +121,12 @@ itself is CI-guarded for valid tokens + the command/sensor PUT-authority invaria
 [`scripts/check_acl_template.py`](scripts/check_acl_template.py), so a template
 regression is caught even though the *live* enforcement test needs a real deployment.
 
+The four-step checklist + the no-cert refusal are automated by
+[`scripts/verify_acl_deployment.py`](scripts/verify_acl_deployment.py) — run it
+against a live mTLS+ACL realm to produce the P0 evidence in one command. It
+exercises both PUT-authority invariants (command and sensor) and the mTLS
+no-cert rejection, exiting 0 only when all five hold.
+
 ## Supported versions
 
 The protocol is pre-1.0. Security fixes target the latest released version.
