@@ -172,7 +172,7 @@ conceded:
    wire state a controller asserts; the composition makes safety an emergent
    property of Deadline/Liveliness/Lifespan watchdogs. *Weakness:* this is a
    **design opinion, not a fact** — a hardened DDS Deadline/Ownership/Liveliness
-   stack is arguably *safer* than a v0.2 single-author `mode` enum (see Lens 6).
+   stack is arguably *safer* than a single-author `mode` enum (see Lens 6).
 3. **One audited safety/codec implementation** in `ncp-core`, reached by all
    languages via FFI, beats three reimplementations of ESTOP/HOLD/TTL/encoding.
    *Weakness:* only true once that one crate is actually audited and conformance-
@@ -240,7 +240,7 @@ is native, no browser WASM), so TS is the least-unified peer.
 robot/UAV mapping failing safe to zero velocity on hold/estop — a *protocol* concept
 no surveyed alternative states as an enum (though DDS LIFESPAN≈`ttl_ms` and
 OWNERSHIP/LIVELINESS cover much of the rest). *Disadvantage (confronted directly):*
-this is a **v0.2, single reference implementation** with a pragmatic golden-vector
+this is a **single reference implementation** (wire `0.5`, pre-1.0) with a pragmatic golden-vector
 conformance corpus (not yet a multi-implementation interop program), on a bus whose
 open/default realm is **unauthenticated** — without the ACL enabled, anyone who can
 reach the bus can publish to `…/command`. A default-deny per-plane Zenoh ACL +
@@ -294,7 +294,7 @@ ACP/A2A took) — none of which exists yet.
 
 ## Disadvantages & open risks (summary)
 
-NCP is **v0.2 with a single reference implementation** and a pragmatic
+NCP is **pre-1.0 (wire `0.5`) with a single reference implementation** and a pragmatic
 golden-vector conformance corpus (not a multi-implementor interop program). The
 **Python NEST server is still the real brain**; the Rust gateway is a
 localhost-socket bridge, so NCP does not yet own the hot integrator path. The
