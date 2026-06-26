@@ -700,7 +700,7 @@ def fsm(th):
 
     # mode-enum ribbon (top-right, under sheet-meta)
     rx0 = W - 28
-    for label, fill, txt, filled in reversed([("init", None, th["tsec"], th["surf_chip"]),
+    for label, fill, txt, filled in reversed([("init", None, th["surf_chip"], None),
             ("active", grn, "#06281e" if th["name"] == "dark" else "#fff", True),
             ("hold", amb, amb, False), ("estop", verm, "#fff", True)]):
         pw = 10 + len(label) * 6.2
