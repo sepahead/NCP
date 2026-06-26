@@ -136,7 +136,7 @@ body, or analysis client speaks the same wire:
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/ecosystem-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/ecosystem-light.svg">
-  <img alt="NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepehrmn/ncp; wire 0.5, contract 24e8e6e3). Three example consumers in a left column each pin tag v0.5.0 to it: Engram/Paper2Brain (example commander), crebain (example body), prisoma (example observer client). A separate pid-rs node (PID estimators science library) links to prisoma by a distinct dashed grey edge labelled 'git submodule · NOT an NCP wire consumer' and does not connect to the contract." src="docs/diagrams/ecosystem-light.svg" width="820">
+  <img alt="NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepehrmn/ncp; wire 0.5, contract 24e8e6e3). Three example consumers in a left column each pin tag v0.5.0 to it: Engram (example commander), crebain (example body), prisoma (example observer client). A separate pid-rs node (PID estimators science library) links to prisoma by a distinct dashed grey edge labelled 'git submodule · NOT an NCP wire consumer' and does not connect to the contract." src="docs/diagrams/ecosystem-light.svg" width="820">
 </picture>
 
 The example observer client [`prisoma`](https://github.com/sepahead/prisoma) is public; the other peers shown are illustrative.

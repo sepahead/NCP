@@ -4,7 +4,7 @@ version: v2
 #             wire). prost output is for evaluating the eventual proto-native rewire.
 #   - TS    : ncp-ts currently ships ts-rs-generated types; ts-proto is the
 #             proto-native alternative for the @sepehrmn/ncp package.
-#   - Python: Paper2Brain keeps Pydantic (canonical for storage/validation per
+#   - Python: engram keeps Pydantic (canonical for storage/validation per
 #             CLAUDE.md); this is the optional binary-codec path only.
 # Output goes to gen/ (gitignored). Run `npx @bufbuild/buf generate`.
 # See proto/ncp.proto header for the normativity model.

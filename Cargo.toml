@@ -7,7 +7,7 @@
 # (cf. MCP/ACP), and Rust is the canonical, high-performance implementation.
 #
 # This workspace is self-contained and **extractable**: it has no path/parent
-# dependency on the surrounding Paper2Brain repo and can be lifted into its own
+# dependency on the surrounding engram repo and can be lifted into its own
 # repository / published to crates.io with no refactoring. Consumers (robot/UAV
 # bodies, analysis/observer clients, and a commander gateway) depend on `ncp-core`
 # (+ `ncp-zenoh`) as a normal dependency.

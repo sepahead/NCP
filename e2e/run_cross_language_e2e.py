@@ -19,7 +19,7 @@ Cross-PROCESS over the production Zenoh transport is covered separately and gate
 CI: `ncp-zenoh/tests/cross_session_rpc.rs` (two real Zenoh sessions over a tcp link).
 
 Requirements (a local integration runner, not a single-repo CI gate): this NCP repo
-+ a sibling `Paper2Brain` checkout (override with `--engram PATH` or `$P2B_ROOT`),
++ a sibling `engram` checkout (override with `--engram PATH` or `$ENGRAM_ROOT`),
 `cargo`, and a Python with `pydantic`. Skips with a clear message if any is absent.
 """
 from __future__ import annotations
@@ -89,13 +89,13 @@ def _python_client(port: int, wire: str) -> bool:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Cross-language NCP e2e against the Python server.")
-    ap.add_argument("--engram", default=os.environ.get("P2B_ROOT", str(NCP_ROOT.parent / "Paper2Brain")),
-                    help="path to the Paper2Brain (engram) checkout")
+    ap.add_argument("--engram", default=os.environ.get("ENGRAM_ROOT", str(NCP_ROOT.parent / "engram")),
+                    help="path to the engram checkout")
     args = ap.parse_args()
     engram = Path(args.engram)
 
     if not (engram / "backend" / "neurocontrol" / "bridge_server.py").exists():
-        print(f"SKIP: engram checkout not found at {engram} (set --engram / $P2B_ROOT). "
+        print(f"SKIP: engram checkout not found at {engram} (set --engram / $ENGRAM_ROOT). "
               "Component halves still gate: ncp-zenoh cross_session_rpc + the behavioral corpus.")
         return 0
 

@@ -17,7 +17,7 @@ contract is testable **without NEST and without `zenoh-python`**, in any sandbox
 | Tier | What it proves | Where | Gates in CI? |
 |---|---|---|---|
 | **Cross-process, production transport** | Two **independent Zenoh sessions** over a real tcp link drive the full `open→step→run→close` RPC through the typed `ZenohNcpClient` (incl. the version + advisory-contract handshake), boundary intact | [`../ncp-zenoh/tests/cross_session_rpc.rs`](../ncp-zenoh/tests/cross_session_rpc.rs) | ✅ `cargo test` |
-| **Cross-process, real server** | engram's **real** `SessionService` (over a localhost-TCP socket, `MockBackend`) serves the lifecycle across a process boundary; plus **forward/backward compatibility** (unknown future field accepted, omitted optionals defaulted) — the non-breaking-evolution guarantee | `Paper2Brain/backend/neurocontrol/test_e2e_cross_process.py` | ✅ engram smoke job |
+| **Cross-process, real server** | engram's **real** `SessionService` (over a localhost-TCP socket, `MockBackend`) serves the lifecycle across a process boundary; plus **forward/backward compatibility** (unknown future field accepted, omitted optionals defaulted) — the non-breaking-evolution guarantee | `engram/backend/neurocontrol/test_e2e_cross_process.py` | ✅ engram smoke job |
 | **Cross-language** | a **Rust** client ([`../ncp-core/examples/ncp_tcp_client.rs`](../ncp-core/examples/ncp_tcp_client.rs)) drives the **Python** engram server over the wire (a crebain/[prisoma](https://github.com/sepahead/prisoma) peer ↔ engram), contract verified | `run_cross_language_e2e.py` (this dir) | local (needs both repos) |
 | **Cross-language *decisions*** | all four peers (Rust/Python/C++/TS) decide identically on `check_version`/`contract_status`/`validate`/`govern` | [`../conformance/behavior/`](../conformance/behavior) | ✅ all peers |
 
@@ -33,16 +33,16 @@ test here + the `buf breaking` wire gate in CI).
 cargo test -p ncp-zenoh --test cross_session_rpc
 
 # engram real server, cross-process (NEST-free; gates in engram's smoke job):
-#   (in Paper2Brain) python -m pytest backend/neurocontrol/test_e2e_cross_process.py
+#   (in engram) python -m pytest backend/neurocontrol/test_e2e_cross_process.py
 
-# Full cross-language picture (needs this repo + a sibling Paper2Brain + cargo + python):
-python3 e2e/run_cross_language_e2e.py            # or: --engram /path/to/Paper2Brain
+# Full cross-language picture (needs this repo + a sibling engram + cargo + python):
+python3 e2e/run_cross_language_e2e.py            # or: --engram /path/to/engram
 ```
 
 The cross-language runner stands up engram's `bridge_server --backend mock` (the Python side
 of `ncp-gateway`) and drives it from a Python and a Rust client, asserting each completes the
 lifecycle with the contract intact. It **skips with a clear message** if a sibling
-`Paper2Brain` checkout isn't found — the two component halves (the Zenoh cross-session test
+`engram` checkout isn't found — the two component halves (the Zenoh cross-session test
 and the behavioral corpus) still gate on their own.
 
 ## License

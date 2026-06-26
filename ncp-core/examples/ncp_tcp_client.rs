@@ -5,7 +5,7 @@
 //! with the Python server over a real cross-process, cross-language boundary:
 //!
 //! ```text
-//! python -m backend.neurocontrol.bridge_server --backend mock --port 28480 &  # in Paper2Brain
+//! python -m backend.neurocontrol.bridge_server --backend mock --port 28480 &  # in engram
 //! cargo run -p ncp-core --example ncp_tcp_client -- 28480                      # in NCP
 //! ```
 //!

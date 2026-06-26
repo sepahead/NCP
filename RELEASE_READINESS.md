@@ -23,7 +23,7 @@ from the wire — engram's `MockBackend` emits real `Observation` frames):
 - ✅ A **Rust** client drives the **real Python** engram server over localhost TCP
   (`e2e/run_cross_language_e2e.py` + `ncp-core/examples/ncp_tcp_client.rs`).
 - ✅ engram's **real** `SessionService` serves the lifecycle across a process boundary
-  (`Paper2Brain/.../test_e2e_cross_process.py`, ubuntu smoke, NEST-free), with
+  (`engram/.../test_e2e_cross_process.py`, ubuntu smoke, NEST-free), with
   forward/backward-compat and malformed/unknown-frame robustness.
 - ✅ All four peers decide identically on the contract functions (the behavioral corpus).
 - ✅ The scientific-boundary discriminators hold on every reply over every medium.
