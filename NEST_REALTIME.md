@@ -36,9 +36,16 @@ proto `BulkObservation`) instead of `repeated double` — parse-free and ~2× sm
 an additive, observation-plane-only option (see [`PERFORMANCE.md`](PERFORMANCE.md), #6).
 
 ### 4. Runtime input injection — can you stimulate mid-simulation?
-Yes. Each `step()` sets generator parameters (`dc_generator.amplitude`,
-`poisson_generator.rate`) **before** the `Run` chunk, so a controller drives the
-running network in real time — the inverse of MUSIC's input event ports.
+Yes — the generator is updated **before** the `Run` chunk, so a controller drives
+the running network in real time (the inverse of MUSIC's input event ports). The
+mechanism differs per generator. `dc_generator.amplitude` is read live, so
+`set(amplitude=)` between `Run`s takes effect immediately. A Poisson **rate**,
+however, is baked into the generator at calibration (`Prepare()`), so setting
+`poisson_generator.rate` via `device.set()` *after* `Prepare()` is **silently
+ignored — zero spikes** (verified on NEST 3.9). The rate must instead be
+**scheduled** ahead of the clock: the reference backend drives `rate_hz` via an
+`inhomogeneous_poisson_generator` (and `rate_inject` via `step_rate_generator`)
+with `rate_times`/`rate_values` at `biological_time + dt`.
 
 ### 5. Granularity — continuous, or quantized?
 Quantized, like MUSIC. NCP exchanges at `chunk_ms` (`SimConfig.chunk_ms`)
@@ -285,14 +292,18 @@ backend does:
 2. `nest.Run(chunk)` per tick, with `chunk` an **integer multiple of `min_delay`**
    (read it from `nest.GetKernelStatus("min_delay")`). Prefer a *large* throughput chunk
    and drop to a finer one only when control latency demands it.
-3. Drive stimuli between `Run`s without re-preparing. The reference backend mutates
-   `dc_generator.amplitude` / `poisson_generator.rate` via `device.set()` between `Run`s
-   (O(1) per node; does **not** invalidate the prepared state). This works, but NEST
-   cautions that `SetStatus` *between* `Prepare()` and `Cleanup()` can "lead to
-   unpredictable results"; the robust alternative is a **scheduled-time generator**
-   (`step_current_generator` / `step_rate_generator`) whose next value is scheduled at
-   `biological_time + dt` — exactly the template the backend already uses for the
-   `rate_inject` path.
+3. Drive stimuli between `Run`s without re-preparing. `dc_generator.amplitude` via
+   `device.set()` between `Run`s takes effect live (O(1) per node; does **not**
+   invalidate the prepared state). A Poisson **rate** does **not** work this way:
+   a `poisson_generator`'s rate is fixed at calibration, so a post-`Prepare`
+   `set(rate=)` is **silently ignored — zero spikes** (verified on NEST 3.9). Use a
+   **scheduled-time generator** whose next value is scheduled at
+   `biological_time + dt`: `inhomogeneous_poisson_generator` for a Poisson spike
+   source (`rate_hz`), `step_rate_generator` for a rate-based input (`rate_inject`),
+   `step_current_generator` for a scheduled current. The reference backend uses
+   exactly this for every non-`dc` drive. (NEST separately cautions that `SetStatus`
+   *between* `Prepare()` and `Cleanup()` can "lead to unpredictable results"; the
+   scheduled-time generators are the robust path regardless.)
 4. `nest.Cleanup()` **once** at session close.
 
 > **Two implementer caveats (correctness, not speed).** (a) If `chunk_ms` is **not** an
