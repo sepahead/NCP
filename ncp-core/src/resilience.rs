@@ -104,7 +104,11 @@ impl ActionBuffer {
 /// Cap a horizon length to the deadline: `N <= ttl_ms / horizon_dt_ms`, so the
 /// replay can never outlive `ttl_ms` (the load-bearing PPC safety invariant).
 pub fn max_horizon_len(ttl_ms: f64, horizon_dt_ms: f64) -> usize {
-    if horizon_dt_ms <= 0.0 {
+    // A non-finite ttl/dt (or dt <= 0) has no bounded horizon: `Inf / dt` floors to
+    // `Inf`, which `as usize` saturates to `usize::MAX` — a garbage/`+Inf` ttl would
+    // then authorise an effectively unbounded predictive horizon. Return 0 (no
+    // replay) instead, so a non-finite input fails safe rather than open.
+    if !ttl_ms.is_finite() || !horizon_dt_ms.is_finite() || horizon_dt_ms <= 0.0 {
         return 0;
     }
     (ttl_ms / horizon_dt_ms).floor().max(0.0) as usize
@@ -201,7 +205,11 @@ impl LinkMonitor {
         if let Some(e) = self.expected {
             if seq > e {
                 // Missed e..=seq-1. `missed` is positive (guarded by `seq > e`).
-                let missed = seq - e;
+                // `saturating_sub`: a mixed-sign extreme pair (e.g. e near i64::MIN,
+                // seq near i64::MAX from a garbage/hostile peer) would overflow a raw
+                // `seq - e` (debug panic / release wrap), silently failing the jam
+                // detector open; saturate to keep `missed` a valid non-negative gap.
+                let missed = seq.saturating_sub(e);
                 // `saturating_add`: exact unless the lost count would overflow.
                 self.lost = self.lost.saturating_add(missed);
                 // Remember the (bounded) head of the gap so a later out-of-order
@@ -250,7 +258,10 @@ impl LinkMonitor {
         // makes the rate immune to a duplicate/replay flood masking real loss.
         match (self.first_seq, self.expected) {
             (Some(first), Some(exp)) => {
-                let span = (exp - first).max(1); // `exp` is the forward next-expected high-water
+                // `saturating_sub`: `exp` and `first` can straddle zero with extreme
+                // magnitude (a hostile/glitched peer), which would overflow a raw
+                // `exp - first`; saturate so the span stays a valid positive count.
+                let span = exp.saturating_sub(first).max(1); // `exp` = forward next-expected high-water
                 (self.lost as f64 / span as f64).clamp(0.0, 1.0)
             }
             _ => 0.0,
@@ -578,6 +589,38 @@ mod tests {
             "link_status",
             "monitor still usable after saturation"
         );
+    }
+
+    #[test]
+    fn mixed_sign_extreme_seq_does_not_overflow() {
+        // A garbage/hostile peer can straddle zero with extreme magnitude. The gap
+        // arithmetic (`seq - e`, `exp - first`) must saturate, not overflow (debug
+        // panic / release wrap) and silently fail the jam detector open.
+        let mut m = LinkMonitor::with_defaults("uav1");
+        m.on_seq(i64::MIN); // first_seq = i64::MIN, expected -> i64::MIN + 1
+        m.on_seq(i64::MAX); // gap ~2^64: `missed = seq.saturating_sub(e)` must not panic
+        let lr = m.loss_rate(); // `span = exp.saturating_sub(first)` must not panic
+        assert!(
+            (0.0..=1.0).contains(&lr),
+            "loss_rate stays in [0,1] after a mixed-sign extreme gap, got {lr}"
+        );
+        assert!(m.is_burst(), "an enormous gap still trips the jam burst");
+        assert_eq!(
+            m.status(0.0).kind,
+            "link_status",
+            "monitor remains usable after saturation"
+        );
+    }
+
+    #[test]
+    fn max_horizon_len_bounds_nonfinite_ttl() {
+        // A finite ttl/dt gives the exact floor; a non-finite ttl/dt (or dt<=0) must
+        // return 0 (no replay), never usize::MAX from an `Inf as usize` saturation.
+        assert_eq!(max_horizon_len(200.0, 50.0), 4);
+        assert_eq!(max_horizon_len(f64::INFINITY, 50.0), 0);
+        assert_eq!(max_horizon_len(f64::NAN, 50.0), 0);
+        assert_eq!(max_horizon_len(200.0, f64::INFINITY), 0);
+        assert_eq!(max_horizon_len(200.0, 0.0), 0);
     }
 
     #[test]

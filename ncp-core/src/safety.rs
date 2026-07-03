@@ -30,10 +30,12 @@ pub struct SafetyGovernor {
     /// Latched emergency-stop. Set by any ESTOP-tripping condition; cleared only
     /// by [`reset`](SafetyGovernor::reset). While set, every `govern` returns a zeroed ESTOP frame.
     estop: bool,
-    /// Latched config-level fail-closed: a limit (geofence/speed) was set whose
-    /// channel is absent from the negotiated specs. Per FIX 3 the governor then
-    /// HOLDs and reports `safety_ok=false`. A misconfiguration cannot be fixed at
-    /// runtime, so it does not clear on [`reset`](SafetyGovernor::reset).
+    /// Latched config-level fail-closed. Set when a geofence/speed limit is
+    /// unenforceable: its channel is absent from the negotiated specs (FIX 3), or
+    /// the limit itself is non-finite/negative (`NaN`/`±Inf`/`< 0`, which the
+    /// `> 0.0` enforcement gates would silently skip — fail-OPEN). The governor
+    /// then HOLDs and reports `safety_ok=false`. A misconfiguration cannot be
+    /// fixed at runtime, so it does not clear on [`reset`](SafetyGovernor::reset).
     config_fail_closed: bool,
 }
 
@@ -251,6 +253,20 @@ impl SafetyGovernor {
             return self.hold_frame(command);
         }
 
+        // A configured-but-nonsensical geofence/speed limit (non-finite or
+        // negative) must fail closed, not silently disable enforcement:
+        // `NaN > 0.0` and `-5.0 > 0.0` are BOTH false, so the geofence/speed
+        // blocks below would skip entirely — a fail-OPEN that lets unbounded
+        // motion through. `limits` is a public, post-construction-mutable field,
+        // so guard here at every tick (not only at construction), and latch
+        // `config_fail_closed` so `safety_ok()` reports the misconfiguration.
+        // `0.0` stays the documented "disabled" value — only `< 0` / non-finite trips.
+        let bad_limit = |v: Option<f64>| v.is_some_and(|x| !x.is_finite() || x < 0.0);
+        if bad_limit(self.limits.geofence_radius_m) || bad_limit(self.limits.max_speed_mps) {
+            self.config_fail_closed = true; // unrecoverable misconfig -> safety_ok()=false
+            return self.hold_frame(command);
+        }
+
         // Default-deny on a bad command_timeout_ms: a non-finite / zero / negative
         // timeout is treated as "always stale" (HOLD), never "never stale". Note
         // `f64::NAN.max(0.0) == 0.0`, so the old `.max(0.0)` pre-clamp turned NaN
@@ -269,6 +285,10 @@ impl SafetyGovernor {
                     || !timeout_ms.is_finite()
                     || timeout_ms <= 0.0
                     || !timeout_s.is_finite()
+                    // A non-monotonic (backward) clock step makes `(now_s - last)`
+                    // negative → never `> timeout_s` → "not stale", a fail-OPEN on a
+                    // rewound clock. Treat any backward step as stale (HOLD).
+                    || now_s < last
                     || (now_s - last) > timeout_s
             }
         };
@@ -452,6 +472,10 @@ impl CommandWatchdog {
                 !now_s.is_finite()
                     || !t.is_finite()
                     || self.ttl_s <= 0.0
+                    // A backward clock step makes `(now_s - t)` negative → never
+                    // `> ttl_s` → "not expired", a fail-OPEN on a rewound clock.
+                    // Treat any backward step as expired (HOLD).
+                    || now_s < t
                     || (now_s - t) > self.ttl_s
             }
         }
@@ -896,6 +920,107 @@ mod tests {
             out.horizon.len(),
             1,
             "horizon truncates at the first unclampable (non-finite) step"
+        );
+    }
+
+    #[test]
+    fn nonfinite_or_negative_limit_fails_closed() {
+        // A configured-but-nonsensical geofence/speed limit (NaN / ±Inf / negative)
+        // must fail closed — `NaN > 0.0` / `-1.0 > 0.0` are false, which would
+        // otherwise SKIP the geofence/speed enforcement entirely (fail-OPEN).
+        for limits in [
+            SafetyLimits {
+                geofence_radius_m: Some(f64::NAN),
+                ..Default::default()
+            },
+            SafetyLimits {
+                geofence_radius_m: Some(f64::INFINITY),
+                ..Default::default()
+            },
+            SafetyLimits {
+                geofence_radius_m: Some(-5.0),
+                ..Default::default()
+            },
+            SafetyLimits {
+                max_speed_mps: Some(f64::NAN),
+                ..Default::default()
+            },
+            SafetyLimits {
+                max_speed_mps: Some(-1.0),
+                ..Default::default()
+            },
+        ] {
+            let mut gov = SafetyGovernor::new(limits);
+            // A would-be-actuating command on the freshest possible sensor.
+            let cmd = CommandFrame {
+                mode: Mode::Active,
+                channels: channels_with("velocity_setpoint", 99.0, "m/s"),
+                ..Default::default()
+            };
+            let sensor = SensorFrame {
+                channels: channels_with("pose_position", 1000.0, "m"),
+                ..Default::default()
+            };
+            let out = gov.govern(&cmd, Some(&sensor), 1.0, Some(1.0));
+            assert_eq!(
+                out.mode,
+                Mode::Hold,
+                "a non-finite/negative limit must fail closed to HOLD, not disable enforcement"
+            );
+            assert!(
+                !gov.safety_ok(),
+                "a bad limit latches config fail-closed -> safety_ok()=false"
+            );
+        }
+        // Guard the boundary: 0.0 remains the documented "disabled" value, and a
+        // finite positive limit still enforces normally (regression fence).
+        let mut ok = SafetyGovernor::new(SafetyLimits {
+            geofence_radius_m: Some(0.0),
+            max_speed_mps: Some(5.0),
+            ..Default::default()
+        });
+        let out = ok.govern(
+            &CommandFrame {
+                mode: Mode::Active,
+                channels: channels_with("velocity_setpoint", 2.0, "m/s"),
+                ..Default::default()
+            },
+            Some(&SensorFrame {
+                channels: channels_with("pose_position", 3.0, "m"),
+                ..Default::default()
+            }),
+            1.0,
+            Some(1.0),
+        );
+        assert_eq!(
+            out.mode,
+            Mode::Active,
+            "radius 0 disabled + within speed -> active"
+        );
+        assert!(ok.safety_ok());
+    }
+
+    #[test]
+    fn backward_clock_step_fails_closed() {
+        // A non-monotonic (rewound) clock must not read as "fresh": both the
+        // sensor-staleness check and the command watchdog must HOLD on a backward step.
+        let mut gov = SafetyGovernor::new(SafetyLimits {
+            command_timeout_ms: 500.0,
+            ..Default::default()
+        });
+        // last_sensor at t=2.0, now stepped BACK to t=1.0 -> (now-last) = -1.0.
+        let out = gov.govern(&CommandFrame::default(), None, 1.0, Some(2.0));
+        assert_eq!(
+            out.mode,
+            Mode::Hold,
+            "a backward clock step must fail safe to HOLD, not actuate"
+        );
+
+        let mut wd = CommandWatchdog::new();
+        wd.on_command(2.0, 500.0, 1); // command recorded at t=2.0
+        assert!(
+            wd.should_hold(1.0),
+            "the watchdog must HOLD when the clock steps backward past the recv time"
         );
     }
 
