@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Safety-governor and link-monitor hardening plus a documentation-accuracy pass —
+**no wire change**. `NCP_VERSION` stays `0.5` and `CONTRACT_HASH` stays
+`24e8e6e31e1dec8a`; every fix is local (fail-closed) behaviour, so no consumer
+re-pin is needed.
+
+### Fixed
+
+- **`ncp-core/src/safety.rs`**: a non-finite or negative `SafetyLimits` value
+  (`NaN`/`±Inf`/`< 0` for `geofence_radius_m` or `max_speed_mps`) no longer
+  silently *disables* enforcement. Because `NaN > 0.0` and `-5.0 > 0.0` are both
+  false, the geofence/speed gates used to skip entirely (fail-OPEN); `govern` now
+  latches `config_fail_closed`, HOLDs, and reports `safety_ok() == false`. `0.0`
+  remains the documented "disabled" value. (`KNOWN_LIMITATIONS.md` medium ×2.)
+- **`ncp-core/src/safety.rs`**: the sensor-staleness check and the
+  `CommandWatchdog` deadline no longer fail OPEN on a backward (non-monotonic)
+  clock step — `now_s < last` / `now_s < t` is now treated as stale/expired
+  (HOLD), completing the earlier non-finite-clock guard.
+- **`ncp-core/src/resilience.rs`**: `LinkMonitor` gap arithmetic (`seq - e`,
+  `exp - first`) uses `saturating_sub`, so a mixed-sign extreme `seq` from a
+  garbage/hostile peer can no longer overflow (debug panic / release wrap) and
+  silently fail the jam detector open.
+- **`ncp-core/src/resilience.rs`**: `max_horizon_len` returns `0` (no replay) for
+  a non-finite `ttl_ms`/`horizon_dt_ms` instead of `usize::MAX` (from an
+  `Inf as usize` saturation), so a garbage/`+Inf` ttl cannot authorise an
+  effectively unbounded predictive horizon.
+
+  All four add regression tests (`ncp-core` suite: 84 lib tests passing) and are
+  `rustfmt` + `clippy -D warnings` clean; the cross-language behavior-conformance
+  corpus is unaffected (its `govern` vectors all use finite, positive limits and
+  forward clocks).
+
+### Docs
+
+- **`KNOWN_LIMITATIONS.md`**: rewritten to track each finding's **current
+  status** rather than assert "none applied yet". All **3 high-severity** safety
+  findings are marked resolved (commit `0672168`), plus the safety/resilience
+  fixes above — **9 of 35 resolved**, 26 open (23 `safe`, 3 `wire-breaking`).
+  Still-open items keep their concrete proposed fixes; the `codec` encode-fallback
+  item is annotated as parity-coupled with Engram's `codec.py`.
+- **`README.md`, `INTEGRATING.md`, `PERFORMANCE.md`, `RATIONALE.md`,
+  `ROADMAP.md`**: corrected the stale "35 findings, none/3-high not yet applied"
+  claim to reflect that the 3 high findings are fixed (9 of 35 resolved).
+- **`INTEGRATING.md`**: added a worked **Engram (commander) + Prisoma (observer)**
+  integration section — the RPC/version/advisory-hash policy a commander serves,
+  and the real `ncp-observer` `open_realm` → `subscribe_{sensors,commands,
+  observations}` → `(V,L,D,A)` (join on `seq`) → `finalize` observer flow.
+
 ## [0.5.2] - 2026-06-25
 
 Code, CI, and documentation fixes — **no wire change**. `NCP_VERSION` stays

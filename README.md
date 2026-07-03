@@ -135,7 +135,7 @@ python scripts/bench_overlap.py    # transport/compute overlap (GIL) measurement
 - [`VERSIONING.md`](VERSIONING.md) — the SemVer wire policy, the `buf breaking` enforcement, and the pin guidance.
 - [`GOVERNANCE.md`](GOVERNANCE.md) — the governance model, the mechanical interop gates, and the path to a neutral home.
 - [`SECURITY.md`](SECURITY.md) — threat model, the disclosed action-plane limitation, and the TLS + ACL enablement steps.
-- [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — an audited hardening backlog (35 findings, incl. 3 high: a `bulk.rs` decode OOM-DoS, a fail-OPEN unbounded/`+Inf` `ttl_ms` watchdog, and an empty-position geofence bypass). These are catalogued proposals, **not yet applied**.
+- [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — an audited hardening backlog (35 findings). **All 3 high-severity safety findings are fixed** (the `bulk.rs` decode OOM-DoS, the fail-OPEN unbounded/`+Inf` `ttl_ms` watchdog, and the empty-position geofence bypass), each wire-safe and regression-tested; **9 of 35 resolved**, with the remaining 26 medium/low tracked (23 `safe`, 3 `wire-breaking`).
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to build, test, and propose changes.
 - [`CHANGELOG.md`](CHANGELOG.md) — per-release notes (current: `v0.5.0`).
 
@@ -249,7 +249,7 @@ NCP is **pre-1.0 and experimental.** Specifically:
 - **The wire may change.** Minor versions are treated as breaking; the version guard fails closed rather than coercing. **Pin the latest tag** (`tag = "v0.5.0"` above — the wire is `0.5`, with `v0.5.0` the buf-breaking baseline) for anything you build against.
 - **Single reference implementation.** `proto/ncp.proto` is the normative contract; `ncp-core` (Rust) is the reference implementation and Python/C/TS are bindings off the same contract, verified by field-set-parity drift guards — not yet a multi-implementation conformance program.
 - **The action plane is currently unauthenticated.** On an open realm it is effectively world-writable: anyone who can reach the realm can publish commands. The local `mode`/`ttl_ms` governor is defense-in-depth, **not** network security. Deploy only on a trusted, closed realm. See [`SECURITY.md`](SECURITY.md) and the P0 work in [`ROADMAP.md`](ROADMAP.md).
-- **A hardening backlog is open and audited.** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) catalogs 35 reviewed findings (3 high — incl. a `bulk.rs` decode OOM-DoS, a fail-OPEN unbounded/`+Inf` `ttl_ms` watchdog, and an empty-position geofence bypass), each annotated `safe` (internal) vs `wire-breaking`. They are **proposals — none are applied yet**, so do not assume any are fixed.
+- **A hardening backlog is open, audited, and partly closed.** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) catalogs 35 reviewed findings, each annotated `safe` (internal) vs `wire-breaking`. **All 3 high-severity safety findings are fixed** (the `bulk.rs` decode OOM-DoS, the fail-OPEN unbounded/`+Inf` `ttl_ms` watchdog, and the empty-position geofence bypass), plus non-finite/negative-limit and backward-clock fail-closed hardening and the `LinkMonitor` overflow — **9 of 35 resolved**, all wire-safe and regression-tested. The remaining 26 are medium/low (23 `safe`, 3 `wire-breaking`, the last gated behind a wire version bump); see the file for the current per-finding status.
 
 ## Citing
 

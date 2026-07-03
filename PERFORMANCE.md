@@ -493,8 +493,9 @@ the command, the environment, and the known caveats.
 - Large-population multimeter recording is intrinsically heavy regardless of NCP;
   record from a representative subset (the backend already pins V_m to one neuron).
 - A full adversarial audit of NCP (correctness, safety, robustness, overhead) is
-  catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — **35 findings, 3
-  high-severity**. They are **proposals, not yet applied**; treat that file as the
-  live risk register, not a list of fixed bugs. The top *performance* item there
-  (the `ncp-zenoh` `payload.to_vec()` copy) is discussed in
+  catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — **35 findings, all 3
+  high-severity ones fixed** (9 of 35 resolved so far). Treat that file as the live
+  status register: the resolved items cite their fixing commit/guard, and the
+  remaining 26 are medium/low. The top *performance* item there (the `ncp-zenoh`
+  `payload.to_vec()` copy) is still open and is discussed in
   [Top safe optimization](#top-safe-optimization-zero-copy-publish-zbytesshm) above.

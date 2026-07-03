@@ -74,13 +74,14 @@ the SDK (correctness, safety, robustness, overhead): 35 line-referenced findings
 (3 high, 17 medium, 15 low), each tagged `safe` (internal) or `wire-breaking`
 (needs a version bump + consumer buy-in across Engram/crebain/prisoma). The three
 **high** findings are all `safe` — local correctness fixes that change no on-wire
-bytes, so they can land immediately without a wire bump or consumer coordination,
-and each turns a current *fail-open* into the intended *fail-closed*. Treat them as
-the top near-term work alongside the P0 auth gate above. (Per
-`KNOWN_LIMITATIONS.md` these are *proposals, not yet applied* — do not mark them
-fixed here until the patch and a covering regression test have landed.)
+bytes, and each turns a current *fail-open* into the intended *fail-closed*.
+**All three are now fixed** (commit `0672168`, each wire-safe and regression-tested),
+alongside further `safe` fail-closed hardening (non-finite/negative safety limits,
+backward-clock steps, `LinkMonitor` overflow, bounded `max_horizon_len`) — **9 of 35
+resolved**. The three high items are retained below for provenance, marked ✓ **DONE**.
+The remaining medium/low work is tracked in `KNOWN_LIMITATIONS.md`.
 
-1. **Bulk-decode OOM amplification — `bulk.rs:356` · safety · safe.**
+1. **Bulk-decode OOM amplification — `bulk.rs:356` · safety · safe. ✓ DONE (`0672168`).**
    `BulkBlock::decode` allocates per declared column with no cumulative budget, so
    overlapping / duplicate column offsets let a small frame declare on the order of
    ~64,000× its own size in allocations — an observation-plane OOM denial-of-
@@ -91,7 +92,7 @@ fixed here until the patch and a covering regression test have landed.)
    `BulkBlock` path — not the JSON hot loop.
 
 2. **Watchdog defeated by an unbounded / non-finite `ttl_ms` —
-   `safety.rs:417` (and the `+Inf` path at `safety.rs:432`) · safety · safe.** The
+   `safety.rs:417` (and the `+Inf` path at `safety.rs:432`) · safety · safe. ✓ DONE (`0672168`).** The
    `CommandWatchdog` deadline backstop trusts the wire `ttl_ms` verbatim
    (`self.ttl_s = ttl_ms.max(0.0) / 1000.0`), so a huge or `+Inf` value disables
    the staleness deadline outright — a single command can permanently pin the
@@ -101,7 +102,7 @@ fixed here until the patch and a covering regression test have landed.)
    unchanged; only local enforcement is bounded.
 
 3. **Empty position channel bypasses the geofence — `safety.rs:293` · safety ·
-   safe.** An empty position-channel vector yields `r = 0`, so a malformed or
+   safe. ✓ DONE (`0672168`).** An empty position-channel vector yields `r = 0`, so a malformed or
    dropped position frame reads as "at the origin, inside the fence" instead of
    failing safe — the opposite of the adjacent `None`-channel arm, which correctly
    HOLDs. *Fix:* treat an empty position vector like a missing channel (HOLD),

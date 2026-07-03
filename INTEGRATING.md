@@ -182,6 +182,153 @@ core, these examples behave identically when reproduced from the Python, TypeScr
 C++ peers.
 
 
+## Worked integration — Engram (commander) and Prisoma (observer)
+
+The two reference peers exercise the **two ends of the same wire**: Engram *commands*
+(RPC + action + observation), Prisoma *observes* (a read-only tap that drives nothing).
+Both pin NCP by tag and add zero code to each other. This section walks the real flow
+each one implements, so you can copy the shape for your own commander or observer.
+
+```text
+                 engram/ncp/rpc  (queryable, Open/Step/Run/Close)
+   ┌────────────┐  ───────────────────────────►  ┌──────────────────────────┐
+   │  Engram    │                                 │  ncp-gateway (Rust edge) │
+   │  commander │  ◄───────────────────────────   │  → bridge_server.py      │
+   │  (NEST)    │      ObservationFrame / …        │    (SessionService)      │
+   └────────────┘                                  └──────────────────────────┘
+        │  publishes engram/ncp/session/<id>/{sensor,command,observation}
+        ▼
+   ┌───────────────────────────── Zenoh bus (realm "engram/ncp") ─────────────────────────────┐
+        ▲ subscribes read-only (attaches for free — zero commander change)
+   ┌────────────┐
+   │  Prisoma   │  ZenohBus::open_realm(Keys::new("engram/ncp"))
+   │  observer  │  → subscribe_{sensors,commands,observations} → (V,L,D,A) dataset + run log
+   └────────────┘
+```
+
+### Engram — the commander (serve the RPC contract, publish the planes)
+
+Engram runs NEST in Python and terminates the bus with NCP's own **`ncp-gateway`**
+binary. The gateway serves the control-plane queryable at `{realm}/rpc` and forwards
+each request to Engram's Python `SessionService` (its `bridge_server.py`) over a
+localhost socket — NEST stays in Python, the wire stays language-neutral. Deploy it
+with the deployment realm and (for an enforced deployment) the shipped ACL/TLS config:
+
+```bash
+NCP_REALM=engram/ncp \
+NCP_BRIDGE_ADDR=127.0.0.1:28474 \
+NCP_ZENOH_CONFIG=deploy/zenoh-access-control.json5 \
+cargo run -p ncp-gateway
+# serves  engram/ncp/rpc  →  Python bridge 127.0.0.1:28474
+# planes  engram/ncp/session/<id>/{sensor,command,observation}
+```
+
+The commander's job is to answer the four lifecycle verbs and publish observations.
+Engram implements this as a `SessionService` whose single entry point validates the
+peer version **fail-closed** and treats the contract hash as **advisory**, then
+dispatches by `kind` — the exact policy every NCP commander must follow:
+
+```python
+# Engram side (its neurocontrol package) — the shape any NCP commander implements.
+# The gateway forwards request JSON to SessionService.handle_json(...).
+def handle(self, message):
+    version = message.get("ncp_version")
+    if version is not None:
+        check_version(version, strict=True)      # raises on a wire-incompatible peer
+    if message["kind"] == "open_session":
+        advisory = contract_advisory(message.get("contract_hash"))  # log-only; never rejects
+        if advisory:
+            logger.warning("open_session: %s", advisory)
+    return {                                       # dispatch by kind
+        "open_session": self.open,   "step_request": self.step,
+        "run_request":  self.run,    "close_session": self.close,
+    }[message["kind"]](parse(message))
+```
+
+- `open_session` → `SessionOpened` (declare the NEST network, what to record, and the
+  stimulus/codec). `step_request`/`run_request` → an `ObservationFrame` (the recorded
+  `V_m`/spikes/rate). `close_session` → `SessionClosed`.
+- Each observation is published on `engram/ncp/session/<id>/observation`; a plant's
+  pose arrives on `…/sensor` and the controller's `CommandFrame`s go out on
+  `…/command`, safety-gated by `mode`/`ttl_ms` (see the `uav_drone_loop` example).
+- **The commander names no consumer.** It never mentions Prisoma or crebain — it only
+  serves sessions on the realm. That is what lets an observer attach for free.
+
+A pure-Rust commander uses NCP's own crates directly instead of the Python bridge:
+`ncp_zenoh::ZenohBus::open_realm(Keys::new("engram/ncp"))`, then
+`NcpBusServer::serve_rpc(handler)` for the RPC verbs and `publish_observation(id, …)`
+for the data plane — same wire, no gateway.
+
+### Prisoma — the observer (subscribe read-only, map to `(V,L,D,A)`)
+
+Prisoma is a **read-only** tap: it opens the *same realm*, subscribes to the three
+data-plane keys, and turns each closed-loop tick into a `(V,L,D,A)` sample for its
+Partial Information Decomposition — **it publishes nothing on the action plane.** Its
+`ncp-observer` crate is a NCP consumer (pinned `tag = "v0.5.2"`) built entirely on
+`ncp_core` + `ncp_zenoh`:
+
+```rust
+use ncp_core::keys::Keys;
+use ncp_core::{CommandFrame, ObservationFrame, SensorFrame};
+use ncp_observer::{Mapping, Observer};      // prisoma's own adapter crate
+use ncp_zenoh::ZenohBus;
+use std::sync::{Arc, Mutex};
+
+// Same realm as the commander — a wrong realm just means you never meet.
+let bus = ZenohBus::open_realm(Keys::new("engram/ncp")).await?;
+let observer = Arc::new(Mutex::new(
+    Observer::new("ncp-uav3", "nest", "reach", Mapping::default())
+        .with_runlog("outputs/ncp_runlog.jsonl")?,
+));
+
+// Perception plane → V (sensor channels) + L (the `instruction` channel).
+let o = observer.clone();
+bus.subscribe_sensors("uav3", move |_k, bytes| {
+    if let Ok(f) = serde_json::from_slice::<SensorFrame>(&bytes) {
+        o.lock().unwrap_or_else(|p| p.into_inner()).on_sensor(&f);
+    }
+}).await?;
+
+// Action plane → A (command channels). V and A are joined on `seq`.
+let o = observer.clone();
+bus.subscribe_commands("uav3", move |_k, bytes| {
+    if let Ok(f) = serde_json::from_slice::<CommandFrame>(&bytes) {
+        o.lock().unwrap_or_else(|p| p.into_inner()).on_command(&f);
+    }
+}).await?;
+
+// Observation plane → D (neural record-port readouts, aligned on `seq`).
+let o = observer.clone();
+bus.subscribe_observations("uav3", move |_k, bytes| {
+    if let Ok(f) = serde_json::from_slice::<ObservationFrame>(&bytes) {
+        o.lock().unwrap_or_else(|p| p.into_inner()).on_observation(&f);
+    }
+}).await?;
+
+// On shutdown, write the (V,L,D,A) dataset + close the provenance run log.
+tokio::signal::ctrl_c().await?;
+observer.lock().unwrap_or_else(|p| p.into_inner())
+    .finalize("outputs/ncp_vlda.json")?;
+```
+
+The correctness rule is the **`seq` join**: a `CommandFrame.seq` echoes the
+`SensorFrame.seq` it was computed from, so a sample pairs the action with the sensor
+that produced it — never by arrival time (the perception plane's DROP QoS would
+corrupt that). `ObservationFrame.seq` lets D align the same way, falling back to the
+most-recent readout only when an observation arrives unstamped. Prisoma stamps honest
+per-sample provenance (`l_source`, `d_source`) so a degenerate axis is never presented
+as real data. The whole tap is `ncp-observe`:
+
+```bash
+cargo run -p ncp-observer --bin ncp-observe -- \
+    --session uav3 --realm engram/ncp \
+    --out outputs/ncp_vlda.json --runlog outputs/ncp_runlog.jsonl
+```
+
+The takeaway for your own observer: subscribe on the realm, deserialize the frames you
+care about, join on `seq`, and **never touch the action plane** — the pub/sub data
+planes mean your tap costs the commander exactly nothing.
+
 ## Picking the integration mechanism (decreasing preference)
 
 1. **Client-side adapter** (best) — your NCP client + mapping in your repo, against
@@ -218,9 +365,12 @@ messages + a watchdog) is the better call instead.
 
 NCP is pre-1.0 and the contract is deliberately conservative. Before any field or
 open-network deployment, read [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — an
-adversarial audit catalogs **35 findings (3 high, none yet fixed)**: a `BulkBlock`
-decode that overlapping columns can drive to OOM, a fail-**open** `ttl_ms` watchdog when
-`ttl_ms` is unbounded / non-finite, and a geofence an empty position channel can bypass.
-Pair it with [`SECURITY.md`](SECURITY.md): on an open realm the action key is
-world-writable until you enable the shipped per-plane ACL + mTLS (lens 8 above).
+adversarial audit catalogs **35 findings**. **All 3 high-severity safety findings are
+now fixed** (the `BulkBlock` decode OOM, the fail-**open** unbounded/non-finite `ttl_ms`
+watchdog, and the empty-position geofence bypass), each wire-safe and regression-tested;
+**9 of 35 are resolved** and the remaining 26 medium/low items are tracked there with
+per-finding status. Pair it with [`SECURITY.md`](SECURITY.md): on an open realm the
+action key is world-writable until you enable the shipped per-plane ACL + mTLS (lens 8
+above) — **that (auth) is the one real blocker for an open-network deployment**, not the
+now-closed high-severity safety bugs.
 
