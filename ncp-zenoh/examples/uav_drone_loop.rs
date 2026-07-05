@@ -128,7 +128,7 @@ async fn main() {
                 t, s.x, s.y, s.z, v[0], v[1], v[2], mode
             );
             plant_traj.lock().unwrap().push(line);
-            if (t * 50.0) as usize % 10 == 0 {
+            if ((t * 50.0) as usize).is_multiple_of(10) {
                 // ~5 Hz console print
                 println!(
                     "  t={:4.2}s  pos=({:6.2},{:6.2},{:6.2})  v=({:5.2},{:5.2},{:5.2})  [{}]",

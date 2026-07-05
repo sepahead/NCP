@@ -50,7 +50,27 @@
           "limits": {"command_timeout_ms": 200.0},
           "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
           "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.5, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "link_collapse_escalates_estop",
+        "input": {
+          "limits": {"command_timeout_ms": 200.0},
+          "command": {"kind": "command_frame", "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
           "now_s": 6.0, "last_sensor_s": 1.0
+        },
+        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+      },
+      {
+        "name": "init_mode_holds",
+        "input": {
+          "limits": {"command_timeout_ms": 500.0},
+          "command": {"kind": "command_frame", "mode": "init", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "sensor": {"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
+          "now_s": 1.0, "last_sensor_s": 1.0
         },
         "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
       },

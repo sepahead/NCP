@@ -253,6 +253,15 @@ impl SafetyGovernor {
             return self.hold_frame(command);
         }
 
+        // Only `Active` commands may actuate. A non-Active inbound mode
+        // (Init/Hold/Estop, or any mode added later) must never drive the plant,
+        // so normalize it to a zeroed HOLD here — defense-in-depth with
+        // `ActionBuffer::active`'s allowlist, so the governor also never forwards
+        // an actuating setpoint under a non-Active mode.
+        if !matches!(command.mode, Mode::Active) {
+            return self.hold_frame(command);
+        }
+
         // A configured-but-nonsensical geofence/speed limit (non-finite or
         // negative) must fail closed, not silently disable enforcement:
         // `NaN > 0.0` and `-5.0 > 0.0` are BOTH false, so the geofence/speed
@@ -264,6 +273,17 @@ impl SafetyGovernor {
         let bad_limit = |v: Option<f64>| v.is_some_and(|x| !x.is_finite() || x < 0.0);
         if bad_limit(self.limits.geofence_radius_m) || bad_limit(self.limits.max_speed_mps) {
             self.config_fail_closed = true; // unrecoverable misconfig -> safety_ok()=false
+            return self.hold_frame(command);
+        }
+
+        // A non-finite / non-positive `command_timeout_ms` cannot bound sensor
+        // staleness. The staleness backstop below already defaults it closed
+        // (treats every tick as stale -> HOLD), but that HOLD would be invisible
+        // to `safety_ok()` — the governor would look healthy while wedged in HOLD.
+        // Latch `config_fail_closed` so a misconfigured timeout is reported.
+        // (`0.0` is degenerate here, NOT a "disabled" value like the geofence.)
+        if !self.limits.command_timeout_ms.is_finite() || self.limits.command_timeout_ms <= 0.0 {
+            self.config_fail_closed = true;
             return self.hold_frame(command);
         }
 
@@ -293,6 +313,25 @@ impl SafetyGovernor {
             }
         };
         if stale {
+            // Sustained TOTAL silence escalates HOLD -> latched ESTOP. A single
+            // missed deadline is a transient (non-latching HOLD, self-clears when
+            // data resumes), but a link that stays silent past
+            // `LINK_LOSS_ESTOP_FACTOR` deadlines is a collapsed link and must
+            // de-energize to a latched safe state — the intent `note_link`
+            // documents. The CUSUM jam burst (`note_link`) only fires on ARRIVING
+            // gappy frames, so without this a fully silent link would sit in
+            // self-clearing HOLD forever. Wire-invisible: the escalation deadline
+            // is derived from the existing `command_timeout_ms` (capped at
+            // `MAX_TTL_MS`), not a new `SafetyLimits` field.
+            if let Some(last) = last_sensor_s {
+                if now_s.is_finite() && last.is_finite() && now_s >= last {
+                    let deadline_s = (timeout_s * LINK_LOSS_ESTOP_FACTOR).min(MAX_TTL_MS / 1000.0);
+                    if (now_s - last) > deadline_s {
+                        self.estop = true; // latch: the link is collapsed
+                        return self.estop_frame(command);
+                    }
+                }
+            }
             // HOLD is non-latching — do NOT set self.estop.
             return self.hold_frame(command);
         }
@@ -420,6 +459,15 @@ impl SafetyGovernor {
 /// `+Inf`) ttl would let a single command keep the plant "live" indefinitely,
 /// defeating the watchdog. 60 s is far beyond any real control deadline.
 const MAX_TTL_MS: f64 = 60_000.0;
+
+/// How many consecutive `command_timeout_ms` deadlines of TOTAL sensor silence
+/// escalate the non-latching staleness HOLD to a latched ESTOP. One missed
+/// deadline is a transient (HOLD); staying silent this many deadlines means the
+/// link is collapsed, which must de-energize to a latched safe state (a
+/// supervisor `reset` is then required). Fail-safe over-triggering (a spurious
+/// ESTOP on a long-but-recoverable dropout) is acceptable; failing OPEN — sitting
+/// in self-clearing HOLD on a dead link — is not.
+const LINK_LOSS_ESTOP_FACTOR: f64 = 20.0;
 
 #[derive(Clone, Debug, Default)]
 pub struct CommandWatchdog {
@@ -1072,6 +1120,66 @@ mod tests {
             assert!(
                 cv.data.iter().all(|c| *c == 0.0),
                 "{name} must be all zeros"
+            );
+        }
+    }
+
+    #[test]
+    fn total_silence_escalates_hold_to_latched_estop() {
+        // Default command_timeout_ms = 500 ms -> escalation deadline = 20 * 0.5 = 10 s.
+        let mut gov = SafetyGovernor::new(SafetyLimits::default());
+        let cmd = CommandFrame::default();
+        // A brief dropout (well under the deadline) is a non-latching HOLD.
+        let out = gov.govern(&cmd, None, 6.0, Some(1.0)); // 5 s silence
+        assert_eq!(out.mode, Mode::Hold, "a brief dropout HOLDs (non-latching)");
+        assert!(gov.safety_ok(), "a transient HOLD does not trip safety_ok");
+        assert!(!gov.is_estopped());
+        // Sustained total silence past the deadline latches ESTOP.
+        let out = gov.govern(&cmd, None, 12.0, Some(1.0)); // 11 s silence > 10 s
+        assert_eq!(out.mode, Mode::Estop, "a collapsed link must latch ESTOP");
+        assert!(gov.is_estopped(), "the ESTOP must latch");
+        // Latched: even fresh data now returns ESTOP until a supervisor reset.
+        let out = gov.govern(&cmd, None, 12.0, Some(12.0));
+        assert_eq!(out.mode, Mode::Estop, "ESTOP stays latched until reset");
+        gov.reset();
+        let out = gov.govern(&cmd, None, 12.0, Some(12.0));
+        assert_eq!(
+            out.mode,
+            Mode::Active,
+            "reset clears the latch when link is live"
+        );
+    }
+
+    #[test]
+    fn non_active_inbound_mode_holds() {
+        // A non-Active command must never actuate, even with a fresh sensor and
+        // an in-bounds setpoint (defense-in-depth with ActionBuffer's allowlist).
+        let mut gov = SafetyGovernor::new(SafetyLimits::default());
+        for mode in [Mode::Init, Mode::Hold, Mode::Estop] {
+            let cmd = CommandFrame {
+                mode,
+                channels: channels_with("velocity_setpoint", 1.0, "m/s"),
+                ..Default::default()
+            };
+            let out = gov.govern(&cmd, None, 1.0, Some(1.0));
+            assert_eq!(out.mode, Mode::Hold, "{mode:?} must normalize to HOLD");
+            let v = out.channels.get("velocity_setpoint").expect("present");
+            assert!(v.data.iter().all(|c| *c == 0.0), "HOLD zeroes the setpoint");
+        }
+    }
+
+    #[test]
+    fn bad_command_timeout_latches_config_fail_closed() {
+        for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+            let mut gov = SafetyGovernor::new(SafetyLimits {
+                command_timeout_ms: bad,
+                ..Default::default()
+            });
+            let out = gov.govern(&CommandFrame::default(), None, 1.0, Some(1.0));
+            assert_eq!(out.mode, Mode::Hold, "bad timeout {bad} must HOLD");
+            assert!(
+                !gov.safety_ok(),
+                "a bad command_timeout_ms ({bad}) must report safety_ok()=false, not a healthy HOLD"
             );
         }
     }

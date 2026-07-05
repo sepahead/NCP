@@ -260,7 +260,7 @@ A Zenodo DOI will be minted when the project is archived to Zenodo; until then, 
   author  = {Sepehr Mahmoudian},
   title   = {NCP — Neuro-Cybernetic Protocol},
   year    = {2026},
-  version = {0.5.2},
+  version = {0.5.3},
   url     = {https://github.com/sepahead/NCP}
 }
 ```

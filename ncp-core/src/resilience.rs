@@ -68,9 +68,10 @@ impl ActionBuffer {
     }
 
     /// The setpoint channels to apply at `now_s`, or `None` if the plant must fail
-    /// safe (HOLD): a latched ESTOP, no command, expired `ttl_ms`, an explicit
-    /// HOLD/ESTOP, or the predictive horizon has drained. `channels` is tick 0;
-    /// `horizon[i]` is tick i+1 at `horizon_dt_ms` spacing.
+    /// safe (HOLD): a latched ESTOP, no command, expired `ttl_ms`, any non-`Active`
+    /// mode (HOLD/ESTOP/INIT — or any mode added later), or the predictive horizon
+    /// has drained. `channels` is tick 0; `horizon[i]` is tick i+1 at
+    /// `horizon_dt_ms` spacing.
     pub fn active(&self, now_s: f64) -> Option<Map<ChannelValue>> {
         if self.estop {
             return None; // latched fail-safe
@@ -79,7 +80,12 @@ impl ActionBuffer {
             return None;
         }
         let cmd = self.latest.as_ref()?;
-        if matches!(cmd.mode, Mode::Hold | Mode::Estop) {
+        // ALLOWLIST, not denylist: only `Active` actuates. `Init` is the
+        // startup/handshake mode during which a plant must NOT drive, and a
+        // denylist (`Hold | Estop`) would also actuate on `Init` and on any Mode
+        // variant added later — a fail-OPEN default. Fail safe to HOLD on
+        // anything that is not explicitly `Active`.
+        if !matches!(cmd.mode, Mode::Active) {
             return None;
         }
         let dt = cmd.horizon_dt_ms.unwrap_or(0.0);

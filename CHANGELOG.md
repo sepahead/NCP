@@ -7,12 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-07-05
+
 Safety-governor and link-monitor hardening plus a documentation-accuracy pass —
 **no wire change**. `NCP_VERSION` stays `0.5` and `CONTRACT_HASH` stays
-`24e8e6e31e1dec8a`; every fix is local (fail-closed) behaviour, so no consumer
-re-pin is needed.
+`24e8e6e31e1dec8a`; every fix is local (fail-closed) behaviour. Same-`0.5` peers
+interoperate, so a re-pin is not strictly required — but it is how a consumer
+actually *receives* these safety fixes, so re-pinning is recommended.
 
-### Fixed
+### Fixed (additional safety hardening, this release)
+
+- **`ncp-core/src/resilience.rs` — `ActionBuffer::active` fail-OPEN on `mode=Init`.**
+  The actuation gate was a DENYLIST (`Hold | Estop` HOLD, everything else drives),
+  so an `Init` command — or any `Mode` variant added later — actuated by default.
+  It is now an ALLOWLIST: only `Active` drives; every other mode fails safe to HOLD.
+- **`ncp-core/src/safety.rs` — total link loss now escalates to latched ESTOP.**
+  The CUSUM jam burst (`note_link`) only fires on *arriving* gappy frames, so a
+  fully silent link sat in self-clearing HOLD forever. `govern` now escalates HOLD
+  → latched ESTOP once total sensor silence exceeds `LINK_LOSS_ESTOP_FACTOR` (20)
+  command-timeout deadlines (capped at `MAX_TTL_MS`), matching `note_link`'s stated
+  intent. Wire-invisible: derived from the existing `command_timeout_ms`.
+- **`ncp-core/src/safety.rs` — non-Active inbound mode normalized to HOLD.** The
+  governor now returns a zeroed HOLD for any non-`Active` inbound command (defense
+  in depth with the `ActionBuffer` allowlist), never forwarding an actuating
+  setpoint under a non-Active mode.
+- **`ncp-core/src/safety.rs` — bad `command_timeout_ms` now trips `config_fail_closed`.**
+  A non-finite / non-positive timeout already forced HOLD, but `safety_ok()` still
+  reported healthy; it now latches `config_fail_closed` so a misconfigured timeout
+  is reported rather than silently wedged in a "healthy" HOLD.
+- **`conformance/behavior/vectors.json`** gains cross-language govern vectors for the
+  new behaviours (`link_collapse_escalates_estop`, `init_mode_holds`) and retunes
+  `stale_sensor_holds` to a genuinely transient dropout — starting to close the
+  gap that the fail-closed hardening had no cross-language conformance coverage.
+- **`ncp-zenoh/examples/uav_drone_loop.rs`**: `% 10 == 0` → `.is_multiple_of(10)`
+  (clean under newer clippy; `is_multiple_of` is available at the 1.88 MSRV).
+
+### Fixed (from the prior hardening slice)
 
 - **`ncp-core/src/safety.rs`**: a non-finite or negative `SafetyLimits` value
   (`NaN`/`±Inf`/`< 0` for `geofence_radius_m` or `max_speed_mps`) no longer
