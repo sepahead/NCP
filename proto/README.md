@@ -65,7 +65,7 @@ JSON projection (`schemas/*.schema.json`) and any binary codec derive from this 
 ## The `ncp_version` axis
 
 Every message carries a `kind` string discriminator and an `ncp_version` string
-(currently `"0.5"`). Receivers check the **full** `ncp_version`: pre-1.0 the minor is
+(currently `"0.6"`). Receivers check the **full** `ncp_version`: pre-1.0 the minor is
 breaking, so an exact `(major, minor)` match is required and any `0.x` minor difference
 is fail-closed rejected — never coerced. Unknown fields are ignored on deserialize
 (additive forward-compatibility within a compatible wire version).
