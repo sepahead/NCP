@@ -52,10 +52,12 @@ logic fails CI here:
 - **Python** — `scripts/check_behavior_vectors.py` replays the identical corpus through
   the `ncp` PyO3 binding. It skips with exit 0 when the binding is not built (maturin is
   not yet in CI — see `ROADMAP.md`); the Rust/C++ halves gate regardless.
-- **TypeScript** — `ncp-ts/scripts/check-behavior.mjs` replays the subset the thin
-  client implements — `checkVersion`, `contractStatus`, and the scientific-boundary
-  discriminators — and fail-loud-lists `govern` + required-field `validate` as
-  out-of-scope (owned by the full peers). Gates in the `ts-dist` CI job.
+- **TypeScript** — `ncp-ts/scripts/check-behavior.mjs` now replays the **full `govern`
+  corpus** (via the new `safety.ts` port — `SafetyGovernor`/`CommandWatchdog`/`ActionBuffer`)
+  alongside `checkVersion`, `contractStatus`, and the scientific-boundary discriminators,
+  plus seq/ttl/latch self-checks; only the **required-field half of `validate`** stays
+  out-of-scope (the TS ingress gate is exercised in the self-checks via `assertWireFrame`).
+  Gates in the `ts-dist` CI job.
 
 Run the whole matrix with `scripts/check.sh` (it invokes `check_conformance_vectors.py`
 for the wire vectors and `check_behavior_vectors.py` for the behavioral corpus).

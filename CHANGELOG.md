@@ -7,6 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-06
+
+**Wire 0.6 — the enforcement cut.** A **breaking** release: `NCP_VERSION` moves
+`0.5 → 0.6`, so 0.5 and 0.6 peers fail closed against each other (pre-1.0 exact
+`(major, minor)`). The break is **semantic, with an unchanged serialization** —
+no proto field/type/encoding changed, so `CONTRACT_HASH` stays
+`24e8e6e31e1dec8a`; what changed is what a conforming peer MUST send and what
+receivers accept. Every pinned consumer re-pins to `v0.6.0` in lockstep.
+
+### Changed (identity)
+
+- **npm scope renamed `@sepehrmn/ncp` → `@sepahead/ncp`**, completing the
+  `sepahead` org rename. This supersedes the earlier "keep the old scope"
+  decision: the package is a git-tag import alias (never registry-published),
+  and 0.6.0 already re-pins every consumer in lockstep, so the rename rides the
+  same coordinated break at zero extra cost. Consumers update the dependency
+  key and their `from '@sepahead/ncp'` imports when re-pinning.
+
+### Changed (wire 0.6 — acceptance rules; breaking)
+
+- **`ncp_version` is mandatory and value-checked on EVERY message** (closes the
+  audited data-plane gap): `required_fields()` lists it for every `kind`,
+  `gen-schemas` injects it into every schema's `required` plus a `const` pin,
+  `validate()` rejects absent/incompatible versions, and an absent version now
+  deserializes to a detectable `""` (field-level serde default) instead of
+  silently defaulting to the receiver's own. Same for an absent `kind`.
+- **Closed-loop seq discipline is mandatory** (removes the `seq == 0`
+  always-accept escape hatch): `sensor_frame`/`command_frame` require a stamped,
+  strictly-increasing `seq >= 1`; `CommandWatchdog`/`ActionBuffer` never accept
+  `seq < 1` (an ESTOP still latches regardless — a fail-safe is never dropped);
+  the `NeuroControlLoop` treats an unstamped sensor as absent and consumes only
+  ACCEPTED frames (a replayed regression can no longer steer or be echoed).
+  **Restart recovery without a wire epoch field:** a strictly-LOWER seq
+  re-anchors a new stream epoch only once the stream has already expired; an
+  EQUAL seq never re-anchors (no duty-cycled liveness from a frozen/replayed
+  frame); the loop resets its `LinkMonitor` on an epoch re-anchor (new
+  `LinkMonitor::reset`).
+- **Observation-plane seq stamping is normative:** an `observation_frame`
+  PUBLISHED on the observation plane must echo the driving `SensorFrame.seq`
+  (`>= 1`; enforced by `ncp-zenoh::publish_observation`); `seq == 0` remains the
+  pull/RPC-reply form (`validate()` allows `>= 0` for the kind; negatives
+  reject).
+- **`SafetyGovernor` latches on an INBOUND ESTOP command** instead of
+  downgrading it to a non-latching HOLD — "a fail-safe is never dropped" now
+  holds at every layer (new `inbound_estop_latches` corpus vector, replayed by
+  all four language runners).
+
+### Added
+
+- **`ncp_core::WireFrame` + `decode_validated`** — the one-call typed data-plane
+  ingress (kind check + version gate + seq bound, no `serde_json::Value`
+  detour); wired into `ncp-zenoh`'s subscriber and publish gates
+  (`put_sensor*`, `publish_command*` — ESTOP always passes, `publish_observation`
+  — NCPB bulk blocks pass through). `ZenohNcpClient` RPC replies are now
+  `validate()`d; `ZenohControlTransport::send_command` refuses to publish a
+  wire-invalid frame (loud for Active, silent for the benign pre-first-sensor
+  HOLD; ESTOP always publishes).
+- **ncp-ts plant-side safety port** (`safety.ts`): `SafetyGovernor`,
+  `CommandWatchdog`, `ActionBuffer`, `maxHorizonLen`, `assertWireFrame` — the TS
+  peer now replays the FULL `govern` corpus (previously out-of-scope) plus
+  seq/ttl/latch self-checks in `check-behavior.mjs`; the client hard-gates every
+  reply's `ncp_version`.
+- **Persistent (latching) governors in the bindings** — `ncp.Governor` (Python
+  class) and `ncp_governor_new/govern/reset/is_estopped/note_link/safety_ok/free`
+  (C ABI): the ESTOP latch survives across calls, which the one-shot
+  `govern`/`ncp_govern` wrappers cannot provide by construction (they remain for
+  stateless/corpus use, now documented as such). Latch regression tests in both
+  bindings + the C++ demo.
+- **`conformance/baseline/v0.6.0/`** — the frozen wire-0.6 baseline
+  (`check_wire_baseline.py --freeze`).
+- New behavior-corpus vectors: mandatory-version + seq-bound `validate` cases,
+  wire-flip `check_version` cases, and `inbound_estop_latches` (govern).
+
+### Fixed
+
+- `diagnose_version` now flags an ABSENT or non-string `ncp_version` instead of
+  returning `None` (the data plane can log why a version-less frame was
+  dropped).
+- The `ncp_validate` (C ABI) / `ncp.validate` (Python) canonical output now
+  round-trips the kind-injected document, so an omitted-`kind` input yields the
+  declared kind instead of a fabricated or empty one.
+- Two golden vectors (`run_request.json`, `step_request.json`) carried a stale
+  nested `"ncp_version": "0.2"` — now `0.6` like the rest of the corpus.
+- Stale `"0.4"` version example in the `ncp_version()` C-ABI doc comment.
+
+### Migration (consumers)
+
+Re-pin to `tag = "v0.6.0"`, then: stamp `seq` starting at 1 on every published
+`sensor_frame` (strictly increasing per stream), echo it on `command_frame`,
+carry `ncp_version` on every message (SDK constructors do this), and stamp
+`ObservationFrame.seq = driving sensor seq` when publishing on the observation
+plane. Receivers: decode via `decode_validated` (Rust), `assertWireFrame` (TS),
+`validate` (Python/C ABI). Unknown `kind`s on glob subscriptions should be
+skipped before validation (additive kinds remain non-breaking). Onboarding a
+NEW consumer still requires zero NCP-repo changes: pin the tag, stamp/echo seq,
+carry the version, and drop a `.ncp-consumer` descriptor in YOUR repo.
+
 ## [0.5.3] - 2026-07-05
 
 Safety-governor and link-monitor hardening plus a documentation-accuracy pass —
@@ -834,6 +931,7 @@ version guard, so peers must speak `0.2`.
   the dependabot dependency PRs.
 
 [Unreleased]: https://github.com/sepahead/NCP/compare/v0.5.2...HEAD
+[0.6.0]: https://github.com/sepahead/NCP/compare/v0.5.3...v0.6.0
 [0.5.2]: https://github.com/sepahead/NCP/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/sepahead/NCP/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/sepahead/NCP/compare/v0.4.4...v0.5.0

@@ -3,6 +3,11 @@ import type { ChannelValue } from "./ChannelValue";
  * Plant → controller: the latest sensed state. Carries `seq`/`t` so a command
  * can be stamped with the sensor it was computed from (the correspondence the
  * split perception/action planes must preserve — join on `seq`, not arrival).
+ *
+ * Wire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly
+ * increasing per stream. `seq = 0` is "unstamped" — receivers drop it (it is
+ * also the serde default, so a default-constructed frame is not wire-legal
+ * until stamped).
  */
 export type SensorFrame = {
     ncp_version: string;

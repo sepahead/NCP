@@ -189,7 +189,7 @@ jobs:
         uses: actions/checkout@v7
       - name: Install bun
         uses: oven-sh/setup-bun@v2
-      # The published @sepehrmn/ncp package ships the prebuilt ncp-ts/dist (it is
+      # The published @sepahead/ncp package ships the prebuilt ncp-ts/dist (it is
       # git-tracked). Rebuild it from source and fail if it drifts from what was
       # committed — so a source change (e.g. a wire-version bump) that wasn't
       # rebuilt into dist cannot ship a stale artifact. typescript is pinned in

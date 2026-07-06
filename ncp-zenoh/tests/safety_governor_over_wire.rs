@@ -152,7 +152,12 @@ async fn spawn_plant(server: &ZenohBus, state: Arc<Mutex<PlantState>>) {
             };
             let bus = pub_bus.clone();
             handle.spawn(async move {
-                let _ = bus.publish_observation(SID, &out).await;
+                // Test-rig read-back of the governed COMMAND on the reliable
+                // observation key: use the raw `put` escape hatch deliberately —
+                // `publish_observation` (correctly) refuses non-observation kinds
+                // under the wire-0.6 plane gates.
+                let key = bus.keys().observation(SID);
+                let _ = bus.put(&key, &out, ncp_zenoh::Plane::Control).await;
             });
         })
         .await
@@ -174,6 +179,11 @@ async fn govern_over_wire(
     let seq = SEQ.fetch_add(1, Ordering::Relaxed);
     command.seq = seq;
     sensor.seq = seq;
+    // The corpus inputs are BEHAVIORAL fixtures (partial frames); wire-legality
+    // stamping is this rig's job — wire 0.6 publish gates require a compatible
+    // ncp_version (a partial frame deserializes to a detectable "").
+    command.ncp_version = ncp_core::NCP_VERSION.to_string();
+    sensor.ncp_version = ncp_core::NCP_VERSION.to_string();
     let sbytes = serde_json::to_vec(&sensor).unwrap();
     let cbytes = serde_json::to_vec(&command).unwrap();
 

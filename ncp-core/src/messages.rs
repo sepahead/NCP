@@ -23,10 +23,39 @@ use std::collections::BTreeMap;
 /// Protocol version (semver). While pre-1.0 (`0.x`) receivers check the full
 /// `(major, minor)`; once `>=1.0` they check the **major** only. See
 /// [`check_version`].
-pub const NCP_VERSION: &str = "0.5";
+///
+/// Wire `0.6` is a **semantic** break with an unchanged serialization: every
+/// message MUST carry `ncp_version` (an absent version no longer defaults to the
+/// receiver's own — it deserializes to `""` and is rejected), and the closed-loop
+/// frames MUST stamp `seq` (`sensor_frame`/`command_frame` `seq >= 1`, strictly
+/// increasing per stream; `observation_frame` `seq >= 1` when published on the
+/// perception/observation plane, `0` only in the pull/RPC reply path). The proto
+/// structure is unchanged, so [`CONTRACT_HASH`] is identical to wire `0.5` — the
+/// version string, not the hash, gates compatibility (see `VERSIONING.md`).
+pub const NCP_VERSION: &str = "0.6";
 
 fn ncp_version() -> String {
     NCP_VERSION.to_string()
+}
+
+/// Deserialize-side default for every `ncp_version` field (wire 0.6): a frame that
+/// OMITS `ncp_version` deserializes to `""` — detectably invalid under
+/// [`validate`]/[`check_version`] — instead of being silently fabricated as the
+/// receiver's own version (the pre-0.6 behaviour, where the container-level
+/// `#[serde(default)]` filled it from `Default::default()`). Programmatic
+/// construction (`..Default::default()` / the `new` helpers) still stamps
+/// [`NCP_VERSION`].
+fn missing_version() -> String {
+    String::new()
+}
+
+/// Deserialize-side default for every message-envelope `kind` field, mirroring
+/// [`missing_version`]: a frame that omits `kind` deserializes to `""` instead of
+/// the container default (which would fabricate the *correct* discriminator for a
+/// frame that never declared one), so [`decode_validated`] and the RPC reply gate
+/// can reject it. Programmatic construction still stamps the right `kind`.
+fn missing_kind() -> String {
+    String::new()
 }
 
 /// A JSON object map (`{string: T}`); `BTreeMap` for deterministic ordering.
@@ -428,7 +457,9 @@ impl Default for SimProvenance {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct OpenSession {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub network: NetworkRef,
@@ -465,7 +496,9 @@ impl Default for OpenSession {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SessionOpened {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub ok: bool,
@@ -502,7 +535,9 @@ impl Default for SessionOpened {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct StimulusFrame {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub t: f64,
@@ -527,7 +562,9 @@ impl Default for StimulusFrame {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct StepRequest {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub advance_ms: Option<f64>,
@@ -552,7 +589,9 @@ impl Default for StepRequest {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct RunRequest {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub duration_ms: f64,
@@ -596,12 +635,16 @@ pub struct Observation {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct ObservationFrame {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
-    /// Echoes the driving `SensorFrame.seq` when published inside a closed loop,
-    /// so a split-plane observer can align `(V,L,D,A)` on `seq` (not arrival
-    /// time). `0` in the pure pull/sim-service path (no controller seq).
+    /// Wire 0.6 (normative): a frame **published on the observation plane** MUST
+    /// echo the driving `SensorFrame.seq` (`>= 1`), so a split-plane observer can
+    /// align `(V,L,D,A)` on `seq` (not arrival time) — an unstamped plane frame
+    /// forces observers into a degraded recency-only join. `0` is reserved for
+    /// the pure pull/sim-service RPC reply path (no controller seq exists there).
     pub seq: i64,
     pub t: f64,
     pub sim_time_ms: f64,
@@ -631,7 +674,9 @@ impl Default for ObservationFrame {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct CloseSession {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
 }
@@ -651,7 +696,9 @@ impl Default for CloseSession {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SessionClosed {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub ok: bool,
@@ -729,7 +776,9 @@ impl Default for SafetyLimits {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct Capabilities {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub controller_id: String,
     pub role: Role,
@@ -759,12 +808,19 @@ impl Default for Capabilities {
 /// Plant → controller: the latest sensed state. Carries `seq`/`t` so a command
 /// can be stamped with the sensor it was computed from (the correspondence the
 /// split perception/action planes must preserve — join on `seq`, not arrival).
+///
+/// Wire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly
+/// increasing per stream. `seq = 0` is "unstamped" — receivers drop it (it is
+/// also the serde default, so a default-constructed frame is not wire-legal
+/// until stamped).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct SensorFrame {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub seq: i64,
     pub t: f64,
@@ -786,13 +842,22 @@ impl Default for SensorFrame {
 }
 
 /// Controller → plant: the proposed actuation, with `mode`/`ttl_ms` safety
-/// metadata. `seq` should echo the originating `SensorFrame.seq`.
+/// metadata.
+///
+/// Wire 0.6 (normative): `seq` MUST echo the originating `SensorFrame.seq`
+/// (`>= 1`, strictly increasing per stream) — the split-plane V↔A join depends
+/// on it, and the plant's anti-replay/anti-stale layers (`ActionBuffer` /
+/// `CommandWatchdog`) reject `seq < 1` outright: the pre-0.6 "`seq == 0` always
+/// accepted" escape hatch is REMOVED (it let a default-constructed or all-zeros
+/// frame refresh liveness and bypass replay rejection on the action plane).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct CommandFrame {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub seq: i64,
     pub t: f64,
@@ -843,7 +908,9 @@ impl Default for CommandFrame {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct ControlStatus {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub seq: i64,
     pub t: f64,
@@ -878,7 +945,9 @@ impl Default for ControlStatus {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct LinkStatus {
+    #[serde(default = "missing_version")]
     pub ncp_version: String,
+    #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
     pub t: f64,
@@ -1195,14 +1264,131 @@ pub fn negotiate(
     Ok(contract_status(peer_contract_hash))
 }
 
-/// Best-effort version diagnostic for a raw inbound frame. If it carries an
-/// `ncp_version` incompatible with ours, return the typed error so a receiver can
-/// log WHY a frame was dropped — the data plane otherwise drops silently. Returns
-/// `None` when the frame is compatible, carries no version, or is unparseable.
+/// Best-effort version diagnostic for a raw inbound frame, so a receiver can log
+/// WHY a frame was dropped — the data plane otherwise drops silently. Returns
+/// `Some(err)` when the frame carries an incompatible `ncp_version`, a non-string
+/// one, or (since wire 0.6, where the version is mandatory) none at all; `None`
+/// when the frame is compatible or is not parseable JSON (nothing to diagnose).
 pub fn diagnose_version(bytes: &[u8]) -> Option<NcpVersionError> {
     let v: serde_json::Value = serde_json::from_slice(bytes).ok()?;
-    let ver = v.get("ncp_version")?.as_str()?;
+    let Some(field) = v.get("ncp_version") else {
+        return Some(NcpVersionError(
+            "frame carries no ncp_version (mandatory since wire 0.6)".into(),
+        ));
+    };
+    let Some(ver) = field.as_str() else {
+        return Some(NcpVersionError(format!(
+            "ncp_version must be a string, got {field}"
+        )));
+    };
     check_version(ver, true).err()
+}
+
+/// Typed hot-path wire acceptance for the closed-loop data-plane frames
+/// (`SensorFrame` / `CommandFrame` / `ObservationFrame`).
+///
+/// The data planes run at 20–1000 Hz, so ingress acceptance works on the
+/// already-deserialized typed frame — one parse, no `serde_json::Value` detour:
+/// an absent `ncp_version`/`kind` deserializes to `""` (see [`missing_version`])
+/// and is rejected here, never fabricated. Prefer [`decode_validated`], which
+/// combines parse + `kind` check + [`validate_wire`](WireFrame::validate_wire).
+///
+/// A receiver DROPS a rejected frame (log the error; never actuate on it). The
+/// safety layers ([`crate::resilience::ActionBuffer`] /
+/// [`crate::safety::CommandWatchdog`]) independently reject `seq < 1`, so a
+/// bypassed ingress still cannot refresh liveness — defense in depth, not a
+/// substitute for this gate.
+pub trait WireFrame: serde::de::DeserializeOwned {
+    /// The `kind` discriminator this type carries on the wire.
+    const KIND: &'static str;
+    /// Minimum wire-legal `seq` for this kind (see [`validate`]'s seq bounds).
+    const MIN_SEQ: i64;
+    fn wire_kind(&self) -> &str;
+    fn wire_version(&self) -> &str;
+    fn wire_seq(&self) -> i64;
+
+    /// Accept/reject this frame at a data-plane ingress: the carried version must
+    /// be compatible ([`check_version`], fail-closed — `""` from an absent field
+    /// is rejected as unparseable) and `seq` must meet the wire bound.
+    fn validate_wire(&self) -> Result<(), ValidationError> {
+        check_version(self.wire_version(), true).map_err(|e| {
+            ValidationError(format!("{}: incompatible ncp_version: {e}", Self::KIND))
+        })?;
+        if self.wire_seq() < Self::MIN_SEQ {
+            return Err(ValidationError(format!(
+                "{}: seq {} < {} (wire 0.6 requires a stamped, strictly-increasing seq)",
+                Self::KIND,
+                self.wire_seq(),
+                Self::MIN_SEQ
+            )));
+        }
+        Ok(())
+    }
+}
+
+impl WireFrame for SensorFrame {
+    const KIND: &'static str = "sensor_frame";
+    const MIN_SEQ: i64 = 1;
+    fn wire_kind(&self) -> &str {
+        &self.kind
+    }
+    fn wire_version(&self) -> &str {
+        &self.ncp_version
+    }
+    fn wire_seq(&self) -> i64 {
+        self.seq
+    }
+}
+
+impl WireFrame for CommandFrame {
+    const KIND: &'static str = "command_frame";
+    const MIN_SEQ: i64 = 1;
+    fn wire_kind(&self) -> &str {
+        &self.kind
+    }
+    fn wire_version(&self) -> &str {
+        &self.ncp_version
+    }
+    fn wire_seq(&self) -> i64 {
+        self.seq
+    }
+}
+
+impl WireFrame for ObservationFrame {
+    /// `MIN_SEQ = 0`: the pull/RPC reply path legitimately carries `seq == 0`. A
+    /// frame *published on the observation plane* must echo the driving
+    /// `SensorFrame.seq >= 1`; plane-aware publishers enforce that at publish
+    /// time, and observers treat a plane `seq == 0` as a degraded (recency-only)
+    /// join, never an exact one.
+    const KIND: &'static str = "observation_frame";
+    const MIN_SEQ: i64 = 0;
+    fn wire_kind(&self) -> &str {
+        &self.kind
+    }
+    fn wire_version(&self) -> &str {
+        &self.ncp_version
+    }
+    fn wire_seq(&self) -> i64 {
+        self.seq
+    }
+}
+
+/// Parse + accept a data-plane frame in one call: typed `serde_json` decode, then
+/// a `kind` check (a misrouted or kind-less frame is rejected, not silently
+/// decoded into an all-default value), then [`WireFrame::validate_wire`]. This is
+/// the ingress every data-plane subscriber should run before acting on a frame.
+pub fn decode_validated<T: WireFrame>(bytes: &[u8]) -> Result<T, ValidationError> {
+    let frame: T = serde_json::from_slice(bytes)
+        .map_err(|e| ValidationError(format!("{}: unparseable frame: {e}", T::KIND)))?;
+    if frame.wire_kind() != T::KIND {
+        return Err(ValidationError(format!(
+            "kind mismatch: expected {:?}, got {:?}",
+            T::KIND,
+            frame.wire_kind()
+        )));
+    }
+    frame.validate_wire()?;
+    Ok(frame)
 }
 
 /// Read the `kind` discriminator off any NCP JSON (for client reply dispatch).
@@ -1214,25 +1400,48 @@ pub fn message_kind(json: &serde_json::Value) -> Option<&str> {
 /// contract (`validate()` enforces these). The serde types default every field
 /// (struct-level `#[serde(default)]`), so this, not the serde derive, is the source
 /// of truth for what a peer MUST send; `gen-schemas` injects these into each
-/// schema's `required` array. Kinds with no required fields return `[]`; an unknown
-/// `kind` returns `None`.
+/// schema's `required` array. Kinds with no further required fields return just
+/// the universal ones; an unknown `kind` returns `None`.
+///
+/// Wire 0.6: **every** kind requires `ncp_version` (the spec's "every message
+/// carries `ncp_version`" is now enforced, closing the data-plane gap), and the
+/// closed-loop frames require `seq` (`sensor_frame`/`command_frame` must stamp a
+/// strictly-positive, strictly-increasing `seq`; `observation_frame` must carry
+/// the key — `0` is reserved for the pull/RPC reply path). Value-level checks
+/// (version compatibility, `seq` bounds) live in [`validate`] and
+/// [`WireFrame::validate_wire`].
 pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
     Some(match kind {
-        "capabilities" => &["controller_id"],
-        "close_session" => &["session_id"],
-        "command_frame" => &[],
-        "control_status" => &[],
-        "link_status" => &[],
-        "observation_frame" => &["session_id"],
-        "open_session" => &["session_id", "network"],
-        "run_request" => &["session_id", "duration_ms"],
-        "sensor_frame" => &[],
-        "session_closed" => &["session_id"],
-        "session_opened" => &["session_id"],
-        "step_request" => &["session_id"],
-        "stimulus_frame" => &["session_id"],
+        "capabilities" => &["controller_id", "ncp_version"],
+        "close_session" => &["ncp_version", "session_id"],
+        "command_frame" => &["ncp_version", "seq"],
+        "control_status" => &["ncp_version"],
+        "link_status" => &["ncp_version"],
+        "observation_frame" => &["ncp_version", "seq", "session_id"],
+        "open_session" => &["ncp_version", "network", "session_id"],
+        "run_request" => &["duration_ms", "ncp_version", "session_id"],
+        "sensor_frame" => &["ncp_version", "seq"],
+        "session_closed" => &["ncp_version", "session_id"],
+        "session_opened" => &["ncp_version", "session_id"],
+        "step_request" => &["ncp_version", "session_id"],
+        "stimulus_frame" => &["ncp_version", "session_id"],
         _ => return None,
     })
+}
+
+/// Minimum wire-legal `seq` for a `kind`, when that kind carries seq discipline:
+/// `sensor_frame`/`command_frame` must stamp `seq >= 1` (strictly increasing per
+/// stream — `0`/negative is unstamped/invalid and receivers drop it);
+/// `observation_frame` allows `seq == 0` **only** for the pull/RPC reply path (a
+/// frame *published on the observation plane* must echo the driving
+/// `SensorFrame.seq >= 1` — see `NEURO_CYBERNETIC_PROTOCOL.md`). Kinds whose `seq`
+/// is free-running telemetry (`control_status`) or absent return `None`.
+fn min_seq(kind: &str) -> Option<i64> {
+    match kind {
+        "sensor_frame" | "command_frame" => Some(1),
+        "observation_frame" => Some(0),
+        _ => None,
+    }
 }
 
 /// Validation failure: either the JSON is structurally unusable, the `kind` is
@@ -1259,7 +1468,12 @@ impl std::error::Error for ValidationError {}
 ///
 ///   - the payload must be a JSON object,
 ///   - it must carry a known `kind`,
-///   - every schema-required field for that `kind` must be present.
+///   - every schema-required field for that `kind` must be present,
+///   - (wire 0.6) `ncp_version` must be **compatible** ([`check_version`], exact
+///     `(major, minor)` pre-1.0) — an absent or incompatible version is rejected,
+///     never coerced to the receiver's own,
+///   - (wire 0.6) `seq` bounds: `sensor_frame`/`command_frame` require an integer
+///     `seq >= 1`; `observation_frame` requires an integer `seq >= 0`.
 ///
 /// Unknown extra fields are still accepted (forward compatibility within a
 /// compatible version), so this stays wire-safe.
@@ -1275,6 +1489,30 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
         if !obj.contains_key(*field) {
             return Err(ValidationError(format!(
                 "{kind}: required field {field:?} is missing"
+            )));
+        }
+    }
+    // Version-value gate (wire 0.6): presence alone is not enough — the carried
+    // version must be compatible, or an incompatible-but-parseable frame would
+    // still be accepted (the audited data-plane gap). Fail closed, never coerce.
+    let ver = obj
+        .get("ncp_version")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ValidationError(format!("{kind}: `ncp_version` must be a string")))?;
+    check_version(ver, true)
+        .map_err(|e| ValidationError(format!("{kind}: incompatible ncp_version: {e}")))?;
+    // Seq bounds (wire 0.6): the closed-loop frames must stamp seq. A non-integer
+    // or out-of-range seq is rejected here so the anti-replay/anti-stale layers
+    // (`ActionBuffer`/`CommandWatchdog`) never see an unstamped frame.
+    if let Some(min) = min_seq(kind) {
+        let seq = obj
+            .get("seq")
+            .and_then(|v| v.as_i64())
+            .ok_or_else(|| ValidationError(format!("{kind}: `seq` must be an integer")))?;
+        if seq < min {
+            return Err(ValidationError(format!(
+                "{kind}: seq {seq} < {min} (wire 0.6 requires a stamped, strictly-increasing \
+                 seq on closed-loop frames; 0 is reserved for the observation pull path)"
             )));
         }
     }
@@ -1393,24 +1631,30 @@ mod tests {
     fn check_version_rejects_malformed_minor_no_coercion() {
         // core-wire-1: a present-but-garbage minor or a trailing component must
         // REJECT (Err in strict mode), never silently coerce to minor 0. Tested
-        // here against the live "0.5": none of these may parse to (0, 5).
+        // here against the live "0.6": none of these may parse to (0, 6).
         for bad in [
             "0.GARBAGE",
-            "0.5.1",
-            "0.5x",
+            "0.6.1",
+            "0.6x",
             "0.",
-            "0.5.0",
-            "x.5",
+            "0.6.0",
+            "x.6",
             "0.0.0.0",
+            "", // an ABSENT ncp_version deserializes to "" — must reject, never coerce
         ] {
             assert!(
                 check_version(bad, true).is_err(),
                 "malformed version {bad:?} must be rejected, not coerced"
             );
         }
-        // Exact match passes; a missing minor means 0 and so mismatches 0.5.
-        assert_eq!(check_version("0.5", true), Ok(true));
-        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,5)");
+        // Exact match passes; a missing minor means 0 and so mismatches 0.6; the
+        // previous wire 0.5 is a breaking minor difference.
+        assert_eq!(check_version("0.6", true), Ok(true));
+        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,6)");
+        assert!(
+            check_version("0.5", true).is_err(),
+            "previous wire 0.5 is incompatible"
+        );
         // Non-strict mode surfaces the same rejection as Ok(false), not a coerced pass.
         assert_eq!(check_version("0.1", false), Ok(false));
     }
@@ -1565,14 +1809,120 @@ mod tests {
     }
 
     #[test]
-    fn diagnose_version_flags_mismatch() {
+    fn diagnose_version_flags_mismatch_and_absence() {
         // Compatible frame -> None; an incompatible version -> Some(err).
         let ok = format!(r#"{{"kind":"sensor_frame","ncp_version":"{NCP_VERSION}"}}"#);
         assert!(diagnose_version(ok.as_bytes()).is_none());
         assert!(diagnose_version(br#"{"kind":"sensor_frame","ncp_version":"0.1"}"#).is_some());
-        // No version / unparseable -> None (best-effort, never panics).
-        assert!(diagnose_version(br#"{"kind":"sensor_frame"}"#).is_none());
+        // Wire 0.6: an ABSENT or non-string version is itself diagnosable (the
+        // version is mandatory) — no longer a silent None.
+        assert!(diagnose_version(br#"{"kind":"sensor_frame"}"#).is_some());
+        assert!(diagnose_version(br#"{"kind":"sensor_frame","ncp_version":6}"#).is_some());
+        // Unparseable JSON -> None (nothing to diagnose; best-effort, never panics).
         assert!(diagnose_version(b"not json").is_none());
+    }
+
+    #[test]
+    fn absent_version_and_kind_deserialize_detectably_empty() {
+        // Wire 0.6: the deserialize-side defaults for `ncp_version`/`kind` are ""
+        // (field-level `missing_version`/`missing_kind`), NOT the receiver's own
+        // constants — an unversioned/kind-less frame must be detectable, never
+        // fabricated into a compliant-looking one.
+        let sf: SensorFrame = serde_json::from_str(r#"{"seq":1}"#).unwrap();
+        assert_eq!(
+            sf.ncp_version, "",
+            "absent ncp_version must NOT default to ours"
+        );
+        assert_eq!(
+            sf.kind, "",
+            "absent kind must NOT default to the correct discriminator"
+        );
+        // Programmatic construction still stamps both.
+        let d = SensorFrame::default();
+        assert_eq!(d.ncp_version, NCP_VERSION);
+        assert_eq!(d.kind, "sensor_frame");
+    }
+
+    #[test]
+    fn validate_enforces_version_value_and_seq_bounds() {
+        let v = |s: &str| serde_json::from_str::<serde_json::Value>(s).unwrap();
+        // A fully-stamped 0.6 command frame passes.
+        let good = format!(r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":1}}"#);
+        assert!(validate(&v(&good)).is_ok());
+        // Missing version -> rejected (required key).
+        assert!(validate(&v(r#"{"kind":"command_frame","seq":1}"#)).is_err());
+        // Present-but-incompatible version -> rejected (value gate, the audited
+        // "incompatible-but-parseable frames are accepted" hole).
+        assert!(
+            validate(&v(
+                r#"{"kind":"command_frame","ncp_version":"0.5","seq":1}"#
+            ))
+            .is_err(),
+            "wire 0.5 frames must be rejected by a 0.6 validator"
+        );
+        // Unstamped / negative / non-integer seq -> rejected on the action plane.
+        for bad_seq in [r#"0"#, r#"-3"#, r#"1.5"#, r#""1""#] {
+            let f = format!(
+                r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":{bad_seq}}}"#
+            );
+            assert!(validate(&v(&f)).is_err(), "seq {bad_seq} must be rejected");
+        }
+        // sensor_frame mirrors command_frame; observation_frame allows seq 0 (pull
+        // path) but not negatives, and still requires session_id + version.
+        let sf = format!(r#"{{"kind":"sensor_frame","ncp_version":"{NCP_VERSION}","seq":0}}"#);
+        assert!(
+            validate(&v(&sf)).is_err(),
+            "sensor seq 0 is unstamped -> reject"
+        );
+        let obs0 = format!(
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":0}}"#
+        );
+        assert!(
+            validate(&v(&obs0)).is_ok(),
+            "observation seq 0 = pull path, legal"
+        );
+        let obs_neg = format!(
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":-1}}"#
+        );
+        assert!(
+            validate(&v(&obs_neg)).is_err(),
+            "negative observation seq -> reject"
+        );
+    }
+
+    #[test]
+    fn decode_validated_gates_kind_version_and_seq() {
+        let ok = format!(
+            r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":3,"mode":"active"}}"#
+        );
+        let cmd: CommandFrame = decode_validated(ok.as_bytes()).expect("valid frame decodes");
+        assert_eq!(cmd.seq, 3);
+        // Kind-less frames no longer decode into a compliant-looking default.
+        let kindless = format!(r#"{{"ncp_version":"{NCP_VERSION}","seq":3}}"#);
+        assert!(decode_validated::<CommandFrame>(kindless.as_bytes()).is_err());
+        // A misrouted frame (observation JSON on the command plane) is rejected.
+        let misrouted = format!(
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":3}}"#
+        );
+        assert!(decode_validated::<CommandFrame>(misrouted.as_bytes()).is_err());
+        // Version-less / stale-wire / unstamped frames are rejected.
+        assert!(decode_validated::<CommandFrame>(br#"{"kind":"command_frame","seq":3}"#).is_err());
+        assert!(decode_validated::<CommandFrame>(
+            br#"{"kind":"command_frame","ncp_version":"0.5","seq":3}"#
+        )
+        .is_err());
+        let unstamped =
+            format!(r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":0}}"#);
+        assert!(decode_validated::<CommandFrame>(unstamped.as_bytes()).is_err());
+        // ObservationFrame: seq 0 decodes (pull path), negative does not.
+        let obs = format!(
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":0}}"#
+        );
+        assert!(decode_validated::<ObservationFrame>(obs.as_bytes()).is_ok());
+        let neg = format!(
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":-9}}"#
+        );
+        assert!(decode_validated::<ObservationFrame>(neg.as_bytes()).is_err());
     }
 
     #[test]

@@ -189,6 +189,17 @@ The two reference peers exercise the **two ends of the same wire**: Engram *comm
 Both pin NCP by tag and add zero code to each other. This section walks the real flow
 each one implements, so you can copy the shape for your own commander or observer.
 
+> **Wire 0.6 requirements (both ends).** Pin `tag = "v0.6.0"`, and on the wire: every
+> message carries a compatible `ncp_version` (an absent or mismatched version is
+> rejected, not defaulted); a `sensor_frame`/`command_frame` stamps `seq >= 1`, strictly
+> increasing per stream, with each `command_frame` echoing the driving `sensor_frame.seq`;
+> and an `observation_frame` **published on the observation plane** echoes that same
+> driving `SensorFrame.seq` (`seq == 0` is only the pull/RPC-reply form). A glob
+> subscriber skips a `kind` it does not recognize *before* validating, so additive kinds
+> stay non-breaking. Onboarding a new consumer still needs **zero NCP-repo changes** — pin
+> the tag, stamp/echo `seq`, carry the version, and drop a `.ncp-consumer` descriptor in
+> your own repo (see [Registering a consumer](#registering-a-consumer-zero-ncp-repo-changes)).
+
 ```text
                  engram/ncp/rpc  (queryable, Open/Step/Run/Close)
    ┌────────────┐  ───────────────────────────►  ┌──────────────────────────┐
@@ -264,7 +275,7 @@ for the data plane — same wire, no gateway.
 Prisoma is a **read-only** tap: it opens the *same realm*, subscribes to the three
 data-plane keys, and turns each closed-loop tick into a `(V,L,D,A)` sample for its
 Partial Information Decomposition — **it publishes nothing on the action plane.** Its
-`ncp-observer` crate is a NCP consumer (pinned `tag = "v0.5.2"`) built entirely on
+`ncp-observer` crate is a NCP consumer (pinned `tag = "v0.6.0"`) built entirely on
 `ncp_core` + `ncp_zenoh`:
 
 ```rust
@@ -314,8 +325,10 @@ observer.lock().unwrap_or_else(|p| p.into_inner())
 The correctness rule is the **`seq` join**: a `CommandFrame.seq` echoes the
 `SensorFrame.seq` it was computed from, so a sample pairs the action with the sensor
 that produced it — never by arrival time (the perception plane's DROP QoS would
-corrupt that). `ObservationFrame.seq` lets D align the same way, falling back to the
-most-recent readout only when an observation arrives unstamped. Prisoma stamps honest
+corrupt that). `ObservationFrame.seq` lets D align the same way; as of wire 0.6 a
+conforming publisher always stamps it on the observation plane (echoing the driving
+`SensorFrame.seq`), so the fall-back to the most-recent readout covers only a
+non-conforming or legacy producer. Prisoma stamps honest
 per-sample provenance (`l_source`, `d_source`) so a degenerate axis is never presented
 as real data. The whole tap is `ncp-observe`:
 

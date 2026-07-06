@@ -26,7 +26,10 @@ pub struct ActionBuffer {
     /// A plain HOLD command stays non-latching (it self-clears on the next Active).
     estop: bool,
     /// Highest accepted command `seq`, for monotonic-forward acceptance (drop
-    /// stale/duplicate/reordered frames). `0` is the all-zero-seq escape hatch.
+    /// stale/duplicate/reordered frames). Wire 0.6: `seq >= 1` is mandatory —
+    /// `seq < 1` is never accepted (no escape hatch); a non-advancing seq is
+    /// accepted only once the stream has EXPIRED (restart re-anchor, mirroring
+    /// [`CommandWatchdog::on_command`]).
     last_seq: i64,
 }
 
@@ -36,22 +39,33 @@ impl ActionBuffer {
     }
 
     /// Ingest a command accepted at local time `now_s`. A stale/duplicate/reordered
-    /// command (`seq <=` the last accepted) is DROPPED — a replayed older horizon
-    /// must not overwrite a newer one or rewind the replay clock (`recv_s`) /
-    /// refresh the deadline. `seq == 0` is the all-zero-seq escape hatch (pull/sim
-    /// streams). An ESTOP latches regardless of ordering — a fail-safe is never
-    /// dropped.
+    /// command (`seq <=` the last accepted) is DROPPED while the stream is live — a
+    /// replayed older horizon must not overwrite a newer one or rewind the replay
+    /// clock (`recv_s`) / refresh the deadline. An ESTOP latches regardless of
+    /// ordering or stamping — a fail-safe is never dropped.
+    ///
+    /// Wire 0.6: `seq < 1` (unstamped/negative, including the `0` serde default)
+    /// is NEVER accepted — the pre-0.6 "`seq == 0` always advances" escape hatch
+    /// let a default-constructed/hostile frame bypass replay rejection and refresh
+    /// the deadline. A *strictly-lower* `seq >= 1` is accepted only once the
+    /// stream has EXPIRED (`should_hold` true — the plant is already safely
+    /// holding): that re-anchors a legitimately restarted controller's fresh epoch
+    /// without a wire epoch field. An *equal* `seq` never re-anchors (a
+    /// frozen/replayed frame must not duty-cycle liveness across expiry windows).
+    /// Mirrors [`CommandWatchdog::on_command`].
     pub fn on_command(&mut self, now_s: f64, command: CommandFrame) {
         if command.mode == Mode::Estop {
-            self.estop = true; // latch even if the frame is stale/out-of-order
+            self.estop = true; // latch even if the frame is stale/out-of-order/unstamped
         }
-        let advancing = command.seq == 0 || command.seq > self.last_seq;
-        if !advancing {
-            return; // stale/duplicate/reordered frame (ESTOP already latched above)
+        if command.seq < 1 {
+            return; // unstamped/invalid seq: never buffered (ESTOP latched above)
         }
-        if command.seq != 0 {
-            self.last_seq = command.seq;
+        if command.seq <= self.last_seq
+            && (command.seq == self.last_seq || !self.watchdog.should_hold(now_s))
+        {
+            return; // duplicate (always), or stale/reordered while LIVE (ESTOP latched above)
         }
+        self.last_seq = command.seq;
         self.watchdog.on_command(now_s, command.ttl_ms, command.seq);
         self.recv_s = now_s;
         self.latest = Some(command);
@@ -182,6 +196,18 @@ impl LinkMonitor {
         Self::new(session_id, 0.05, 5.0)
     }
 
+    /// Reset the monitor for a NEW stream epoch (a restarted publisher whose `seq`
+    /// legitimately regressed — see `CommandWatchdog::on_command`'s re-anchor
+    /// rule). Without this, a seq regression reads as one giant "duplicate" run:
+    /// `expected` stays at the old high-water mark and every new-epoch frame is a
+    /// metrics no-op until seq catches up. Clears counters and the CUSUM/burst
+    /// state; a burst-driven ESTOP stays latched in the `SafetyGovernor` — that
+    /// latch, not this detector, is the persistent fail-safe.
+    pub fn reset(&mut self) {
+        let session_id = std::mem::take(&mut self.session_id);
+        *self = Self::new(session_id, self.ref_loss, self.threshold);
+    }
+
     fn observe(&mut self, lost_slot: bool) {
         // One-sided CUSUM on the loss indicator; resets at 0, trips at threshold.
         let inc = if lost_slot { 1.0 } else { 0.0 } - self.ref_loss;
@@ -310,6 +336,7 @@ mod tests {
         let mut buf = ActionBuffer::new();
         // tick0 = -0.1, horizon = [-0.2, -0.3], 50 ms spacing, ttl 200 ms.
         let cmd = CommandFrame {
+            seq: 1,
             ttl_ms: 200.0,
             channels: vec3(-0.1),
             horizon: vec![vec3(-0.2), vec3(-0.3)],
@@ -328,6 +355,8 @@ mod tests {
     fn action_buffer_holds_without_command_and_on_estop() {
         let mut buf = ActionBuffer::new();
         assert!(buf.should_hold(0.0), "no command -> HOLD");
+        // Even an UNSTAMPED (seq 0) ESTOP latches — a fail-safe is never dropped,
+        // though the frame itself is not buffered.
         buf.on_command(
             0.0,
             CommandFrame {
@@ -336,7 +365,98 @@ mod tests {
                 ..Default::default()
             },
         );
+        assert!(buf.is_estopped(), "an unstamped ESTOP must still latch");
         assert!(buf.should_hold(0.01), "ESTOP -> HOLD");
+    }
+
+    #[test]
+    fn action_buffer_rejects_unstamped_seq() {
+        // Wire 0.6: the "seq == 0 always advances" escape hatch is REMOVED. An
+        // unstamped/negative-seq Active command must never be buffered, never
+        // refresh the deadline, and never overwrite a held setpoint.
+        let mut buf = ActionBuffer::new();
+        for bad_seq in [0, -1, i64::MIN] {
+            buf.on_command(
+                1.0,
+                CommandFrame {
+                    seq: bad_seq,
+                    mode: Mode::Active,
+                    channels: vec3(9.9),
+                    ..Default::default()
+                },
+            );
+            assert!(
+                buf.should_hold(1.0),
+                "unstamped seq {bad_seq} must not produce an active setpoint"
+            );
+        }
+        // A stamped command is live; a following seq-0 spray must not disturb it.
+        buf.on_command(
+            2.0,
+            CommandFrame {
+                seq: 1,
+                ttl_ms: 200.0,
+                mode: Mode::Active,
+                channels: vec3(0.5),
+                ..Default::default()
+            },
+        );
+        buf.on_command(
+            2.01,
+            CommandFrame {
+                seq: 0,
+                ttl_ms: 200.0,
+                mode: Mode::Active,
+                channels: vec3(9.9),
+                ..Default::default()
+            },
+        );
+        let live = buf.active(2.05).expect("stamped command is live");
+        assert_eq!(
+            live["velocity_setpoint"].data[0], 0.5,
+            "a seq-0 frame must not overwrite the live setpoint"
+        );
+        assert!(
+            buf.should_hold(2.3),
+            "…and must not have refreshed the deadline (expires on the seq-1 anchor)"
+        );
+    }
+
+    #[test]
+    fn action_buffer_restart_reanchors_only_lower_seq_after_expiry() {
+        let mut buf = ActionBuffer::new();
+        let cmd = |seq: i64, v: f64| CommandFrame {
+            seq,
+            ttl_ms: 200.0,
+            mode: Mode::Active,
+            channels: vec3(v),
+            ..Default::default()
+        };
+        buf.on_command(1.0, cmd(1000, 0.4));
+        // Expired (t=2.0 >> ttl). A restarted controller's seq=1 re-anchors...
+        assert!(buf.should_hold(1.5), "expired");
+        buf.on_command(2.0, cmd(1, 0.7));
+        assert_eq!(
+            buf.active(2.05).expect("restart epoch is live")["velocity_setpoint"].data[0],
+            0.7,
+            "a strictly-lower seq re-anchors after expiry (restart recovery)"
+        );
+        // ...but an EXACT duplicate of the last frame never does, even expired —
+        // a frozen/replayed frame must not duty-cycle liveness across expiry.
+        assert!(buf.should_hold(3.0), "new epoch expired");
+        buf.on_command(3.0, cmd(1, 0.7));
+        assert!(
+            buf.should_hold(3.05),
+            "an equal-seq replay must NOT re-anchor after expiry"
+        );
+        // And while LIVE, lower seqs are still replay-rejected.
+        buf.on_command(4.0, cmd(50, 0.2));
+        buf.on_command(4.01, cmd(49, 0.9));
+        assert_eq!(
+            buf.active(4.05).unwrap()["velocity_setpoint"].data[0],
+            0.2,
+            "a lower seq on a LIVE stream is still rejected"
+        );
     }
 
     #[test]
@@ -358,58 +478,29 @@ mod tests {
     #[test]
     fn action_buffer_estop_latches_but_hold_does_not() {
         let mut buf = ActionBuffer::new();
+        let cmd = |seq: i64, mode: Mode, v: f64| CommandFrame {
+            seq,
+            mode,
+            channels: vec3(v),
+            ..Default::default()
+        };
         // A normal Active command applies.
-        buf.on_command(
-            0.0,
-            CommandFrame {
-                mode: Mode::Active,
-                channels: vec3(0.5),
-                ..Default::default()
-            },
-        );
+        buf.on_command(0.0, cmd(1, Mode::Active, 0.5));
         assert!(buf.active(0.0).is_some(), "Active command applies");
 
         // A HOLD command suppresses output but does NOT latch.
-        buf.on_command(
-            0.01,
-            CommandFrame {
-                mode: Mode::Hold,
-                channels: vec3(0.5),
-                ..Default::default()
-            },
-        );
+        buf.on_command(0.01, cmd(2, Mode::Hold, 0.5));
         assert!(buf.should_hold(0.01), "HOLD suppresses");
-        buf.on_command(
-            0.02,
-            CommandFrame {
-                mode: Mode::Active,
-                channels: vec3(0.5),
-                ..Default::default()
-            },
-        );
+        buf.on_command(0.02, cmd(3, Mode::Active, 0.5));
         assert!(
             buf.active(0.02).is_some(),
             "a HOLD must clear once a fresh Active arrives"
         );
 
         // An ESTOP command latches: a later Active command must NOT revive output.
-        buf.on_command(
-            0.03,
-            CommandFrame {
-                mode: Mode::Estop,
-                channels: vec3(0.5),
-                ..Default::default()
-            },
-        );
+        buf.on_command(0.03, cmd(4, Mode::Estop, 0.5));
         assert!(buf.is_estopped());
-        buf.on_command(
-            0.04,
-            CommandFrame {
-                mode: Mode::Active,
-                channels: vec3(0.9),
-                ..Default::default()
-            },
-        );
+        buf.on_command(0.04, cmd(5, Mode::Active, 0.9));
         assert!(
             buf.should_hold(0.04),
             "ESTOP latches — a later Active does not revive the actuator"
@@ -417,14 +508,7 @@ mod tests {
 
         // Supervisor reset clears it.
         buf.reset();
-        buf.on_command(
-            0.05,
-            CommandFrame {
-                mode: Mode::Active,
-                channels: vec3(0.9),
-                ..Default::default()
-            },
-        );
+        buf.on_command(0.05, cmd(6, Mode::Active, 0.9));
         assert!(
             buf.active(0.05).is_some(),
             "after reset, Active applies again"

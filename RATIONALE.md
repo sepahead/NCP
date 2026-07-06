@@ -32,7 +32,7 @@ contract is `ncp.proto` plus JSON-Schema mirrors; the reference implementation i
 a Rust SDK (`ncp-core` = wire types + safety governor + codec + key scheme;
 `ncp-zenoh` = transport; `ncp-gateway` = the simulation host's Rust edge over a
 Python NEST `SessionService`; `ncp-python` = a PyO3 binding; `ncp-cpp` = a C ABI for
-C/C++; `@sepehrmn/ncp` = ts-rs-generated TypeScript types + client). It defines four keys over a Zenoh realm: a
+C/C++; `@sepahead/ncp` = ts-rs-generated TypeScript types + client). It defines four keys over a Zenoh realm: a
 request/reply **control plane** (`/rpc`), a Best-Effort/conflating **perception
 plane** (`…/sensor`), an express, RealTime-priority, safety-gated **action plane**
 (`…/command`, with `mode ∈ {init,active,hold,estop}` and a `ttl_ms`), and a
@@ -341,7 +341,7 @@ is native, no browser WASM), so TS is the least-unified peer.
 robot/UAV mapping failing safe to zero velocity on hold/estop — a *protocol* concept
 no surveyed alternative states as an enum (though DDS LIFESPAN≈`ttl_ms` and
 OWNERSHIP/LIVELINESS cover much of the rest). *Disadvantage (confronted directly):*
-this is a **single reference implementation** (wire `0.5`, pre-1.0) with a pragmatic golden-vector
+this is a **single reference implementation** (wire `0.6`, pre-1.0) with a pragmatic golden-vector
 conformance corpus (not yet a multi-implementation interop program), on a bus whose
 open/default realm is **unauthenticated** — without the ACL enabled, anyone who can
 reach the bus can publish to `…/command`. A default-deny per-plane Zenoh ACL +
@@ -395,7 +395,7 @@ ACP/A2A took) — none of which exists yet.
 
 ## Disadvantages & open risks (summary)
 
-NCP is **pre-1.0 (wire `0.5`) with a single reference implementation** and a pragmatic
+NCP is **pre-1.0 (wire `0.6`) with a single reference implementation** and a pragmatic
 golden-vector conformance corpus (not a multi-implementor interop program). The
 **Python NEST server is still the real brain**; the Rust gateway is a
 localhost-socket bridge, so NCP does not yet own the hot integrator path. The

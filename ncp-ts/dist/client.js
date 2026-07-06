@@ -13,8 +13,12 @@
  * for a WebSocket implementation; a Zenoh/native transport can implement the same
  * `Send`).
  */
-/** The protocol version this client stamps on every request (`ncp_version`). */
-export const NCP_VERSION = '0.5';
+/** The protocol version this client stamps on every request (`ncp_version`).
+ *  Wire 0.6: every message MUST carry a compatible `ncp_version` (absent is
+ *  rejected, never coerced) and the closed-loop frames MUST stamp `seq` — see
+ *  `VERSIONING.md`. The serialization is unchanged from 0.5, so the contract
+ *  hash is identical; the version string is the compatibility gate. */
+export const NCP_VERSION = '0.6';
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
@@ -110,9 +114,21 @@ export function assertScientificBoundary(frame) {
     }
 }
 function unwrap(reply) {
-    if (reply && typeof reply === 'object' && reply.kind === 'error') {
+    if (reply === null || typeof reply !== 'object') {
+        throw new Error(`NCP: reply is not an object: ${JSON.stringify(reply)}`);
+    }
+    if (reply.kind === 'error') {
         throw new Error(`NCP error: ${reply.error}`);
     }
+    // Wire 0.6: every reply must carry a COMPATIBLE ncp_version — an absent or
+    // incompatible version fails closed here (never coerced), so a stale-wire
+    // peer cannot silently mis-decode into this client. (`open()` additionally
+    // runs the advisory contract-hash comparison.)
+    const ver = reply.ncp_version;
+    if (typeof ver !== 'string') {
+        throw new NcpVersionError('NCP reply carries no ncp_version (mandatory since wire 0.6)');
+    }
+    checkVersion(ver, true);
     return reply;
 }
 export class NeuroSimClient {

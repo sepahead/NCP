@@ -1,17 +1,19 @@
 # Known Limitations & Hardening Backlog
 
-> Wire **v0.5.2**. This tracks findings from an adversarial review of NCP
+> Wire **0.6** (SDK 0.6.0). This tracks findings from an adversarial review of NCP
 > (correctness, safety, robustness, overhead) **and their current status**. Each
 > notes whether the fix changes the on-wire contract (`wire-breaking`, needs a
-> version bump + consumer buy-in across Engram/crebain/prisoma) or is internal
+> version bump + consumer buy-in across all pinned consumers) or is internal
 > (`safe`). NCP is a generic, shared contract, so conservatism on the still-open
 > items is deliberate.
 >
-> **Status (35 findings): 9 resolved · 26 open (23 `safe` · 3 `wire-breaking`).**
+> **Status (35 findings): 11 resolved · 24 open (23 `safe` · 1 `wire-breaking`).**
 > All **3 high-severity** safety findings are **resolved** (wire-safe, with
-> regression tests). The remaining 26 are medium/low; the 3 `wire-breaking` ones
-> are gated behind a wire version bump. Line numbers below are indicative and may
-> drift — search by symbol.
+> regression tests), and the wire-0.6 cut resolved **2 of the 3 wire-breaking**
+> findings (the `seq == 0` escape hatch and the unenforced data-plane
+> `ncp_version`). The remaining 24 are medium/low; the last `wire-breaking` one
+> (per-verb RPC ACL) is gated behind a future addressing change. Line numbers
+> below are indicative and may drift — search by symbol.
 
 
 ## Resolved
@@ -39,6 +41,35 @@ these without checking the cited code first.
   position vector previously read as `r = sqrt(0) = 0` ("at the origin", inside any
   fence); it now fails closed to HOLD like an absent channel, and the same guard is
   mirrored at the horizon look-ahead.
+
+### Wire-breaking — resolved by the wire-0.6 cut (v0.6.0)
+
+- **`ncp_version` is now required and value-checked on every message, closing the
+  data-plane gap** — `messages.rs` (`required_fields`, `validate`,
+  `WireFrame::validate_wire`, `decode_validated`) · _design-gap_ · **fixed (wire
+  0.6)**. Every `kind` lists `ncp_version` in `required_fields()` (injected into
+  every schema's `required` array plus a `const` pin), `validate()` rejects an
+  absent OR incompatible version (never coerces), an absent version now
+  deserializes to a detectable `""` instead of silently defaulting to the
+  receiver's own, and the Zenoh data-plane ingress/publish paths run
+  `decode_validated` per frame. The serialization is unchanged, so
+  `CONTRACT_HASH` is identical — the version string is the gate.
+- **The `seq == 0` always-accept escape hatch is removed: the action plane
+  requires a stamped, strictly-increasing `seq >= 1`** — `safety.rs`
+  (`CommandWatchdog::on_command`), `resilience.rs` (`ActionBuffer::on_command`),
+  `transport.rs` (`NeuroControlLoop::tick`) · _safety_ · **fixed (wire 0.6)**.
+  An unstamped/negative seq never refreshes liveness or overwrites a held
+  setpoint (an ESTOP still latches regardless — a fail-safe is never dropped).
+  Restart recovery without a wire epoch field: a strictly-LOWER seq re-anchors a
+  new stream epoch only once the stream has already expired (the plant is safely
+  holding); an EQUAL seq never re-anchors, so a frozen/replayed frame cannot
+  duty-cycle liveness across expiry windows. `ObservationFrame.seq` stamping on
+  the observation plane is now normative (publisher-enforced in
+  `ncp-zenoh::publish_observation`; `0` remains the pull/RPC-reply form).
+  Residual: alternating replays of DIFFERENT captured frames across expiry
+  windows can still duty-cycle a plant — receiver-side seq discipline cannot
+  distinguish that from a restart on an unauthenticated wire; adversarial
+  integrity remains mTLS's job (see `SECURITY.md`).
 
 ### Medium / low — safety governor & link monitor
 
@@ -226,8 +257,10 @@ no consumer re-pin). Each is a proposal with a concrete fix.
 ## Open — `wire-breaking` (needs a version bump + fleet buy-in)
 
 These change on-wire addressing or acceptance rules, so they must ride a wire
-version bump with all peers (Engram/crebain/prisoma) re-pinned in lockstep — hence
-they are documented, not silently applied. See `VERSIONING.md`.
+version bump with every pinned consumer re-pinned in lockstep — hence they are
+documented, not silently applied. See `VERSIONING.md`. (The former `seq == 0`
+escape hatch and the unenforced data-plane `ncp_version` were resolved by the
+wire-0.6 cut — see the Resolved section above.)
 
 - **Single RPC key per realm prevents per-verb ACL — the shipped ACL lets an
   observer/robot close or step any session** — `zenoh-access-control.json5:81` ·
@@ -236,23 +269,6 @@ they are documented, not silently applied. See `VERSIONING.md`.
     `{realm}/rpc/open` vs `{realm}/rpc/admin`) so the ACL can allow `open` but
     restrict `step`/`run`/`close` to the commander; or authorize the caller's proven
     identity per verb in the RPC handler. The key-split changes on-wire RPC addressing.
-- **`ncp_version` is neither required nor checked on the data plane: an absent
-  version defaults to our own and incompatible-but-parseable sensor/command frames
-  are accepted** — `messages.rs:1219` · _design-gap_ · **wire-breaking**.
-  - _Proposed:_ Have data-plane decoders call `check_version(frame.ncp_version,
-    strict)` on each parsed frame and drop on mismatch, treating an absent
-    `ncp_version` as incompatible; at minimum add `ncp_version` to `required_fields()`
-    for every kind so `validate()` enforces the spec's "every message carries
-    `ncp_version`".
-- **`seq == 0` is an always-accept escape hatch that bypasses the normative
-  anti-replay/anti-stale guarantee — and `seq = 0` is the wire default** —
-  `resilience.rs:48` · _safety_ · **wire-breaking**.
-  - _Proposed:_ Restrict the `seq == 0` escape hatch to the pull/sim service path.
-    On the streaming action plane require strictly-positive, strictly-advancing `seq`
-    (the plant-side `ActionBuffer`/`CommandWatchdog` must not treat `seq == 0` as
-    advancing), and add "`seq > 0`" as a conformance requirement for `command_frame`
-    on the action plane. Document `seq = 0` as "anti-replay disabled — never use on
-    the action plane."
 
 ---
 _Status tracked against the current tree; resolved items cite the fixing commit or

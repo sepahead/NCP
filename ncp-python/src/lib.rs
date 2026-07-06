@@ -16,10 +16,11 @@
 //!
 //! ```python
 //! import ncp
-//! ncp.NCP_VERSION                      # "0.5"
+//! ncp.NCP_VERSION                      # "0.6"
 //! k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 //! k.command("uav3")                    # "ncp/session/uav3/command"
 //! ncp.decode_command(codec_json, '{"vel_x":200.0}', t=0.0, seq=7)  # CommandFrame JSON
+//! gov = ncp.Governor('{"command_timeout_ms": 500.0}')  # PERSISTENT (latching) governor
 //! ```
 
 use ncp_core::{
@@ -140,9 +141,23 @@ fn parse_mode(s: &str) -> PyResult<Mode> {
     })
 }
 
+fn parse_sensor(sensor_json: Option<&str>) -> PyResult<Option<SensorFrame>> {
+    match sensor_json {
+        Some(s) if !s.trim().is_empty() && s.trim() != "null" => {
+            Ok(Some(serde_json::from_str(s).map_err(val)?))
+        }
+        _ => Ok(None),
+    }
+}
+
 /// Apply the action-plane safety governor to a `CommandFrame` JSON, returning the
 /// governed `CommandFrame` JSON (HOLD on a stale sensor, ESTOP on geofence breach,
 /// speed clamp). `sensor_json`/`last_sensor_s` may be `None`.
+///
+/// **One-shot**: a fresh governor is constructed per call, so the ESTOP latch
+/// cannot persist across calls. Use this for stateless/corpus checks only — a
+/// real plant MUST hold a persistent [`Governor`] so a latched ESTOP survives
+/// until a supervisor `reset()`.
 #[pyfunction]
 #[pyo3(signature = (limits_json, command_json, now_s, sensor_json = None, last_sensor_s = None))]
 fn govern(
@@ -153,18 +168,82 @@ fn govern(
     last_sensor_s: Option<f64>,
 ) -> PyResult<String> {
     let limits: SafetyLimits = serde_json::from_str(limits_json).map_err(val)?;
-    let command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
-    let sensor: Option<SensorFrame> = match sensor_json {
-        Some(s) if !s.trim().is_empty() && s.trim() != "null" => {
-            Some(serde_json::from_str(s).map_err(val)?)
-        }
-        _ => None,
-    };
-    // `govern` latches ESTOP, so it takes `&mut self`. This wrapper is one-shot
-    // (fresh governor per call), so the latch never persists across FFI calls.
     let mut gov = SafetyGovernor::new(limits);
+    govern_with(&mut gov, command_json, now_s, sensor_json, last_sensor_s)
+}
+
+fn govern_with(
+    gov: &mut SafetyGovernor,
+    command_json: &str,
+    now_s: f64,
+    sensor_json: Option<&str>,
+    last_sensor_s: Option<f64>,
+) -> PyResult<String> {
+    let command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
+    let sensor = parse_sensor(sensor_json)?;
     let out = gov.govern(&command, sensor.as_ref(), now_s, last_sensor_s);
     serde_json::to_string(&out).map_err(val)
+}
+
+/// A **persistent** action-plane safety governor: the stateful form whose ESTOP
+/// latch survives across calls (a geofence breach / inbound ESTOP / link collapse
+/// keeps every later `govern` at ESTOP until a supervisor calls `reset()`).
+/// This is what a real plant must hold — the module-level one-shot `govern`
+/// function cannot latch by construction. Wraps `ncp_core::SafetyGovernor`.
+#[pyclass]
+struct Governor {
+    inner: SafetyGovernor,
+}
+
+#[pymethods]
+impl Governor {
+    #[new]
+    fn new(limits_json: &str) -> PyResult<Self> {
+        let limits: SafetyLimits = serde_json::from_str(limits_json).map_err(val)?;
+        Ok(Self {
+            inner: SafetyGovernor::new(limits),
+        })
+    }
+
+    /// Govern one `CommandFrame` JSON against the latest sensor; returns the
+    /// governed `CommandFrame` JSON. The ESTOP latch persists across calls.
+    #[pyo3(signature = (command_json, now_s, sensor_json = None, last_sensor_s = None))]
+    fn govern(
+        &mut self,
+        command_json: &str,
+        now_s: f64,
+        sensor_json: Option<&str>,
+        last_sensor_s: Option<f64>,
+    ) -> PyResult<String> {
+        govern_with(
+            &mut self.inner,
+            command_json,
+            now_s,
+            sensor_json,
+            last_sensor_s,
+        )
+    }
+
+    /// Clear a latched ESTOP (supervisor authority). A config-level fail-closed
+    /// state is NOT cleared (it is an unrecoverable misconfiguration).
+    fn reset(&mut self) {
+        self.inner.reset()
+    }
+
+    /// True while ESTOP is latched.
+    fn is_estopped(&self) -> bool {
+        self.inner.is_estopped()
+    }
+
+    /// Latch ESTOP when a link monitor reports a sustained loss burst (a jam).
+    fn note_link(&mut self, burst: bool) {
+        self.inner.note_link(burst)
+    }
+
+    /// False under a latched ESTOP or a config-level fail-closed.
+    fn safety_ok(&self) -> bool {
+        self.inner.safety_ok()
+    }
 }
 
 /// Validate an NCP message JSON of a given `kind` by parsing it through the Rust
@@ -199,9 +278,13 @@ fn validate(kind: &str, json: &str) -> PyResult<String> {
     }
     ncp_core::validate(&value).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
+    // Round-trip the kind-INJECTED document (not the raw input): validation and
+    // canonicalization must see the same document, and since wire 0.6 an omitted
+    // `kind` deserializes to a detectable "" rather than being fabricated — so
+    // the canonical output must carry the injected kind.
     macro_rules! rt {
         ($t:ty) => {{
-            let v: $t = serde_json::from_str(json).map_err(val)?;
+            let v: $t = serde_json::from_value(value.clone()).map_err(val)?;
             serde_json::to_string(&v).map_err(val)
         }};
     }
@@ -238,6 +321,7 @@ fn ncp(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("CONTRACT_HASH", ncp_core::CONTRACT_HASH)?;
     m.add("DEFAULT_REALM", ncp_core::DEFAULT_REALM)?;
     m.add_class::<Keys>()?;
+    m.add_class::<Governor>()?;
     m.add_function(wrap_pyfunction!(check_version, m)?)?;
     m.add_function(wrap_pyfunction!(contract_status, m)?)?;
     m.add_function(wrap_pyfunction!(encode_rates, m)?)?;

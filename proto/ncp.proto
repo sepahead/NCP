@@ -1,4 +1,4 @@
-// Neuro-Cybernetic Protocol (NCP) v0.5 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
+// Neuro-Cybernetic Protocol (NCP) v0.6 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
 //
 // proto-native: this `.proto` is the single source of truth for the NCP wire —
 // message structure, field numbers, types, and the binary encoding. Every other
@@ -24,9 +24,21 @@
 //
 // Wire conventions:
 //   - every message carries a `kind` string discriminator and an `ncp_version`
-//     string ("0.5"); receivers check the FULL `ncp_version` — pre-1.0 the minor
+//     string ("0.6"); receivers check the FULL `ncp_version` — pre-1.0 the minor
 //     is breaking, so an exact (major, minor) match is required and any 0.x minor
-//     difference is fail-closed rejected (never coerced),
+//     difference is fail-closed rejected (never coerced). Since wire 0.6 both
+//     fields are MANDATORY on every message (an absent version/kind no longer
+//     defaults to the receiver's own — `required_fields()`/`validate()` and the
+//     JSON Schemas' `required` + `const` enforce it end to end),
+//   - seq discipline (wire 0.6, normative): `sensor_frame`/`command_frame` MUST
+//     stamp `seq >= 1`, strictly increasing per stream (`seq = 0` is "unstamped"
+//     and receivers drop it — the pre-0.6 "seq == 0 always accepted" escape hatch
+//     is REMOVED); `command_frame.seq` echoes the driving `sensor_frame.seq`; an
+//     `observation_frame` PUBLISHED on the observation plane echoes the driving
+//     sensor seq (>= 1), while `0` is reserved for pull/RPC replies. Receivers
+//     accept a strictly-LOWER seq only once the stream has expired (restart
+//     re-anchor; an equal seq never re-anchors). Wire 0.6 changes NO field or
+//     encoding — the version string, not the contract hash, gates compatibility,
 //   - integer fields (ids, sizes, seq, seed) are int64, matching the Rust `i64`
 //     types and the JSON `"integer"` schema type; the JSON projection emits them
 //     as JSON numbers (a deliberate, human-readable deviation from ProtoJSON,
@@ -273,7 +285,9 @@ message ObservationFrame {
   string ncp_version = 1;
   string kind = 2;                        // "observation_frame"
   string session_id = 3;
-  int64 seq = 4;                          // echoes the driving SensorFrame.seq in a closed loop (0 in the pull path)
+  int64 seq = 4;                          // NORMATIVE (0.6): on the observation PLANE this MUST echo the driving
+                                          // SensorFrame.seq (>= 1) so split-plane observers join on seq, not arrival;
+                                          // 0 is reserved for the pull/RPC reply path (no controller seq exists there)
   double t = 5;
   double sim_time_ms = 6;
   map<string, Observation> records = 7;   // keyed by record port
@@ -351,7 +365,7 @@ message Capabilities {
 message SensorFrame {
   string ncp_version = 1;
   string kind = 2;                  // "sensor_frame"
-  int64 seq = 3;
+  int64 seq = 3;                    // NORMATIVE (0.6): >= 1, strictly increasing per stream (0 = unstamped, dropped)
   double t = 4;
   string frame_id = 5;
   map<string, ChannelValue> channels = 6;
@@ -363,7 +377,7 @@ message SetpointStep { map<string, ChannelValue> channels = 1; }
 message CommandFrame {
   string ncp_version = 1;
   string kind = 2;                  // "command_frame"
-  int64 seq = 3;
+  int64 seq = 3;                    // NORMATIVE (0.6): >= 1, echoes the driving SensorFrame.seq (0 = unstamped, dropped)
   double t = 4;
   string frame_id = 5;
   Mode mode = 6;              // wire strings init|active|hold|estop

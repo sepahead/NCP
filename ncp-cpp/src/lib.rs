@@ -63,7 +63,7 @@ pub unsafe extern "C" fn ncp_string_free(s: *mut c_char) {
     })
 }
 
-/// The NCP protocol version (e.g. "0.4"). Caller frees.
+/// The NCP protocol version (e.g. "0.6"). Caller frees.
 #[no_mangle]
 pub extern "C" fn ncp_version() -> *mut c_char {
     ffi_guard(std::ptr::null_mut(), || {
@@ -288,13 +288,150 @@ pub unsafe extern "C" fn ncp_govern(
         } else {
             Some(last_sensor_s)
         };
-        // `govern` latches ESTOP and so takes `&mut self`; this FFI wrapper is
-        // one-shot (fresh governor per call) so the latch never persists.
+        // ONE-SHOT: a fresh governor per call, so the ESTOP latch cannot persist
+        // across calls. Stateless/corpus use only — a real plant MUST hold a
+        // persistent handle (`ncp_governor_new` + `ncp_governor_govern`) so a
+        // latched ESTOP survives until a supervisor `ncp_governor_reset`.
         let mut gov = SafetyGovernor::new(limits);
         let out = gov.govern(&command, sensor.as_ref(), now_s, last);
         match serde_json::to_string(&out) {
             Ok(s) => cstr_out(s),
             Err(_) => std::ptr::null_mut(),
+        }
+    })
+}
+
+/// Opaque persistent action-plane safety governor — the **latching** form: a
+/// geofence breach / inbound ESTOP / link collapse keeps every later
+/// [`ncp_governor_govern`] at ESTOP until a supervisor [`ncp_governor_reset`].
+/// (The one-shot [`ncp_govern`] cannot latch by construction.) NOT thread-safe:
+/// the caller synchronizes access to one handle.
+pub struct NcpGovernor(SafetyGovernor);
+
+/// Create a persistent governor from a `SafetyLimits` JSON. NULL on malformed
+/// input. Free with [`ncp_governor_free`].
+/// # Safety
+/// `limits_json` must be NULL or a valid C string.
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_new(limits_json: *const c_char) -> *mut NcpGovernor {
+    ffi_guard(std::ptr::null_mut(), || {
+        let Some(lim_s) = cstr_in(limits_json) else {
+            return std::ptr::null_mut();
+        };
+        let Ok(limits) = serde_json::from_str::<SafetyLimits>(lim_s) else {
+            return std::ptr::null_mut();
+        };
+        Box::into_raw(Box::new(NcpGovernor(SafetyGovernor::new(limits))))
+    })
+}
+
+/// Govern one `CommandFrame` JSON through a persistent handle (the ESTOP latch
+/// survives across calls). Same argument semantics as [`ncp_govern`]; NULL on a
+/// NULL handle or malformed input. Caller frees the returned string.
+/// # Safety
+/// `gov` must be NULL or a live handle from [`ncp_governor_new`]; string
+/// arguments must be NULL or valid C strings.
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_govern(
+    gov: *mut NcpGovernor,
+    command_json: *const c_char,
+    now_s: f64,
+    sensor_json: *const c_char,
+    last_sensor_s: f64,
+) -> *mut c_char {
+    ffi_guard(std::ptr::null_mut(), || {
+        if gov.is_null() {
+            return std::ptr::null_mut();
+        }
+        let Some(cmd_s) = cstr_in(command_json) else {
+            return std::ptr::null_mut();
+        };
+        let Ok(command) = serde_json::from_str::<CommandFrame>(cmd_s) else {
+            return std::ptr::null_mut();
+        };
+        let sensor = match cstr_in(sensor_json) {
+            Some(s) if !s.trim().is_empty() && s.trim() != "null" => {
+                serde_json::from_str::<SensorFrame>(s).ok()
+            }
+            _ => None,
+        };
+        let last = if last_sensor_s < 0.0 {
+            None
+        } else {
+            Some(last_sensor_s)
+        };
+        // SAFETY: caller guarantees `gov` is a live, exclusively-held handle.
+        let out = (*gov).0.govern(&command, sensor.as_ref(), now_s, last);
+        match serde_json::to_string(&out) {
+            Ok(s) => cstr_out(s),
+            Err(_) => std::ptr::null_mut(),
+        }
+    })
+}
+
+/// Clear a latched ESTOP (supervisor authority). NULL is a no-op.
+/// # Safety
+/// `gov` must be NULL or a live handle from [`ncp_governor_new`].
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_reset(gov: *mut NcpGovernor) {
+    ffi_guard((), || {
+        if !gov.is_null() {
+            // SAFETY: caller guarantees `gov` is a live, exclusively-held handle.
+            (*gov).0.reset();
+        }
+    })
+}
+
+/// 1 while ESTOP is latched, 0 when not, -1 on NULL.
+/// # Safety
+/// `gov` must be NULL or a live handle from [`ncp_governor_new`].
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_is_estopped(gov: *const NcpGovernor) -> i32 {
+    ffi_guard(-1, || {
+        if gov.is_null() {
+            return -1;
+        }
+        // SAFETY: caller guarantees `gov` is a live handle.
+        i32::from((*gov).0.is_estopped())
+    })
+}
+
+/// Latch ESTOP when a link monitor reports a sustained loss burst. NULL no-op.
+/// # Safety
+/// `gov` must be NULL or a live handle from [`ncp_governor_new`].
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_note_link(gov: *mut NcpGovernor, burst: bool) {
+    ffi_guard((), || {
+        if !gov.is_null() {
+            // SAFETY: caller guarantees `gov` is a live, exclusively-held handle.
+            (*gov).0.note_link(burst);
+        }
+    })
+}
+
+/// 1 when safe (no latched ESTOP, no config fail-closed), 0 when not, -1 on NULL.
+/// # Safety
+/// `gov` must be NULL or a live handle from [`ncp_governor_new`].
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_safety_ok(gov: *const NcpGovernor) -> i32 {
+    ffi_guard(-1, || {
+        if gov.is_null() {
+            return -1;
+        }
+        // SAFETY: caller guarantees `gov` is a live handle.
+        i32::from((*gov).0.safety_ok())
+    })
+}
+
+/// Release a governor handle. NULL is ignored. The handle must not be used after.
+/// # Safety
+/// `gov` must be NULL or a handle from [`ncp_governor_new`] not yet freed.
+#[no_mangle]
+pub unsafe extern "C" fn ncp_governor_free(gov: *mut NcpGovernor) {
+    ffi_guard((), || {
+        if !gov.is_null() {
+            // SAFETY: `gov` came from Box::into_raw in ncp_governor_new.
+            drop(Box::from_raw(gov));
         }
     })
 }
@@ -328,11 +465,18 @@ pub unsafe extern "C" fn ncp_validate(kind: *const c_char, json: *const c_char) 
         if ncp_core::validate(&value).is_err() {
             return std::ptr::null_mut();
         }
+        // Round-trip the kind-INJECTED document (not the raw input): validation
+        // and canonicalization must see the same document, and since wire 0.6 an
+        // omitted `kind` deserializes to a detectable "" rather than being
+        // fabricated — so the canonical output must carry the injected kind.
         macro_rules! rt {
             ($t:ty) => {
-                match serde_json::from_str::<$t>(json).and_then(|v| serde_json::to_string(&v)) {
+                match serde_json::from_value::<$t>(value.clone())
+                    .map_err(|_| ())
+                    .and_then(|v| serde_json::to_string(&v).map_err(|_| ()))
+                {
                     Ok(s) => cstr_out(s),
-                    Err(_) => std::ptr::null_mut(),
+                    Err(()) => std::ptr::null_mut(),
                 }
             };
         }

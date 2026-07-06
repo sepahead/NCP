@@ -37,7 +37,9 @@ CODEC = json.dumps(
 
 
 def test_module_pins_exported():
-    assert ncp.NCP_VERSION == "0.5"
+    # Wire 0.6 is a semantic break with an unchanged serialization, so the
+    # CONTRACT_HASH is identical to wire 0.5 — the version string is the gate.
+    assert ncp.NCP_VERSION == "0.6"
     assert ncp.CONTRACT_HASH == "24e8e6e31e1dec8a"
 
 
@@ -55,7 +57,46 @@ def test_codec_roundtrip_encode_then_decode():
 
 def test_decision_functions_callable():
     # Smoke only — exhaustive cross-language parity is the corpus's job.
-    assert ncp.check_version("0.5", False) is True
+    assert ncp.check_version("0.6", False) is True
+    assert ncp.check_version("0.5", False) is False  # previous wire: incompatible
     assert ncp.contract_status("24e8e6e31e1dec8a") == "match"
-    result = ncp.validate("command_frame", '{"kind":"command_frame"}')
+    frame = '{"kind":"command_frame","ncp_version":"0.6","seq":1}'
+    result = ncp.validate("command_frame", frame)
     assert '"kind":"command_frame"' in result  # canonical JSON, not just truthy
+    # Wire 0.6: a version-less or unstamped command frame is rejected.
+    with pytest.raises(ValueError):
+        ncp.validate("command_frame", '{"kind":"command_frame"}')
+    with pytest.raises(ValueError):
+        ncp.validate("command_frame", '{"kind":"command_frame","ncp_version":"0.6","seq":0}')
+
+
+def test_persistent_governor_latches_across_calls():
+    """The Governor CLASS is the latching form — the one-shot govern() cannot
+    latch by construction (fresh governor per call). A geofence breach must keep
+    every later call at ESTOP until a supervisor reset()."""
+    gov = ncp.Governor(json.dumps({"geofence_radius_m": 5.0, "command_timeout_ms": 500.0}))
+    active = json.dumps(
+        {
+            "kind": "command_frame",
+            "mode": "active",
+            "channels": {"velocity_setpoint": {"data": [1.0, 0.0, 0.0], "unit": "m/s"}},
+        }
+    )
+    breach = json.dumps({"kind": "sensor_frame", "channels": {"pose_position": {"data": [10.0, 0.0, 0.0]}}})
+    safe = json.dumps({"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}})
+
+    out = json.loads(gov.govern(active, 1.0, breach, 1.0))
+    assert out["mode"] == "estop"
+    assert gov.is_estopped() is True
+    assert gov.safety_ok() is False
+    # A perfectly safe frame on the NEXT call is still ESTOP — the latch persisted.
+    out2 = json.loads(gov.govern(active, 2.0, safe, 2.0))
+    assert out2["mode"] == "estop"
+    # Supervisor reset restores normal governing.
+    gov.reset()
+    assert gov.is_estopped() is False
+    out3 = json.loads(gov.govern(active, 3.0, safe, 3.0))
+    assert out3["mode"] == "active"
+    # note_link(burst=True) latches too (the jam escalation path).
+    gov.note_link(True)
+    assert gov.is_estopped() is True

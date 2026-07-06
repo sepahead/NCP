@@ -184,6 +184,11 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     /// advances (FIX 4) — a repeated/stale frame must still trip the stale-sensor
     /// HOLD even though a frame "arrived".
     last_sensor_ts: Option<(f64, i64)>,
+    /// The last ACCEPTED sensor frame — the only one the controller/governor/echo
+    /// consume. A frame that fails seq discipline (unstamped, or a replayed
+    /// regression on a live stream) must not steer the controller or leak its seq
+    /// into commands; it goes stale naturally via `last_sensor_t`.
+    accepted_sensor: Option<SensorFrame>,
 }
 
 impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
@@ -198,6 +203,7 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             link: crate::resilience::LinkMonitor::with_defaults("ncp-loop"),
             last_sensor_t: None,
             last_sensor_ts: None,
+            accepted_sensor: None,
         }
     }
 
@@ -214,38 +220,61 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
     /// One control step: read sensor → controller → safety → send.
     pub fn tick(&mut self) -> CommandFrame {
         let now = (self.now_fn)();
-        let sensor = self.transport.latest_sensor();
-        // FIX 4: only treat the sensor as "fresh" when its (t, seq) STRICTLY
-        // advanced. A frozen/cached stream (same t & seq re-delivered) must NOT
-        // refresh the watchdog clock, so the stale-sensor HOLD still trips.
-        if let Some(s) = sensor.as_ref() {
-            let advanced = match self.last_sensor_ts {
-                None => true,
-                Some((pt, pseq)) => s.t > pt || (s.t == pt && s.seq > pseq),
+        // Wire 0.6: an unstamped sensor (`seq < 1`) is not a wire-legal frame —
+        // treat it as ABSENT entirely (no freshness refresh, no link feed, no
+        // echo, not even geofence input): an invalid frame is no frame.
+        let candidate = self.transport.latest_sensor().filter(|s| s.seq >= 1);
+        // FIX 4 (0.6 form): the sensor is "fresh" only when its `seq` STRICTLY
+        // advanced — seq, not arrival, is the stream discipline, so a
+        // frozen/cached re-delivery (same seq) NEVER refreshes the watchdog clock
+        // (not even after expiry — no duty-cycled Active/HOLD oscillation on a
+        // wedged stream) and the stale-sensor HOLD still trips. A strictly-LOWER
+        // seq re-anchors a new stream epoch only once the current stream is
+        // already EXPIRED (the plant-restart rule, mirroring
+        // `CommandWatchdog::on_command`); the link monitor is reset for the new
+        // epoch so the regression is not misread as a giant duplicate run.
+        if let Some(s) = candidate {
+            let timeout_s = self.gov.limits.command_timeout_ms / 1000.0;
+            // NaN-safe: a non-finite timeout or clock reads as expired (the
+            // governor independently fail-closes on a bad timeout).
+            let expired = self.last_sensor_t.is_none_or(|t| {
+                let age = now - t;
+                !timeout_s.is_finite() || !age.is_finite() || age > timeout_s
+            });
+            let (advanced, new_epoch) = match self.last_sensor_ts {
+                None => (true, false),
+                Some((_, pseq)) => {
+                    let restart = expired && s.seq < pseq;
+                    (s.seq > pseq || restart, restart)
+                }
             };
             if advanced {
+                if new_epoch {
+                    self.link.reset();
+                }
                 self.last_sensor_t = Some(now);
                 self.last_sensor_ts = Some((s.t, s.seq));
                 // Feed the link monitor only on a genuinely-new sensor (a frozen
                 // re-delivery is a duplicate no-op in the monitor regardless).
                 self.link.on_seq(s.seq);
+                self.accepted_sensor = Some(s);
             }
         }
-        let mut cmd = self.controller.step(sensor.as_ref(), self.dt_ms());
+        let dt_ms = self.dt_ms();
+        let sensor = self.accepted_sensor.as_ref();
+        let mut cmd = self.controller.step(sensor, dt_ms);
         // CommandFrame.seq echoes the originating SensorFrame.seq so the split-plane
         // V<->A join pairs the action with the sensor that produced it (the normative
         // invariant; an observer joining V to A on seq depends on it). The loop's own
         // free-running tick counter is carried only on ControlStatus, below.
-        if let Some(s) = sensor.as_ref() {
+        if let Some(s) = sensor {
             cmd.seq = s.seq;
         }
         // Escalate to a latched ESTOP if the link monitor reports a jam (a sustained
         // loss burst): a collapsed link must de-energize to safe, not sit in
         // self-clearing HOLD. Checked every tick so the latch persists once tripped.
         self.gov.note_link(self.link.is_burst());
-        let mut cmd = self
-            .gov
-            .govern(&cmd, sensor.as_ref(), now, self.last_sensor_t);
+        let mut cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t);
         // Couple the emitted deadline to the loop period: a command must outlive at
         // least the next tick, or a slow (sub-~5 Hz) loop would expire every command
         // before its successor arrives and chatter HOLD on a healthy link.
@@ -312,14 +341,48 @@ mod tests {
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
         transport.push_sensor(SensorFrame {
+            seq: 1,
             channels: ch,
             ..Default::default()
         });
         *clock.lock().unwrap() = 0.05;
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Active);
+        assert_eq!(cmd.seq, 1, "command echoes the driving sensor seq");
         let v = &cmd.channels["velocity_setpoint"].data;
         assert!(v[0] < 0.0, "should push back toward origin, got {v:?}");
+    }
+
+    #[test]
+    fn unstamped_sensor_is_treated_as_absent() {
+        // Wire 0.6: a seq<1 sensor is not wire-legal — the loop must treat it as
+        // NO sensor (stale HOLD), never actuate from it or echo its seq.
+        let transport = InProcessTransport::new();
+        let clock = Arc::new(Mutex::new(0.0_f64));
+        let clock2 = clock.clone();
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits {
+                max_speed_mps: Some(1.5),
+                command_timeout_ms: 500.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(move || *clock2.lock().unwrap()));
+        let mut ch = crate::messages::Map::new();
+        ch.insert(
+            "pose_position".into(),
+            ChannelValue::vec3(1.0, 0.0, 0.0, Some("m")),
+        );
+        transport.push_sensor(SensorFrame {
+            seq: 0, // unstamped
+            channels: ch,
+            ..Default::default()
+        });
+        let cmd = loop_.tick();
+        assert_eq!(cmd.mode, Mode::Hold, "an unstamped sensor must not drive");
     }
 
     #[test]
@@ -342,7 +405,7 @@ mod tests {
         )
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
-        // One frozen frame (t=0, seq=0) that we never update.
+        // One frozen frame (t=0, seq=1) that we never update.
         let mut ch = crate::messages::Map::new();
         ch.insert(
             "pose_position".into(),
@@ -354,7 +417,7 @@ mod tests {
         );
         transport.push_sensor(SensorFrame {
             t: 0.0,
-            seq: 0,
+            seq: 1,
             channels: ch,
             ..Default::default()
         });
@@ -364,13 +427,118 @@ mod tests {
         assert_eq!(cmd.mode, Mode::Active, "first fresh frame drives");
 
         // Advance wall clock well past the 200 ms timeout WITHOUT updating the
-        // sensor (same t & seq re-delivered). The frozen stream must go stale.
+        // sensor (same seq re-delivered). The frozen stream must go stale.
         *clock.lock().unwrap() = 0.5;
         let cmd = loop_.tick();
         assert_eq!(
             cmd.mode,
             Mode::Hold,
             "a frozen sensor must trip the stale-sensor HOLD"
+        );
+
+        // …and it must NEVER go Active again: an equal-seq re-delivery never
+        // re-anchors, so a wedged stream cannot duty-cycle Active/HOLD across
+        // expiry windows.
+        *clock.lock().unwrap() = 1.0;
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "no oscillation on a frozen stream"
+        );
+        // Past the total-silence deadline (20 × 200 ms = 4 s) the designed
+        // escalation latches ESTOP — a stream frozen this long is a collapsed
+        // link, and the latch (not a revival) is the correct terminal state.
+        *clock.lock().unwrap() = 5.0;
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Estop,
+            "sustained freeze escalates to ESTOP"
+        );
+        *clock.lock().unwrap() = 6.0;
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Estop,
+            "…and the ESTOP stays latched"
+        );
+    }
+
+    #[test]
+    fn restarted_sensor_stream_reanchors_after_expiry() {
+        // A restarted PLANT restarts its sensor seq near 1. After the stale
+        // timeout has expired, a strictly-lower seq starts a new epoch (and the
+        // link monitor is reset so the regression is not misread as loss).
+        let transport = InProcessTransport::new();
+        let clock = Arc::new(Mutex::new(0.0_f64));
+        let clock2 = clock.clone();
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits {
+                max_speed_mps: Some(1.5),
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(move || *clock2.lock().unwrap()));
+        let frame = |t: f64, seq: i64| {
+            let mut m = crate::messages::Map::new();
+            m.insert(
+                "pose_position".into(),
+                ChannelValue::vec3(0.5, 0.0, 0.0, Some("m")),
+            );
+            m.insert(
+                "pose_velocity".into(),
+                ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
+            );
+            SensorFrame {
+                t,
+                seq,
+                channels: m,
+                ..Default::default()
+            }
+        };
+        // Live stream at a high seq.
+        transport.push_sensor(frame(0.0, 500));
+        assert_eq!(loop_.tick().mode, Mode::Active);
+        // Restart frame arrives BEFORE expiry: rejected while the old anchor is
+        // live — it must neither steer the controller nor leak into the echo.
+        *clock.lock().unwrap() = 0.1;
+        transport.push_sensor(frame(0.1, 1));
+        let cmd = loop_.tick();
+        assert_eq!(cmd.mode, Mode::Active, "old anchor still fresh");
+        assert_eq!(
+            cmd.seq, 500,
+            "a regressed frame on a live stream must not steer or be echoed"
+        );
+        // Once the old anchor EXPIRES, the pending restart frame (still the
+        // transport's latest) is adopted as a new epoch — recovery is immediate,
+        // with a stale-adoption window bounded by command_timeout_ms.
+        *clock.lock().unwrap() = 0.5; // past the 200 ms timeout
+        let cmd = loop_.tick();
+        assert_eq!(cmd.mode, Mode::Active, "restart epoch adopted at expiry");
+        assert_eq!(cmd.seq, 1, "the new epoch's seq is echoed");
+        // The adopted frame is a one-shot: it goes stale after the timeout, and —
+        // being equal-seq now — it can NEVER re-anchor again (no oscillation).
+        *clock.lock().unwrap() = 0.8;
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "one-shot restart frame goes stale"
+        );
+        *clock.lock().unwrap() = 2.0;
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "equal-seq frame never re-anchors"
+        );
+        // A genuinely advancing frame resumes the new epoch.
+        *clock.lock().unwrap() = 2.1;
+        transport.push_sensor(frame(2.1, 2));
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Active,
+            "a restarted, advancing stream recovers without operator intervention"
         );
     }
 

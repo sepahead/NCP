@@ -151,6 +151,49 @@ fn check_id(kind: &str, id: &str) -> Result<()> {
     }
 }
 
+/// Wire-0.6 publish gate for the perception plane: a `SensorFrame` must decode,
+/// carry the right `kind`, a compatible `ncp_version`, and a stamped `seq >= 1`.
+fn check_sensor_payload(payload: &[u8]) -> Result<()> {
+    ncp_core::decode_validated::<ncp_core::SensorFrame>(payload)
+        .map(drop)
+        .map_err(|e| ZenohError(format!("refusing to publish sensor frame: {e}")))
+}
+
+/// Wire-0.6 publish gate for the action plane. An ESTOP command is ALWAYS allowed
+/// through (a fail-safe is never suppressed — receivers latch it before any
+/// seq/version gate); everything else must pass full wire validation.
+fn check_command_payload(payload: &[u8]) -> Result<()> {
+    if let Ok(cmd) = serde_json::from_slice::<ncp_core::CommandFrame>(payload) {
+        if cmd.mode == ncp_core::Mode::Estop {
+            return Ok(());
+        }
+    }
+    ncp_core::decode_validated::<ncp_core::CommandFrame>(payload)
+        .map(drop)
+        .map_err(|e| ZenohError(format!("refusing to publish command frame: {e}")))
+}
+
+/// Wire-0.6 publish gate for the observation plane: a binary NCPB bulk block
+/// passes through (it has its own decode-side budget checks); a JSON
+/// `observation_frame` must validate AND carry `seq >= 1` — the plane-published
+/// form must echo its driving sensor seq (`0` is pull-path-only).
+fn check_observation_payload(payload: &[u8]) -> Result<()> {
+    if payload.starts_with(&ncp_core::BULK_MAGIC) {
+        return Ok(());
+    }
+    let obs = ncp_core::decode_validated::<ncp_core::ObservationFrame>(payload)
+        .map_err(|e| ZenohError(format!("refusing to publish observation frame: {e}")))?;
+    if obs.seq < 1 {
+        return Err(ZenohError(format!(
+            "refusing to publish observation frame: seq {} < 1 — a frame on the \
+             observation PLANE must echo the driving SensorFrame.seq (seq 0 is \
+             reserved for pull/RPC replies)",
+            obs.seq
+        )));
+    }
+    Ok(())
+}
+
 /// An NCP-aware Zenoh session. Wraps a [`zenoh::Session`] with the NCP key scheme
 /// and per-plane QoS.
 #[derive(Clone)]
@@ -261,8 +304,14 @@ impl ZenohBus {
     }
 
     /// Publish a `SensorFrame` (perception plane) for a session.
+    ///
+    /// Wire 0.6: the payload is validated before it leaves this peer (a
+    /// stamped `seq >= 1`, a compatible `ncp_version`, the right `kind`) — a
+    /// non-conforming publisher fails loudly here instead of being silently
+    /// dropped by every receiver. [`Self::put`] remains the raw escape hatch.
     pub async fn put_sensor(&self, session_id: &str, payload: &[u8]) -> Result<()> {
         check_id("session", session_id)?;
+        check_sensor_payload(payload)?;
         self.put(&self.keys.sensor(session_id), payload, Plane::Perception)
             .await
     }
@@ -333,16 +382,30 @@ impl ZenohBus {
         Ok(())
     }
 
-    /// Publish an observation frame (JSON bytes) on a session's observation key.
+    /// Publish an observation frame on a session's observation key: either a JSON
+    /// `observation_frame` or a binary NCPB bulk block (`BULK_MAGIC` prefix).
+    ///
+    /// Wire 0.6 (normative): a JSON frame published on the **observation plane**
+    /// must echo the driving `SensorFrame.seq` — `seq >= 1` is enforced here
+    /// (`seq == 0` is only legal in the pull/RPC reply path, which does not go
+    /// through this publisher). This is the publisher-side half of the split-plane
+    /// seq-join contract that any observer aligns on.
     pub async fn publish_observation(&self, session_id: &str, payload: &[u8]) -> Result<()> {
         check_id("session", session_id)?;
+        check_observation_payload(payload)?;
         self.put(&self.keys.observation(session_id), payload, Plane::Control)
             .await
     }
 
     /// Publish a command frame on a session's action plane (safety-gated upstream).
+    ///
+    /// Wire 0.6: the payload is validated before publish (stamped `seq >= 1`,
+    /// compatible `ncp_version`, right `kind`) — except an **ESTOP**, which is
+    /// always allowed through: a fail-safe is never suppressed by a validation
+    /// gate (receivers latch ESTOP before any seq/version check).
     pub async fn publish_command(&self, session_id: &str, payload: &[u8]) -> Result<()> {
         check_id("session", session_id)?;
+        check_command_payload(payload)?;
         self.put(&self.keys.command(session_id), payload, Plane::Action)
             .await
     }
@@ -363,6 +426,7 @@ impl ZenohBus {
     // entity `seq` is its own stream (one LinkMonitor/ActionBuffer per entity).
 
     /// Publish a `SensorFrame` for one named sensor: `…/sensor/{name}`.
+    /// Validated like [`Self::put_sensor`] (per-entity `seq` is its own stream).
     pub async fn put_sensor_named(
         &self,
         session_id: &str,
@@ -371,6 +435,7 @@ impl ZenohBus {
     ) -> Result<()> {
         check_id("session", session_id)?;
         check_id("sensor name", name)?;
+        check_sensor_payload(payload)?;
         self.put(
             &self.keys.sensor_named(session_id, name),
             payload,
@@ -380,6 +445,7 @@ impl ZenohBus {
     }
 
     /// Publish a `CommandFrame` to one named actuator: `…/command/{name}`.
+    /// Validated like [`Self::publish_command`] (ESTOP always passes).
     pub async fn publish_command_named(
         &self,
         session_id: &str,
@@ -388,6 +454,7 @@ impl ZenohBus {
     ) -> Result<()> {
         check_id("session", session_id)?;
         check_id("actuator name", name)?;
+        check_command_payload(payload)?;
         self.put(
             &self.keys.command_named(session_id, name),
             payload,
@@ -509,13 +576,15 @@ impl ZenohControlTransport {
             Arc::new(std::sync::Mutex::new(None));
         let sink = latest.clone();
         bus.subscribe_sensors(&session_id, move |_key, bytes| {
-            match serde_json::from_slice::<ncp_core::SensorFrame>(&bytes) {
+            // Wire 0.6: the data-plane ingress gate. `decode_validated` rejects an
+            // unparseable, kind-mismatched, version-less/incompatible, or
+            // unstamped (`seq < 1`) frame — dropped with a diagnostic so a
+            // mismatched peer is observable, never silently steering the loop.
+            match ncp_core::decode_validated::<ncp_core::SensorFrame>(&bytes) {
                 Ok(sf) => *sink.lock().unwrap_or_else(|e| e.into_inner()) = Some(sf),
-                // The data plane drops on parse failure; surface a diagnostic so a
-                // version-incompatible peer is observable, not silently ignored.
                 Err(e) => match ncp_core::diagnose_version(&bytes) {
                     Some(ve) => eprintln!("ncp: dropped sensor frame ({ve})"),
-                    None => eprintln!("ncp: dropped unparseable sensor frame: {e}"),
+                    None => eprintln!("ncp: dropped sensor frame: {e}"),
                 },
             }
         })
@@ -529,8 +598,52 @@ impl ZenohControlTransport {
     }
 }
 
+/// What `send_command` should do with a frame (pure, unit-testable).
+///
+/// - An **ESTOP always publishes** — a fail-safe is never suppressed, stamped or
+///   not (receivers latch ESTOP before any seq/version gate).
+/// - A wire-valid frame publishes.
+/// - An invalid **Active** frame is skipped LOUDLY — a controller trying to
+///   actuate with an unstamped/incompatible frame is a real fault.
+/// - An invalid non-Active frame (Hold/Init) is skipped silently: the loop
+///   legitimately emits unstampable HOLDs before its first sensor arrives (there
+///   is no sensor seq to echo yet), and the plant holds by default anyway.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum PublishDecision {
+    Publish,
+    SkipSilent,
+    SkipLoud,
+}
+
+fn command_publish_decision(cmd: &ncp_core::CommandFrame) -> PublishDecision {
+    use ncp_core::{Mode, WireFrame};
+    if cmd.mode == Mode::Estop {
+        return PublishDecision::Publish;
+    }
+    if cmd.validate_wire().is_ok() {
+        return PublishDecision::Publish;
+    }
+    if cmd.mode == Mode::Active {
+        PublishDecision::SkipLoud
+    } else {
+        PublishDecision::SkipSilent
+    }
+}
+
 impl ncp_core::ControlTransport for ZenohControlTransport {
     fn send_command(&self, command: &ncp_core::CommandFrame) {
+        // Wire 0.6: never publish a wire-invalid frame (fail loud at the sender,
+        // not silently at every receiver) — except ESTOP, which always goes out.
+        match command_publish_decision(command) {
+            PublishDecision::Publish => {}
+            PublishDecision::SkipSilent => return,
+            PublishDecision::SkipLoud => {
+                if let Err(e) = ncp_core::WireFrame::validate_wire(command) {
+                    eprintln!("ncp: NOT publishing invalid Active command ({e})");
+                }
+                return;
+            }
+        }
         let Ok(bytes) = serde_json::to_vec(command) else {
             return;
         };
@@ -625,9 +738,14 @@ impl ZenohNcpClient {
         let req = serde_json::to_vec(msg).map_err(err("serialize request"))?;
         let reply = self.bus.request(&req).await?;
         // Reject an error frame or a wrong-`kind` reply before the typed decode,
-        // so a misrouted reply cannot silently become an all-default `Resp`.
+        // so a misrouted reply cannot silently become an all-default `Resp` —
+        // then (wire 0.6) validate the reply against the wire contract for its
+        // kind (required fields incl. a compatible `ncp_version`).
         check_reply_kind(&reply, expect_kind)?;
-        serde_json::from_slice(&reply).map_err(err("parse reply"))
+        let value: serde_json::Value =
+            serde_json::from_slice(&reply).map_err(err("parse reply"))?;
+        ncp_core::validate(&value).map_err(err("invalid reply"))?;
+        serde_json::from_value(value).map_err(err("parse reply"))
     }
 }
 

@@ -31,6 +31,7 @@ int main() {
   std::cout << "DEFAULT_REALM = " << take(ncp_default_realm()) << "\n";
   std::cout << "command key   = "
             << take(ncp_key_command("ncp", "uav3")) << "\n";
+  std::cout << "check 0.6     = " << ncp_check_version("0.6", false) << "\n";
   std::cout << "check 0.5     = " << ncp_check_version("0.5", false) << "\n";
   std::cout << "check 1.0     = " << ncp_check_version("1.0", false) << "\n";
 
@@ -43,15 +44,54 @@ int main() {
                                        /*frame_id=*/nullptr, /*mode=*/nullptr))
             << "\n";
 
+  // Wire 0.6: every message must carry a compatible ncp_version.
   std::string ok = take(ncp_validate(
       "open_session",
-      "{\"session_id\":\"s1\",\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"}}"));
+      "{\"ncp_version\":\"0.6\",\"session_id\":\"s1\","
+      "\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"}}"));
   bool valid = ok.find("\"kind\":\"open_session\"") != std::string::npos;
   std::cout << "validate ok   = " << (valid ? "true" : "false") << "\n";
+  // ...and a version-less message is rejected (fail-closed, never coerced).
+  NcpStr rejected(ncp_validate(
+      "open_session",
+      "{\"session_id\":\"s1\",\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"}}"));
+  bool versionless_rejected = rejected.get() == nullptr;
+  std::cout << "versionless   = " << (versionless_rejected ? "rejected" : "ACCEPTED?!")
+            << "\n";
+
+  // Persistent governor: the ESTOP latch must survive across calls (the
+  // one-shot ncp_govern cannot latch by construction).
+  NcpGovernor *gov = ncp_governor_new(
+      "{\"geofence_radius_m\":5.0,\"command_timeout_ms\":500.0}");
+  const char *active_cmd =
+      "{\"kind\":\"command_frame\",\"mode\":\"active\","
+      "\"channels\":{\"velocity_setpoint\":{\"data\":[1.0,0.0,0.0],\"unit\":\"m/s\"}}}";
+  std::string breached = take(ncp_governor_govern(
+      gov, active_cmd, 1.0,
+      "{\"kind\":\"sensor_frame\",\"channels\":{\"pose_position\":{\"data\":[10.0,0.0,0.0]}}}",
+      1.0));
+  std::string still = take(ncp_governor_govern(
+      gov, active_cmd, 2.0,
+      "{\"kind\":\"sensor_frame\",\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0]}}}",
+      2.0));
+  bool latched = breached.find("\"mode\":\"estop\"") != std::string::npos &&
+                 still.find("\"mode\":\"estop\"") != std::string::npos &&
+                 ncp_governor_is_estopped(gov) == 1;
+  ncp_governor_reset(gov);
+  std::string resumed = take(ncp_governor_govern(
+      gov, active_cmd, 3.0,
+      "{\"kind\":\"sensor_frame\",\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0]}}}",
+      3.0));
+  bool reset_ok = resumed.find("\"mode\":\"active\"") != std::string::npos;
+  ncp_governor_free(gov);
+  std::cout << "gov latch     = " << (latched ? "latched" : "LOST?!")
+            << ", after reset = " << (reset_ok ? "active" : "STUCK?!") << "\n";
 
   // Exit nonzero if anything basic is wrong, so the smoke test can assert.
-  bool pass = take(ncp_version()) == "0.5" && ncp_check_version("0.5", false) == 1 &&
-              ncp_check_version("1.0", false) == 0 && valid;
+  bool pass = take(ncp_version()) == "0.6" && ncp_check_version("0.6", false) == 1 &&
+              ncp_check_version("0.5", false) == 0 &&
+              ncp_check_version("1.0", false) == 0 && valid &&
+              versionless_rejected && latched && reset_ok;
   std::cout << (pass ? "C++ NCP demo: OK" : "C++ NCP demo: FAILED") << "\n";
   return pass ? 0 : 1;
 }

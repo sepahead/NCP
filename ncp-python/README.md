@@ -29,14 +29,19 @@ maturin develop -m ncp-python/Cargo.toml --features extension-module
 ```python
 import ncp
 
-ncp.NCP_VERSION                      # "0.5"
+ncp.NCP_VERSION                      # "0.6"
 k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 k.command("uav3")                    # "ncp/session/uav3/command"
 ncp.decode_command(codec_json, '{"vel_x":200.0}', t=0.0, seq=7)  # CommandFrame JSON
 ```
 
-The module also exposes `check_version`, `encode_rates`, `govern` (the safety
-governor), `validate` (kind-aware wire validation), and `channel_value`.
+The module also exposes `check_version`, `encode_rates`, `govern` (the one-shot safety
+governor), `validate` (kind-aware wire validation), and `channel_value`. For **latching**
+safety — where an inbound ESTOP must survive across calls — use the persistent
+**`ncp.Governor`** class (`govern` / `reset` / `is_estopped` / `note_link` / `safety_ok`):
+the one-shot `govern` wrapper is stateless by construction and so cannot latch (it stays
+for stateless/corpus use), whereas an `ncp.Governor` instance holds the ESTOP latch across
+ticks.
 
 See the normative spec [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md)
 and the [repository README](../README.md) for the full protocol, the message kinds,

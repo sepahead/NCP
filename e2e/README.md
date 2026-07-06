@@ -96,7 +96,7 @@ JSON over the localhost-TCP bridge) — a concrete demonstration that **JSON is 
 on the RPC / command / sensor planes. The binary `BulkBlock` is the *observation-plane*
 encoding used on Zenoh for bulk numeric data, and the protobuf schema
 ([`../proto/ncp.proto`](../proto)) is the contract source-of-truth + conformance gate — **not**
-this shipped medium. The driver pins `ncp_version="0.5"` and a `contract_hash` inline; that
+this shipped medium. The driver pins `ncp_version="0.6"` and a `contract_hash` inline; that
 matches the value the behavior corpus carries today, but unlike `run_cross_language_e2e.py`
 (which reads the wire version from the corpus so it tracks a bump) this is a manual sync point
 on the next wire cut.

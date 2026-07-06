@@ -62,6 +62,21 @@ fn main() {
                 serde_json::Value::String((*name).to_string()),
             );
         }
+        // Pin `ncp_version` to a `const` too (wire 0.6): the version is mandatory
+        // and exact pre-1.0 (`check_version` requires an exact (major, minor)), so
+        // the schema projection enforces the same rule for any JSON-Schema-based
+        // validator (the Python guards, engram's drift test) — mirroring what
+        // `validate()` enforces in Rust.
+        if let Some(ver) = val
+            .get_mut("properties")
+            .and_then(|p| p.get_mut("ncp_version"))
+            .and_then(|k| k.as_object_mut())
+        {
+            ver.insert(
+                "const".to_string(),
+                serde_json::Value::String(ncp_core::NCP_VERSION.to_string()),
+            );
+        }
         // Inject the `required` array from the VALIDATION contract
         // (`required_fields`), not the serde derive: the serde types default every
         // field, so schemars marks nothing required, but `validate()` does require

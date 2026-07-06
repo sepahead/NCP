@@ -1,4 +1,4 @@
-# Neuro-Cybernetic Protocol (NCP) v0.5
+# Neuro-Cybernetic Protocol (NCP) v0.6
 
 A versioned, **transport-agnostic, project-agnostic** standard for letting a
 running NEST simulation serve external robot / UAV / simulation systems —
@@ -29,7 +29,7 @@ vocabulary are abstract SNN concepts a `SimulationBackend` maps to its simulator
   simulation host's Rust edge — see §6A). NCP is intended to become a reusable
   standard (cf. MCP/ACP); Rust is the high-performance reference implementation,
   self-contained and extractable to its own repo / crates.io. **Language bindings
-  off the same core:** Python (`ncp-python`, PyO3), TypeScript (`@sepehrmn/ncp`,
+  off the same core:** Python (`ncp-python`, PyO3), TypeScript (`@sepahead/ncp`,
   ts-rs-generated types), and C/C++ (`ncp-cpp`, a C ABI + `ncp.h`) — every peer is
   wire-identical. Integration is documented in [`INTEGRATING.md`](INTEGRATING.md);
   real-time NEST interaction vs MUSIC in [`NEST_REALTIME.md`](NEST_REALTIME.md).
@@ -77,7 +77,7 @@ compatibility gate (above), while `contract_hash` (carried in
 wire-semantically-canonicalized proto) is an **advisory** identity signal — a
 mismatch within a compatible version is *logged, not rejected* (the peers are on
 different but compatible contract revisions). A strict `verify_contract` opt-in
-exists for deployments that mandate an exact revision. NCP is **0.5** — pre-1.0, the
+exists for deployments that mandate an exact revision. NCP is **0.6** — pre-1.0, the
 wire may still change; pin the exact version you build against.
 
 The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handshake:
@@ -85,8 +85,37 @@ The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handsh
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/sequence-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/sequence-light.svg">
-  <img alt="NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (commander) and SERVER (sim backend). Three grouped phases top to bottom. OPEN: CLIENT sends OpenSession (ncp_version, contract_hash, network, record, stimulus, sim); SERVER applies a HARD version gate (check_version, exact major.minor, fail-closed) plus an ADVISORY contract_hash compare, then replies SessionOpened — ok=true opens the session (backend, resolved, provenance, contract_hash), ok=false returns an error with no session. STEP/OBSERVE loop, once per chunk: CLIENT sends StepRequest or RunRequest (advance_ms, 0 means use chunk_ms, with a stimulus); SERVER replies ObservationFrame (seq, t, sim_time_ms, records) — the heaviest, glowing vermillion trace, because it asserts two fixed provenance invariants on every frame: is_simulation_output=true and calibrated_posterior=false (the honesty boundary). CLOSE: CLIENT sends CloseSession; SERVER replies SessionClosed ok=true. Wire 0.5, contract hash 24e8e6e31e1dec8a." src="docs/diagrams/sequence-light.svg" width="820">
+  <img alt="NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (commander) and SERVER (sim backend). Three grouped phases top to bottom. OPEN: CLIENT sends OpenSession (ncp_version, contract_hash, network, record, stimulus, sim); SERVER applies a HARD version gate (check_version, exact major.minor, fail-closed) plus an ADVISORY contract_hash compare, then replies SessionOpened — ok=true opens the session (backend, resolved, provenance, contract_hash), ok=false returns an error with no session. STEP/OBSERVE loop, once per chunk: CLIENT sends StepRequest or RunRequest (advance_ms, 0 means use chunk_ms, with a stimulus); SERVER replies ObservationFrame (seq, t, sim_time_ms, records) — the heaviest, glowing vermillion trace, because it asserts two fixed provenance invariants on every frame: is_simulation_output=true and calibrated_posterior=false (the honesty boundary). CLOSE: CLIENT sends CloseSession; SERVER replies SessionClosed ok=true. Wire 0.6, contract hash 24e8e6e31e1dec8a." src="docs/diagrams/sequence-light.svg" width="820">
 </picture>
+
+### 1.1 Wire-0.6 acceptance rules (normative)
+
+Wire 0.6 is a **semantic** break with an **unchanged serialization** — no proto field,
+type, or encoding changed (so `contract_hash` stays `24e8e6e31e1dec8a`), but what a
+conforming peer **MUST** send and what a receiver **MUST** accept did. The key words
+**MUST**, **MUST NOT**, and **MAY** are used as in
+[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html) /
+[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html).
+
+- **`ncp_version` is mandatory on every message.** A receiver **MUST** reject a message
+  whose `ncp_version` is absent or wire-incompatible — an absent version no longer
+  defaults to the receiver's own, and the full `(major, minor)` must match (pre-1.0,
+  minor-is-breaking). The same holds for an absent `kind`.
+- **Closed-loop `seq` is stamped and strictly increasing.** A `sensor_frame` and a
+  `command_frame` **MUST** carry `seq >= 1`, strictly increasing per stream, and a
+  `command_frame` echoes the driving `sensor_frame.seq`. `seq == 0` is no longer an
+  accept-everything escape hatch — a plant-side watchdog/buffer **MUST NOT** accept
+  `seq < 1` (an inbound ESTOP still latches regardless — a fail-safe is never dropped).
+- **Observation-plane `seq` echoes the driving sensor.** An `observation_frame`
+  **published on the observation plane MUST** echo the driving `SensorFrame.seq`
+  (`>= 1`, publisher-enforced); `seq == 0` remains the pull/RPC-reply form only.
+- **Stream-restart recovery (no wire epoch field).** A receiver re-anchors a restarted
+  stream to a new epoch only on a strictly-**lower** `seq`, and only once the stream has
+  already expired; an **equal** `seq` never re-anchors, so a frozen or replayed frame
+  cannot forge liveness.
+- **Unknown `kind`s are skipped, not rejected.** A glob subscriber **MUST** skip a
+  message whose `kind` it does not recognize *before* validating it, so additive message
+  kinds stay non-breaking for existing consumers.
 
 ## 2. Entity model (perception, action, neither; 0..N of each)
 
@@ -394,10 +423,11 @@ and some would be wire-breaking to fully resolve):
   assume SI units (m/s, m) but never verify the negotiated `ChannelSpec.unit`, so a
   unit mismatch silently mis-scales (`safety.rs:369`). A canonical SI vocabulary for
   safety-relevant channels is the proposed fix.
-- **`seq == 0` is an always-accept anti-replay escape hatch** — and `seq = 0` is the
-  wire default (`resilience.rs:48`), so a default-constructed `CommandFrame` bypasses
-  the anti-stale/anti-replay guarantee on the action plane. Treat `seq > 0` as a
-  conformance requirement for `command_frame` on the action plane.
+- **`seq == 0` anti-replay escape hatch — RESOLVED in wire 0.6.** The action plane now
+  requires a stamped, strictly-increasing `seq >= 1`, and `CommandWatchdog`/`ActionBuffer`
+  reject `seq < 1`, so a default-constructed (`seq = 0`) `CommandFrame` no longer bypasses
+  the anti-stale/anti-replay guarantee (an inbound ESTOP still latches regardless). `seq >= 1`
+  is now normative for `command_frame`/`sensor_frame` on the closed-loop planes — see §1.1.
 
 
 **The reference gateway (`ncp-gateway`).** When the commander's brain is NEST (Python)

@@ -99,7 +99,7 @@ field, changing a type, removing an enum value, or changing the meaning of exist
 bytes — is breaking and **must** include, in the same PR:
 
 1. An explicit **`ncp_version` bump**. The version constant lives in
-   `ncp-core/src/messages.rs` (`NCP_VERSION`, currently `"0.5"`).
+   `ncp-core/src/messages.rs` (`NCP_VERSION`, currently `"0.6"`).
 2. A corresponding update to the **specification**
    (`NEURO_CYBERNETIC_PROTOCOL.md`), the **`.proto` definitions** (`proto/`),
    and the **JSON Schemas** (`schemas/`).
@@ -107,7 +107,7 @@ bytes — is breaking and **must** include, in the same PR:
    (`ncp-core/tests/conformance.rs`) so it pins the new contract.
 4. A **rebuild of the prebuilt TS package** (`bun run regen`, or `bun run build`
    for a source-only change) and a commit of the regenerated `ncp-ts/dist` — it is
-   git-tracked and shipped as `@sepehrmn/ncp`, so a stale `dist` would announce the
+   git-tracked and shipped as `@sepahead/ncp`, so a stale `dist` would announce the
    wrong wire to JS/TS peers. The `ts dist up-to-date` CI job enforces this.
 
 If your change touches the wire and you have not done all four, it is incomplete.
@@ -119,7 +119,7 @@ the PR.
 Release tags are **immutable**. Once a `vX.Y.Z` tag is pushed, never delete,
 re-point, or force-update it — downstream consumers (each self-registered via a
 `.ncp-consumer` descriptor; see [`INTEGRATING.md`](INTEGRATING.md)) and the
-`@sepehrmn/ncp` package pin NCP by tag, and a moved tag silently changes the bytes
+`@sepahead/ncp` package pin NCP by tag, and a moved tag silently changes the bytes
 those pins resolve to. If a release is wrong, cut a **new** tag (bump the version);
 do not rewrite history under an existing one.
 

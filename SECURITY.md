@@ -24,10 +24,17 @@ realm as routing metadata, never as a credential.
 
 ### Local fail-safe
 
-As a defense-in-depth fail-safe, action bodies enforce `mode` and `ttl_ms`
-locally at the receiver: a stale or out-of-mode command is rejected regardless
-of who sent it. This is a local safety governor, **not** a substitute for
-network-level authentication.
+As a defense-in-depth fail-safe, action bodies enforce `mode`, `ttl_ms`, and
+(since wire 0.6) **seq discipline** locally at the receiver: a stale,
+out-of-mode, version-less/incompatible, or unstamped (`seq < 1`) command is
+rejected regardless of who sent it, and a duplicate/replayed `seq` never
+refreshes the liveness deadline (the pre-0.6 "`seq == 0` always accepted"
+escape hatch is removed). This is a local safety governor, **not** a substitute
+for network-level authentication: seq discipline defends against transport
+artifacts and buggy peers, not adversaries — an injecting attacker can forge
+fresh, well-stamped frames, and alternating replays of different captured
+frames across expiry windows are indistinguishable from a legitimate restart on
+an unauthenticated wire. Adversarial integrity is mTLS's job (below).
 
 > **`contract_hash` is not a security control.** The handshake's `contract_hash`
 > (`ncp_core::CONTRACT_HASH`) is an FNV-1a digest that *detects accidental contract
@@ -142,10 +149,12 @@ no-cert rejection, exiting 0 only when all five hold.
 
 Enabling mutual TLS and the per-plane ACL closes the world-writable command and
 perception **PUT** surface (the P0 invariants above). It does **not** make NCP
-fully hardened. An adversarial review catalogued the remaining items in
-[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) (none are fixed yet); the
-security-relevant ones are summarised below. Do not read this section as a claim
-that these are mitigated.
+fully hardened. An adversarial review catalogued the items in
+[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) **with per-finding status** —
+the three high-severity findings (bulk-decode OOM budget, unbounded/non-finite
+`ttl_ms`, empty-position geofence bypass) and the wire-0.6 pair (`seq == 0`
+escape hatch, unenforced data-plane `ncp_version`) are **resolved with
+regression tests**; the still-open security-relevant one is summarised below.
 
 ### RPC authorization is all-or-nothing per realm (no per-verb ACL)
 
@@ -168,31 +177,31 @@ key and have the RPC handler authorize the caller's *proven* mTLS identity per
 verb in application code. Until one ships, treat every authenticated client as
 able to disrupt any session, and rely on closed-network isolation for the rest.
 
-### Bulk/observation decode is a memory-amplification DoS vector
+### Bulk/observation decode memory-amplification DoS — RESOLVED
 
-`BulkBlock::decode` (`ncp-core/src/bulk.rs`) sizes each column's allocation from
-attacker-controlled `n_rows`/`data_off` directory fields with **no cumulative
-allocation budget**, so a small block whose columns overlap or duplicate can
-declare far more total payload than it actually carries — an audited **~64,000x
-memory amplification / OOM denial-of-service** (`KNOWN_LIMITATIONS.md`, High). This
-is reachable by any peer that can publish on the observation plane, so it is *not*
-mitigated by the command/sensor PUT ACL — and bulk/observation data is the binary
-`BulkBlock` plane, distinct from the JSON sensor/command frames. The proposed fix
-is a running allocation budget bounded by the input length (reject when the summed
-declared `data_len` exceeds `bytes.len()`); it is internal and **wire-compatible**,
-because every conforming block already lays its columns out disjointly. Until it
-lands, ingest bulk data only from trusted publishers.
+`BulkBlock::decode` (`ncp-core/src/bulk.rs`) previously sized each column's
+allocation from attacker-controlled directory fields with no cumulative budget —
+an audited ~64,000× memory-amplification / OOM DoS reachable by any peer that
+could publish on the observation plane. **Fixed** (commit `0672168`, with a
+regression test): a running `alloc_budget` bounded by the input length rejects
+any block whose summed declared `data_len` exceeds `bytes.len()`. The fix is
+wire-compatible (every conforming block lays its columns out disjointly), so
+hostile/amplifying blocks are rejected while conforming traffic is unaffected.
+Publisher access control on the observation plane (the ACL above) remains the
+first line; the budget makes the decoder safe even without it.
 
-### The local safety governor has fail-OPEN edge cases
+### Local safety-governor fail-OPEN edge cases — RESOLVED
 
-The `mode`/`ttl_ms` governor described under **Local fail-safe** is
-defense-in-depth, not authentication — and the audit found inputs that make it
-fail *open* rather than closed: an unbounded or non-finite (`+Inf`) `ttl_ms` can
-disable the `CommandWatchdog` deadline backstop, and an empty position channel is
-treated as the origin and so bypasses the geofence
-(`KNOWN_LIMITATIONS.md`, High; `ncp-core/src/safety.rs`). These are
-local-enforcement bugs with wire-compatible fixes, but until they are fixed they
-weaken the receiver-side fail-safe that the closed-realm guidance leans on.
+The audit found inputs that made the receiver-side fail-safe fail *open*: an
+unbounded/non-finite (`+Inf`) `ttl_ms` disabled the `CommandWatchdog` deadline
+backstop, and an empty position channel read as the origin and bypassed the
+geofence. **Both fixed** (commit `0672168`, with regression tests): the enforced
+ttl is clamped to a finite ceiling (`MAX_TTL_MS`, non-finite → immediately
+stale), and empty position data fails closed to HOLD like an absent channel.
+Later hardening extended the same fail-closed treatment to non-finite/negative
+`SafetyLimits`, backward/non-finite clocks, inbound-ESTOP latching, and the
+wire-0.6 seq discipline (see `KNOWN_LIMITATIONS.md` for the full resolved
+ledger).
 
 ## Supported versions
 

@@ -20,7 +20,7 @@ paper-reproduction claim, and the provenance discriminators are mandatory and
 fail-closed precisely to keep that boundary machine-checkable. It is a single
 reference SDK (proto-native — `proto/ncp.proto` normative, `ncp-core` the Rust
 reference implementation; Python via PyO3, TypeScript types via ts-rs, a C ABI for
-C/C++) with field-set-parity drift guards, not yet a multi-implementation program. It is **pre-1.0** (current wire `0.5` — `v0.5.0` is the stable-wire cut that promoted the command/sim `mode` strings to proto enums (`Mode`/`SimMode`), recomputing `CONTRACT_HASH`; earlier wires: `0.4` the decoupling+robustness release (consumer-neutral proto package, advisory contract handshake, additive-is-non-breaking), `0.3` added the contract-hash field, `0.2` the neuron-family + bulk codec): the wire
+C/C++) with field-set-parity drift guards, not yet a multi-implementation program. It is **pre-1.0** (current wire `0.6` — `v0.6.0` is the enforcement cut that made `ncp_version` mandatory on every message and the closed-loop `seq` discipline normative, a *semantic* break with an unchanged serialization so `CONTRACT_HASH` stays `24e8e6e31e1dec8a`; earlier wires: `0.5` the stable-wire cut that promoted the command/sim `mode` strings to proto enums (`Mode`/`SimMode`), recomputing `CONTRACT_HASH`; `0.4` the decoupling+robustness release (consumer-neutral proto package, advisory contract handshake, additive-is-non-breaking), `0.3` added the contract-hash field, `0.2` the neuron-family + bulk codec): the wire
 may change, minor versions are treated as breaking, and the version guard fails
 rather than silently coercing. NCP's contribution is a typed, provenance-first, safety-gated wire
 contract — not novel control science and not the first SNN-in-the-loop robot loop
@@ -230,7 +230,7 @@ interop gates + the neutral-home path.
   maturin is the canonical PyO3-to-PyPI path; a published wheel is table stakes for
   the Python peer to be usable without a Rust toolchain.
 - **Zenodo DOI via the GitHub–Zenodo archive.** Tagged releases now exist
-  (through `v0.5.x`); enable the GitHub–Zenodo integration so a release is archived
+  (through `v0.6.x`); enable the GitHub–Zenodo integration so a release is archived
   and a DOI minted, then add it to the existing `CITATION.cff`. *Why:* a DOI is the
   minimum citable artifact; the repo currently has a `CITATION.cff` with no DOI.
 - **Defer JOSS.** A JOSS submission is viable only after roughly six months of

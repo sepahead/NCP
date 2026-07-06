@@ -42,15 +42,21 @@ Notes (see the header and `src/lib.rs` for the full contract):
 
 The C ABI exposes JSON-string wrappers for the core decision functions — version
 guard, contract hash, key-expression builders (the four primary plane keys),
-rate codec (`encode`/`decode`), safety governor (`govern`), and message
-validation. This covers the wire-level operations a C/C++ peer needs to be
-wire-identical to the Rust/Python/TS peers.
+rate codec (`encode`/`decode`), the safety governor, and message validation. The
+governor comes in two forms: the one-shot `ncp_govern` JSON wrapper, and a persistent,
+**latching** handle — `ncp_governor_new` / `ncp_governor_govern` / `ncp_governor_reset` /
+`ncp_governor_is_estopped` / `ncp_governor_note_link` / `ncp_governor_safety_ok` /
+`ncp_governor_free`. The one-shot form is stateless and **cannot** hold an ESTOP latch
+across calls (it stays for stateless/corpus use); a live actuator loop uses the handle,
+which does. This covers the wire-level operations a C/C++ peer needs to be wire-identical
+to the Rust/Python/TS peers.
 
 The following `ncp-core` modules are **not** exposed through the C ABI (use
 `ncp-core` directly from Rust for full API access): the full key-scheme
-(`sensor_named`, `command_named`, `*_glob`, `fleet_glob`), `SafetyGovernor` /
-`CommandWatchdog` as typed structs (only the one-shot `ncp_govern` JSON wrapper
-is exposed), the bulk column codec (`ncp-core::bulk`), the in-process bus
+(`sensor_named`, `command_named`, `*_glob`, `fleet_glob`), the `SafetyGovernor` /
+`CommandWatchdog` typed structs themselves (the governor's behavior is reached through
+the one-shot `ncp_govern` and the persistent `ncp_governor_*` handle above), the bulk
+column codec (`ncp-core::bulk`), the in-process bus
 (`LocalBus`), the control-loop runner (`NeuroControlLoop`), and the resilience
 layer (`ActionBuffer`, `LinkMonitor`). These are transport-internal or
 Rust-ergonomic APIs not naturally expressed over a C ABI; the JSON wire surface

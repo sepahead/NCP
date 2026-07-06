@@ -179,7 +179,7 @@ important thing NCP can do is detect goodput collapse and fail safe honestly.
 
 ## Minimal first implementation (corrected order)
 
-> **Status (wire v0.5.2).** Steps 0–2 now ship as tested `ncp-core` primitives,
+> **Status (wire 0.6).** Steps 0–2 now ship as tested `ncp-core` primitives,
 > re-exported from the crate root: `CommandWatchdog` (the `ttl_ms` deadline
 > backstop), `ActionBuffer` + `max_horizon_len` (PPC horizon replay, capped at
 > `N ≤ ttl_ms / horizon_dt_ms`), and `LinkMonitor` (seq-gap loss + CUSUM burst →
@@ -247,6 +247,15 @@ the deadline **only on a strictly-advancing `seq`**, so a trickle of
 replayed/stale frames cannot keep the plant "fresh" forever; and it treats a
 **non-finite clock as expired** — failing *closed* on a bad clock rather than
 letting `NaN` comparisons read as "not expired."
+
+Since **wire 0.6** the `seq` rule is normative, not merely advisory: a
+`command_frame`/`sensor_frame` **MUST** carry `seq >= 1` (strictly increasing per
+stream), so an unstamped (`seq < 1`) frame is **rejected**, never actuated on — the
+old "`seq == 0` always-accept" escape hatch is gone. A restarted stream re-anchors to a
+new epoch only on a strictly-**lower** `seq`, and only once the previous stream has
+already expired; an **equal** `seq` never re-anchors, so a frozen or replayed frame
+cannot forge liveness. An inbound ESTOP latches regardless of `seq` — a fail-safe is
+never dropped.
 
 > **Residual fail-OPEN gap (not fixed — see `KNOWN_LIMITATIONS.md`).** The watchdog
 > sanitizes the *clock* but does **not** bound the *deadline*. `on_command` stores

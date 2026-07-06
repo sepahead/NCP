@@ -67,6 +67,8 @@ fn mock_handler(req: Vec<u8>) -> Vec<u8> {
         }),
         "step_request" | "run_request" => json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": sid,
+            // Wire 0.6: `seq` is a required key; 0 is the pull/RPC-reply form.
+            "seq": 0,
             "calibrated_posterior": false, "is_simulation_output": true,
             "records": {"vm": {"port": "vm", "target": "pop", "observable": "V_m",
                                "times": [1.0], "values": [-65.0], "unit": "mV"}},
@@ -171,8 +173,8 @@ async fn ncp_rpc_over_real_zenoh_tcp_link() {
     assert!(closed.ok, "session must close");
 }
 
-/// A server one wire-minor behind: a valid reply except its `ncp_version` is the
-/// previous wire ("0.4"). This is the cutover hazard — a leftover old peer on the bus.
+/// A server on an OLDER wire: a valid reply except its `ncp_version` is a stale
+/// wire ("0.4"). This is the cutover hazard — a leftover old peer on the bus.
 fn stale_version_handler(req: Vec<u8>) -> Vec<u8> {
     let v: Value = serde_json::from_slice(&req).unwrap_or_else(|_| json!({}));
     let sid = v.get("session_id").and_then(Value::as_str).unwrap_or("s");
@@ -186,9 +188,9 @@ fn stale_version_handler(req: Vec<u8>) -> Vec<u8> {
 }
 
 /// SHOULD-FIX #4b (Rust side): the HARD version gate fires across the real transport.
-/// A 0.4 `session_opened` reply must be REJECTED by this 0.5 client (the handshake
-/// `negotiate`s the reply's version) — never coerced — so a half-upgraded fleet
-/// fails closed instead of two wire revisions silently mis-decoding each other.
+/// A stale-wire `session_opened` reply must be REJECTED by a current-wire client (the
+/// handshake `negotiate`s the reply's version) — never coerced — so a half-upgraded
+/// fleet fails closed instead of two wire revisions silently mis-decoding each other.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn mixed_version_open_is_rejected_over_the_wire() {
     let port = free_port();
@@ -221,7 +223,7 @@ async fn mixed_version_open_is_rejected_over_the_wire() {
     let mut rejected = false;
     for _ in 0..100 {
         match client.open(&open_msg).await {
-            Ok(_) => panic!("a 0.4 session_opened must be rejected by a 0.5 client, not accepted"),
+            Ok(_) => panic!("a stale-wire session_opened must be rejected, not accepted"),
             Err(e) => {
                 if e.to_string().contains("version") {
                     rejected = true;

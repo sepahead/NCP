@@ -17,15 +17,25 @@ projection) with [SemVer](https://semver.org): `MAJOR.MINOR.PATCH`.
 - **PATCH** — clarifications/docs with no wire effect.
 
 **Wire version vs crate/package version.** The `ncp_version` *wire* string
-(currently `0.5`) versions the contract; the Rust crates and the `@sepehrmn/ncp`
+(currently `0.6`) versions the contract; the Rust crates and the `@sepahead/ncp`
 package carry their own SemVer (see `Cargo.toml` / `package.json` for the current
 SDK version — the manifests are the single source of truth) for the SDK. They usually move
 together, but a PATCH that touches only code/docs/build artifacts (e.g. `0.5.0` →
-`0.5.1` → `0.5.2`, the current SDK release) leaves the wire at `0.5` — a
-`v0.5.0` peer is wire-identical to a `v0.5.2` peer (same `CONTRACT_HASH`
-`24e8e6e31e1dec8a`). **Pin `tag = "v0.5.0"`** for the wire baseline
-(what the `buf breaking` gate compares against); the crate at that-or-later tag is
-wire-`0.5`-compatible.
+`0.5.3` on the previous wire) leaves the wire string unchanged. **Pin
+`tag = "v0.6.0"`** for the current wire baseline (what the `buf breaking` gate
+compares against); the crate at that-or-later tag is wire-`0.6`-compatible.
+
+**Wire 0.6 is a SEMANTIC break with an unchanged serialization.** No field,
+type, or encoding changed — `CONTRACT_HASH` is identical to wire 0.5
+(`24e8e6e31e1dec8a`) — but what a conforming peer MUST send changed: every
+message must carry a compatible `ncp_version` (an absent version deserializes to
+a detectable `""` and is rejected, never coerced to the receiver's own), and the
+closed-loop frames must stamp `seq` (`sensor_frame`/`command_frame` `seq >= 1`
+strictly increasing, `observation_frame` `>= 1` when published on the
+observation plane, `0` only in pull/RPC replies; the pre-0.6 "`seq == 0` always
+accepted" escape hatch is removed). Acceptance-rule changes are exactly what the
+version string exists to gate — hence the minor bump, per the pre-1.0 caveat
+below.
 
 **Additive evolution is NON-breaking (since v0.4).** Adding an *optional* field or a
 new message type does **not** bump the minor — protobuf/serde ignore unknown fields,
@@ -40,22 +50,26 @@ contract revision" without breaking anyone.
 
 **Pre-1.0 caveat:** while `0.x`, an *incompatible* minor bump is breaking and the
 version guard fails closed on a minor difference (`check_version`). Pin an exact
-version (`tag = "v0.5.0"`). `0.x` is explicitly unstable.
+version (`tag = "v0.6.0"`). `0.x` is explicitly unstable.
 
-The current wire is **`0.5`** (`ncp_version = "0.5"`). `0.5` is the **stable-wire cut**:
-the three bare proto `string mode` fields were promoted to enums (`SimConfig.mode →
-SimMode {stream, batch}`, `CommandFrame.mode` / `ControlStatus.mode → Mode {init,
-active, hold, estop}`) so the `buf breaking` gate covers their value sets — a real
-`string`→enum wire change that recomputed `CONTRACT_HASH`. Earlier wires: `0.4` was the
-**decoupling + robustness** release (the proto `package` was renamed `engram.ncp.v0 →
-ncp.v0` — naming-only, hash-neutral; the contract handshake became advisory; the
-additive-is-non-breaking policy above was adopted); `0.3` added the `contract_hash`
-handshake field; `0.2` the neuron-family wire (#10) and bulk column codec (#6).
+The current wire is **`0.6`** (`ncp_version = "0.6"`). `0.6` is the
+**enforcement cut**: mandatory `ncp_version` on every message, mandatory
+stamped `seq` on the closed-loop frames, normative observation-plane seq
+stamping, and the removal of the `seq == 0` escape hatch — a semantic break
+with an unchanged serialization (same `CONTRACT_HASH`). Earlier wires: `0.5`
+was the **stable-wire cut** (the three bare proto `string mode` fields were
+promoted to enums — a real `string`→enum wire change that recomputed
+`CONTRACT_HASH` to `24e8e6e31e1dec8a`); `0.4` was the **decoupling +
+robustness** release (the proto `package` was renamed `engram.ncp.v0 → ncp.v0`
+— naming-only, hash-neutral; the contract handshake became advisory; the
+additive-is-non-breaking policy above was adopted); `0.3` added the
+`contract_hash` handshake field; `0.2` the neuron-family wire (#10) and bulk
+column codec (#6).
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/versioning-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/versioning-light.svg">
-  <img alt="NCP version-compatibility handshake. The wire contract breaks from 0.4 to 0.5 (a string-to-enum change under buf WIRE/WIRE_JSON; contract hash 2cf0763ad61e4f1c becomes 24e8e6e31e1dec8a). This feeds a hard compatibility gate, check_version, which requires an exact major.minor match and fails closed. A peer on 0.4 does not equal 0.5 and is rejected fail-closed with an error and no coercion; a peer on 0.5 matches exactly and the session opens (the highlighted green outcome). Separately, off the success path, a contract_hash difference is advisory only — logged, not rejected." src="docs/diagrams/versioning-light.svg" width="820">
+  <img alt="NCP version-compatibility handshake. The wire contract breaks from 0.5 to 0.6 (an acceptance-rule change: mandatory ncp_version and stamped seq; the serialization is unchanged, so the contract hash stays 24e8e6e31e1dec8a). This feeds a hard compatibility gate, check_version, which requires an exact major.minor match and fails closed. A peer on 0.5 does not equal 0.6 and is rejected fail-closed with an error and no coercion; a peer on 0.6 matches exactly and the session opens (the highlighted green outcome). Separately, off the success path, a contract_hash difference is advisory only — logged, not rejected." src="docs/diagrams/versioning-light.svg" width="820">
 </picture>
 
 ## Enforcement: `buf breaking`
@@ -67,8 +81,10 @@ rules (configured in `buf.yaml`):
 - **`FILE` / `PACKAGE`** — source/codegen-level stability.
 
 CI runs `buf lint`; `buf breaking` gates the wire against the first tag of the
-current wire (`v0.5.0`, the wire-`0.5` baseline — see `.github/workflows/ci.yml`).
+current wire (`v0.6.0`, the wire-`0.6` baseline — see `.github/workflows/ci.yml`).
 A change that trips `WIRE`/`WIRE_JSON` **must** bump MAJOR (or MINOR while `0.x`).
+(Wire 0.6 changed no proto structure, so `buf breaking` is byte-quiet across the
+0.5→0.6 cut — the break is in the acceptance rules, gated by `ncp_version`.)
 
 ## Per-session version + contract handshake
 
@@ -92,45 +108,32 @@ The two checks are **separated by concern** (since v0.4):
 Separating the two means additive evolution and naming-only proto changes never break
 any version-compatible commander↔plant flow, while drift is still surfaced for
 operators.
-## Where the version gate runs — and the data-plane gap
+## Where the version gate runs — enforced end to end since wire 0.6
 
-The compatibility gate is a **session-establishment** check, not a per-frame one.
-`check_version` runs once, at `OpenSession`, inside `negotiate` on the *control*
-plane (engram's `SessionService.handle`; the Zenoh client
-`ncp-zenoh::ZenohNcpClient::open`). Once a session is open, the hot **data plane**
-— `SensorFrame` on the perception plane, `CommandFrame` on the action plane — is
-*not* re-gated per frame: those decoders deserialize and act on the frame without
-calling `check_version`.
+The gate runs at **both** layers since wire 0.6:
 
-This is a deliberate first-principles trade-off. The per-tick budget on the
-action/perception planes is microseconds (a full control tick is ~1 µs — see
-`PERFORMANCE.md`), so re-parsing and re-checking a version string on every
-20–1000 Hz frame would be pure tax for no new information: both peers already
-proved wire compatibility at `OpenSession`. Within a correctly-handshaked
-session the gate has done its job.
+1. **Session establishment** — `check_version` inside `negotiate` at
+   `OpenSession` (the reference server's `SessionService.handle`; the Zenoh
+   client `ncp-zenoh::ZenohNcpClient::open`), plus per-reply validation in the
+   typed RPC client.
+2. **Per frame on the data plane** — `required_fields()` lists `ncp_version` for
+   **every** `kind` (injected into every JSON Schema's `required` array with a
+   `const` pin), `validate()` rejects an absent OR incompatible version, an
+   absent version deserializes to a detectable `""` (never fabricated as the
+   receiver's own), and the hot-path typed ingress
+   (`ncp_core::decode_validated` / `WireFrame::validate_wire`, used by the Zenoh
+   subscriber and publish gates) drops a version-less/incompatible/unstamped
+   frame with a diagnostic. `diagnose_version` now also flags the absent-version
+   case so a receiver can log *why* a frame was dropped.
 
-**Known limitation (audited, not yet fixed).** The opening line of this document
-— "every message carries a string `ncp_version`" — is a *spec* requirement that
-the runtime does **not** currently enforce on the data plane. The serde message
-types are `#[serde(default)]`, and `required_fields()` (`messages.rs`) does **not**
-list `ncp_version` for any `kind`, so an absent version silently defaults to our
-own and an *incompatible-but-parseable* sensor/command frame is **accepted**
-rather than dropped. A transport that delivers frames from a mismatched peer
-straight onto the data plane (bypassing the `OpenSession` handshake) therefore
-evades the version gate entirely. `diagnose_version` exists only as a best-effort
-helper a receiver *may* call to log *why* a frame is incompatible; it is advisory,
-is not invoked as a hard gate by the core decoders, and returns `None` for a
-frame that carries no version at all — so it cannot catch the absent-version case
-either.
-
-This is catalogued as a **`wire-breaking`** finding in `KNOWN_LIMITATIONS.md`: the
-fix (have data-plane decoders call `check_version` per frame, and/or add
-`ncp_version` to `required_fields()` for every `kind`) changes what a conforming
-peer MUST send, so it requires a version bump and consumer buy-in across
-Engram/crebain/prisoma — hence it is documented, not yet applied. Until then, do
-not assume the data plane enforces version compatibility: rely on the
-`OpenSession` handshake for version agreement and on transport-level peer
-authentication (mTLS) to keep unhandshaked peers off the planes.
+The per-frame cost is one string comparison on an already-deserialized frame
+(no extra parse — `validate_wire` works on the typed value), so the original
+microseconds-budget argument no longer trades safety for speed. A transport that
+delivers frames from a mismatched peer straight onto the data plane (bypassing
+the `OpenSession` handshake) is now rejected at ingress rather than silently
+accepted. Transport-level peer authentication (mTLS) remains the *adversarial*
+integrity layer — the version gate is compatibility, not authentication (see
+`SECURITY.md`).
 
 ## Contract hash (the wire-identity digest)
 

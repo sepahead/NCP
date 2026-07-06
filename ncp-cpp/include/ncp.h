@@ -25,7 +25,7 @@ extern "C" {
 /* Release any string returned by an ncp_* function. NULL is ignored. */
 void ncp_string_free(char *s);
 
-/* Protocol version (e.g. "0.5"). Caller frees. */
+/* Protocol version (e.g. "0.6"). Caller frees. */
 char *ncp_version(void);
 
 /* Default realm — the neutral ncp_core::DEFAULT_REALM (a deployment sets its own). Caller frees. */
@@ -58,10 +58,31 @@ char *ncp_decode_command(const char *codec_json, const char *rates_json,
                          double t, int64_t seq, const char *frame_id,
                          const char *mode);
 
-/* Action-plane safety governor. last_sensor_s < 0 => "no sensor yet" (HOLD).
- * NULL on malformed input. Caller frees. */
+/* Action-plane safety governor, ONE-SHOT: a fresh governor per call, so the
+ * ESTOP latch cannot persist across calls (stateless/corpus use only — a real
+ * plant must hold a persistent NcpGovernor, below). last_sensor_s < 0 =>
+ * "no sensor yet" (HOLD). NULL on malformed input. Caller frees. */
 char *ncp_govern(const char *limits_json, const char *command_json, double now_s,
                  const char *sensor_json, double last_sensor_s);
+
+/* PERSISTENT (latching) safety governor: a geofence breach / inbound ESTOP /
+ * link collapse keeps every later ncp_governor_govern at ESTOP until a
+ * supervisor ncp_governor_reset. NOT thread-safe: synchronize access to one
+ * handle. Free with ncp_governor_free. */
+typedef struct NcpGovernor NcpGovernor;
+NcpGovernor *ncp_governor_new(const char *limits_json);
+/* Same argument semantics as ncp_govern; NULL on NULL handle/malformed input.
+ * Caller frees the returned string. */
+char *ncp_governor_govern(NcpGovernor *gov, const char *command_json,
+                          double now_s, const char *sensor_json,
+                          double last_sensor_s);
+void ncp_governor_reset(NcpGovernor *gov);
+/* 1 latched / 0 not / -1 NULL handle. */
+int32_t ncp_governor_is_estopped(const NcpGovernor *gov);
+void ncp_governor_note_link(NcpGovernor *gov, bool burst);
+/* 1 safe / 0 not / -1 NULL handle. */
+int32_t ncp_governor_safety_ok(const NcpGovernor *gov);
+void ncp_governor_free(NcpGovernor *gov);
 
 /* Validate an NCP message of `kind` (parse->reserialize). NULL on malformed/
  * unknown kind. Caller frees. */

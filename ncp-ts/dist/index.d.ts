@@ -11,4 +11,6 @@ export type * from './generated';
 export { NeuroSimClient, NCP_VERSION, NCP_CONTRACT_HASH, checkVersion, NcpVersionError, contractStatus, assertScientificBoundary, NcpScientificBoundaryError, } from './client';
 export type { Send, Wire, ErrorFrame, ChannelInput, NetworkInput, RecordInput, StimulusInput, SimInput, SessionOpenedReply, SessionClosedReply, ObservationFrameReply, ObservationData, } from './client';
 export { WebSocketNeuroSim } from './ws';
+export { ActionBuffer, CommandWatchdog, SafetyGovernor, assertWireFrame, maxHorizonLen, LINK_LOSS_ESTOP_FACTOR, MAX_TTL_MS, } from './safety';
+export type { CommandLike, SensorLike, WireChannels } from './safety';
 //# sourceMappingURL=index.d.ts.map

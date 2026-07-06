@@ -1,11 +1,13 @@
 # Release readiness — NCP wire contract
 
-Status of NCP as a **release-grade, future-extensible wire**: can `v0.5.x` evolve
+Status of NCP as a **release-grade, future-extensible wire**: can `v0.6.x` evolve
 additively without breaking peers, and is the live medium + contract proven? This is
 an honest, adversarially-reviewed assessment, not a green-badge claim.
 
-**Verdict (v0.5.0):** the release-readiness checklist below is **closed**. `0.5` is the
-deliberate stable-wire cut — the baseline a stable wire is measured against — and the
+**Verdict (wire `0.6`; checklist closed at `v0.5.0`):** the release-readiness checklist
+below is **closed** and holds through the current `0.6` cut. `0.5` was the deliberate
+stable-wire cut — the baseline a stable wire is measured against — and `0.6` is the
+enforcement cut built on it (mandatory `ncp_version`, normative closed-loop `seq`); the
 control-plane contract is proven end-to-end across a real process + language boundary,
 over a real transport, with the safety authority and the version gate exercised on the
 wire. NCP remains pre-1.0 (`0.x`, minor-is-breaking) by policy, with the residual
@@ -35,7 +37,7 @@ from the wire — engram's `MockBackend` emits real `Observation` frames):
 | 1 | **Safety governor over the wire** | release-blocking | ✅ `ncp-zenoh/tests/safety_governor_over_wire.rs`: a plant runs `SafetyGovernor::govern` on each `CommandFrame` received over a real Zenoh link; corpus-driven HOLD/ESTOP/clamp verdicts, and the **ESTOP latch survives the wire** (a breach latches; a subsequent clean frame is still ESTOP). |
 | 2 | **engram Pydantic enum mirror** | release-blocking | ✅ The six descriptive enums gained `UNKNOWN` + `_missing_` (the Python analogue of `#[serde(other)] Unknown`); `Mode` fail-safes to `HOLD`; `SimMode` still rejects (no Rust counterpart). Round-trip + nested/reply tolerance tests added. |
 | 3 | **Frozen JSON-wire baseline gate** | release-blocking | ✅ `scripts/check_wire_baseline.py` + `conformance/baseline/v0.5.0/`: additive-only diff (no removed field/enum-value, no newly-required field, no type change) of CURRENT vs the frozen snapshot. Wired into `scripts/check.sh` + CI. `CommandFrame.mode`/`ControlStatus.mode`/`SimConfig.mode` are now proto enums, so `buf` covers their values too. |
-| 4 | **Wire-version single source + mixed-version e2e** | should-fix | ✅ Each peer + the corpus are cross-checked for `NCP_VERSION`/`CONTRACT_HASH` (`behavior_conformance.rs`, `check-version-coherence.sh`); a `0.4` peer is proven fail-closed-rejected by a `0.5` server over the engram cross-process **and** the Zenoh transports, with the `0.5↔0.5` happy path kept. |
+| 4 | **Wire-version single source + mixed-version e2e** | should-fix | ✅ Each peer + the corpus are cross-checked for `NCP_VERSION`/`CONTRACT_HASH` (`behavior_conformance.rs`, `check-version-coherence.sh`); a wire-incompatible peer is proven fail-closed-rejected by the server over the engram cross-process **and** the Zenoh transports (e.g. a `0.5` peer against a `0.6` server), with the same-version (`0.6↔0.6`) happy path kept. |
 | 5 | **new→old reply tolerance + nested unknown field** | should-fix | ✅ Reply-side + nested-message forward-compat tested (Rust + engram Pydantic); a pin asserts no wire model sets `extra='forbid'`. |
 
 **Consciously deferred (nice-to-have, not blocking):** TS + C++ *live-transport* clients
@@ -49,7 +51,7 @@ documented here rather than left silent.
 ## Residual caveats (disclosed limitations, by policy — not open blockers)
 
 - **Pre-1.0 (`0.x`).** The wire may still change; minor-is-breaking, the version guard
-  fails closed. Pin `tag = "v0.5.0"`.
+  fails closed. Pin `tag = "v0.6.0"`.
 - **Single reference implementation.** `proto/ncp.proto` is normative; `ncp-core` (Rust)
   is the reference and the other peers are bindings/mirrors verified by parity + the
   behavioral corpus — not yet a multi-implementation conformance program.
@@ -59,5 +61,6 @@ documented here rather than left silent.
 
 **Bottom line:** the live cross-process loop is real and tested, the forward-compat and
 safety properties are proven on the wire, and the whole JSON wire (not just the proto)
-is now anchored by a frozen baseline. `v0.5.0` is a sound, interoperable **stable-wire
-cut** with its residual limitations disclosed above.
+is now anchored by a frozen baseline. `v0.6.0` — the enforcement cut on the `v0.5.0`
+**stable-wire cut** baseline — is a sound, interoperable wire with its residual
+limitations disclosed above.

@@ -247,15 +247,23 @@ impl SafetyGovernor {
         if self.estop {
             return self.estop_frame(command);
         }
+        // An INBOUND ESTOP-mode command is itself a fail-safe: LATCH and
+        // propagate it (zeroed ESTOP out), never downgrade it to a non-latching
+        // HOLD — mirroring `ActionBuffer::on_command`'s "a fail-safe is never
+        // dropped" rule, so an explicit ESTOP latches at every layer.
+        if command.mode == Mode::Estop {
+            self.estop = true;
+            return self.estop_frame(command);
+        }
         // Config-level fail-closed (a limit references an undeclared channel):
         // HOLD every command; `safety_ok()` reports false.
         if self.config_fail_closed {
             return self.hold_frame(command);
         }
 
-        // Only `Active` commands may actuate. A non-Active inbound mode
-        // (Init/Hold/Estop, or any mode added later) must never drive the plant,
-        // so normalize it to a zeroed HOLD here — defense-in-depth with
+        // Only `Active` commands may actuate. A remaining non-Active inbound mode
+        // (Init/Hold, or any mode added later) must never drive the plant, so
+        // normalize it to a zeroed HOLD here — defense-in-depth with
         // `ActionBuffer::active`'s allowlist, so the governor also never forwards
         // an actuating setpoint under a non-Active mode.
         if !matches!(command.mode, Mode::Active) {
@@ -486,15 +494,32 @@ impl CommandWatchdog {
     /// Record an accepted command received at local time `now_s` with its `ttl_ms`
     /// and `seq`. The deadline refreshes only when `seq` strictly advances — a
     /// duplicate/stale/replayed command (`seq <= last`) must NOT extend liveness, or
-    /// a trickle of stale frames would keep the plant "fresh" forever. `seq == 0` is
-    /// the all-zero-seq escape hatch (pull/sim streams that do not stamp seq).
+    /// a trickle of stale frames would keep the plant "fresh" forever.
+    ///
+    /// Wire 0.6: `seq < 1` (unstamped/negative — including the `0` serde default)
+    /// NEVER refreshes liveness. The pre-0.6 "`seq == 0` always refreshes" escape
+    /// hatch let a default-constructed or hostile all-zeros frame keep the plant
+    /// "commanded" forever, defeating the deadline backstop.
+    ///
+    /// **Stream-epoch re-anchor (restart recovery):** a *strictly-lower* `seq` is
+    /// additionally accepted when the stream is already EXPIRED
+    /// ([`should_hold`](Self::should_hold) is true) — a legitimately restarted
+    /// controller restarts its counter at 1, and without this rule the plant would
+    /// reject its frames forever. An *equal* `seq` NEVER re-anchors: a single
+    /// frozen/replayed frame re-delivered across expiry windows must fail safe
+    /// permanently, not duty-cycle liveness. Re-anchoring only from the expired
+    /// (already holding, safe) state grants nothing an injecting attacker could
+    /// not get by forging a fresh high `seq` — the wire is unauthenticated (see
+    /// SECURITY.md); seq discipline defends against transport artifacts and buggy
+    /// peers, and integrity against adversaries is mTLS's job.
     pub fn on_command(&mut self, now_s: f64, ttl_ms: f64, seq: i64) {
-        if seq != 0 && seq <= self.last_seq {
-            return; // stale/duplicate command does not refresh the deadline
+        if seq < 1 {
+            return; // unstamped/invalid seq never refreshes liveness (wire 0.6)
         }
-        if seq != 0 {
-            self.last_seq = seq;
+        if seq <= self.last_seq && (seq == self.last_seq || !self.should_hold(now_s)) {
+            return; // duplicate (always), or stale/reordered while the stream is LIVE
         }
+        self.last_seq = seq;
         self.last_recv_s = Some(now_s);
         // Bound the enforced ttl: a non-finite `ttl_ms` (e.g. `+Inf`) makes
         // `(now - t) > ttl_s` never true → the backstop never fires (fail-OPEN).
@@ -557,9 +582,77 @@ mod tests {
         // A strictly-advancing command refreshes it.
         wd.on_command(1.2, 200.0, 6);
         assert!(!wd.should_hold(1.3), "seq=6 advances -> refreshed");
-        // The all-zero-seq escape hatch still refreshes (pull/sim streams).
-        wd.on_command(1.5, 200.0, 0);
-        assert!(!wd.should_hold(1.6), "seq=0 stream still refreshes");
+    }
+
+    #[test]
+    fn unstamped_or_negative_seq_never_refreshes() {
+        // Wire 0.6: the pre-0.6 "seq == 0 always refreshes" escape hatch is GONE.
+        // A spray of unstamped (0) or garbage (negative / i64::MIN) frames must
+        // never grant liveness — that was the anti-replay/anti-stale bypass.
+        let mut wd = CommandWatchdog::new();
+        for bad_seq in [0, -1, i64::MIN] {
+            wd.on_command(1.0, 200.0, bad_seq);
+            assert!(
+                wd.should_hold(1.05),
+                "seq {bad_seq} must not refresh the deadline"
+            );
+        }
+        // ...and on a LIVE stream they must not disturb the anchor either.
+        wd.on_command(2.0, 200.0, 7);
+        wd.on_command(2.05, 200.0, 0);
+        wd.on_command(2.05, 200.0, -9);
+        assert!(
+            !wd.should_hold(2.1),
+            "live seq=7 deadline unaffected by garbage"
+        );
+        assert!(
+            wd.should_hold(2.3),
+            "…and the deadline still expires on time"
+        );
+    }
+
+    #[test]
+    fn restart_reanchors_only_after_expiry() {
+        let mut wd = CommandWatchdog::new();
+        wd.on_command(1.0, 200.0, 1000); // live stream at seq 1000
+                                         // While LIVE, a lower/equal seq (replay or premature restart) is rejected.
+        wd.on_command(1.05, 200.0, 1);
+        assert!(
+            wd.should_hold(1.35),
+            "a low seq on a live stream must not refresh (deadline still anchored at t=1.0)"
+        );
+        // After expiry (the plant is already HOLDing — a safe state), a restarted
+        // controller's low seq re-anchors the stream and restores liveness.
+        assert!(wd.should_hold(1.5), "expired");
+        wd.on_command(1.5, 200.0, 1); // restart epoch: seq restarts at 1
+        assert!(!wd.should_hold(1.6), "post-expiry restart re-anchors");
+        // The new epoch's discipline applies: its own replays are rejected.
+        wd.on_command(1.62, 200.0, 1);
+        assert!(
+            wd.should_hold(1.75),
+            "duplicate within the new epoch does not refresh"
+        );
+        // seq == i64::MAX is accepted without panic; a duplicate MAX cannot advance.
+        let mut wd2 = CommandWatchdog::new();
+        wd2.on_command(0.0, 200.0, i64::MAX);
+        assert!(!wd2.should_hold(0.1));
+        wd2.on_command(0.15, 200.0, i64::MAX);
+        assert!(
+            wd2.should_hold(0.3),
+            "duplicate i64::MAX does not extend the deadline"
+        );
+    }
+
+    #[test]
+    fn nan_clock_on_command_stays_fail_safe() {
+        // A non-finite receive clock corrupts nothing observable: the stored
+        // deadline is non-finite, so should_hold stays true (fail-closed), and a
+        // later valid-clock frame re-anchors (the stream reads as expired).
+        let mut wd = CommandWatchdog::new();
+        wd.on_command(f64::NAN, 200.0, 1);
+        assert!(wd.should_hold(0.1), "NaN-anchored deadline must HOLD");
+        wd.on_command(5.0, 200.0, 2);
+        assert!(!wd.should_hold(5.1), "a valid frame recovers liveness");
     }
 
     #[test]
@@ -1155,7 +1248,7 @@ mod tests {
         // A non-Active command must never actuate, even with a fresh sensor and
         // an in-bounds setpoint (defense-in-depth with ActionBuffer's allowlist).
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
-        for mode in [Mode::Init, Mode::Hold, Mode::Estop] {
+        for mode in [Mode::Init, Mode::Hold] {
             let cmd = CommandFrame {
                 mode,
                 channels: channels_with("velocity_setpoint", 1.0, "m/s"),
@@ -1166,6 +1259,48 @@ mod tests {
             let v = out.channels.get("velocity_setpoint").expect("present");
             assert!(v.data.iter().all(|c| *c == 0.0), "HOLD zeroes the setpoint");
         }
+    }
+
+    #[test]
+    fn inbound_estop_command_latches_and_propagates() {
+        // An explicit inbound ESTOP is a fail-safe: it must come back as a zeroed
+        // ESTOP (never a non-latching HOLD downgrade) and must LATCH — mirroring
+        // ActionBuffer's "a fail-safe is never dropped".
+        let mut gov = SafetyGovernor::new(SafetyLimits::default());
+        let estop_cmd = CommandFrame {
+            mode: Mode::Estop,
+            channels: channels_with("velocity_setpoint", 9.0, "m/s"),
+            ..Default::default()
+        };
+        let out = gov.govern(&estop_cmd, None, 1.0, Some(1.0));
+        assert_eq!(
+            out.mode,
+            Mode::Estop,
+            "inbound ESTOP is propagated, not downgraded"
+        );
+        let v = out.channels.get("velocity_setpoint").expect("present");
+        assert!(
+            v.data.iter().all(|c| *c == 0.0),
+            "ESTOP zeroes the setpoint"
+        );
+        assert!(gov.is_estopped(), "inbound ESTOP must latch");
+        // A subsequent perfectly-safe Active command is still ESTOP until reset.
+        let active = CommandFrame {
+            mode: Mode::Active,
+            channels: channels_with("velocity_setpoint", 0.5, "m/s"),
+            ..Default::default()
+        };
+        assert_eq!(
+            gov.govern(&active, None, 2.0, Some(2.0)).mode,
+            Mode::Estop,
+            "the latch persists until a supervisor reset"
+        );
+        gov.reset();
+        assert_eq!(
+            gov.govern(&active, None, 3.0, Some(3.0)).mode,
+            Mode::Active,
+            "reset restores normal governing"
+        );
     }
 
     #[test]

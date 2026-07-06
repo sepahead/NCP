@@ -56,22 +56,37 @@ fn every_json_vector_validates_through_the_c_abi() {
 fn tampered_scientific_boundary_is_rejected_through_the_c_abi() {
     // A frame asserting it is a calibrated posterior must be rejected by the C++
     // SDK exactly as by the Rust reference (the ncp_core::validate value-pin).
-    let lie = r#"{"kind":"observation_frame","session_id":"s1","calibrated_posterior":true}"#;
+    // Fixtures carry the wire-0.6 required ncp_version + seq so the boundary pin
+    // is the only thing that differs between the two frames.
+    let ver = ncp_core::NCP_VERSION;
+    let lie = format!(
+        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":1,"calibrated_posterior":true}}"#
+    );
     assert!(
-        unsafe { validate("observation_frame", lie) }.is_none(),
+        unsafe { validate("observation_frame", &lie) }.is_none(),
         "calibrated_posterior=true must be rejected through the C ABI"
     );
-    // The honest frame (discriminators absent → safe defaults) is accepted.
-    let honest = r#"{"kind":"observation_frame","session_id":"s1"}"#;
-    assert!(unsafe { validate("observation_frame", honest) }.is_some());
+    // The honest frame (discriminators absent → safe defaults) is accepted;
+    // seq 0 is the legal pull/RPC-reply form.
+    let honest = format!(
+        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":0}}"#
+    );
+    assert!(unsafe { validate("observation_frame", &honest) }.is_some());
 }
 
 #[test]
 fn missing_required_is_rejected_through_the_c_abi() {
     // A step_request without its required session_id must reject (the canonical
     // ncp_core::validate check the typed round-trip alone would silently default).
-    let bad = r#"{"kind":"step_request","advance_ms":1.0}"#;
-    assert!(unsafe { validate("step_request", bad) }.is_none());
-    let good = r#"{"kind":"step_request","session_id":"s1"}"#;
-    assert!(unsafe { validate("step_request", good) }.is_some());
+    let ver = ncp_core::NCP_VERSION;
+    let bad = format!(r#"{{"kind":"step_request","ncp_version":"{ver}","advance_ms":1.0}}"#);
+    assert!(unsafe { validate("step_request", &bad) }.is_none());
+    let good = format!(r#"{{"kind":"step_request","ncp_version":"{ver}","session_id":"s1"}}"#);
+    assert!(unsafe { validate("step_request", &good) }.is_some());
+    // Wire 0.6: the version itself is now required — its absence alone rejects.
+    let versionless = r#"{"kind":"step_request","session_id":"s1"}"#;
+    assert!(
+        unsafe { validate("step_request", versionless) }.is_none(),
+        "a version-less message must be rejected through the C ABI"
+    );
 }

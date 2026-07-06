@@ -54,7 +54,7 @@ mod wire_tests {
     #[test]
     fn step_request_roundtrip_from_python_json() {
         let json = r#"{
-            "ncp_version": "0.5",
+            "ncp_version": "0.6",
             "kind": "step_request",
             "session_id": "s1",
             "advance_ms": 50.0,
@@ -93,11 +93,11 @@ mod wire_tests {
 
     #[test]
     fn version_guard() {
-        // Wire is pre-1.0 (0.5), so the minor is breaking: an exact (major,
+        // Wire is pre-1.0 (0.6), so the minor is breaking: an exact (major,
         // minor) match is required and a same-major/different-minor is rejected.
-        assert!(check_version("0.5", true).unwrap()); // exact match ok
+        assert!(check_version("0.6", true).unwrap()); // exact match ok
+        assert!(check_version("0.5", true).is_err()); // old 0.5 wire is now a breaking minor diff -> Err under strict
         assert!(check_version("0.4", true).is_err()); // old 0.4 wire is now a breaking minor diff -> Err under strict
-        assert!(check_version("0.2", true).is_err()); // old 0.2 wire is now a breaking minor diff -> Err under strict
         assert!(check_version("0.1", true).is_err()); // old 0.1 wire is now a breaking minor diff -> Err under strict
         assert!(!check_version("0.1", false).unwrap()); // ...and Ok(false) when lenient
         assert!(check_version("0.9", true).is_err()); // any other 0.x minor diff is breaking
@@ -123,8 +123,9 @@ mod wire_tests {
         // +2.0 error -> top of rate range; -2.0 -> bottom.
         assert!((rates["err_x"] - 200.0).abs() < 1e-6);
         assert!((rates["err_z"] - 0.0).abs() < 1e-6);
-        let cmd = codec.decode(&rates, 0.0, 0, "world", Mode::Active);
+        let cmd = codec.decode(&rates, 0.0, 1, "world", Mode::Active);
         assert_eq!(cmd.channels["velocity_setpoint"].data.len(), 3);
+        assert_eq!(cmd.seq, 1, "decode stamps the echoed sensor seq");
     }
 
     /// codec-bus-1: the decoder's readout populations (`vel_*`) are absent from
@@ -134,7 +135,7 @@ mod wire_tests {
     #[test]
     fn codec_absent_population_maps_to_neutral_not_full_reverse() {
         let codec = default_uav_velocity_codec();
-        let cmd = codec.decode(&Map::new(), 0.0, 0, "world", Mode::Active);
+        let cmd = codec.decode(&Map::new(), 0.0, 1, "world", Mode::Active);
         for c in &cmd.channels["velocity_setpoint"].data {
             assert!(
                 c.abs() < 1e-9,
@@ -175,8 +176,8 @@ mod wire_tests {
     /// silently default it to an empty string.
     #[test]
     fn validate_rejects_missing_required() {
-        // Missing required `session_id`.
-        let bad = serde_json::json!({"kind": "step_request", "advance_ms": 1.0});
+        // Missing required `session_id` (version present so THIS is what trips).
+        let bad = serde_json::json!({"kind": "step_request", "ncp_version": NCP_VERSION, "advance_ms": 1.0});
         assert!(
             validate(&bad).is_err(),
             "missing session_id must be rejected"
@@ -186,8 +187,15 @@ mod wire_tests {
         assert_eq!(typed.session_id, "");
 
         // A complete step_request passes.
-        let good = serde_json::json!({"kind": "step_request", "session_id": "s1"});
+        let good = serde_json::json!({"kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1"});
         assert!(validate(&good).is_ok());
+
+        // Wire 0.6: a version-less control message is rejected too — every kind
+        // now requires `ncp_version` (the spec's line, finally enforced).
+        assert!(
+            validate(&serde_json::json!({"kind": "step_request", "session_id": "s1"})).is_err(),
+            "missing ncp_version must be rejected"
+        );
 
         // Unknown kinds and non-objects are rejected.
         assert!(validate(&serde_json::json!({"kind": "not_a_real_kind"})).is_err());
@@ -198,7 +206,9 @@ mod wire_tests {
         );
 
         // Forward-compatible: unknown extra fields are still accepted.
-        let fwd = serde_json::json!({"kind": "step_request", "session_id": "s1", "future": 7});
+        let fwd = serde_json::json!({
+            "kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1", "future": 7
+        });
         assert!(validate(&fwd).is_ok());
     }
 
@@ -207,32 +217,37 @@ mod wire_tests {
     #[test]
     fn validate_pins_scientific_boundary() {
         // observation_frame: a tampered calibrated_posterior=true is rejected.
+        // (Fixtures carry the wire-0.6 required ncp_version + seq.)
         let lie = serde_json::json!({
-            "kind": "observation_frame", "session_id": "s1", "calibrated_posterior": true
+            "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
+            "seq": 1, "calibrated_posterior": true
         });
         assert!(
             validate(&lie).is_err(),
             "calibrated_posterior=true must be rejected"
         );
         let lie2 = serde_json::json!({
-            "kind": "observation_frame", "session_id": "s1", "is_simulation_output": false
+            "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
+            "seq": 1, "is_simulation_output": false
         });
         assert!(
             validate(&lie2).is_err(),
             "is_simulation_output=false must be rejected"
         );
-        // The honest default values pass; absent fields also pass.
+        // The honest default values pass; absent boundary fields also pass.
         let ok = serde_json::json!({
-            "kind": "observation_frame", "session_id": "s1",
-            "calibrated_posterior": false, "is_simulation_output": true
+            "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
+            "seq": 1, "calibrated_posterior": false, "is_simulation_output": true
         });
         assert!(validate(&ok).is_ok());
-        let absent = serde_json::json!({"kind": "observation_frame", "session_id": "s1"});
+        let absent = serde_json::json!({
+            "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1", "seq": 0
+        });
         assert!(validate(&absent).is_ok());
 
         // session_opened: the pin reaches into the nested provenance object...
         let bad_prov = serde_json::json!({
-            "kind": "session_opened", "session_id": "s1",
+            "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": "s1",
             "provenance": {"network_ref": "n", "backend": "b", "is_simulation_output": false}
         });
         assert!(
@@ -241,7 +256,8 @@ mod wire_tests {
         );
         // ...and a null provenance (the nullable wire form) is simply skipped.
         let null_prov = serde_json::json!({
-            "kind": "session_opened", "session_id": "s1", "provenance": null
+            "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": "s1",
+            "provenance": null
         });
         assert!(validate(&null_prov).is_ok());
     }

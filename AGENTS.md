@@ -16,7 +16,7 @@ Action, read-only Observation), with a safety-gated action plane and per-frame
 provenance. `proto/ncp.proto` is the **normative schema**; `ncp-core` (Rust) is the
 **reference implementation of behavior** (codec, safety governor, keys, version).
 Python (`ncp-python`, PyO3), C/C++ (`ncp-cpp`, C ABI), and TypeScript (`ncp-ts`,
-`@sepehrmn/ncp`) peers all speak the *identical* wire off that one contract.
+`@sepahead/ncp`) peers all speak the *identical* wire off that one contract.
 
 ## The wire rule (NON-NEGOTIABLE)
 
@@ -28,9 +28,9 @@ Python (`ncp-python`, PyO3), C/C++ (`ncp-cpp`, C ABI), and TypeScript (`ncp-ts`,
   1. `NCP_VERSION` in **both** `ncp-core/src/messages.rs` and `ncp-ts/src/client.ts` (the coherence guard checks they agree — this skew shipped once).
   2. the spec (`NEURO_CYBERNETIC_PROTOCOL.md`), the `.proto` (`proto/`), and the JSON Schemas (`schemas/`).
   3. the conformance test (`ncp-core/tests/conformance.rs`) so it pins the new contract — **fix the drift, never weaken the test**.
-  4. the prebuilt TS package (`bun run regen`, or `bun run build` for source-only) and commit the regenerated `ncp-ts/dist` (git-tracked, shipped as `@sepehrmn/ncp`; a stale `dist` announces the wrong wire).
+  4. the prebuilt TS package (`bun run regen`, or `bun run build` for source-only) and commit the regenerated `ncp-ts/dist` (git-tracked, shipped as `@sepahead/ncp`; a stale `dist` announces the wrong wire).
 
-When in doubt whether something is wire-visible, **assume it is**. `CONTRACT_HASH` is currently `24e8e6e31e1dec8a` for wire `0.5`; it appears in ~10 files (proto/docs/bindings) — if the wire changes, update **every** occurrence in lockstep or the parity guards fail.
+When in doubt whether something is wire-visible, **assume it is**. `CONTRACT_HASH` is currently `24e8e6e31e1dec8a` for wire `0.6` — unchanged across the `0.5 → 0.6` bump, which was a *semantic* break (the acceptance rules changed, not the serialization); it appears in ~10 files (proto/docs/bindings) that move in lockstep — if the wire's bytes ever change, update **every** occurrence together or the parity guards fail.
 
 ## Safety is the crown jewel — fail CLOSED, always
 
@@ -116,8 +116,8 @@ re-pin — same `MAJOR.MINOR` peers interoperate — but re-pinning is how consu
 
 ## Known downstream consumers (keep in lockstep)
 
-- **prisoma** (`../prisoma`) — read-only `ncp-observer` tap; pins `ncp-core`/`ncp-zenoh` by tag. Consumes only the data-plane message types + `ZenohBus` subscribe API. Its PID study needs the **observation-plane `seq` stamping** (an `ObservationFrame` echoing its driving `SensorFrame.seq`) to make its D-axis exactly aligned — check whether NEST/Engram actually stamps it.
-- **crebain** (`../crebain`) — full Commander/plant client; pins NCP by tag in **both** `package.json` (`@sepehrmn/ncp`, TS) **and** `src-tauri/Cargo.toml` (`ncp-core`/`ncp-zenoh`, Rust). Uses a broad surface: `Mode`, `Observable`, `StimulusKind`, `ChannelValue`, `ActionBuffer`, `check_version`, `ZenohBus`, `ZenohNcpClient`, `WebSocketNeuroSim`, `NCP_VERSION`. A wire-breaking change breaks crebain on **both** sides — verify against `crebain/src-tauri/src/ncp/mod.rs` and `crebain/src/neuro/` before shipping one.
+- **prisoma** (`../prisoma`) — read-only `ncp-observer` tap; pins `ncp-core`/`ncp-zenoh` by tag. Consumes only the data-plane message types + `ZenohBus` subscribe API. Its PID study needs the **observation-plane `seq` stamping** (an `ObservationFrame` echoing its driving `SensorFrame.seq`) to make its D-axis exactly aligned; as of wire 0.6 this is **normative** — a producer MUST echo the driving sensor `seq` (`>= 1`) on any `observation_frame` published on the observation plane, enforced publisher-side by `ncp-zenoh::publish_observation` (`seq == 0` remains the pull/RPC-reply form).
+- **crebain** (`../crebain`) — full Commander/plant client; pins NCP by tag in **both** `package.json` (`@sepahead/ncp`, TS) **and** `src-tauri/Cargo.toml` (`ncp-core`/`ncp-zenoh`, Rust). Uses a broad surface: `Mode`, `Observable`, `StimulusKind`, `ChannelValue`, `ActionBuffer`, `check_version`, `ZenohBus`, `ZenohNcpClient`, `WebSocketNeuroSim`, `NCP_VERSION`. A wire-breaking change breaks crebain on **both** sides — verify against `crebain/src-tauri/src/ncp/mod.rs` and `crebain/src/neuro/` before shipping one.
 
 ## Project-agnostic rule
 

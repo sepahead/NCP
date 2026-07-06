@@ -6,8 +6,10 @@ import type { Observation } from "./Observation";
  */
 export type ObservationFrame = { ncp_version: string, kind: string, session_id: string, 
 /**
- * Echoes the driving `SensorFrame.seq` when published inside a closed loop,
- * so a split-plane observer can align `(V,L,D,A)` on `seq` (not arrival
- * time). `0` in the pure pull/sim-service path (no controller seq).
+ * Wire 0.6 (normative): a frame **published on the observation plane** MUST
+ * echo the driving `SensorFrame.seq` (`>= 1`), so a split-plane observer can
+ * align `(V,L,D,A)` on `seq` (not arrival time) — an unstamped plane frame
+ * forces observers into a degraded recency-only join. `0` is reserved for
+ * the pure pull/sim-service RPC reply path (no controller seq exists there).
  */
 seq: bigint, t: number, sim_time_ms: number, records: { [key in string]: Observation }, calibrated_posterior: boolean, is_simulation_output: boolean, };

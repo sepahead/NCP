@@ -95,7 +95,7 @@ fn main() {
     let start_dist = (pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]).sqrt();
     let mut max_speed_seen = 0.0_f64; // vector magnitude
     let mut max_axis_seen = 0.0_f64; // per-component
-    for k in 0..120 {
+    for k in 1..=120 {
         clock.fetch_add((dt * 1000.0) as u64, Ordering::Relaxed);
         loop_
             .transport
@@ -195,7 +195,8 @@ fn main() {
         format!("mode={:?}", out.mode),
     );
 
-    // 2d ESTOP-mode command: govern preserves the mode for the plant to enforce.
+    // 2d Inbound ESTOP-mode command: govern LATCHES and propagates a zeroed ESTOP
+    // (never a non-latching HOLD downgrade) — a fail-safe is never dropped.
     let mut gov_e = SafetyGovernor::new(SafetyLimits {
         command_timeout_ms: 1000.0,
         ..Default::default()
@@ -212,11 +213,14 @@ fn main() {
     );
     let z = vget(&out.channels);
     t.check(
-        "ESTOP mode preserved for plant",
-        out.mode == Mode::Estop,
-        format!("mode={:?}", out.mode),
+        "inbound ESTOP latched + propagated, channels zeroed",
+        out.mode == Mode::Estop && gov_e.is_estopped() && z.iter().all(|c| c.abs() < 1e-12),
+        format!(
+            "mode={:?} estopped={} v={z:?}",
+            out.mode,
+            gov_e.is_estopped()
+        ),
     );
-    println!("    NOTE: govern() did NOT zero the channels of an incoming estop/hold-mode command (v={z:?}); de-energizing relies on the plant honoring `mode`. Defense-in-depth candidate. [finding]");
 
     // 2e non-finite clock -> fail-safe HOLD (not fail-open)
     let mut gov_n = SafetyGovernor::new(SafetyLimits {
@@ -259,6 +263,7 @@ fn main() {
     println!("\n[3] ActionBuffer horizon replay + ttl");
     let mut ab = ActionBuffer::new();
     let cmd_p = CommandFrame {
+        seq: 1, // wire 0.6: an unstamped (seq 0) command is never buffered
         mode: Mode::Active,
         ttl_ms: 500.0,
         channels: vel_map(1.0, 0.0, 0.0),

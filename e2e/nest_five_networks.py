@@ -8,7 +8,7 @@ step_request* (current_pA stimulus, spikes recording) -> close_session.
 import json, socket, sys, time
 
 HOST, PORT = "127.0.0.1", 28474
-NCP = "0.5"
+NCP = "0.6"
 HASH = "24e8e6e31e1dec8a"
 
 NETWORKS = [

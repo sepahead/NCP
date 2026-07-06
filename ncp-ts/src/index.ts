@@ -37,3 +37,16 @@ export type {
   ObservationData,
 } from './client'
 export { WebSocketNeuroSim } from './ws'
+
+// Plant-side safety + resilience (the ncp-core safety.rs / resilience.rs port,
+// behaviour-pinned to the shared corpus) + the wire-0.6 data-plane ingress gate.
+export {
+  ActionBuffer,
+  CommandWatchdog,
+  SafetyGovernor,
+  assertWireFrame,
+  maxHorizonLen,
+  LINK_LOSS_ESTOP_FACTOR,
+  MAX_TTL_MS,
+} from './safety'
+export type { CommandLike, SensorLike, WireChannels } from './safety'

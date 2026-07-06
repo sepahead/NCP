@@ -14,8 +14,12 @@
  * `Send`).
  */
 import type { ChannelValue, NetworkRef, Observation, ObservationFrame, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated';
-/** The protocol version this client stamps on every request (`ncp_version`). */
-export declare const NCP_VERSION = "0.5";
+/** The protocol version this client stamps on every request (`ncp_version`).
+ *  Wire 0.6: every message MUST carry a compatible `ncp_version` (absent is
+ *  rejected, never coerced) and the closed-loop frames MUST stamp `seq` — see
+ *  `VERSIONING.md`. The serialization is unchanged from 0.5, so the contract
+ *  hash is identical; the version string is the compatibility gate. */
+export declare const NCP_VERSION = "0.6";
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
