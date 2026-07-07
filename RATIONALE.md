@@ -411,8 +411,10 @@ watchdog) is a real, cheaper-to-own option** that a ROS-2-standardized team shou
 prefer. A standing audit — `KNOWN_LIMITATIONS.md` — catalogs 35 findings; **all 3
 high-severity safety ones are now fixed** (the `bulk.rs` decode OOM/DoS, the fail-OPEN
 watchdog on unbounded/`+Inf` `ttl_ms`, and the empty-position geofence bypass), each
-wire-safe and regression-tested (9 of 35 resolved). The remaining 26 medium/low items
-stay open with per-finding status, and the relevant sections above cross-reference them.
+wire-safe and regression-tested (11 of 35 resolved — the wire-0.6 enforcement cut also
+closed two of the three `wire-breaking` findings, the `seq==0` replay hatch and the
+unenforced data-plane version check). The remaining 24 medium/low items stay open with
+per-finding status, and the relevant sections above cross-reference them.
 
 ## What NCP deliberately borrows
 

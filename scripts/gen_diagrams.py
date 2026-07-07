@@ -835,7 +835,7 @@ def sequence(th):
     s = [svg_open(W, H), defs(th), background(th, W, H)]
     s.append(title_block(th, "SESSION LIFECYCLE",
                          "CLIENT ⇄ SERVER  ·  OPEN → STEP / OBSERVE → CLOSE", W))
-    s.append(sheet_meta(th, W - 28, 48, "NCP · WIRE 0.5 · proto/ncp.proto"))
+    s.append(sheet_meta(th, W - 28, 48, "NCP · WIRE 0.6 · proto/ncp.proto"))
     ctl, obs, ctr, verm, grn, pink = (th["control"], th["observation"], th["contract"],
                                       th["action"], th["active"], th["configfail"])
     CLx, SVx = 246, 574
@@ -945,7 +945,7 @@ SEQUENCE_ALT = ("NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (
     "0 means use chunk_ms, with a stimulus); SERVER replies ObservationFrame (seq, t, sim_time_ms, records) "
     "— the heaviest, glowing vermillion trace, because it asserts two fixed provenance invariants on every "
     "frame: is_simulation_output=true and calibrated_posterior=false (the honesty boundary). CLOSE: CLIENT "
-    "sends CloseSession; SERVER replies SessionClosed ok=true. Wire 0.5, contract hash 24e8e6e31e1dec8a.")
+    "sends CloseSession; SERVER replies SessionClosed ok=true. Wire 0.6, contract hash 24e8e6e31e1dec8a.")
 
 
 DIAGRAMS = {

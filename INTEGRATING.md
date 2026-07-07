@@ -381,8 +381,9 @@ open-network deployment, read [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) —
 adversarial audit catalogs **35 findings**. **All 3 high-severity safety findings are
 now fixed** (the `BulkBlock` decode OOM, the fail-**open** unbounded/non-finite `ttl_ms`
 watchdog, and the empty-position geofence bypass), each wire-safe and regression-tested;
-**9 of 35 are resolved** and the remaining 26 medium/low items are tracked there with
-per-finding status. Pair it with [`SECURITY.md`](SECURITY.md): on an open realm the
+**11 of 35 are resolved** (the wire-0.6 enforcement cut also closed two of the three
+`wire-breaking` findings, the `seq==0` replay hatch and the unenforced data-plane version
+check) and the remaining 24 medium/low items are tracked there with per-finding status. Pair it with [`SECURITY.md`](SECURITY.md): on an open realm the
 action key is world-writable until you enable the shipped per-plane ACL + mTLS (lens 8
 above) — **that (auth) is the one real blocker for an open-network deployment**, not the
 now-closed high-severity safety bugs.

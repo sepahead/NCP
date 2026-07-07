@@ -494,8 +494,8 @@ the command, the environment, and the known caveats.
   record from a representative subset (the backend already pins V_m to one neuron).
 - A full adversarial audit of NCP (correctness, safety, robustness, overhead) is
   catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — **35 findings, all 3
-  high-severity ones fixed** (9 of 35 resolved so far). Treat that file as the live
+  high-severity ones fixed** (11 of 35 resolved so far, after the wire-0.6 cut). Treat that file as the live
   status register: the resolved items cite their fixing commit/guard, and the
-  remaining 26 are medium/low. The top *performance* item there (the `ncp-zenoh`
+  remaining 24 are medium/low. The top *performance* item there (the `ncp-zenoh`
   `payload.to_vec()` copy) is still open and is discussed in
   [Top safe optimization](#top-safe-optimization-zero-copy-publish-zbytesshm) above.

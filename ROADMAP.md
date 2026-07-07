@@ -77,9 +77,12 @@ the SDK (correctness, safety, robustness, overhead): 35 line-referenced findings
 bytes, and each turns a current *fail-open* into the intended *fail-closed*.
 **All three are now fixed** (commit `0672168`, each wire-safe and regression-tested),
 alongside further `safe` fail-closed hardening (non-finite/negative safety limits,
-backward-clock steps, `LinkMonitor` overflow, bounded `max_horizon_len`) — **9 of 35
-resolved**. The three high items are retained below for provenance, marked ✓ **DONE**.
-The remaining medium/low work is tracked in `KNOWN_LIMITATIONS.md`.
+backward-clock steps, `LinkMonitor` overflow, bounded `max_horizon_len`), and the
+wire-0.6 enforcement cut then closed two of the three `wire-breaking` findings (the
+`seq==0` replay hatch and the unenforced data-plane version check) — **11 of 35
+resolved** (24 open: 23 `safe`, 1 `wire-breaking`). The three high items are retained
+below for provenance, marked ✓ **DONE**. The remaining medium/low work is tracked in
+`KNOWN_LIMITATIONS.md`.
 
 1. **Bulk-decode OOM amplification — `bulk.rs:356` · safety · safe. ✓ DONE (`0672168`).**
    `BulkBlock::decode` allocates per declared column with no cumulative budget, so
