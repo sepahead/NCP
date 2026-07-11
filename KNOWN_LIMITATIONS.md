@@ -315,6 +315,76 @@ no consumer re-pin). Each is a proposal with a concrete fix.
     version because previously accepted messages would be rejected.
 
 
+### From the 2026-07-11 deep protocol review (confirmed; wire-0.8 candidates)
+
+A second concentrated external static audit (`NCP_deep_protocol_review_2026-07-11`)
+confirmed the defects below. Each is fail-safe in the narrow sense, but the fix is
+**wire-visible** — this project treats an acceptance-rule or envelope change as a
+MAJOR wire bump (cf. the 0.6 `seq>=1` cut, which changed acceptance with identical
+serialization), so these ride the **wire-0.8** line, not a 0.7 patch. See
+`ROADMAP.md` §"Wire 0.8" for the sequenced program; IDs are the review's.
+
+- **F-01 · `seq` conflation → a false jam ESTOP on a healthy command transport** —
+  `CommandFrame.seq` (and the observation-plane echo) carry the *driving sensor*
+  sequence, while `LinkMonitor` counts every gap on the monitored plane as a lost
+  message (`resilience.rs::on_seq`). A controller that decimates, event-triggers, or
+  loses upstream samples — e.g. emits commands for sensor seqs 1 then 8 — is read as
+  six lost commands: the default CUSUM reaches `6·0.95 − 0.05 = 5.65 ≥ 5.0`, and
+  `SafetyGovernor::note_link(true)` latches ESTOP on a perfectly healthy transport.
+  Confirmed by `resilience.rs::decimated_command_stream_trips_false_burst_f01`. ·
+  _safety/correctness_ · _Fix (wire-0.8):_ a per-plane `stream_seq` whose only
+  meaning is delivery order, distinct from a correlation-only `source_stream_seq`;
+  `LinkMonitor` inspects `(publisher_id, stream_epoch, stream_seq)` only.
+- **F-04 · predictive-horizon bound over-advertises by one at integer TTL** —
+  `max_horizon_len` and the `CommandFrame` validator admit `N = floor(ttl_ms/dt)`
+  steps, but `CommandWatchdog` expires *inclusively* (`elapsed >= ttl` HOLDs), so a
+  step scheduled at exactly `t = N·dt = ttl` never actuates. The executable bound is
+  `ceil(ttl_ms/dt) − 1`; the two agree except when `ttl_ms` is an exact multiple of
+  `dt`, where the advertised ride-through is one tick longer than deliverable.
+  Fail-safe (the watchdog wins) but it over-states the advertised guarantee.
+  Confirmed by `resilience.rs::horizon_bound_over_advertises_by_one_at_integer_ttl_f04`.
+  · _correctness_ · _Fix (wire-0.8):_ integer-µs `ttl`/`horizon_dt` and the strict
+  invariant `N·dt < ttl`; tightening validation rejects previously-accepted frames.
+- **F-16 · `LinkStatus.last_seq` is ambiguous under reordering** — `on_seq` sets
+  `last_seq` to the latest *arrival* (which a late frame lowers) while `expected`
+  stays at the forward high-water mark, so telemetry can report `last_seq=5` with a
+  high-water of 100 and be misread as a regression/restart. · _diagnostic_ · _Fix
+  (additive wire, MINOR):_ report `last_arrival_seq`, `high_water_seq`,
+  `next_expected_seq`, and reorder/duplicate counts as separate `LinkStatus` fields.
+- **F-22 · optimistic programmatic defaults** — `SessionClosed::default().ok = true`
+  and `ControlStatus::default().safety_ok = true` (`messages.rs`): a missing or
+  uninitialised value reads as success/safe, and `#[serde(default)]` fills an absent
+  wire field the same way. · _safety_ · _Fix (wire-visible):_ default `ok = false`
+  and a tri-state `safety_state = Unknown | Safe | Degraded | Unsafe`, with a `Raw`
+  deserialization shape separated from a `Validated` wrapper that authority APIs
+  consume (`govern`/`apply` take only the validated type).
+- **F-02 / F-05 / F-27 · no wire authority, epoch, or freshness** — restart recovery
+  is inferred from TTL expiry rather than an explicit epoch, and there is no
+  `session_generation` (server-issued), `stream_epoch`, `publisher_id`,
+  `authority_term`/lease, or source-age / Age-of-Information bound (a delayed frame
+  gets a fresh full TTL at local receipt). Adequate for a single-writer,
+  unauthenticated-or-mTLS-bounded deployment; unsafe for fleets, failover, or
+  partition (split-brain authority is undefined). · _design-gap_ · _Fix (wire-0.8):_
+  a `StreamHeader` with epoch/generation/authority fields + a negotiated
+  freshness/clock profile (review Part III). Partially noted already under the 0.6
+  `seq>=1` residual and the "arrival-based TTL" resilience note.
+- **F-12 / F-13 · simulation RPCs are neither idempotent nor single-owner** —
+  `StepRequest`/`RunRequest` carry no `request_id`, expected/returned sim revision,
+  or dedupe contract, and the Zenoh client returns the first matching reply — so a
+  lost reply plus retry can double-advance the simulation, and a stray responder can
+  win a race. · _correctness_ · _Fix (wire-0.8):_ `RequestMeta{request_id,
+  expected_sim_revision}` + `result_sim_revision`, a bounded idempotency cache
+  (same ID → same result; same ID, different digest → typed conflict), and
+  responder-identity binding / ambiguity rejection.
+- **F-03 / 2.2 · generic zero is not a universal safe action, and NCP `Estop` is a
+  protocol label, not a certified physical E-stop** — `SafetyGovernor` synthesises an
+  all-zeros command as the safe action, but zero thrust / steer / brake / torque /
+  valve is plant-specific, and a zero-velocity setpoint is a HOLD request, not an
+  emergency stop. The protocol must not infer a safe action from frame shape alone.
+  · _safety_ · _Fix (wire-0.8):_ a plant-owned `SafeActionProfile` with per-channel
+  semantics, negotiated and acknowledged by ID; reserve `ESTOP` for a profile that
+  defines the actual plant response and an independent local stop path.
+
 ---
 _Status tracked against the current tree; resolved items cite the fixing commit or
 the module that now guards them, each with a regression test._

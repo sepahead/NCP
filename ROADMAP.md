@@ -205,6 +205,58 @@ interop gates + the neutral-home path.
 
 ---
 
+## P1 — Wire 0.8: model authority, time, identity, and physical meaning
+
+A second concentrated static audit (the 2026-07-11 deep protocol review; per-finding
+register in `KNOWN_LIMITATIONS.md`) reached one structural conclusion: NCP already
+models *messages* well — malformed frames, replay-like duplicates, finite numerics,
+fail-closed modes, bounded resources — but it does not yet model **authority, time,
+identity, and physical meaning** on the wire. The largest risks are no longer JSON
+mistakes; they are distributed-control semantics the wire cannot express. Closing
+them is a coordinated **wire-0.8** break (it changes the envelope and tightens
+acceptance, so it moves every pinned consumer at once — do it as one cut, not a
+drip). The work groups into four boundaries:
+
+1. **Distributed-systems boundary.** A `StreamHeader` carrying `session_generation`
+   (server-issued), `stream_epoch` (per-publisher-start), `publisher_id` (bound to
+   the authenticated principal), a per-plane `stream_seq` distinct from a
+   correlation-only `source_stream_seq` (closes F-01's false-jam ESTOP), and a
+   commander `authority_term`/lease for split-brain fencing (F-02). A sequence
+   regression is then valid only under a new accepted epoch, never because a timeout
+   elapsed.
+2. **Temporal boundary.** A negotiated freshness / Age-of-Information profile: source
+   age and deadline checked *before* acceptance, alongside the existing local-receipt
+   TTL watchdog, under a named clock profile (F-05). Fix the horizon off-by-one with
+   integer-µs durations and the strict invariant `N·dt < ttl` (F-04). Surface
+   `effective_ttl_ms` instead of silently clamping to 60 s (F-26).
+3. **Semantic boundary.** Typed units and a negotiated coordinate-frame / transform
+   profile so `vec3` and a `frame_id` string establish axes, handedness, and
+   body/world semantics (F-21); a must-understand `critical_extensions` mechanism so
+   an old peer rejects rather than ignores an unknown safety-critical field (F-20);
+   and an immutable `NegotiatedContract` instance ID that every hot-path frame binds
+   to (F-06/6.5).
+4. **Physical-safety boundary.** A plant-owned `SafeActionProfile` with per-channel
+   semantics (F-03) replacing generic "zero is safe"; first-class command/stop
+   acknowledgement — `CommandAck` / `StopAck` reporting *applied* state, not merely
+   that a frame was published (F-07, F-08, F-11); and idempotent, single-owner
+   simulation RPCs (`request_id` + expected/returned sim revision; F-12, F-13).
+
+Sequencing follows the review's patch order. **P0** (before adversarial or
+physical-vehicle use): sequence split, authority fencing, horizon fix, source
+freshness, plant-owned safe-action profile, command/stop acknowledgement, RPC
+idempotency, scoped per-body/session credentials, and the math-doc corrections
+(landed — see `RESILIENCE.md`). **P1** (before wire 1.0): a signed complete release
+manifest with a cryptographic content ID and strict profile negotiation (F-18, F-19),
+typed unit/frame schemas, the Raw/Validated split with pessimistic defaults (F-22),
+universal cross-language JSON/parser budgets, a formal state model
+(TLA+/Alloy) for session/authority/epoch/freshness/stop/RPC, one independent semantic
+implementation with differential fuzzing, and a PX4 SITL/HITL fault campaign with
+published trace artifacts. **P2**: content-addressed signed provenance manifests
+(F-30), a privacy/data-governance observation profile, and neuromorphic/plasticity
+profiles. Splitting the standard into layered conformance profiles (envelope /
+simulation service / neural-I/O / closed-loop control / plant-safety / JSON / proto /
+Zenoh / bulk-observation; F-29) makes "NCP-compatible" a precise, per-profile claim.
+
 ## P2 — Observability
 
 - **First-class OpenTelemetry spans** across the control RPC and the data planes,

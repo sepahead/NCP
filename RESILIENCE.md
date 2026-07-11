@@ -41,7 +41,7 @@ non-duplicate command is accepted. Catch-up alone never revives a stale command.
 ## The layered design (what survives the pruning)
 
 ### Layer 0 — feasibility, honestly
-One constant is genuinely actionable: the **Sinopoli critical arrival probability**
+One constant is genuinely actionable (see the correction note just below): the **Sinopoli critical arrival probability**
 `p_c = 1 − 1/|λ_max|²` (Kalman with intermittent observations) — the perception
 floor; DROP-conflate is correct while measured arrival `p̂ > p_c`. The **data-rate
 theorem** `R_min = Σ log₂|λᵢ|` matters only as a *goodput-collapse sentinel*: at
@@ -51,6 +51,27 @@ fail safe. **Anytime capacity** (Sahai–Mitter) correctly motivates "use a caus
 streaming scheme, not block FEC," but for a 1–3-symbol payload it's motivation, not
 a redundancy formula. (Honest: three of the four classic thresholds are rigor; one,
 `p_c`, binds.)
+
+> **Correction (2026-07-11 deep protocol review).** Three of the thresholds above
+> are stated more loosely than the underlying theorems warrant. The accurate forms:
+> - **Sinopoli `p_c = 1 − 1/|λ_max|²` is a *lower bound* on the critical arrival
+>   probability in general — not a universal threshold.** Equality holds only for
+>   special structures (a scalar system, or a fully-observed / invertible
+>   observation matrix `C`). For a general partially-observed, neural, or
+>   event-based estimator the exact threshold is system-dependent and can be
+>   *higher*, so treat `p_c` as a necessary-condition floor and analyse each
+>   estimator/plant on its own terms rather than deploying just above the formula.
+> - **The data-rate lower bound sums over the *unstable* modes only:
+>   `R_min = Σ_{|λᵢ|>1} log₂|λᵢ|`.** And a high aggregate bit-rate is necessary but
+>   not sufficient — tail latency, outage duration, and freshness can make a
+>   rate-rich link control-infeasible. This is precisely why NCP treats `R_min` as a
+>   goodput-collapse sentinel, not a sizing formula.
+> - **"Coding theory says nothing better exists for K≈1–3" overstates it.** Long
+>   *block* codes are unattractive under a tight deadline, but packet duplication on
+>   independent paths, small systematic erasure codes, or protecting only the
+>   mode/stop/header fields can still help; it is a per-deployment trade study, not a
+>   theorem. PPC + whole-frame duplication remains the sound *default*, not the
+>   proven optimum.
 
 ### Layer 1 — action plane: packetized predictive control (the one real win)
 Each `CommandFrame` carries a short **horizon** of future setpoints, not one. The
@@ -238,7 +259,7 @@ on an unstable mode, diverges. Hence `max_horizon_len` enforces both
 never outlive the deadline or allocate an unbounded prediction. The deadline says "this
 command is stale" and expires inclusively at that boundary. Each entry's applicability
 is derived from the cadence and TTL; on drain, `ActionBuffer`
-returns `None` and the plant HOLDs. Ride-through is therefore *exactly*
+returns `None` and the plant HOLDs. Ride-through is therefore *at most*
 `N · horizon_dt_ms` and not one tick more — a property you can state, bound, and
 test, which is the whole point of putting it in the contract.
 

@@ -788,4 +788,53 @@ mod tests {
         );
         assert!(m.is_burst(), "a billion-seq gap trips the burst detector");
     }
+
+    #[test]
+    fn decimated_command_stream_trips_false_burst_f01() {
+        // KNOWN DEFECT F-01 (deep protocol review, 2026-07-11) — tracked in
+        // KNOWN_LIMITATIONS.md. `CommandFrame.seq` (and the observation-plane echo)
+        // carry the *driving sensor* sequence, but `LinkMonitor` counts every seq
+        // gap on the monitored plane as a lost message. A controller that
+        // legitimately decimates / event-triggers / loses upstream samples (e.g.
+        // emits commands for sensor seqs 1 then 8) is therefore read as six lost
+        // commands: the default CUSUM reaches 5.65 >= 5.0 and `note_link(true)`
+        // would latch ESTOP on a perfectly healthy command transport. This test
+        // pins the defect; the fix is a wire-0.8 split of a per-plane `stream_seq`
+        // (loss accounting) from a `source_stream_seq` (correlation only).
+        let mut m = LinkMonitor::with_defaults("uav1"); // ref_loss 0.05, threshold 5.0
+        m.on_seq(1);
+        assert!(!m.is_burst(), "one command is not a burst");
+        m.on_seq(8); // gap 2..=7 counted as six losses although no command was lost
+        assert!(
+            m.is_burst(),
+            "F-01 defect: a decimated (1 -> 8) source-seq stream trips the jam burst"
+        );
+    }
+
+    #[test]
+    fn horizon_bound_over_advertises_by_one_at_integer_ttl_f04() {
+        // KNOWN DEFECT F-04 (deep protocol review, 2026-07-11) — tracked in
+        // KNOWN_LIMITATIONS.md. `max_horizon_len` (and the `CommandFrame` validator)
+        // admit `N = floor(ttl_ms / dt)` steps, but `CommandWatchdog` expires
+        // *inclusively* (`elapsed >= ttl` HOLDs), so a step scheduled at exactly
+        // `t = N*dt = ttl` is never actuated on. The correct executable bound is
+        // `ceil(ttl_ms / dt) - 1`; the two agree EXCEPT when `ttl_ms` is an exact
+        // multiple of `dt`, where the advertised horizon is one tick longer than
+        // deliverable. Fail-safe (the watchdog wins) but it over-states the
+        // advertised ride-through. Fix rides the integer-us duration change in
+        // wire-0.8 (tightening validation rejects previously-accepted frames).
+        let executable = |ttl: f64, dt: f64| (ttl / dt).ceil() as usize - 1;
+
+        // Integer ttl/dt: the advertised bound over-counts by exactly one.
+        assert_eq!(max_horizon_len(100.0, 100.0), 1); // advertised
+        assert_eq!(executable(100.0, 100.0), 0); //       ...but 0 executable
+        assert_eq!(max_horizon_len(200.0, 100.0), 2);
+        assert_eq!(executable(200.0, 100.0), 1);
+        assert_eq!(max_horizon_len(200.0, 50.0), 4);
+        assert_eq!(executable(200.0, 50.0), 3);
+
+        // Non-integer ttl/dt: floor already equals ceil-1, so no discrepancy.
+        assert_eq!(max_horizon_len(250.0, 100.0), 2);
+        assert_eq!(executable(250.0, 100.0), 2);
+    }
 }
