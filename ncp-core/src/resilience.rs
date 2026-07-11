@@ -1006,24 +1006,27 @@ mod tests {
     }
 
     #[test]
-    fn decimated_command_stream_trips_false_burst_f01() {
-        // KNOWN DEFECT F-01 (deep protocol review, 2026-07-11) — tracked in
-        // KNOWN_LIMITATIONS.md. `CommandFrame.seq` (and the observation-plane echo)
-        // carry the *driving sensor* sequence, but `LinkMonitor` counts every seq
-        // gap on the monitored plane as a lost message. A controller that
-        // legitimately decimates / event-triggers / loses upstream samples (e.g.
-        // emits commands for sensor seqs 1 then 8) is therefore read as six lost
-        // commands: the default CUSUM reaches 5.65 >= 5.0 and `note_link(true)`
-        // would latch ESTOP on a perfectly healthy command transport. This test
-        // pins the defect; the fix is a wire-0.8 split of a per-plane `stream_seq`
-        // (loss accounting) from a `source_stream_seq` (correlation only).
-        let mut m = LinkMonitor::with_defaults("uav1"); // ref_loss 0.05, threshold 5.0
-        m.on_seq(EPOCH, 1);
-        assert!(!m.is_burst(), "one command is not a burst");
-        m.on_seq(EPOCH, 8); // gap 2..=7 counted as six losses although no command was lost
+    fn link_monitor_scores_own_stream_seq_not_source_seq_f01() {
+        // F-01 CLOSED (wire-0.8): the LinkMonitor scores loss on the frame's OWN
+        // `stream.seq` (contiguous per publisher), NOT the driving `source` seq. A
+        // controller that decimates / event-triggers its source (commands driven by
+        // sensor seqs 1 then 8) still emits a CONTIGUOUS own stream (1,2), so the
+        // decimation is invisible to the monitor — no false jam. The receiver feeds
+        // `stream.seq` (see `transport.rs` / `ActionBuffer`), which is what closes F-01.
+        let mut healthy = LinkMonitor::with_defaults("uav1"); // ref_loss 0.05, threshold 5.0
+        healthy.on_seq(EPOCH, 1);
+        healthy.on_seq(EPOCH, 2); // decimated SOURCE -> still a contiguous OWN stream
         assert!(
-            m.is_burst(),
-            "F-01 defect: a decimated (1 -> 8) source-seq stream trips the jam burst"
+            !healthy.is_burst(),
+            "a decimated source no longer trips a false jam (F-01 closed)"
+        );
+        // A genuine gap in the monitored OWN stream is real loss and MUST still trip.
+        let mut lossy = LinkMonitor::with_defaults("uav1");
+        lossy.on_seq(EPOCH, 1);
+        lossy.on_seq(EPOCH, 8); // six genuinely-lost frames on the monitored own stream
+        assert!(
+            lossy.is_burst(),
+            "a real gap in the monitored own stream still trips the jam burst"
         );
     }
 

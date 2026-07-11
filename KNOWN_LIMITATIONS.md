@@ -324,17 +324,24 @@ MAJOR wire bump (cf. the 0.6 `seq>=1` cut, which changed acceptance with identic
 serialization), so these ride the **wire-0.8** line, not a 0.7 patch. See
 `ROADMAP.md` §"Wire 0.8" for the sequenced program; IDs are the review's.
 
-- **F-01 · `seq` conflation → a false jam ESTOP on a healthy command transport** —
-  `CommandFrame.seq` (and the observation-plane echo) carry the *driving sensor*
-  sequence, while `LinkMonitor` counts every gap on the monitored plane as a lost
-  message (`resilience.rs::on_seq`). A controller that decimates, event-triggers, or
-  loses upstream samples — e.g. emits commands for sensor seqs 1 then 8 — is read as
-  six lost commands: the default CUSUM reaches `6·0.95 − 0.05 = 5.65 ≥ 5.0`, and
-  `SafetyGovernor::note_link(true)` latches ESTOP on a perfectly healthy transport.
-  Confirmed by `resilience.rs::decimated_command_stream_trips_false_burst_f01`. ·
-  _safety/correctness_ · _Fix (wire-0.8):_ a per-plane `stream_seq` whose only
-  meaning is delivery order, distinct from a correlation-only `source_stream_seq`;
-  `LinkMonitor` inspects `(publisher_id, stream_epoch, stream_seq)` only.
+**Status (wire-0.8 branch, untagged):** F-01 and F-16 are **LANDED** in-tree with
+regression tests + a cross-language vector (increment 1 — the stream/source identity
+split, the §7 epoch-keyed receiver, and LinkStatus §8); they move to *Resolved* when
+`v0.8.0` is cut. F-04 and the authority-coupled items (F-02/F-22/…) remain **open**
+(increment 2+).
+
+- **F-01 · `seq` conflation → a false jam ESTOP — LANDED (wire-0.8 branch)** — the
+  wire-0.8 cut gives every data-plane frame its own `stream:{epoch,seq}` (the *only*
+  thing `LinkMonitor`/`ActionBuffer`/loss accounting read) distinct from a
+  correlation-only `source:{epoch,seq}`. The receiver feeds `stream.seq` (contiguous
+  per publisher), so a decimating/event-triggering controller no longer scores as
+  loss; and the §7 epoch-keyed receiver state machine rejects a foreign-epoch hijack
+  of a live stream and never revives a retired epoch. · _safety/correctness_ ·
+  _Regression:_ `resilience.rs::link_monitor_scores_own_stream_seq_not_source_seq_f01`,
+  `resilience.rs::action_buffer_epoch_keying_rejects_hijack_and_retired_replay`,
+  `transport.rs::foreign_sensor_epoch_cannot_hijack_a_live_stream`, and the
+  cross-language `foreign_epoch_cannot_hijack_live_stream` behavior vector. Publisher-id
+  binding in `stream.epoch` tag 3 is increment 3 (still unauthenticated; see SECURITY.md).
 - **F-04 · predictive-horizon bound over-advertises by one at integer TTL** —
   `max_horizon_len` and the `CommandFrame` validator admit `N = floor(ttl_ms/dt)`
   steps, but `CommandWatchdog` expires *inclusively* (`elapsed >= ttl` HOLDs), so a
@@ -345,12 +352,18 @@ serialization), so these ride the **wire-0.8** line, not a 0.7 patch. See
   Confirmed by `resilience.rs::horizon_bound_over_advertises_by_one_at_integer_ttl_f04`.
   · _correctness_ · _Fix (wire-0.8):_ integer-µs `ttl`/`horizon_dt` and the strict
   invariant `N·dt < ttl`; tightening validation rejects previously-accepted frames.
-- **F-16 · `LinkStatus.last_seq` is ambiguous under reordering** — `on_seq` sets
-  `last_seq` to the latest *arrival* (which a late frame lowers) while `expected`
-  stays at the forward high-water mark, so telemetry can report `last_seq=5` with a
-  high-water of 100 and be misread as a regression/restart. · _diagnostic_ · _Fix
-  (additive wire, MINOR):_ report `last_arrival_seq`, `high_water_seq`,
-  `next_expected_seq`, and reorder/duplicate counts as separate `LinkStatus` fields.
+- **F-16 · `LinkStatus.last_seq` ambiguous under reordering — LANDED (wire-0.8 branch)**
+  — the ambiguous top-level `last_seq` is retired (proto `reserved 5`). `LinkStatus`
+  now reports the forward high-water via `observed_stream:{epoch,seq}` and the latest
+  arrival via `optional last_arrival_seq` (which a late frame lowers *below* the
+  high-water without regressing it), plus the status frame's own `stream`/`session`
+  envelope a consumer validates before trusting any metric. Presence invariant:
+  `observed_stream` present ⇔ `last_arrival_seq` present (both absent before the first
+  valid frame). · _diagnostic_ · _Regression:_
+  `resilience.rs::link_status_reports_observed_stream_and_last_arrival`,
+  `link_status_omits_observed_stream_before_the_first_valid_frame`. Bounded
+  reorder/duplicate CLASSIFICATION counters (tags 13/14) are deliberately deferred
+  (they cannot be reported identically across bindings yet — see §8 of the design).
 - **F-22 · optimistic programmatic defaults** — `SessionClosed::default().ok = true`
   and `ControlStatus::default().safety_ok = true` (`messages.rs`): a missing or
   uninitialised value reads as success/safe, and `#[serde(default)]` fills an absent
