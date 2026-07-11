@@ -1,4 +1,4 @@
-// Neuro-Cybernetic Protocol (NCP) v0.7 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
+// Neuro-Cybernetic Protocol (NCP) v0.8 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
 //
 // proto-native: this `.proto` is the single source of truth for the NCP wire —
 // message structure, field numbers, types, and the binary encoding. Every other
@@ -31,21 +31,28 @@
 //     fields are MANDATORY on every message (an absent version/kind no longer
 //     defaults to the receiver's own — `required_fields()`/`validate()` and the
 //     JSON Schemas' `required` + `const` enforce it end to end),
-//   - seq discipline (wire 0.6, normative): `sensor_frame`/`command_frame` MUST
-//     stamp `seq >= 1`, strictly increasing per stream (`seq = 0` is "unstamped"
-//     and receivers drop it — the pre-0.6 "seq == 0 always accepted" escape hatch
-//     is REMOVED); `command_frame.seq` echoes the driving `sensor_frame.seq`; an
-//     `observation_frame` PUBLISHED on the observation plane echoes the driving
-//     sensor seq (>= 1), while `0` is reserved for pull/RPC replies. Receivers
-//     accept a strictly-LOWER seq only once the stream has expired (restart
-//     re-anchor; an equal seq never re-anchors). Non-Active commands clear buffered
-//     actuation before replay/envelope rejection; ESTOP additionally latches. A
-//     local clock rewind HOLDs through catch-up until a fresh command arrives.
-//     An observation-plane payload session_id must equal its key session. Wire 0.7 also requires JSON int64
-//     numbers to stay within the exact ±(2^53-1) range, preserves additive enum
-//     strings losslessly, requires explicit honesty-boundary fields, and versions
-//     ErrorFrame replies. These acceptance/shape changes are gated by both the
-//     version string and the updated contract hash,
+//   - stream/source discipline (wire 0.8, normative): every data-plane frame carries
+//     its OWN identity+position in `stream` (a `StreamPosition{epoch, seq}`) and, when
+//     it was driven by another frame, a `source` `StreamPosition` referencing it.
+//     `stream.seq` starts at 1 per `stream.epoch`, strictly increasing, and is the
+//     ONLY sequence loss/`LinkMonitor` accounting and `ActionBuffer` dedup/supersession
+//     read; `stream.epoch` is an opaque per-incarnation id (equality-only, never
+//     ordered). `source` echoes the DRIVING frame's `stream` (a `command_frame`/plane
+//     `observation_frame` copies the driving `sensor_frame.stream`) and is correlation
+//     ONLY — never loss accounting; its seq may repeat or jump under intentional
+//     decimation. No top-level `seq` remains (retired + `reserved` on every message,
+//     no alias); the old observation-plane `seq == 0` pull/RPC sentinel is replaced by
+//     `source` ABSENCE. A restart is a NEW `stream.epoch`, accepted only via an
+//     authorized epoch transition (or, in the constrained single-publisher profile,
+//     after the prior stream expired); a retired epoch is rejected even with a huge
+//     seq. Non-Active commands clear buffered actuation before replay/envelope
+//     rejection; ESTOP additionally latches. A local clock rewind HOLDs through
+//     catch-up until a fresh command arrives. A `session.generation` (server-issued on
+//     `session_opened`) scopes all of a session's streams so a stale-session frame is
+//     rejectable. Wire 0.8 keeps the 0.7 JSON int64 exact ±(2^53-1) range guard,
+//     lossless additive enum strings, explicit honesty-boundary fields, and versioned
+//     ErrorFrame replies. These acceptance/shape changes are gated by both the version
+//     string and the updated contract hash,
 //   - integer fields (ids, sizes, seq, seed) are int64, matching the Rust `i64`
 //     types and the JSON `"integer"` schema type; the JSON projection emits them
 //     as JSON numbers (a deliberate, human-readable deviation from ProtoJSON,
@@ -59,11 +66,13 @@
 //     StimulusSpec), each wrapping a repeated list of targets,
 //   - unknown fields are ignored on deserialize (additive forward-compatibility
 //     within a compatible wire version; pre-1.0 that is an exact major.minor).
-//   - every envelope field named `t` is seconds on the PRODUCER'S local monotonic
-//     clock. It is meaningful only within that stream and MUST NOT be compared
-//     across peers; use `seq` for cross-plane correlation. CommandFrame echoes
-//     its driving SensorFrame.t, and a plane-published ObservationFrame does the
-//     same. `sim_time_ms` and Observation.times are simulation milliseconds.
+//   - every envelope field named `t` is seconds on THIS frame publisher's local
+//     monotonic clock, scoped to its `stream.epoch`. It is meaningful only within that
+//     stream and MUST NOT be compared across peers; use `source` for cross-plane
+//     correlation. Wire 0.8: `t` is ALWAYS the current publisher's creation time — a
+//     command/observation no longer smuggles the sensor's `t` into `t`; the driving
+//     sensor's time travels explicitly in `source_t`. `sim_time_ms` and
+//     Observation.times are simulation milliseconds.
 //
 // NCP is transport-agnostic. The recommended *decoupled* default is **Zenoh**
 // (these messages as payloads over a data-centric pub/sub + queryable bus — no
@@ -90,6 +99,38 @@ package ncp.v0;
 message ChannelValue {
   repeated double data = 1;
   string unit = 2;            // optional; "" = unset
+}
+
+// ───────────────────────── stream identity (wire 0.8) ─────────────────────────
+
+// One exact position in ONE logical stream incarnation. Reused wherever a frame's
+// own identity, or a reference to another frame, is needed. Wire 0.8 splits the old
+// overloaded top-level `seq` into `stream` (this frame's delivery position — the only
+// thing loss/LinkMonitor accounting reads) and `source` (a reference to the frame
+// that drove this one — correlation only, never loss accounting).
+message StreamPosition {
+  // Opaque identifier for one logical stream incarnation. REQUIRED. Canonical form:
+  // lowercase UUIDv4 from a CSPRNG. EQUALITY SEMANTICS ONLY — never ordered, never a
+  // timestamp, never an authority term; a different epoch does not by itself prove a
+  // publisher is newer or authorized. A logical stream is scoped by session generation
+  // + authenticated publisher + concrete routing key + message kind; mint a fresh
+  // epoch per logical stream and per restart.
+  string epoch = 1;
+  // Position within the incarnation. REQUIRED. Range 1 .. 2^53-1. Starts at 1 per
+  // epoch, +1 per new logical frame (assigned AFTER intentional decimation; a retry
+  // keeps its seq), never wraps within an epoch.
+  int64 seq = 2;
+  // Field number 3 is reserved BY POLICY (this registry note — deliberately NOT
+  // proto-`reserved`, so it can be added later) for a future `publisher_id` bound to
+  // the authenticated transport principal. Do not use tag 3 for anything else.
+}
+
+// One live session incarnation. `session_id` (where present) remains the routing
+// name; this server-issued `generation` distinguishes one opening of that id from a
+// later reuse, so a stale-session frame is rejectable. The tuple
+// (session_id, generation) identifies the live instance.
+message SessionRef {
+  string generation = 1;   // server-issued opaque incarnation id (canonical UUIDv4); "" = unset
 }
 
 // Enums. NOTE on forward-compat: every JSON projection preserves an unrecognized,
@@ -260,6 +301,11 @@ message SessionOpened {
   // OpenSession.contract_hash). A client treats a hash difference as ADVISORY
   // (logged, not rejected). Empty/absent = not advertised. (#P1 handshake)
   string contract_hash = 9;
+  // (0.8) Server-ISSUED session incarnation, present IFF ok == true (absent on a failed
+  // open). Clients echo `session.generation` on every subsequent session-scoped frame;
+  // it distinguishes one opening of this `session_id` from a later reuse, so a
+  // stale-session frame is rejectable.
+  SessionRef session = 10;
 }
 
 message StimulusFrame {
@@ -268,6 +314,7 @@ message StimulusFrame {
   string session_id = 3;
   double t = 4;                     // producer-local monotonic seconds
   map<string, ChannelValue> values = 5;   // keyed by stimulus port
+  SessionRef session = 6;           // (0.8) REQUIRED; nested in Step/Run it MUST equal the outer (session_id, generation)
 }
 
 message StepRequest {
@@ -276,6 +323,7 @@ message StepRequest {
   string session_id = 3;
   double advance_ms = 4;            // 0 = use SimConfig.chunk_ms
   StimulusFrame stimulus = 5;
+  SessionRef session = 6;           // (0.8) REQUIRED: targets an open incarnation; (session_id, generation) must be the live pair
 }
 
 message RunRequest {
@@ -284,6 +332,7 @@ message RunRequest {
   string session_id = 3;
   double duration_ms = 4;
   StimulusFrame stimulus = 5;
+  SessionRef session = 6;           // (0.8) REQUIRED: targets an open incarnation; (session_id, generation) must be the live pair
 }
 
 message Observation {
@@ -304,14 +353,18 @@ message ObservationFrame {
   string ncp_version = 1;
   string kind = 2;                        // "observation_frame"
   string session_id = 3;
-  int64 seq = 4;                          // NORMATIVE (0.6): on the observation PLANE this MUST echo the driving
-                                          // SensorFrame.seq (>= 1) so split-plane observers join on seq, not arrival;
-                                          // 0 is reserved for the pull/RPC reply path (no controller seq exists there)
-  double t = 5;                            // producer-local monotonic seconds; plane form echoes SensorFrame.t
+  reserved 4;                              // wire 0.8: retired the overloaded top-level `seq` (now `stream` + `source`)
+  reserved "seq";
+  double t = 5;                            // THIS observation publisher's local monotonic seconds (0.8: not the sensor's t)
   double sim_time_ms = 6;
   map<string, Observation> records = 7;   // keyed by unique record-series name; Observation.port names the negotiated port
   bool calibrated_posterior = 8;          // always false
   bool is_simulation_output = 9;          // always true
+  StreamPosition stream = 10;             // REQUIRED (0.8): this observation stream's incarnation + position
+  StreamPosition source = 11;             // driving SensorFrame.stream on the observation PLANE; the cross-plane join key.
+                                          // OMITTED for the pull/RPC reply form (absence replaces the old seq==0 sentinel).
+  double source_t = 12;                    // driving SensorFrame.t; 0 = unset
+  SessionRef session = 13;
 }
 
 // (#6) Reserved complete envelope for a future bulk numeric observation carried
@@ -336,16 +389,22 @@ message BulkObservation {
   string recordable = 7;                  // (#10) named recordable this series carries ("" = `observable`)
   bytes block = 8;                        // packed LE column block ("NCPB" v1); columns: times,values,senders
   string session_id = 9;
-  int64 seq = 10;                         // observation-plane publish: driving SensorFrame.seq (>=1)
-  double t = 11;                         // producer-local monotonic seconds; plane form echoes SensorFrame.t
+  reserved 10;                             // wire 0.8: retired the overloaded top-level `seq` (now `stream` + `source`)
+  reserved "seq";
+  double t = 11;                         // THIS observation publisher's local monotonic seconds
   bool calibrated_posterior = 12;         // always false
   bool is_simulation_output = 13;         // always true
+  StreamPosition stream = 14;             // REQUIRED (0.8): this bulk-observation stream's incarnation + position
+  StreamPosition source = 15;             // driving trigger/watermark position; OMITTED for the pull/RPC form
+  double source_t = 16;                    // driving SensorFrame.t; 0 = unset
+  SessionRef session = 17;
 }
 
 message CloseSession {
   string ncp_version = 1;
   string kind = 2;                  // "close_session"
   string session_id = 3;
+  SessionRef session = 4;           // (0.8) REQUIRED: a delayed close for an old incarnation must not close a reopened session
 }
 
 message SessionClosed {
@@ -353,6 +412,7 @@ message SessionClosed {
   string kind = 2;                  // "session_closed"
   string session_id = 3;
   bool ok = 4;
+  SessionRef session = 5;           // (0.8) the incarnation this close concerns; a delayed reply must be attributable to it
 }
 
 // A failure reply is a first-class versioned message; stale/unversioned error
@@ -363,6 +423,11 @@ message ErrorFrame {
   string error = 3;
   string session_id = 4;            // optional; empty = request carried no session
   string request_kind = 5;          // optional; kind of the rejected request
+  // (0.8) Optional correlation context copied from the rejected request. Presence does
+  // NOT assert this generation exists or is active. Echo it (WITH session_id) only when
+  // the request carried a structurally valid SessionRef; omit BOTH for OpenSession
+  // failures, missing/malformed generation, and non-session errors (copy both or neither).
+  SessionRef session = 6;
 }
 
 // ───────────────────────── closed-loop control (layered) ─────────────────────────
@@ -399,10 +464,15 @@ message Capabilities {
 message SensorFrame {
   string ncp_version = 1;
   string kind = 2;                  // "sensor_frame"
-  int64 seq = 3;                    // NORMATIVE (0.6): >= 1, strictly increasing per stream (0 = unstamped, dropped)
-  double t = 4;                     // producer-local monotonic seconds
+  reserved 3;                        // wire 0.8: retired the overloaded top-level `seq` (now `stream`)
+  reserved "seq";
+  double t = 4;                     // THIS publisher's local monotonic seconds (scoped to stream.epoch)
   string frame_id = 5;               // default "world"; geofence position/velocity frames MUST match
   map<string, ChannelValue> channels = 6;
+  StreamPosition stream = 7;         // REQUIRED (0.8): this sensor stream's incarnation + position. It is the
+                                     // ORIGIN — has no `source`; downstream command/observation `source` copies THIS.
+  SessionRef session = 8;            // the session incarnation this stream belongs to
+  string session_id = 9;             // (0.8) logical session id (transport-neutral); MUST equal the routing key's session segment
 }
 
 // One predictive setpoint step (proto can't nest a map in a repeated field).
@@ -411,8 +481,9 @@ message SetpointStep { map<string, ChannelValue> channels = 1; }
 message CommandFrame {
   string ncp_version = 1;
   string kind = 2;                  // "command_frame"
-  int64 seq = 3;                    // NORMATIVE (0.6): >= 1, echoes the driving SensorFrame.seq (0 = unstamped, dropped)
-  double t = 4;                     // echoes the driving SensorFrame.t
+  reserved 3;                        // wire 0.8: retired the overloaded top-level `seq` (now `stream` + `source`)
+  reserved "seq";
+  double t = 4;                     // THIS command publisher's local monotonic seconds (0.8: NOT the sensor's t)
   string frame_id = 5;               // default "world"; geofence position/velocity frames MUST match
   Mode mode = 6;              // wire strings init|active|hold|estop
   double ttl_ms = 7;
@@ -420,19 +491,32 @@ message CommandFrame {
   repeated SetpointStep horizon = 9;             // packetized predictive control: tick i+1;
                                                  // N <= ttl_ms/horizon_dt_ms and <= 65,536
   double horizon_dt_ms = 10;                      // 0 = unset (legacy single-step)
+  StreamPosition stream = 11;        // REQUIRED (0.8): this command stream's incarnation + position — the ONLY
+                                     // sequence LinkMonitor/ActionBuffer read for loss/dedup/supersession.
+  StreamPosition source = 12;        // driving SensorFrame.stream; REQUIRED for a closed-loop Active command,
+                                     // omitted for explicitly-negotiated open-loop/autonomous frames. Correlation
+                                     // only — never loss accounting; source.seq may repeat or jump.
+  double source_t = 13;              // driving SensorFrame.t, for source-age checks; 0 = unset
+  SessionRef session = 14;           // the session incarnation this command stream belongs to
+  string session_id = 15;            // (0.8) logical session id (transport-neutral); MUST equal the routing key's session segment
 }
 
 // Controller -> plant / telemetry: loop health and mode.
 message ControlStatus {
   string ncp_version = 1;
   string kind = 2;                  // "control_status"
-  int64 seq = 3;
-  double t = 4;                     // producer-local monotonic seconds
+  reserved 3;                        // wire 0.8: retired top-level `seq` (now `stream`)
+  reserved "seq";
+  double t = 4;                     // THIS status publisher's local monotonic seconds
   Mode mode = 5;              // wire strings init|active|hold|estop
   double sim_time_ms = 6;
   double loop_latency_ms = 7;
   bool safety_ok = 8;
   string note = 9;                  // "" = unset
+  StreamPosition stream = 10;        // REQUIRED (0.8) when periodically published: this status stream's position.
+                                     // (An `applied_command` StreamPosition lands with the command-ack increment.)
+  SessionRef session = 11;
+  string session_id = 12;            // (0.8) logical session id (transport-neutral)
 }
 
 // Link-health telemetry from the seq-gap / CUSUM monitor (control plane).
@@ -440,12 +524,23 @@ message LinkStatus {
   string ncp_version = 1;
   string kind = 2;                  // "link_status"
   string session_id = 3;
-  double t = 4;                     // producer-local monotonic seconds
-  int64 last_seq = 5;
-  int64 received = 6;
-  int64 lost = 7;
-  double loss_rate = 8;
+  double t = 4;                     // THIS status publisher's local monotonic seconds
+  reserved 5;                        // wire 0.8: retired ambiguous `last_seq` (F-16 — see observed_stream + last_arrival_seq)
+  reserved "last_seq";
+  int64 received = 6;         // distinct in-epoch positions recognized as delivered (excludes duplicates), since attach/reset
+  int64 lost = 7;             // currently-unresolved gaps in the observed interval; MAY decrease when a late arrival reconciles
+  double loss_rate = 8;       // lost / observed sequence span (NOT lost / raw arrival count)
   bool burst = 9;             // sustained loss (possible jam) -> fail safe
+  StreamPosition stream = 10;        // REQUIRED (0.8): the LinkStatus stream's OWN incarnation + position — a consumer
+                                     // validates THIS before trusting any reported burst/loss/high-water state.
+  StreamPosition observed_stream = 11; // the MONITORED stream: its epoch + forward high-water seq. Absent before the first
+                                     // valid observed frame (presence <=> last_arrival_seq present).
+  optional int64 last_arrival_seq = 12; // F-16: seq of the last valid in-epoch ARRIVAL (< observed_stream.seq under
+                                     // reordering; == it on ordinary forward arrival). Presence tracks observed_stream.
+  // Tags 13, 14 intentionally free: bounded reorder/duplicate CLASSIFICATION counters
+  // are deferred — the current algorithm cannot report them identically across bindings
+  // (see docs/wire-0.8-stream-identity.md); they land additively with precise names.
+  SessionRef session = 13;
 }
 
 // ───────────────────────── service ─────────────────────────

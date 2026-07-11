@@ -200,6 +200,43 @@ mod json_integer {
     }
 }
 
+// ───────────────────────── stream identity (wire 0.8) ─────────────────────────
+
+/// One exact position in ONE logical stream incarnation (`proto/ncp.proto`
+/// `StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a
+/// frame's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/
+/// `ActionBuffer` accounting reads — and a `source` referencing the frame that drove
+/// it (correlation only, never loss accounting).
+///
+/// `epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for
+/// EQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,
+/// strictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `""`/`0` default is
+/// "unset" and is not wire-legal until stamped (mirrors the retired `seq` discipline).
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct StreamPosition {
+    pub epoch: String,
+    #[serde(with = "json_integer::one")]
+    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub seq: i64,
+}
+
+/// One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing
+/// `session_id` (carried alongside on every session-scoped frame) remains the logical
+/// name; this server-issued `generation` distinguishes one opening of that id from a
+/// later reuse, so a stale-session frame is rejectable. The pair
+/// `(session_id, generation)` identifies the live instance; `""` = unset.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct SessionRef {
+    pub generation: String,
+}
+
 // ───────────────────────── enums ─────────────────────────
 
 /// Implement a string-valued enum whose unknown values are retained exactly.
