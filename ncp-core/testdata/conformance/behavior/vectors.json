@@ -5171,6 +5171,87 @@
             }
           }
         ]
+      },
+      {
+        "name": "source_restart_does_not_disrupt_actuation",
+        "operations": [
+          {
+            "op": "command",
+            "now_s": 1.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.5
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "source": {
+                "epoch": "7d61c9ba-4e1d-4aab-8ae6-08e05206aa67",
+                "seq": 900
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.05,
+            "expect": {
+              "active": true,
+              "value": 0.5,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 1.06,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.7
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 2
+              },
+              "source": {
+                "epoch": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.07,
+            "expect": {
+              "active": true,
+              "value": 0.7,
+              "estopped": false
+            }
+          }
+        ]
       }
     ]
   }

@@ -336,7 +336,10 @@ split, the §7 epoch-keyed receiver, and LinkStatus §8); they move to *Resolved
   correlation-only `source:{epoch,seq}`. The receiver feeds `stream.seq` (contiguous
   per publisher), so a decimating/event-triggering controller no longer scores as
   loss; and the §7 epoch-keyed receiver state machine rejects a foreign-epoch hijack
-  of a live stream and never revives a retired epoch. · _safety/correctness_ ·
+  of a live stream and refuses to revive a retired epoch (tracked in a bounded
+  per-stream tombstone ring — a DoS guard against hostile epoch churn; an epoch aged
+  out of that ring could re-anchor only from an already-safe *expired* HOLD state,
+  never displacing a live stream). · _safety/correctness_ ·
   _Regression:_ `resilience.rs::link_monitor_scores_own_stream_seq_not_source_seq_f01`,
   `resilience.rs::action_buffer_epoch_keying_rejects_hijack_and_retired_replay`,
   `transport.rs::foreign_sensor_epoch_cannot_hijack_a_live_stream`, and the
@@ -362,8 +365,13 @@ split, the §7 epoch-keyed receiver, and LinkStatus §8); they move to *Resolved
   valid frame). · _diagnostic_ · _Regression:_
   `resilience.rs::link_status_reports_observed_stream_and_last_arrival`,
   `link_status_omits_observed_stream_before_the_first_valid_frame`. Bounded
-  reorder/duplicate CLASSIFICATION counters (tags 13/14) are deliberately deferred
+  reorder/duplicate CLASSIFICATION counters (tags 14/15) are deliberately deferred
   (they cannot be reported identically across bindings yet — see §8 of the design).
+  Coverage note: the observed_stream / last_arrival / loss-count semantics are pinned
+  by the Rust unit tests above + the wire-schema `validate` corpus; a *cross-language*
+  `LinkMonitor` replay corpus awaits a TS `LinkMonitor` port (TS currently mirrors only
+  `ActionBuffer` + `CommandWatchdog`), so the §10 LinkStatus behavior vectors are
+  Rust-reference-only for now.
 - **F-22 · optimistic programmatic defaults** — `SessionClosed::default().ok = true`
   and `ControlStatus::default().safety_ok = true` (`messages.rs`): a missing or
   uninitialised value reads as success/safe, and `#[serde(default)]` fills an absent

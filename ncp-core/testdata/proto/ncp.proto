@@ -537,10 +537,10 @@ message LinkStatus {
                                      // valid observed frame (presence <=> last_arrival_seq present).
   optional int64 last_arrival_seq = 12; // F-16: seq of the last valid in-epoch ARRIVAL (< observed_stream.seq under
                                      // reordering; == it on ordinary forward arrival). Presence tracks observed_stream.
-  // Tags 13, 14 intentionally free: bounded reorder/duplicate CLASSIFICATION counters
+  SessionRef session = 13;
+  // Tags 14, 15 intentionally free: bounded reorder/duplicate CLASSIFICATION counters
   // are deferred — the current algorithm cannot report them identically across bindings
   // (see docs/wire-0.8-stream-identity.md); they land additively with precise names.
-  SessionRef session = 13;
 }
 
 // ───────────────────────── service ─────────────────────────

@@ -142,7 +142,7 @@ export class ActionBuffer {
     // epoch); a RETIRED epoch never revives. Bounded tombstone ring.
     activeEpoch = null;
     retiredEpochs = [];
-    static RETIRED_EPOCH_CAP = 64;
+    static RETIRED_EPOCH_CAP = 256;
     retireEpoch(epoch) {
         if (this.retiredEpochs.includes(epoch))
             return;

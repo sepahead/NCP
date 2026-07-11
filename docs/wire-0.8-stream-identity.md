@@ -162,7 +162,7 @@ algorithm cannot report identically across bindings.
   presented (incl. late/dup); `== observed_stream.seq` on forward arrival, `<` it under
   reordering; rejected frames don't update it. **Presence invariant:** `observed_stream`
   present ⇔ `last_arrival_seq` present (both absent while a pre-first-frame burst trips).
-- **Deferred (tags 13/14 left free):** reorder/duplicate counts — the current bounded
+- **Deferred (tags 14/15 left free; `session` occupies 13):** reorder/duplicate counts — the current bounded
   (≤4096) reconciliation set cannot distinguish a true duplicate from a very-late first
   arrival, so counts would be implementation-dependent. They land later with precise
   names (`late_reconciled_count`, `duplicate_or_stale_count`, `outside_reorder_window_count`)

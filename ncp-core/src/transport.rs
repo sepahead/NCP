@@ -300,7 +300,7 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
     /// revive (§7 rule 5). Bounded so a hostile epoch-churn peer cannot grow it
     /// without limit; a real single-publisher session retires one epoch per restart.
     fn retire_sensor_epoch(&mut self, epoch: String) {
-        const RETIRED_EPOCH_CAP: usize = 64;
+        const RETIRED_EPOCH_CAP: usize = 256;
         if self.retired_sensor_epochs.contains(&epoch) {
             return;
         }

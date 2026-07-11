@@ -208,7 +208,7 @@ export class ActionBuffer {
   private activeEpoch: string | null = null
   private retiredEpochs: string[] = []
 
-  private static readonly RETIRED_EPOCH_CAP = 64
+  private static readonly RETIRED_EPOCH_CAP = 256
 
   private retireEpoch(epoch: string): void {
     if (this.retiredEpochs.includes(epoch)) return

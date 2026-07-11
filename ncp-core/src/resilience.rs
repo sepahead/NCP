@@ -129,7 +129,7 @@ impl ActionBuffer {
     /// grow it without limit; a real single-publisher session retires one epoch per
     /// restart, far below the cap.
     fn retire_epoch(&mut self, epoch: String) {
-        const RETIRED_EPOCH_CAP: usize = 64;
+        const RETIRED_EPOCH_CAP: usize = 256;
         if self.retired_epochs.contains(&epoch) {
             return;
         }
