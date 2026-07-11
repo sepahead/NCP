@@ -31,8 +31,8 @@ int main() {
   std::cout << "DEFAULT_REALM = " << take(ncp_default_realm()) << "\n";
   std::cout << "command key   = "
             << take(ncp_key_command("ncp", "uav3")) << "\n";
+  std::cout << "check 0.8     = " << ncp_check_version("0.8", false) << "\n";
   std::cout << "check 0.7     = " << ncp_check_version("0.7", false) << "\n";
-  std::cout << "check 0.6     = " << ncp_check_version("0.6", false) << "\n";
   std::cout << "check 1.0     = " << ncp_check_version("1.0", false) << "\n";
 
   const char *codec =
@@ -50,7 +50,7 @@ int main() {
   // Every message must carry its own kind and a compatible ncp_version.
   std::string ok = take(ncp_validate(
       "open_session",
-      "{\"kind\":\"open_session\",\"ncp_version\":\"0.7\",\"session_id\":\"s1\","
+      "{\"kind\":\"open_session\",\"ncp_version\":\"0.8\",\"session_id\":\"s1\","
       "\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"}}"));
   bool valid = ok.find("\"kind\":\"open_session\"") != std::string::npos;
   std::cout << "validate ok   = " << (valid ? "true" : "false") << "\n";
@@ -66,18 +66,26 @@ int main() {
   // one-shot ncp_govern cannot latch by construction).
   NcpGovernor *gov = ncp_governor_new(
       "{\"geofence_radius_m\":5.0,\"command_timeout_ms\":500.0}");
+  // Wire 0.8: every data-plane frame carries its own stream position (epoch + seq)
+  // and live session (generation + session_id). epoch/generation are canonical v4s.
   const char *active_cmd =
-      "{\"kind\":\"command_frame\",\"ncp_version\":\"0.7\",\"seq\":1,"
+      "{\"kind\":\"command_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":1},"
+      "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},"
       "\"t\":0.0,\"mode\":\"active\",\"ttl_ms\":200.0,"
       "\"channels\":{\"velocity_setpoint\":{\"data\":[1.0,0.0,0.0],\"unit\":\"m/s\"}}}";
   std::string breached = take(ncp_governor_govern(
       gov, active_cmd, 1.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.7\",\"seq\":1,\"t\":0.0,"
+      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":1},"
+      "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
       "\"channels\":{\"pose_position\":{\"data\":[10.0,0.0,0.0],\"unit\":\"m\"}}}",
       1.0));
   std::string still = take(ncp_governor_govern(
       gov, active_cmd, 2.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.7\",\"seq\":2,\"t\":0.0,"
+      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":2},"
+      "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
       "\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0],\"unit\":\"m\"}}}",
       2.0));
   bool latched = breached.find("\"mode\":\"estop\"") != std::string::npos &&
@@ -86,7 +94,9 @@ int main() {
   ncp_governor_reset(gov);
   std::string resumed = take(ncp_governor_govern(
       gov, active_cmd, 3.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.7\",\"seq\":3,\"t\":0.0,"
+      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":3},"
+      "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
       "\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0],\"unit\":\"m\"}}}",
       3.0));
   bool reset_ok = resumed.find("\"mode\":\"active\"") != std::string::npos;
@@ -108,8 +118,8 @@ int main() {
             << "\n";
 
   // Exit nonzero if anything basic is wrong, so the smoke test can assert.
-  bool pass = take(ncp_version()) == "0.7" && ncp_check_version("0.7", false) == 1 &&
-              ncp_check_version("0.6", false) == 0 &&
+  bool pass = take(ncp_version()) == "0.8" && ncp_check_version("0.8", false) == 1 &&
+              ncp_check_version("0.7", false) == 0 &&
               ncp_check_version("1.0", false) == 0 && valid &&
               versionless_rejected && latched && reset_ok && buffer_ingested &&
               buffer_active && buffer_expired;
