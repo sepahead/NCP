@@ -25,6 +25,7 @@ export type { SafetyLimits } from './SafetyLimits.js';
 export type { SensorFrame } from './SensorFrame.js';
 export type { SessionClosed } from './SessionClosed.js';
 export type { SessionOpened } from './SessionOpened.js';
+export type { SessionRef } from './SessionRef.js';
 export type { SimConfig } from './SimConfig.js';
 export type { SimMode } from './SimMode.js';
 export type { SimProvenance } from './SimProvenance.js';
@@ -33,4 +34,5 @@ export type { StimulusFrame } from './StimulusFrame.js';
 export type { StimulusKind } from './StimulusKind.js';
 export type { StimulusSpec } from './StimulusSpec.js';
 export type { StimulusTarget } from './StimulusTarget.js';
+export type { StreamPosition } from './StreamPosition.js';
 //# sourceMappingURL=index.d.ts.map

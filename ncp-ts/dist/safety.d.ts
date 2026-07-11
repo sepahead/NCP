@@ -30,13 +30,23 @@ export interface WireChannels {
         unit?: string | null;
     };
 }
-/** Structural (JSON-wire) view of a `CommandFrame` — the fields the safety layer
- *  reads. Accepts a full `Wire<CommandFrame>`; optional members default like the
- *  Rust wire defaults. */
+/** Structural view of a `StreamPosition` — one frame's stream identity + position. */
+export interface StreamPositionLike {
+    epoch?: string;
+    seq?: number;
+}
+/** Structural view of a `SessionRef` — one live session incarnation. */
+export interface SessionRefLike {
+    generation?: string;
+}
 export interface CommandLike {
     kind?: string;
     ncp_version?: string;
-    seq?: number;
+    stream?: StreamPositionLike;
+    source?: StreamPositionLike | null;
+    source_t?: number;
+    session?: SessionRefLike;
+    session_id?: string;
     t?: number;
     frame_id?: string;
     mode: Mode;
@@ -49,7 +59,9 @@ export interface CommandLike {
 export interface SensorLike {
     kind?: string;
     ncp_version?: string;
-    seq?: number;
+    stream?: StreamPositionLike;
+    session?: SessionRefLike;
+    session_id?: string;
     t?: number;
     frame_id?: string;
     channels: WireChannels;

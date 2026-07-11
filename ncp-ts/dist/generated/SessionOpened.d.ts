@@ -1,3 +1,4 @@
+import type { SessionRef } from "./SessionRef.js";
 import type { SimProvenance } from "./SimProvenance.js";
 /**
  * Ack of `open_session` with resolved sizes and provenance.
@@ -20,5 +21,10 @@ export type SessionOpened = {
      * is the hard gate. `None` (serialized `null`) = not advertised.
      */
     contract_hash: string | null;
+    /**
+     * (0.8) Server-ISSUED session incarnation, present iff `ok`; clients echo
+     * `session.generation` on every subsequent session-scoped frame.
+     */
+    session: SessionRef | null;
 };
 //# sourceMappingURL=SessionOpened.d.ts.map

@@ -1,5 +1,7 @@
 import type { ChannelValue } from "./ChannelValue.js";
 import type { Mode } from "./Mode.js";
+import type { SessionRef } from "./SessionRef.js";
+import type { StreamPosition } from "./StreamPosition.js";
 /**
  * Controller → plant: the proposed actuation, with `mode`/`ttl_ms` safety
  * metadata.
@@ -15,7 +17,6 @@ import type { Mode } from "./Mode.js";
 export type CommandFrame = {
     ncp_version: string;
     kind: string;
-    seq: bigint;
     t: number;
     frame_id: string;
     mode: Mode;
@@ -34,5 +35,27 @@ export type CommandFrame = {
         [key in string]: ChannelValue;
     }>;
     horizon_dt_ms: number | null;
+    /**
+     * Wire 0.8: this command stream's own incarnation + position — the sequence
+     * `LinkMonitor`/`ActionBuffer` read for loss/dedup/supersession.
+     */
+    stream: StreamPosition;
+    /**
+     * The driving `SensorFrame.stream` (correlation only; never loss accounting).
+     * Present for a closed-loop Active command; omitted for negotiated open-loop.
+     */
+    source: StreamPosition | null;
+    /**
+     * The driving `SensorFrame.t`, for source-age checks; `0.0` = unset.
+     */
+    source_t: number;
+    /**
+     * The live session incarnation this command stream belongs to.
+     */
+    session: SessionRef;
+    /**
+     * Logical session id (transport-neutral); MUST equal the routing key's session.
+     */
+    session_id: string;
 };
 //# sourceMappingURL=CommandFrame.d.ts.map

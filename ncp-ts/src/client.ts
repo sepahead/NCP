@@ -28,9 +28,10 @@ import type {
 } from './generated/index.js'
 
 /** The protocol version this client stamps on every request (`ncp_version`).
- * Wire 0.7 adds exact JSON-integer bounds, lossless additive enums, explicit
- * provenance, typed errors, and stricter kind/nested-frame validation. */
-export const NCP_VERSION = '0.7'
+ * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
+ * correlation-only `source`, adds `session` (generation) + `session_id` on every
+ * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
+export const NCP_VERSION = '0.8'
 
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
@@ -39,7 +40,7 @@ export const NCP_VERSION = '0.7'
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export const NCP_CONTRACT_HASH = 'f05e328cad20959d'
+export const NCP_CONTRACT_HASH = 'd1b50a2d8a265276'
 
 /** Exact integer range shared by every JSON implementation (binary64 included). */
 export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991
@@ -155,19 +156,30 @@ const REQUIRED: Record<string, readonly string[]> = {
     'safety',
     'sensor_channels',
   ],
-  close_session: ['kind', 'ncp_version', 'session_id'],
-  command_frame: ['kind', 'ncp_version', 'seq'],
-  control_status: ['kind', 'loop_latency_ms', 'mode', 'ncp_version', 'safety_ok', 'seq', 't'],
+  close_session: ['kind', 'ncp_version', 'session', 'session_id'],
+  command_frame: ['kind', 'ncp_version', 'session', 'session_id', 'stream'],
+  control_status: [
+    'kind',
+    'loop_latency_ms',
+    'mode',
+    'ncp_version',
+    'safety_ok',
+    'session',
+    'session_id',
+    'stream',
+    't',
+  ],
   error: ['error', 'kind', 'ncp_version'],
   link_status: [
     'burst',
     'kind',
-    'last_seq',
     'loss_rate',
     'lost',
     'ncp_version',
     'received',
+    'session',
     'session_id',
+    'stream',
     't',
   ],
   observation_frame: [
@@ -176,16 +188,17 @@ const REQUIRED: Record<string, readonly string[]> = {
     'kind',
     'ncp_version',
     'records',
-    'seq',
+    'session',
     'session_id',
+    'stream',
   ],
   open_session: ['kind', 'ncp_version', 'network', 'session_id'],
-  run_request: ['duration_ms', 'kind', 'ncp_version', 'session_id'],
-  sensor_frame: ['kind', 'ncp_version', 'seq'],
-  session_closed: ['kind', 'ncp_version', 'ok', 'session_id'],
+  run_request: ['duration_ms', 'kind', 'ncp_version', 'session', 'session_id'],
+  sensor_frame: ['kind', 'ncp_version', 'session', 'session_id', 'stream'],
+  session_closed: ['kind', 'ncp_version', 'ok', 'session', 'session_id'],
   session_opened: ['backend', 'kind', 'ncp_version', 'ok', 'session_id'],
-  step_request: ['kind', 'ncp_version', 'session_id'],
-  stimulus_frame: ['kind', 'ncp_version', 'session_id'],
+  step_request: ['kind', 'ncp_version', 'session', 'session_id'],
+  stimulus_frame: ['kind', 'ncp_version', 'session', 'session_id'],
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -195,6 +208,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function requireRecord(value: unknown, path: string): Record<string, unknown> {
   if (!isRecord(value)) throw new Error(`${path} must be an object`)
   return value
+}
+
+/** Wire 0.8: a canonical lowercase UUIDv4 (`stream.epoch` / `session.generation`). */
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+function requireUuidV4(value: unknown, path: string): void {
+  if (typeof value !== 'string' || !UUID_V4.test(value)) {
+    throw new Error(`${path} must be a canonical lowercase UUIDv4`)
+  }
+}
+
+/** Wire 0.8: a transport-neutral session_id (1..=64 bytes, safe key segment). */
+function requireSessionId(value: unknown, path: string): void {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 64) {
+    throw new Error(`${path} must be 1..=64 bytes`)
+  }
+  if (
+    /[/*$#?]/u.test(value) ||
+    /\s/u.test(value) ||
+    Array.from(value).some(
+      (c) => c.charCodeAt(0) < 0x20 || (c.charCodeAt(0) >= 0x7f && c.charCodeAt(0) <= 0x9f),
+    )
+  ) {
+    throw new Error(`${path} must be a safe single key segment`)
+  }
+}
+
+/** Wire 0.8: a `StreamPosition` — epoch (UUIDv4) + seq (>= minSeq, JSON-safe). */
+function requireStreamPosition(value: unknown, path: string, minSeq: number): void {
+  const pos = requireRecord(value, path)
+  requireUuidV4(pos.epoch, `${path}.epoch`)
+  assertSafeInteger(pos.seq, `${path}.seq`)
+  if ((pos.seq as number) < minSeq) throw new Error(`${path}.seq must be >= ${minSeq}`)
 }
 
 function requireNonemptyString(value: unknown, path: string): string {
@@ -499,9 +544,15 @@ export function assertNcpMessage(value: unknown, expectedKind?: string): asserts
     case 'sensor_frame':
     case 'command_frame':
     case 'observation_frame': {
-      assertSafeInteger(message.seq, `${kind}.seq`)
-      const min = kind === 'observation_frame' ? 0 : 1
-      if ((message.seq as number) < min) throw new Error(`${kind}.seq must be >= ${min}`)
+      requireStreamPosition(message.stream, `${kind}.stream`, 1)
+      requireUuidV4(
+        requireRecord(message.session, `${kind}.session`).generation,
+        `${kind}.session.generation`,
+      )
+      requireSessionId(message.session_id, `${kind}.session_id`)
+      if (message.source !== undefined && message.source !== null) {
+        requireStreamPosition(message.source, `${kind}.source`, 1)
+      }
       if (message.t !== undefined) assertFiniteNumber(message.t, `${kind}.t`)
       if (kind === 'sensor_frame') {
         if (message.frame_id !== undefined) {
@@ -583,8 +634,6 @@ export function assertNcpMessage(value: unknown, expectedKind?: string): asserts
       break
     }
     case 'control_status': {
-      assertSafeInteger(message.seq, 'control_status.seq')
-      if ((message.seq as number) < 0) throw new Error('control_status.seq must be >= 0')
       assertFiniteNumber(message.t, 'control_status.t')
       if (message.sim_time_ms !== undefined) {
         assertFiniteNumber(message.sim_time_ms, 'control_status.sim_time_ms')
@@ -597,10 +646,15 @@ export function assertNcpMessage(value: unknown, expectedKind?: string): asserts
       break
     }
     case 'link_status': {
-      for (const field of ['last_seq', 'received', 'lost'] as const) {
+      for (const field of ['received', 'lost'] as const) {
         assertSafeInteger(message[field], `link_status.${field}`)
       }
-      if ((message.last_seq as number) < -1) throw new Error('link_status.last_seq must be >= -1')
+      if (message.last_arrival_seq !== undefined && message.last_arrival_seq !== null) {
+        assertSafeInteger(message.last_arrival_seq, 'link_status.last_arrival_seq')
+        if ((message.last_arrival_seq as number) < 0) {
+          throw new Error('link_status.last_arrival_seq must be >= 0')
+        }
+      }
       if ((message.received as number) < 0 || (message.lost as number) < 0) {
         throw new Error('link_status received/lost must be >= 0')
       }
@@ -735,9 +789,10 @@ function unwrap<T>(
     )
   }
   if (expectedKind === 'observation_frame') {
-    const seq = (reply as { seq?: unknown }).seq
-    if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < 0) {
-      throw new Error(`NCP observation reply carries invalid seq ${JSON.stringify(seq)}`)
+    const streamPos = (reply as { stream?: { seq?: unknown } }).stream
+    const seq = streamPos?.seq
+    if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < 1) {
+      throw new Error(`NCP observation reply carries invalid stream.seq ${JSON.stringify(seq)}`)
     }
   }
   if (expectedKind === 'observation_frame' || expectedKind === 'session_opened') {

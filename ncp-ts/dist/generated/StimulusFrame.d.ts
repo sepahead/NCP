@@ -1,4 +1,5 @@
 import type { ChannelValue } from "./ChannelValue.js";
+import type { SessionRef } from "./SessionRef.js";
 /**
  * The values to inject this step (keyed by stimulus port). `t` is
  * producer-local monotonic seconds and is never compared across peers.
@@ -11,5 +12,9 @@ export type StimulusFrame = {
     values: {
         [key in string]: ChannelValue;
     };
+    /**
+     * (0.8) The session incarnation; nested in Step/Run it MUST equal the outer.
+     */
+    session: SessionRef;
 };
 //# sourceMappingURL=StimulusFrame.d.ts.map

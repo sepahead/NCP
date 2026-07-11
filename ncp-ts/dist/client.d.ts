@@ -15,9 +15,10 @@
  */
 import type { ChannelValue, ErrorFrame as GeneratedErrorFrame, NetworkRef, Observation, ObservationFrame, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated/index.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
- * Wire 0.7 adds exact JSON-integer bounds, lossless additive enums, explicit
- * provenance, typed errors, and stricter kind/nested-frame validation. */
-export declare const NCP_VERSION = "0.7";
+ * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
+ * correlation-only `source`, adds `session` (generation) + `session_id` on every
+ * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
+export declare const NCP_VERSION = "0.8";
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
@@ -25,7 +26,7 @@ export declare const NCP_VERSION = "0.7";
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export declare const NCP_CONTRACT_HASH = "f05e328cad20959d";
+export declare const NCP_CONTRACT_HASH = "d1b50a2d8a265276";
 /** Exact integer range shared by every JSON implementation (binary64 included). */
 export declare const JSON_SAFE_INTEGER_MAX = 9007199254740991;
 export declare const JSON_SAFE_INTEGER_MIN: number;

@@ -26,6 +26,11 @@
 // node ESM (the behavior runner imports dist/*.js directly; see
 // scripts/check-behavior.mjs) — tsc still type-resolves this to ./client.ts.
 import { assertNcpMessage, checkVersion, hasWireControlCharacters, MAX_HORIZON_STEPS, NCP_VERSION, NcpVersionError, } from './client.js';
+/** Structural (JSON-wire) view of a `CommandFrame` — the fields the safety layer
+ *  reads. Accepts a full `Wire<CommandFrame>`; optional members default like the
+ *  Rust wire defaults. */
+/** Wire 0.8: a canonical lowercase UUIDv4 (`stream.epoch` / `session.generation`). */
+const UUID_V4_SAFETY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 /** Upper bound on an enforced command ttl (ms) — mirrors `safety.rs::MAX_TTL_MS`:
  *  the wire field is unbounded, but the plant-side deadline must stay finite. */
 export const MAX_TTL_MS = 60_000;
@@ -140,7 +145,7 @@ export class ActionBuffer {
         catch {
             return; // ESTOP already latched; every other invalid envelope is ignored
         }
-        const seq = command.seq ?? 0;
+        const seq = command.stream?.seq ?? 0;
         if (!Number.isSafeInteger(seq) || seq < 1)
             return;
         if (seq <= this.lastSeq && (seq === this.lastSeq || !this.watchdog.shouldHold(nowS))) {
@@ -306,12 +311,7 @@ export class SafetyGovernor {
     }
     safeFrame(command, mode) {
         const raw = command;
-        const seq = typeof raw.seq === 'number' &&
-            Number.isSafeInteger(raw.seq) &&
-            raw.seq >= 1 &&
-            raw.seq <= Number.MAX_SAFE_INTEGER
-            ? raw.seq
-            : 1;
+        const stream = command.stream ?? { epoch: '', seq: 1 };
         const t = typeof raw.t === 'number' && Number.isFinite(raw.t) ? raw.t : 0;
         const frameId = typeof raw.frame_id === 'string' &&
             raw.frame_id.length > 0 &&
@@ -321,7 +321,11 @@ export class SafetyGovernor {
         return {
             kind: 'command_frame',
             ncp_version: NCP_VERSION,
-            seq,
+            stream,
+            source: command.source,
+            source_t: command.source_t,
+            session: command.session,
+            session_id: command.session_id,
             t,
             frame_id: frameId,
             mode,
@@ -538,11 +542,6 @@ export class SafetyGovernor {
     }
 }
 /** Minimum wire-legal `seq` per data-plane kind (wire 0.6). */
-const MIN_SEQ = {
-    sensor_frame: 1,
-    command_frame: 1,
-    observation_frame: 0,
-};
 function isRecord(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -596,10 +595,20 @@ export function assertWireFrame(frame, expectedKind) {
         throw new NcpVersionError(`${expectedKind}: frame carries no ncp_version (mandatory since wire 0.6)`);
     }
     checkVersion(ver, true);
-    const minSeq = MIN_SEQ[expectedKind];
-    const seq = frame.seq;
-    if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < minSeq) {
-        throw new Error(`${expectedKind}: seq ${JSON.stringify(seq)} invalid (wire 0.6 requires a safe integer >= ${minSeq})`);
+    const stream = frame.stream;
+    const seq = stream?.seq;
+    if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < 1) {
+        throw new Error(`${expectedKind}: stream.seq ${JSON.stringify(seq)} invalid (wire 0.8 requires a safe integer >= 1)`);
+    }
+    if (typeof stream?.epoch !== 'string' || !UUID_V4_SAFETY.test(stream.epoch)) {
+        throw new Error(`${expectedKind}.stream.epoch must be a canonical lowercase UUIDv4`);
+    }
+    const session = frame.session;
+    if (typeof session?.generation !== 'string' || !UUID_V4_SAFETY.test(session.generation)) {
+        throw new Error(`${expectedKind}.session.generation must be a canonical lowercase UUIDv4`);
+    }
+    if (typeof frame.session_id !== 'string' || frame.session_id.length === 0) {
+        throw new Error(`${expectedKind}.session_id must be a non-empty string`);
     }
     if (expectedKind === 'sensor_frame' || expectedKind === 'command_frame') {
         assertChannels(frame.channels, `${expectedKind}.channels`);

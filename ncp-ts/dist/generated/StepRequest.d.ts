@@ -1,3 +1,4 @@
+import type { SessionRef } from "./SessionRef.js";
 import type { StimulusFrame } from "./StimulusFrame.js";
 /**
  * Advance one chunk; optional stimulus; returns an `ObservationFrame`.
@@ -8,5 +9,9 @@ export type StepRequest = {
     session_id: string;
     advance_ms: number | null;
     stimulus: StimulusFrame | null;
+    /**
+     * (0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair.
+     */
+    session: SessionRef;
 };
 //# sourceMappingURL=StepRequest.d.ts.map

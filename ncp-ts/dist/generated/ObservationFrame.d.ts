@@ -1,4 +1,6 @@
 import type { Observation } from "./Observation.js";
+import type { SessionRef } from "./SessionRef.js";
+import type { StreamPosition } from "./StreamPosition.js";
 /**
  * The returned neural data, keyed by a unique record-series name. The nested
  * `Observation.port` identifies the negotiated record port; distinct
@@ -10,14 +12,6 @@ export type ObservationFrame = {
     ncp_version: string;
     kind: string;
     session_id: string;
-    /**
-     * Wire 0.6 (normative): a frame **published on the observation plane** MUST
-     * echo the driving `SensorFrame.seq` (`>= 1`), so a split-plane observer can
-     * align `(V,L,D,A)` on `seq` (not arrival time) — an unstamped plane frame
-     * forces observers into a degraded recency-only join. `0` is reserved for
-     * the pure pull/sim-service RPC reply path (no controller seq exists there).
-     */
-    seq: bigint;
     t: number;
     sim_time_ms: number;
     records: {
@@ -25,5 +19,22 @@ export type ObservationFrame = {
     };
     calibrated_posterior: boolean;
     is_simulation_output: boolean;
+    /**
+     * Wire 0.8: this observation stream's own incarnation + position.
+     */
+    stream: StreamPosition;
+    /**
+     * The driving `SensorFrame.stream` on the observation PLANE (the cross-plane
+     * join key); omitted for the pull/RPC reply form (absence, not `seq == 0`).
+     */
+    source: StreamPosition | null;
+    /**
+     * The driving `SensorFrame.t`; `0.0` = unset.
+     */
+    source_t: number;
+    /**
+     * The live session incarnation this stream belongs to.
+     */
+    session: SessionRef;
 };
 //# sourceMappingURL=ObservationFrame.d.ts.map
