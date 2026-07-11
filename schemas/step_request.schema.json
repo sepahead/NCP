@@ -21,6 +21,16 @@
       },
       "type": "object"
     },
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "StimulusFrame": {
       "description": "The values to inject this step (keyed by stimulus port). `t` is\nproducer-local monotonic seconds and is never compared across peers.",
       "properties": {
@@ -29,8 +39,12 @@
           "type": "string"
         },
         "ncp_version": {
-          "const": "0.7",
+          "const": "0.8",
           "type": "string"
+        },
+        "session": {
+          "$ref": "#/$defs/SessionRef",
+          "description": "(0.8) The session incarnation; nested in Step/Run it MUST equal the outer."
         },
         "session_id": {
           "type": "string"
@@ -51,6 +65,7 @@
       "required": [
         "kind",
         "ncp_version",
+        "session",
         "session_id"
       ],
       "type": "object"
@@ -72,8 +87,12 @@
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.7",
+      "const": "0.8",
       "type": "string"
+    },
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "(0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair."
     },
     "session_id": {
       "type": "string"
@@ -93,6 +112,7 @@
   "required": [
     "kind",
     "ncp_version",
+    "session",
     "session_id"
   ],
   "title": "StepRequest",

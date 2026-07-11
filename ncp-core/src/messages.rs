@@ -1612,7 +1612,7 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
 /// property — and still needs a per-language anchor for cross-language parity. The
 /// constant-plus-CI-guard form is kept on purpose. See `VERSIONING.md` (§"Contract
 /// hash") for the full rationale and the handshake design.
-pub const CONTRACT_HASH: &str = "f05e328cad20959d";
+pub const CONTRACT_HASH: &str = "d1b50a2d8a265276";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
 /// adequate for the contract-pinning integrity-vs-accidental-drift use. It is
@@ -2512,17 +2512,15 @@ pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
     })
 }
 
-/// Minimum wire-legal `seq` for a `kind`, when that kind carries seq discipline:
-/// `sensor_frame`/`command_frame` must stamp `seq >= 1` (strictly increasing per
-/// stream — `0`/negative is unstamped/invalid and receivers drop it);
-/// `observation_frame` allows `seq == 0` **only** for the pull/RPC reply path (a
-/// frame *published on the observation plane* must echo the driving
-/// `SensorFrame.seq >= 1` — see `NEURO_CYBERNETIC_PROTOCOL.md`). Kinds whose `seq`
-/// is free-running telemetry (`control_status`) or absent return `None`.
+/// Minimum wire-legal `stream.seq` for a `kind` that carries per-stream seq
+/// discipline (wire 0.8): `sensor_frame`/`command_frame`/`observation_frame` must
+/// stamp `stream.seq >= 1` (strictly increasing per stream — `0`/negative is
+/// unstamped/invalid). The pull/RPC observation form is distinguished by `source`
+/// ABSENCE, not `seq == 0`. Kinds whose seq is free-running telemetry
+/// (`control_status`) or absent return `None`.
 fn min_seq(kind: &str) -> Option<i64> {
     match kind {
-        "sensor_frame" | "command_frame" => Some(1),
-        "observation_frame" => Some(0),
+        "sensor_frame" | "command_frame" | "observation_frame" => Some(1),
         _ => None,
     }
 }
@@ -2629,13 +2627,15 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
     // (`ActionBuffer`/`CommandWatchdog`) never see an unstamped frame.
     if let Some(min) = min_seq(kind) {
         let seq = obj
-            .get("seq")
+            .get("stream")
+            .and_then(|v| v.as_object())
+            .and_then(|s| s.get("seq"))
             .and_then(json_exact_i64)
-            .ok_or_else(|| ValidationError(format!("{kind}: `seq` must be an integer")))?;
+            .ok_or_else(|| ValidationError(format!("{kind}: `stream.seq` must be an integer")))?;
         if seq < min {
             return Err(ValidationError(format!(
-                "{kind}: seq {seq} < {min} (wire 0.6 requires a stamped, strictly-increasing \
-                 seq on closed-loop frames; 0 is reserved for the observation pull path)"
+                "{kind}: stream.seq {seq} < {min} (wire 0.8 requires a stamped, \
+                 strictly-increasing per-stream stream.seq)"
             )));
         }
     }
@@ -3280,13 +3280,8 @@ fn validate_semantics(
             }
         }
         "control_status" => {
-            let seq = obj
-                .get("seq")
-                .and_then(json_exact_i64)
-                .ok_or_else(|| ValidationError("control_status.seq must be an integer".into()))?;
-            if seq < 0 {
-                return Err(ValidationError("control_status.seq must be >= 0".into()));
-            }
+            // Wire 0.8: identity is `stream` (validated structurally); keep the finite
+            // t / latency gates below.
             finite_number(
                 obj.get("t")
                     .ok_or_else(|| ValidationError("control_status.t is required".into()))?,
@@ -3450,8 +3445,15 @@ fn validate_safe_integers(
             }
         }
         "sensor_frame" | "command_frame" | "control_status" | "observation_frame" => {
-            if let Some(seq) = obj.get("seq") {
-                check_safe_integer(seq, &format!("{kind}.seq"))?;
+            if let Some(stream) = obj.get("stream").and_then(|v| v.as_object()) {
+                if let Some(seq) = stream.get("seq") {
+                    check_safe_integer(seq, &format!("{kind}.stream.seq"))?;
+                }
+            }
+            if let Some(source) = obj.get("source").and_then(|v| v.as_object()) {
+                if let Some(seq) = source.get("seq") {
+                    check_safe_integer(seq, &format!("{kind}.source.seq"))?;
+                }
             }
             if kind == "observation_frame" {
                 if let Some(records) = obj.get("records").and_then(|v| v.as_object()) {
@@ -3465,9 +3467,18 @@ fn validate_safe_integers(
             }
         }
         "link_status" => {
-            for field in ["last_seq", "received", "lost"] {
-                if let Some(value) = obj.get(field) {
+            for field in ["received", "lost", "last_arrival_seq"] {
+                if let Some(value) = obj.get(field).filter(|v| !v.is_null()) {
                     check_safe_integer(value, &format!("link_status.{field}"))?;
+                }
+            }
+            for pos in ["stream", "observed_stream"] {
+                if let Some(seq) = obj
+                    .get(pos)
+                    .and_then(|v| v.as_object())
+                    .and_then(|s| s.get("seq"))
+                {
+                    check_safe_integer(seq, &format!("link_status.{pos}.seq"))?;
                 }
             }
         }
@@ -3612,8 +3623,8 @@ mod tests {
         }
         // Exact match passes; a missing minor means 0 and so mismatches 0.7; the
         // previous wire 0.6 is a breaking minor difference.
-        assert_eq!(check_version("0.7", true), Ok(true));
-        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,7)");
+        assert_eq!(check_version("0.8", true), Ok(true));
+        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,8)");
         assert!(
             check_version("0.6", true).is_err(),
             "previous wire 0.6 is incompatible"
@@ -3857,47 +3868,56 @@ mod tests {
     #[test]
     fn validate_enforces_version_value_and_seq_bounds() {
         let v = |s: &str| serde_json::from_str::<serde_json::Value>(s).unwrap();
-        // A fully-stamped 0.7 command frame passes.
-        let good = format!(r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":1}}"#);
-        assert!(validate(&v(&good)).is_ok());
+        // A fully-stamped 0.8 command frame passes.
+        let cmd = |seq: &str| {
+            format!(
+                r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","stream":{{"epoch":"{EPOCH}","seq":{seq}}},"session":{{"generation":"{GEN}"}},"session_id":"s"}}"#
+            )
+        };
+        assert!(validate(&v(&cmd("1"))).is_ok());
         // Missing version -> rejected (required key).
-        assert!(validate(&v(r#"{"kind":"command_frame","seq":1}"#)).is_err());
+        assert!(validate(&v(
+            r#"{"kind":"command_frame","stream":{"epoch":"e","seq":1},"session":{"generation":"g"},"session_id":"s"}"#
+        ))
+        .is_err());
         // Present-but-incompatible version -> rejected (value gate, the audited
         // "incompatible-but-parseable frames are accepted" hole).
         assert!(
-            validate(&v(
-                r#"{"kind":"command_frame","ncp_version":"0.6","seq":1}"#
-            ))
+            validate(&v(&format!(
+                r#"{{"kind":"command_frame","ncp_version":"0.6","stream":{{"epoch":"{EPOCH}","seq":1}},"session":{{"generation":"{GEN}"}},"session_id":"s"}}"#
+            )))
             .is_err(),
-            "wire 0.6 frames must be rejected by a 0.7 validator"
+            "wire 0.6 frames must be rejected by a 0.8 validator"
         );
-        // Unstamped / negative / non-integer seq -> rejected on the action plane.
+        // Unstamped / negative / non-integer stream.seq -> rejected on the action plane.
         for bad_seq in [r#"0"#, r#"-3"#, r#"1.5"#, r#""1""#] {
-            let f = format!(
-                r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":{bad_seq}}}"#
+            assert!(
+                validate(&v(&cmd(bad_seq))).is_err(),
+                "stream.seq {bad_seq} must be rejected"
             );
-            assert!(validate(&v(&f)).is_err(), "seq {bad_seq} must be rejected");
         }
-        // sensor_frame mirrors command_frame; observation_frame allows seq 0 (pull
-        // path) but not negatives, and still requires session_id + version.
-        let sf = format!(r#"{{"kind":"sensor_frame","ncp_version":"{NCP_VERSION}","seq":0}}"#);
+        // sensor_frame mirrors command_frame: stream.seq 0 is unstamped -> reject.
+        let sf = format!(
+            r#"{{"kind":"sensor_frame","ncp_version":"{NCP_VERSION}","stream":{{"epoch":"{EPOCH}","seq":0}},"session":{{"generation":"{GEN}"}},"session_id":"s"}}"#
+        );
         assert!(
             validate(&v(&sf)).is_err(),
-            "sensor seq 0 is unstamped -> reject"
+            "sensor stream.seq 0 is unstamped -> reject"
         );
-        let obs0 = format!(
-            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":0,"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
+        // observation_frame: wire 0.8 requires stream.seq >= 1 (the pull form is
+        // `source` ABSENCE, not seq 0), so stream.seq 0 is rejected and 1 is legal.
+        let obs = |seq: &str| {
+            format!(
+                r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","stream":{{"epoch":"{EPOCH}","seq":{seq}}},"session":{{"generation":"{GEN}"}},"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
+            )
+        };
+        assert!(
+            validate(&v(&obs("0"))).is_err(),
+            "observation stream.seq 0 -> reject"
         );
         assert!(
-            validate(&v(&obs0)).is_ok(),
-            "observation seq 0 = pull path, legal"
-        );
-        let obs_neg = format!(
-            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":-1,"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
-        );
-        assert!(
-            validate(&v(&obs_neg)).is_err(),
-            "negative observation seq -> reject"
+            validate(&v(&obs("1"))).is_ok(),
+            "observation stream.seq 1 (pull) legal"
         );
     }
 
@@ -3975,13 +3995,14 @@ mod tests {
         let unstamped =
             format!(r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":0}}"#);
         assert!(decode_validated::<CommandFrame>(unstamped.as_bytes()).is_err());
-        // ObservationFrame: seq 0 decodes (pull path), negative does not.
+        // ObservationFrame pull form: stream.seq >= 1 with `source` ABSENT decodes;
+        // stream.seq 0 does not.
         let obs = format!(
-            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":0,"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","stream":{{"epoch":"{EPOCH}","seq":1}},"session":{{"generation":"{GEN}"}},"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
         );
         assert!(decode_validated::<ObservationFrame>(obs.as_bytes()).is_ok());
         let neg = format!(
-            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","seq":-9,"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
+            r#"{{"kind":"observation_frame","ncp_version":"{NCP_VERSION}","session_id":"s","stream":{{"epoch":"{EPOCH}","seq":0}},"session":{{"generation":"{GEN}"}},"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
         );
         assert!(decode_validated::<ObservationFrame>(neg.as_bytes()).is_err());
         assert!(decode_validated::<SensorFrame>(

@@ -1,5 +1,15 @@
 {
   "$defs": {
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "SimProvenance": {
       "description": "Scientific-boundary discriminators carried on every opened session. Returned\ndata is a **raw simulation output of a specified model**, never a validated\nreproduction: `calibrated_posterior=false`, `is_simulation_output=true`.",
       "properties": {
@@ -74,7 +84,7 @@
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.7",
+      "const": "0.8",
       "type": "string"
     },
     "ok": {
@@ -100,6 +110,18 @@
       },
       "default": {},
       "type": "object"
+    },
+    "session": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "(0.8) Server-ISSUED session incarnation, present iff `ok`; clients echo\n`session.generation` on every subsequent session-scoped frame."
     },
     "session_id": {
       "type": "string"

@@ -31,6 +31,33 @@
         "hold",
         "estop"
       ]
+    },
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "StreamPosition": {
+      "description": "One exact position in ONE logical stream incarnation (`proto/ncp.proto`\n`StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a\nframe's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/\n`ActionBuffer` accounting reads — and a `source` referencing the frame that drove\nit (correlation only, never loss accounting).\n\n`epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for\nEQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,\nstrictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `\"\"`/`0` default is\n\"unset\" and is not wire-legal until stamped (mirrors the retired `seq` discipline).",
+      "properties": {
+        "epoch": {
+          "default": "",
+          "type": "string"
+        },
+        "seq": {
+          "default": 0,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -76,14 +103,38 @@
       "default": "hold"
     },
     "ncp_version": {
-      "const": "0.7",
+      "const": "0.8",
       "type": "string"
     },
-    "seq": {
-      "format": "int64",
-      "maximum": 9007199254740991,
-      "minimum": -9007199254740991,
-      "type": "integer"
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "The live session incarnation this command stream belongs to."
+    },
+    "session_id": {
+      "description": "Logical session id (transport-neutral); MUST equal the routing key's session.",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamPosition"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The driving `SensorFrame.stream` (correlation only; never loss accounting).\nPresent for a closed-loop Active command; omitted for negotiated open-loop."
+    },
+    "source_t": {
+      "default": 0.0,
+      "description": "The driving `SensorFrame.t`, for source-age checks; `0.0` = unset.",
+      "format": "double",
+      "type": "number"
+    },
+    "stream": {
+      "$ref": "#/$defs/StreamPosition",
+      "description": "Wire 0.8: this command stream's own incarnation + position — the sequence\n`LinkMonitor`/`ActionBuffer` read for loss/dedup/supersession."
     },
     "t": {
       "default": 0.0,
@@ -98,7 +149,9 @@
   "required": [
     "kind",
     "ncp_version",
-    "seq"
+    "session",
+    "session_id",
+    "stream"
   ],
   "title": "CommandFrame",
   "type": "object"

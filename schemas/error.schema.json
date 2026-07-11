@@ -1,4 +1,16 @@
 {
+  "$defs": {
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "A typed, versioned failure reply. Error payloads are wire messages too: leaving\nthem unversioned lets a stale or misrouted peer bypass the same identity checks\napplied to successful replies.",
   "properties": {
@@ -10,7 +22,7 @@
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.7",
+      "const": "0.8",
       "type": "string"
     },
     "request_kind": {
@@ -19,6 +31,18 @@
         "string",
         "null"
       ]
+    },
+    "session": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "(0.8) Optional correlation copied from the rejected request; presence does NOT\nassert the generation is active. Present iff `session_id` is (copy both or neither)."
     },
     "session_id": {
       "default": null,

@@ -1,4 +1,16 @@
 {
+  "$defs": {
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "properties": {
     "kind": {
@@ -6,11 +18,15 @@
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.7",
+      "const": "0.8",
       "type": "string"
     },
     "ok": {
       "type": "boolean"
+    },
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "(0.8) the incarnation this close concerns; a delayed reply must attribute to it."
     },
     "session_id": {
       "type": "string"
@@ -20,6 +36,7 @@
     "kind",
     "ncp_version",
     "ok",
+    "session",
     "session_id"
   ],
   "title": "SessionClosed",

@@ -1,4 +1,33 @@
 {
+  "$defs": {
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "StreamPosition": {
+      "description": "One exact position in ONE logical stream incarnation (`proto/ncp.proto`\n`StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a\nframe's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/\n`ActionBuffer` accounting reads — and a `source` referencing the frame that drove\nit (correlation only, never loss accounting).\n\n`epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for\nEQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,\nstrictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `\"\"`/`0` default is\n\"unset\" and is not wire-legal until stamped (mirrors the retired `seq` discipline).",
+      "properties": {
+        "epoch": {
+          "default": "",
+          "type": "string"
+        },
+        "seq": {
+          "default": 0,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Link-health telemetry from the seq-gap / CUSUM monitor (published on the\ncontrol plane). `burst=true` flags sustained loss — a possible jam — at which\npoint the only sound response is to fail safe, not add redundancy. `t` is\nproducer-local monotonic seconds and is never compared across peers.",
   "properties": {
@@ -9,11 +38,16 @@
       "const": "link_status",
       "type": "string"
     },
-    "last_seq": {
+    "last_arrival_seq": {
+      "default": null,
+      "description": "F-16: seq of the last valid in-epoch ARRIVAL (`< observed_stream.seq` under\nreordering; `==` it on forward arrival). Presence tracks `observed_stream`.",
       "format": "int64",
       "maximum": 9007199254740991,
       "minimum": -9007199254740991,
-      "type": "integer"
+      "type": [
+        "integer",
+        "null"
+      ]
     },
     "loss_rate": {
       "format": "double",
@@ -26,8 +60,20 @@
       "type": "integer"
     },
     "ncp_version": {
-      "const": "0.7",
+      "const": "0.8",
       "type": "string"
+    },
+    "observed_stream": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamPosition"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The MONITORED stream's epoch + forward high-water seq; absent before the first\nvalid observed frame (presence tracks `last_arrival_seq`)."
     },
     "received": {
       "format": "int64",
@@ -35,8 +81,16 @@
       "minimum": -9007199254740991,
       "type": "integer"
     },
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "The live session incarnation."
+    },
     "session_id": {
       "type": "string"
+    },
+    "stream": {
+      "$ref": "#/$defs/StreamPosition",
+      "description": "Wire 0.8: the LinkStatus stream's OWN incarnation + position — validate this\nbefore trusting any reported burst/loss/high-water state."
     },
     "t": {
       "format": "double",
@@ -46,12 +100,13 @@
   "required": [
     "burst",
     "kind",
-    "last_seq",
     "loss_rate",
     "lost",
     "ncp_version",
     "received",
+    "session",
     "session_id",
+    "stream",
     "t"
   ],
   "title": "LinkStatus",

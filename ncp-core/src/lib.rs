@@ -27,7 +27,7 @@ pub use transport::{
 #[cfg(test)]
 mod wire_tests {
     use super::*;
-    use crate::messages::test_ids::{session, stream, SID};
+    use crate::messages::test_ids::{session, stream, EPOCH, GEN, SID};
 
     /// The `kind` discriminator and enum string values must match the Python
     /// reference exactly so peers interoperate.
@@ -97,9 +97,9 @@ mod wire_tests {
 
     #[test]
     fn version_guard() {
-        // Wire is pre-1.0 (0.7), so the minor is breaking: an exact (major,
+        // Wire is pre-1.0 (0.8), so the minor is breaking: an exact (major,
         // minor) match is required and a same-major/different-minor is rejected.
-        assert!(check_version("0.7", true).unwrap()); // exact match ok
+        assert!(check_version("0.8", true).unwrap()); // exact match ok
         assert!(check_version("0.5", true).is_err()); // old 0.5 wire is now a breaking minor diff -> Err under strict
         assert!(check_version("0.4", true).is_err()); // old 0.4 wire is now a breaking minor diff -> Err under strict
         assert!(check_version("0.1", true).is_err()); // old 0.1 wire is now a breaking minor diff -> Err under strict
@@ -207,7 +207,7 @@ mod wire_tests {
         assert_eq!(typed.session_id, "");
 
         // A complete step_request passes.
-        let good = serde_json::json!({"kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1"});
+        let good = serde_json::json!({"kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1", "session": {"generation": GEN}});
         assert!(validate(&good).is_ok());
 
         // Wire 0.6: a version-less control message is rejected too — every kind
@@ -227,7 +227,8 @@ mod wire_tests {
 
         // Forward-compatible: unknown extra fields are still accepted.
         let fwd = serde_json::json!({
-            "kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1", "future": 7
+            "kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1",
+            "session": {"generation": GEN}, "future": 7
         });
         assert!(validate(&fwd).is_ok());
     }
@@ -240,7 +241,7 @@ mod wire_tests {
         // (Fixtures carry the wire-0.6 required ncp_version + seq.)
         let lie = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "seq": 1, "records": {}, "calibrated_posterior": true,
+            "stream": {"epoch": EPOCH, "seq": 1}, "session": {"generation": GEN}, "records": {}, "calibrated_posterior": true,
             "is_simulation_output": true
         });
         assert!(
@@ -249,7 +250,7 @@ mod wire_tests {
         );
         let lie2 = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "seq": 1, "records": {}, "calibrated_posterior": false,
+            "stream": {"epoch": EPOCH, "seq": 1}, "session": {"generation": GEN}, "records": {}, "calibrated_posterior": false,
             "is_simulation_output": false
         });
         assert!(
@@ -259,7 +260,7 @@ mod wire_tests {
         // The honest default values pass; absent boundary fields also pass.
         let ok = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "seq": 1, "records": {}, "calibrated_posterior": false,
+            "stream": {"epoch": EPOCH, "seq": 1}, "session": {"generation": GEN}, "records": {}, "calibrated_posterior": false,
             "is_simulation_output": true
         });
         assert!(validate(&ok).is_ok());
