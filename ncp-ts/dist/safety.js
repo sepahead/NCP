@@ -74,6 +74,13 @@ export class CommandWatchdog {
         this.clockHighWaterS = nowS;
         return true;
     }
+    /** Re-anchor the seq discipline for a NEW stream epoch: clear the high-water so
+     *  the next command (a restarted publisher counts from 1) is accepted as fresh.
+     *  An epoch-aware receiver (`ActionBuffer`) calls this only after it authorizes an
+     *  epoch transition; the ttl deadline is refreshed by the `onCommand` that follows. */
+    reanchor() {
+        this.lastSeq = 0;
+    }
     /** Record an accepted command at local time `nowS` with its `ttl_ms` and `seq`. */
     onCommand(nowS, ttlMs, seq) {
         if (!this.observeClock(nowS))
@@ -130,6 +137,19 @@ export class ActionBuffer {
     watchdog = new CommandWatchdog();
     estop = false;
     lastSeq = 0;
+    // Wire 0.8 (§7): acceptance keys on (epoch, seq). A FOREIGN epoch must not
+    // advance the LIVE stream (no hijack via a fresh high seq under a new random
+    // epoch); a RETIRED epoch never revives. Bounded tombstone ring.
+    activeEpoch = null;
+    retiredEpochs = [];
+    static RETIRED_EPOCH_CAP = 64;
+    retireEpoch(epoch) {
+        if (this.retiredEpochs.includes(epoch))
+            return;
+        if (this.retiredEpochs.length >= ActionBuffer.RETIRED_EPOCH_CAP)
+            this.retiredEpochs.shift();
+        this.retiredEpochs.push(epoch);
+    }
     onCommand(nowS, command) {
         // Fail-safe priority: HOLD/INIT/future non-actuating modes clear buffered
         // actuation even when malformed, stale, or duplicate. Dropping one would
@@ -148,6 +168,22 @@ export class ActionBuffer {
         const seq = command.stream?.seq ?? 0;
         if (!Number.isSafeInteger(seq) || seq < 1)
             return;
+        // Wire 0.8 (§7): epoch-keyed acceptance. A foreign epoch may adopt the stream
+        // only as a restart, once the prior stream has EXPIRED; a retired epoch never
+        // revives; same-epoch frames fall through to the seq discipline below.
+        const epoch = command.stream?.epoch ?? '';
+        if (this.activeEpoch === null) {
+            this.activeEpoch = epoch;
+        }
+        else if (this.activeEpoch !== epoch) {
+            if (this.retiredEpochs.includes(epoch) || !this.watchdog.shouldHold(nowS)) {
+                return; // retired epoch, or a foreign epoch while the stream is LIVE
+            }
+            this.retireEpoch(this.activeEpoch);
+            this.activeEpoch = epoch;
+            this.lastSeq = 0; // re-anchor the seq discipline for the new epoch
+            this.watchdog.reanchor();
+        }
         if (seq <= this.lastSeq && (seq === this.lastSeq || !this.watchdog.shouldHold(nowS))) {
             return; // duplicate (always), or stale/reordered while LIVE (ESTOP latched above)
         }
@@ -169,6 +205,9 @@ export class ActionBuffer {
         this.recvS = 0;
         this.watchdog = new CommandWatchdog();
         this.lastSeq = 0;
+        // A supervisor reset is a fresh start: forget the active epoch + tombstones.
+        this.activeEpoch = null;
+        this.retiredEpochs = [];
     }
     isEstopped() {
         return this.estop;

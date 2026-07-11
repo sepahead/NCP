@@ -221,7 +221,7 @@
           "message": {
             "kind": "open_session",
             "ncp_version": "0.8",
-            "session_id": "s\ufeffspoof",
+            "session_id": "s﻿spoof",
             "network": {
               "kind": "builtin",
               "ref": "iaf_psc_alpha"
@@ -1045,7 +1045,7 @@
             "kind": "command_frame",
             "ncp_version": "0.8",
             "channels": {
-              "bad\u0085channel": {
+              "badchannel": {
                 "data": [
                   0
                 ]
@@ -1667,7 +1667,7 @@
             "ncp_version": "0.8",
             "session_id": "s",
             "records": {
-              "vm\u0085spoof": {
+              "vmspoof": {
                 "port": "vm",
                 "target": "n",
                 "observable": "V_m",
@@ -5011,6 +5011,162 @@
             "expect": {
               "active": true,
               "value": 0.8,
+              "estopped": false
+            }
+          }
+        ]
+      },
+      {
+        "name": "foreign_epoch_cannot_hijack_live_stream",
+        "operations": [
+          {
+            "op": "command",
+            "now_s": 1.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.4
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 5
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.05,
+            "expect": {
+              "active": true,
+              "value": 0.4,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 1.06,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.9
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "7d61c9ba-4e1d-4aab-8ae6-08e05206aa67",
+                "seq": 9999
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.07,
+            "expect": {
+              "active": true,
+              "value": 0.4,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.5,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 1.5,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.7
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "7d61c9ba-4e1d-4aab-8ae6-08e05206aa67",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.55,
+            "expect": {
+              "active": true,
+              "value": 0.7,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 2.0,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 2.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.2
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 100000
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 2.05,
+            "expect": {
+              "active": false,
               "estopped": false
             }
           }

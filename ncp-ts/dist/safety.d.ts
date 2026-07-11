@@ -87,6 +87,11 @@ export declare class CommandWatchdog {
     private clockHighWaterS;
     private clockFaulted;
     private observeClock;
+    /** Re-anchor the seq discipline for a NEW stream epoch: clear the high-water so
+     *  the next command (a restarted publisher counts from 1) is accepted as fresh.
+     *  An epoch-aware receiver (`ActionBuffer`) calls this only after it authorizes an
+     *  epoch transition; the ttl deadline is refreshed by the `onCommand` that follows. */
+    reanchor(): void;
     /** Record an accepted command at local time `nowS` with its `ttl_ms` and `seq`. */
     onCommand(nowS: number, ttlMs: number, seq: number): void;
     /** True if the plant must fail safe to HOLD (no command, expired, bad clock). */
@@ -109,6 +114,10 @@ export declare class ActionBuffer {
     private watchdog;
     private estop;
     private lastSeq;
+    private activeEpoch;
+    private retiredEpochs;
+    private static readonly RETIRED_EPOCH_CAP;
+    private retireEpoch;
     onCommand(nowS: number, command: CommandLike): void;
     /** Clear a latched ESTOP and discard all pre-ESTOP command state. A fresh
      * validated Active command is required before actuation resumes. */
