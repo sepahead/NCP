@@ -9,7 +9,8 @@
 # commits a `.ncp-consumer` to its own repo. See `INTEGRATING.md`.
 #
 # `.ncp-consumer` lines understood here:
-#   cargo_tag  <Cargo.toml>     # rewrite ncp-core/ncp-zenoh `tag = "vX"`, then
+#   cargo_tag  <Cargo.toml>     # rewrite ncp-core/ncp-zenoh `tag = "vX"` and any
+#                               #   explicit `version = "X"` constraint, then
 #                               #   `cargo update -p ncp-core -p ncp-zenoh --manifest-path <Cargo.toml>`
 #   npm_tag    <package.json>   # rewrite `github:.../NCP#vX` (key kept), then `bun install`
 #   cargo_lock / npm_lock / mirror_ref  # declared for the pin CHECKER; refreshed implicitly here
@@ -37,6 +38,7 @@ if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?(\+[0-9A-Za-z.]+)?$ ]
   echo "ERROR: tag '$TAG' is not a valid NCP tag (expected like v0.3.0 or v0.3.0-rc.1)." >&2
   exit 2
 fi
+CARGO_VERSION="${TAG#v}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NCP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -60,10 +62,18 @@ note()  { printf '  . %s\n' "$1"; }
 hdr()   { printf '\n== %s ==\n' "$1"; }
 warn()  { printf '  ! %s\n' "$1" >&2; HAD_WARNINGS=1; }
 
-# Portable in-place edits. Cargo: rewrite the NCP tag ONLY on dependency lines that
-# point at a */NCP git source (a comment merely mentioning t<tag> is never touched).
+# Portable in-place edits. Cargo: rewrite the NCP tag and any explicit package
+# version on dependency lines that point at a */NCP git source. A comment merely
+# mentioning the tag/version is never touched. Updating both fields matters when a
+# new tag also bumps the SDK version: Cargo otherwise rejects the tagged package
+# before it can refresh the lockfile.
 repin_cargo_manifest() {
-  perl -pi -e 'if (/^\s*[A-Za-z0-9_-]+\s*=\s*\{.*git\s*=\s*"[^"]*\/NCP"/) { s{(tag\s*=\s*")[^"]*(")}{${1}'"$TAG"'${2}}g; }' "$1"
+  TAG="$TAG" CARGO_VERSION="$CARGO_VERSION" perl -pi -e '
+    if (/^\s*[A-Za-z0-9_-]+\s*=\s*\{.*git\s*=\s*"[^"]*\/NCP"/) {
+      s{(tag\s*=\s*")[^"]*(")}{$1 . $ENV{TAG} . $2}ge;
+      s{(version\s*=\s*")[^"]*(")}{$1 . $ENV{CARGO_VERSION} . $2}ge;
+    }
+  ' "$1"
 }
 # package.json / bun.lock spec: only the #<tag> fragment changes; the scope key is kept.
 repin_package_json() {
@@ -129,7 +139,7 @@ for desc in "${descriptors[@]}"; do
   for rel in ${cargo_tomls[@]+"${cargo_tomls[@]}"}; do
     f="$consumer_dir/$rel"
     if [[ -f "$f" ]]; then
-      repin_cargo_manifest "$f"; note "rewrote ncp-core/ncp-zenoh tag -> $TAG in $rel"; touched=1; review_files+=("$rel")
+      repin_cargo_manifest "$f"; note "rewrote ncp-core/ncp-zenoh tag/version -> $TAG in $rel"; touched=1; review_files+=("$rel")
       if command -v cargo >/dev/null 2>&1; then
         note "refreshing lockfile (cargo update -p ncp-core -p ncp-zenoh --manifest-path $rel) ..."
         if ( cd "$consumer_dir" && cargo update -p ncp-core -p ncp-zenoh --manifest-path "$rel" ); then

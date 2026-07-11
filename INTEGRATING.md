@@ -69,7 +69,7 @@ files carry the NCP pin and, optionally, how to re-pin a bespoke layout:
 
 ```text
 # how this repo pins NCP — read by NCP's generic, consumer-agnostic tooling.
-cargo_tag   src-tauri/Cargo.toml     # ncp-core/ncp-zenoh git-dep `tag = "vX"`
+cargo_tag   src-tauri/Cargo.toml     # NCP git-dep `tag = "vX"` (+ explicit `version`, if present)
 cargo_lock  src-tauri/Cargo.lock     # resolved `NCP?tag=vX`
 npm_tag     package.json             # `"@…/ncp": "github:…/NCP#vX"`
 npm_lock    bun.lock                 # same spec `#vX` (+ resolved commit)
