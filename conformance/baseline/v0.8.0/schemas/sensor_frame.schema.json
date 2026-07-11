@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "ChannelValue": {
+      "description": "A channel sample: a flat list of floats plus an optional unit string. Width\ncarries the semantics (1=scalar, 3=vec3, 4=quat, N=array).",
+      "properties": {
+        "data": {
+          "default": [],
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "unit": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "StreamPosition": {
+      "description": "One exact position in ONE logical stream incarnation (`proto/ncp.proto`\n`StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a\nframe's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/\n`ActionBuffer` accounting reads — and a `source` referencing the frame that drove\nit (correlation only, never loss accounting).\n\n`epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for\nEQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,\nstrictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `\"\"`/`0` default is\n\"unset\" and is not wire-legal until stamped (mirrors the retired `seq` discipline).",
+      "properties": {
+        "epoch": {
+          "default": "",
+          "type": "string"
+        },
+        "seq": {
+          "default": 0,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Plant → controller: the latest sensed state. Carries `seq`/`t` so a command\ncan be stamped with the sensor it was computed from (the correspondence the\nsplit perception/action planes must preserve — join on `seq`, not arrival).\n\nWire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly\nincreasing per stream. `seq = 0` is \"unstamped\" — receivers drop it (it is\nalso the serde default, so a default-constructed frame is not wire-legal\nuntil stamped). `t` is producer-local monotonic seconds and is never compared\nacross peers.",
+  "properties": {
+    "channels": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ChannelValue"
+      },
+      "default": {},
+      "type": "object"
+    },
+    "frame_id": {
+      "default": "world",
+      "type": "string"
+    },
+    "kind": {
+      "const": "sensor_frame",
+      "type": "string"
+    },
+    "ncp_version": {
+      "const": "0.8",
+      "type": "string"
+    },
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "The live session incarnation this stream belongs to (server-issued generation)."
+    },
+    "session_id": {
+      "description": "Logical session id (transport-neutral); MUST equal the routing key's session\nsegment. Carried in-payload so a non-keyed transport can interpret the frame.",
+      "type": "string"
+    },
+    "stream": {
+      "$ref": "#/$defs/StreamPosition",
+      "description": "Wire 0.8: this sensor stream's own incarnation + position — the ONLY sequence\nloss/`LinkMonitor`/`ActionBuffer` accounting reads. The origin: no `source`;\ndownstream `command`/`observation` `source` copies THIS `stream` position."
+    },
+    "t": {
+      "default": 0.0,
+      "format": "double",
+      "type": "number"
+    }
+  },
+  "required": [
+    "kind",
+    "ncp_version",
+    "session",
+    "session_id",
+    "stream"
+  ],
+  "title": "SensorFrame",
+  "type": "object"
+}

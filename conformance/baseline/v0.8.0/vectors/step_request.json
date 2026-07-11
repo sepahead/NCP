@@ -1,0 +1,26 @@
+{
+  "ncp_version": "0.8",
+  "kind": "step_request",
+  "session_id": "vec-open-1",
+  "advance_ms": 10.0,
+  "stimulus": {
+    "ncp_version": "0.8",
+    "kind": "stimulus_frame",
+    "session_id": "vec-open-1",
+    "t": 0.0,
+    "values": {
+      "drive": {
+        "data": [
+          0.5
+        ],
+        "unit": "Hz"
+      }
+    },
+    "session": {
+      "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+    }
+  },
+  "session": {
+    "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  }
+}

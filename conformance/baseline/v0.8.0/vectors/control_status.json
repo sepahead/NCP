@@ -1,0 +1,18 @@
+{
+  "ncp_version": "0.8",
+  "kind": "control_status",
+  "t": 1.0,
+  "mode": "active",
+  "sim_time_ms": 10.0,
+  "loop_latency_ms": 1.5,
+  "safety_ok": true,
+  "note": null,
+  "stream": {
+    "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+    "seq": 7
+  },
+  "session": {
+    "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  },
+  "session_id": "vec-open-1"
+}

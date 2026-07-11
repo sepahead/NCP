@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "SimProvenance": {
+      "description": "Scientific-boundary discriminators carried on every opened session. Returned\ndata is a **raw simulation output of a specified model**, never a validated\nreproduction: `calibrated_posterior=false`, `is_simulation_output=true`.",
+      "properties": {
+        "advisory_only": {
+          "type": "boolean"
+        },
+        "backend": {
+          "type": "string"
+        },
+        "calibrated_posterior": {
+          "const": false,
+          "type": "boolean"
+        },
+        "is_simulation_output": {
+          "const": true,
+          "type": "boolean"
+        },
+        "network_ref": {
+          "type": "string"
+        },
+        "note": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "seed": {
+          "default": null,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "advisory_only",
+        "backend",
+        "calibrated_posterior",
+        "is_simulation_output",
+        "network_ref"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Ack of `open_session` with resolved sizes and provenance.",
+  "properties": {
+    "backend": {
+      "type": "string"
+    },
+    "contract_hash": {
+      "default": "f05e328cad20959d",
+      "description": "Server's [`CONTRACT_HASH`] — the reply half of the handshake (see\n[`OpenSession::contract_hash`]). A client treats a hash difference as an\n**advisory** ([`ContractStatus::Mismatch`], logged not rejected); the version\nis the hard gate. `None` (serialized `null`) = not advertised.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "error": {
+      "default": "session not opened",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "const": "session_opened",
+      "type": "string"
+    },
+    "ncp_version": {
+      "const": "0.8",
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SimProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "resolved": {
+      "additionalProperties": {
+        "format": "int64",
+        "maximum": 9007199254740991,
+        "minimum": -9007199254740991,
+        "type": "integer"
+      },
+      "default": {},
+      "type": "object"
+    },
+    "session": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "(0.8) Server-ISSUED session incarnation, present iff `ok`; clients echo\n`session.generation` on every subsequent session-scoped frame."
+    },
+    "session_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "backend",
+    "kind",
+    "ncp_version",
+    "ok",
+    "session_id"
+  ],
+  "title": "SessionOpened",
+  "type": "object"
+}

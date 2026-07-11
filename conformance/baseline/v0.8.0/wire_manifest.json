@@ -1,0 +1,520 @@
+{
+  "contract_hash": "d1b50a2d8a265276",
+  "definitions": {
+    "ChannelSpec": {
+      "fields": {
+        "description": "{\"type\": [\"string\", \"null\"]}",
+        "kind": "{\"$ref\": \"#/$defs/ChannelKind\"}",
+        "name": "{\"type\": \"string\"}",
+        "optional": "{\"type\": \"boolean\"}",
+        "size": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}",
+        "unit": "{\"type\": [\"string\", \"null\"]}"
+      },
+      "required": [
+        "kind",
+        "name"
+      ]
+    },
+    "ChannelValue": {
+      "fields": {
+        "data": "{\"items\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"array\"}",
+        "unit": "{\"type\": [\"string\", \"null\"]}"
+      },
+      "required": []
+    },
+    "EntityBinding": {
+      "fields": {
+        "direction": "{\"type\": \"string\"}",
+        "entity": "{\"$ref\": \"#/$defs/EntityRef\"}",
+        "port": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "direction",
+        "entity",
+        "port"
+      ]
+    },
+    "EntityRef": {
+      "fields": {
+        "meta": "{\"additionalProperties\": {\"type\": \"string\"}, \"type\": \"object\"}",
+        "path": "{\"type\": \"string\"}",
+        "role": "{\"$ref\": \"#/$defs/EntityRole\"}"
+      },
+      "required": [
+        "path",
+        "role"
+      ]
+    },
+    "NetworkRef": {
+      "fields": {
+        "kind": "{\"$ref\": \"#/$defs/NetworkRefKind\"}",
+        "model_name": "{\"type\": [\"string\", \"null\"]}",
+        "params": "{\"additionalProperties\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"object\"}",
+        "population_sizes": "{\"additionalProperties\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"object\"}",
+        "ref": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "kind",
+        "ref"
+      ]
+    },
+    "Observation": {
+      "fields": {
+        "observable": "{\"$ref\": \"#/$defs/Observable\"}",
+        "port": "{\"type\": \"string\"}",
+        "recordable": "{\"type\": [\"string\", \"null\"]}",
+        "senders": "{\"items\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"array\"}",
+        "target": "{\"type\": \"string\"}",
+        "times": "{\"items\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"array\"}",
+        "unit": "{\"type\": [\"string\", \"null\"]}",
+        "values": "{\"items\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"array\"}"
+      },
+      "required": [
+        "observable",
+        "port",
+        "target"
+      ]
+    },
+    "RecordSpec": {
+      "fields": {
+        "targets": "{\"items\": {\"$ref\": \"#/$defs/RecordTarget\"}, \"type\": \"array\"}"
+      },
+      "required": []
+    },
+    "RecordTarget": {
+      "fields": {
+        "cadence_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "ids": "{\"items\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"array\"}",
+        "observable": "{\"$ref\": \"#/$defs/Observable\"}",
+        "port": "{\"type\": \"string\"}",
+        "recordables": "{\"items\": {\"type\": \"string\"}, \"type\": \"array\"}",
+        "target": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "observable",
+        "port",
+        "target"
+      ]
+    },
+    "SafetyLimits": {
+      "fields": {
+        "command_timeout_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "geofence_radius_m": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "max_speed_mps": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "max_tilt_rad": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}"
+      },
+      "required": [
+        "command_timeout_ms"
+      ]
+    },
+    "SessionRef": {
+      "fields": {
+        "generation": "{\"type\": \"string\"}"
+      },
+      "required": []
+    },
+    "SimConfig": {
+      "fields": {
+        "chunk_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "dt_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "duration_ms": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "mode": "{\"$ref\": \"#/$defs/SimMode\"}",
+        "seed": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}"
+      },
+      "required": []
+    },
+    "SimProvenance": {
+      "fields": {
+        "advisory_only": "{\"type\": \"boolean\"}",
+        "backend": "{\"type\": \"string\"}",
+        "calibrated_posterior": "{\"const\": false, \"type\": \"boolean\"}",
+        "is_simulation_output": "{\"const\": true, \"type\": \"boolean\"}",
+        "network_ref": "{\"type\": \"string\"}",
+        "note": "{\"type\": [\"string\", \"null\"]}",
+        "seed": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}"
+      },
+      "required": [
+        "advisory_only",
+        "backend",
+        "calibrated_posterior",
+        "is_simulation_output",
+        "network_ref"
+      ]
+    },
+    "StimulusFrame": {
+      "fields": {
+        "kind": "{\"const\": \"stimulus_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "values": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    },
+    "StimulusSpec": {
+      "fields": {
+        "targets": "{\"items\": {\"$ref\": \"#/$defs/StimulusTarget\"}, \"type\": \"array\"}"
+      },
+      "required": []
+    },
+    "StimulusTarget": {
+      "fields": {
+        "ids": "{\"items\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"array\"}",
+        "kind": "{\"$ref\": \"#/$defs/StimulusKind\"}",
+        "params": "{\"additionalProperties\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"object\"}",
+        "port": "{\"type\": \"string\"}",
+        "target": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "kind",
+        "port",
+        "target"
+      ]
+    },
+    "StreamPosition": {
+      "fields": {
+        "epoch": "{\"type\": \"string\"}",
+        "seq": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}"
+      },
+      "required": []
+    }
+  },
+  "enums": {
+    "ChannelKind": [
+      "array",
+      "quat",
+      "scalar",
+      "vec3"
+    ],
+    "EntityRole": [
+      "actor",
+      "actuator",
+      "sensor",
+      "system"
+    ],
+    "Mode": [
+      "active",
+      "estop",
+      "hold",
+      "init"
+    ],
+    "NetworkRefKind": [
+      "builtin",
+      "handle",
+      "model_id",
+      "spec"
+    ],
+    "Observable": [
+      "V_m",
+      "binary_state",
+      "rate",
+      "spikes",
+      "weight"
+    ],
+    "Role": [
+      "controller",
+      "plant"
+    ],
+    "SimMode": [
+      "batch",
+      "stream"
+    ],
+    "StimulusKind": [
+      "current_pA",
+      "rate_hz",
+      "rate_inject",
+      "spike_times",
+      "weight_set"
+    ]
+  },
+  "kinds": {
+    "capabilities": {
+      "fields": {
+        "codec_id": "{\"type\": [\"string\", \"null\"]}",
+        "command_channels": "{\"items\": {\"$ref\": \"#/$defs/ChannelSpec\"}, \"type\": \"array\"}",
+        "control_rate_hz": "{\"format\": \"double\", \"type\": \"number\"}",
+        "controller_id": "{\"type\": \"string\"}",
+        "kind": "{\"const\": \"capabilities\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "role": "{\"$ref\": \"#/$defs/Role\"}",
+        "safety": "{\"$ref\": \"#/$defs/SafetyLimits\"}",
+        "sensor_channels": "{\"items\": {\"$ref\": \"#/$defs/ChannelSpec\"}, \"type\": \"array\"}"
+      },
+      "required": [
+        "command_channels",
+        "control_rate_hz",
+        "controller_id",
+        "kind",
+        "ncp_version",
+        "role",
+        "safety",
+        "sensor_channels"
+      ]
+    },
+    "close_session": {
+      "fields": {
+        "kind": "{\"const\": \"close_session\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    },
+    "command_frame": {
+      "fields": {
+        "channels": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}",
+        "frame_id": "{\"type\": \"string\"}",
+        "horizon": "{\"items\": {\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}, \"maxItems\": 65536, \"type\": \"array\"}",
+        "horizon_dt_ms": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "kind": "{\"const\": \"command_frame\", \"type\": \"string\"}",
+        "mode": "{\"$ref\": \"#/$defs/Mode\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "source": "{\"anyOf\": [{\"$ref\": \"#/$defs/StreamPosition\"}, {\"type\": \"null\"}]}",
+        "source_t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "ttl_ms": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id",
+        "stream"
+      ]
+    },
+    "control_status": {
+      "fields": {
+        "kind": "{\"const\": \"control_status\", \"type\": \"string\"}",
+        "loop_latency_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "mode": "{\"$ref\": \"#/$defs/Mode\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "note": "{\"type\": [\"string\", \"null\"]}",
+        "safety_ok": "{\"type\": \"boolean\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "sim_time_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "required": [
+        "kind",
+        "loop_latency_ms",
+        "mode",
+        "ncp_version",
+        "safety_ok",
+        "session",
+        "session_id",
+        "stream",
+        "t"
+      ]
+    },
+    "error": {
+      "fields": {
+        "error": "{\"type\": \"string\"}",
+        "kind": "{\"const\": \"error\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "request_kind": "{\"type\": [\"string\", \"null\"]}",
+        "session": "{\"anyOf\": [{\"$ref\": \"#/$defs/SessionRef\"}, {\"type\": \"null\"}]}",
+        "session_id": "{\"type\": [\"string\", \"null\"]}"
+      },
+      "required": [
+        "error",
+        "kind",
+        "ncp_version"
+      ]
+    },
+    "link_status": {
+      "fields": {
+        "burst": "{\"type\": \"boolean\"}",
+        "kind": "{\"const\": \"link_status\", \"type\": \"string\"}",
+        "last_arrival_seq": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}",
+        "loss_rate": "{\"format\": \"double\", \"type\": \"number\"}",
+        "lost": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "observed_stream": "{\"anyOf\": [{\"$ref\": \"#/$defs/StreamPosition\"}, {\"type\": \"null\"}]}",
+        "received": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "required": [
+        "burst",
+        "kind",
+        "loss_rate",
+        "lost",
+        "ncp_version",
+        "received",
+        "session",
+        "session_id",
+        "stream",
+        "t"
+      ]
+    },
+    "observation_frame": {
+      "fields": {
+        "calibrated_posterior": "{\"const\": false, \"type\": \"boolean\"}",
+        "is_simulation_output": "{\"const\": true, \"type\": \"boolean\"}",
+        "kind": "{\"const\": \"observation_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "records": "{\"additionalProperties\": {\"$ref\": \"#/$defs/Observation\"}, \"type\": \"object\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "sim_time_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "source": "{\"anyOf\": [{\"$ref\": \"#/$defs/StreamPosition\"}, {\"type\": \"null\"}]}",
+        "source_t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "required": [
+        "calibrated_posterior",
+        "is_simulation_output",
+        "kind",
+        "ncp_version",
+        "records",
+        "session",
+        "session_id",
+        "stream"
+      ]
+    },
+    "open_session": {
+      "fields": {
+        "bindings": "{\"items\": {\"$ref\": \"#/$defs/EntityBinding\"}, \"type\": \"array\"}",
+        "contract_hash": "{\"type\": [\"string\", \"null\"]}",
+        "kind": "{\"const\": \"open_session\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "network": "{\"$ref\": \"#/$defs/NetworkRef\"}",
+        "record": "{\"$ref\": \"#/$defs/RecordSpec\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "sim": "{\"$ref\": \"#/$defs/SimConfig\"}",
+        "stimulus": "{\"$ref\": \"#/$defs/StimulusSpec\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "network",
+        "session_id"
+      ]
+    },
+    "run_request": {
+      "fields": {
+        "duration_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "kind": "{\"const\": \"run_request\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stimulus": "{\"anyOf\": [{\"$ref\": \"#/$defs/StimulusFrame\"}, {\"type\": \"null\"}]}"
+      },
+      "required": [
+        "duration_ms",
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    },
+    "sensor_frame": {
+      "fields": {
+        "channels": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}",
+        "frame_id": "{\"type\": \"string\"}",
+        "kind": "{\"const\": \"sensor_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id",
+        "stream"
+      ]
+    },
+    "session_closed": {
+      "fields": {
+        "kind": "{\"const\": \"session_closed\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "ok": "{\"type\": \"boolean\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "ok",
+        "session",
+        "session_id"
+      ]
+    },
+    "session_opened": {
+      "fields": {
+        "backend": "{\"type\": \"string\"}",
+        "contract_hash": "{\"type\": [\"string\", \"null\"]}",
+        "error": "{\"type\": [\"string\", \"null\"]}",
+        "kind": "{\"const\": \"session_opened\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "ok": "{\"type\": \"boolean\"}",
+        "provenance": "{\"anyOf\": [{\"$ref\": \"#/$defs/SimProvenance\"}, {\"type\": \"null\"}]}",
+        "resolved": "{\"additionalProperties\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"object\"}",
+        "session": "{\"anyOf\": [{\"$ref\": \"#/$defs/SessionRef\"}, {\"type\": \"null\"}]}",
+        "session_id": "{\"type\": \"string\"}"
+      },
+      "required": [
+        "backend",
+        "kind",
+        "ncp_version",
+        "ok",
+        "session_id"
+      ]
+    },
+    "step_request": {
+      "fields": {
+        "advance_ms": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "kind": "{\"const\": \"step_request\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stimulus": "{\"anyOf\": [{\"$ref\": \"#/$defs/StimulusFrame\"}, {\"type\": \"null\"}]}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    },
+    "stimulus_frame": {
+      "fields": {
+        "kind": "{\"const\": \"stimulus_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"const\": \"0.8\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "values": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}"
+      },
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    }
+  },
+  "ncp_version": "0.8"
+}

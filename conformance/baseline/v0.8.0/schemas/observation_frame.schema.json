@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "Observable": {
+      "description": "What to record off a population/neuron/synapse.",
+      "minLength": 1,
+      "type": "string",
+      "x-ncp-known-values": [
+        "spikes",
+        "V_m",
+        "rate",
+        "weight",
+        "binary_state"
+      ]
+    },
+    "Observation": {
+      "description": "Recorded data for one record port. `times`+`values` are parallel for analog;\n`times`+`senders` are parallel for spikes.",
+      "properties": {
+        "observable": {
+          "$ref": "#/$defs/Observable"
+        },
+        "port": {
+          "type": "string"
+        },
+        "recordable": {
+          "default": null,
+          "description": "Which named recordable this series carries (e.g. `g_ex`, `w`) when a port\nrecords more than the primary `observable`; `None` = the `observable`. (#10)",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "senders": {
+          "default": [],
+          "items": {
+            "format": "int64",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "target": {
+          "type": "string"
+        },
+        "times": {
+          "default": [],
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "unit": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "values": {
+          "default": [],
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "observable",
+        "port",
+        "target"
+      ],
+      "type": "object"
+    },
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "StreamPosition": {
+      "description": "One exact position in ONE logical stream incarnation (`proto/ncp.proto`\n`StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a\nframe's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/\n`ActionBuffer` accounting reads — and a `source` referencing the frame that drove\nit (correlation only, never loss accounting).\n\n`epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for\nEQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,\nstrictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `\"\"`/`0` default is\n\"unset\" and is not wire-legal until stamped (mirrors the retired `seq` discipline).",
+      "properties": {
+        "epoch": {
+          "default": "",
+          "type": "string"
+        },
+        "seq": {
+          "default": 0,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The returned neural data, keyed by a unique record-series name. The nested\n`Observation.port` identifies the negotiated record port; distinct\n`recordable` series from one port therefore remain representable. `t` is\nproducer-local monotonic seconds (the plane form echoes `SensorFrame.t`);\n`sim_time_ms` is authoritative simulation time.",
+  "properties": {
+    "calibrated_posterior": {
+      "const": false,
+      "type": "boolean"
+    },
+    "is_simulation_output": {
+      "const": true,
+      "type": "boolean"
+    },
+    "kind": {
+      "const": "observation_frame",
+      "type": "string"
+    },
+    "ncp_version": {
+      "const": "0.8",
+      "type": "string"
+    },
+    "records": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Observation"
+      },
+      "type": "object"
+    },
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "The live session incarnation this stream belongs to."
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "sim_time_ms": {
+      "default": 0.0,
+      "format": "double",
+      "type": "number"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamPosition"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The driving `SensorFrame.stream` on the observation PLANE (the cross-plane\njoin key); omitted for the pull/RPC reply form (absence, not `seq == 0`)."
+    },
+    "source_t": {
+      "default": 0.0,
+      "description": "The driving `SensorFrame.t`; `0.0` = unset.",
+      "format": "double",
+      "type": "number"
+    },
+    "stream": {
+      "$ref": "#/$defs/StreamPosition",
+      "description": "Wire 0.8: this observation stream's own incarnation + position."
+    },
+    "t": {
+      "default": 0.0,
+      "format": "double",
+      "type": "number"
+    }
+  },
+  "required": [
+    "calibrated_posterior",
+    "is_simulation_output",
+    "kind",
+    "ncp_version",
+    "records",
+    "session",
+    "session_id",
+    "stream"
+  ],
+  "title": "ObservationFrame",
+  "type": "object"
+}

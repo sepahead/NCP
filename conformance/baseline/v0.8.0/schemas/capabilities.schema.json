@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "ChannelKind": {
+      "description": "Channel arity (carries the vec semantics so the envelope stays generic).",
+      "minLength": 1,
+      "type": "string",
+      "x-ncp-known-values": [
+        "scalar",
+        "vec3",
+        "quat",
+        "array"
+      ]
+    },
+    "ChannelSpec": {
+      "description": "Declares a named channel a controller produces or consumes.",
+      "properties": {
+        "description": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/ChannelKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "optional": {
+          "default": true,
+          "type": "boolean"
+        },
+        "size": {
+          "default": null,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "unit": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "type": "object"
+    },
+    "Role": {
+      "description": "Who a peer is in the closed-loop handshake.",
+      "minLength": 1,
+      "type": "string",
+      "x-ncp-known-values": [
+        "controller",
+        "plant"
+      ]
+    },
+    "SafetyLimits": {
+      "description": "Bounds the action plane. `max_speed_mps`, `geofence_radius_m` and\n`command_timeout_ms` are enforced by the action-plane safety governor;\n`max_tilt_rad` is advisory metadata and is **not** enforced in this layer\n(no command-path clamp consumes it yet).",
+      "properties": {
+        "command_timeout_ms": {
+          "format": "double",
+          "type": "number"
+        },
+        "geofence_radius_m": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_speed_mps": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_tilt_rad": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command_timeout_ms"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Handshake: who the controller is and what it speaks.",
+  "properties": {
+    "codec_id": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "command_channels": {
+      "items": {
+        "$ref": "#/$defs/ChannelSpec"
+      },
+      "type": "array"
+    },
+    "control_rate_hz": {
+      "format": "double",
+      "type": "number"
+    },
+    "controller_id": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "capabilities",
+      "type": "string"
+    },
+    "ncp_version": {
+      "const": "0.8",
+      "type": "string"
+    },
+    "role": {
+      "$ref": "#/$defs/Role"
+    },
+    "safety": {
+      "$ref": "#/$defs/SafetyLimits"
+    },
+    "sensor_channels": {
+      "items": {
+        "$ref": "#/$defs/ChannelSpec"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "command_channels",
+    "control_rate_hz",
+    "controller_id",
+    "kind",
+    "ncp_version",
+    "role",
+    "safety",
+    "sensor_channels"
+  ],
+  "title": "Capabilities",
+  "type": "object"
+}

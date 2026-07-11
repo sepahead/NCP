@@ -1,0 +1,22 @@
+{
+  "ncp_version": "0.8",
+  "kind": "link_status",
+  "session_id": "vec-open-1",
+  "t": 1.0,
+  "received": 40,
+  "lost": 2,
+  "loss_rate": 0.05,
+  "burst": false,
+  "stream": {
+    "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+    "seq": 5
+  },
+  "observed_stream": {
+    "epoch": "7d61c9ba-4e1d-4aab-8ae6-08e05206aa67",
+    "seq": 42
+  },
+  "last_arrival_seq": 42,
+  "session": {
+    "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  }
+}

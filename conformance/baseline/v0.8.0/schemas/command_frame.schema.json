@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "ChannelValue": {
+      "description": "A channel sample: a flat list of floats plus an optional unit string. Width\ncarries the semantics (1=scalar, 3=vec3, 4=quat, N=array).",
+      "properties": {
+        "data": {
+          "default": [],
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "unit": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Mode": {
+      "description": "Controller mode (the safety-critical action authority lives here). Unknown\nadditive strings are preserved, but every safety decision treats them exactly\nlike a non-Active mode and emits HOLD.",
+      "minLength": 1,
+      "type": "string",
+      "x-ncp-known-values": [
+        "init",
+        "active",
+        "hold",
+        "estop"
+      ]
+    },
+    "SessionRef": {
+      "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
+      "properties": {
+        "generation": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "StreamPosition": {
+      "description": "One exact position in ONE logical stream incarnation (`proto/ncp.proto`\n`StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a\nframe's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/\n`ActionBuffer` accounting reads — and a `source` referencing the frame that drove\nit (correlation only, never loss accounting).\n\n`epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for\nEQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,\nstrictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `\"\"`/`0` default is\n\"unset\" and is not wire-legal until stamped (mirrors the retired `seq` discipline).",
+      "properties": {
+        "epoch": {
+          "default": "",
+          "type": "string"
+        },
+        "seq": {
+          "default": 0,
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Controller → plant: the proposed actuation, with `mode`/`ttl_ms` safety\nmetadata.\n\nWire 0.6 (normative): `seq` MUST echo the originating `SensorFrame.seq`\n(`>= 1`, strictly increasing per stream) — the split-plane V↔A join depends\non it, and the plant's anti-replay/anti-stale layers (`ActionBuffer` /\n`CommandWatchdog`) reject `seq < 1` outright: the pre-0.6 \"`seq == 0` always\naccepted\" escape hatch is REMOVED (it let a default-constructed or all-zeros\nframe refresh liveness and bypass replay rejection on the action plane). `t`\nechoes the driving `SensorFrame.t` in producer-local monotonic seconds.",
+  "properties": {
+    "channels": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ChannelValue"
+      },
+      "default": {},
+      "type": "object"
+    },
+    "frame_id": {
+      "default": "world",
+      "type": "string"
+    },
+    "horizon": {
+      "default": [],
+      "description": "Packetized predictive control: future setpoints. `channels` is tick 0;\n`horizon[i]` applies at tick i+1, spaced `horizon_dt_ms` apart. The\nactuator replays these through dropouts (see `ActionBuffer`), bounded by\n`ttl_ms`. Empty = legacy single-step command. Backward compatible: a\nconsumer that ignores `horizon` still reads `channels` (tick 0).",
+      "items": {
+        "additionalProperties": {
+          "$ref": "#/$defs/ChannelValue"
+        },
+        "type": "object"
+      },
+      "maxItems": 65536,
+      "type": "array"
+    },
+    "horizon_dt_ms": {
+      "default": null,
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "kind": {
+      "const": "command_frame",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/Mode",
+      "default": "hold"
+    },
+    "ncp_version": {
+      "const": "0.8",
+      "type": "string"
+    },
+    "session": {
+      "$ref": "#/$defs/SessionRef",
+      "description": "The live session incarnation this command stream belongs to."
+    },
+    "session_id": {
+      "description": "Logical session id (transport-neutral); MUST equal the routing key's session.",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamPosition"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The driving `SensorFrame.stream` (correlation only; never loss accounting).\nPresent for a closed-loop Active command; omitted for negotiated open-loop."
+    },
+    "source_t": {
+      "default": 0.0,
+      "description": "The driving `SensorFrame.t`, for source-age checks; `0.0` = unset.",
+      "format": "double",
+      "type": "number"
+    },
+    "stream": {
+      "$ref": "#/$defs/StreamPosition",
+      "description": "Wire 0.8: this command stream's own incarnation + position — the sequence\n`LinkMonitor`/`ActionBuffer` read for loss/dedup/supersession."
+    },
+    "t": {
+      "default": 0.0,
+      "format": "double",
+      "type": "number"
+    },
+    "ttl_ms": {
+      "format": "double",
+      "type": "number"
+    }
+  },
+  "required": [
+    "kind",
+    "ncp_version",
+    "session",
+    "session_id",
+    "stream"
+  ],
+  "title": "CommandFrame",
+  "type": "object"
+}
