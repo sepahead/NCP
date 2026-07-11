@@ -427,10 +427,13 @@ pub fn default_uav_velocity_codec() -> CodecSpec {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::messages::test_ids::{session, stream, SID};
 
     fn stamped_sensor() -> SensorFrame {
         SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             ..Default::default()
         }
     }
@@ -443,7 +446,15 @@ mod tests {
         assert!(rates.values().all(|rate| rate.is_finite()));
 
         let command = codec
-            .decode_checked(&rates, 0.0, 1, "world", Mode::Active)
+            .decode_checked(
+                &rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+            )
             .unwrap();
         assert_eq!(command.mode, Mode::Active);
         command.validate_wire().unwrap();
@@ -455,20 +466,52 @@ mod tests {
         let unstamped = SensorFrame::default();
         assert!(codec.encode_checked(Some(&unstamped)).is_err());
         assert!(codec
-            .decode_checked(&Map::new(), 0.0, 0, "world", Mode::Active)
+            .decode_checked(
+                &Map::new(),
+                0.0,
+                stream(0),
+                "world",
+                Mode::Active,
+                session(),
+                SID
+            )
             .is_err());
         assert!(codec
-            .decode_checked(&Map::new(), f64::NAN, 1, "world", Mode::Active)
+            .decode_checked(
+                &Map::new(),
+                f64::NAN,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID
+            )
             .is_err());
 
         let mut nonfinite_rates = Map::new();
         nonfinite_rates.insert("vel_x".into(), f64::INFINITY);
         assert!(codec
-            .decode_checked(&nonfinite_rates, 0.0, 1, "world", Mode::Active)
+            .decode_checked(
+                &nonfinite_rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID
+            )
             .is_err());
 
         assert!(CodecSpec::default()
-            .decode_checked(&Map::new(), 0.0, 1, "world", Mode::Active)
+            .decode_checked(
+                &Map::new(),
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID
+            )
             .is_err());
     }
 

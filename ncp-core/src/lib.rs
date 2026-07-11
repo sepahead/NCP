@@ -27,6 +27,7 @@ pub use transport::{
 #[cfg(test)]
 mod wire_tests {
     use super::*;
+    use crate::messages::test_ids::{session, stream, SID};
 
     /// The `kind` discriminator and enum string values must match the Python
     /// reference exactly so peers interoperate.
@@ -126,9 +127,17 @@ mod wire_tests {
         // +2.0 error -> top of rate range; -2.0 -> bottom.
         assert!((rates["err_x"] - 200.0).abs() < 1e-6);
         assert!((rates["err_z"] - 0.0).abs() < 1e-6);
-        let cmd = codec.decode(&rates, 0.0, 1, "world", Mode::Active);
+        let cmd = codec.decode(
+            &rates,
+            0.0,
+            stream(1),
+            "world",
+            Mode::Active,
+            session(),
+            SID,
+        );
         assert_eq!(cmd.channels["velocity_setpoint"].data.len(), 3);
-        assert_eq!(cmd.seq, 1, "decode stamps the echoed sensor seq");
+        assert_eq!(cmd.stream.seq, 1, "decode stamps its own stream seq");
     }
 
     /// codec-bus-1: the decoder's readout populations (`vel_*`) are absent from
@@ -138,7 +147,15 @@ mod wire_tests {
     #[test]
     fn codec_absent_population_maps_to_neutral_not_full_reverse() {
         let codec = default_uav_velocity_codec();
-        let cmd = codec.decode(&Map::new(), 0.0, 1, "world", Mode::Active);
+        let cmd = codec.decode(
+            &Map::new(),
+            0.0,
+            stream(1),
+            "world",
+            Mode::Active,
+            session(),
+            SID,
+        );
         for c in &cmd.channels["velocity_setpoint"].data {
             assert!(
                 c.abs() < 1e-9,

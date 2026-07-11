@@ -866,10 +866,13 @@ impl CommandWatchdog {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::messages::test_ids::{session, stream, SID};
 
     fn active_command() -> CommandFrame {
         CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
             ..Default::default()
@@ -878,7 +881,9 @@ mod tests {
 
     fn fresh_sensor() -> SensorFrame {
         SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             ..Default::default()
         }
     }
@@ -1023,7 +1028,9 @@ mod tests {
             },
         );
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: ch,
             ..Default::default()
         };
@@ -1042,13 +1049,17 @@ mod tests {
             ..Default::default()
         });
         let command = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Hold,
             channels: channels_with("velocity_setpoint", 0.0, "m/s"),
             ..Default::default()
         };
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 10.0, "m"),
             ..Default::default()
         };
@@ -1085,7 +1096,9 @@ mod tests {
             ..Default::default()
         });
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             ttl_ms: 500.0,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
@@ -1101,7 +1114,9 @@ mod tests {
         // A gentle outward trajectory remains inside for its full ttl and should
         // not be discarded merely because the plant is near the boundary.
         let near = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 9.0, "m"),
             ..Default::default()
         };
@@ -1133,7 +1148,9 @@ mod tests {
         );
         // r=3: well inside (3 < 10-2) -> horizon preserved.
         let inside = SensorFrame {
-            seq: 2,
+            stream: stream(2),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 3.0, "m"),
             ..Default::default()
         };
@@ -1153,12 +1170,16 @@ mod tests {
             ..Default::default()
         });
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 9.9, "m"),
             ..Default::default()
         };
         let outward = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             ttl_ms: 200.0,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
@@ -1171,7 +1192,9 @@ mod tests {
         );
 
         let inward = CommandFrame {
-            seq: 2,
+            stream: stream(2),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("velocity_setpoint", -1.0, "m/s"),
             ..outward
         };
@@ -1182,7 +1205,9 @@ mod tests {
         );
 
         let body_frame = CommandFrame {
-            seq: 3,
+            stream: stream(3),
+            session: session(),
+            session_id: SID.into(),
             frame_id: "body".into(),
             ..inward
         };
@@ -1200,7 +1225,9 @@ mod tests {
             ..Default::default()
         });
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             ttl_ms: 200.0,
             channels: channels_with("velocity_setpoint", 0.5, "m/s"),
@@ -1244,7 +1271,9 @@ mod tests {
             ..Default::default()
         });
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: channels_with("velocity_setpoint", f64::NAN, "m/s"),
             ..Default::default()
@@ -1266,7 +1295,9 @@ mod tests {
             ..Default::default()
         });
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", f64::NAN, "m"),
             ..Default::default()
         };
@@ -1290,7 +1321,9 @@ mod tests {
         });
         // pose 3,0,0 → r=3 > 0; with radius 0 the fence is disabled (matches loop.py).
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 3.0, "m"),
             ..Default::default()
         };
@@ -1312,7 +1345,9 @@ mod tests {
         });
         // Breach the fence: pose 99,0,0 -> r=99 > 10 -> ESTOP.
         let breach = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 99.0, "m"),
             ..Default::default()
         };
@@ -1323,7 +1358,9 @@ mod tests {
 
         // Now feed a perfectly safe state — the latch must keep returning ESTOP.
         let inside = SensorFrame {
-            seq: 2,
+            stream: stream(2),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("pose_position", 1.0, "m"),
             ..Default::default()
         };
@@ -1416,13 +1453,17 @@ mod tests {
         assert!(gov.safety_ok(), "compatible canonical specs must negotiate");
 
         let command = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: channels_with(VELOCITY_CHANNEL, 2.0, VELOCITY_UNIT),
             ..Default::default()
         };
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with(POSITION_CHANNEL, 3.0, POSITION_UNIT),
             ..Default::default()
         };
@@ -1537,7 +1578,9 @@ mod tests {
             },
         ] {
             let sensor = SensorFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 channels: [(POSITION_CHANNEL.into(), position)].into_iter().collect(),
                 ..Default::default()
             };
@@ -1564,7 +1607,9 @@ mod tests {
             },
         ] {
             let command = CommandFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 mode: Mode::Active,
                 channels: [(VELOCITY_CHANNEL.into(), velocity)].into_iter().collect(),
                 ..Default::default()
@@ -1595,7 +1640,9 @@ mod tests {
         );
         // Breach on the *negotiated* channel name, not "pose_position".
         let breach = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("ned_pos", 50.0, "m"),
             ..Default::default()
         };
@@ -1622,7 +1669,9 @@ mod tests {
             vec!["imu_accel".into()], // ...but the sensor specs don't declare it
         );
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("imu_accel", 0.0, "m/s2"),
             ..Default::default()
         };
@@ -1653,7 +1702,9 @@ mod tests {
             vec!["ned_pos".into()],
         );
         let sensor = SensorFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             channels: channels_with("other", 1.0, "m"),
             ..Default::default()
         };
@@ -1689,7 +1740,9 @@ mod tests {
             ChannelValue::vec3(3.0, 4.0, 0.0, Some("m/s")), // mag 5 > 1
         );
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: tick0,
             horizon: vec![over],
@@ -1722,7 +1775,9 @@ mod tests {
             m
         };
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: step(0.5),
             // good, then non-finite, then good: replay must stop AT the poisoned step.
@@ -1772,13 +1827,17 @@ mod tests {
             let mut gov = SafetyGovernor::new(limits);
             // A would-be-actuating command on the freshest possible sensor.
             let cmd = CommandFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 mode: Mode::Active,
                 channels: channels_with("velocity_setpoint", 99.0, "m/s"),
                 ..Default::default()
             };
             let sensor = SensorFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 channels: channels_with("pose_position", 1000.0, "m"),
                 ..Default::default()
             };
@@ -1802,13 +1861,17 @@ mod tests {
         });
         let out = ok.govern(
             &CommandFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 mode: Mode::Active,
                 channels: channels_with("velocity_setpoint", 2.0, "m/s"),
                 ..Default::default()
             },
             Some(&SensorFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 channels: channels_with("pose_position", 3.0, "m"),
                 ..Default::default()
             }),
@@ -1896,7 +1959,9 @@ mod tests {
         );
         ch.insert("aux_servo".into(), ChannelValue::scalar(7.0, Some("rad")));
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: ch,
             ..Default::default()
@@ -1949,7 +2014,9 @@ mod tests {
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
         for mode in [Mode::Init, Mode::Hold] {
             let cmd = CommandFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 mode: mode.clone(),
                 channels: channels_with("velocity_setpoint", 1.0, "m/s"),
                 ..Default::default()
@@ -1965,7 +2032,9 @@ mod tests {
     fn noncanonical_unknown_active_never_gains_authority() {
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
         let command = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Unknown("active".into()),
             ttl_ms: 200.0,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
@@ -2008,7 +2077,9 @@ mod tests {
         assert!(gov.is_estopped(), "inbound ESTOP must latch");
         // A subsequent perfectly-safe Active command is still ESTOP until reset.
         let active = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             channels: channels_with("velocity_setpoint", 0.5, "m/s"),
             ..Default::default()

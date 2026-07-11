@@ -465,6 +465,7 @@ fn monotonic_secs() -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::messages::test_ids::{session, stream, SID};
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn velocity_command(x: f64, ttl_ms: f64) -> CommandFrame {
@@ -519,7 +520,9 @@ mod tests {
         );
         SensorFrame {
             t,
-            seq,
+            stream: stream(seq),
+            session: session(),
+            session_id: SID.into(),
             channels,
             ..Default::default()
         }
@@ -562,14 +565,17 @@ mod tests {
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
         transport.push_sensor(SensorFrame {
-            seq: 1,
+            stream: stream(1),
+
+            session: session(),
+            session_id: SID.into(),
             channels: ch,
             ..Default::default()
         });
         *clock.lock().unwrap() = 0.05;
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Active);
-        assert_eq!(cmd.seq, 1, "command echoes the driving sensor seq");
+        assert_eq!(cmd.stream.seq, 1, "command echoes the driving sensor seq");
         let v = &cmd.channels["velocity_setpoint"].data;
         assert!(v[0] < 0.0, "should push back toward origin, got {v:?}");
     }
@@ -598,7 +604,9 @@ mod tests {
             ChannelValue::vec3(1.0, 0.0, 0.0, Some("m")),
         );
         transport.push_sensor(SensorFrame {
-            seq: 0, // unstamped
+            stream: stream(0), // unstamped
+            session: session(),
+            session_id: SID.into(),
             channels: ch,
             ..Default::default()
         });
@@ -638,7 +646,10 @@ mod tests {
         );
         transport.push_sensor(SensorFrame {
             t: 0.0,
-            seq: 1,
+            stream: stream(1),
+
+            session: session(),
+            session_id: SID.into(),
             channels: ch,
             ..Default::default()
         });
@@ -714,7 +725,9 @@ mod tests {
             );
             SensorFrame {
                 t,
-                seq,
+                stream: stream(seq),
+                session: session(),
+                session_id: SID.into(),
                 channels: m,
                 ..Default::default()
             }
@@ -729,7 +742,7 @@ mod tests {
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Active, "old anchor still fresh");
         assert_eq!(
-            cmd.seq, 500,
+            cmd.stream.seq, 500,
             "a regressed frame on a live stream must not steer or be echoed"
         );
         // Once the old anchor EXPIRES, the pending restart frame (still the
@@ -738,7 +751,7 @@ mod tests {
         *clock.lock().unwrap() = 0.5; // past the 200 ms timeout
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Active, "restart epoch adopted at expiry");
-        assert_eq!(cmd.seq, 1, "the new epoch's seq is echoed");
+        assert_eq!(cmd.stream.seq, 1, "the new epoch's seq is echoed");
         // The adopted frame is a one-shot: it goes stale after the timeout, and —
         // being equal-seq now — it can NEVER re-anchor again (no oscillation).
         *clock.lock().unwrap() = 0.8;
@@ -799,7 +812,10 @@ mod tests {
         );
         transport.push_sensor(SensorFrame {
             t: 0.1,
-            seq: 7,
+            stream: stream(7),
+
+            session: session(),
+            session_id: SID.into(),
             frame_id: "map".into(),
             channels: ch,
             ..Default::default()
@@ -807,7 +823,7 @@ mod tests {
         *clock.lock().unwrap() = 0.05;
         let cmd = loop_.tick();
         assert_eq!(
-            cmd.seq, 7,
+            cmd.stream.seq, 7,
             "CommandFrame.seq must echo SensorFrame.seq, not the loop tick counter"
         );
         assert_eq!(cmd.t, 0.1, "the driving sensor timestamp is echoed");
@@ -1026,7 +1042,9 @@ mod tests {
             );
             SensorFrame {
                 t,
-                seq,
+                stream: stream(seq),
+                session: session(),
+                session_id: SID.into(),
                 channels: m,
                 ..Default::default()
             }
@@ -1095,7 +1113,10 @@ mod tests {
                 ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
             );
             transport.push_sensor(SensorFrame {
-                seq: 1,
+                stream: stream(1),
+
+                session: session(),
+                session_id: SID.into(),
                 channels,
                 ..Default::default()
             });
@@ -1128,7 +1149,10 @@ mod tests {
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
         transport.push_sensor(SensorFrame {
-            seq: 1,
+            stream: stream(1),
+
+            session: session(),
+            session_id: SID.into(),
             channels,
             ..Default::default()
         });

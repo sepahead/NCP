@@ -237,6 +237,28 @@ pub struct SessionRef {
     pub generation: String,
 }
 
+/// Shared identity fixtures for wire-0.8 tests across the crate: canonical UUIDv4
+/// `stream.epoch` / `session.generation` and a valid `session_id`, so a constructed
+/// test frame passes [`WireFrame::validate_wire`].
+#[cfg(test)]
+pub(crate) mod test_ids {
+    use super::{SessionRef, StreamPosition};
+    pub const EPOCH: &str = "00000000-0000-4000-8000-000000000001";
+    pub const GEN: &str = "00000000-0000-4000-8000-0000000000a2";
+    pub const SID: &str = "sess";
+    pub fn stream(seq: i64) -> StreamPosition {
+        StreamPosition {
+            epoch: EPOCH.into(),
+            seq,
+        }
+    }
+    pub fn session() -> SessionRef {
+        SessionRef {
+            generation: GEN.into(),
+        }
+    }
+}
+
 // ───────────────────────── enums ─────────────────────────
 
 /// Implement a string-valued enum whose unknown values are retained exactly.
@@ -3488,6 +3510,7 @@ fn check_scientific_boundary(
 
 #[cfg(test)]
 mod tests {
+    use super::test_ids::{session, stream, EPOCH, GEN, SID};
     use super::*;
 
     #[test]
@@ -3931,10 +3954,10 @@ mod tests {
     #[test]
     fn decode_validated_gates_kind_version_and_seq() {
         let ok = format!(
-            r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","seq":3,"mode":"active","ttl_ms":200,"channels":{{"velocity_setpoint":{{"data":[0]}}}}}}"#
+            r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","stream":{{"epoch":"{EPOCH}","seq":3}},"session":{{"generation":"{GEN}"}},"session_id":"s","mode":"active","ttl_ms":200,"channels":{{"velocity_setpoint":{{"data":[0]}}}}}}"#
         );
         let cmd: CommandFrame = decode_validated(ok.as_bytes()).expect("valid frame decodes");
-        assert_eq!(cmd.seq, 3);
+        assert_eq!(cmd.stream.seq, 3);
         // Kind-less frames no longer decode into a compliant-looking default.
         let kindless = format!(r#"{{"ncp_version":"{NCP_VERSION}","seq":3}}"#);
         assert!(decode_validated::<CommandFrame>(kindless.as_bytes()).is_err());
@@ -3974,7 +3997,9 @@ mod tests {
     #[test]
     fn nonactive_command_payloads_still_obey_resource_and_numeric_bounds() {
         let mut command = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Hold,
             ttl_ms: f64::INFINITY,
             ..Default::default()
@@ -4032,7 +4057,9 @@ mod tests {
     #[test]
     fn programmatic_unknown_mode_cannot_alias_a_known_wire_authority() {
         let command = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Unknown("active".into()),
             ttl_ms: 200.0,
             channels: [("velocity_setpoint".into(), ChannelValue::scalar(1.0, None))]

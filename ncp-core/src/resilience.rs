@@ -361,6 +361,7 @@ impl LinkMonitor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::messages::test_ids::{session, stream, SID};
 
     fn vec3(x: f64) -> Map<ChannelValue> {
         let mut m = Map::new();
@@ -376,7 +377,9 @@ mod tests {
         let mut buf = ActionBuffer::new();
         // tick0 = -0.1, horizon = [-0.2, -0.3], 50 ms spacing, ttl 200 ms.
         let cmd = CommandFrame {
-            seq: 1,
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Active,
             ttl_ms: 200.0,
             channels: vec3(-0.1),
@@ -420,7 +423,9 @@ mod tests {
             buf.on_command(
                 1.0,
                 CommandFrame {
-                    seq: bad_seq,
+                    stream: stream(bad_seq),
+                    session: session(),
+                    session_id: SID.into(),
                     mode: Mode::Active,
                     channels: vec3(9.9),
                     ..Default::default()
@@ -435,7 +440,9 @@ mod tests {
         buf.on_command(
             2.0,
             CommandFrame {
-                seq: 1,
+                stream: stream(1),
+                session: session(),
+                session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
                 channels: vec3(0.5),
@@ -445,7 +452,9 @@ mod tests {
         buf.on_command(
             2.01,
             CommandFrame {
-                seq: 0,
+                stream: stream(0),
+                session: session(),
+                session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
                 channels: vec3(9.9),
@@ -467,7 +476,9 @@ mod tests {
     fn action_buffer_restart_reanchors_only_lower_seq_after_expiry() {
         let mut buf = ActionBuffer::new();
         let cmd = |seq: i64, v: f64| CommandFrame {
-            seq,
+            stream: stream(seq),
+            session: session(),
+            session_id: SID.into(),
             ttl_ms: 200.0,
             mode: Mode::Active,
             channels: vec3(v),
@@ -520,7 +531,9 @@ mod tests {
     fn action_buffer_estop_latches_but_hold_does_not() {
         let mut buf = ActionBuffer::new();
         let cmd = |seq: i64, mode: Mode, v: f64| CommandFrame {
-            seq,
+            stream: stream(seq),
+            session: session(),
+            session_id: SID.into(),
             mode,
             channels: vec3(v),
             ..Default::default()
@@ -567,7 +580,9 @@ mod tests {
         buf.on_command(
             1.0,
             CommandFrame {
-                seq: 5,
+                stream: stream(5),
+                session: session(),
+                session_id: SID.into(),
                 mode: Mode::Active,
                 channels: vec3(0.5),
                 ..Default::default()
@@ -579,7 +594,9 @@ mod tests {
         buf.on_command(
             1.01,
             CommandFrame {
-                seq: 3,
+                stream: stream(3),
+                session: session(),
+                session_id: SID.into(),
                 mode: Mode::Active,
                 channels: vec3(0.9),
                 ..Default::default()
@@ -594,7 +611,9 @@ mod tests {
         buf.on_command(
             1.02,
             CommandFrame {
-                seq: 2,
+                stream: stream(2),
+                session: session(),
+                session_id: SID.into(),
                 mode: Mode::Estop,
                 channels: vec3(0.0),
                 ..Default::default()
@@ -610,7 +629,9 @@ mod tests {
         buf.on_command(
             1.0,
             CommandFrame {
-                seq: 10,
+                stream: stream(10),
+                session: session(),
+                session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
                 channels: vec3(0.3),
@@ -622,7 +643,9 @@ mod tests {
         buf.on_command(
             5.0,
             CommandFrame {
-                seq: 10,
+                stream: stream(10),
+                session: session(),
+                session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
                 channels: vec3(0.3),
@@ -733,7 +756,7 @@ mod tests {
         monitor.on_seq(0);
         assert!(monitor.is_burst(), "wire-unstamped seq must fail safe");
         let status = monitor.status(0.0);
-        assert_eq!(status.last_seq, -1);
+        assert_eq!(status.last_arrival_seq, None);
         assert_eq!(status.received, 0);
     }
 
