@@ -110,8 +110,10 @@ import type { SensorFrame, CommandFrame, ObservationFrame } from "ncp/bindings";
 ```cpp
 #include "ncp.h"
 char* key = ncp_key_command("ncp", "uav1");   // ncp_string_free(key)
-char* cmd = ncp_decode_command(codec_json, rates_json, 0.0, 7,
-                               /*frame_id=*/NULL, /*mode=*/NULL);
+char* cmd = ncp_decode_command(codec_json, rates_json, 0.0,
+                               /*epoch=*/"00000000-0000-4000-8000-000000000001", 7,
+                               /*session_generation=*/"00000000-0000-4000-8000-0000000000a2",
+                               /*session_id=*/"uav1", /*frame_id=*/NULL, /*mode=*/NULL);
 ```
 
 In every language the *behavior* (key scheme, codec, version guard, safety,

@@ -56,13 +56,17 @@ char *ncp_key_observation(const char *realm, const char *session_id);
  * wire-valid kind/version/seq envelope. NULL on malformed input or internal
  * error. Caller frees. */
 char *ncp_encode_rates(const char *codec_json, const char *sensor_json);
-/* Rate-decode to a CommandFrame. `frame_id` NULL => "world"; `mode` is one of
- * "init"/"active"/"hold"/"estop" (NULL => fail-safe "hold"); an unknown mode returns
- * NULL. The caller owns a finite timestamp and monotonically increasing wire-safe
- * seq (1..2^53-1); invalid metadata or an invalid generated command returns NULL. */
+/* Rate-decode to a CommandFrame. The caller owns the wire-0.8 identity: `epoch`
+ * (a canonical lowercase UUIDv4 stream epoch) with a monotonically increasing
+ * wire-safe seq (1..2^53-1), plus `session_generation` (a canonical UUIDv4) and
+ * `session_id`; all three are required (NULL => NULL). `frame_id` NULL => "world";
+ * `mode` is one of "init"/"active"/"hold"/"estop" (NULL => fail-safe "hold"); an
+ * unknown mode returns NULL. The caller owns a finite timestamp; invalid metadata,
+ * a non-canonical epoch/generation, or an invalid generated command returns NULL. */
 char *ncp_decode_command(const char *codec_json, const char *rates_json,
-                         double t, int64_t seq, const char *frame_id,
-                         const char *mode);
+                         double t, const char *epoch, int64_t seq,
+                         const char *session_generation, const char *session_id,
+                         const char *frame_id, const char *mode);
 
 /* Action-plane safety governor, ONE-SHOT: a fresh governor per call, so the
  * ESTOP latch cannot persist across calls (stateless/corpus use only — a real

@@ -56,20 +56,21 @@ fn every_json_vector_validates_through_the_c_abi() {
 fn tampered_scientific_boundary_is_rejected_through_the_c_abi() {
     // A frame asserting it is a calibrated posterior must be rejected by the C++
     // SDK exactly as by the Rust reference (the ncp_core::validate value-pin).
-    // Fixtures carry the required envelope + seq so the boundary pin
-    // is the only thing that differs between the two frames.
+    // Both frames carry the same wire-0.8 identity envelope so the boundary pin is
+    // the only thing that differs between them.
     let ver = ncp_core::NCP_VERSION;
+    // Own stream position (seq >= 1) + live session, no `source`: the legal
+    // pull/RPC-reply form is distinguished by source ABSENCE, not by seq 0.
+    let ident = r#""session_id":"s1","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"}"#;
     let lie = format!(
-        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":1,"records":{{}},"calibrated_posterior":true,"is_simulation_output":true}}"#
+        r#"{{"kind":"observation_frame","ncp_version":"{ver}",{ident},"records":{{}},"calibrated_posterior":true,"is_simulation_output":true}}"#
     );
     assert!(
         unsafe { validate("observation_frame", &lie) }.is_none(),
         "calibrated_posterior=true must be rejected through the C ABI"
     );
-    // The honest frame carries both discriminators explicitly; seq 0 is the legal
-    // pull/RPC-reply form.
     let honest = format!(
-        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":0,"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
+        r#"{{"kind":"observation_frame","ncp_version":"{ver}",{ident},"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
     );
     assert!(unsafe { validate("observation_frame", &honest) }.is_some());
 }
@@ -81,7 +82,11 @@ fn missing_required_is_rejected_through_the_c_abi() {
     let ver = ncp_core::NCP_VERSION;
     let bad = format!(r#"{{"kind":"step_request","ncp_version":"{ver}","advance_ms":1.0}}"#);
     assert!(unsafe { validate("step_request", &bad) }.is_none());
-    let good = format!(r#"{{"kind":"step_request","ncp_version":"{ver}","session_id":"s1"}}"#);
+    // Wire 0.8: a post-open request also targets a live incarnation, so `session`
+    // (the server-issued generation) is required alongside `session_id`.
+    let good = format!(
+        r#"{{"kind":"step_request","ncp_version":"{ver}","session_id":"s1","session":{{"generation":"00000000-0000-4000-8000-0000000000a2"}}}}"#
+    );
     assert!(unsafe { validate("step_request", &good) }.is_some());
     // Wire 0.6: the version itself is now required — its absence alone rejects.
     let versionless = r#"{"kind":"step_request","session_id":"s1"}"#;

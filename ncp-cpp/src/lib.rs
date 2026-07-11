@@ -334,26 +334,43 @@ fn sanitize_govern_inputs(
     last_sensor_s
 }
 
-/// Rate-decode `{population: rate_hz}` JSON to a `CommandFrame` JSON. `frame_id`
-/// may be NULL (=> "world"); `mode` is one of init/active/hold/estop and may be
-/// NULL (=> "hold") — an unknown mode returns NULL. The caller supplies a finite
-/// timestamp and monotonically increasing wire-safe seq. Returns NULL on malformed
-/// input, invalid codec configuration, or an invalid generated command. Caller
-/// frees.
+/// Rate-decode `{population: rate_hz}` JSON to a `CommandFrame` JSON. The caller
+/// owns the wire-0.8 stream identity: `epoch` (a canonical lowercase UUIDv4
+/// stream epoch) and a monotonically increasing wire-safe `seq` (1..2^53-1),
+/// plus the session identity `session_generation` (a canonical UUIDv4) and the
+/// `session_id`. `frame_id` may be NULL (=> "world"); `mode` is one of
+/// init/active/hold/estop and may be NULL (=> "hold") — an unknown mode returns
+/// NULL. `epoch`, `session_generation` and `session_id` are required (NULL =>
+/// NULL). Returns NULL on malformed input, invalid codec configuration, or an
+/// invalid generated command (e.g. a non-canonical epoch or seq 0). Caller frees.
 /// # Safety
 /// Arguments must be NULL or valid C strings.
 #[no_mangle]
+#[allow(clippy::too_many_arguments)]
 pub unsafe extern "C" fn ncp_decode_command(
     codec_json: *const c_char,
     rates_json: *const c_char,
     t: f64,
+    epoch: *const c_char,
     seq: i64,
+    session_generation: *const c_char,
+    session_id: *const c_char,
     frame_id: *const c_char,
     mode: *const c_char,
 ) -> *mut c_char {
     ffi_guard(std::ptr::null_mut(), || {
         let (Ok(codec_s), Ok(rates_s)) = (required_cstr(codec_json), required_cstr(rates_json))
         else {
+            return std::ptr::null_mut();
+        };
+        // Stream/session identity is mandatory: a decoded command carries its own
+        // position, so an absent epoch/generation/session_id cannot be coerced to
+        // a wire-valid frame — fail closed rather than mint a placeholder identity.
+        let (Ok(epoch), Ok(session_generation), Ok(session_id)) = (
+            required_cstr(epoch),
+            required_cstr(session_generation),
+            required_cstr(session_id),
+        ) else {
             return std::ptr::null_mut();
         };
         let (Ok(codec), Ok(rates)) = (
@@ -375,21 +392,15 @@ pub unsafe extern "C" fn ncp_decode_command(
         let Some(mode) = parse_mode(mode) else {
             return std::ptr::null_mut();
         };
-        // TODO(wire-0.8 task 6): thread stream.epoch / session.generation / session_id
-        // through the C ABI so decode_checked can produce a wire-valid identity.
         let stream = ncp_core::StreamPosition {
-            epoch: String::new(),
+            epoch: epoch.to_string(),
             seq,
         };
-        let Ok(cmd) = codec.decode_checked(
-            &rates,
-            t,
-            stream,
-            frame_id,
-            mode,
-            ncp_core::SessionRef::default(),
-            "",
-        ) else {
+        let session = ncp_core::SessionRef {
+            generation: session_generation.to_string(),
+        };
+        let Ok(cmd) = codec.decode_checked(&rates, t, stream, frame_id, mode, session, session_id)
+        else {
             return std::ptr::null_mut();
         };
         match serde_json::to_string(&cmd) {
@@ -795,6 +806,10 @@ mod tests {
         CString::new(s).unwrap()
     }
 
+    // Canonical wire-0.8 stream/session identity for decode + action-buffer frames.
+    const TEST_EPOCH: &str = "00000000-0000-4000-8000-000000000001";
+    const TEST_GEN: &str = "00000000-0000-4000-8000-0000000000a2";
+
     #[test]
     fn contract_hash_and_status() {
         // The C ABI exposes the same CONTRACT_HASH as the Rust core (cross-language anchor).
@@ -842,12 +857,16 @@ mod tests {
 
         let codec = cstr("{}");
         let rates = cstr("{}");
+        let (ep, gen, sid) = (cstr(TEST_EPOCH), cstr(TEST_GEN), cstr("s"));
         assert!(unsafe {
             ncp_decode_command(
                 codec.as_ptr(),
                 rates.as_ptr(),
                 0.0,
+                ep.as_ptr(),
                 1,
+                gen.as_ptr(),
+                sid.as_ptr(),
                 invalid,
                 std::ptr::null(),
             )
@@ -892,6 +911,7 @@ mod tests {
         let rates = cstr("{}");
         // SHOULD-FIX C decode completeness: the C path can now emit non-active modes
         // and a non-"world" frame id.
+        let (ep, gen, sid) = (cstr(TEST_EPOCH), cstr(TEST_GEN), cstr("s"));
         for (mode, expect) in [
             ("hold", "\"mode\":\"hold\""),
             ("estop", "\"mode\":\"estop\""),
@@ -903,7 +923,10 @@ mod tests {
                     codec.as_ptr(),
                     rates.as_ptr(),
                     0.0,
+                    ep.as_ptr(),
                     1,
+                    gen.as_ptr(),
+                    sid.as_ptr(),
                     fid.as_ptr(),
                     m.as_ptr(),
                 ))
@@ -919,12 +942,16 @@ mod tests {
         let codec = cstr("{}");
         let rates = cstr("{}");
         // NULL frame_id => "world", NULL mode => fail-safe "hold".
+        let (ep, gen, sid) = (cstr(TEST_EPOCH), cstr(TEST_GEN), cstr("s"));
         let out = unsafe {
             take(ncp_decode_command(
                 codec.as_ptr(),
                 rates.as_ptr(),
                 0.0,
+                ep.as_ptr(),
                 1,
+                gen.as_ptr(),
+                sid.as_ptr(),
                 std::ptr::null(),
                 std::ptr::null(),
             ))
@@ -940,7 +967,7 @@ mod tests {
             r#"{"encoder":[{"channel":"pose","population":"p","value_range":[-1,1]}],"decoder":[{"population":"p","command_channel":"velocity_setpoint","value_range":[-1,1]}]}"#,
         );
         let valid_sensor = cstr(
-            r#"{"kind":"sensor_frame","ncp_version":"0.7","seq":1,"t":0.0,"channels":{"pose":{"data":[0.5]}}}"#,
+            r#"{"kind":"sensor_frame","ncp_version":"0.8","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"channels":{"pose":{"data":[0.5]}}}"#,
         );
         assert!(unsafe { take(ncp_encode_rates(codec.as_ptr(), valid_sensor.as_ptr())) }.is_some());
 
@@ -950,23 +977,31 @@ mod tests {
 
         let rates = cstr(r#"{"p":150.0}"#);
         let active = cstr("active");
+        let (ep, gen, sid) = (cstr(TEST_EPOCH), cstr(TEST_GEN), cstr("s"));
         assert!(unsafe {
             take(ncp_decode_command(
                 codec.as_ptr(),
                 rates.as_ptr(),
                 0.0,
+                ep.as_ptr(),
                 1,
+                gen.as_ptr(),
+                sid.as_ptr(),
                 std::ptr::null(),
                 active.as_ptr(),
             ))
         }
         .is_some());
+        // seq 0 is below the wire-safe floor: the generated command is rejected.
         assert!(unsafe {
             ncp_decode_command(
                 codec.as_ptr(),
                 rates.as_ptr(),
                 0.0,
+                ep.as_ptr(),
                 0,
+                gen.as_ptr(),
+                sid.as_ptr(),
                 std::ptr::null(),
                 active.as_ptr(),
             )
@@ -977,7 +1012,10 @@ mod tests {
                 codec.as_ptr(),
                 rates.as_ptr(),
                 f64::NAN,
+                ep.as_ptr(),
                 1,
+                gen.as_ptr(),
+                sid.as_ptr(),
                 std::ptr::null(),
                 active.as_ptr(),
             )
@@ -1041,12 +1079,16 @@ mod tests {
         let codec = cstr("{}");
         let rates = cstr("{}");
         let bad = cstr("turbo");
+        let (ep, gen, sid) = (cstr(TEST_EPOCH), cstr(TEST_GEN), cstr("s"));
         let out = unsafe {
             ncp_decode_command(
                 codec.as_ptr(),
                 rates.as_ptr(),
                 0.0,
+                ep.as_ptr(),
                 1,
+                gen.as_ptr(),
+                sid.as_ptr(),
                 std::ptr::null(),
                 bad.as_ptr(),
             )
@@ -1059,7 +1101,7 @@ mod tests {
         let buffer = ncp_action_buffer_new();
         assert!(!buffer.is_null());
         let command = cstr(
-            r#"{"kind":"command_frame","ncp_version":"0.7","seq":10,"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[0.1]}},"horizon":[{"velocity_setpoint":{"data":[0.2]}},{"velocity_setpoint":{"data":[0.3]}}],"horizon_dt_ms":50.0}"#,
+            r#"{"kind":"command_frame","ncp_version":"0.8","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":10},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[0.1]}},"horizon":[{"velocity_setpoint":{"data":[0.2]}},{"velocity_setpoint":{"data":[0.3]}}],"horizon_dt_ms":50.0}"#,
         );
         assert_eq!(
             unsafe { ncp_action_buffer_on_command(buffer, 1.0, command.as_ptr()) },
@@ -1075,7 +1117,7 @@ mod tests {
         );
 
         let duplicate = cstr(
-            r#"{"kind":"command_frame","ncp_version":"0.7","seq":10,"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[9.0]}}}"#,
+            r#"{"kind":"command_frame","ncp_version":"0.8","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":10},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[9.0]}}}"#,
         );
         assert_eq!(
             unsafe { ncp_action_buffer_on_command(buffer, 2.0, duplicate.as_ptr()) },

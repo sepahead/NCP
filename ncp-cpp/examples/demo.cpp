@@ -40,8 +40,11 @@ int main() {
       "\"command_channel\":\"velocity_setpoint\",\"component\":0,\"unit\":\"m/s\","
       "\"rate_range_hz\":[0,200],\"value_range\":[-1.5,1.5]}]}";
   std::cout << "decode(200hz) = "
-            << take(ncp_decode_command(codec, "{\"vel_x\":200.0}", 0.0, 7,
-                                       /*frame_id=*/nullptr, /*mode=*/nullptr))
+            << take(ncp_decode_command(
+                   codec, "{\"vel_x\":200.0}", 0.0,
+                   /*epoch=*/"00000000-0000-4000-8000-000000000001", 7,
+                   /*session_generation=*/"00000000-0000-4000-8000-0000000000a2",
+                   /*session_id=*/"uav1", /*frame_id=*/nullptr, /*mode=*/nullptr))
             << "\n";
 
   // Every message must carry its own kind and a compatible ncp_version.
