@@ -200,20 +200,19 @@ jobs:
       - name: buf lint
         run: buf lint
       # Gate the JSON + binary wire against the FIRST tag of the current wire
-      # version (v0.6.0, the wire-0.6 baseline). A WIRE/WIRE_JSON-breaking change
+      # version (v0.7.0, the wire-0.7 baseline). A WIRE/WIRE_JSON-breaking change
       # fails here and must bump the version (see VERSIONING.md).
       # IMPORTANT: do NOT bump this baseline on a patch/minor-doc release — the
-      # whole v0.6.x lineage is checked against the wire-0.6 origin, so a break
-      # introduced anywhere in 0.6.x is still caught. Move it ONLY when cutting a
-      # new wire (the next one moves it to v0.7.0). Prior baselines: v0.4.0 (wire
-      # 0.4), v0.5.0 (the mode string→enum promotion). v0.6.0 is the enforcement
-      # cut — mandatory ncp_version + seq discipline; the proto structure is
-      # UNCHANGED from 0.5, so buf breaking is byte-quiet across 0.5→0.6 (the break
-      # is in acceptance rules, gated by ncp_version, not by buf).
-      - name: buf breaking (vs v0.6.0)
+      # whole v0.7.x lineage is checked against the wire-0.7 origin, so a break
+      # introduced anywhere in 0.7.x is still caught. Move it ONLY when cutting a
+      # new wire. Prior baselines: v0.4.0 (wire 0.4), v0.5.0 (the mode string→enum
+      # promotion), and v0.6.0 (mandatory version/seq acceptance rules). v0.7.0
+      # adds the typed error envelope and completes the reserved bulk-observation
+      # metadata, so it must become the binary compatibility origin for 0.7.
+      - name: buf breaking (vs v0.7.0)
         uses: bufbuild/buf-breaking-action@c57b3d842a5c3f3b454756ef65305a50a587c5ba # v1.1.4
         with:
-          against: "https://github.com/sepahead/NCP.git#tag=v0.6.0,subdir=."
+          against: "https://github.com/sepahead/NCP.git#tag=v0.7.0,subdir=."
 
   ts-dist:
     name: ts dist up-to-date
