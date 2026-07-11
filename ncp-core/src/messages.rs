@@ -999,15 +999,6 @@ pub struct ObservationFrame {
     #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
-    /// Wire 0.6 (normative): a frame **published on the observation plane** MUST
-    /// echo the driving `SensorFrame.seq` (`>= 1`), so a split-plane observer can
-    /// align `(V,L,D,A)` on `seq` (not arrival time) — an unstamped plane frame
-    /// forces observers into a degraded recency-only join. `0` is reserved for
-    /// the pure pull/sim-service RPC reply path (no controller seq exists there).
-    #[serde(with = "json_integer::one")]
-    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
-    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
-    pub seq: i64,
     pub t: f64,
     pub sim_time_ms: f64,
     pub records: Map<Observation>,
@@ -1015,6 +1006,15 @@ pub struct ObservationFrame {
     pub calibrated_posterior: bool,
     #[serde(default = "missing_is_simulation_output")]
     pub is_simulation_output: bool,
+    /// Wire 0.8: this observation stream's own incarnation + position.
+    pub stream: StreamPosition,
+    /// The driving `SensorFrame.stream` on the observation PLANE (the cross-plane
+    /// join key); omitted for the pull/RPC reply form (absence, not `seq == 0`).
+    pub source: Option<StreamPosition>,
+    /// The driving `SensorFrame.t`; `0.0` = unset.
+    pub source_t: f64,
+    /// The live session incarnation this stream belongs to.
+    pub session: SessionRef,
 }
 
 // Deserialize-only sentinels: omitted honesty-boundary fields must be detectable
@@ -1033,12 +1033,15 @@ impl Default for ObservationFrame {
             ncp_version: ncp_version(),
             kind: "observation_frame".into(),
             session_id: String::new(),
-            seq: 0,
             t: 0.0,
             sim_time_ms: 0.0,
             records: Map::new(),
             calibrated_posterior: false,
             is_simulation_output: true,
+            stream: StreamPosition::default(),
+            source: None,
+            source_t: 0.0,
+            session: SessionRef::default(),
         }
     }
 }
@@ -1238,13 +1241,18 @@ pub struct SensorFrame {
     pub ncp_version: String,
     #[serde(default = "missing_kind")]
     pub kind: String,
-    #[serde(with = "json_integer::one")]
-    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
-    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
-    pub seq: i64,
     pub t: f64,
     pub frame_id: String,
     pub channels: Map<ChannelValue>,
+    /// Wire 0.8: this sensor stream's own incarnation + position — the ONLY sequence
+    /// loss/`LinkMonitor`/`ActionBuffer` accounting reads. The origin: no `source`;
+    /// downstream `command`/`observation` `source` copies THIS `stream` position.
+    pub stream: StreamPosition,
+    /// The live session incarnation this stream belongs to (server-issued generation).
+    pub session: SessionRef,
+    /// Logical session id (transport-neutral); MUST equal the routing key's session
+    /// segment. Carried in-payload so a non-keyed transport can interpret the frame.
+    pub session_id: String,
 }
 
 impl Default for SensorFrame {
@@ -1252,10 +1260,12 @@ impl Default for SensorFrame {
         Self {
             ncp_version: ncp_version(),
             kind: "sensor_frame".into(),
-            seq: 0,
             t: 0.0,
             frame_id: "world".into(),
             channels: Map::new(),
+            stream: StreamPosition::default(),
+            session: SessionRef::default(),
+            session_id: String::new(),
         }
     }
 }
@@ -1279,10 +1289,6 @@ pub struct CommandFrame {
     pub ncp_version: String,
     #[serde(default = "missing_kind")]
     pub kind: String,
-    #[serde(with = "json_integer::one")]
-    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
-    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
-    pub seq: i64,
     pub t: f64,
     pub frame_id: String,
     // Fail-safe: a wire frame that OMITS `mode` deserializes to HOLD, never to an
@@ -1301,6 +1307,18 @@ pub struct CommandFrame {
     /// consumer that ignores `horizon` still reads `channels` (tick 0).
     pub horizon: Vec<Map<ChannelValue>>,
     pub horizon_dt_ms: Option<f64>,
+    /// Wire 0.8: this command stream's own incarnation + position — the sequence
+    /// `LinkMonitor`/`ActionBuffer` read for loss/dedup/supersession.
+    pub stream: StreamPosition,
+    /// The driving `SensorFrame.stream` (correlation only; never loss accounting).
+    /// Present for a closed-loop Active command; omitted for negotiated open-loop.
+    pub source: Option<StreamPosition>,
+    /// The driving `SensorFrame.t`, for source-age checks; `0.0` = unset.
+    pub source_t: f64,
+    /// The live session incarnation this command stream belongs to.
+    pub session: SessionRef,
+    /// Logical session id (transport-neutral); MUST equal the routing key's session.
+    pub session_id: String,
 }
 
 /// Wire default for `CommandFrame.mode`: a frame that omits `mode` is HOLD, never
@@ -1318,7 +1336,6 @@ impl Default for CommandFrame {
         Self {
             ncp_version: ncp_version(),
             kind: "command_frame".into(),
-            seq: 0,
             t: 0.0,
             frame_id: "world".into(),
             mode: Mode::Hold,
@@ -1326,6 +1343,11 @@ impl Default for CommandFrame {
             channels: Map::new(),
             horizon: Vec::new(),
             horizon_dt_ms: None,
+            stream: StreamPosition::default(),
+            source: None,
+            source_t: 0.0,
+            session: SessionRef::default(),
+            session_id: String::new(),
         }
     }
 }
@@ -1827,9 +1849,10 @@ impl WireFrame for SensorFrame {
         &self.ncp_version
     }
     fn wire_seq(&self) -> i64 {
-        self.seq
+        self.stream.seq
     }
     fn validate_payload(&self) -> Result<(), ValidationError> {
+        validate_stream_identity(&self.stream, &self.session, &self.session_id, "sensor_frame")?;
         if !self.t.is_finite() {
             return Err(ValidationError("sensor_frame.t must be finite".into()));
         }
@@ -1867,6 +1890,83 @@ fn validate_channel_map_finite(
     Ok(())
 }
 
+/// A canonical lowercase UUIDv4: `8-4-4-4-12` lowercase-hex with version nibble `4`
+/// and variant nibble in `[89ab]`. Compared for EQUALITY ONLY (never ordered).
+fn is_canonical_uuid_v4(s: &str) -> bool {
+    let b = s.as_bytes();
+    if b.len() != 36 {
+        return false;
+    }
+    for (i, &c) in b.iter().enumerate() {
+        let ok = match i {
+            8 | 13 | 18 | 23 => c == b'-',
+            14 => c == b'4',
+            19 => matches!(c, b'8' | b'9' | b'a' | b'b'),
+            _ => matches!(c, b'0'..=b'9' | b'a'..=b'f'),
+        };
+        if !ok {
+            return false;
+        }
+    }
+    true
+}
+
+/// Validate a transport-neutral `session_id` string: 1..=64 bytes and a safe single
+/// key segment (reuses [`crate::keys::valid_id_segment`] — no `/ * $ # ?`, no
+/// whitespace/control), case-sensitive exact equality.
+fn validate_session_id_str(id: &str, who: &str) -> Result<(), ValidationError> {
+    if id.is_empty() || id.len() > 64 {
+        return Err(ValidationError(format!("{who} must be 1..=64 bytes")));
+    }
+    if !crate::keys::valid_id_segment(id) {
+        return Err(ValidationError(format!(
+            "{who} {id:?} is not a safe single key segment"
+        )));
+    }
+    Ok(())
+}
+
+/// Validate the wire-0.8 stream identity carried on every session-scoped frame:
+/// `stream.epoch` and `session.generation` are canonical UUIDv4s and `session_id` is
+/// well-formed. `stream.seq`'s range/`MIN_SEQ` bound is checked by the common
+/// [`WireFrame::validate_wire`] path via [`WireFrame::wire_seq`].
+fn validate_stream_identity(
+    stream: &StreamPosition,
+    session: &SessionRef,
+    session_id: &str,
+    who: &str,
+) -> Result<(), ValidationError> {
+    if !is_canonical_uuid_v4(&stream.epoch) {
+        return Err(ValidationError(format!(
+            "{who}.stream.epoch must be a canonical lowercase UUIDv4"
+        )));
+    }
+    if !is_canonical_uuid_v4(&session.generation) {
+        return Err(ValidationError(format!(
+            "{who}.session.generation must be a canonical lowercase UUIDv4"
+        )));
+    }
+    validate_session_id_str(session_id, &format!("{who}.session_id"))
+}
+
+/// Validate an optional `source` correlation reference (absent = no source; never a
+/// `seq == 0` sentinel): when present, `epoch` is a canonical UUIDv4 and `seq >= 1`.
+fn validate_source(source: &Option<StreamPosition>, who: &str) -> Result<(), ValidationError> {
+    if let Some(src) = source {
+        if !is_canonical_uuid_v4(&src.epoch) {
+            return Err(ValidationError(format!(
+                "{who}.source.epoch must be a canonical lowercase UUIDv4"
+            )));
+        }
+        if !(1..=JSON_SAFE_INTEGER_MAX).contains(&src.seq) {
+            return Err(ValidationError(format!(
+                "{who}.source.seq must be within 1..=2^53-1"
+            )));
+        }
+    }
+    Ok(())
+}
+
 impl WireFrame for CommandFrame {
     const KIND: &'static str = "command_frame";
     const MIN_SEQ: i64 = 1;
@@ -1877,9 +1977,11 @@ impl WireFrame for CommandFrame {
         &self.ncp_version
     }
     fn wire_seq(&self) -> i64 {
-        self.seq
+        self.stream.seq
     }
     fn validate_payload(&self) -> Result<(), ValidationError> {
+        validate_stream_identity(&self.stream, &self.session, &self.session_id, "command_frame")?;
+        validate_source(&self.source, "command_frame")?;
         if !self.mode.is_canonical_wire_value() {
             return Err(ValidationError(
                 "command_frame.mode has a non-canonical in-memory representation".into(),
@@ -1968,13 +2070,12 @@ impl WireFrame for CommandFrame {
 }
 
 impl WireFrame for ObservationFrame {
-    /// `MIN_SEQ = 0`: the pull/RPC reply path legitimately carries `seq == 0`. A
-    /// frame *published on the observation plane* must echo the driving
-    /// `SensorFrame.seq >= 1`; plane-aware publishers enforce that at publish
-    /// time, and observers treat a plane `seq == 0` as a degraded (recency-only)
-    /// join, never an exact one.
+    /// Wire 0.8: every observation frame carries its OWN `stream` position
+    /// (`stream.seq >= 1`); the pull/RPC reply form is distinguished by `source`
+    /// ABSENCE (not a `seq == 0` sentinel), and a plane frame's `source` echoes the
+    /// driving `SensorFrame.stream` (the cross-plane join key).
     const KIND: &'static str = "observation_frame";
-    const MIN_SEQ: i64 = 0;
+    const MIN_SEQ: i64 = 1;
     fn wire_kind(&self) -> &str {
         &self.kind
     }
@@ -1982,10 +2083,17 @@ impl WireFrame for ObservationFrame {
         &self.ncp_version
     }
     fn wire_seq(&self) -> i64 {
-        self.seq
+        self.stream.seq
     }
 
     fn validate_payload(&self) -> Result<(), ValidationError> {
+        validate_stream_identity(
+            &self.stream,
+            &self.session,
+            &self.session_id,
+            "observation_frame",
+        )?;
+        validate_source(&self.source, "observation_frame")?;
         if !self.t.is_finite() || !self.sim_time_ms.is_finite() {
             return Err(ValidationError(
                 "observation_frame.t and sim_time_ms must be finite".into(),
@@ -2091,15 +2199,17 @@ pub fn validate_command_plane_payload(bytes: &[u8]) -> Result<(), ValidationErro
     decode_validated::<CommandFrame>(bytes).map(drop)
 }
 
-/// Observation-plane publisher gate. `seq == 0` is valid only for a pull/RPC
-/// reply; a published frame must echo its driving sensor sequence (`>= 1`).
+/// Observation-plane publisher gate. A plane-published frame MUST carry a `source`
+/// (echoing the driving `SensorFrame.stream`); a `source`-less frame is the pull/RPC
+/// reply form and is not valid on the plane.
 pub fn validate_observation_plane_payload(bytes: &[u8]) -> Result<(), ValidationError> {
     let observation = decode_validated::<ObservationFrame>(bytes)?;
-    if observation.seq < 1 {
-        return Err(ValidationError(format!(
-            "observation_frame: seq {} < 1 on the observation plane (0 is pull/RPC-only)",
-            observation.seq
-        )));
+    if observation.source.is_none() {
+        return Err(ValidationError(
+            "observation_frame: a plane-published frame requires a `source` (the driving sensor \
+             position); its absence is the pull/RPC reply form"
+                .into(),
+        ));
     }
     Ok(())
 }
@@ -2117,11 +2227,12 @@ pub fn validate_observation_plane_payload_for(
         )));
     }
     let observation = decode_validated::<ObservationFrame>(bytes)?;
-    if observation.seq < 1 {
-        return Err(ValidationError(format!(
-            "observation_frame: seq {} < 1 on the observation plane (0 is pull/RPC-only)",
-            observation.seq
-        )));
+    if observation.source.is_none() {
+        return Err(ValidationError(
+            "observation_frame: a plane-published frame requires a `source` (the driving sensor \
+             position); its absence is the pull/RPC reply form"
+                .into(),
+        ));
     }
     if observation.session_id != session_id {
         return Err(ValidationError(format!(
