@@ -1,7 +1,6 @@
 {
-  "ncp_version": "0.7",
+  "ncp_version": "0.8",
   "kind": "command_frame",
-  "seq": 7,
   "t": 1.0,
   "frame_id": "world",
   "mode": "active",
@@ -16,5 +15,18 @@
       "unit": "m/s"
     }
   },
-  "horizon": []
+  "horizon": [],
+  "stream": {
+    "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+    "seq": 7
+  },
+  "source": {
+    "epoch": "7d61c9ba-4e1d-4aab-8ae6-08e05206aa67",
+    "seq": 7
+  },
+  "source_t": 1.0,
+  "session": {
+    "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  },
+  "session_id": "vec-open-1"
 }

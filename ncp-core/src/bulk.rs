@@ -46,7 +46,9 @@
 //! allocation-bomb `n_rows`, or a `total_len` that disagrees with the buffer all
 //! fail closed with [`BulkError`] rather than panic or over-read.
 
-use crate::messages::{Observable, Observation, ObservationFrame, WireFrame};
+use crate::messages::{
+    Observable, Observation, ObservationFrame, SessionRef, StreamPosition, WireFrame,
+};
 
 /// Magic prefix identifying an NCP bulk column block.
 pub const BULK_MAGIC: [u8; 4] = *b"NCPB";
@@ -634,8 +636,18 @@ pub fn observation_from_bulk(
         ..Default::default()
     };
     obs.apply_bulk_block(&b);
+    // Local records validation only: give the envelope a fixed VALID wire-0.8
+    // identity so validate_wire exercises the record/finite checks rather than
+    // rejecting on stream/session identity (which the caller supplies at publish).
     let frame = ObservationFrame {
         session_id: "bulk-local-validation".into(),
+        stream: StreamPosition {
+            epoch: "00000000-0000-4000-8000-000000000001".into(),
+            seq: 1,
+        },
+        session: SessionRef {
+            generation: "00000000-0000-4000-8000-0000000000a2".into(),
+        },
         records: [(port, obs.clone())].into_iter().collect(),
         ..Default::default()
     };

@@ -9,8 +9,11 @@
 use ncp_core::transport::Controller;
 use ncp_core::{
     BulkBlock, ChannelValue, Column, CommandFrame, Map, Mode, ReflexController, SafetyGovernor,
-    SafetyLimits, SensorFrame,
+    SafetyLimits, SensorFrame, SessionRef, StreamPosition,
 };
+
+const EX_EPOCH: &str = "00000000-0000-4000-8000-000000000001";
+const EX_GEN: &str = "00000000-0000-4000-8000-0000000000a2";
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -44,7 +47,14 @@ fn main() {
     let cmd = CommandFrame {
         mode: Mode::Active,
         ttl_ms: 200.0,
-        seq: 42,
+        stream: StreamPosition {
+            epoch: EX_EPOCH.into(),
+            seq: 42,
+        },
+        session: SessionRef {
+            generation: EX_GEN.into(),
+        },
+        session_id: "uav1".into(),
         channels: ch,
         ..Default::default()
     };
@@ -61,7 +71,14 @@ fn main() {
         ChannelValue::vec3(0.1, 0.0, -0.2, Some("m/s")),
     );
     let sensor = SensorFrame {
-        seq: 42,
+        stream: StreamPosition {
+            epoch: EX_EPOCH.into(),
+            seq: 42,
+        },
+        session: SessionRef {
+            generation: EX_GEN.into(),
+        },
+        session_id: "uav1".into(),
         t: 1.0,
         channels: sch,
         ..Default::default()

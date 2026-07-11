@@ -592,7 +592,7 @@ mod tests {
             .publish_command("vec-open-1", br#"{"mode":"active"}"#)
             .is_err());
         let mut unstamped: serde_json::Value = serde_json::from_slice(OBSERVATION_FRAME).unwrap();
-        unstamped["seq"] = 0.into();
+        unstamped["stream"]["seq"] = 0.into();
         assert!(server
             .publish_observation("vec-open-1", &serde_json::to_vec(&unstamped).unwrap())
             .is_err());

@@ -12,8 +12,24 @@
 
 use ncp_core::{
     ActionBuffer, ChannelValue, CommandFrame, CommandWatchdog, InProcessTransport, Map, Mode,
-    NeuroControlLoop, ReflexController, SafetyGovernor, SafetyLimits, SensorFrame,
+    NeuroControlLoop, ReflexController, SafetyGovernor, SafetyLimits, SensorFrame, SessionRef,
+    StreamPosition,
 };
+
+// Canonical example identity (wire 0.8): a valid lowercase UUIDv4 epoch/generation.
+const EX_EPOCH: &str = "00000000-0000-4000-8000-000000000001";
+const EX_GEN: &str = "00000000-0000-4000-8000-0000000000a2";
+fn ex_stream(seq: i64) -> StreamPosition {
+    StreamPosition {
+        epoch: EX_EPOCH.into(),
+        seq,
+    }
+}
+fn ex_session() -> SessionRef {
+    SessionRef {
+        generation: EX_GEN.into(),
+    }
+}
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -36,7 +52,9 @@ fn sensor_at(seq: i64, t: f64, p: [f64; 3], v: [f64; 3]) -> SensorFrame {
         ChannelValue::vec3(v[0], v[1], v[2], Some("m/s")),
     );
     SensorFrame {
-        seq,
+        stream: ex_stream(seq),
+        session: ex_session(),
+        session_id: "uav1".into(),
         t,
         channels: ch,
         ..Default::default()
@@ -263,7 +281,9 @@ fn main() {
     println!("\n[3] ActionBuffer horizon replay + ttl");
     let mut ab = ActionBuffer::new();
     let cmd_p = CommandFrame {
-        seq: 1, // wire 0.6: an unstamped (seq 0) command is never buffered
+        stream: ex_stream(1), // wire 0.8: an unstamped (stream.seq 0) command is never buffered
+        session: ex_session(),
+        session_id: "uav1".into(),
         mode: Mode::Active,
         ttl_ms: 500.0,
         channels: vel_map(1.0, 0.0, 0.0),

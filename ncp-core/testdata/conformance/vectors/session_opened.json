@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.7",
+  "ncp_version": "0.8",
   "kind": "session_opened",
   "session_id": "vec-open-1",
   "ok": true,
@@ -17,5 +17,8 @@
     "note": null
   },
   "error": null,
-  "contract_hash": "f05e328cad20959d"
+  "contract_hash": "d1b50a2d8a265276",
+  "session": {
+    "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  }
 }

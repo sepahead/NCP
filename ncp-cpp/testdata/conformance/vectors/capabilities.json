@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.7",
+  "ncp_version": "0.8",
   "kind": "capabilities",
   "controller_id": "pid-controller-1",
   "role": "controller",
