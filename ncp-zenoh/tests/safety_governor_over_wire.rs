@@ -221,7 +221,7 @@ async fn govern_over_wire(
             .unwrap()
             .iter()
             .rev()
-            .find(|v| v["seq"].as_i64() == Some(seq))
+            .find(|v| v["stream"]["seq"].as_i64() == Some(seq))
             .cloned()
         {
             return v;
@@ -355,14 +355,23 @@ async fn safety_governor_decisions_survive_the_wire() {
         s.now_s = 1.0;
         s.last_sensor_s = Some(1.0);
     }
+    // Wire 0.8: the publisher gates require a complete stream/session identity, so
+    // these hand-built latch-test frames carry it (the per-exchange seq is stamped
+    // by `govern_over_wire`). epoch/generation are canonical UUIDv4s.
     let active_cmd: CommandFrame = serde_json::from_value(json!({
         "kind": "command_frame", "ncp_version": ncp_core::NCP_VERSION,
-        "seq": 1, "mode": "active", "ttl_ms": 200.0,
+        "session_id": SID,
+        "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
+        "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
+        "mode": "active", "ttl_ms": 200.0,
         "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}
     }))
     .unwrap();
     let breach: SensorFrame = serde_json::from_value(json!({
-        "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION, "seq": 1,
+        "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION,
+        "session_id": SID,
+        "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
+        "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
         "channels": {"pose_position": {"data": [10.0, 0.0, 0.0], "unit": "m"}}
     }))
     .unwrap();
@@ -374,7 +383,10 @@ async fn safety_governor_decisions_survive_the_wire() {
     );
 
     let safe: SensorFrame = serde_json::from_value(json!({
-        "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION, "seq": 1,
+        "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION,
+        "session_id": SID,
+        "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
+        "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
         "channels": {"pose_position": {"data": [0.0, 0.0, 0.0], "unit": "m"}}
     }))
     .unwrap();

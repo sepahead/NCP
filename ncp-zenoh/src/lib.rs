@@ -1054,13 +1054,46 @@ fn command_publish_decision(cmd: &ncp_core::CommandFrame) -> PublishDecision {
     }
 }
 
+/// Sentinel wire identity for a fail-safe ESTOP whose source frame carried none.
+/// A canonical (equality-only) nil-ish UUIDv4 epoch/generation and a reserved
+/// session-id segment: a receiver latches an explicit ESTOP *before* envelope
+/// validation, so this identity never drives actuation — it only lets the zeroed
+/// ESTOP serialize as a wire-valid frame instead of being dropped at the sender.
+const EMERGENCY_EPOCH: &str = "00000000-0000-4000-8000-000000000000";
+const EMERGENCY_SESSION_ID: &str = "ncp-estop";
+
+/// Repair any wire-invalid identity component on a governed ESTOP so it is always
+/// publishable. Valid components (e.g. a real `session_id`) are preserved; only
+/// the missing/garbage pieces are stamped with the emergency sentinel.
+fn ensure_publishable_estop_identity(frame: &mut ncp_core::CommandFrame) {
+    if !ncp_core::is_canonical_uuid_v4(&frame.stream.epoch) {
+        frame.stream.epoch = EMERGENCY_EPOCH.to_string();
+    }
+    if frame.stream.seq < 1 {
+        frame.stream.seq = 1;
+    }
+    if !ncp_core::is_canonical_uuid_v4(&frame.session.generation) {
+        frame.session.generation = EMERGENCY_EPOCH.to_string();
+    }
+    if !valid_id_segment(&frame.session_id) {
+        frame.session_id = EMERGENCY_SESSION_ID.to_string();
+    }
+}
+
 fn normalize_command_for_publish(
     command: &ncp_core::CommandFrame,
 ) -> std::borrow::Cow<'_, ncp_core::CommandFrame> {
     if command.mode == ncp_core::Mode::Estop && ncp_core::WireFrame::validate_wire(command).is_err()
     {
         let mut governor = ncp_core::SafetyGovernor::default();
-        std::borrow::Cow::Owned(governor.govern(command, None, 0.0, None))
+        let mut safe = governor.govern(command, None, 0.0, None);
+        // An ESTOP must never be dropped: if the source frame's identity was
+        // itself garbage (empty/non-canonical epoch, generation, or session_id),
+        // the governed fail-safe echoes that garbage and would not serialize as a
+        // wire-valid frame. Stamp the emergency sentinel so the zeroed ESTOP still
+        // goes out; the actuation (mode + zeroed channels) is already safe.
+        ensure_publishable_estop_identity(&mut safe);
+        std::borrow::Cow::Owned(safe)
     } else {
         std::borrow::Cow::Borrowed(command)
     }

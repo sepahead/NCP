@@ -8,8 +8,8 @@ step_request* (current_pA stimulus, spikes recording) -> close_session.
 import json, socket, sys, time
 
 HOST, PORT = "127.0.0.1", 28474
-NCP = "0.7"
-HASH = "f05e328cad20959d"
+NCP = "0.8"
+HASH = "d1b50a2d8a265276"
 
 NETWORKS = [
     # (label, nest model, pop size, [current_pA per 100ms step])
@@ -40,11 +40,20 @@ def run_one(sock, rdr, label, model, n, currents):
     if opened.get("kind") == "error" or opened.get("ok") is False:
         return {"label": label, "model": model, "ok": False, "detail": opened}
     backend = opened.get("backend")
+    # Wire 0.8: every post-open frame targets the live incarnation the server
+    # issued in session_opened. Thread that generation through step/close (and the
+    # nested stimulus); without it the frames are not wire-valid.
+    gen = (opened.get("session") or {}).get("generation")
+    if not gen:
+        return {"label": label, "model": model, "ok": False,
+                "detail": "session_opened carried no session.generation (server not wire-0.8)"}
     total_spikes, per_step = 0, []
     for i, cur in enumerate(currents):
         obs = rpc(sock, rdr, {
             "ncp_version": NCP, "kind": "step_request", "session_id": sid, "advance_ms": 100.0,
+            "session": {"generation": gen},
             "stimulus": {"kind": "stimulus_frame", "session_id": sid, "t": float(i),
+                         "session": {"generation": gen},
                          "values": {"drive": {"data": [cur], "unit": "pA"}}},
         })
         if obs.get("kind") == "error":
@@ -53,7 +62,8 @@ def run_one(sock, rdr, label, model, n, currents):
         nspk = len(rec.get("times", []) or [])
         total_spikes += nspk
         per_step.append((cur, nspk, obs.get("sim_time_ms")))
-    closed = rpc(sock, rdr, {"ncp_version": NCP, "kind": "close_session", "session_id": sid})
+    closed = rpc(sock, rdr, {"ncp_version": NCP, "kind": "close_session", "session_id": sid,
+                             "session": {"generation": gen}})
     return {"label": label, "model": model, "ok": True, "backend": backend,
             "pop": n, "total_spikes": total_spikes, "per_step": per_step,
             "closed_ok": closed.get("ok")}

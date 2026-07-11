@@ -69,15 +69,19 @@ fn mock_handler(req: Vec<u8>) -> Vec<u8> {
         }),
         "step_request" | "run_request" => json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": sid,
-            // Wire 0.6: `seq` is a required key; 0 is the pull/RPC-reply form.
-            "seq": 0,
+            // Wire 0.8: an RPC-reply observation carries its OWN stream position
+            // (seq >= 1) and the live session; the pull/RPC-reply form is
+            // distinguished by `source` ABSENCE, not by a seq-0 sentinel.
+            "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
+            "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
             "calibrated_posterior": false, "is_simulation_output": true,
             "records": {"vm": {"port": "vm", "target": "pop", "observable": "V_m",
                                "times": [1.0], "values": [-65.0], "unit": "mV"}},
         }),
-        "close_session" => {
-            json!({"kind": "session_closed", "ncp_version": NCP_VERSION, "session_id": sid, "ok": true})
-        }
+        "close_session" => json!({
+            "kind": "session_closed", "ncp_version": NCP_VERSION, "session_id": sid, "ok": true,
+            "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
+        }),
         other => {
             json!({"kind": "error", "ncp_version": NCP_VERSION, "session_id": sid,
                    "request_kind": other, "error": format!("unknown kind {other}")})

@@ -1959,7 +1959,10 @@ fn validate_channel_map_finite(
 
 /// A canonical lowercase UUIDv4: `8-4-4-4-12` lowercase-hex with version nibble `4`
 /// and variant nibble in `[89ab]`. Compared for EQUALITY ONLY (never ordered).
-fn is_canonical_uuid_v4(s: &str) -> bool {
+/// True iff `s` is a canonical lowercase UUIDv4 (`8-4-4-4-12` hex with the version
+/// nibble `4` and a `8/9/a/b` variant nibble) — the wire-0.8 form for a
+/// `stream.epoch` / `session.generation`. Equality-only: never ordered or parsed.
+pub fn is_canonical_uuid_v4(s: &str) -> bool {
     let b = s.as_bytes();
     if b.len() != 36 {
         return false;
