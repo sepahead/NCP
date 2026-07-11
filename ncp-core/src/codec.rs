@@ -8,7 +8,8 @@
 //! `backend/neurocontrol/codec.py`.
 
 use crate::messages::{
-    ChannelValue, CommandFrame, Map, Mode, SensorFrame, WireFrame, JSON_SAFE_INTEGER_MAX,
+    ChannelValue, CommandFrame, Map, Mode, SensorFrame, SessionRef, StreamPosition, WireFrame,
+    JSON_SAFE_INTEGER_MAX,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -262,9 +263,11 @@ impl CodecSpec {
         &self,
         pop_rates: &Map<f64>,
         t: f64,
-        seq: i64,
+        stream: StreamPosition,
         frame_id: &str,
         mode: Mode,
+        session: SessionRef,
+        session_id: &str,
     ) -> Result<CommandFrame, CodecError> {
         self.validate()?;
         if pop_rates
@@ -283,7 +286,7 @@ impl CodecSpec {
                 "frame_id must be non-empty and contain no control characters".into(),
             ));
         }
-        let command = self.decode(pop_rates, t, seq, frame_id, mode);
+        let command = self.decode(pop_rates, t, stream, frame_id, mode, session, session_id);
         command
             .validate_wire()
             .map_err(|error| CodecError(format!("decoded command is not wire-valid: {error}")))?;
@@ -329,9 +332,11 @@ impl CodecSpec {
         &self,
         pop_rates: &Map<f64>,
         t: f64,
-        seq: i64,
+        stream: StreamPosition,
         frame_id: &str,
         mode: Mode,
+        session: SessionRef,
+        session_id: &str,
     ) -> CommandFrame {
         let mut buffers: Map<Vec<f64>> = Map::new();
         let mut units: Map<Option<String>> = Map::new();
@@ -376,10 +381,12 @@ impl CodecSpec {
             .collect();
         CommandFrame {
             t,
-            seq,
+            stream,
             frame_id: frame_id.to_string(),
             mode,
             channels,
+            session,
+            session_id: session_id.to_string(),
             ..Default::default()
         }
     }

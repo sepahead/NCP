@@ -7,8 +7,8 @@
 //! Clocks are injectable so the loop is deterministic under test.
 
 use crate::messages::{
-    ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame, WireFrame,
-    JSON_SAFE_INTEGER_MAX,
+    ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame, StreamPosition,
+    WireFrame, JSON_SAFE_INTEGER_MAX,
 };
 use crate::safety::{SafetyGovernor, MAX_TTL_MS};
 use std::sync::{Arc, Mutex};
@@ -134,7 +134,15 @@ impl Controller for ReflexController {
                 ..Default::default()
             };
             if let Some(sensor) = sensor {
-                command.seq = sensor.seq;
+                // Wire 0.8: this reference loop is single-stream — it echoes the driving
+                // sensor's stream as both its own `stream` and its `source`. A real
+                // commander mints its OWN command stream (task 3); loss accounting keys
+                // on `stream.seq` either way.
+                command.stream = sensor.stream.clone();
+                command.source = Some(sensor.stream.clone());
+                command.source_t = sensor.t;
+                command.session = sensor.session.clone();
+                command.session_id.clone_from(&sensor.session_id);
                 command.t = sensor.t;
                 command.frame_id.clone_from(&sensor.frame_id);
             }
@@ -198,7 +206,11 @@ impl Controller for ReflexController {
         );
         CommandFrame {
             t: sensor.t,
-            seq: sensor.seq,
+            stream: sensor.stream.clone(),
+            source: Some(sensor.stream.clone()),
+            source_t: sensor.t,
+            session: sensor.session.clone(),
+            session_id: sensor.session_id.clone(),
             frame_id: sensor.frame_id.clone(),
             mode: Mode::Active,
             channels: ch,
@@ -307,8 +319,10 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             let (advanced, new_epoch) = match self.last_sensor_ts {
                 None => (true, false),
                 Some((previous_t, pseq)) => {
-                    let restart = expired && s.seq < pseq;
-                    let advances_same_epoch = s.seq > pseq && s.t >= previous_t;
+                    // TODO(wire-0.8 task 3): a NEW stream.epoch is the restart signal,
+                    // not a lower seq. For now key on stream.seq (same-epoch discipline).
+                    let restart = expired && s.stream.seq < pseq;
+                    let advances_same_epoch = s.stream.seq > pseq && s.t >= previous_t;
                     (advances_same_epoch || restart, restart)
                 }
             };
@@ -318,10 +332,10 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                     self.controller.reset();
                 }
                 self.last_sensor_t = Some(now);
-                self.last_sensor_ts = Some((s.t, s.seq));
+                self.last_sensor_ts = Some((s.t, s.stream.seq));
                 // Feed the link monitor only on a genuinely-new sensor (a frozen
                 // re-delivery is a duplicate no-op in the monitor regardless).
-                self.link.on_seq(s.seq);
+                self.link.on_seq(s.stream.seq);
                 self.accepted_sensor = Some(s);
             }
         }
@@ -359,7 +373,11 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         // remote ActionBuffer immediately and lets a later ESTOP propagate; only
         // the controller input itself is withheld while stale.
         if let Some(s) = self.accepted_sensor.as_ref() {
-            cmd.seq = s.seq;
+            cmd.stream = s.stream.clone();
+            cmd.source = Some(s.stream.clone());
+            cmd.source_t = s.t;
+            cmd.session = s.session.clone();
+            cmd.session_id.clone_from(&s.session_id);
             cmd.t = s.t;
             cmd.frame_id.clone_from(&s.frame_id);
         }
@@ -418,7 +436,11 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             None
         };
         self.transport.send_status(&ControlStatus {
-            seq: self.seq,
+            // TODO(wire-0.8 task 3): give the status stream a proper epoch identity.
+            stream: StreamPosition {
+                seq: self.seq,
+                ..Default::default()
+            },
             t: if now.is_finite() { now } else { 0.0 },
             mode: cmd.mode.clone(),
             loop_latency_ms,

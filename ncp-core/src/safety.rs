@@ -16,7 +16,7 @@
 
 use crate::messages::{
     Capabilities, ChannelKind, ChannelSpec, ChannelValue, CommandFrame, Mode, SafetyLimits,
-    SensorFrame, WireFrame, JSON_SAFE_INTEGER_MAX,
+    SensorFrame, StreamPosition, WireFrame, JSON_SAFE_INTEGER_MAX,
 };
 
 const POSITION_CHANNEL: &str = "pose_position";
@@ -318,31 +318,37 @@ impl SafetyGovernor {
         m
     }
 
-    fn safe_envelope(command: &CommandFrame) -> (f64, i64, String) {
+    fn safe_envelope(command: &CommandFrame) -> (f64, StreamPosition, String) {
         let t = if command.t.is_finite() {
             command.t
         } else {
             0.0
         };
-        let seq = if (1..=JSON_SAFE_INTEGER_MAX).contains(&command.seq) {
-            command.seq
-        } else {
-            1
-        };
+        // Echo the inbound command's stream identity onto the safe (HOLD/ESTOP) frame
+        // so the plant's fail-safe response is attributable to the stream it
+        // superseded. Sanitize a garbage stream.seq to 1 (never 0/negative).
+        let mut stream = command.stream.clone();
+        if !(1..=JSON_SAFE_INTEGER_MAX).contains(&stream.seq) {
+            stream.seq = 1;
+        }
         let frame_id =
             if command.frame_id.is_empty() || command.frame_id.chars().any(char::is_control) {
                 "world".to_string()
             } else {
                 command.frame_id.clone()
             };
-        (t, seq, frame_id)
+        (t, stream, frame_id)
     }
 
     fn estop_frame(&self, command: &CommandFrame) -> CommandFrame {
-        let (t, seq, frame_id) = Self::safe_envelope(command);
+        let (t, stream, frame_id) = Self::safe_envelope(command);
         CommandFrame {
             t,
-            seq,
+            stream,
+            source: command.source.clone(),
+            source_t: command.source_t,
+            session: command.session.clone(),
+            session_id: command.session_id.clone(),
             frame_id,
             mode: Mode::Estop,
             channels: self.zeroed_channels(command),
@@ -351,10 +357,14 @@ impl SafetyGovernor {
     }
 
     fn hold_frame(&self, command: &CommandFrame) -> CommandFrame {
-        let (t, seq, frame_id) = Self::safe_envelope(command);
+        let (t, stream, frame_id) = Self::safe_envelope(command);
         CommandFrame {
             t,
-            seq,
+            stream,
+            source: command.source.clone(),
+            source_t: command.source_t,
+            session: command.session.clone(),
+            session_id: command.session_id.clone(),
             frame_id,
             mode: Mode::Hold,
             channels: self.zeroed_channels(command),

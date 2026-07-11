@@ -71,21 +71,22 @@ impl ActionBuffer {
         if command.mode != Mode::Estop && command.validate_wire().is_err() {
             return;
         }
-        if !(1..=JSON_SAFE_INTEGER_MAX).contains(&command.seq) {
-            return; // unstamped/invalid seq: never buffered (ESTOP latched above)
+        if !(1..=JSON_SAFE_INTEGER_MAX).contains(&command.stream.seq) {
+            return; // unstamped/invalid stream.seq: never buffered (ESTOP latched above)
         }
-        if command.seq <= self.last_seq
-            && (command.seq == self.last_seq || !self.watchdog.should_hold(now_s))
+        if command.stream.seq <= self.last_seq
+            && (command.stream.seq == self.last_seq || !self.watchdog.should_hold(now_s))
         {
             return; // duplicate (always), or stale/reordered while LIVE (ESTOP latched above)
         }
-        self.last_seq = command.seq;
+        self.last_seq = command.stream.seq;
         if command.mode != Mode::Active {
             // Preserve the high-water mark against a live-stream replay, but do
             // not refresh the actuation watchdog or buffer a non-Active frame.
             return;
         }
-        self.watchdog.on_command(now_s, command.ttl_ms, command.seq);
+        self.watchdog
+            .on_command(now_s, command.ttl_ms, command.stream.seq);
         self.recv_s = now_s;
         self.latest = Some(command);
     }
@@ -344,11 +345,14 @@ impl LinkMonitor {
         LinkStatus {
             session_id: self.session_id.clone(),
             t,
-            last_seq: self.last_seq,
             received: self.received,
             lost: self.lost,
             loss_rate: self.loss_rate(),
             burst: self.burst,
+            // F-16: report the last valid ARRIVAL separately from the high-water. The
+            // epoch-aware observed_stream + this monitor's own stream land with the
+            // epoch-aware monitor (wire-0.8 increment, task 3).
+            last_arrival_seq: (self.last_seq >= 1).then_some(self.last_seq),
             ..Default::default()
         }
     }

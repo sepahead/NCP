@@ -375,7 +375,21 @@ pub unsafe extern "C" fn ncp_decode_command(
         let Some(mode) = parse_mode(mode) else {
             return std::ptr::null_mut();
         };
-        let Ok(cmd) = codec.decode_checked(&rates, t, seq, frame_id, mode) else {
+        // TODO(wire-0.8 task 6): thread stream.epoch / session.generation / session_id
+        // through the C ABI so decode_checked can produce a wire-valid identity.
+        let stream = ncp_core::StreamPosition {
+            epoch: String::new(),
+            seq,
+        };
+        let Ok(cmd) = codec.decode_checked(
+            &rates,
+            t,
+            stream,
+            frame_id,
+            mode,
+            ncp_core::SessionRef::default(),
+            "",
+        ) else {
             return std::ptr::null_mut();
         };
         match serde_json::to_string(&cmd) {

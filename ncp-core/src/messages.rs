@@ -28,7 +28,7 @@ use std::collections::BTreeMap;
 /// round-trip losslessly, honesty-boundary fields are explicit rather than locally
 /// fabricated, error replies are versioned, and hostile bulk inputs are bounded.
 /// It retains wire `0.6`'s mandatory `ncp_version` and stamped `seq` discipline.
-pub const NCP_VERSION: &str = "0.7";
+pub const NCP_VERSION: &str = "0.8";
 
 /// Largest integer that every NCP JSON peer can represent exactly. The JSON wire
 /// deliberately uses numbers for proto `int64` fields, but JavaScript parses those
@@ -860,6 +860,9 @@ pub struct SessionOpened {
     /// **advisory** ([`ContractStatus::Mismatch`], logged not rejected); the version
     /// is the hard gate. `None` (serialized `null`) = not advertised.
     pub contract_hash: Option<String>,
+    /// (0.8) Server-ISSUED session incarnation, present iff `ok`; clients echo
+    /// `session.generation` on every subsequent session-scoped frame.
+    pub session: Option<SessionRef>,
 }
 
 impl Default for SessionOpened {
@@ -876,6 +879,7 @@ impl Default for SessionOpened {
             provenance: None,
             error: Some("session not opened".into()),
             contract_hash: Some(CONTRACT_HASH.to_string()),
+            session: None,
         }
     }
 }
@@ -894,6 +898,8 @@ pub struct StimulusFrame {
     pub session_id: String,
     pub t: f64,
     pub values: Map<ChannelValue>,
+    /// (0.8) The session incarnation; nested in Step/Run it MUST equal the outer.
+    pub session: SessionRef,
 }
 
 impl Default for StimulusFrame {
@@ -904,6 +910,7 @@ impl Default for StimulusFrame {
             session_id: String::new(),
             t: 0.0,
             values: Map::new(),
+            session: SessionRef::default(),
         }
     }
 }
@@ -921,6 +928,8 @@ pub struct StepRequest {
     pub session_id: String,
     pub advance_ms: Option<f64>,
     pub stimulus: Option<StimulusFrame>,
+    /// (0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair.
+    pub session: SessionRef,
 }
 
 impl Default for StepRequest {
@@ -931,6 +940,7 @@ impl Default for StepRequest {
             session_id: String::new(),
             advance_ms: None,
             stimulus: None,
+            session: SessionRef::default(),
         }
     }
 }
@@ -948,6 +958,8 @@ pub struct RunRequest {
     pub session_id: String,
     pub duration_ms: f64,
     pub stimulus: Option<StimulusFrame>,
+    /// (0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair.
+    pub session: SessionRef,
 }
 
 impl Default for RunRequest {
@@ -958,6 +970,7 @@ impl Default for RunRequest {
             session_id: String::new(),
             duration_ms: 0.0,
             stimulus: None,
+            session: SessionRef::default(),
         }
     }
 }
@@ -1056,6 +1069,8 @@ pub struct CloseSession {
     #[serde(default = "missing_kind")]
     pub kind: String,
     pub session_id: String,
+    /// (0.8) REQUIRED: a delayed close for an old incarnation must not close a reopen.
+    pub session: SessionRef,
 }
 
 impl Default for CloseSession {
@@ -1064,6 +1079,7 @@ impl Default for CloseSession {
             ncp_version: ncp_version(),
             kind: "close_session".into(),
             session_id: String::new(),
+            session: SessionRef::default(),
         }
     }
 }
@@ -1079,6 +1095,8 @@ pub struct SessionClosed {
     pub kind: String,
     pub session_id: String,
     pub ok: bool,
+    /// (0.8) the incarnation this close concerns; a delayed reply must attribute to it.
+    pub session: SessionRef,
 }
 
 /// A typed, versioned failure reply. Error payloads are wire messages too: leaving
@@ -1096,6 +1114,9 @@ pub struct ErrorFrame {
     pub error: String,
     pub session_id: Option<String>,
     pub request_kind: Option<String>,
+    /// (0.8) Optional correlation copied from the rejected request; presence does NOT
+    /// assert the generation is active. Present iff `session_id` is (copy both or neither).
+    pub session: Option<SessionRef>,
 }
 
 impl ErrorFrame {
@@ -1115,6 +1136,7 @@ impl Default for ErrorFrame {
             error: String::new(),
             session_id: None,
             request_kind: None,
+            session: None,
         }
     }
 }
@@ -1126,6 +1148,7 @@ impl Default for SessionClosed {
             kind: "session_closed".into(),
             session_id: String::new(),
             ok: true,
+            session: SessionRef::default(),
         }
     }
 }
@@ -1363,16 +1386,18 @@ pub struct ControlStatus {
     pub ncp_version: String,
     #[serde(default = "missing_kind")]
     pub kind: String,
-    #[serde(with = "json_integer::one")]
-    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
-    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
-    pub seq: i64,
     pub t: f64,
     pub mode: Mode,
     pub sim_time_ms: f64,
     pub loop_latency_ms: f64,
     pub safety_ok: bool,
     pub note: Option<String>,
+    /// Wire 0.8: this status stream's own incarnation + position.
+    pub stream: StreamPosition,
+    /// The live session incarnation.
+    pub session: SessionRef,
+    /// Logical session id (transport-neutral).
+    pub session_id: String,
 }
 
 impl Default for ControlStatus {
@@ -1380,13 +1405,15 @@ impl Default for ControlStatus {
         Self {
             ncp_version: ncp_version(),
             kind: "control_status".into(),
-            seq: 0,
             t: 0.0,
             mode: Mode::Init,
             sim_time_ms: 0.0,
             loop_latency_ms: 0.0,
             safety_ok: true,
             note: None,
+            stream: StreamPosition::default(),
+            session: SessionRef::default(),
+            session_id: String::new(),
         }
     }
 }
@@ -1409,10 +1436,6 @@ pub struct LinkStatus {
     #[serde(with = "json_integer::one")]
     #[cfg_attr(feature = "schema", schemars(with = "i64"))]
     #[cfg_attr(feature = "ts", ts(type = "bigint"))]
-    pub last_seq: i64,
-    #[serde(with = "json_integer::one")]
-    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
-    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
     pub received: i64,
     #[serde(with = "json_integer::one")]
     #[cfg_attr(feature = "schema", schemars(with = "i64"))]
@@ -1420,6 +1443,20 @@ pub struct LinkStatus {
     pub lost: i64,
     pub loss_rate: f64,
     pub burst: bool,
+    /// Wire 0.8: the LinkStatus stream's OWN incarnation + position — validate this
+    /// before trusting any reported burst/loss/high-water state.
+    pub stream: StreamPosition,
+    /// The MONITORED stream's epoch + forward high-water seq; absent before the first
+    /// valid observed frame (presence tracks `last_arrival_seq`).
+    pub observed_stream: Option<StreamPosition>,
+    /// F-16: seq of the last valid in-epoch ARRIVAL (`< observed_stream.seq` under
+    /// reordering; `==` it on forward arrival). Presence tracks `observed_stream`.
+    #[serde(with = "json_integer::option")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<i64>"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint | null"))]
+    pub last_arrival_seq: Option<i64>,
+    /// The live session incarnation.
+    pub session: SessionRef,
 }
 
 impl Default for LinkStatus {
@@ -1429,11 +1466,14 @@ impl Default for LinkStatus {
             kind: "link_status".into(),
             session_id: String::new(),
             t: 0.0,
-            last_seq: -1,
             received: 0,
             lost: 0,
             loss_rate: 0.0,
             burst: false,
+            stream: StreamPosition::default(),
+            observed_stream: None,
+            last_arrival_seq: None,
+            session: SessionRef::default(),
         }
     }
 }
@@ -1852,7 +1892,12 @@ impl WireFrame for SensorFrame {
         self.stream.seq
     }
     fn validate_payload(&self) -> Result<(), ValidationError> {
-        validate_stream_identity(&self.stream, &self.session, &self.session_id, "sensor_frame")?;
+        validate_stream_identity(
+            &self.stream,
+            &self.session,
+            &self.session_id,
+            "sensor_frame",
+        )?;
         if !self.t.is_finite() {
             return Err(ValidationError("sensor_frame.t must be finite".into()));
         }
@@ -1980,7 +2025,12 @@ impl WireFrame for CommandFrame {
         self.stream.seq
     }
     fn validate_payload(&self) -> Result<(), ValidationError> {
-        validate_stream_identity(&self.stream, &self.session, &self.session_id, "command_frame")?;
+        validate_stream_identity(
+            &self.stream,
+            &self.session,
+            &self.session_id,
+            "command_frame",
+        )?;
         validate_source(&self.source, "command_frame")?;
         if !self.mode.is_canonical_wire_value() {
             return Err(ValidationError(
@@ -2387,27 +2437,30 @@ pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
             "safety",
             "sensor_channels",
         ],
-        "close_session" => &["kind", "ncp_version", "session_id"],
-        "command_frame" => &["kind", "ncp_version", "seq"],
+        "close_session" => &["kind", "ncp_version", "session", "session_id"],
+        "command_frame" => &["kind", "ncp_version", "session", "session_id", "stream"],
         "control_status" => &[
             "kind",
             "loop_latency_ms",
             "mode",
             "ncp_version",
             "safety_ok",
-            "seq",
+            "session",
+            "session_id",
+            "stream",
             "t",
         ],
         "error" => &["error", "kind", "ncp_version"],
         "link_status" => &[
             "burst",
             "kind",
-            "last_seq",
             "loss_rate",
             "lost",
             "ncp_version",
             "received",
+            "session",
             "session_id",
+            "stream",
             "t",
         ],
         "observation_frame" => &[
@@ -2416,16 +2469,23 @@ pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
             "kind",
             "ncp_version",
             "records",
-            "seq",
+            "session",
             "session_id",
+            "stream",
         ],
         "open_session" => &["kind", "ncp_version", "network", "session_id"],
-        "run_request" => &["duration_ms", "kind", "ncp_version", "session_id"],
-        "sensor_frame" => &["kind", "ncp_version", "seq"],
-        "session_closed" => &["kind", "ncp_version", "ok", "session_id"],
+        "run_request" => &[
+            "duration_ms",
+            "kind",
+            "ncp_version",
+            "session",
+            "session_id",
+        ],
+        "sensor_frame" => &["kind", "ncp_version", "session", "session_id", "stream"],
+        "session_closed" => &["kind", "ncp_version", "ok", "session", "session_id"],
         "session_opened" => &["backend", "kind", "ncp_version", "ok", "session_id"],
-        "step_request" => &["kind", "ncp_version", "session_id"],
-        "stimulus_frame" => &["kind", "ncp_version", "session_id"],
+        "step_request" => &["kind", "ncp_version", "session", "session_id"],
+        "stimulus_frame" => &["kind", "ncp_version", "session", "session_id"],
         _ => return None,
     })
 }
