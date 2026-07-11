@@ -73,7 +73,14 @@ async fn zenoh_closed_loop_roundtrip() {
         ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
     );
     let sensor = SensorFrame {
-        seq: 7,
+        stream: ncp_core::StreamPosition {
+            epoch: "00000000-0000-4000-8000-000000000001".into(),
+            seq: 7,
+        },
+        session: ncp_core::SessionRef {
+            generation: "00000000-0000-4000-8000-0000000000a2".into(),
+        },
+        session_id: "uav1".into(),
         t: 0.0,
         channels,
         ..Default::default()

@@ -182,7 +182,14 @@ async fn main() {
                 ChannelValue::vec3(v[0], v[1], v[2], Some("m/s")),
             );
             let cmd = CommandFrame {
-                seq,
+                stream: ncp_core::StreamPosition {
+                    epoch: "00000000-0000-4000-8000-000000000001".into(),
+                    seq,
+                },
+                session: ncp_core::SessionRef {
+                    generation: "00000000-0000-4000-8000-0000000000a2".into(),
+                },
+                session_id: "uav1".into(),
                 t: t * 1000.0,
                 ttl_ms: 250.0, // ~5 missed frames at 20 Hz
                 mode,

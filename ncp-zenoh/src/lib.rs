@@ -1480,7 +1480,17 @@ mod tests {
 
         let valid = ncp_core::ObservationFrame {
             session_id: "s".into(),
-            seq: 1,
+            stream: ncp_core::StreamPosition {
+                epoch: "00000000-0000-4000-8000-000000000001".into(),
+                seq: 1,
+            },
+            source: Some(ncp_core::StreamPosition {
+                epoch: "00000000-0000-4000-8000-000000000001".into(),
+                seq: 1,
+            }),
+            session: ncp_core::SessionRef {
+                generation: "00000000-0000-4000-8000-0000000000a2".into(),
+            },
             ..Default::default()
         };
         assert!(check_observation_payload_for("s", &serde_json::to_vec(&valid).unwrap()).is_ok());
@@ -1528,7 +1538,6 @@ mod tests {
 
         let mut invalid_estop = ncp_core::CommandFrame {
             t: f64::NAN,
-            seq: 0,
             frame_id: String::new(),
             mode: ncp_core::Mode::Estop,
             ..Default::default()

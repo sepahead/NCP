@@ -179,8 +179,8 @@ async fn govern_over_wire(
     mut sensor: SensorFrame,
 ) -> Value {
     let seq = SEQ.fetch_add(1, Ordering::Relaxed);
-    command.seq = seq;
-    sensor.seq = seq;
+    command.stream.seq = seq;
+    sensor.stream.seq = seq;
     // The corpus carries complete envelopes. Only the per-exchange sequence is
     // replaced so read-back can be correlated without repairing any other field.
     let sbytes = serde_json::to_vec(&sensor).unwrap();
@@ -198,7 +198,7 @@ async fn govern_over_wire(
             .unwrap()
             .latest_sensor
             .as_ref()
-            .is_some_and(|s| s.seq == seq)
+            .is_some_and(|s| s.stream.seq == seq)
         {
             sensor_ready = true;
             break;
