@@ -104,6 +104,8 @@ export type SimInput = Partial<Wire<SimConfig>>;
 export type Send = (message: Record<string, unknown>) => Promise<unknown>;
 export declare class NeuroSimClient {
     private readonly send;
+    /** Wire 0.8: session_id -> the server-issued generation, learned at open(). */
+    private readonly generations;
     constructor(send: Send);
     /** Open a session: declare what to record and what to stimulate. */
     open(sessionId: string, network: NetworkInput, record: RecordInput[], stimulus: StimulusInput[], sim?: SimInput): Promise<SessionOpenedReply>;

@@ -802,6 +802,8 @@ function unwrap<T>(
 }
 
 export class NeuroSimClient {
+  /** Wire 0.8: session_id -> the server-issued generation, learned at open(). */
+  private readonly generations = new Map<string, string>()
   constructor(private readonly send: Send) {}
 
   /** Open a session: declare what to record and what to stimulate. */
@@ -841,6 +843,10 @@ export class NeuroSimClient {
     // the version is the hard gate (mirrors the NCP session-service contract).
     const advisory = contractStatus((opened as { contract_hash?: string | null }).contract_hash)
     if (advisory) console.warn(`[ncp] ${advisory}`)
+    this.generations.set(
+      sessionId,
+      (opened as { session?: { generation?: string } }).session?.generation ?? '',
+    )
     return opened
   }
 
@@ -854,11 +860,13 @@ export class NeuroSimClient {
       kind: 'step_request',
       ncp_version: NCP_VERSION,
       session_id: sessionId,
+      session: { generation: this.generations.get(sessionId) ?? '' },
       advance_ms: advanceMs ?? null,
       stimulus: {
         kind: 'stimulus_frame',
         ncp_version: NCP_VERSION,
         session_id: sessionId,
+        session: { generation: this.generations.get(sessionId) ?? '' },
         values: stimulus,
       },
     }
@@ -882,11 +890,13 @@ export class NeuroSimClient {
       kind: 'run_request',
       ncp_version: NCP_VERSION,
       session_id: sessionId,
+      session: { generation: this.generations.get(sessionId) ?? '' },
       duration_ms: durationMs,
       stimulus: {
         kind: 'stimulus_frame',
         ncp_version: NCP_VERSION,
         session_id: sessionId,
+        session: { generation: this.generations.get(sessionId) ?? '' },
         values: stimulus,
       },
     }
@@ -906,6 +916,7 @@ export class NeuroSimClient {
       kind: 'close_session',
       ncp_version: NCP_VERSION,
       session_id: sessionId,
+      session: { generation: this.generations.get(sessionId) ?? '' },
     }
     assertNcpMessage(request, 'close_session')
     const reply = await this.send(request)

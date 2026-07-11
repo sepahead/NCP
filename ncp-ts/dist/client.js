@@ -718,6 +718,8 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId) {
 }
 export class NeuroSimClient {
     send;
+    /** Wire 0.8: session_id -> the server-issued generation, learned at open(). */
+    generations = new Map();
     constructor(send) {
         this.send = send;
     }
@@ -748,6 +750,7 @@ export class NeuroSimClient {
         const advisory = contractStatus(opened.contract_hash);
         if (advisory)
             console.warn(`[ncp] ${advisory}`);
+        this.generations.set(sessionId, opened.session?.generation ?? '');
         return opened;
     }
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
@@ -756,11 +759,13 @@ export class NeuroSimClient {
             kind: 'step_request',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
+            session: { generation: this.generations.get(sessionId) ?? '' },
             advance_ms: advanceMs ?? null,
             stimulus: {
                 kind: 'stimulus_frame',
                 ncp_version: NCP_VERSION,
                 session_id: sessionId,
+                session: { generation: this.generations.get(sessionId) ?? '' },
                 values: stimulus,
             },
         };
@@ -774,11 +779,13 @@ export class NeuroSimClient {
             kind: 'run_request',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
+            session: { generation: this.generations.get(sessionId) ?? '' },
             duration_ms: durationMs,
             stimulus: {
                 kind: 'stimulus_frame',
                 ncp_version: NCP_VERSION,
                 session_id: sessionId,
+                session: { generation: this.generations.get(sessionId) ?? '' },
                 values: stimulus,
             },
         };
@@ -792,6 +799,7 @@ export class NeuroSimClient {
             kind: 'close_session',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
+            session: { generation: this.generations.get(sessionId) ?? '' },
         };
         assertNcpMessage(request, 'close_session');
         const reply = await this.send(request);

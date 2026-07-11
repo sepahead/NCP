@@ -37,6 +37,10 @@ import {
   maxHorizonLen,
 } from '../dist/index.js'
 
+// Wire 0.8: valid canonical UUIDv4 identity for the hand-written fixtures.
+const EP = '00000000-0000-4000-8000-000000000001'
+const GEN = '00000000-0000-4000-8000-0000000000a2'
+
 const here = dirname(fileURLToPath(import.meta.url)) // ncp-ts/scripts
 const corpusPath = join(here, '..', '..', 'conformance', 'behavior', 'vectors.json')
 const corpus = JSON.parse(readFileSync(corpusPath, 'utf8'))
@@ -277,7 +281,7 @@ for (const c of corpus.cases.action_buffer) {
     kind: 'command_frame',
     ncp_version: NCP_VERSION,
     mode: 'active',
-    seq: 0,
+    stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
     ttl_ms: 200,
     channels: { velocity_setpoint: { data: [9] } },
   })
@@ -286,7 +290,7 @@ for (const c of corpus.cases.action_buffer) {
     kind: 'command_frame',
     ncp_version: NCP_VERSION,
     mode: 'active',
-    seq: 1,
+    stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
     ttl_ms: 200,
     channels: { velocity_setpoint: { data: [-0.1] } },
     horizon: [
@@ -299,13 +303,13 @@ for (const c of corpus.cases.action_buffer) {
   check(at(1.0) === -0.1 && at(1.06) === -0.2 && at(1.11) === -0.3, 'buffer: horizon replays')
   check(ab.shouldHold(1.16), 'buffer: horizon drained -> HOLD')
   check(ab.shouldHold(1.3), 'buffer: past ttl -> HOLD')
-  ab.onCommand(2.0, { mode: 'estop', seq: 0, channels: {} }) // unstamped ESTOP still latches
+  ab.onCommand(2.0, { mode: 'estop', stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's', channels: {} }) // unstamped ESTOP still latches
   check(ab.isEstopped(), 'buffer: an unstamped ESTOP still latches')
-  ab.onCommand(2.1, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', seq: 2, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
+  ab.onCommand(2.1, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', stream: { epoch: EP, seq: 2 }, session: { generation: GEN }, session_id: 's', ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
   check(ab.shouldHold(2.1), 'buffer: latched ESTOP suppresses later Active')
   ab.reset()
   check(ab.shouldHold(2.1), 'buffer: reset discards every pre-ESTOP command')
-  ab.onCommand(2.2, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', seq: 3, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
+  ab.onCommand(2.2, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', stream: { epoch: EP, seq: 3 }, session: { generation: GEN }, session_id: 's', ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
   check(!ab.shouldHold(2.2), 'buffer: reset restores actuation')
 
   const aliasBuffer = new ActionBuffer()
@@ -313,7 +317,7 @@ for (const c of corpus.cases.action_buffer) {
     kind: 'command_frame',
     ncp_version: NCP_VERSION,
     mode: 'active',
-    seq: 1,
+    stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
     ttl_ms: 200,
     channels: { velocity_setpoint: { data: [0.25] } },
   }
@@ -355,7 +359,7 @@ for (const c of corpus.cases.action_buffer) {
     {
       kind: 'command_frame',
       ncp_version: NCP_VERSION,
-      seq: 1,
+      stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
       mode: 'active',
       ttl_ms: 200,
       channels: { velocity_setpoint: { data: [2, 0, 0], unit: 'm/s' } },
@@ -363,7 +367,7 @@ for (const c of corpus.cases.action_buffer) {
     {
       kind: 'sensor_frame',
       ncp_version: NCP_VERSION,
-      seq: 1,
+      stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
       channels: { pose_position: { data: [3, 0, 0], unit: 'm' } },
     },
     1,
@@ -424,7 +428,7 @@ for (const c of corpus.cases.action_buffer) {
     {
       kind: 'command_frame',
       ncp_version: NCP_VERSION,
-      seq: 1,
+      stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
       mode: 'active',
       ttl_ms: 200,
       channels: { velocity_setpoint: { data: [1, 0, 0], unit: 'm/s' } },
@@ -432,7 +436,7 @@ for (const c of corpus.cases.action_buffer) {
     {
       kind: 'sensor_frame',
       ncp_version: NCP_VERSION,
-      seq: 1,
+      stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
       channels: { pose_position: { data: [0, 0, 0], unit: 'm' } },
     },
     1,
@@ -448,7 +452,7 @@ for (const c of corpus.cases.action_buffer) {
     {
       kind: 'command_frame',
       mode: 'estop',
-      seq: 0,
+      stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
       frame_id: 'world\u0085spoof',
       channels: { 'bad\u0085channel': { data: [1] } },
     },
@@ -462,7 +466,7 @@ for (const c of corpus.cases.action_buffer) {
   )
 
   // assertWireFrame: the data-plane ingress gate.
-  const okFrame = { kind: 'command_frame', ncp_version: NCP_VERSION, seq: 1 }
+  const okFrame = { kind: 'command_frame', ncp_version: NCP_VERSION, stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's' }
   let threw = false
   try {
     assertWireFrame(okFrame, 'command_frame')
@@ -479,19 +483,19 @@ for (const c of corpus.cases.action_buffer) {
     }
   }
   check(
-    rejects({ kind: 'command_frame', seq: 1 }, 'command_frame'),
+    rejects({ kind: 'command_frame', stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's' }, 'command_frame'),
     'assertWireFrame: version-less frame rejected',
   )
   check(
-    rejects({ kind: 'command_frame', ncp_version: '0.5', seq: 1 }, 'command_frame'),
+    rejects({ kind: 'command_frame', ncp_version: '0.5', stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's' }, 'command_frame'),
     'assertWireFrame: stale-wire frame rejected',
   )
   check(
-    rejects({ kind: 'command_frame', ncp_version: NCP_VERSION, seq: 0 }, 'command_frame'),
+    rejects({ kind: 'command_frame', ncp_version: NCP_VERSION, stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's' }, 'command_frame'),
     'assertWireFrame: unstamped command rejected',
   )
   check(
-    rejects({ kind: 'observation_frame', ncp_version: NCP_VERSION, seq: 1 }, 'command_frame'),
+    rejects({ kind: 'observation_frame', ncp_version: NCP_VERSION, stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's' }, 'command_frame'),
     'assertWireFrame: misrouted kind rejected',
   )
   check(
@@ -500,14 +504,15 @@ for (const c of corpus.cases.action_buffer) {
         kind: 'observation_frame',
         ncp_version: NCP_VERSION,
         session_id: 's',
-        seq: 0,
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
         records: {},
         calibrated_posterior: false,
         is_simulation_output: true,
       },
       'observation_frame',
     ),
-    'assertWireFrame: observation seq 0 (pull path) accepted',
+    'assertWireFrame: observation stream.seq 1 pull (no source) accepted',
   )
   check(
     rejects(
@@ -515,7 +520,7 @@ for (const c of corpus.cases.action_buffer) {
         kind: 'observation_frame',
         ncp_version: NCP_VERSION,
         session_id: 's',
-        seq: -1,
+        stream: { epoch: EP, seq: -1 }, session: { generation: GEN }, session_id: 's',
         records: {},
         calibrated_posterior: false,
         is_simulation_output: true,
@@ -525,7 +530,7 @@ for (const c of corpus.cases.action_buffer) {
     'assertWireFrame: negative observation seq rejected',
   )
   check(
-    rejects({ kind: 'command_frame', ncp_version: NCP_VERSION, seq: 2 ** 53 }, 'command_frame'),
+    rejects({ kind: 'command_frame', ncp_version: NCP_VERSION, stream: { epoch: EP, seq: 2 ** 53 }, session: { generation: GEN }, session_id: 's' }, 'command_frame'),
     'assertWireFrame: precision-unsafe seq rejected',
   )
   check(
@@ -533,7 +538,7 @@ for (const c of corpus.cases.action_buffer) {
       {
         kind: 'sensor_frame',
         ncp_version: NCP_VERSION,
-        seq: 1,
+        stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
         channels: { pose: { data: 'bad' } },
       },
       'sensor_frame',
@@ -565,7 +570,7 @@ for (const c of corpus.cases.action_buffer) {
       new NeuroSimClient(async () => ({
         kind: 'command_frame',
         ncp_version: NCP_VERSION,
-        seq: 1,
+        stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
         session_id: 's',
       })).close('s'),
     ),
@@ -577,7 +582,7 @@ for (const c of corpus.cases.action_buffer) {
         kind: 'observation_frame',
         ncp_version: NCP_VERSION,
         session_id: 'other',
-        seq: 0,
+        stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
         records: {},
         is_simulation_output: true,
         calibrated_posterior: false,
@@ -591,7 +596,7 @@ for (const c of corpus.cases.action_buffer) {
         kind: 'observation_frame',
         ncp_version: NCP_VERSION,
         session_id: 's',
-        seq: 0,
+        stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
         records: {},
         is_simulation_output: true,
         calibrated_posterior: true,
