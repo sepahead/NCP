@@ -246,6 +246,13 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     /// a clock fault even if the clock remains monotonic within the current tick;
     /// retain the high-water mark so the loop HOLDs until time catches up.
     last_tick_now: Option<f64>,
+    /// Wire 0.8 (§7): the accepted sensor stream's active epoch + a bounded ring of
+    /// retired epochs. A FOREIGN epoch cannot advance the LIVE perception stream (no
+    /// hijack via a fresh high seq under a new random epoch); a new epoch is adopted
+    /// only as a restart, once the current sensor has EXPIRED; a RETIRED epoch never
+    /// revives. Same-epoch frames keep the existing seq discipline unchanged.
+    active_sensor_epoch: Option<String>,
+    retired_sensor_epochs: std::collections::VecDeque<String>,
 }
 
 impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
@@ -260,6 +267,8 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             link: crate::resilience::LinkMonitor::with_defaults("ncp-loop"),
             last_sensor_t: None,
             last_sensor_ts: None,
+            active_sensor_epoch: None,
+            retired_sensor_epochs: std::collections::VecDeque::new(),
             accepted_sensor: None,
             last_tick_now: None,
         }
@@ -285,6 +294,20 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         }
         let dt_ms = 1000.0 / self.rate_hz;
         dt_ms.is_finite() && dt_ms > 0.0 && dt_ms * 2.0 <= MAX_TTL_MS
+    }
+
+    /// Retire a sensor stream epoch into the bounded tombstone ring so it can never
+    /// revive (§7 rule 5). Bounded so a hostile epoch-churn peer cannot grow it
+    /// without limit; a real single-publisher session retires one epoch per restart.
+    fn retire_sensor_epoch(&mut self, epoch: String) {
+        const RETIRED_EPOCH_CAP: usize = 64;
+        if self.retired_sensor_epochs.contains(&epoch) {
+            return;
+        }
+        if self.retired_sensor_epochs.len() >= RETIRED_EPOCH_CAP {
+            self.retired_sensor_epochs.pop_front();
+        }
+        self.retired_sensor_epochs.push_back(epoch);
     }
 
     /// One control step: read sensor → controller → safety → send.
@@ -316,20 +339,46 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                 let age = now - t;
                 !timeout_s.is_finite() || !age.is_finite() || age >= timeout_s
             });
-            let (advanced, new_epoch) = match self.last_sensor_ts {
-                None => (true, false),
+            // Wire 0.8 (§7): epoch-keyed acceptance. A FOREIGN epoch may adopt the
+            // stream only as a restart, once the current sensor has EXPIRED — a live
+            // stream is never hijacked by a fresh high seq under a new random epoch;
+            // a RETIRED epoch never revives. Same-epoch frames keep the seq
+            // discipline unchanged (a strictly-lower seq re-anchors only after
+            // expiry — the legacy restart recovery — without changing the epoch).
+            let same_epoch = self
+                .active_sensor_epoch
+                .as_deref()
+                .is_some_and(|e| e == s.stream.epoch);
+            let is_retired = self
+                .retired_sensor_epochs
+                .iter()
+                .any(|e| e == &s.stream.epoch);
+            let (advanced, epoch_changed, seq_restart) = match self.last_sensor_ts {
+                None => (true, false, false),
                 Some((previous_t, pseq)) => {
-                    // TODO(wire-0.8 task 3): a NEW stream.epoch is the restart signal,
-                    // not a lower seq. For now key on stream.seq (same-epoch discipline).
-                    let restart = expired && s.stream.seq < pseq;
-                    let advances_same_epoch = s.stream.seq > pseq && s.t >= previous_t;
-                    (advances_same_epoch || restart, restart)
+                    if same_epoch {
+                        let restart = expired && s.stream.seq < pseq;
+                        let advances = s.stream.seq > pseq && s.t >= previous_t;
+                        (advances || restart, false, restart)
+                    } else if is_retired {
+                        (false, false, false)
+                    } else {
+                        (expired, expired, false)
+                    }
                 }
             };
             if advanced {
-                if new_epoch {
+                if epoch_changed {
+                    if let Some(old) = self.active_sensor_epoch.take() {
+                        self.retire_sensor_epoch(old);
+                    }
+                }
+                if epoch_changed || seq_restart {
                     self.link.reset();
                     self.controller.reset();
+                }
+                if self.active_sensor_epoch.is_none() {
+                    self.active_sensor_epoch = Some(s.stream.epoch.clone());
                 }
                 self.last_sensor_t = Some(now);
                 self.last_sensor_ts = Some((s.t, s.stream.seq));
@@ -773,6 +822,79 @@ mod tests {
             loop_.tick().mode,
             Mode::Active,
             "a restarted, advancing stream recovers without operator intervention"
+        );
+    }
+
+    #[test]
+    fn foreign_sensor_epoch_cannot_hijack_a_live_stream() {
+        // Wire 0.8 (§7): a FOREIGN stream epoch must not advance the LIVE perception
+        // stream — a hostile/glitched peer cannot steer the controller with a fresh
+        // high seq under a new random epoch. A foreign epoch is adopted only as a
+        // restart after the current sensor EXPIRES; a RETIRED epoch never revives.
+        use crate::messages::StreamPosition;
+        let ep_a = "aaaaaaaa-0000-4000-8000-000000000001";
+        let ep_b = "bbbbbbbb-0000-4000-8000-000000000002";
+        let transport = InProcessTransport::new();
+        let clock = Arc::new(Mutex::new(0.0_f64));
+        let clock2 = clock.clone();
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits {
+                max_speed_mps: Some(1.5),
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(move || *clock2.lock().unwrap()));
+        let frame = |t: f64, epoch: &str, seq: i64| {
+            let mut m = crate::messages::Map::new();
+            m.insert(
+                "pose_position".into(),
+                ChannelValue::vec3(0.5, 0.0, 0.0, Some("m")),
+            );
+            m.insert(
+                "pose_velocity".into(),
+                ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
+            );
+            SensorFrame {
+                t,
+                stream: StreamPosition {
+                    epoch: epoch.into(),
+                    seq,
+                },
+                session: session(),
+                session_id: SID.into(),
+                channels: m,
+                ..Default::default()
+            }
+        };
+        // Establish epoch A, live.
+        transport.push_sensor(frame(0.0, ep_a, 5));
+        assert_eq!(loop_.tick().stream.seq, 5, "epoch A accepted");
+        // A foreign epoch with a huge seq must NOT hijack the LIVE stream.
+        *clock.lock().unwrap() = 0.1;
+        transport.push_sensor(frame(0.1, ep_b, 9999));
+        assert_eq!(
+            loop_.tick().stream.seq,
+            5,
+            "a foreign epoch cannot advance a LIVE stream (no hijack)"
+        );
+        // After epoch A expires, the pending foreign-epoch frame is adopted (restart).
+        *clock.lock().unwrap() = 0.5;
+        assert_eq!(
+            loop_.tick().stream.seq,
+            9999,
+            "a foreign epoch is adopted only after the live stream expires"
+        );
+        // Epoch A is now RETIRED: a later A frame never revives it, even advancing.
+        *clock.lock().unwrap() = 1.0; // epoch B (t=0.5) has since expired
+        transport.push_sensor(frame(1.0, ep_a, 100_000));
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "a retired epoch never revives"
         );
     }
 

@@ -790,6 +790,16 @@ impl CommandWatchdog {
             .faulted = false;
     }
 
+    /// Re-anchor the seq discipline for a NEW stream epoch: clear the high-water so
+    /// the next command (whatever its seq — a restarted publisher counts from 1) is
+    /// accepted as fresh rather than misread as a duplicate/stale replay. An
+    /// epoch-aware receiver (e.g. [`ActionBuffer`](crate::resilience::ActionBuffer))
+    /// calls this ONLY after it has authorized an epoch transition; the ttl deadline
+    /// itself is refreshed by the `on_command` that follows.
+    pub fn reanchor(&mut self) {
+        self.last_seq = 0;
+    }
+
     /// Record an accepted command received at local time `now_s` with its `ttl_ms`
     /// and `seq`. The deadline refreshes only when `seq` strictly advances — a
     /// duplicate/stale/replayed command (`seq <= last`) must NOT extend liveness, or

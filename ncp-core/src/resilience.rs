@@ -34,6 +34,17 @@ pub struct ActionBuffer {
     /// accepted only once the stream has EXPIRED (restart re-anchor, mirroring
     /// [`CommandWatchdog::on_command`]).
     last_seq: i64,
+    /// Wire 0.8 (§7 receiver state machine): the accepted stream's active epoch.
+    /// Acceptance keys on `(epoch, seq)`, not seq alone — a frame from a FOREIGN
+    /// epoch must never advance the LIVE stream (a hostile/glitched peer cannot
+    /// hijack the actuator with a fresh high seq under a new random epoch). A new
+    /// epoch is adopted ONLY as a restart, once the prior stream has EXPIRED.
+    active_epoch: Option<String>,
+    /// Bounded tombstone ring of retired epochs: a retired epoch never revives,
+    /// even with a huge seq (§7 rule 5). Bounded so a hostile epoch-churn peer
+    /// cannot grow it without limit; epoch changes are per-restart (rare) so the
+    /// cap far exceeds any real single-publisher session.
+    retired_epochs: std::collections::VecDeque<String>,
 }
 
 impl ActionBuffer {
@@ -74,6 +85,28 @@ impl ActionBuffer {
         if !(1..=JSON_SAFE_INTEGER_MAX).contains(&command.stream.seq) {
             return; // unstamped/invalid stream.seq: never buffered (ESTOP latched above)
         }
+        // Wire 0.8 (§7): epoch-keyed acceptance. A FOREIGN epoch must not advance
+        // the LIVE stream — a hostile/glitched peer cannot hijack the actuator with
+        // a fresh high seq under a new random epoch. A RETIRED epoch never revives.
+        // A new epoch is adopted only as a restart, once the prior stream has
+        // EXPIRED (we are already safely HOLDing); same-epoch frames fall through to
+        // the seq discipline below.
+        match &self.active_epoch {
+            None => self.active_epoch = Some(command.stream.epoch.clone()),
+            Some(active) if *active != command.stream.epoch => {
+                if self.retired_epochs.contains(&command.stream.epoch)
+                    || !self.watchdog.should_hold(now_s)
+                {
+                    return; // retired epoch, or a foreign epoch while the stream is LIVE
+                }
+                let retired = active.clone();
+                self.retire_epoch(retired);
+                self.active_epoch = Some(command.stream.epoch.clone());
+                self.last_seq = 0; // re-anchor the seq discipline for the new epoch
+                self.watchdog.reanchor();
+            }
+            Some(_) => {} // same epoch: fall through to the seq discipline
+        }
         if command.stream.seq <= self.last_seq
             && (command.stream.seq == self.last_seq || !self.watchdog.should_hold(now_s))
         {
@@ -91,6 +124,21 @@ impl ActionBuffer {
         self.latest = Some(command);
     }
 
+    /// Retire `epoch` into the bounded tombstone ring so it can never revive (§7
+    /// rule 5). Bounded (`RETIRED_EPOCH_CAP`) so a hostile epoch-churn peer cannot
+    /// grow it without limit; a real single-publisher session retires one epoch per
+    /// restart, far below the cap.
+    fn retire_epoch(&mut self, epoch: String) {
+        const RETIRED_EPOCH_CAP: usize = 64;
+        if self.retired_epochs.contains(&epoch) {
+            return;
+        }
+        if self.retired_epochs.len() >= RETIRED_EPOCH_CAP {
+            self.retired_epochs.pop_front();
+        }
+        self.retired_epochs.push_back(epoch);
+    }
+
     /// Clear a latched ESTOP (supervisor authority) and discard every pre-ESTOP
     /// command/deadline. Reset never resumes an old still-live setpoint; a fresh,
     /// fully validated Active command must establish the new stream epoch.
@@ -100,6 +148,10 @@ impl ActionBuffer {
         self.recv_s = 0.0;
         self.watchdog = CommandWatchdog::new();
         self.last_seq = 0;
+        // A supervisor reset is a fresh start: forget the active epoch and its
+        // tombstones so the next validated command re-establishes stream identity.
+        self.active_epoch = None;
+        self.retired_epochs.clear();
     }
 
     /// True while ESTOP is latched.
@@ -508,6 +560,54 @@ mod tests {
             buf.active(4.05).unwrap()["velocity_setpoint"].data[0],
             0.2,
             "a lower seq on a LIVE stream is still rejected"
+        );
+    }
+
+    #[test]
+    fn action_buffer_epoch_keying_rejects_hijack_and_retired_replay() {
+        // Wire 0.8 (§7): acceptance keys on (epoch, seq). A FOREIGN epoch cannot
+        // advance a LIVE stream (a fresh high seq under a new random epoch must not
+        // hijack the actuator); a new epoch is adopted only as a restart after the
+        // prior stream expires; and a RETIRED epoch never revives.
+        use crate::messages::StreamPosition;
+        let ep_a = "aaaaaaaa-0000-4000-8000-000000000001";
+        let ep_b = "bbbbbbbb-0000-4000-8000-000000000002";
+        let cmd = |epoch: &str, seq: i64, v: f64| CommandFrame {
+            stream: StreamPosition {
+                epoch: epoch.into(),
+                seq,
+            },
+            session: session(),
+            session_id: SID.into(),
+            ttl_ms: 200.0,
+            mode: Mode::Active,
+            channels: vec3(v),
+            ..Default::default()
+        };
+        let mut buf = ActionBuffer::new();
+        buf.on_command(1.0, cmd(ep_a, 5, 0.4));
+        assert_eq!(buf.active(1.05).unwrap()["velocity_setpoint"].data[0], 0.4);
+        // A foreign epoch with a much higher seq must NOT hijack the live stream.
+        buf.on_command(1.06, cmd(ep_b, 9999, 0.9));
+        assert_eq!(
+            buf.active(1.07).unwrap()["velocity_setpoint"].data[0],
+            0.4,
+            "a foreign epoch cannot advance a LIVE stream (no hijack)"
+        );
+        // Once epoch A expires, epoch B is adopted as a restart (from seq 1).
+        assert!(buf.should_hold(1.5), "epoch A expired");
+        buf.on_command(1.5, cmd(ep_b, 1, 0.7));
+        assert_eq!(
+            buf.active(1.55).unwrap()["velocity_setpoint"].data[0],
+            0.7,
+            "a new epoch after expiry re-anchors (restart)"
+        );
+        // Epoch A is now RETIRED: it never revives, even expired with a huge seq.
+        assert!(buf.should_hold(2.0), "epoch B expired");
+        buf.on_command(2.0, cmd(ep_a, 100_000, 0.2));
+        assert!(
+            buf.should_hold(2.05),
+            "a retired epoch never revives, even expired with a huge seq"
         );
     }
 
