@@ -18,11 +18,11 @@ NCP versions the SDK with [SemVer](https://semver.org) and carries a shorter
 - **PATCH** — clarifications/docs with no wire effect.
 
 **Wire version vs crate/package version.** The latest immutable release is
-`v0.7.0` and its `ncp_version` wire string is `0.7`. The Rust crates and the `@sepahead/ncp`
+`v0.7.1` and its `ncp_version` wire string is `0.7`. The Rust crates and the `@sepahead/ncp`
 package carry their own SemVer (see `Cargo.toml` / `package.json` for the current
 SDK version — the manifests are the single source of truth) for the SDK. They usually move
 together, but a PATCH that touches only code/docs/build artifacts leaves the wire
-string unchanged. Pin **`tag = "v0.7.0"`** for the latest release.
+string unchanged. Pin **`tag = "v0.7.1"`** for the latest release.
 
 **Wire 0.7 is an incompatible acceptance-and-shape release.** It requires `kind` in
 every schema, bounds JSON `int64` numbers to ±(2^53−1), preserves unknown enum
@@ -45,7 +45,7 @@ contract revision" without breaking anyone.
 
 **Pre-1.0 caveat:** while `0.x`, an *incompatible* minor bump is breaking and the
 version guard fails closed on a minor difference (`check_version`). Pin an exact
-released version (`tag = "v0.7.0"` today). `0.x` is explicitly unstable.
+released version (`tag = "v0.7.1"` today). `0.x` is explicitly unstable.
 
 The current released wire is **`0.7`** (`ncp_version = "0.7"`). Earlier wires: `0.6` was
 the **enforcement cut**: mandatory `ncp_version`, stamped closed-loop `seq`,

@@ -523,14 +523,14 @@ impl ZenohBus {
             }
         }
         match last_err {
-            Some(e) => Err(ZenohError(format!("rpc error reply for {}: {e}", rpc_key))),
+            Some(e) => Err(ZenohError(format!("rpc error reply for {rpc_key}: {e}"))),
             None => Err(ZenohError(format!("no reply for {rpc_key}"))),
         }
     }
 
     /// Publish a `SensorFrame` (perception plane) for a session.
     ///
-    /// Wire 0.6: the payload is validated before it leaves this peer (a
+    /// Wire 0.7: the payload is validated before it leaves this peer (a
     /// stamped `seq >= 1`, a compatible `ncp_version`, the right `kind`) — a
     /// non-conforming publisher fails loudly here instead of being silently
     /// dropped by every receiver. [`Self::put`] remains the raw escape hatch.

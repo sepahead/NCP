@@ -30,7 +30,7 @@ Python (`ncp-python`, PyO3), C/C++ (`ncp-cpp`, C ABI), and TypeScript (`ncp-ts`,
   3. the conformance test (`ncp-core/tests/conformance.rs`) so it pins the new contract — **fix the drift, never weaken the test**.
   4. the prebuilt TS package (`bun run regen`, or `bun run build` for source-only) and commit the regenerated `ncp-ts/dist` (git-tracked, shipped as `@sepahead/ncp`; a stale `dist` announces the wrong wire).
 
-When in doubt whether something is wire-visible, **assume it is**. `CONTRACT_HASH` is currently `f05e328cad20959d` for the wire-`0.7` release (`v0.7.0`). The `0.6 → 0.7` cut changes both acceptance rules and the normative shape (typed errors and complete reserved bulk-observation metadata), and the hash includes NCP's JSON enum `wire string` and lifecycle transport `wire key` annotations as well as proto structure. It appears across proto/docs/bindings and must move in lockstep — if the wire changes, update **every** occurrence together or the parity guards fail.
+When in doubt whether something is wire-visible, **assume it is**. `CONTRACT_HASH` is currently `f05e328cad20959d` for the wire-`0.7` line (introduced in `v0.7.0`; latest release `v0.7.1`). The `0.6 → 0.7` cut changes both acceptance rules and the normative shape (typed errors and complete reserved bulk-observation metadata), and the hash includes NCP's JSON enum `wire string` and lifecycle transport `wire key` annotations as well as proto structure. It appears across proto/docs/bindings and must move in lockstep — if the wire changes, update **every** occurrence together or the parity guards fail.
 
 ## Safety is the crown jewel — fail CLOSED, always
 

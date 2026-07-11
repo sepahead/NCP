@@ -191,7 +191,7 @@ The two reference peers exercise the **two ends of the same wire**: Engram *comm
 Both pin NCP by tag and add zero code to each other. This section walks the real flow
 each one implements, so you can copy the shape for your own commander or observer.
 
-> **Wire 0.7 requirements (both ends).** The latest immutable release is `v0.7.0`.
+> **Wire 0.7 requirements (both ends).** The latest immutable release is `v0.7.1`.
 > On wire 0.7, every
 > message carries a compatible `ncp_version` (an absent or mismatched version is
 > rejected, not defaulted); a `sensor_frame`/`command_frame` stamps `seq >= 1`, strictly
@@ -284,7 +284,7 @@ for the data plane — same wire, no gateway.
 Prisoma is a **read-only** tap: it opens the *same realm*, subscribes to the three
 data-plane keys, and turns each closed-loop tick into a `(V,L,D,A)` sample for its
 Partial Information Decomposition — **it publishes nothing on the action plane.** Its
-`ncp-observer` crate is a NCP consumer (latest released pin `v0.7.0`) built entirely on
+`ncp-observer` crate is a NCP consumer (latest released pin `v0.7.1`) built entirely on
 `ncp_core` + `ncp_zenoh`:
 
 ```rust

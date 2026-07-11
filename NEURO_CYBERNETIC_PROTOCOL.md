@@ -78,7 +78,7 @@ wire-semantically-canonicalized proto) is an **advisory** identity signal — a
 mismatch within a compatible version is *logged, not rejected* (the peers are on
 different but compatible contract revisions). A strict `verify_contract` opt-in
 exists for deployments that mandate an exact revision. Wire 0.7 is released as the
-latest immutable tag, `v0.7.0`, with contract hash `f05e328cad20959d`. NCP is
+latest immutable tag, `v0.7.1`, with contract hash `f05e328cad20959d`. NCP is
 pre-1.0 and the wire may still change, so pin an immutable release tag.
 
 The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handshake:

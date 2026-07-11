@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-11
+
+Wire `0.7` and `CONTRACT_HASH=f05e328cad20959d` are unchanged from `v0.7.0`.
+This patch replaces no tag: `v0.7.0` remains immutable.
+
+### Fixed
+
+- Updated the one `ncp-zenoh` format invocation rejected by the mandatory Rust
+  1.88 Clippy `uninlined_format_args` lint, restoring a green release gate.
+- The generic consumer re-pin tool now updates an explicit Cargo dependency
+  `version` constraint together with its Git `tag`; previously a `0.6.0`
+  constraint could make a correct `v0.7.0` tag fail dependency resolution.
+
+### Changed
+
+- Advanced the post-release Buf breaking baseline to the first wire-0.7 tag,
+  `v0.7.0`, while keeping that frozen wire baseline unchanged for every 0.7 patch.
+
 ## [0.7.0] - 2026-07-11
 
 ### Wire 0.7 (breaking)
@@ -1085,7 +1103,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepahead/NCP/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/sepahead/NCP/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/sepahead/NCP/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/sepahead/NCP/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sepahead/NCP/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/sepahead/NCP/compare/v0.5.2...v0.5.3
