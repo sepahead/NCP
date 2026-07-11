@@ -15,6 +15,9 @@ import pytest
 
 ncp = pytest.importorskip("ncp")
 
+_EP = "00000000-0000-4000-8000-000000000001"
+_GEN = "00000000-0000-4000-8000-0000000000a2"
+
 # A minimal single-axis codec: pose_error[0] in [-2, 2] -> "err_x" rate in [0, 200] Hz;
 # "err_x" readout in [0, 200] Hz -> velocity_setpoint[0] in [-1.5, 1.5] m/s. Defaulted
 # fields (codec_id, coding, rate_range_hz, n_neurons, readout) are omitted.
@@ -37,8 +40,8 @@ CODEC = json.dumps(
 
 
 def test_module_pins_exported():
-    assert ncp.NCP_VERSION == "0.7"
-    assert ncp.CONTRACT_HASH == "f05e328cad20959d"
+    assert ncp.NCP_VERSION == "0.8"
+    assert ncp.CONTRACT_HASH == "d1b50a2d8a265276"
 
 
 def test_codec_roundtrip_encode_then_decode():
@@ -46,8 +49,8 @@ def test_codec_roundtrip_encode_then_decode():
     sensor = json.dumps(
         {
             "kind": "sensor_frame",
-            "ncp_version": "0.7",
-            "seq": 1,
+            "ncp_version": "0.8",
+            "stream": {"epoch": _EP, "seq": 1}, "session": {"generation": _GEN}, "session_id": "s",
             "t": 0.0,
             "channels": {"pose_error": {"data": [1.0, 0.0, 0.0]}},
         }
@@ -56,7 +59,7 @@ def test_codec_roundtrip_encode_then_decode():
     assert rates.get("err_x") == pytest.approx(150.0)
 
     # decode: lerp(150 Hz, [0,200] -> [-1.5,1.5]) = 0.75 m/s, on velocity_setpoint[0].
-    command = json.loads(ncp.decode_command(CODEC, json.dumps(rates), seq=1, mode="active"))
+    command = json.loads(ncp.decode_command(CODEC, json.dumps(rates), seq=1, mode="active", epoch=_EP, session_generation=_GEN, session_id="s"))
     vel = command["channels"]["velocity_setpoint"]["data"]
     assert vel[0] == pytest.approx(0.75)
 
@@ -65,7 +68,7 @@ def test_codec_rejects_incomplete_sensor_and_unsafe_command_metadata():
     versionless = json.dumps(
         {
             "kind": "sensor_frame",
-            "seq": 1,
+            "stream": {"epoch": _EP, "seq": 1}, "session": {"generation": _GEN}, "session_id": "s",
             "t": 0.0,
             "channels": {"pose_error": {"data": [1.0]}},
         }
@@ -82,23 +85,23 @@ def test_codec_rejects_incomplete_sensor_and_unsafe_command_metadata():
 
 def test_decision_functions_callable():
     # Smoke only — exhaustive cross-language parity is the corpus's job.
-    assert ncp.check_version("0.7", False) is True
+    assert ncp.check_version("0.8", False) is True
     assert ncp.check_version("0.6", False) is False  # previous wire: incompatible
-    assert ncp.contract_status("f05e328cad20959d") == "match"
-    frame = '{"kind":"command_frame","ncp_version":"0.7","seq":1}'
+    assert ncp.contract_status("d1b50a2d8a265276") == "match"
+    frame = '{"kind":"command_frame","ncp_version":"0.8","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"session_id":"s"}'
     result = ncp.validate("command_frame", frame)
     assert '"kind":"command_frame"' in result  # canonical JSON, not just truthy
     # Wire 0.6: a version-less or unstamped command frame is rejected.
     with pytest.raises(ValueError):
         ncp.validate("command_frame", '{"kind":"command_frame"}')
     with pytest.raises(ValueError):
-        ncp.validate("command_frame", '{"kind":"command_frame","ncp_version":"0.7","seq":0}')
+        ncp.validate("command_frame", '{"kind":"command_frame","ncp_version":"0.8","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":0},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"session_id":"s"}')
     with pytest.raises(ValueError):
-        ncp.validate("command_frame", '{"ncp_version":"0.7","seq":1}')
+        ncp.validate("command_frame", '{"ncp_version":"0.8","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"session_id":"s"}')
 
     error = {
         "kind": "error",
-        "ncp_version": "0.7",
+        "ncp_version": "0.8",
         "error": "rejected",
         "request_kind": "open_session",
     }
@@ -123,7 +126,7 @@ def test_rpc_keys_are_kind_scoped_and_realm_validated():
 def test_unknown_enum_roundtrips_losslessly():
     frame = {
         "kind": "open_session",
-        "ncp_version": "0.7",
+        "ncp_version": "0.8",
         "session_id": "s",
         "network": {"kind": "future_network_kind", "ref": "model"},
     }
@@ -132,7 +135,7 @@ def test_unknown_enum_roundtrips_losslessly():
 
 
 def test_decode_command_defaults_to_hold():
-    command = json.loads(ncp.decode_command(CODEC, "{}", seq=1))
+    command = json.loads(ncp.decode_command(CODEC, "{}", seq=1, epoch=_EP, session_generation=_GEN, session_id="s"))
     assert command["mode"] == "hold"
 
 
@@ -140,8 +143,8 @@ def test_action_buffer_enforces_horizon_ttl_and_replay():
     buffer = ncp.ActionBuffer()
     command = {
         "kind": "command_frame",
-        "ncp_version": "0.7",
-        "seq": 10,
+        "ncp_version": "0.8",
+        "stream": {"epoch": _EP, "seq": 10}, "session": {"generation": _GEN}, "session_id": "s",
         "t": 0.0,
         "mode": "active",
         "ttl_ms": 200.0,
@@ -171,8 +174,8 @@ def test_action_buffer_latches_unstamped_estop_until_reset():
 
     invalid_active = {
         "kind": "command_frame",
-        "ncp_version": "0.7",
-        "seq": 0,
+        "ncp_version": "0.8",
+        "stream": {"epoch": _EP, "seq": 0}, "session": {"generation": _GEN}, "session_id": "s",
         "mode": "active",
         "ttl_ms": 200.0,
         "channels": {"velocity_setpoint": {"data": [1.0]}},
@@ -189,8 +192,8 @@ def test_persistent_governor_latches_across_calls():
     active = json.dumps(
         {
             "kind": "command_frame",
-            "ncp_version": "0.7",
-            "seq": 1,
+            "ncp_version": "0.8",
+            "stream": {"epoch": _EP, "seq": 1}, "session": {"generation": _GEN}, "session_id": "s",
             "mode": "active",
             "ttl_ms": 200.0,
             "channels": {"velocity_setpoint": {"data": [1.0, 0.0, 0.0], "unit": "m/s"}},
@@ -199,8 +202,8 @@ def test_persistent_governor_latches_across_calls():
     breach = json.dumps(
         {
             "kind": "sensor_frame",
-            "ncp_version": "0.7",
-            "seq": 1,
+            "ncp_version": "0.8",
+            "stream": {"epoch": _EP, "seq": 1}, "session": {"generation": _GEN}, "session_id": "s",
             "channels": {
                 "pose_position": {"data": [10.0, 0.0, 0.0], "unit": "m"}
             },
@@ -209,8 +212,8 @@ def test_persistent_governor_latches_across_calls():
     safe = json.dumps(
         {
             "kind": "sensor_frame",
-            "ncp_version": "0.7",
-            "seq": 2,
+            "ncp_version": "0.8",
+            "stream": {"epoch": _EP, "seq": 2}, "session": {"generation": _GEN}, "session_id": "s",
             "channels": {
                 "pose_position": {"data": [0.0, 0.0, 0.0], "unit": "m"}
             },

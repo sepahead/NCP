@@ -16,7 +16,7 @@
 //!
 //! ```python
 //! import ncp
-//! ncp.NCP_VERSION                      # "0.7"
+//! ncp.NCP_VERSION                      # "0.8"
 //! k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 //! k.command("uav3")                    # "ncp/session/uav3/command"
 //! ncp.decode_command(codec_json, '{"vel_x":200.0}', seq=7, t=0.0)  # CommandFrame JSON
@@ -142,7 +142,8 @@ fn encode_rates(codec_json: &str, sensor_json: &str) -> PyResult<String> {
 /// via the checked Rust codec. The caller owns the monotonically increasing seq;
 /// the binding never fabricates one.
 #[pyfunction]
-#[pyo3(signature = (codec_json, rates_json, seq, t = 0.0, frame_id = "world", mode = "hold"))]
+#[pyo3(signature = (codec_json, rates_json, seq, t = 0.0, frame_id = "world", mode = "hold", epoch = "", session_generation = "", session_id = ""))]
+#[allow(clippy::too_many_arguments)]
 fn decode_command(
     codec_json: &str,
     rates_json: &str,
@@ -150,12 +151,24 @@ fn decode_command(
     t: f64,
     frame_id: &str,
     mode: &str,
+    epoch: &str,
+    session_generation: &str,
+    session_id: &str,
 ) -> PyResult<String> {
     let codec: CodecSpec = serde_json::from_str(codec_json).map_err(val)?;
     let rates: Map<f64> = serde_json::from_str(rates_json).map_err(val)?;
     let mode = parse_mode(mode)?;
+    // Wire 0.8: the caller owns the command stream identity (epoch + seq) and the
+    // session incarnation; the binding never fabricates them.
+    let stream = ncp_core::StreamPosition {
+        epoch: epoch.to_string(),
+        seq,
+    };
+    let session = ncp_core::SessionRef {
+        generation: session_generation.to_string(),
+    };
     let cmd = codec
-        .decode_checked(&rates, t, seq, frame_id, mode)
+        .decode_checked(&rates, t, stream, frame_id, mode, session, session_id)
         .map_err(val)?;
     serde_json::to_string(&cmd).map_err(val)
 }
