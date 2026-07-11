@@ -384,7 +384,7 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                 self.last_sensor_ts = Some((s.t, s.stream.seq));
                 // Feed the link monitor only on a genuinely-new sensor (a frozen
                 // re-delivery is a duplicate no-op in the monitor regardless).
-                self.link.on_seq(s.stream.seq);
+                self.link.on_seq(&s.stream.epoch, s.stream.seq);
                 self.accepted_sensor = Some(s);
             }
         }

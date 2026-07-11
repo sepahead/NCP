@@ -12,8 +12,8 @@
 //!   detects; the SafetyGovernor decides.
 
 use crate::messages::{
-    ChannelValue, CommandFrame, LinkStatus, Map, Mode, WireFrame, JSON_SAFE_INTEGER_MAX,
-    MAX_HORIZON_STEPS,
+    ChannelValue, CommandFrame, LinkStatus, Map, Mode, SessionRef, StreamPosition, WireFrame,
+    JSON_SAFE_INTEGER_MAX, MAX_HORIZON_STEPS,
 };
 use crate::safety::{CommandWatchdog, MAX_TTL_MS};
 
@@ -237,6 +237,13 @@ pub struct LinkMonitor {
     /// reconciled — decrementing `lost` — instead of permanently inflating
     /// `loss_rate` on a merely-reordered link.
     missing: std::collections::BTreeSet<i64>,
+    /// Wire 0.8 (§8): the MONITORED stream's epoch, recorded on the first valid
+    /// in-epoch arrival, so `LinkStatus.observed_stream` names *which incarnation*
+    /// the reported high-water/loss belongs to. `None` before any valid frame (the
+    /// pre-first-frame burst case) — `observed_stream` is then absent, tracking
+    /// `last_arrival_seq`. The caller resets the monitor on an epoch transition, so
+    /// within one monitor life every accepted frame shares this epoch.
+    observed_epoch: Option<String>,
 }
 
 impl LinkMonitor {
@@ -270,6 +277,7 @@ impl LinkMonitor {
             threshold,
             burst: false,
             missing: std::collections::BTreeSet::new(),
+            observed_epoch: None,
         }
     }
 
@@ -297,15 +305,21 @@ impl LinkMonitor {
         self.burst = self.cusum >= self.threshold;
     }
 
-    /// Record an arrived message with sequence `seq`.
-    pub fn on_seq(&mut self, seq: i64) {
+    /// Record an arrived message from stream `epoch` with sequence `seq`. The caller
+    /// runs the monitor on a single accepted scope + active epoch and resets it on an
+    /// epoch transition (§7/§8), so `epoch` names the incarnation the loss metrics
+    /// belong to — recorded (for `LinkStatus.observed_stream`) only on a VALID seq.
+    pub fn on_seq(&mut self, epoch: &str, seq: i64) {
         // LinkStatus is shared as JSON with JS peers. A precision-unsafe or
         // negative seq is not a usable sample; trip the burst fail-safe and keep
         // the last valid metrics rather than emitting counters JS cannot represent.
+        // A pre-first-frame burst leaves `observed_epoch` unset — `observed_stream`
+        // and `last_arrival_seq` both stay absent (§8 presence invariant).
         if !(1..=JSON_SAFE_INTEGER_MAX).contains(&seq) {
             self.burst = true;
             return;
         }
+        self.observed_epoch = Some(epoch.to_string());
         // Cap the CUSUM bookkeeping iterations per call so a huge/hostile seq jump
         // (peer restart, counter glitch, malicious sender, e.g. seq=9_000_000_000)
         // cannot stall this thread. The one-sided CUSUM trips at
@@ -393,7 +407,25 @@ impl LinkMonitor {
         self.burst
     }
 
-    pub fn status(&self, t: f64) -> LinkStatus {
+    /// Build a [`LinkStatus`] at publisher time `t`. The caller (the status
+    /// publisher) supplies its OWN `stream` position and the live `session` — the
+    /// LinkStatus envelope identity a consumer validates *before* trusting any
+    /// reported metric (§8). The monitor fills the observed side: `received`/`lost`/
+    /// `loss_rate`/`burst`, plus `observed_stream` (the monitored incarnation + its
+    /// forward high-water) and `last_arrival_seq`, both absent until the first valid
+    /// in-epoch frame (presence invariant: `observed_stream` present ⇔
+    /// `last_arrival_seq` present).
+    pub fn status(&self, t: f64, stream: StreamPosition, session: SessionRef) -> LinkStatus {
+        // Forward high-water: `expected` is high-water + 1, advanced forward-only, so
+        // a late/reordered arrival never regresses `observed_stream.seq` (§8).
+        let observed_stream =
+            self.observed_epoch
+                .clone()
+                .zip(self.expected)
+                .map(|(epoch, expected)| StreamPosition {
+                    epoch,
+                    seq: expected - 1,
+                });
         LinkStatus {
             session_id: self.session_id.clone(),
             t,
@@ -401,10 +433,12 @@ impl LinkMonitor {
             lost: self.lost,
             loss_rate: self.loss_rate(),
             burst: self.burst,
-            // F-16: report the last valid ARRIVAL separately from the high-water. The
-            // epoch-aware observed_stream + this monitor's own stream land with the
-            // epoch-aware monitor (wire-0.8 increment, task 3).
+            stream,
+            observed_stream,
+            // F-16: the last valid ARRIVAL, reported separately from the high-water
+            // (< observed_stream.seq under reordering; == it on forward arrival).
             last_arrival_seq: (self.last_seq >= 1).then_some(self.last_seq),
+            session,
             ..Default::default()
         }
     }
@@ -413,7 +447,7 @@ impl LinkMonitor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::messages::test_ids::{session, stream, SID};
+    use crate::messages::test_ids::{session, stream, EPOCH, SID};
 
     fn vec3(x: f64) -> Map<ChannelValue> {
         let mut m = Map::new();
@@ -615,16 +649,71 @@ mod tests {
     fn link_monitor_counts_gaps_and_flags_burst() {
         let mut m = LinkMonitor::new("uav1", 0.05, 3.0);
         for s in [1, 2, 3] {
-            m.on_seq(s);
+            m.on_seq(EPOCH, s);
         }
         assert_eq!(m.lost, 0);
         assert!(!m.is_burst());
         // Jump expected 4 -> 14: 10 consecutive losses -> CUSUM trips.
-        m.on_seq(14);
+        m.on_seq(EPOCH, 14);
         assert!(m.lost >= 10);
         assert!(m.is_burst(), "a long gap should flag a burst");
         assert!(m.loss_rate() > 0.0);
-        assert_eq!(m.status(0.0).kind, "link_status");
+        assert_eq!(m.status(0.0, stream(1), session()).kind, "link_status");
+    }
+
+    #[test]
+    fn link_status_reports_observed_stream_and_last_arrival() {
+        // §8/§10: arrivals 1,2,5,3 -> observed_stream.seq is the forward high-water
+        // (5), last_arrival_seq is the most recent ARRIVAL (3, < high-water under
+        // reordering), and one gap (4) is still unresolved.
+        let mut m = LinkMonitor::with_defaults("uav1");
+        for s in [1, 2, 5, 3] {
+            m.on_seq(EPOCH, s);
+        }
+        let st = m.status(1.0, stream(7), session());
+        let observed = st
+            .observed_stream
+            .expect("observed_stream present after valid frames");
+        assert_eq!(
+            observed.epoch, EPOCH,
+            "observed_stream names the monitored epoch"
+        );
+        assert_eq!(
+            observed.seq, 5,
+            "observed_stream.seq is the forward high-water"
+        );
+        assert_eq!(
+            st.last_arrival_seq,
+            Some(3),
+            "last_arrival_seq is the latest arrival, below the high-water under reordering"
+        );
+        assert_eq!(
+            st.stream.seq, 7,
+            "own stream is the caller-supplied position"
+        );
+        assert_eq!(st.lost, 1, "the gap at seq 4 is still unresolved");
+    }
+
+    #[test]
+    fn link_status_omits_observed_stream_before_the_first_valid_frame() {
+        // §8: a pre-first-frame burst leaves the own stream present but
+        // observed_stream + last_arrival_seq ABSENT (the presence invariant).
+        let mut m = LinkMonitor::with_defaults("uav1");
+        m.on_seq(EPOCH, 0); // invalid seq: trips the burst, no valid observed frame yet
+        let st = m.status(1.0, stream(7), session());
+        assert!(st.burst, "an invalid seq trips the burst fail-safe");
+        assert!(
+            st.observed_stream.is_none(),
+            "observed_stream is absent before the first valid frame"
+        );
+        assert!(
+            st.last_arrival_seq.is_none(),
+            "last_arrival_seq is absent before the first valid frame"
+        );
+        assert_eq!(
+            st.stream.seq, 7,
+            "the status frame still carries its own stream"
+        );
     }
 
     #[test]
@@ -764,14 +853,14 @@ mod tests {
         let mut m = LinkMonitor::new("uav1", 0.05, 1000.0);
         // 1,2,3 then jump to 7 (lose 4,5,6): 3 lost over span [1,7] = 7 -> ~0.43.
         for s in [1, 2, 3, 7] {
-            m.on_seq(s);
+            m.on_seq(EPOCH, s);
         }
         let base = m.loss_rate();
         assert!(base > 0.3, "real loss must register, got {base}");
         // A flood of 50 duplicates of an old seq must NOT lower the reported loss
         // (the span-based denominator + duplicate no-op make it replay-immune).
         for _ in 0..50 {
-            m.on_seq(1);
+            m.on_seq(EPOCH, 1);
         }
         assert!(
             (m.loss_rate() - base).abs() < 1e-9,
@@ -783,13 +872,13 @@ mod tests {
     #[test]
     fn duplicate_flood_does_not_suppress_burst() {
         let mut m = LinkMonitor::new("uav1", 0.05, 3.0);
-        m.on_seq(1);
-        m.on_seq(21); // big gap -> CUSUM trips
+        m.on_seq(EPOCH, 1);
+        m.on_seq(EPOCH, 21); // big gap -> CUSUM trips
         assert!(m.is_burst(), "a large gap must trip the jam burst");
         // Flooding duplicates of an old seq must NOT clear the latched burst (each
         // duplicate is a metrics no-op, so it cannot lower the loss CUSUM).
         for _ in 0..100 {
-            m.on_seq(1);
+            m.on_seq(EPOCH, 1);
         }
         assert!(
             m.is_burst(),
@@ -803,15 +892,15 @@ mod tests {
         // loss_rate. 1,2,5 counts 3 and 4 as lost; their late arrival reconciles.
         let mut m = LinkMonitor::new("uav1", 0.05, 5.0);
         for s in [1, 2, 5] {
-            m.on_seq(s);
+            m.on_seq(EPOCH, s);
         }
         assert_eq!(m.lost, 2, "gap to 5 counts 3,4 as lost");
-        m.on_seq(3);
-        m.on_seq(4);
+        m.on_seq(EPOCH, 3);
+        m.on_seq(EPOCH, 4);
         assert_eq!(m.lost, 0, "reordered arrivals reconcile the loss count");
         assert_eq!(m.loss_rate(), 0.0, "pure reordering -> zero loss");
         // A duplicate of an already-reconciled seq is a no-op (no negative lost).
-        m.on_seq(3);
+        m.on_seq(EPOCH, 3);
         assert_eq!(m.lost, 0);
     }
 
@@ -820,8 +909,8 @@ mod tests {
         // resilience-2: non-finite ref_loss/threshold must not poison or disable
         // the jam detector — they fall back to the live defaults (0.05 / 5.0).
         let mut m = LinkMonitor::new("x", f64::NAN, f64::NAN);
-        m.on_seq(1);
-        m.on_seq(101); // big gap -> burst should still trip with default params
+        m.on_seq(EPOCH, 1);
+        m.on_seq(EPOCH, 101); // big gap -> burst should still trip with default params
         assert!(
             m.is_burst(),
             "clamped/defaulted params keep the burst detector live"
@@ -834,9 +923,9 @@ mod tests {
         // exact-integer range must trip the safe burst state without leaking an
         // unrepresentable counter into LinkStatus.
         let mut m = LinkMonitor::with_defaults("uav1");
-        m.on_seq(1); // expected -> 2
-        m.on_seq(i64::MAX);
-        m.on_seq(i64::MAX);
+        m.on_seq(EPOCH, 1); // expected -> 2
+        m.on_seq(EPOCH, i64::MAX);
+        m.on_seq(EPOCH, i64::MAX);
         assert!(m.is_burst());
         let lr = m.loss_rate();
         assert!(
@@ -844,7 +933,7 @@ mod tests {
             "loss_rate stays in [0,1], got {lr}"
         );
         assert_eq!(
-            m.status(0.0).kind,
+            m.status(0.0, stream(1), session()).kind,
             "link_status",
             "monitor still usable after rejecting an unsafe seq"
         );
@@ -853,9 +942,9 @@ mod tests {
     #[test]
     fn unstamped_seq_trips_burst_without_refreshing_metrics() {
         let mut monitor = LinkMonitor::with_defaults("uav1");
-        monitor.on_seq(0);
+        monitor.on_seq(EPOCH, 0);
         assert!(monitor.is_burst(), "wire-unstamped seq must fail safe");
-        let status = monitor.status(0.0);
+        let status = monitor.status(0.0, stream(1), session());
         assert_eq!(status.last_arrival_seq, None);
         assert_eq!(status.received, 0);
     }
@@ -865,8 +954,8 @@ mod tests {
         // Garbage/hostile signed extremes are rejected and trip the burst latch;
         // they must never overflow bookkeeping or enter JSON telemetry.
         let mut m = LinkMonitor::with_defaults("uav1");
-        m.on_seq(i64::MIN);
-        m.on_seq(i64::MAX);
+        m.on_seq(EPOCH, i64::MIN);
+        m.on_seq(EPOCH, i64::MAX);
         let lr = m.loss_rate();
         assert!(
             (0.0..=1.0).contains(&lr),
@@ -874,7 +963,7 @@ mod tests {
         );
         assert!(m.is_burst(), "an enormous gap still trips the jam burst");
         assert_eq!(
-            m.status(0.0).kind,
+            m.status(0.0, stream(1), session()).kind,
             "link_status",
             "monitor remains usable after saturation"
         );
@@ -907,8 +996,8 @@ mod tests {
         // bookkeeping must not loop per-missed-seq (that would stall the thread),
         // yet `lost` must remain the exact gap count. Returning at all proves the bound.
         let mut m = LinkMonitor::new("uav1", 0.05, 5.0);
-        m.on_seq(1); // expected -> 2
-        m.on_seq(1_000_000_002); // gap = 1_000_000_002 - 2 = 1_000_000_000
+        m.on_seq(EPOCH, 1); // expected -> 2
+        m.on_seq(EPOCH, 1_000_000_002); // gap = 1_000_000_002 - 2 = 1_000_000_000
         assert_eq!(
             m.lost, 1_000_000_000,
             "lost count stays exact regardless of the loop bound"
@@ -929,9 +1018,9 @@ mod tests {
         // pins the defect; the fix is a wire-0.8 split of a per-plane `stream_seq`
         // (loss accounting) from a `source_stream_seq` (correlation only).
         let mut m = LinkMonitor::with_defaults("uav1"); // ref_loss 0.05, threshold 5.0
-        m.on_seq(1);
+        m.on_seq(EPOCH, 1);
         assert!(!m.is_burst(), "one command is not a burst");
-        m.on_seq(8); // gap 2..=7 counted as six losses although no command was lost
+        m.on_seq(EPOCH, 8); // gap 2..=7 counted as six losses although no command was lost
         assert!(
             m.is_burst(),
             "F-01 defect: a decimated (1 -> 8) source-seq stream trips the jam burst"
