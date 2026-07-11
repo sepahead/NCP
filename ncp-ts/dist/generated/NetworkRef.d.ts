@@ -1,4 +1,4 @@
-import type { NetworkRefKind } from "./NetworkRefKind";
+import type { NetworkRefKind } from "./NetworkRefKind.js";
 /**
  * What to simulate.
  */

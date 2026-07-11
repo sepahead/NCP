@@ -1,4 +1,4 @@
-import type { RecordTarget } from "./RecordTarget";
+import type { RecordTarget } from "./RecordTarget.js";
 export type RecordSpec = {
     targets: Array<RecordTarget>;
 };

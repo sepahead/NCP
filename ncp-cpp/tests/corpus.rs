@@ -23,14 +23,14 @@ unsafe fn validate(kind: &str, json: &str) -> Option<String> {
 }
 
 fn vectors_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../conformance/vectors")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/conformance/vectors")
 }
 
 #[test]
 fn every_json_vector_validates_through_the_c_abi() {
     let dir = vectors_dir();
     let mut n = 0;
-    for entry in std::fs::read_dir(&dir).expect("conformance/vectors readable") {
+    for entry in std::fs::read_dir(&dir).expect("packaged conformance vectors readable") {
         let path = entry.unwrap().path();
         if path.extension().and_then(|e| e.to_str()) != Some("json") {
             continue; // skip the binary bulk vectors (*.bin)
@@ -46,9 +46,9 @@ fn every_json_vector_validates_through_the_c_abi() {
         );
         n += 1;
     }
-    assert!(
-        n >= 13,
-        "expected the full JSON corpus (>=13 vectors), saw {n} — did coverage drop?"
+    assert_eq!(
+        n, 14,
+        "expected the complete wire-0.7 JSON corpus (14 vectors); update this pin deliberately when the contract grows"
     );
 }
 
@@ -56,20 +56,20 @@ fn every_json_vector_validates_through_the_c_abi() {
 fn tampered_scientific_boundary_is_rejected_through_the_c_abi() {
     // A frame asserting it is a calibrated posterior must be rejected by the C++
     // SDK exactly as by the Rust reference (the ncp_core::validate value-pin).
-    // Fixtures carry the wire-0.6 required ncp_version + seq so the boundary pin
+    // Fixtures carry the required envelope + seq so the boundary pin
     // is the only thing that differs between the two frames.
     let ver = ncp_core::NCP_VERSION;
     let lie = format!(
-        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":1,"calibrated_posterior":true}}"#
+        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":1,"records":{{}},"calibrated_posterior":true,"is_simulation_output":true}}"#
     );
     assert!(
         unsafe { validate("observation_frame", &lie) }.is_none(),
         "calibrated_posterior=true must be rejected through the C ABI"
     );
-    // The honest frame (discriminators absent → safe defaults) is accepted;
-    // seq 0 is the legal pull/RPC-reply form.
+    // The honest frame carries both discriminators explicitly; seq 0 is the legal
+    // pull/RPC-reply form.
     let honest = format!(
-        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":0}}"#
+        r#"{{"kind":"observation_frame","ncp_version":"{ver}","session_id":"s1","seq":0,"records":{{}},"calibrated_posterior":false,"is_simulation_output":true}}"#
     );
     assert!(unsafe { validate("observation_frame", &honest) }.is_some());
 }

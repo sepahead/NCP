@@ -11,7 +11,8 @@ import type { Mode } from "./Mode";
  * on it, and the plant's anti-replay/anti-stale layers (`ActionBuffer` /
  * `CommandWatchdog`) reject `seq < 1` outright: the pre-0.6 "`seq == 0` always
  * accepted" escape hatch is REMOVED (it let a default-constructed or all-zeros
- * frame refresh liveness and bypass replay rejection on the action plane).
+ * frame refresh liveness and bypass replay rejection on the action plane). `t`
+ * echoes the driving `SensorFrame.t` in producer-local monotonic seconds.
  */
 export type CommandFrame = { ncp_version: string, kind: string, seq: bigint, t: number, frame_id: string, mode: Mode, ttl_ms: number, channels: { [key in string]: ChannelValue }, 
 /**

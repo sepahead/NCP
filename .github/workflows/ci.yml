@@ -7,26 +7,33 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+# Default-deny the workflow token. Every job in this workflow is read-only.
+permissions:
+  contents: read
+
 jobs:
   build-test:
     name: fmt + clippy + test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
 
       # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.88.0").
       # 1.88 is the floor: transitive deps in Cargo.lock (darling, time/time-core,
       # rcgen, serde_with, home) declare rust-version 1.88, and edition2024 deps
       # need >=1.85 — the old 1.81.0 pin could not even parse their manifests.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable, pinned 2026-07-10
         with:
           toolchain: "1.88.0"
           components: rustfmt, clippy
 
       - name: Cache cargo build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
       - name: Format check
         run: cargo fmt --all --check
@@ -69,6 +76,17 @@ jobs:
       - name: Test ncp-core with TS bindings
         run: cargo test -p ncp-core --features ts --locked
 
+      # Package tests must not accidentally borrow root-only fixtures or licenses.
+      # Assemble all five publishable crates, assert their archive surfaces, then
+      # test core/Zenoh/C-ABI and type-check Python/gateway from extracted archives.
+      # Temporary Cargo patches resolve the not-yet-published exact 0.7 NCP crates
+      # locally without changing the manifests that will be uploaded.
+      - name: Rust crate archives are self-contained
+        run: python3 scripts/check_rust_packages.py --offline
+
+      - name: Rust-generated TS bindings must be committed
+        run: git diff --exit-code -- ncp-core/bindings
+
       # Guard the protobuf IDL against the JSON Schemas (field-set + enum
       # wire-string parity). Closes the third side of the serde/schema/proto
       # triangle; dependency-free, stdlib Python only.
@@ -100,6 +118,13 @@ jobs:
       - name: ACL template guard
         run: python3 scripts/check_acl_template.py
 
+      # The live verifier must never regress to treating local put() success as
+      # authorization evidence. Its offline truth-table/config self-test pins the
+      # nonce-delivery, same-plane baseline, strict-client, and no-cert logic; a
+      # real router/certificate run remains a deployment gate.
+      - name: ACL deployment verifier self-test
+        run: python3 scripts/verify_acl_deployment.py --self-test
+
       # Safety: every committed schema field DEFAULT must equal the normative Rust
       # reference (ncp-core). The parity guard checks field-sets/enums but not
       # defaults; this closes that gap (it caught CommandFrame.mode defaulting to the
@@ -119,19 +144,22 @@ jobs:
   ncp-python:
     name: ncp-python (maturin build + behavioral gate)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable, pinned 2026-07-10
       - name: Cache cargo build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Install build + test deps
-        run: pip install maturin pytest
+        run: pip install maturin==1.14.1 pytest==9.1.1
       # Build the abi3 wheel from the EXACT committed lock (--locked) and install it,
       # so the `ncp` binding is actually compiled + importable in CI — it was
       # previously only `cargo check`ed, so the binding's RUNTIME conformance to
@@ -155,11 +183,14 @@ jobs:
   buf:
     name: buf lint + build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
       - name: Install buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ github.token }}
       # The normative wire IDL (proto/ncp.proto) must build and lint. Language-
@@ -180,29 +211,34 @@ jobs:
       # UNCHANGED from 0.5, so buf breaking is byte-quiet across 0.5→0.6 (the break
       # is in acceptance rules, gated by ncp_version, not by buf).
       - name: buf breaking (vs v0.6.0)
-        uses: bufbuild/buf-breaking-action@v1
+        uses: bufbuild/buf-breaking-action@c57b3d842a5c3f3b454756ef65305a50a587c5ba # v1.1.4
         with:
           against: "https://github.com/sepahead/NCP.git#tag=v0.6.0,subdir=."
 
   ts-dist:
     name: ts dist up-to-date
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
       - name: Install bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       # The published @sepahead/ncp package ships the prebuilt ncp-ts/dist (it is
       # git-tracked). Rebuild it from source and fail if it drifts from what was
       # committed — so a source change (e.g. a wire-version bump) that wasn't
       # rebuilt into dist cannot ship a stale artifact. typescript is pinned in
       # package.json for a reproducible build.
       - name: Install deps
-        run: bun install
-      - name: Rebuild TS dist
-        run: bun run build
-      - name: dist must match the committed build
-        run: git diff --exit-code -- ncp-ts/dist
+        run: bun install --frozen-lockfile
+      - name: Sync generated sources + rebuild TS dist
+        run: |
+          bun run sync
+          bun run build
+      - name: generated TS sources and dist must match the committed build
+        run: git diff --exit-code -- ncp-ts/src/generated ncp-ts/dist
       # Behavioral parity: replay the shared decision corpus
       # (conformance/behavior/vectors.json) through the freshly-built TS peer, so
       # ncp-ts's checkVersion / contractStatus / scientific-boundary decisions are
@@ -210,13 +246,20 @@ jobs:
       # mutate dist, so it cannot trip the diff gate above).
       - name: TS behavioral conformance
         run: bun run check:behavior
+      - name: TS WebSocket lifecycle regression
+        run: bun run check:ws
+      - name: npm packed-package smoke
+        run: bun run check:package
 
   version-coherence:
     name: version coherence
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
       # Read-only guard: the Cargo workspace version, package.json version, and
       # CITATION.cff version must all agree. Catches a release that bumps one
       # metadata file but forgets another (the "stale metadata / moved tag"
@@ -246,13 +289,16 @@ jobs:
   cargo-deny:
     name: cargo-deny (advisories, licenses, bans, sources)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
       # Supply-chain gate over the committed Cargo.lock: RustSec vulnerability +
       # yanked advisories, a default-deny license allowlist, banned/wildcard deps,
       # and source restrictions. Config + documented advisory ignores: deny.toml.
       - name: cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@v2
+        uses: EmbarkStudios/cargo-deny-action@bb137d7af7e4fb67e5f82a49c4fce4fad40782fe # v2
         with:
           command: check

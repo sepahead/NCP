@@ -22,7 +22,7 @@
  * All numeric behaviour is IEEE-754 double math, identical to the Rust `f64`
  * reference. `seq` is a JSON-wire `number` here (see `Wire<T>` in `client.ts`).
  */
-import type { Mode, SafetyLimits, Capabilities } from './generated';
+import type { Mode, SafetyLimits, Capabilities } from './generated/index.js';
 /** JSON-wire channel map: `{ name: { data, unit } }`. */
 export interface WireChannels {
     [name: string]: {
@@ -47,7 +47,11 @@ export interface CommandLike {
 }
 /** Structural (JSON-wire) view of a `SensorFrame` for the governor. */
 export interface SensorLike {
+    kind?: string;
+    ncp_version?: string;
     seq?: number;
+    t?: number;
+    frame_id?: string;
     channels: WireChannels;
 }
 /** Upper bound on an enforced command ttl (ms) — mirrors `safety.rs::MAX_TTL_MS`:
@@ -68,6 +72,9 @@ export declare class CommandWatchdog {
     private lastRecvS;
     private ttlS;
     private lastSeq;
+    private clockHighWaterS;
+    private clockFaulted;
+    private observeClock;
     /** Record an accepted command at local time `nowS` with its `ttl_ms` and `seq`. */
     onCommand(nowS: number, ttlMs: number, seq: number): void;
     /** True if the plant must fail safe to HOLD (no command, expired, bad clock). */
@@ -79,18 +86,20 @@ export declare function maxHorizonLen(ttlMs: number, horizonDtMs: number): numbe
 /**
  * Plant-side packetized-predictive-control buffer — mirrors
  * `ncp_core::ActionBuffer`: holds the latest command + horizon, replays through
- * dropouts, fails safe once expired or drained; ESTOP latches regardless of
+ * dropouts, fails safe once expired or drained; every non-Active mode clears
+ * buffered actuation before replay checks, and ESTOP latches regardless of
  * ordering or stamping (a fail-safe is never dropped); wire-0.6 seq discipline
  * as in {@link CommandWatchdog}.
  */
 export declare class ActionBuffer {
     private latest;
     private recvS;
-    private readonly watchdog;
+    private watchdog;
     private estop;
     private lastSeq;
     onCommand(nowS: number, command: CommandLike): void;
-    /** Clear a latched ESTOP (supervisor authority). */
+    /** Clear a latched ESTOP and discard all pre-ESTOP command state. A fresh
+     * validated Active command is required before actuation resumes. */
     reset(): void;
     isEstopped(): boolean;
     /** The setpoint channels to apply at `nowS`, or `null` to fail safe (HOLD). */
@@ -109,12 +118,14 @@ export declare class SafetyGovernor {
     private readonly positionChannel;
     private readonly velocityChannel;
     private commandChannels;
+    private readonly positionContractValid;
+    private readonly velocityContractValid;
     private estop;
     private configFailClosed;
-    constructor(limits: Pick<SafetyLimits, 'command_timeout_ms'> & Partial<SafetyLimits>, positionChannel?: string, velocityChannel?: string, commandChannels?: string[], sensorChannels?: string[]);
-    /** Resolve the enforced channels from the negotiated `Capabilities` (position =
-     *  first sensor channel, velocity = first command channel, HOLD/zero set =
-     *  every declared command channel) — mirrors `SafetyGovernor::from_capabilities`. */
+    constructor(limits: Pick<SafetyLimits, 'command_timeout_ms'> & Partial<SafetyLimits>, positionChannel?: string, velocityChannel?: string, commandChannels?: string[], sensorChannels?: string[], positionContractValid?: boolean, velocityContractValid?: boolean);
+    /** Resolve explicit canonical safety channels from negotiated `Capabilities`.
+     *  Enabled limits require width-3 `vec3` specs in canonical SI units; declaration
+     *  order never selects a safety input. Mirrors Rust `from_capabilities`. */
     static fromCapabilities(caps: {
         command_channels: Capabilities['command_channels'];
         sensor_channels: Capabilities['sensor_channels'];
@@ -134,9 +145,13 @@ export declare class SafetyGovernor {
      * latches (call {@link reset} to clear).
      */
     govern(command: CommandLike, sensor: SensorLike | null, nowS: number, lastSensorS: number | null): CommandLike;
+    private enforceGeofenceTrajectory;
+    private advanceGeofencePosition;
     /** Magnitude-clamp the velocity channel in place; `false` = unenforceable
-     *  (absent channel / non-finite magnitude) and the caller must fail safe. */
+     *  (absent channel / wrong unit or width / non-finite magnitude) and the caller
+     *  must fail safe. */
     private clampVelocity;
+    private validSafetyVector;
 }
 /**
  * Wire-0.6 data-plane ingress gate — the TS mirror of

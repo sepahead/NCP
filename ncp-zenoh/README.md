@@ -2,8 +2,9 @@
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-The recommended **decoupled NCP transport**: carries the Neuro-Cybernetic Protocol — as opaque byte payloads it never decodes — over a
-data-centric [Zenoh](https://zenoh.io) bus. RPC is a *queryable* on `{realm}/rpc`; the perception,
+The recommended **decoupled NCP transport**: carries the Neuro-Cybernetic Protocol over a
+data-centric [Zenoh](https://zenoh.io) bus. RPC clients query exact
+`{realm}/rpc/{request_kind}` keys and servers declare `{realm}/rpc/*`; the perception,
 action and observation **data planes** are *pub/sub* on per-session keys. Peers address data, not
 server addresses — location-transparent, many-to-many, and the medium a ROS 2 robot client already
 speaks.
@@ -13,6 +14,9 @@ protocol** ([`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md)) w
 Python, TypeScript and C++; `ncp-zenoh` wraps a `zenoh::Session` (`ZenohBus`) with the NCP key
 scheme and per-plane QoS, and provides a typed client (`ZenohNcpClient`) plus a streaming
 `ZenohControlTransport` for the closed control loop.
+
+Public plane-specific methods validate kind/version/seq and required provenance
+before publishing; generic `put` remains the raw-byte escape hatch for extension keys.
 
 Each plane gets the QoS its job needs (`Plane`): **perception** drops under congestion (DataHigh),
 **action** is express + drop at RealTime priority (lowest-latency setpoint), and
@@ -29,9 +33,13 @@ let client = ZenohNcpClient::new(bus);
 let opened = client.open(&open_session_msg).await?; // version-checked SessionOpened
 ```
 
-For a secured deployment, build an explicit `zenoh::Config` (re-exported as `ZenohConfig`) with TLS
-+ access control and pass it to `ZenohBus::with_config(config, keys)`; see
-[`SECURITY.md`](../SECURITY.md) for enabling mutual TLS and per-plane ACLs.
+For a secured deployment, run a separately realm-rendered
+`deploy/zenoh-access-control.json5` router and configure each peer from
+`deploy/zenoh-client-secure.json5`. Set `NCP_ZENOH_CONFIG` to the **client** file and
+call `ZenohBus::open_secure(keys)`; it validates client mode, TLS-only endpoints, no
+listeners/discovery, CA + client credentials, and hostname verification. Generic
+`open`/`with_config_file` accept arbitrary Zenoh configs and are not substitutes for
+that strict security gate. See [`SECURITY.md`](../SECURITY.md).
 
 See the [repository README](../README.md) for the full SDK overview, and
 [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md) for the normative spec.
@@ -75,43 +83,64 @@ loop, where bounded staleness is tolerable but unbounded latency is not. The spl
 lets each plane fail in the way its consumer can absorb: data planes shed load,
 the control plane back-pressures.
 
-## Encoding-agnostic: the transport carries raw bytes
+## Byte-oriented transport with NCP-aware plane gates
 
 `ncp-zenoh` is a *byte pipe with QoS*. Every data-plane method is byte-oriented:
 `put` / `put_sensor` / `publish_command` / `publish_observation` take `&[u8]`,
 `request` returns `Vec<u8>`, and the `serve_rpc` / `subscribe` callbacks receive
-`Vec<u8>`. The transport never parses, validates, or re-encodes a payload — it
-routes opaque bytes with the plane's QoS. (The typed convenience layer,
-`ZenohNcpClient` / `ZenohControlTransport`, does `serde_json` *on top* of this byte
-transport; that is a convenience built over the pipe, not the pipe itself.)
+`Vec<u8>`. The generic transport routes opaque bytes, while `put_sensor`,
+`publish_command`, `publish_observation`, and the typed RPC client parse enough JSON
+to enforce the NCP ingress contract before bytes reach a safety-relevant plane.
+The NCP-aware subscription helpers apply the corresponding receive gate before
+invoking callbacks; generic `subscribe` remains the explicitly raw escape hatch.
+Observation helpers additionally require the payload `session_id` to equal the
+session encoded in the key.
+`serve_rpc` validates selector/request/reply/session identity, contains handler
+panics, dispatches up to 64 complete handler/reply lifetimes concurrently, reaps
+completed tasks before accepting more work, and returns a task handle that the
+caller can abort during shutdown. Synchronous handlers run on Tokio's blocking
+pool so they cannot pin an async worker; aborting stops new queries and replies,
+although an already-running synchronous call necessarily finishes in that pool.
+Excess work receives a typed busy error rather than creating unbounded tasks.
+Long simulation calls should use `request_with_timeout` or the typed
+`step_with_timeout` / `run_with_timeout` methods; choose a deadline covering the
+requested simulation duration plus backend overhead. Methods without an explicit
+deadline intentionally retain Zenoh's configured default.
+
+`ZenohControlTransport` also bounds action egress: one worker owns one pending
+latest-wins slot instead of spawning a task per control tick. Active frames
+conflate, but a pending HOLD/ESTOP cannot be overwritten by Active; failed
+fail-safe publication is retried before later actuation is allowed through.
+
+Subscriptions are owned by the `ZenohBus` wrapper. Call
+`unsubscribe_session(session_id)` after a lifecycle close in a long-running
+process; `close()` releases all remaining subscription handles. A wrapper created
+with `from_session` never closes the host application's borrowed Zenoh session.
 
 What actually rides those bytes today (the shipped runtime reality):
 
 - **Sensor / Command / RPC planes — JSON (`serde_json`).** Human-readable and
   debuggable; this is the default. `ZenohControlTransport` serialises
   `CommandFrame` and deserialises `SensorFrame` with `serde_json` (lib.rs:509, 531).
-- **Bulk / observation (analysis) data — the binary `BulkBlock`** columnar format
-  from `ncp-core` (`bulk.rs`), for large arrays where JSON's size and parse cost
-  would dominate.
+- **Observation data — JSON `ObservationFrame`.** A bare binary `BulkBlock` is not
+  a complete frame (no session/seq/provenance) and is rejected. The codec remains
+  available for local/offline use pending a complete negotiated envelope.
 
 Note that **protobuf is the schema contract, not the runtime encoding.**
 `proto/ncp.proto` (+ `gen/`) is the normative IDL and the conformance
 source-of-truth, but the generated Rust bindings are not compiled into any runtime
 path (`gen/rust` is not a workspace member; there is no `prost` dependency). So
 when the SDK says "the wire is JSON/protobuf", read it as *protobuf defines the
-schema that the JSON conforms to* — JSON (and binary `BulkBlock` for bulk) is what
-actually ships.
+schema that the JSON conforms to* — JSON is what actually ships.
 
 Because the transport is encoding-agnostic, a bandwidth- or kHz-constrained
 consumer could negotiate a denser on-the-wire encoding (e.g. protobuf bytes) as an
 opt-in *without changing `ncp-zenoh`* — the bytes are the bytes. JSON stays the
 debuggable default.
 
-> Security note: `BulkBlock::decode` has an audited unbounded-allocation finding
-> (overlapping/duplicate columns enable a large memory amplification → OOM DoS).
-> Validate bulk payloads from untrusted peers accordingly — see the High entry
-> (`bulk.rs`) in [`KNOWN_LIMITATIONS.md`](../KNOWN_LIMITATIONS.md). It is *not*
-> fixed.
+> Security note: the local `BulkBlock` codec is bounded to 64 MiB and charges copied
+> names/data to a cumulative allocation budget. It still is not a standalone
+> transport message.
 
 ## Zero-copy and per-frame copies (overhead)
 

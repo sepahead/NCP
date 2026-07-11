@@ -7,6 +7,161 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-11
+
+### Wire 0.7 (breaking)
+
+The `v0.7.0` release speaks wire `0.7` with contract hash
+`f05e328cad20959d`. Its frozen JSON baseline, cross-language release gates, and
+coordinated consumer pins establish it as the latest immutable release.
+
+#### Changed (wire contract and addressing)
+
+- Lifecycle RPC requests use exact transport keys
+  `{realm}/rpc/{request_kind}` (`open_session`, `step_request`, `run_request`,
+  `close_session`); servers declare `{realm}/rpc/*`. Structured `wire key`
+  annotations now participate in `CONTRACT_HASH`, allowing per-verb transport ACLs.
+- Every JSON `int64` value is restricted to ±(2^53−1), preventing Rust/C/Python
+  peers from accepting values a JavaScript peer rounds to different bytes. The
+  validators also agree with JSON Schema/JavaScript that integral spellings such
+  as `1.0` and `1e0` are integers, while fractions remain invalid.
+- Wire-version components share one exact grammar in every SDK: one or two
+  unsigned ASCII-decimal `u64` components, with no sign, whitespace, patch, or
+  overflow. TypeScript uses `BigInt` so it does not impose an accidental 2^53
+  parser limit that Rust/Python/C++ lack.
+- Extensible enums preserve unknown non-empty wire strings losslessly. Only exact
+  `mode="active"` grants actuation; unknown modes fail closed. Rust also rejects
+  programmatic `Mode::Unknown("active")` collisions before validation or
+  serialization, so an in-memory non-authority cannot canonicalize into authority.
+- `kind`, nested stimulus identity, complete successful-session provenance, and
+  explicit scientific-boundary assertions are enforced rather than fabricated.
+- RPC failures are typed/versioned `ErrorFrame`s, and clients verify reply session
+  identity before accepting a success.
+- Observation maps are keyed by a unique series name, while each nested
+  `Observation.port` retains the negotiated port. Multiple recordables from one
+  port are therefore representable without collisions.
+- `SessionOpened` success/failure fields are internally consistent: successful
+  replies require matching top-level/provenance backends and no error; failures
+  require an explanation and carry no success provenance.
+- Envelope timestamps are now unambiguous: `t` is producer-local monotonic
+  seconds, `seq` is the cross-plane join key, and `sim_time_ms` / observation
+  sample times are simulation milliseconds.
+
+#### Safety and robustness
+
+- Active commands require a finite positive TTL, at least one finite command
+  channel, complete finite predictive steps, and finite positive horizon cadence.
+  Horizons are bounded by TTL and `MAX_HORIZON_STEPS = 65_536`; enforced TTL is
+  capped at 60 seconds.
+- Safety-governor and ActionBuffer ingress now fail closed on malformed wire
+  envelopes in Rust, Python, TypeScript, and C/C++, while an inbound ESTOP still
+  latches before validation.
+- Safety-limit negotiation no longer trusts the first declared channel:
+  `from_capabilities` selects only canonical `pose_position` /
+  `velocity_setpoint` specs and requires `vec3`, width 3, and exact `m` / `m/s`
+  units when the corresponding limit is enabled. Live tick-0 and horizon values
+  repeat the unit/width gate, so mislabeled or truncated vectors HOLD instead of
+  understating magnitude. Rust/TS and the shared cross-language govern corpus pin
+  the behavior.
+- Geofence enforcement is prospective under the documented kinematic command
+  model, not merely reactive: it projects the
+  canonical velocity trajectory through the full TTL/horizon actuation window,
+  preserves safe inward motion, and HOLDs or truncates before a crossing. An
+  unsafe first future step now HOLDs the entire command because an empty horizon
+  means legacy tick-0 replay, not immediate drain. TTL expires at the deadline
+  (`>=`), never one scheduler tick later; sensor freshness uses the same inclusive
+  boundary. Geofence projection also requires matching effective sensor/command
+  coordinate frames.
+- Resetting an ESTOP-latched `ActionBuffer` clears the buffered command, sequence
+  anchor, and watchdog timestamp; reset alone can never revive pre-ESTOP
+  actuation. Stateful buffer decisions are pinned in the shared behavior corpus.
+- Every non-Active command clears `ActionBuffer` actuation before envelope/sequence
+  rejection, so a duplicate or malformed HOLD cannot leave the previous Active
+  horizon running. Total-silence escalation and current geofence evaluation run
+  before command-mode validation, so a controller's safe HOLD cannot mask a
+  collapsed link or an already-breached boundary and suppress ESTOP.
+- `CommandWatchdog` retains a local clock high-water mark: a backward/non-finite
+  step revokes authority until time catches up **and a fresh command arrives**;
+  merely reaching the old timestamp cannot revive a stale setpoint.
+- `NeuroControlLoop` rejects invalid sensors/rates, does not step a controller on
+  stale input, resets it on a sensor epoch restart, contains controller panics,
+  detects cross-tick and mid-tick clock reversal, echoes sensor seq/t/frame, and
+  normalizes TTL before geofence projection. It publishes no action before a
+  truthful stamped sensor exists and never turns invalid output into actuation.
+- `LinkMonitor` rejects unstamped/precision-unsafe sequence values, uses an
+  inclusive CUSUM threshold, and caps JSON counters.
+- Bulk encoding/decoding is fallible and bounded: duplicate/control-character
+  names, non-zero padding, overlapping regions, conflicting payload columns,
+  type-confused observation columns, non-finite reconstructed data, unchecked
+  narrowing, and allocation amplification are rejected. Directory width is
+  capped at 4,096 columns and region overlap validation is `O(n log n)`, closing
+  the former pairwise-parser CPU amplification path.
+- `CodecSpec::encode_checked` / `decode_checked` validate complete wire frames,
+  finite monotonic ranges, supported rate/readout modes, unique mappings, safe
+  neuron counts, and bounded component counts; bindings expose the checked path
+  instead of silently encoding invalid inputs.
+- Bare NCPB blocks are no longer accepted as observation frames. `BulkBlock`
+  remains a golden-vector-pinned local/offline codec until a complete negotiated
+  `BulkObservation` implementation ships in every SDK.
+
+#### Security and deployment
+
+- Realms are validated segment-by-segment; `Keys::try_new`, transport boundaries,
+  and `ncp-gateway` reject wildcard/empty/control-character realm injection,
+  including the invisible JavaScript-whitespace BOM (`U+FEFF`).
+- The validated realm is immutable after construction, and fallible session/entity
+  key builders let every wire-facing path reject key injection without panicking.
+- The secure deployment assets now distinguish a complete mTLS/default-deny router
+  (`deploy/zenoh-access-control.json5`) from strict peer clients
+  (`deploy/zenoh-client-secure.json5`), with a safe exact-realm renderer.
+- `ZenohBus::open_secure` requires client mode, TLS-only explicit endpoints, no
+  listeners/discovery, CA + client credentials, and hostname verification.
+- Local and Zenoh servers share one RPC boundary validator: exact selector and
+  payload kind, request/reply session identity, response kind, typed error
+  attribution, and handler panic containment are enforced before delivery.
+- Zenoh RPC handlers execute on Tokio's blocking pool behind a 64-request cap
+  covering both backend execution and reply delivery; completed tasks are reaped
+  preferentially under sustained load. `serve_rpc` returns an abortable
+  serve/reply task (an already executing synchronous call finishes normally),
+  per-session subscriptions can be released, and closing a wrapper never closes
+  a session borrowed with `from_session`.
+- Generated JSON Schemas no longer publish deserialize-only failure sentinels as
+  defaults. Required/const fields advertise no default, invalid NaN-as-null TTL
+  annotations are removed, and the legitimate optional `mode="hold"` default is
+  pinned by a recursive safety guard.
+- Subscriber callback panics are contained, preventing one malformed sample from
+  terminating a long-lived Zenoh subscription or suppressing healthy LocalBus
+  subscribers; LocalBus queryable panics become explicit errors.
+- Raw and typed Zenoh RPC clients expose per-call timeouts for long step/run
+  simulations, avoiding accidental conflict with the gateway's backend timeout.
+- `ZenohControlTransport` uses one latest-wins command dispatcher instead of one
+  spawned task per tick. The pending slot is bounded to one frame, HOLD/ESTOP
+  cannot be overwritten by Active, and a failed fail-safe publish is retried
+  ahead of later actuation.
+- NCP-aware data-plane subscriptions validate frames before callback delivery.
+  Observation publishers/subscribers also bind payload `session_id` to the
+  session encoded in the transport key, closing cross-session misrouting.
+- The ACL grants command/observation/RPC authority only to the authenticated
+  commander, sensor publication only to the robot, and read-only aligned data-plane
+  access to observers.
+- The live ACL verifier proves authorization with observer-received randomized
+  nonces, same-plane positive baselines, denied-delivery absence, and a no-client-
+  certificate quarantine check; local `put()` success is never treated as proof.
+
+#### Conformance and supply chain
+
+- Proto↔schema parity now checks types, cardinality, reverse coverage, nested
+  required fields, enum strings, and lifecycle transport keys. The frozen-baseline
+  manifest records recursive `$defs` shape for the forthcoming 0.7 snapshot.
+- The shared behavior corpus exercises the stricter validation and safety outcomes
+  across Rust, Python, TypeScript, and C/C++.
+- CI actions are SHA-pinned with least-privilege permissions/timeouts; Bun installs
+  are frozen, exact tool versions are used, and the audited dependency graph is
+  refreshed.
+- `scripts/check.sh` is now a complete local release gate, including isolated
+  maturin wheel tests, the real C++ ABI demo, reproducible generated artifacts,
+  schema/default/baseline checks, ACL proof self-tests, `cargo-deny`, and `buf`.
+
 ## [0.6.0] - 2026-07-06
 
 **Wire 0.6 — the enforcement cut.** A **breaking** release: `NCP_VERSION` moves
@@ -930,7 +1085,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepahead/NCP/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/sepahead/NCP/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/sepahead/NCP/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sepahead/NCP/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/sepahead/NCP/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/sepahead/NCP/compare/v0.5.1...v0.5.2

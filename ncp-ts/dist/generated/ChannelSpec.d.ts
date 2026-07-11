@@ -1,4 +1,4 @@
-import type { ChannelKind } from "./ChannelKind";
+import type { ChannelKind } from "./ChannelKind.js";
 /**
  * Declares a named channel a controller produces or consumes.
  */

@@ -10,9 +10,9 @@ This crate is the one other NCP peers depend on. It is serde-only (no transport)
 types, the version guard (`NCP_VERSION` / `check_version`), the key scheme, a reference rate
 codec, the action-plane safety governor, and an in-process bus and control loop. The Zenoh
 transport lives in `ncp-zenoh`; the Python, TypeScript, and C++ peers (`ncp-python`,
-`ncp-ts`, `ncp-cpp`) serialize to semantically-equivalent JSON for the live Sensor/Command/RPC
-planes — plus a shared, language-neutral binary `BulkBlock` for bulk
-observation/analysis data — so all peers interoperate.
+`ncp-ts`, `ncp-cpp`) serialize to semantically-equivalent JSON for every shipped
+plane. `BulkBlock` is a bounded, golden-vector-pinned local/offline column codec,
+not a standalone observation frame.
 
 **Scientific boundary (binding):** returned `V_m`/spikes are raw simulation outputs of a
 specified model, never a validated reproduction. Every `ObservationFrame` carries
@@ -70,15 +70,15 @@ through NCP; **crebain** (a tactical-UAV app) runs standalone on its own drone s
 *and/or* through NCP alongside others; **prisoma** is a third consumer. They share
 these types, not a transport.
 
-## Encoding: JSON on the live planes, binary for bulk
+## Encoding: JSON on every shipped plane
 
 The runtime wire is **JSON** (`serde_json`) on the three live planes — Sensor
 (perception), Command (action), and RPC (control). JSON is the deliberate, debuggable
 default: human-readable, trivially bridged across languages, and (per the `overhead`
-benchmark below) far under any realistic control budget. Bulk observation/analysis
-payloads — spike trains, `V_m` traces — instead use a compact, self-describing
-**binary `BulkBlock`** (`NCPB` magic + version byte; module `bulk`), several times
-smaller than the equivalent JSON float array.
+benchmark below) far under any realistic control budget. The compact
+**binary `BulkBlock`** (`NCPB` magic + version byte; module `bulk`) remains useful
+for local/offline arrays, but lacks the session/seq/provenance envelope required on
+the observation plane and is not accepted bare by `ncp-zenoh`.
 
 `proto/ncp.proto` (with `gen/rust`) is the **schema source-of-truth and conformance
 reference**, *not* the shipped runtime encoding — the generated prost bindings are
@@ -92,11 +92,12 @@ a kHz-rate or bandwidth-constrained consumer without changing these types.
 authority, so it is the only one with a governor. `SafetyGovernor::govern` returns a
 *fresh* `CommandFrame` (it never mutates its input) after applying, in order:
 
-- **speed clamp** — magnitude-limits the commanded velocity to `max_speed_mps`. (The
-  per-axis clamp inside `ReflexController` can let vector speed reach up to
-  `sqrt(3)*max_speed`; the governor is what enforces the true magnitude bound.)
-- **geofence** — a breach **latches** ESTOP: every later tick returns a zeroed ESTOP
-  frame until a supervisor calls `SafetyGovernor::reset`;
+- **speed clamp** — magnitude-limits the commanded velocity to `max_speed_mps`;
+  `ReflexController` uses the same vector-magnitude convention;
+- **geofence** — a breach **latches** ESTOP; while still in bounds, the governor
+  projects canonical velocity over every interval the command buffer can apply
+  before TTL, then HOLDs/truncates before a crossing (safe inward motion remains
+  active); every later post-breach tick returns zeroed ESTOP until supervisor reset;
 - **stale-sensor HOLD** — a missing/old sensor falls back to HOLD, *non-latching*
   (it clears as soon as fresh data resumes);
 - **fail-safe clock** — a non-finite tick time fails to HOLD, never fail-open;
@@ -105,7 +106,10 @@ authority, so it is the only one with a governor. `SafetyGovernor::govern` retur
 
 `CommandWatchdog` is the producer-overrun backstop: if the controller misses its
 deadline the plant-side watchdog HOLDs independently, and an out-of-order (older
-`seq`) command does not refresh the deadline.
+`seq`) command does not refresh the deadline. A clock rewind revokes authority
+through catch-up until a fresh command arrives. `ActionBuffer` clears buffered
+actuation on every non-Active mode before replay checks, so a stale/duplicate HOLD
+is never dropped while an older setpoint continues.
 
 **Codec (`codec`).** A *declarative* `CodecSpec` freezes the
 sensor->rate->command interface so a trained SNN policy can train against a stable
@@ -118,6 +122,11 @@ to the **neutral midpoint**, not full-reverse actuation.
 **Resilience (`resilience`).** `ActionBuffer` replays a command's predictive
 `horizon` through a link dropout and HOLDs on `ttl` expiry; `LinkMonitor` tracks link
 health / jam detection.
+
+The reference loop steps controllers only on fresh validated sensors, resets them
+on stream-epoch restart, contains controller panics, and applies the final
+cadence-derived TTL before prospective geofence enforcement. It publishes no
+action until there is a stamped sensor envelope to echo.
 
 ## Examples
 
@@ -145,15 +154,14 @@ Run with `cargo run -p ncp-core --example <name>` (add `--release` for benchmark
 
 ## Known limitations
 
-NCP ships an audited [`KNOWN_LIMITATIONS.md`](../KNOWN_LIMITATIONS.md) cataloguing 35
-findings (correctness, safety, robustness, overhead). They are **documented
-proposals, not yet applied** — and because NCP is a shared contract, fixes that touch
-the wire are intentionally deferred until consumers (Engram/crebain/prisoma) agree.
-Three are high-severity and relevant to this crate: a `bulk.rs` decode path with no
-cumulative allocation budget (OOM-DoS), a `CommandWatchdog` that fails *open* on an
-unbounded / `+Inf` `ttl_ms`, and a geofence that an empty position-channel frame can
-bypass (treated as origin, `r=0`). Consult that file before relying on these paths in
-an adversarial setting.
+NCP ships a live [`KNOWN_LIMITATIONS.md`](../KNOWN_LIMITATIONS.md) ledger spanning
+correctness, safety, robustness, overhead, and integration. All original high-severity
+findings are fixed and regression-tested: bulk decode is bounded and rejects
+overlap/duplicate/padding tricks, watchdog TTL is finite and capped, and an empty
+position channel fails closed. Wire 0.7 adds full typed validation, precision-safe
+JSON integers, strict realm/RPC addressing, and cross-language behavior vectors.
+Remaining unit/arity, transport-lifecycle, deployment-validation, and copy/latency
+items stay explicit; consult the ledger rather than the retired numeric audit count.
 
 
 ## License

@@ -1,19 +1,18 @@
 # Known Limitations & Hardening Backlog
 
-> Wire **0.6** (SDK 0.6.0). This tracks findings from an adversarial review of NCP
+> Wire **0.7**, released as the latest immutable tag `v0.7.0` (SDK manifests
+> 0.7.0). This tracks findings from continuing adversarial reviews of NCP
 > (correctness, safety, robustness, overhead) **and their current status**. Each
 > notes whether the fix changes the on-wire contract (`wire-breaking`, needs a
 > version bump + consumer buy-in across all pinned consumers) or is internal
 > (`safe`). NCP is a generic, shared contract, so conservatism on the still-open
 > items is deliberate.
 >
-> **Status (35 findings): 11 resolved · 24 open (23 `safe` · 1 `wire-breaking`).**
-> All **3 high-severity** safety findings are **resolved** (wire-safe, with
-> regression tests), and the wire-0.6 cut resolved **2 of the 3 wire-breaking**
-> findings (the `seq == 0` escape hatch and the unenforced data-plane
-> `ncp_version`). The remaining 24 are medium/low; the last `wire-breaking` one
-> (per-verb RPC ACL) is gated behind a future addressing change. Line numbers
-> below are indicative and may drift — search by symbol.
+> The original 35-item audit is retained below, but the old numeric status summary
+> is intentionally retired: the 0.7 review added cross-language, provenance,
+> integer-precision, error-frame, CI/supply-chain, and consumer-integration findings.
+> All original high-severity safety findings remain resolved. Line numbers are
+> indicative and may drift — search by symbol.
 
 
 ## Resolved
@@ -26,8 +25,8 @@ these without checking the cited code first.
 - **decode: per-column allocations now carry a cumulative budget — the
   overlapping/duplicate-column memory-amplification (OOM DoS) is closed** —
   `bulk.rs` (`BulkBlock::decode`) · _safety_ · **fixed** (commit `0672168`).
-  A running `alloc_budget` (`= bytes.len()`) is charged `checked_sub(data_len)`
-  per column and rejects when the declared payload exceeds the input, so a tiny
+  A running `alloc_budget` (`= bytes.len()`) charges both copied names and numeric
+  data, and a 64 MiB input ceiling bounds absolute work, so a tiny
   hostile block can no longer force ~64,000× allocation. Every conforming block
   lays columns out disjointly, so only overlapping/amplifying blocks are rejected.
 - **Unbounded / non-finite `ttl_ms` no longer defeats the `CommandWatchdog`
@@ -97,7 +96,121 @@ these without checking the cited code first.
 - **`max_horizon_len` no longer returns `usize::MAX` for a non-finite `ttl_ms`** —
   `resilience.rs` · _robustness_ · **fixed**. `Inf / dt` floored and cast to
   `usize` saturated to `usize::MAX` (an effectively unbounded predictive horizon);
-  a non-finite `ttl_ms`/`horizon_dt_ms` (or `dt <= 0`) now returns `0` (no replay).
+  a non-finite `ttl_ms`/`horizon_dt_ms` (or `dt <= 0`) now returns `0` (no replay),
+  and finite horizons are capped by both the enforced 60 s TTL and
+  `MAX_HORIZON_STEPS = 65_536`.
+- **Bulk encoding no longer truncates counts, lengths, or offsets** — `bulk.rs`
+  (`BulkBlock::encode`) · _robustness_ · **fixed in 0.7**. Encoding is fallible,
+  checks every `u16`/`u32` conversion and arithmetic operation before allocation,
+  rejects blocks over 64 MiB or 4,096 columns, and validates directory-region
+  overlap with a sorted `O(n log n)` scan rather than pairwise `O(n²)` work.
+- **Bare bulk blocks no longer masquerade as complete observation frames** —
+  `ncp-zenoh::publish_observation` · _correctness/security_ · **fixed in 0.7**.
+  NCPB has no session/seq/timestamp/provenance, so the public observation-plane
+  publisher accepts only validated JSON `ObservationFrame` until a complete
+  cross-language `BulkObservation` envelope ships.
+- **Cross-language acceptance drift is closed for kind, int64 precision, enums,
+  nested stimuli, provenance, and RPC errors** — `messages.rs`, schema generator,
+  TS/C/Python gates, behavior corpus · _interop_ · **fixed in 0.7**. Unknown enum
+  strings are retained verbatim; int64 JSON numbers are limited to ±(2^53−1);
+  boundaries are explicit; replies are typed/versioned and session-checked.
+- **Realm key-expression injection is rejected before transport open** — `keys.rs`,
+  `ncp-zenoh`, `ncp-gateway` · _robustness/security_ · **fixed in 0.7**.
+  `valid_realm` validates every segment, `Keys::try_new` returns a normal config
+  error, the validated realm is private/immutable after construction, transport
+  boundaries revalidate defensively, and the gateway refuses an invalid
+  `NCP_REALM` rather than constructing widened keys.
+- **Wire-facing key builders are fallible** — `keys.rs`, `bus.rs` · _robustness_ ·
+  **fixed in 0.7**. `try_sensor`/`try_command`/named/glob variants reject unsafe
+  session/entity segments as normal errors; transport boundaries use them. The
+  infallible builders remain only as programmer-convenience wrappers.
+- **Lifecycle RPC verbs no longer share one unsplittable query key** — `keys.rs`,
+  `bus.rs`, `ncp-zenoh`, proto `wire key` annotations · _authorization_ ·
+  **fixed in 0.7**. Clients query exact `{realm}/rpc/{request_kind}` keys, servers
+  declare `{realm}/rpc/*`, and the default-deny ACL grants RPC authority only to
+  the authenticated commander.
+- **Safety limits no longer interpret free-text units as SI values** — `safety.rs`,
+  `ncp-ts/src/safety.ts`, shared govern corpus · _safety_ · **fixed in 0.7**.
+  `from_capabilities` binds geofence/speed enforcement only to the explicit
+  canonical `pose_position` (`m`) and `velocity_setpoint` (`m/s`) declarations;
+  declaration order cannot redirect a limit to an unrelated first channel.
+  Missing/mismatched negotiated units start config fail-closed, and live frames
+  with the wrong or absent unit HOLD.
+- **Truncated safety vectors no longer understate position/speed magnitude** —
+  `safety.rs`, `ncp-ts/src/safety.ts`, shared govern corpus · _safety_ · **fixed
+  in 0.7**. Enabled geofence/speed limits require negotiated `vec3` channels with
+  implicit width 3 or explicit `size=3`; every live tick and predictive horizon
+  step must carry exactly three finite values. Short/long vectors fail closed,
+  and HOLD/ESTOP output canonicalizes the velocity channel to a zero `m/s` vec3.
+- **Geofence enforcement no longer waits until the plant is already outside** —
+  `safety.rs`, `ncp-ts/src/safety.ts`, shared govern corpus · _safety_ · **fixed
+  in 0.7**. The governor projects canonical velocity over the full period that
+  `ActionBuffer` can apply tick 0 and the horizon before TTL, preserving safe
+  inward motion while HOLDing/truncating before a crossing. A geofence therefore
+  requires a projectable canonical velocity contract and matching effective
+  position/command `frame_id` values.
+- **Truncating the first unsafe horizon step no longer creates indefinite tick-0
+  replay** — Rust/TS safety ports + shared corpus · _safety_ · **fixed in 0.7**.
+  An empty horizon is the legacy “replay current channels until TTL” form, not
+  “drain after tick 0”; the governor now HOLDs the entire command when the first
+  future step is unsafe. Later unsafe steps retain a non-empty safe prefix.
+- **TTL and sensor-freshness expiry are inclusive at the deadline** — Rust/TS and
+  the shared stateful/govern corpora · _safety_ · **fixed in 0.7**. `elapsed >=`
+  the configured deadline HOLDs; an exactly-on-deadline scheduler tick cannot
+  actuate once more.
+- **A clock rewind can no longer be healed by re-anchoring on rewound time** —
+  `CommandWatchdog` / Rust, TS, Python and C behavior corpus · _safety_ · **fixed
+  in 0.7**. The watchdog retains a high-water mark, HOLDs through catch-up, and
+  requires a fresh non-duplicate command before authority returns.
+- **A duplicate or malformed HOLD can no longer leave an older Active horizon
+  running** — `ActionBuffer` / shared behavior corpus · _safety_ · **fixed in
+  0.7**. Every non-Active mode clears actuation before replay/envelope rejection;
+  ESTOP additionally latches.
+- **The reference control loop no longer mutates controllers on stale input or
+  extends TTL after safety projection** — `NeuroControlLoop` · _safety_ · **fixed
+  in 0.7**. Controller panics are contained, restarts reset state, cross-tick
+  clock regression HOLDs, and the final TTL is geofence-checked before publish.
+- **Link monitoring no longer treats `seq=0` as a valid first delivery** —
+  `LinkMonitor` · _safety_ · **fixed in 0.7**. Closed-loop streams require
+  `seq>=1`; an unstamped or precision-unsafe sample trips the burst fail-safe
+  without refreshing counters, and the CUSUM trips inclusively at its threshold.
+- **A slow RPC no longer serializes every lifecycle request** — `ncp-zenoh`
+  (`serve_rpc`) · _robustness_ · **fixed in 0.7**. Validated requests run in
+  independent blocking-pool tasks behind a 64-request cap held through reply
+  delivery, and completed task entries are reaped before accepting more work.
+  A synchronous backend cannot pin an async worker; saturation returns a typed
+  busy error instead of allocating unbounded work. Aborting the returned serve
+  task stops accepting/replying, but cannot forcibly pre-empt a synchronous call
+  already executing; that bounded call finishes in the blocking pool.
+- **Control ticks no longer create an unbounded number of Zenoh publish tasks** —
+  `ZenohControlTransport` · _robustness_ · **fixed in 0.7**. One worker and one
+  pending slot conflate Active frames while preserving/retrying fail-safe priority.
+- **Observation payloads can no longer claim a session different from their key**
+  — core/Zenoh publisher and subscriber gates · _interop/security_ · **fixed in
+  0.7**. NCP-aware subscriptions also drop invalid data-plane envelopes before
+  invoking application callbacks; generic raw `subscribe` stays caller-validated.
+- **Session subscription handles are releasable and borrowed sessions retain
+  ownership** — `ncp-zenoh` (`unsubscribe_session`, `close`) · _robustness_ ·
+  **fixed in 0.7**. A lifecycle close can drop only that session's callbacks;
+  wrapper shutdown drops the rest, and `from_session` never closes its host's
+  Zenoh session.
+- **Streaming command publish failures are observable** —
+  `ZenohControlTransport::send_command` · _robustness_ · **fixed in 0.7**. The
+  bounded dispatcher emits a diagnostic and retries HOLD/ESTOP ahead of Active
+  instead of silently swallowing a failed fail-safe.
+- **The `t` clock domain is explicit** — proto/spec/message docs · _design-gap_ ·
+  **fixed in 0.7**. Envelope `t` is producer-local monotonic seconds, never a
+  cross-peer deadline; commands/plane observations echo the driving sensor time,
+  `seq` performs correlation, and simulation time remains milliseconds.
+- **Missing or short codec input is neutral, never an extreme** — `codec.rs` and
+  Engram's parity implementation · _safety_ · **fixed in 0.7**. The degraded
+  encode path inserts the midpoint of `rate_range_hz`, matching the already-safe
+  decode midpoint, so absent sensor components cannot become maximum reverse or
+  minimum-range control intent. A regression test pins the reference behavior.
+- **Callback panics no longer kill a receive path** — `ncp-zenoh::subscribe` and
+  `ncp-core::LocalBus` · _robustness_ · **fixed in 0.7**. Subscriber panics are
+  contained and diagnosed while healthy subscribers still receive the sample;
+  local queryable panics become `BusError`s rather than unwinding the caller.
 
 
 ## Open — `safe` (internal; no wire change)
@@ -112,95 +225,27 @@ no consumer re-pin). Each is a proposal with a concrete fix.
     matching-width arms move the `Vec` out instead of cloning. Send — add an
     `encode_from(times, values, senders)` that borrows the `Observation`'s slices
     directly to skip the `to_bulk_block` clone. No wire-format change.
-- **codec `encode` maps a missing/short sensor channel to `rate_range_hz.0` (=
-  `value_range` minimum), the same 'missing data → extreme actuation' hazard the
-  `decode` side was explicitly hardened against** — `codec.rs:128` · _safety_.
-  **Parity-coupled:** the same fallback exists in Engram's `codec.py:72`, so a fix
-  must land in **both** peers together to keep the reference codec bit-faithful
-  (the `decode`-side neutral-midpoint fix was made in both — this is the missing
-  encode half).
-  - _Proposed (both peers):_ On a missing/short channel, insert the neutral rate —
-    the midpoint of `rate_range_hz` (equivalently the rate for the `value_range`
-    midpoint), `0.5 * (rate_range_hz.0 + rate_range_hz.1)` — instead of the low end,
-    or skip emitting the population so downstream hold-last applies. Degraded-path
-    only; the rate-map structure is unchanged.
-- **Free-text channel units are never validated against the SI units
-  `SafetyLimits` assumes; the speed clamp and geofence silently mis-scale on a unit
-  mismatch** — `safety.rs:369` · _safety_.
-  - _Proposed:_ At construction (`with_channels`/`from_capabilities`) require the
-    negotiated `ChannelSpec.unit` of the velocity/position channels to equal the
-    canonical SI unit the limit is expressed in (`m/s`, `m`); on mismatch (or absent
-    unit when a limit is set) start `config_fail_closed = true`. Spec-wise, pin a
-    small canonical-unit vocabulary for safety-relevant channels in
-    `NEURO_CYBERNETIC_PROTOCOL.md` rather than leaving `unit` free text.
-- **Channel arity is never validated against `ChannelKind`/size; a truncated vec3
-  position frame makes the geofence under-report distance and fail to ESTOP** —
-  `safety.rs:293` · _safety_. (The *empty*-vector case now fails closed; a
-  *short-but-nonempty* vector still computes a magnitude over too few components.)
-  - _Proposed:_ Validate channel arity against the negotiated `ChannelSpec` before
-    enforcement: when the geofence/velocity channel's `ChannelKind` is vec3 (or its
-    size is set), require the data length to equal that width, else fail closed
-    (HOLD for velocity, ESTOP/HOLD for the un-evaluable geofence). Optionally surface
-    a per-kind arity check in `validate()`.
 - **Gateway bridge timeout (30 s) exceeds Zenoh's default query timeout (~10 s) — a
   slow-but-alive backend yields a spurious 'no reply' to the client** — `main.rs:29`
-  · _correctness_. This is partly a **deployment tuning** concern: a long
+  · _correctness_. **Mitigated in 0.7:** `request_with_timeout` and the typed
+  `step_with_timeout` / `run_with_timeout` APIs now provide per-call alignment and
+  `deploy/README.md` documents it. This remains partly a **deployment tuning** concern: a long
   `run_request` (advancing NEST by a large duration) legitimately needs a long
   client-side query timeout, which the gateway cannot control.
-  - _Proposed / guidance:_ Set the client's Zenoh `queries_default_timeout` (or a
-    per-call `.timeout(..)`) to at least the expected step/run duration, and keep
+  - _Guidance:_ Set `queries_default_timeout` or use the shipped per-call timeout
+    APIs for at least the expected step/run duration, and keep
     the gateway's socket timeout aligned so a successful backend never out-lives the
     query window. Document the relationship in `deploy/README.md`.
-- **RPC queryable handler runs serially in the recv loop — one slow/hung backend
-  stalls all control-plane RPC** — `lib.rs:319` · _robustness_.
-  - _Proposed:_ Clone the `Arc<handler>` and `tokio::spawn` a task per received query
-    (handler call + `query.reply().await` inside it) so concurrent RPCs are served in
-    parallel; the recv loop only dispatches. Single-key on the wire unchanged.
-- **Subscriptions are never removed — per-session subscribe on a long-lived bus
-  leaks handles and keeps firing callbacks for closed sessions** — `lib.rs:476` ·
-  _design-gap_.
-  - _Proposed:_ Return an opaque guard from `subscribe*` whose `Drop` undeclares it,
-    or add `close_session_subs(session_id)`. API change only, not wire.
-- **`close()` unconditionally closes the underlying session, including one borrowed
-  via `from_session`** — `lib.rs:484` · _robustness_.
-  - _Proposed:_ Track ownership (`owned: bool`, true only for `with_config`/`open*`)
-    and make `close()` a no-op / undeclare-only when not owned; or document that
-    `from_session` callers must never call `close()`.
 - **`latest_sensor()` deep-clones the entire `SensorFrame` under a `Mutex` on every
   control tick** — `lib.rs:542` · _overhead_.
   - _Proposed:_ Store the latest frame as `Arc<SensorFrame>` (e.g.
     `ArcSwapOption`), so the reader clones only a pointer. `latest_sensor` returns
     `Option<Arc<SensorFrame>>`; the controller already takes `Option<&SensorFrame>`
     so `arc.as_deref()` works. Trait-API change, not wire.
-- **`encode` silently truncates `n_cols`/`total_len`/offsets via unchecked
-  `as u16`/`as u32` casts, producing corrupt blocks instead of erroring** —
-  `bulk.rs:281` · _robustness_.
-  - _Proposed:_ Add `debug_assert!`s, or a fallible `try_encode() -> Result<…,
-    BulkError>` using `u16::try_from`/`u32::try_from` (→ `BulkError::Overflow`),
-    keeping infallible `encode()` as a thin wrapper. No wire-format change.
-- **Realm string is interpolated into every key without validation — a
-  wildcard/empty/trailing-slash realm silently widens or breaks the keyspace** —
-  `keys.rs:53` · _robustness_. (Session `id`/`name` segments *are* validated; the
-  realm is not.)
-  - _Proposed:_ Add a `valid_realm()` check (non-empty; each `/`-separated segment
-    passes `valid_id_segment`; no `* $ # ?`/whitespace; no leading/trailing/double
-    slash) and apply it in `Keys::new` and when the gateway reads `NCP_REALM`,
-    returning an error instead of building corrupt keys.
 - **Per-publish key strings are rebuilt via nested `format!` on every frame (plant
   publishes every tick)** — `keys.rs:64` · _overhead_.
   - _Proposed:_ Cache the per-session, per-plane key strings once at transport
     construction and reuse them in the hot `put` calls. Non-wire.
-- **`Keys` builders panic (`assert!`) on an invalid id — process abort instead of
-  fail-safe reject** — `keys.rs:65` · _robustness_.
-  - _Proposed:_ Provide fallible builders (`try_session`/`try_sensor` → `Result`)
-    and use them on any wire-facing path; reserve `assert!`/panic for clearly-internal,
-    already-validated callers.
-- **The per-frame timestamp field `t` has no specified unit or clock domain on any
-  message** — `messages.rs:770` · _design-gap_.
-  - _Proposed:_ Pin `t`'s contract in `proto/ncp.proto` and
-    `NEURO_CYBERNETIC_PROTOCOL.md` — recommend "seconds, sender's monotonic clock,
-    not comparable across peers; use `seq` for correlation and the plant's own clock
-    for liveness". Or drop `t` in favour of `seq` + `sim_time_ms`.
 - **Hot action/perception planes are JSON-only; constant string fields
   (`ncp_version`/`kind`/`frame_id`) are re-encoded every frame** — `messages.rs:794` ·
   _design-gap_. (Deliberate: the self-describing JSON wire is the default; see
@@ -214,9 +259,19 @@ no consumer re-pin). Each is a proposal with a concrete fix.
   hardcoded origin (counts altitude; no configurable center)** — `safety.rs:293` ·
   _design-gap_.
   - _Proposed:_ Document the fence explicitly as a sphere about the frame origin, or
-    restrict the norm to horizontal (xy) components and/or add a configurable center
-    and per-axis bounds to `SafetyLimits` (the latter extends the wire schema →
-    `wire-breaking` for that field).
+  restrict the norm to horizontal (xy) components and/or add a configurable center
+  and per-axis bounds to `SafetyLimits` (the latter extends the wire schema →
+  `wire-breaking` for that field).
+- **Prospective geofence projection is kinematic, not a certified plant model** —
+  `SafetyGovernor` integrates the commanded `velocity_setpoint` as if it were the
+  realized world-frame velocity. Inertia, acceleration limits, tracking error,
+  wind, actuator lag, and localization uncertainty can still carry a physical
+  plant across the boundary after NCP HOLDs. This layer prevents an NCP command /
+  replay from *requesting* a modeled crossing; it cannot guarantee containment.
+  - _Required deployment control:_ enforce the authoritative geofence and braking
+    envelope again in the flight controller / safety PLC using measured state.
+    A future NCP dynamics/braking contract would be wire-visible and must be
+    negotiated rather than guessed.
 - **`SafetyGovernor::govern` deep-clones the whole `CommandFrame` every active
   tick** — `safety.rs:305` · _overhead_.
   - _Proposed:_ Change the signature to take `command: CommandFrame` by value; the
@@ -228,47 +283,37 @@ no consumer re-pin). Each is a proposal with a concrete fix.
   - _Proposed:_ Offer a bounded handler variant for the perception plane that drops
     instead of back-pressuring (Zenoh `RingChannel`/`FifoChannel`, drained on a
     dedicated task). Keep the inline callback for control/observation. Non-wire.
-- **`serve_rpc` cannot be stopped without closing the session, and its doc claims a
-  returned task that does not exist** — `lib.rs:318` · _api_.
-  - _Proposed:_ Return the `JoinHandle`/`AbortHandle` (or a guard whose `Drop`
-    aborts) from `serve_rpc` and fix the doc to match.
-- **Action-plane publish errors are silently swallowed in the streaming control
-  transport** — `lib.rs:538` · _robustness_.
-  - _Proposed:_ On `Err` from `publish_command`, increment a counter or emit a
-    throttled diagnostic (as the sensor-decode path already does), keeping the send
-    non-blocking.
 - **Zenoh subscribe callback forces a `String` + `Vec<u8>` heap allocation on every
   received frame (every sensor/command tick)** — `lib.rs:468` · _overhead_.
   - _Proposed:_ Change the callback bound to `Fn(&str, &[u8])` (matching
     `ncp_core::SubCallback`) and pass borrowed key/payload; callbacks that need to
     retain copy explicitly. Source-API change for downstream callbacks; wire unchanged.
-- **`send_command` allocates per command on the latency-critical action plane
-  (`Keys`/`String` clone + `spawn`)** — `lib.rs:530` · _overhead_.
-  - _Proposed:_ Make `Keys.realm: Arc<str>` and store `session_id: Arc<str>` so
-    clones are refcount-only; replace the per-command `tokio::spawn` with one
-    long-lived publisher task fed by a `watch`/bounded-mpsc. Non-wire.
+- **`send_command` still serializes/allocates one JSON buffer per command on the
+  latency-critical action plane** — `ZenohControlTransport` · _overhead_. The
+  former per-command task/key clones are resolved by the bounded long-lived
+  dispatcher; serialization remains.
+  - _Proposed:_ add an owned `ZBytes` publish path and reuse a capacity-bounded
+    serialization buffer where Zenoh ownership permits it. Non-wire.
 - **`ZenohBus::put` re-copies the payload via `to_vec()` even when the caller already
   owns the serialized `Vec`** — `lib.rs:441` · _overhead_.
   - _Proposed:_ Add `put_owned(&self, key, payload: Vec<u8>, plane)` (or make `put`
     generic over `impl Into<ZBytes>`) that moves the owned buffer with no copy, and
     route `send_command`/`publish_command`/RPC through it. Non-wire.
 
+## Open — coordinated / wire-visible or deployment policy
 
-## Open — `wire-breaking` (needs a version bump + fleet buy-in)
+- **General JSON envelopes have no universal pre-parse byte, nesting-depth, map,
+  string, or channel-array budget shared by all SDKs.** Bulk blocks, predictive
+  horizons, codec components, RPC concurrency and command dispatch are bounded,
+  but an externally exposed raw JSON endpoint can still spend memory/CPU parsing
+  a very large otherwise-structural message before semantic validation rejects
+  it. Rust/TS/Python/C also differ in parser depth defaults.
+  - _Required deployment control:_ cap payload bytes at the router/socket/API edge
+    before parsing and rate-limit unauthenticated/open deployments.
+  - _Proposed contract fix:_ agree cross-language maxima and conformance vectors,
+    enforce them in every ingress, schema and binding, then ship under a major wire
+    version because previously accepted messages would be rejected.
 
-These change on-wire addressing or acceptance rules, so they must ride a wire
-version bump with every pinned consumer re-pinned in lockstep — hence they are
-documented, not silently applied. See `VERSIONING.md`. (The former `seq == 0`
-escape hatch and the unenforced data-plane `ncp_version` were resolved by the
-wire-0.6 cut — see the Resolved section above.)
-
-- **Single RPC key per realm prevents per-verb ACL — the shipped ACL lets an
-  observer/robot close or step any session** — `zenoh-access-control.json5:81` ·
-  _design-gap_ · **wire-breaking**.
-  - _Proposed:_ Split the privileged verbs onto distinct key-expressions (e.g.
-    `{realm}/rpc/open` vs `{realm}/rpc/admin`) so the ACL can allow `open` but
-    restrict `step`/`run`/`close` to the commander; or authorize the caller's proven
-    identity per verb in the RPC handler. The key-split changes on-wire RPC addressing.
 
 ---
 _Status tracked against the current tree; resolved items cite the fixing commit or

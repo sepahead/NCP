@@ -56,14 +56,17 @@ Since wire 0.6 the TS peer ships the plant-side safety surface (`src/safety.ts`)
 TypeScript body can enforce the action-plane contract locally instead of delegating every
 decision to a Rust peer:
 
-- **`SafetyGovernor`** — the latching action-plane governor (speed clamp, geofence →
-  latched ESTOP, stale-sensor HOLD); an **inbound ESTOP latches** until a supervisor
-  `reset()`.
+- **`SafetyGovernor`** — the latching action-plane governor (speed clamp,
+  direction-aware TTL/horizon geofence projection, breach → latched ESTOP,
+  stale-sensor HOLD); an **inbound ESTOP latches** until supervisor `reset()`.
 - **`CommandWatchdog`** — the `ttl_ms` deadline backstop; it refreshes only on a
-  strictly-advancing `seq` and HOLDs when the deadline lapses.
+  strictly-advancing `seq` and HOLDs at the exact deadline. A clock rewind keeps
+  authority revoked through catch-up until a fresh command arrives.
 - **`ActionBuffer`** + **`maxHorizonLen`** — packetized-predictive-control horizon
-  replay, capped at `N ≤ ttl_ms / horizon_dt_ms` so a replay never outlives its own
-  `ttl_ms`.
+  replay, capped at `N ≤ ttl_ms / horizon_dt_ms` and `N ≤ 65,536`, with enforced TTL
+  itself capped at 60 s, so a replay is temporally and spatially bounded. Every
+  non-Active mode clears buffered actuation before replay/envelope rejection;
+  ESTOP additionally latches.
 - **`assertWireFrame`** — the one-call ingress gate (kind + `ncp_version` + `seq` bound)
   a TS subscriber runs before trusting a frame.
 

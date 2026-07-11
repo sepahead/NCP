@@ -35,8 +35,10 @@ Notes (see the header and `src/lib.rs` for the full contract):
 - Every `char*` return is a heap-allocated UTF-8 C string the caller MUST release
   with `ncp_string_free`. A `NULL` return signals malformed input or an internal
   error; string arguments are NUL-terminated UTF-8.
-- Every `extern "C"` body is wrapped in `std::panic::catch_unwind` and returns its
-  `NULL`/`-1` sentinel on panic — no unwind ever crosses the C ABI.
+- Every `extern "C"` body is wrapped in `std::panic::catch_unwind`; under
+  `panic=unwind`, an internal panic returns the documented `NULL`/`-1` sentinel
+  instead of crossing the C ABI. A `panic=abort` build still terminates, as Rust
+  cannot catch an abort.
 
 ## Coverage
 
@@ -47,9 +49,18 @@ governor comes in two forms: the one-shot `ncp_govern` JSON wrapper, and a persi
 **latching** handle — `ncp_governor_new` / `ncp_governor_govern` / `ncp_governor_reset` /
 `ncp_governor_is_estopped` / `ncp_governor_note_link` / `ncp_governor_safety_ok` /
 `ncp_governor_free`. The one-shot form is stateless and **cannot** hold an ESTOP latch
-across calls (it stays for stateless/corpus use); a live actuator loop uses the handle,
-which does. This covers the wire-level operations a C/C++ peer needs to be wire-identical
-to the Rust/Python/TS peers.
+across calls (it stays for stateless/corpus use).
+
+A live actuator needs **both** persistent safety layers:
+
+- `NcpGovernor` enforces sensor freshness, geofence, speed limits, and the safety
+  ESTOP latch.
+- `NcpActionBuffer` (`ncp_action_buffer_*`) enforces command `ttl_ms`, monotonic
+  seq/replay rejection, bounded predictive-horizon replay, and its own ESTOP latch.
+
+Using the Governor alone does not enforce command-arrival deadlines. Together these
+opaque handles expose the canonical Rust decisions instead of requiring C/C++ plants
+to reimplement action-plane safety.
 
 The following `ncp-core` modules are **not** exposed through the C ABI (use
 `ncp-core` directly from Rust for full API access): the full key-scheme
@@ -58,7 +69,7 @@ The following `ncp-core` modules are **not** exposed through the C ABI (use
 the one-shot `ncp_govern` and the persistent `ncp_governor_*` handle above), the bulk
 column codec (`ncp-core::bulk`), the in-process bus
 (`LocalBus`), the control-loop runner (`NeuroControlLoop`), and the resilience
-layer (`ActionBuffer`, `LinkMonitor`). These are transport-internal or
+monitor (`LinkMonitor`; `ActionBuffer` is exposed through `NcpActionBuffer`). These are transport-internal or
 Rust-ergonomic APIs not naturally expressed over a C ABI; the JSON wire surface
 is the interop boundary.
 

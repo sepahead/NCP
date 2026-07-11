@@ -1,6 +1,10 @@
-import type { Observation } from "./Observation";
+import type { Observation } from "./Observation.js";
 /**
- * The returned neural data, keyed by record port.
+ * The returned neural data, keyed by a unique record-series name. The nested
+ * `Observation.port` identifies the negotiated record port; distinct
+ * `recordable` series from one port therefore remain representable. `t` is
+ * producer-local monotonic seconds (the plane form echoes `SensorFrame.t`);
+ * `sim_time_ms` is authoritative simulation time.
  */
 export type ObservationFrame = {
     ncp_version: string;

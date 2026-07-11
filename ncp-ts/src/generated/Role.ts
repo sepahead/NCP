@@ -3,4 +3,4 @@
 /**
  * Who a peer is in the closed-loop handshake.
  */
-export type Role = "controller" | "plant";
+export type Role = "controller" | "plant" | (string & {});

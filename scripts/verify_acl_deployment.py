@@ -1,225 +1,647 @@
 #!/usr/bin/env python3
-"""verify_acl_deployment.py — live P0 closure checklist for issue #7.
+"""Prove a live NCP Zenoh router's mTLS and per-plane ACL enforcement.
 
-Automates the four-step mTLS + ACL enforcement verification table in
-SECURITY.md ("P0 closure checklist"). Run it against a *live* Zenoh realm
-that has the ACL template (deploy/zenoh-access-control.json5) and mutual TLS
-enabled. It exercises both PUT-authority invariants:
+The return value of ``session.put`` is not ACL evidence: a local Zenoh session can
+accept a put even when the router drops it. This verifier therefore establishes an
+authenticated observer subscription first, publishes a unique nonce for every
+trial, and judges the router only by delivery acknowledgments:
 
-  1. commander  PUT on .../command/**  → ACCEPT (only the commander may command)
-  2. robot/obs  PUT on .../command/**  → REJECT (perception-only cannot command)
-  3. robot      PUT on .../sensor/**   → ACCEPT (the plant publishes perception)
-  4. commander  PUT on .../sensor/**   → REJECT (the brain cannot spoof sensor data)
+* an allowed nonce MUST reach the observer;
+* a denied nonce MUST remain unobserved; and
+* every denied check requires a successful allowed baseline on the same plane.
 
-Plus: a peer presenting NO client cert is refused at the mTLS layer.
+It covers command PUT = commander, sensor PUT = robot, observation PUT =
+commander, observer read access to all three planes, and a separate no-client-cert
+transport rejection. Probes use a randomized ``acl-verify-*`` session so they
+cannot collide with a live actuator session.
 
-The script uses the Zenoh Python binding (zenoh-python) if available, or falls
-back to the `z_put` / z_sub CLI tools. It does NOT run in CI — it is a
-deployment-time verification tool. Exit 0 = all four invariants hold; exit 1 =
-at least one failed (the realm is NOT P0-validated).
-
-Usage:
-  python3 scripts/verify_acl_deployment.py \\
-      --endpoint tls/localhost:7447 \\
-      --realm ncp \\
-      --session s1 \\
-      --commander-cert commander.crt --commander-key commander.key \\
-      --robot-cert robot.crt --robot-key robot.key \\
-      --observer-cert observer.crt --observer-key observer.key \\
-      --ca ca.crt
-
-Or, if using the Zenoh CLI (z_put) instead of the Python binding:
-  python3 scripts/verify_acl_deployment.py --use-cli \\
-      --endpoint tls/localhost:7447 --realm ncp --session s1 \\
-      --ca ca.crt
-
-Requires: zenoh-python (pip install zenoh) or the Zenoh CLI (z_put/z_sub).
+The Zenoh CLI fallback was intentionally removed: ``z_put`` alone cannot prove
+end-to-end delivery or distinguish ACL denial from a broken route.
 """
 from __future__ import annotations
 
 import argparse
-import subprocess
+import json
+import math
+import os
+import secrets
 import sys
+import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from render_acl_template import valid_realm, valid_segment
+
+ROLE_COMMANDER = "commander"
+ROLE_ROBOT = "robot"
+ROLE_OBSERVER = "observer"
+PLANE_COMMAND = "command"
+PLANE_SENSOR = "sensor"
+PLANE_OBSERVATION = "observation"
 
 
-@dataclass
+@dataclass(frozen=True)
+class IdentityFiles:
+    certificate: str
+    private_key: str
+
+
+@dataclass(frozen=True)
+class ProbeCase:
+    step: int
+    actor: str
+    plane: str
+    key: str
+    expect_delivery: bool
+
+
+@dataclass(frozen=True)
 class CheckResult:
     step: int
     description: str
-    expected: str  # "ACCEPT" or "REJECT"
+    expected: str
     actual: str
     passed: bool
+    detail: str
 
     def __str__(self) -> str:
         status = "PASS" if self.passed else "FAIL"
         return (
             f"  [{status}] Step {self.step}: {self.description}\n"
-            f"          expected={self.expected}, actual={self.actual}"
+            f"          expected={self.expected}, actual={self.actual}\n"
+            f"          {self.detail}"
         )
 
 
-def _try_zenoh_python_put(
+def _nested(value: object, *path: str) -> object | None:
+    for part in path:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
+
+
+def _endpoint_strings(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for nested in value for item in _endpoint_strings(nested)]
+    if isinstance(value, dict):
+        return [item for nested in value.values() for item in _endpoint_strings(nested)]
+    return []
+
+
+def client_config_spec(
     endpoint: str,
-    key: str,
-    value: str,
-    cert: str | None,
-    key_file: str | None,
     ca: str,
+    identity: IdentityFiles | None,
+) -> dict[str, object]:
+    """Build the strict client shape expected by ``ZenohBus.open_secure``."""
+    tls: dict[str, object] = {
+        "root_ca_certificate": ca,
+        "verify_name_on_connect": True,
+    }
+    if identity is not None:
+        tls["connect_certificate"] = identity.certificate
+        tls["connect_private_key"] = identity.private_key
+    return {
+        "mode": "client",
+        "connect": {"endpoints": [endpoint]},
+        "listen": {"endpoints": []},
+        "scouting": {
+            "multicast": {"enabled": False},
+            "gossip": {"enabled": False},
+        },
+        "transport": {"link": {"tls": tls}},
+    }
+
+
+def validate_client_config_spec(
+    config: dict[str, object], *, require_identity: bool
+) -> list[str]:
+    """Offline mirror of NCP's fail-closed secure-client assumptions."""
+    errors: list[str] = []
+    if config.get("mode") != "client":
+        errors.append('mode must be "client"')
+    endpoints = _endpoint_strings(_nested(config, "connect", "endpoints"))
+    if not endpoints or any(
+        not endpoint.startswith("tls/")
+        or any(char.isspace() or ord(char) < 32 for char in endpoint)
+        for endpoint in endpoints
+    ):
+        errors.append("connect endpoints must be non-empty and exclusively valid tls/ endpoints")
+    if _endpoint_strings(_nested(config, "listen", "endpoints")):
+        errors.append("client must not expose listen endpoints")
+    for path in (("scouting", "multicast", "enabled"), ("scouting", "gossip", "enabled")):
+        if _nested(config, *path) is not False:
+            errors.append(f"{'/'.join(path)} must be false")
+
+    tls = _nested(config, "transport", "link", "tls")
+    if not isinstance(tls, dict):
+        return errors + ["transport/link/tls must be an object"]
+    ca = tls.get("root_ca_certificate")
+    if not isinstance(ca, str) or not ca.strip():
+        errors.append("root_ca_certificate must be non-empty")
+    if tls.get("verify_name_on_connect") is not True:
+        errors.append("verify_name_on_connect must be true")
+    certificate = tls.get("connect_certificate")
+    private_key = tls.get("connect_private_key")
+    if (certificate is None) != (private_key is None):
+        errors.append("connect certificate and private key must be supplied together")
+    if require_identity:
+        if not isinstance(certificate, str) or not certificate.strip():
+            errors.append("connect_certificate must be non-empty")
+        if not isinstance(private_key, str) or not private_key.strip():
+            errors.append("connect_private_key must be non-empty")
+    elif certificate is not None or private_key is not None:
+        errors.append("no-certificate probe must omit both client identity fields")
+    return errors
+
+
+def _insert_config_tree(config: Any, path: str, value: object) -> None:
+    config.insert_json5(path, json.dumps(value, separators=(",", ":")))
+
+
+def _to_zenoh_config(zenoh: Any, spec: dict[str, object]) -> Any:
+    config = zenoh.Config()
+    _insert_config_tree(config, "mode", spec["mode"])
+    _insert_config_tree(config, "connect/endpoints", _nested(spec, "connect", "endpoints"))
+    _insert_config_tree(config, "listen/endpoints", _nested(spec, "listen", "endpoints"))
+    _insert_config_tree(
+        config,
+        "scouting/multicast/enabled",
+        _nested(spec, "scouting", "multicast", "enabled"),
+    )
+    _insert_config_tree(
+        config,
+        "scouting/gossip/enabled",
+        _nested(spec, "scouting", "gossip", "enabled"),
+    )
+    _insert_config_tree(config, "transport/link/tls", _nested(spec, "transport", "link", "tls"))
+    return config
+
+
+def _router_ids(session: Any) -> list[object]:
+    info = session.info
+    if callable(info):  # compatibility with older zenoh-python releases
+        info = info()
+    routers = info.routers_zid()
+    return list(routers)
+
+
+def _wait_for_router(session: Any, timeout_s: float) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while True:
+        try:
+            if _router_ids(session):
+                return True
+        except Exception:
+            return False
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(min(0.05, max(0.0, deadline - time.monotonic())))
+
+
+def _payload_bytes(sample: Any) -> bytes:
+    payload = sample.payload
+    try:
+        return bytes(payload)
+    except TypeError:
+        return bytes(payload.to_bytes())
+
+
+class DeliveryRecorder:
+    def __init__(self) -> None:
+        self._condition = threading.Condition()
+        self._deliveries: set[tuple[str, bytes]] = set()
+
+    def callback(self, sample: Any) -> None:
+        try:
+            key_expr = sample.key_expr
+            if callable(key_expr):
+                key_expr = key_expr()
+            key = str(key_expr)
+            payload = _payload_bytes(sample)
+        except Exception:
+            return
+        with self._condition:
+            self._deliveries.add((key, payload))
+            self._condition.notify_all()
+
+    def wait(self, key: str, payload: bytes, timeout_s: float) -> bool:
+        deadline = time.monotonic() + timeout_s
+        with self._condition:
+            while (key, payload) not in self._deliveries:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return False
+                self._condition.wait(remaining)
+            return True
+
+    def contains(self, key: str, payload: bytes) -> bool:
+        with self._condition:
+            return (key, payload) in self._deliveries
+
+
+def _evaluate_delivery(
+    *, expect_delivery: bool, observed: bool, plane_baseline_ok: bool
 ) -> tuple[bool, str]:
-    """Try to PUT using zenoh-python. Returns (succeeded, detail)."""
+    if expect_delivery:
+        return observed, "nonce delivery acknowledged" if observed else "allowed nonce was not observed"
+    if not plane_baseline_ok:
+        return False, "denial is inconclusive because this plane has no allowed delivery baseline"
+    return (not observed), (
+        "nonce remained unobserved after the denial window"
+        if not observed
+        else "forbidden nonce reached the observer"
+    )
+
+
+def _probe_plan(realm: str, session_id: str) -> list[ProbeCase]:
+    command = f"{realm}/session/{session_id}/command/acl-probe"
+    sensor = f"{realm}/session/{session_id}/sensor/acl-probe"
+    observation = f"{realm}/session/{session_id}/observation"
+    return [
+        ProbeCase(1, ROLE_COMMANDER, PLANE_COMMAND, command, True),
+        ProbeCase(2, ROLE_ROBOT, PLANE_SENSOR, sensor, True),
+        ProbeCase(3, ROLE_COMMANDER, PLANE_OBSERVATION, observation, True),
+        ProbeCase(4, ROLE_ROBOT, PLANE_COMMAND, command, False),
+        ProbeCase(5, ROLE_OBSERVER, PLANE_COMMAND, command, False),
+        ProbeCase(6, ROLE_COMMANDER, PLANE_SENSOR, sensor, False),
+        ProbeCase(7, ROLE_OBSERVER, PLANE_SENSOR, sensor, False),
+        ProbeCase(8, ROLE_ROBOT, PLANE_OBSERVATION, observation, False),
+        ProbeCase(9, ROLE_OBSERVER, PLANE_OBSERVATION, observation, False),
+    ]
+
+
+def _required_path(value: str | None, label: str, errors: list[str]) -> str:
+    if not value:
+        errors.append(f"--{label} is required")
+        return ""
+    path = Path(value)
+    if not path.is_file() or not os.access(path, os.R_OK):
+        errors.append(f"--{label} does not name a readable file: {value}")
+    return value
+
+
+def _validate_live_args(args: argparse.Namespace) -> tuple[dict[str, dict[str, object]], list[str]]:
+    errors: list[str] = []
+    if not args.endpoint:
+        errors.append("--endpoint is required")
+    if not valid_realm(args.realm):
+        errors.append(f"--realm is not a safe exact key prefix: {args.realm!r}")
+    if not valid_segment(args.session_prefix):
+        errors.append(f"--session-prefix is not a safe key segment: {args.session_prefix!r}")
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        errors.append("--timeout must be finite and > 0")
+    if not math.isfinite(args.settle) or args.settle < 0:
+        errors.append("--settle must be finite and >= 0")
+
+    ca = _required_path(args.ca, "ca", errors)
+    identities = {
+        ROLE_COMMANDER: IdentityFiles(
+            _required_path(args.commander_cert, "commander-cert", errors),
+            _required_path(args.commander_key, "commander-key", errors),
+        ),
+        ROLE_ROBOT: IdentityFiles(
+            _required_path(args.robot_cert, "robot-cert", errors),
+            _required_path(args.robot_key, "robot-key", errors),
+        ),
+        ROLE_OBSERVER: IdentityFiles(
+            _required_path(args.observer_cert, "observer-cert", errors),
+            _required_path(args.observer_key, "observer-key", errors),
+        ),
+    }
+    resolved_certificates = {
+        role: str(Path(identity.certificate).resolve())
+        for role, identity in identities.items()
+        if identity.certificate
+    }
+    if len(set(resolved_certificates.values())) != len(resolved_certificates):
+        errors.append("commander, robot, and observer must use distinct certificate files")
+    resolved_keys = {
+        role: str(Path(identity.private_key).resolve())
+        for role, identity in identities.items()
+        if identity.private_key
+    }
+    if len(set(resolved_keys.values())) != len(resolved_keys):
+        errors.append("commander, robot, and observer must use distinct private-key files")
+    for role in resolved_certificates.keys() & resolved_keys.keys():
+        if resolved_certificates[role] == resolved_keys[role]:
+            errors.append(f"{role} certificate and private key must be separate files")
+    endpoint = args.endpoint or ""
+    specs = {
+        role: client_config_spec(endpoint, ca, identity)
+        for role, identity in identities.items()
+    }
+    specs["no-cert"] = client_config_spec(endpoint, ca, None)
+    for role, spec in specs.items():
+        config_errors = validate_client_config_spec(spec, require_identity=role != "no-cert")
+        errors.extend(f"{role} client config: {error}" for error in config_errors)
+    return specs, errors
+
+
+def _close(resource: Any) -> None:
+    try:
+        undeclare = getattr(resource, "undeclare", None)
+        if callable(undeclare):
+            undeclare()
+        else:
+            close = getattr(resource, "close", None)
+            if callable(close):
+                close()
+    except Exception:
+        pass
+
+
+def _verify_no_certificate(
+    zenoh: Any,
+    spec: dict[str, object],
+    timeout_s: float,
+    step: int,
+) -> CheckResult:
+    session = None
+    try:
+        session = zenoh.open(_to_zenoh_config(zenoh, spec))
+    except Exception as error:
+        return CheckResult(
+            step,
+            "client with no certificate cannot establish mTLS",
+            "NO_ROUTER_CONNECTION",
+            "OPEN_REJECTED",
+            True,
+            f"transport rejected the no-certificate client: {error}",
+        )
+    try:
+        connected = _wait_for_router(session, timeout_s)
+        return CheckResult(
+            step,
+            "client with no certificate cannot establish mTLS",
+            "NO_ROUTER_CONNECTION",
+            "ROUTER_CONNECTED" if connected else "NO_ROUTER_CONNECTION",
+            not connected,
+            "no authenticated router link appeared during the rejection window"
+            if not connected
+            else "router accepted a client that presented no certificate",
+        )
+    finally:
+        _close(session)
+
+
+def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> int:
     try:
         import zenoh
     except ImportError:
-        return False, "zenoh-python not installed"
+        print("ERROR: zenoh-python is required (pip install eclipse-zenoh)", file=sys.stderr)
+        return 2
 
-    conf = zenoh.Config()
-    conf.insert_json5("connect/endpoints", f'["{endpoint}"]')
-    # TLS config for the connecting peer.
-    if cert and key_file:
-        tls = {
-            "root_ca_certificate": ca,
-            "connect_certificate": cert,
-            "connect_private_key": key_file,
-        }
-        conf.insert_json5("transport/link/tls", __import__("json").dumps(tls))
-    else:
-        # No client cert — mTLS should reject this.
-        conf.insert_json5("transport/link/tls", f'{{"root_ca_certificate":"{ca}"}}')
-
+    run_nonce = secrets.token_hex(12)
+    session_id = f"{args.session_prefix}-{run_nonce[:12]}"
+    plan = _probe_plan(args.realm, session_id)
+    sessions: dict[str, Any] = {}
+    subscribers: list[Any] = []
+    recorder = DeliveryRecorder()
+    results: list[CheckResult] = []
+    denied_deliveries: list[tuple[int, str, bytes]] = []
     try:
-        session = zenoh.open(conf)
-        session.put(key, value.encode())
-        session.close()
-        return True, "PUT succeeded"
-    except Exception as e:
-        return False, f"PUT rejected: {e}"
+        for role in (ROLE_COMMANDER, ROLE_ROBOT, ROLE_OBSERVER):
+            session = zenoh.open(_to_zenoh_config(zenoh, specs[role]))
+            sessions[role] = session
+            if not _wait_for_router(session, args.timeout):
+                print(
+                    f"FAIL: {role} client did not establish an authenticated router link",
+                    file=sys.stderr,
+                )
+                return 1
+
+        observer = sessions[ROLE_OBSERVER]
+        for key in dict.fromkeys(case.key for case in plan):
+            subscribers.append(observer.declare_subscriber(key, recorder.callback))
+        if args.settle:
+            time.sleep(args.settle)
+
+        plane_baselines: dict[str, bool] = {}
+        for case in plan:
+            payload = (
+                f"ncp-acl-proof:{run_nonce}:{case.step}:{secrets.token_hex(16)}"
+            ).encode("ascii")
+            put_detail = "local put accepted"
+            actor_connected = bool(_router_ids(sessions[case.actor]))
+            observer_connected = bool(_router_ids(observer))
+            try:
+                if not actor_connected or not observer_connected:
+                    raise RuntimeError("actor or observer lost its authenticated router link")
+                sessions[case.actor].put(case.key, payload)
+            except Exception as error:
+                put_detail = f"local put raised: {error}"
+            observed = recorder.wait(case.key, payload, args.timeout)
+            passed, detail = _evaluate_delivery(
+                expect_delivery=case.expect_delivery,
+                observed=observed,
+                plane_baseline_ok=plane_baselines.get(case.plane, False),
+            )
+            try:
+                links_intact = bool(_router_ids(sessions[case.actor])) and bool(
+                    _router_ids(observer)
+                )
+            except Exception:
+                links_intact = False
+            if not links_intact:
+                passed = False
+                detail = "actor or observer lost its authenticated router link during the probe"
+            if case.expect_delivery:
+                plane_baselines[case.plane] = passed
+            else:
+                denied_deliveries.append((len(results), case.key, payload))
+            results.append(
+                CheckResult(
+                    case.step,
+                    f"{case.actor} PUT on {case.plane} plane",
+                    "DELIVERED" if case.expect_delivery else "NOT_DELIVERED",
+                    "DELIVERED" if observed else "NOT_DELIVERED",
+                    passed,
+                    f"{detail}; {put_detail}",
+                )
+            )
+
+        # One final rejection window catches a forbidden sample that arrived just
+        # after its per-case timeout. Nonces are unique, so no legitimate traffic
+        # can satisfy this check accidentally.
+        time.sleep(args.timeout)
+        for result_index, key, payload in denied_deliveries:
+            if recorder.contains(key, payload):
+                previous = results[result_index]
+                results[result_index] = CheckResult(
+                    previous.step,
+                    previous.description,
+                    previous.expected,
+                    "DELIVERED",
+                    False,
+                    "forbidden nonce arrived during the final rejection quarantine",
+                )
+
+        results.append(
+            _verify_no_certificate(zenoh, specs["no-cert"], args.timeout, len(plan) + 1)
+        )
+    except Exception as error:
+        print(f"FAIL: live verification could not complete: {error}", file=sys.stderr)
+        return 1
+    finally:
+        for subscriber in reversed(subscribers):
+            _close(subscriber)
+        for session in sessions.values():
+            _close(session)
+
+    print("NCP ACL deployment verification (nonce delivery proof)")
+    print(f"  endpoint: {args.endpoint}")
+    print(f"  realm:    {args.realm}")
+    print(f"  session:  {session_id} (randomized probe namespace)")
+    print()
+    for result in results:
+        print(result)
+    print()
+    if all(result.passed for result in results):
+        print(
+            "RESULT: ALL INVARIANTS HOLD — allowed deliveries were observed, denied "
+            "deliveries were absent, and no-cert mTLS failed."
+        )
+        return 0
+    failed = sum(not result.passed for result in results)
+    print(f"RESULT: {failed} of {len(results)} invariants FAILED — deployment is NOT validated.")
+    return 1
 
 
-def _try_cli_put(
-    endpoint: str,
-    key: str,
-    value: str,
-    cert: str | None,
-    key_file: str | None,
-    ca: str,
-) -> tuple[bool, str]:
-    """Try to PUT using the z_put CLI. Returns (succeeded, detail)."""
-    cmd = [
-        "z_put",
-        "-e", endpoint,
-        "-k", key,
-        "-v", value,
+def _selftest() -> list[str]:
+    failures: list[str] = []
+    identity = IdentityFiles("client.pem", "client-key.pem")
+    good = client_config_spec("tls/router.example:7447", "ca.pem", identity)
+    if validate_client_config_spec(good, require_identity=True):
+        failures.append("strict identity config was rejected")
+    no_cert = client_config_spec("tls/router.example:7447", "ca.pem", None)
+    if validate_client_config_spec(no_cert, require_identity=False):
+        failures.append("intentional no-cert config was rejected by base validation")
+    if not validate_client_config_spec(good, require_identity=False):
+        failures.append("no-cert validation accepted a config that still carried an identity")
+
+    mutations: list[tuple[str, dict[str, object], bool]] = []
+    plaintext = json.loads(json.dumps(good))
+    plaintext["connect"]["endpoints"] = ["tcp/router.example:7447"]  # type: ignore[index]
+    mutations.append(("plaintext endpoint", plaintext, True))
+    listener = json.loads(json.dumps(good))
+    listener["listen"]["endpoints"] = ["tls/0.0.0.0:0"]  # type: ignore[index]
+    mutations.append(("client listener", listener, True))
+    discovery = json.loads(json.dumps(good))
+    discovery["scouting"]["multicast"]["enabled"] = True  # type: ignore[index]
+    mutations.append(("multicast discovery", discovery, True))
+    no_name_check = json.loads(json.dumps(good))
+    no_name_check["transport"]["link"]["tls"]["verify_name_on_connect"] = False  # type: ignore[index]
+    mutations.append(("disabled TLS name verification", no_name_check, True))
+    missing_key = json.loads(json.dumps(good))
+    del missing_key["transport"]["link"]["tls"]["connect_private_key"]  # type: ignore[index]
+    mutations.append(("unpaired client certificate", missing_key, True))
+    for description, config, require_identity in mutations:
+        if not validate_client_config_spec(config, require_identity=require_identity):
+            failures.append(f"{description} was NOT rejected")
+
+    # Delivery truth table: a local put is irrelevant; only observer receipt counts,
+    # and a denied result without a proven same-plane baseline is inconclusive.
+    truth_cases = [
+        (True, True, False, True),
+        (True, False, False, False),
+        (False, False, True, True),
+        (False, True, True, False),
+        (False, False, False, False),
     ]
-    # TLS args (zenoh CLI uses --config or env vars; this is a simplification).
-    env = {
-        **dict(__import__("os").environ),
-        "ZENOH_TLS_ROOT_CA_CERTIFICATE": ca,
+    for expect, observed, baseline, wanted in truth_cases:
+        got, _ = _evaluate_delivery(
+            expect_delivery=expect,
+            observed=observed,
+            plane_baseline_ok=baseline,
+        )
+        if got != wanted:
+            failures.append(
+                "delivery evaluator accepted an unsafe truth-table case: "
+                f"expect={expect} observed={observed} baseline={baseline}"
+            )
+
+    plan = _probe_plan("engram/ncp", "acl-verify-test")
+    expected = {
+        (ROLE_COMMANDER, PLANE_COMMAND, True),
+        (ROLE_ROBOT, PLANE_SENSOR, True),
+        (ROLE_COMMANDER, PLANE_OBSERVATION, True),
+        (ROLE_ROBOT, PLANE_COMMAND, False),
+        (ROLE_OBSERVER, PLANE_COMMAND, False),
+        (ROLE_COMMANDER, PLANE_SENSOR, False),
+        (ROLE_OBSERVER, PLANE_SENSOR, False),
+        (ROLE_ROBOT, PLANE_OBSERVATION, False),
+        (ROLE_OBSERVER, PLANE_OBSERVATION, False),
     }
-    if cert and key_file:
-        env["ZENOH_TLS_CONNECT_CERTIFICATE"] = cert
-        env["ZENOH_TLS_CONNECT_PRIVATE_KEY"] = key_file
-
-    try:
-        result = subprocess.run(
-            cmd, env=env, capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0:
-            return True, "z_put succeeded"
-        else:
-            return False, f"z_put rejected (exit {result.returncode}): {result.stderr.strip()}"
-    except FileNotFoundError:
-        return False, "z_put CLI not found"
-    except subprocess.TimeoutExpired:
-        return False, "z_put timed out (likely mTLS rejection)"
+    if {(case.actor, case.plane, case.expect_delivery) for case in plan} != expected:
+        failures.append("live probe plan lost an authority or negative case")
+    if any("acl-verify-test" not in case.key for case in plan):
+        failures.append("probe plan escaped its dedicated session namespace")
+    return failures
 
 
-def do_put(
-    args: argparse.Namespace,
-    key: str,
-    value: str,
-    cert: str | None,
-    key_file: str | None,
-) -> tuple[bool, str]:
-    """Attempt a PUT and return (succeeded, detail)."""
-    if args.use_cli:
-        return _try_cli_put(args.endpoint, key, value, cert, key_file, args.ca)
-    else:
-        return _try_zenoh_python_put(
-            args.endpoint, key, value, cert, key_file, args.ca
-        )
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--self-test", action="store_true", help="run offline negative self-tests")
+    parser.add_argument("--dry-run", action="store_true", help="validate inputs and print the probe plan")
+    parser.add_argument("--endpoint", help="Zenoh TLS endpoint, e.g. tls/router.example:7447")
+    parser.add_argument("--realm", default="ncp", help="exact realm key prefix")
+    parser.add_argument(
+        "--session-prefix",
+        "--session",
+        dest="session_prefix",
+        default="acl-verify",
+        help="safe prefix; a random suffix is always added (legacy --session alias accepted)",
+    )
+    parser.add_argument("--commander-cert")
+    parser.add_argument("--commander-key")
+    parser.add_argument("--robot-cert")
+    parser.add_argument("--robot-key")
+    parser.add_argument("--observer-cert")
+    parser.add_argument("--observer-key")
+    parser.add_argument("--ca", help="router CA certificate")
+    parser.add_argument("--timeout", type=float, default=2.0, help="delivery/rejection window seconds")
+    parser.add_argument("--settle", type=float, default=0.5, help="subscriber propagation delay seconds")
+    return parser
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    p.add_argument("--endpoint", required=True, help="Zenoh TLS endpoint (e.g. tls/localhost:7447)")
-    p.add_argument("--realm", default="ncp", help="realm key prefix")
-    p.add_argument("--session", default="s1", help="session id for the test")
-    p.add_argument("--commander-cert", default=None)
-    p.add_argument("--commander-key", default=None)
-    p.add_argument("--robot-cert", default=None)
-    p.add_argument("--robot-key", default=None)
-    p.add_argument("--observer-cert", default=None)
-    p.add_argument("--observer-key", default=None)
-    p.add_argument("--ca", required=True, help="CA certificate for TLS")
-    p.add_argument("--use-cli", action="store_true", help="use z_put CLI instead of zenoh-python")
-    args = p.parse_args()
-
-    realm = args.realm
-    sid = args.session
-    cmd_key = f"{realm}/session/{sid}/command/test"
-    sensor_key = f"{realm}/session/{sid}/sensor/test"
-    test_value = "p0-verify-probe"
-
-    results: list[CheckResult] = []
-
-    # Step 1: commander PUT on command → ACCEPT
-    ok, detail = do_put(args, cmd_key, test_value, args.commander_cert, args.commander_key)
-    results.append(CheckResult(1, "commander PUT on .../command/**", "ACCEPT",
-                               "ACCEPT" if ok else "REJECT", ok))
-
-    # Step 2: robot PUT on command → REJECT
-    ok, detail = do_put(args, cmd_key, test_value, args.robot_cert, args.robot_key)
-    results.append(CheckResult(2, "robot PUT on .../command/**", "REJECT",
-                               "REJECT" if not ok else "ACCEPT", not ok))
-
-    # Step 3: robot PUT on sensor → ACCEPT
-    ok, detail = do_put(args, sensor_key, test_value, args.robot_cert, args.robot_key)
-    results.append(CheckResult(3, "robot PUT on .../sensor/**", "ACCEPT",
-                               "ACCEPT" if ok else "REJECT", ok))
-
-    # Step 4: commander PUT on sensor → REJECT
-    ok, detail = do_put(args, sensor_key, test_value, args.commander_cert, args.commander_key)
-    results.append(CheckResult(4, "commander PUT on .../sensor/**", "REJECT",
-                               "REJECT" if not ok else "ACCEPT", not ok))
-
-    # Step 5: no-cert PUT → REJECT (mTLS layer)
-    ok, detail = do_put(args, cmd_key, test_value, None, None)
-    results.append(CheckResult(5, "no-cert PUT (mTLS rejection)", "REJECT",
-                               "REJECT" if not ok else "ACCEPT", not ok))
-
-    print("P0 ACL Deployment Verification")
-    print(f"  endpoint: {args.endpoint}")
-    print(f"  realm:    {args.realm}")
-    print(f"  session:  {args.session}")
-    print()
-    for r in results:
-        print(r)
-    print()
-
-    all_passed = all(r.passed for r in results)
-    if all_passed:
-        print("RESULT: ALL 5 INVARIANTS HOLD — realm is P0-validated.")
-        print("Record this output as the P0 evidence per SECURITY.md.")
+    args = _parser().parse_args()
+    if args.self_test:
+        failures = _selftest()
+        if failures:
+            print("FAIL: ACL deployment verifier self-test failed:", file=sys.stderr)
+            for failure in failures:
+                print(f"  - {failure}", file=sys.stderr)
+            return 1
+        print("OK: ACL deployment verifier offline self-test passed")
         return 0
-    else:
-        failed = [r for r in results if not r.passed]
-        print(f"RESULT: {len(failed)} of {len(results)} invariants FAILED — realm is NOT P0-validated.")
-        print("Do not deploy on an open realm until all invariants hold.")
-        return 1
+
+    specs, errors = _validate_live_args(args)
+    if errors:
+        print("ERROR: invalid live verification configuration:", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        return 2
+    if args.dry_run:
+        preview_session = f"{args.session_prefix}-<random>"
+        print("OK: strict client configurations and credential paths validated")
+        print(f"  endpoint: {args.endpoint}")
+        print(f"  realm:    {args.realm}")
+        print(f"  session:  {preview_session}")
+        for case in _probe_plan(args.realm, preview_session):
+            verdict = "DELIVERED" if case.expect_delivery else "NOT_DELIVERED"
+            print(f"  {case.step}. {case.actor} -> {case.plane}: expect {verdict}")
+        print("  10. no-client-cert -> expect NO_ROUTER_CONNECTION")
+        return 0
+    return run_live(args, specs)
 
 
 if __name__ == "__main__":

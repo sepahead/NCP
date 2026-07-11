@@ -25,7 +25,7 @@ extern "C" {
 /* Release any string returned by an ncp_* function. NULL is ignored. */
 void ncp_string_free(char *s);
 
-/* Protocol version (e.g. "0.6"). Caller frees. */
+/* Protocol version (e.g. "0.7"). Caller frees. */
 char *ncp_version(void);
 
 /* Default realm — the neutral ncp_core::DEFAULT_REALM (a deployment sets its own). Caller frees. */
@@ -43,17 +43,23 @@ char *ncp_contract_hash(void);
 int32_t ncp_contract_status(const char *peer_hash);
 
 /* Key-expression builders. Caller frees. */
+/* ncp_key_rpc returns the control-plane prefix. Wire 0.7 requests use the exact
+ * key returned by ncp_key_rpc_kind (NULL for a non-lifecycle request kind). */
 char *ncp_key_rpc(const char *realm);
+char *ncp_key_rpc_kind(const char *realm, const char *request_kind);
+char *ncp_key_rpc_glob(const char *realm);
 char *ncp_key_sensor(const char *realm, const char *session_id);
 char *ncp_key_command(const char *realm, const char *session_id);
 char *ncp_key_observation(const char *realm, const char *session_id);
 
-/* Rate codec. JSON in / JSON out. NULL on malformed input or internal error.
- * Caller frees. */
+/* Rate codec. JSON in / JSON out. A supplied SensorFrame must carry a complete
+ * wire-valid kind/version/seq envelope. NULL on malformed input or internal
+ * error. Caller frees. */
 char *ncp_encode_rates(const char *codec_json, const char *sensor_json);
 /* Rate-decode to a CommandFrame. `frame_id` NULL => "world"; `mode` is one of
- * "init"/"active"/"hold"/"estop" (NULL => "active"); an unknown mode returns
- * NULL. */
+ * "init"/"active"/"hold"/"estop" (NULL => fail-safe "hold"); an unknown mode returns
+ * NULL. The caller owns a finite timestamp and monotonically increasing wire-safe
+ * seq (1..2^53-1); invalid metadata or an invalid generated command returns NULL. */
 char *ncp_decode_command(const char *codec_json, const char *rates_json,
                          double t, int64_t seq, const char *frame_id,
                          const char *mode);
@@ -83,6 +89,29 @@ void ncp_governor_note_link(NcpGovernor *gov, bool burst);
 /* 1 safe / 0 not / -1 NULL handle. */
 int32_t ncp_governor_safety_ok(const NcpGovernor *gov);
 void ncp_governor_free(NcpGovernor *gov);
+
+/* Plant-side command deadline/replay/horizon buffer. A live actuator needs this
+ * in addition to NcpGovernor: Governor checks sensor/geofence/speed policy;
+ * ActionBuffer enforces command ttl_ms, seq/replay rejection, bounded predictive
+ * horizon replay, and its own ESTOP latch. NOT thread-safe: synchronize access to
+ * one handle. */
+typedef struct NcpActionBuffer NcpActionBuffer;
+NcpActionBuffer *ncp_action_buffer_new(void);
+/* 0 = parsed/processed (the core may safely ignore an invalid/replayed frame),
+ * -1 = NULL handle or malformed/non-UTF-8 JSON. */
+int32_t ncp_action_buffer_on_command(NcpActionBuffer *buffer, double now_s,
+                                     const char *command_json);
+/* Returns an allocated channel-map JSON object or the JSON literal `null` when
+ * HOLD is required. A NULL C pointer is an error and must also be treated as
+ * HOLD. Caller frees a non-NULL return. */
+char *ncp_action_buffer_active(const NcpActionBuffer *buffer, double now_s);
+/* 1 HOLD / 0 active / -1 NULL handle. */
+int32_t ncp_action_buffer_should_hold(const NcpActionBuffer *buffer,
+                                      double now_s);
+void ncp_action_buffer_reset(NcpActionBuffer *buffer);
+/* 1 latched / 0 not / -1 NULL handle. */
+int32_t ncp_action_buffer_is_estopped(const NcpActionBuffer *buffer);
+void ncp_action_buffer_free(NcpActionBuffer *buffer);
 
 /* Validate an NCP message of `kind` (parse->reserialize). NULL on malformed/
  * unknown kind. Caller frees. */

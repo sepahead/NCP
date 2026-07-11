@@ -1,6 +1,6 @@
-import type { ChannelSpec } from "./ChannelSpec";
-import type { Role } from "./Role";
-import type { SafetyLimits } from "./SafetyLimits";
+import type { ChannelSpec } from "./ChannelSpec.js";
+import type { Role } from "./Role.js";
+import type { SafetyLimits } from "./SafetyLimits.js";
 /**
  * Handshake: who the controller is and what it speaks.
  */

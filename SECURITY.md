@@ -1,11 +1,13 @@
 # Security Policy
 
-## Known limitation: the action/command plane is unauthenticated
+## Known limitation: the default/open transport is unauthenticated
 
-The NCP action/command plane is currently **unauthenticated**. On an open realm
-it is effectively world-writable: any participant that can reach the realm can
-publish action/command messages. There is no transport-level authentication or
-authorization on this plane today.
+NCP does not authenticate a frame at the message layer. The default quiet Zenoh
+configuration disables multicast discovery but does **not** enable TLS or an ACL;
+any participant that can reach that bus can publish action/command messages. A
+complete opt-in mTLS router template, strict client template, and default-deny ACL
+now ship under `deploy/`, but they protect a deployment only when operators actually
+configure and use them.
 
 **Deploy NCP only on a trusted, closed realm** (an isolated, access-controlled
 Zenoh network). Do not expose the action/command plane on an open or shared
@@ -92,58 +94,68 @@ The ACL only binds authorization to identity if that identity is **proven** by
 mutual TLS — without mTLS the `cert_common_names` are spoofable and the ACL is
 meaningless. To stand up an authenticated realm:
 
-1. **Issue certificates.** Create a CA, then per-subject client certs whose Common
-   Names match the ACL `subjects` globs: `commander-service` (the brain, e.g. an
-   Engram host), `robot-<id>`/`uav-<id>` (each body), `observer-<id>`/`analysis-<id>` (taps).
-   Keep the CA key offline; rotate leaf certs per deployment policy.
-2. **Enable mutual TLS on the Zenoh endpoints.** In the router (and every peer)
-   config, use a TLS listen endpoint and require client auth — e.g.
-   `listen/endpoints: ["tls/0.0.0.0:7447"]` plus the `transport/link/tls` block
-   (`root_ca_certificate`, `listen_certificate`, `listen_private_key`, and
-   **`enable_mutual_authentication: true`**); each peer presents its
-   `connect_certificate`/`connect_private_key`. mTLS is what turns a cert Common
-   Name into a *proven* `subjects` match.
-3. **Apply the ACL.** Merge [`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5)
-   into the router/session config (`zenohd --config …` or the embedded
-   `with_config` block). `default_permission: "deny"` rejects anything not
-   explicitly allowed.
-4. **Verify both PUT invariants.** With the realm up, confirm an `observer`/`robot`
+1. **Issue certificates.** Create a CA, then per-subject client certs whose exact
+   Common Names appear in the ACL `subjects` lists. `cert_common_names` does **not**
+   glob: a literal `robot-*` matches only that literal string, so enumerate every
+   issued leaf CN. Keep the CA key offline and rotate leaf certs per policy.
+2. **Render and start the router.** The template is pinned to the neutral `ncp`
+   realm. Render an exact deployment realm, then replace the placeholder router
+   certificate paths before starting Zenoh:
+
+   ```bash
+   python3 scripts/render_acl_template.py \
+     --realm engram/ncp --output router-secure.json5
+   zenohd --config router-secure.json5
+   ```
+
+   The router uses a TLS-only listener plus `root_ca_certificate`,
+   `listen_certificate`, `listen_private_key`, and **`enable_mtls: true`**.
+3. **Configure each peer as a client.** Copy
+   [`deploy/zenoh-client-secure.json5`](deploy/zenoh-client-secure.json5) per
+   identity and replace the router DNS name, CA, `connect_certificate`, and
+   `connect_private_key`. Keep `mode: "client"`, listeners empty, multicast/gossip
+   disabled, TLS-only connect endpoints, and `verify_name_on_connect: true`.
+   `ZenohBus::open_secure` validates these properties before opening. Do not pass
+   the router config to this client API.
+4. **Verify the authority invariants.** With the realm up, confirm an `observer`/`robot`
    identity is *rejected* when it `put`s on `…/session/*/command/**` (only `commander`
    succeeds), AND that an `observer`/`commander` identity is *rejected* when it `put`s
    on `…/session/*/sensor/**` (only `robot` succeeds) — both control planes (action
-   and perception) are then authenticated, not world-writable.
+   and perception) are then authenticated, not world-writable. Also verify only the
+   commander publishes observations and queries/serves lifecycle RPC, while observers
+   can subscribe to sensor, command, and observation traffic but cannot write.
 
 Schema field names follow the Zenoh 1.x access-control config; validate against
 your Zenoh version (authoritative: the zenoh.io configuration docs) before relying
 on it. Live mTLS deployment validation is the remaining P0 item on
 [#7](https://github.com/sepahead/NCP/issues/7).
 
-### P0 closure checklist (reproducible)
+### P0 closure checklist (requires delivery evidence)
 
-Run this against a *live* mTLS+ACL realm to close P0. Each step states the command
-and the **required** outcome; a deployment is P0-validated only when all four hold.
-(Substitute your endpoint/cert paths; uses the Zenoh CLI examples `z_put`/`z_sub`.)
+Run [`scripts/verify_acl_deployment.py`](scripts/verify_acl_deployment.py) against a
+*live* mTLS+ACL realm to close P0. A local `put()` success is not proof that the
+router delivered a sample, so the verifier uses an authenticated observer and a
+unique nonce for every trial. Its 3×3 role/plane matrix requires delivery for:
 
-| # | As identity (client cert CN) | Action | Required outcome |
-|---|---|---|---|
-| 1 | `commander-service` | `z_put -k "<realm>/session/s1/command/x" -v '…'` (with commander cert) | **ACCEPT** — the commander may publish commands |
-| 2 | `robot-1` / `observer-1` | `z_put -k "<realm>/session/s1/command/x"` (with that cert) | **REJECT** — only the commander may write the action plane |
-| 3 | `robot-1` | `z_put -k "<realm>/session/s1/sensor/x"` (with robot cert) | **ACCEPT** — the plant may publish perception |
-| 4 | `commander-service` / `observer-1` | `z_put -k "<realm>/session/s1/sensor/x"` | **REJECT** — only the plant may write the perception plane |
+- commander → command;
+- robot → sensor; and
+- commander → observation.
 
-Also confirm: a peer presenting **no** client cert (or a CN not in the ACL `subjects`)
-is refused at the mTLS layer before any ACL check (connection rejected, not just the
-PUT). Record the four outcomes + the no-cert refusal as the P0 evidence; until that
-evidence exists, the `SECURITY.md` "closed realm only" guidance stands. The ACL template
-itself is CI-guarded for valid tokens + the command/sensor PUT-authority invariants by
-[`scripts/check_acl_template.py`](scripts/check_acl_template.py), so a template
-regression is caught even though the *live* enforcement test needs a real deployment.
+The other six writes (including every observer write) must remain unobserved for a
+bounded rejection window, and each denial is accepted only after a successful
+same-plane baseline. A final quarantine catches late forbidden delivery. The tool
+also proves all authenticated router links and separately requires a no-certificate
+client to establish no router connection. It refuses plaintext endpoints,
+listeners, discovery, missing/paired-wrong credentials, or disabled hostname
+verification before the live run. See `scripts/README.md` for the exact invocation;
+`--self-test` exercises its offline negative truth table and `--dry-run` validates
+the deployment inputs.
 
-The four-step checklist + the no-cert refusal are automated by
-[`scripts/verify_acl_deployment.py`](scripts/verify_acl_deployment.py) — run it
-against a live mTLS+ACL realm to produce the P0 evidence in one command. It
-exercises both PUT-authority invariants (command and sensor) and the mTLS
-no-cert rejection, exiting 0 only when all five hold.
+A fully successful live run is suitable P0 evidence; no such run is committed in
+this repository yet, so the "closed realm only" guidance remains. The template is
+independently CI-guarded for mTLS/default-deny, exact identities, RPC authority,
+command/sensor/observation PUT authority, and complete observer read access by
+[`scripts/check_acl_template.py`](scripts/check_acl_template.py).
 
 ## Residual risks after mTLS + ACL (hardening backlog)
 
@@ -156,26 +168,16 @@ the three high-severity findings (bulk-decode OOM budget, unbounded/non-finite
 escape hatch, unenforced data-plane `ncp_version`) are **resolved with
 regression tests**; the still-open security-relevant one is summarised below.
 
-### RPC authorization is all-or-nothing per realm (no per-verb ACL)
+### Per-verb RPC addressing — RESOLVED in wire 0.7
 
-The entire session-lifecycle RPC surface is a **single Zenoh queryable key**
-(`{realm}/rpc`), so the ACL can only grant or deny `query` on *all* RPC verbs at
-once. The shipped template (`deploy/zenoh-access-control.json5`, the
-`client-queries-rpc` rule) must let the `robot` and `observer` subjects query that
-key — otherwise a default-deny realm could never open a session — which means the
-same grant that lets them `open` also lets them `step`, `run`, or **`close` any
-session**, not just their own. mTLS proves *who* the caller is, but the transport
-ACL matches on the key-expression and cannot see *which verb* is inside the
-JSON-RPC body, so it cannot scope it.
-
-Two fixes (see `KNOWN_LIMITATIONS.md`, `zenoh-access-control.json5:81`): split the
-privileged verbs onto distinct key-expressions (e.g. `{realm}/rpc/open` vs
-`{realm}/rpc/admin`) so the ACL can allow `open` while restricting `step`/`close`
-to the `commander` — robust, but **wire-breaking** (it changes the RPC addressing
-every peer uses, so it needs a version bump + consumer buy-in); or keep the single
-key and have the RPC handler authorize the caller's *proven* mTLS identity per
-verb in application code. Until one ships, treat every authenticated client as
-able to disrupt any session, and rely on closed-network isolation for the rest.
+Lifecycle requests now use distinct exact keys:
+`{realm}/rpc/open_session`, `{realm}/rpc/step_request`,
+`{realm}/rpc/run_request`, and `{realm}/rpc/close_session`; the server declares
+`{realm}/rpc/*`. The shipped default-deny ACL grants lifecycle RPC query and
+serve/reply authority only to the authenticated `commander`. This closes the old
+single-key ambiguity and allows a deployment to split permissions further by verb
+without inspecting the JSON body. The structural ACL guard rejects an unsplit RPC
+key or non-commander RPC authority.
 
 ### Bulk/observation decode memory-amplification DoS — RESOLVED
 

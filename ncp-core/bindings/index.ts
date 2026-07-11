@@ -11,6 +11,8 @@ export type { ControlStatus } from './ControlStatus';
 export type { EntityBinding } from './EntityBinding';
 export type { EntityRef } from './EntityRef';
 export type { EntityRole } from './EntityRole';
+export type { ErrorFrame } from './ErrorFrame';
+export type { LinkStatus } from './LinkStatus';
 export type { Mode } from './Mode';
 export type { NetworkRef } from './NetworkRef';
 export type { NetworkRefKind } from './NetworkRefKind';

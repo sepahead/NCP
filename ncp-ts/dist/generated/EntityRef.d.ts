@@ -1,4 +1,4 @@
-import type { EntityRole } from "./EntityRole";
+import type { EntityRole } from "./EntityRole.js";
 /**
  * A hierarchical client-side entity address, e.g. `uav1/sensor/cam0`.
  */

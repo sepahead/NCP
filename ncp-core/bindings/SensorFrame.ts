@@ -9,6 +9,7 @@ import type { ChannelValue } from "./ChannelValue";
  * Wire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly
  * increasing per stream. `seq = 0` is "unstamped" — receivers drop it (it is
  * also the serde default, so a default-constructed frame is not wire-legal
- * until stamped).
+ * until stamped). `t` is producer-local monotonic seconds and is never compared
+ * across peers.
  */
 export type SensorFrame = { ncp_version: string, kind: string, seq: bigint, t: number, frame_id: string, channels: { [key in string]: ChannelValue }, };

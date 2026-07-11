@@ -107,6 +107,9 @@ async fn main() {
                             Mode::Init => ("init", [0.0, 0.0, 0.0]),
                             Mode::Hold => ("hold", [0.0, 0.0, 0.0]),
                             Mode::Estop => ("estop", [0.0, 0.0, 0.0]),
+                            // Forward-compatible values are preserved by the
+                            // decoder but never gain actuation authority.
+                            Mode::Unknown(_) => ("unknown_hold", [0.0, 0.0, 0.0]),
                         }
                     }
                 }

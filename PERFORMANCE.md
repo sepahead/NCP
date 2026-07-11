@@ -89,10 +89,10 @@ The protobuf schema in [`proto/ncp.proto`](proto/ncp.proto) (+ `gen/rust`) is th
 **contract / conformance source-of-truth**, *not* the shipped runtime encoding —
 the `prost` bindings are not compiled into the runtime path. Binary protobuf would
 be worth negotiating only as an opt-in for a kHz / bandwidth-constrained consumer.
-The one binary path that *is* shipped is the bulk observation codec (`BulkBlock`),
-which `overhead.rs` also measures as more compact than JSON for the same numeric
-array (≈2× smaller with `f32`/`i32` columns) — and it is carried **only** on the
-analysis plane, never the hot action loop.
+The bounded local/offline `BulkBlock` codec is also measured as more compact than
+JSON for the same numeric array (≈2× smaller with `f32`/`i32` columns). It is not a
+transport frame: JSON `ObservationFrame` remains the only shipped observation-plane
+representation.
 
 ### Is NCP unnecessary overhead?
 
@@ -146,11 +146,10 @@ frame the copy is cheap in absolute terms, but it is pure waste on the
 latency-critical action loop and trivially removable. JSON stays the debuggable
 default; this is an encoding-neutral transport win.
 
-This and 34 other audited findings are catalogued in
-[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) (3 high-severity, incl. a `bulk.rs`
-decode OOM/DoS, an unbounded / `+Inf` `ttl_ms` fail-**open** watchdog, and an
-empty-position geofence bypass). **None are fixed yet** — they are conservative,
-tracked proposals, because NCP is a shared contract.
+This optimization and the remaining audited risks are catalogued individually in
+[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). All original high-severity findings
+(bulk decode amplification, unbounded/non-finite TTL, and empty-position geofence
+bypass) are fixed and regression-tested; the live ledger retains unresolved work.
 
 
 ## Secondary considerations (not bottlenecks, documented)
@@ -172,10 +171,11 @@ tracked proposals, because NCP is a shared contract.
   scales O(events) (~11 ms for 50k spikes). `ncp-core::bulk` packs those arrays as
   a self-describing little-endian **column block** (proto `BulkObservation.block`):
   fixed-width, parse-free (bulk `copy_from_slice`, no tokenizer), random-access via
-  a column directory, and ~2× smaller with the `f32`/`i32` column widths. It is an
-  additive, negotiated wire option carried **only** on the observation/analysis
-  plane — never the hot action loop (Sensor/Command stay JSON/protobuf). The
-  canonical JSON `ObservationFrame` remains the always-available representation.
+  a column directory, and ~2× smaller with the `f32`/`i32` column widths. It is a
+  bounded local/offline codec today, not a transported frame. A future negotiated
+  `BulkObservation` envelope could carry it only on the observation/analysis
+  plane—never the hot action loop—but must first ship across every SDK. The
+  canonical JSON `ObservationFrame` remains the only available wire representation.
 
 ## Compared with SOTA (June 2026)
 
@@ -312,8 +312,9 @@ N-1 / buffers chunk N+1 while the NEST process computes chunk N.
 > overlap lives **only** in the separate Rust `ncp-zenoh`/`ncp-gateway` process. That is
 > **fine for the rate-coded loop** (`T_ncp` sub-ms ≪ `T_run`), and is the standing
 > ceiling **only** for high-rate raw-spike/`V_m` streaming, where serialize is O(events)
-> (~11 ms / 50k spikes) and rivals `T_run`. If that workload ships, route **only the
-> observation plane** through the off-GIL Rust `ncp-zenoh` bulk column codec and batch
+> (~11 ms / 50k spikes) and rivals `T_run`. If that workload ships, first implement
+> and negotiate the complete cross-language `BulkObservation` transport envelope;
+> then route **only the observation plane** through the off-GIL packed codec and batch
 > generator updates into one `nest.SetStatus`; keep the control loop serial. (Do **not**
 > reach for free-threaded CPython: importing today's NEST under 3.13t/3.14t re-enables
 > the GIL process-wide and buys nothing for the OpenMP kernel.)
@@ -492,10 +493,9 @@ the command, the environment, and the known caveats.
   your NEST 3.9 build; otherwise that path stays O(history) (use `RATE`).
 - Large-population multimeter recording is intrinsically heavy regardless of NCP;
   record from a representative subset (the backend already pins V_m to one neuron).
-- A full adversarial audit of NCP (correctness, safety, robustness, overhead) is
-  catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — **35 findings, all 3
-  high-severity ones fixed** (11 of 35 resolved so far, after the wire-0.6 cut). Treat that file as the live
-  status register: the resolved items cite their fixing commit/guard, and the
-  remaining 24 are medium/low. The top *performance* item there (the `ncp-zenoh`
+- Continuing adversarial audits of NCP (correctness, safety, robustness, overhead)
+  are catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). Its old numeric
+  summary is retired; treat the per-finding ledger as the live status register. The
+  top *performance* item there (the `ncp-zenoh`
   `payload.to_vec()` copy) is still open and is discussed in
   [Top safe optimization](#top-safe-optimization-zero-copy-publish-zbytesshm) above.

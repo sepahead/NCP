@@ -9,8 +9,9 @@ divergence in the binding (a mistranslated error path, a dropped boundary check)
 fails here rather than in a downstream Python consumer.
 
 Covered: check_version (accept/reject/raise), contract_status (advisory
-match/mismatch/absent), validate (required-field + scientific-boundary), and the
-safety governor (HOLD / ESTOP / speed-clamp / watchdog) decisions.
+match/mismatch/absent), validate (required-field + scientific-boundary), the
+safety governor (HOLD / ESTOP / speed-clamp / watchdog), and the plant-side
+ActionBuffer (TTL / replay / horizon / ESTOP) decisions.
 
 The `ncp` module is built by maturin (`maturin develop -m ncp-python/Cargo.toml
 --features extension-module`), which CI does not yet run (see ROADMAP.md — the
@@ -131,6 +132,41 @@ def main() -> int:
                 abs(mag - exp["velocity_setpoint_magnitude"]) < 1e-9,
                 f"govern[{name}]: |velocity| want {exp['velocity_setpoint_magnitude']}, got {mag}",
             )
+
+    # ── action_buffer ────────────────────────────────────────────────────────
+    for c in cases["action_buffer"]:
+        name = c["name"]
+        buffer = ncp.ActionBuffer()
+        for index, operation in enumerate(c["operations"]):
+            op = operation["op"]
+            if op == "command":
+                buffer.on_command(operation["now_s"], json.dumps(operation["command"]))
+            elif op == "reset":
+                buffer.reset()
+            elif op == "active":
+                active_json = buffer.active(operation["now_s"])
+                expect = operation["expect"]
+                active = active_json is not None
+                check(
+                    active == expect["active"],
+                    f"action_buffer[{name}] operation {index}: active want "
+                    f"{expect['active']}, got {active}",
+                )
+                if active_json is not None and "value" in expect:
+                    channels = json.loads(active_json)
+                    got = channels["velocity_setpoint"]["data"][0]
+                    check(
+                        abs(got - expect["value"]) < 1e-9,
+                        f"action_buffer[{name}] operation {index}: value want "
+                        f"{expect['value']}, got {got}",
+                    )
+                check(
+                    buffer.is_estopped() == expect["estopped"],
+                    f"action_buffer[{name}] operation {index}: estopped want "
+                    f"{expect['estopped']}, got {buffer.is_estopped()}",
+                )
+            else:
+                failures.append(f"action_buffer[{name}] operation {index}: unknown op {op!r}")
 
     total = sum(len(v) for v in cases.values())
     if failures:

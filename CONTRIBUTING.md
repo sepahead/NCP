@@ -1,8 +1,9 @@
 # Contributing to NCP
 
 Thanks for your interest in the **Neuro-Cybernetic Protocol (NCP)**. This is
-pre-1.0 research software: the wire contract may still change, and the
-action/command plane is currently unauthenticated (see [SECURITY.md](SECURITY.md)).
+pre-1.0 research software: the wire contract may still change, and the default/open
+transport configuration is unauthenticated unless the shipped mTLS + ACL deployment
+profile is enabled (see [SECURITY.md](SECURITY.md)).
 Contributions are welcome, but please read this guide first — NCP ships a
 versioned on-the-wire contract, and a few rules below are non-negotiable because
 breaking the wire silently breaks every downstream binding and peer.
@@ -12,8 +13,9 @@ Be kind. All participation is governed by our
 
 ## Repository layout
 
-NCP is proto-native: `proto/ncp.proto` is the normative wire contract — the
-single source of truth for message structure and the binary encoding. The JSON
+NCP is proto-native: `proto/ncp.proto` is the normative schema contract — the
+single source of truth for message structure, field numbers/types, enum wire strings,
+and lifecycle transport keys. The shipped runtime encoding is JSON. The JSON
 Schemas, the Rust/Python/TS/C++ bindings, and `ncp-core`'s serde types generate
 from or are conformance-checked against it (via buf; parity guarded in CI).
 `ncp-core` is the reference implementation — it owns BEHAVIOR (codec, safety
@@ -64,7 +66,8 @@ maturin develop -m ncp-python/Cargo.toml
 ### One-shot conformance / smoke check
 
 `scripts/check.sh` runs the full SDK matrix across all languages (this is what CI
-runs):
+runs). It creates an isolated Python virtual environment and requires `cargo`,
+`python3`, a C++17 compiler, Bun, `cargo-deny`, and `buf` on `PATH`:
 
 ```bash
 ncp/scripts/check.sh
@@ -99,7 +102,7 @@ field, changing a type, removing an enum value, or changing the meaning of exist
 bytes — is breaking and **must** include, in the same PR:
 
 1. An explicit **`ncp_version` bump**. The version constant lives in
-   `ncp-core/src/messages.rs` (`NCP_VERSION`, currently `"0.6"`).
+   `ncp-core/src/messages.rs` (`NCP_VERSION`, currently `"0.7"`).
 2. A corresponding update to the **specification**
    (`NEURO_CYBERNETIC_PROTOCOL.md`), the **`.proto` definitions** (`proto/`),
    and the **JSON Schemas** (`schemas/`).
@@ -145,7 +148,9 @@ fix, then move. The exact pre-tag sequence:
    coherence guard checks they agree — this is the skew that shipped once);
    recompute/update `CONTRACT_HASH` if the proto's wire-semantic content changed.
 3. **Regenerate everything**: `bun run regen` (ts bindings + dist) and
-   `cargo run -p ncp-core --features schema --bin gen-schemas` (schemas).
+   `cargo run -p ncp-core --features schema --bin gen-schemas` (schemas). For a
+   new wire line, freeze its baseline once and prove the audit snapshot is exact:
+   `python3 scripts/check_wire_baseline.py --verify-exact conformance/baseline/v<WIRE>.0`.
 4. **Run the full gate** — `scripts/check.sh` — plus `scripts/check-version-coherence.sh`
    and (from a full local tree) `scripts/check-consumer-pins.sh`. All must be green.
 5. **Only now** cut the annotated tag at that commit and push it. If anything is

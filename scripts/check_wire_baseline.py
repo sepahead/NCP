@@ -2,7 +2,7 @@
 """Frozen JSON-wire baseline gate (RELEASE_READINESS blocker #3).
 
 `buf breaking` freezes the *protobuf* wire against a tagged baseline. But NCP's
-actual transport is serde/Pydantic **JSON**, and a break expressible only in the
+actual transport is NCP **JSON**, and a break expressible only in the
 JSON projection (a removed field, a field that became required, a removed enum
 value, a changed type) has no frozen anchor — every other oracle (`schemas/`, the
 golden vectors, the behavior corpus, the per-language constants) *regenerates from*
@@ -25,6 +25,8 @@ stdlib only (no jsonschema dep), so it runs anywhere `check.sh` does.
 Usage:
   scripts/check_wire_baseline.py                 # diff CURRENT vs the frozen baseline
   scripts/check_wire_baseline.py --freeze DIR    # write a new frozen baseline to DIR
+  scripts/check_wire_baseline.py --verify-exact DIR
+                                                 # pre-tag snapshot identity check
 """
 from __future__ import annotations
 
@@ -42,7 +44,19 @@ GOLDEN_VECTORS = REPO / "conformance" / "vectors"
 
 # Structural keys that define a field's WIRE type. Everything else in a JSON-Schema
 # node (description, default, title, examples) is cosmetic and must NOT trip the gate.
-_STRUCT_KEYS = ("type", "$ref", "const", "enum", "format")
+_STRUCT_KEYS = (
+    "type",
+    "$ref",
+    "const",
+    "enum",
+    "format",
+    "minimum",
+    "maximum",
+    "minLength",
+    "maxLength",
+    "minItems",
+    "maxItems",
+)
 
 
 def _structural(node):
@@ -74,6 +88,8 @@ def _enum_values(ddef) -> list | None:
     way; the skip-only `unknown` sentinel is already absent from the schema."""
     if isinstance(ddef.get("enum"), list):
         return list(ddef["enum"])
+    if isinstance(ddef.get("x-ncp-known-values"), list):
+        return list(ddef["x-ncp-known-values"])
     one = ddef.get("oneOf")
     if isinstance(one, list) and one and all(
         isinstance(m, dict) and m.get("type") == "string" and ("enum" in m or "const" in m)
@@ -101,6 +117,7 @@ def build_manifest(schemas_dir: Path) -> dict:
     ncp_version, contract_hash = _wire_pins()
     kinds: dict[str, dict] = {}
     enums: dict[str, list[str]] = {}
+    definitions: dict[str, dict] = {}
     for p in sorted(schemas_dir.glob("*.schema.json")):
         s = json.loads(p.read_text())
         props = s.get("properties") or {}
@@ -117,10 +134,23 @@ def build_manifest(schemas_dir: Path) -> dict:
                 # Last write wins; an enum's value set is identical wherever it appears
                 # ($defs are the same schemars-emitted definitions across schemas).
                 enums[dname] = sorted(ev)
+            props = ddef.get("properties")
+            if isinstance(props, dict):
+                definition = {
+                    "fields": {name: _type_repr(fdef) for name, fdef in props.items()},
+                    "required": sorted(ddef.get("required") or []),
+                }
+                previous = definitions.get(dname)
+                if previous is not None and previous != definition:
+                    raise ValueError(
+                        f"nested definition {dname!r} differs between generated schemas"
+                    )
+                definitions[dname] = definition
     return {
         "ncp_version": ncp_version,
         "contract_hash": contract_hash,
         "kinds": kinds,
+        "definitions": definitions,
         "enums": enums,
     }
 
@@ -162,6 +192,27 @@ def diff(frozen: dict, current: dict) -> list[str]:
         for v in sorted(set(evals) - set(cvals)):
             fails.append(f"enum {ename} value {v!r} was REMOVED (breaking)")
 
+    # Nested message shapes are just as wire-visible as top-level kinds. Earlier
+    # baseline manifests did not carry this section; treat that as an empty legacy
+    # anchor, while every newly frozen baseline gets full recursive coverage.
+    for name, frozen_def in frozen.get("definitions", {}).items():
+        current_def = current.get("definitions", {}).get(name)
+        if current_def is None:
+            fails.append(f"nested definition {name!r} was REMOVED (breaking)")
+            continue
+        for field, field_type in frozen_def["fields"].items():
+            if field not in current_def["fields"]:
+                fails.append(f"{name}.{field} nested field was REMOVED (breaking)")
+            elif current_def["fields"][field] != field_type:
+                fails.append(
+                    f"{name}.{field} nested TYPE changed (breaking): "
+                    f"{field_type} -> {current_def['fields'][field]}"
+                )
+        for required in sorted(set(current_def["required"]) - set(frozen_def["required"])):
+            fails.append(
+                f"{name}.{required} became REQUIRED (breaking nested contract)"
+            )
+
     return fails
 
 
@@ -182,8 +233,66 @@ def freeze(dest: Path) -> int:
         shutil.copytree(src, out, ignore=shutil.ignore_patterns("README.md"))
     print(
         f"FROZE wire baseline {manifest['ncp_version']} (hash {manifest['contract_hash']}) "
-        f"-> {dest.relative_to(REPO)} : {len(manifest['kinds'])} kinds, {len(manifest['enums'])} enums"
+        f"-> {dest.relative_to(REPO)} : {len(manifest['kinds'])} kinds, "
+        f"{len(manifest['definitions'])} nested definitions, {len(manifest['enums'])} enums"
     )
+    return 0
+
+
+def _artifact_bytes(root: Path) -> dict[str, bytes]:
+    if not root.is_dir():
+        return {}
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and path.name != "README.md"
+    }
+
+
+def verify_exact(dest: Path) -> int:
+    """Pre-tag proof that the audit snapshot is byte-exactly the release tree.
+
+    Normal post-release checking remains additive-only so a wire line may gain
+    optional fields. This stricter mode is intentionally explicit: run it only
+    while cutting the immutable baseline tag.
+    """
+    problems: list[str] = []
+    frozen_manifest = dest / "wire_manifest.json"
+    if not frozen_manifest.is_file():
+        problems.append(f"missing {frozen_manifest}")
+    else:
+        expected = build_manifest(SCHEMAS)
+        actual = json.loads(frozen_manifest.read_text())
+        if actual != expected:
+            problems.append("wire_manifest.json is not the exact current structural manifest")
+
+    for label, current, frozen in (
+        ("schemas", SCHEMAS, dest / "schemas"),
+        ("vectors", GOLDEN_VECTORS, dest / "vectors"),
+    ):
+        current_files = _artifact_bytes(current)
+        frozen_files = _artifact_bytes(frozen)
+        missing = sorted(set(current_files) - set(frozen_files))
+        extra = sorted(set(frozen_files) - set(current_files))
+        changed = sorted(
+            name
+            for name in set(current_files) & set(frozen_files)
+            if current_files[name] != frozen_files[name]
+        )
+        if missing:
+            problems.append(f"{label}: snapshot missing {missing}")
+        if extra:
+            problems.append(f"{label}: snapshot has extra files {extra}")
+        if changed:
+            problems.append(f"{label}: byte-different files {changed}")
+
+    if problems:
+        print("EXACT WIRE SNAPSHOT MISMATCH:", file=sys.stderr)
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        print("Re-freeze the unreleased baseline, then verify again before tagging.", file=sys.stderr)
+        return 1
+    print(f"PASS: frozen audit snapshot {dest.relative_to(REPO)} exactly matches current schemas/vectors.")
     return 0
 
 
@@ -224,10 +333,19 @@ def check() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Frozen JSON-wire baseline gate (additive-only).")
-    ap.add_argument("--freeze", metavar="DIR", help="write a new frozen baseline to DIR")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--freeze", metavar="DIR", help="write a new frozen baseline to DIR")
+    mode.add_argument(
+        "--verify-exact",
+        metavar="DIR",
+        help="pre-tag: require snapshot schemas/vectors to byte-match current artifacts",
+    )
     args = ap.parse_args()
     if args.freeze:
         return freeze(Path(args.freeze) if Path(args.freeze).is_absolute() else REPO / args.freeze)
+    if args.verify_exact:
+        path = Path(args.verify_exact)
+        return verify_exact(path if path.is_absolute() else REPO / path)
     return check()
 
 

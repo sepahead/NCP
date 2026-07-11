@@ -4,7 +4,7 @@
  * `NeuroSimClient`, or implement `Send` over another bus (e.g. Zenoh) instead.
  */
 
-import type { Send } from './client'
+import type { Send } from './client.js'
 
 interface PendingRequest {
   resolve: (reply: unknown) => void
@@ -15,16 +15,18 @@ export class WebSocketNeuroSim {
   private readonly ws: WebSocket
   private readonly pending: PendingRequest[] = []
   private readonly ready: Promise<void>
+  private readonly settleReady: () => void
   private closedError: Error | null = null
 
   constructor(url = 'ws://127.0.0.1:28471/api/neurocontrol/ws') {
     this.ws = new WebSocket(url)
 
-    let rejectReady!: (error: Error) => void
-    this.ready = new Promise<void>((resolve, reject) => {
-      rejectReady = reject
-      this.ws.onopen = (): void => resolve()
+    let settleReady!: () => void
+    this.ready = new Promise<void>((resolve) => {
+      settleReady = resolve
     })
+    this.settleReady = settleReady
+    this.ws.onopen = (): void => this.settleReady()
 
     this.ws.onmessage = (event: MessageEvent): void => {
       const pending = this.pending.shift()
@@ -40,16 +42,18 @@ export class WebSocketNeuroSim {
       }
     }
 
-    // A close or error after connection must settle every in-flight request,
-    // otherwise awaiting NeuroSimClient calls would hang forever. The same
-    // handler rejects the `ready` promise if the socket never opened.
+    // A close or error must settle both the connection wait and every in-flight
+    // request. `ready` intentionally resolves on failure: `closedError` carries
+    // the actual rejection and avoids an unobserved rejected promise when a
+    // socket fails before the caller has sent its first request.
     this.ws.onerror = (): void => {
       const error = new Error('NCP WebSocket error')
-      rejectReady(error) // no-op once `ready` has resolved
       this.failAll(error)
+      this.settleReady()
     }
     this.ws.onclose = (): void => {
       this.failAll(new Error('NCP WebSocket closed'))
+      this.settleReady()
     }
   }
 
@@ -88,6 +92,7 @@ export class WebSocketNeuroSim {
 
   close(): void {
     this.failAll(new Error('NCP WebSocket closed by client'))
+    this.settleReady()
     this.ws.close()
   }
 }

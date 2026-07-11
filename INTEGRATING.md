@@ -126,10 +126,10 @@ just means you never meet, it grants nothing (for actual authorization see the
 per-plane ACL + mTLS in [`SECURITY.md`](SECURITY.md)).
 
 ```text
-{realm}/rpc                              control-plane RPC   (queryable; Open/Step/Run/Close)
+{realm}/rpc/{request_kind}               control-plane RPC   (exact request key; server declares {realm}/rpc/*)
 {realm}/session/{id}/sensor[/{name}]     perception plane    (pub/sub, best-effort DROP)
 {realm}/session/{id}/command[/{name}]    action plane        (pub/sub, best-effort DROP + express; ttl_ms is plant-side, safety-gated)
-{realm}/session/{id}/observation         observation plane   (pub/sub, free read-only tap)
+{realm}/session/{id}/observation         observation plane   (commander publishes; observers subscribe read-only)
 ```
 
 The default realm is the neutral `"ncp"`. A deployment picks its own — an Engram
@@ -151,12 +151,14 @@ wildcard-bearing id can't leak across sessions.
 
 ### What's actually on the wire (so you size buffers and pick tooling right)
 
-- **The runtime encoding is JSON.** The sensor, command and RPC planes ship
+- **The runtime encoding is JSON.** The sensor, command, RPC, and observation planes ship
   `serde_json` payloads — human-readable, debuggable from any Zenoh/WS client, and the
   default everywhere. The end-to-end cost is tiny (~1 µs for a full control tick; see
   [`PERFORMANCE.md`](PERFORMANCE.md)), so JSON stays the default.
-- **Bulk / observation data uses the binary `BulkBlock`.** Large numeric arrays
-  (spike trains, V_m matrices) ride a compact little-endian columnar block, not JSON.
+- **BulkBlock is not a standalone wire frame.** It is a bounded local/offline
+  column codec. Until the complete versioned/session/seq/provenance envelope ships
+  in every binding, publish observation data as JSON `ObservationFrame`; Zenoh
+  rejects a bare NCPB block.
 - **Protobuf (`proto/ncp.proto` + `gen/`) is the *schema contract*, not the shipped
   encoding.** It is the IDL / source-of-truth that pins field names and feeds the
   conformance corpus, and the TypeScript types derive from the same contract — but the
@@ -189,25 +191,29 @@ The two reference peers exercise the **two ends of the same wire**: Engram *comm
 Both pin NCP by tag and add zero code to each other. This section walks the real flow
 each one implements, so you can copy the shape for your own commander or observer.
 
-> **Wire 0.6 requirements (both ends).** Pin `tag = "v0.6.0"`, and on the wire: every
+> **Wire 0.7 requirements (both ends).** The latest immutable release is `v0.7.0`.
+> On wire 0.7, every
 > message carries a compatible `ncp_version` (an absent or mismatched version is
 > rejected, not defaulted); a `sensor_frame`/`command_frame` stamps `seq >= 1`, strictly
 > increasing per stream, with each `command_frame` echoing the driving `sensor_frame.seq`;
 > and an `observation_frame` **published on the observation plane** echoes that same
-> driving `SensorFrame.seq` (`seq == 0` is only the pull/RPC-reply form). A glob
+> driving `SensorFrame.seq` (`seq == 0` is only the pull/RPC-reply form). All JSON
+> int64 values stay within ±(2^53−1); unknown enum strings are preserved; observation
+> provenance is explicit; nested stimuli match the outer session; and RPC errors are
+> versioned `ErrorFrame`s. A glob
 > subscriber skips a `kind` it does not recognize *before* validating, so additive kinds
 > stay non-breaking. Onboarding a new consumer still needs **zero NCP-repo changes** — pin
 > the tag, stamp/echo `seq`, carry the version, and drop a `.ncp-consumer` descriptor in
 > your own repo (see [Registering a consumer](#registering-a-consumer-zero-ncp-repo-changes)).
 
 ```text
-                 engram/ncp/rpc  (queryable, Open/Step/Run/Close)
+          engram/ncp/rpc/{request_kind}  (server queryable: engram/ncp/rpc/*)
    ┌────────────┐  ───────────────────────────►  ┌──────────────────────────┐
    │  Engram    │                                 │  ncp-gateway (Rust edge) │
    │  commander │  ◄───────────────────────────   │  → bridge_server.py      │
    │  (NEST)    │      ObservationFrame / …        │    (SessionService)      │
    └────────────┘                                  └──────────────────────────┘
-        │  publishes engram/ncp/session/<id>/{sensor,command,observation}
+        │  publishes …/{command,observation}; subscribes to plant-published …/sensor
         ▼
    ┌───────────────────────────── Zenoh bus (realm "engram/ncp") ─────────────────────────────┐
         ▲ subscribes read-only (attaches for free — zero commander change)
@@ -220,18 +226,21 @@ each one implements, so you can copy the shape for your own commander or observe
 ### Engram — the commander (serve the RPC contract, publish the planes)
 
 Engram runs NEST in Python and terminates the bus with NCP's own **`ncp-gateway`**
-binary. The gateway serves the control-plane queryable at `{realm}/rpc` and forwards
+binary. The gateway serves the control-plane queryable at `{realm}/rpc/*`; each client
+request uses the exact `{realm}/rpc/{request_kind}` key. It forwards
 each request to Engram's Python `SessionService` (its `bridge_server.py`) over a
 localhost socket — NEST stays in Python, the wire stays language-neutral. Deploy it
-with the deployment realm and (for an enforced deployment) the shipped ACL/TLS config:
+with the deployment realm and a configured **client** TLS identity. The router runs
+separately from a realm-rendered `deploy/zenoh-access-control.json5`; never point the
+gateway's strict client path at that router config:
 
 ```bash
 NCP_REALM=engram/ncp \
 NCP_BRIDGE_ADDR=127.0.0.1:28474 \
-NCP_ZENOH_CONFIG=deploy/zenoh-access-control.json5 \
+NCP_ZENOH_CONFIG=deploy/zenoh-client-secure.json5 \
 cargo run -p ncp-gateway
-# serves  engram/ncp/rpc  →  Python bridge 127.0.0.1:28474
-# planes  engram/ncp/session/<id>/{sensor,command,observation}
+# serves  engram/ncp/rpc/*  →  Python bridge 127.0.0.1:28474
+# streaming sensor/command/observation planes connect directly between peers
 ```
 
 The commander's job is to answer the four lifecycle verbs and publish observations.
@@ -275,7 +284,7 @@ for the data plane — same wire, no gateway.
 Prisoma is a **read-only** tap: it opens the *same realm*, subscribes to the three
 data-plane keys, and turns each closed-loop tick into a `(V,L,D,A)` sample for its
 Partial Information Decomposition — **it publishes nothing on the action plane.** Its
-`ncp-observer` crate is a NCP consumer (pinned `tag = "v0.6.0"`) built entirely on
+`ncp-observer` crate is a NCP consumer (latest released pin `v0.7.0`) built entirely on
 `ncp_core` + `ncp_zenoh`:
 
 ```rust
@@ -362,10 +371,10 @@ planes mean your tap costs the commander exactly nothing.
 | 4 | **Data scientist / analyst** | read-only observer tap, PyO3 module, `(V,L,D,A)` mapping | exact stream alignment → **added** (`ObservationFrame.seq`; observer joins D on `seq`) |
 | 5 | **TypeScript / frontend dev** | wire-correct types conforming to `proto/ncp.proto` (today via ts-rs from `ncp-core`; buf/ts-proto is the migration target) | browser transport → WS/Tauri (Zenoh is native, no WASM transport — the typed contract is the unification; documented) |
 | 6 | **C++ / systems dev** | native integration | a C/C++ binding → **added** (`ncp-cpp` C ABI + `ncp.h`, compile-and-run verified) |
-| 7 | **Embedded / MCU dev** | the JSON wire is compact (binary BulkBlock for bulk data) | `no_std` core + a tiny transport (zenoh-pico / micro-ROS) → **gap / roadmap** (today `ncp-core` is `std`+serde; Zenoh is heavy) |
+| 7 | **Embedded / MCU dev** | the shipped JSON wire is compact; `BulkBlock` is a bounded local/offline codec | `no_std` core + a tiny transport (zenoh-pico / micro-ROS) → **gap / roadmap** (today `ncp-core` is `std`+serde; Zenoh is heavy) |
 | 8 | **Security engineer** | per-plane keys, scoped read taps; a default-deny per-plane Zenoh ACL template (`deploy/zenoh-access-control.json5`) + mutual-TLS enablement steps (`SECURITY.md`) | **enable the ACL + mTLS** → on an open realm the command key is world-writable until you do; the template ships the mechanism, live mTLS-enforcement validation is the remaining P0 (#7) |
-| 9 | **DevOps / SRE** | reproducible builds, one conformance command | a repeatable check → **added** (`scripts/check.sh`); CI workflow + multi-impl conformance → roadmap |
-| 10 | **OSS maintainer / standards** | versioned spec + `.proto` + schemas + extractable crate + semver guard + rationale | neutral spec repo, conformance program, multiple independent impls → **gap / roadmap** (the "become a standard" path) |
+| 9 | **DevOps / SRE** | reproducible builds, one conformance command | CI + the full cross-language shape/behavior corpus → **added**; independent multi-implementation certification remains roadmap |
+| 10 | **OSS maintainer / standards** | versioned spec + `.proto` + schemas + extractable crate + SemVer guard + pragmatic conformance corpus | neutral spec home and multiple independent implementations → **gap / roadmap** |
 
 Honest summary: lenses 1, 2, 4, 6, 9 were improved this round; 3 and 5 are partial
 by design; **8 (auth) is the one real blocker for an open-network deployment** and
@@ -378,13 +387,11 @@ messages + a watchdog) is the better call instead.
 
 NCP is pre-1.0 and the contract is deliberately conservative. Before any field or
 open-network deployment, read [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — an
-adversarial audit catalogs **35 findings**. **All 3 high-severity safety findings are
-now fixed** (the `BulkBlock` decode OOM, the fail-**open** unbounded/non-finite `ttl_ms`
-watchdog, and the empty-position geofence bypass), each wire-safe and regression-tested;
-**11 of 35 are resolved** (the wire-0.6 enforcement cut also closed two of the three
-`wire-breaking` findings, the `seq==0` replay hatch and the unenforced data-plane version
-check) and the remaining 24 medium/low items are tracked there with per-finding status. Pair it with [`SECURITY.md`](SECURITY.md): on an open realm the
+continuing adversarial audit whose live ledger deliberately no longer uses the obsolete
+35-item numeric summary. All original high-severity safety findings are fixed, and wire
+0.7 closes further cross-language, provenance, error, precision, realm, RPC-addressing,
+and hostile-bulk gaps. Remaining integration/performance items stay individually tracked.
+Pair it with [`SECURITY.md`](SECURITY.md): on an open/default configuration the
 action key is world-writable until you enable the shipped per-plane ACL + mTLS (lens 8
 above) — **that (auth) is the one real blocker for an open-network deployment**, not the
 now-closed high-severity safety bugs.
-

@@ -16,16 +16,16 @@
 //!
 //! ```python
 //! import ncp
-//! ncp.NCP_VERSION                      # "0.6"
+//! ncp.NCP_VERSION                      # "0.7"
 //! k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 //! k.command("uav3")                    # "ncp/session/uav3/command"
-//! ncp.decode_command(codec_json, '{"vel_x":200.0}', t=0.0, seq=7)  # CommandFrame JSON
+//! ncp.decode_command(codec_json, '{"vel_x":200.0}', seq=7, t=0.0)  # CommandFrame JSON
 //! gov = ncp.Governor('{"command_timeout_ms": 500.0}')  # PERSISTENT (latching) governor
 //! ```
 
 use ncp_core::{
-    ChannelValue, CodecSpec, CommandFrame, Keys as CoreKeys, Map, Mode, SafetyGovernor,
-    SafetyLimits, SensorFrame,
+    valid_id_segment, ActionBuffer as CoreActionBuffer, ChannelValue, CodecSpec, CommandFrame,
+    Keys as CoreKeys, Map, Mode, SafetyGovernor, SafetyLimits, SensorFrame, WireFrame,
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -34,8 +34,18 @@ fn val<E: std::fmt::Display>(e: E) -> PyErr {
     PyValueError::new_err(e.to_string())
 }
 
+fn validate_key_segment(value: &str, label: &str) -> PyResult<()> {
+    if valid_id_segment(value) {
+        Ok(())
+    } else {
+        Err(PyValueError::new_err(format!(
+            "invalid NCP {label} key segment: {value:?}"
+        )))
+    }
+}
+
 /// The NCP key scheme (the three planes + control RPC), so Python addresses the
-/// same keys as the Rust/TS peers.
+/// same keys as the Rust peers.
 #[pyclass]
 struct Keys {
     inner: CoreKeys,
@@ -45,31 +55,47 @@ struct Keys {
 impl Keys {
     #[new]
     #[pyo3(signature = (realm = None))]
-    fn new(realm: Option<String>) -> Self {
-        Keys {
-            inner: CoreKeys::new(realm.unwrap_or_else(|| ncp_core::DEFAULT_REALM.to_string())),
-        }
+    fn new(realm: Option<String>) -> PyResult<Self> {
+        let realm = realm.unwrap_or_else(|| ncp_core::DEFAULT_REALM.to_string());
+        Ok(Keys {
+            inner: CoreKeys::try_new(realm).map_err(val)?,
+        })
     }
+    /// Control-plane prefix. Use `rpc_for_kind()` for a request.
     fn rpc(&self) -> String {
         self.inner.rpc()
     }
-    fn sensor(&self, session_id: &str) -> String {
-        self.inner.sensor(session_id)
+    fn rpc_for_kind(&self, kind: &str) -> PyResult<String> {
+        self.inner.rpc_for_kind(kind).map_err(val)
     }
-    fn sensor_named(&self, session_id: &str, name: &str) -> String {
-        self.inner.sensor_named(session_id, name)
+    fn rpc_glob(&self) -> String {
+        self.inner.rpc_glob()
     }
-    fn command(&self, session_id: &str) -> String {
-        self.inner.command(session_id)
+    fn sensor(&self, session_id: &str) -> PyResult<String> {
+        validate_key_segment(session_id, "session id")?;
+        Ok(self.inner.sensor(session_id))
     }
-    fn command_named(&self, session_id: &str, name: &str) -> String {
-        self.inner.command_named(session_id, name)
+    fn sensor_named(&self, session_id: &str, name: &str) -> PyResult<String> {
+        validate_key_segment(session_id, "session id")?;
+        validate_key_segment(name, "sensor name")?;
+        Ok(self.inner.sensor_named(session_id, name))
     }
-    fn observation(&self, session_id: &str) -> String {
-        self.inner.observation(session_id)
+    fn command(&self, session_id: &str) -> PyResult<String> {
+        validate_key_segment(session_id, "session id")?;
+        Ok(self.inner.command(session_id))
     }
-    fn session_glob(&self, session_id: &str) -> String {
-        self.inner.session_glob(session_id)
+    fn command_named(&self, session_id: &str, name: &str) -> PyResult<String> {
+        validate_key_segment(session_id, "session id")?;
+        validate_key_segment(name, "command name")?;
+        Ok(self.inner.command_named(session_id, name))
+    }
+    fn observation(&self, session_id: &str) -> PyResult<String> {
+        validate_key_segment(session_id, "session id")?;
+        Ok(self.inner.observation(session_id))
+    }
+    fn session_glob(&self, session_id: &str) -> PyResult<String> {
+        validate_key_segment(session_id, "session id")?;
+        Ok(self.inner.session_glob(session_id))
     }
 }
 
@@ -97,37 +123,40 @@ fn contract_status(peer_hash: Option<&str>) -> &'static str {
     }
 }
 
-/// Rate-encode a `SensorFrame` JSON to `{population: rate_hz}` JSON, via the Rust
-/// codec. `sensor_json` may be `"null"` for the no-sensor case.
+/// Rate-encode a complete wire-valid `SensorFrame` JSON to
+/// `{population: rate_hz}` JSON, via the checked Rust codec. `sensor_json` may be
+/// `"null"` for the intentional no-sensor case.
 #[pyfunction]
 fn encode_rates(codec_json: &str, sensor_json: &str) -> PyResult<String> {
     let codec: CodecSpec = serde_json::from_str(codec_json).map_err(val)?;
-    let sensor: Option<SensorFrame> =
-        if sensor_json.trim().is_empty() || sensor_json.trim() == "null" {
-            None
-        } else {
-            Some(serde_json::from_str(sensor_json).map_err(val)?)
-        };
-    let rates = codec.encode(sensor.as_ref());
+    let sensor: Option<SensorFrame> = if sensor_json.trim() == "null" {
+        None
+    } else {
+        Some(serde_json::from_str(sensor_json).map_err(val)?)
+    };
+    let rates = codec.encode_checked(sensor.as_ref()).map_err(val)?;
     serde_json::to_string(&rates).map_err(val)
 }
 
-/// Rate-decode `{population: rate_hz}` JSON to a `CommandFrame` JSON, via the Rust
-/// codec.
+/// Rate-decode `{population: rate_hz}` JSON to a wire-valid `CommandFrame` JSON,
+/// via the checked Rust codec. The caller owns the monotonically increasing seq;
+/// the binding never fabricates one.
 #[pyfunction]
-#[pyo3(signature = (codec_json, rates_json, t = 0.0, seq = 0, frame_id = "world", mode = "active"))]
+#[pyo3(signature = (codec_json, rates_json, seq, t = 0.0, frame_id = "world", mode = "hold"))]
 fn decode_command(
     codec_json: &str,
     rates_json: &str,
-    t: f64,
     seq: i64,
+    t: f64,
     frame_id: &str,
     mode: &str,
 ) -> PyResult<String> {
     let codec: CodecSpec = serde_json::from_str(codec_json).map_err(val)?;
     let rates: Map<f64> = serde_json::from_str(rates_json).map_err(val)?;
     let mode = parse_mode(mode)?;
-    let cmd = codec.decode(&rates, t, seq, frame_id, mode);
+    let cmd = codec
+        .decode_checked(&rates, t, seq, frame_id, mode)
+        .map_err(val)?;
     serde_json::to_string(&cmd).map_err(val)
 }
 
@@ -143,10 +172,9 @@ fn parse_mode(s: &str) -> PyResult<Mode> {
 
 fn parse_sensor(sensor_json: Option<&str>) -> PyResult<Option<SensorFrame>> {
     match sensor_json {
-        Some(s) if !s.trim().is_empty() && s.trim() != "null" => {
-            Ok(Some(serde_json::from_str(s).map_err(val)?))
-        }
-        _ => Ok(None),
+        None => Ok(None),
+        Some(s) if s.trim() == "null" => Ok(None),
+        Some(s) => Ok(Some(serde_json::from_str(s).map_err(val)?)),
     }
 }
 
@@ -179,8 +207,23 @@ fn govern_with(
     sensor_json: Option<&str>,
     last_sensor_s: Option<f64>,
 ) -> PyResult<String> {
-    let command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
-    let sensor = parse_sensor(sensor_json)?;
+    let mut command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
+    // An explicit ESTOP always latches. Every other invalid action envelope is
+    // converted to HOLD so a binding caller cannot accidentally actuate after
+    // bypassing `validate()`.
+    if command.mode != Mode::Estop && command.validate_wire().is_err() {
+        command.mode = Mode::Hold;
+    }
+    let mut sensor = parse_sensor(sensor_json)?;
+    let sensor_valid = sensor
+        .as_ref()
+        .is_some_and(|frame| frame.validate_wire().is_ok());
+    if !sensor_valid {
+        sensor = None;
+    }
+    // `sensor=None` independently denies actuation. Preserve the timestamp of
+    // the last accepted sensor so prolonged absence/invalid input can still
+    // cross the reference governor's total-silence ESTOP deadline.
     let out = gov.govern(&command, sensor.as_ref(), now_s, last_sensor_s);
     serde_json::to_string(&out).map_err(val)
 }
@@ -246,12 +289,65 @@ impl Governor {
     }
 }
 
+/// Persistent plant-side command buffer. This complements [`Governor`]: the
+/// governor checks sensor freshness/geofence/speed policy, while `ActionBuffer`
+/// enforces command `ttl_ms`, seq/replay rejection, bounded predictive-horizon
+/// replay, and a separate ESTOP latch. A live actuator needs both layers.
+#[pyclass]
+struct ActionBuffer {
+    inner: CoreActionBuffer,
+}
+
+#[pymethods]
+impl ActionBuffer {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: CoreActionBuffer::new(),
+        }
+    }
+
+    /// Ingest one CommandFrame JSON at the plant's local arrival time. Malformed
+    /// JSON raises ValueError; parseable invalid/replayed frames are fail-closed
+    /// and ignored by the core, while an explicit ESTOP always latches.
+    fn on_command(&mut self, now_s: f64, command_json: &str) -> PyResult<()> {
+        let command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
+        self.inner.on_command(now_s, command);
+        Ok(())
+    }
+
+    /// Return the active channel-map JSON at `now_s`, or `None` when the plant
+    /// must HOLD (no command, expired TTL, replay rejection, horizon drain, or
+    /// latched ESTOP).
+    fn active(&self, now_s: f64) -> PyResult<Option<String>> {
+        self.inner
+            .active(now_s)
+            .map(|channels| serde_json::to_string(&channels).map_err(val))
+            .transpose()
+    }
+
+    /// True when no active setpoint is safe to apply at `now_s`.
+    fn should_hold(&self, now_s: f64) -> bool {
+        self.inner.should_hold(now_s)
+    }
+
+    /// Clear the action buffer's latched ESTOP (supervisor authority).
+    fn reset(&mut self) {
+        self.inner.reset()
+    }
+
+    /// True while the action buffer's ESTOP is latched.
+    fn is_estopped(&self) -> bool {
+        self.inner.is_estopped()
+    }
+}
+
 /// Validate an NCP message JSON of a given `kind` by parsing it through the Rust
 /// type and re-serializing — raises `ValueError` on a message the Rust type
 /// rejects, else returns its canonical JSON. This checks structural/serde
-/// conformance to the wire schema (field names, types, required fields); it is
-/// not a semantic/range check, so a structurally valid frame may still be
-/// rejected downstream (e.g. by the safety governor).
+/// conformance to the wire schema and the reference semantic/range gates. A
+/// structurally valid frame can still be rejected downstream by stateful safety
+/// policy (for example a stale or replayed command).
 #[pyfunction]
 fn validate(kind: &str, json: &str) -> PyResult<String> {
     use ncp_core::*;
@@ -265,23 +361,25 @@ fn validate(kind: &str, json: &str) -> PyResult<String> {
     let mut value: serde_json::Value = serde_json::from_str(json).map_err(val)?;
     match value.as_object_mut() {
         Some(m) => match m.get("kind") {
-            Some(serde_json::Value::String(k)) if k != kind => {
+            Some(serde_json::Value::String(k)) if k == kind => {}
+            Some(serde_json::Value::String(k)) => {
                 return Err(PyValueError::new_err(format!(
                     "kind mismatch: argument {kind:?} but body says {k:?}"
                 )));
             }
-            _ => {
-                m.insert("kind".into(), serde_json::Value::String(kind.into()));
+            Some(_) => return Err(PyValueError::new_err("NCP message kind must be a string")),
+            None => {
+                return Err(PyValueError::new_err(
+                    "NCP message carries no kind (mandatory since wire 0.6)",
+                ));
             }
         },
         None => return Err(PyValueError::new_err("NCP message is not a JSON object")),
     }
     ncp_core::validate(&value).map_err(|e| PyValueError::new_err(e.to_string()))?;
 
-    // Round-trip the kind-INJECTED document (not the raw input): validation and
-    // canonicalization must see the same document, and since wire 0.6 an omitted
-    // `kind` deserializes to a detectable "" rather than being fabricated — so
-    // the canonical output must carry the injected kind.
+    // Round-trip the same document that was validated. `kind` is a mandatory
+    // wire-0.6 discriminator and must never be fabricated from the API argument.
     macro_rules! rt {
         ($t:ty) => {{
             let v: $t = serde_json::from_value(value.clone()).map_err(val)?;
@@ -302,6 +400,7 @@ fn validate(kind: &str, json: &str) -> PyResult<String> {
         "control_status" => rt!(ControlStatus),
         "link_status" => rt!(LinkStatus),
         "capabilities" => rt!(Capabilities),
+        "error" => rt!(ErrorFrame),
         other => Err(PyValueError::new_err(format!(
             "unknown NCP message kind {other:?}"
         ))),
@@ -322,6 +421,7 @@ fn ncp(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("DEFAULT_REALM", ncp_core::DEFAULT_REALM)?;
     m.add_class::<Keys>()?;
     m.add_class::<Governor>()?;
+    m.add_class::<ActionBuffer>()?;
     m.add_function(wrap_pyfunction!(check_version, m)?)?;
     m.add_function(wrap_pyfunction!(contract_status, m)?)?;
     m.add_function(wrap_pyfunction!(encode_rates, m)?)?;

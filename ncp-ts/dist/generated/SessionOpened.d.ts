@@ -1,4 +1,4 @@
-import type { SimProvenance } from "./SimProvenance";
+import type { SimProvenance } from "./SimProvenance.js";
 /**
  * Ack of `open_session` with resolved sizes and provenance.
  */

@@ -38,9 +38,11 @@
 //! quiet-by-default: multicast scouting is **disabled** so a default deployment does
 //! not auto-advertise on the LAN (peers still connect via explicit
 //! `connect`/`listen` endpoints in a supplied config). For an ACL/TLS-enforced
-//! deployment, load the shipped config via [`ZenohBus::open_secure`],
-//! [`ZenohBus::with_config_file`], or by setting the `NCP_ZENOH_CONFIG` environment
-//! variable (honored by `open`/`open_realm` and by the `ncp-gateway` binary).
+//! deployment, run the realm-rendered router template separately and point
+//! `NCP_ZENOH_CONFIG` at a configured copy of `deploy/zenoh-client-secure.json5`,
+//! then call [`ZenohBus::open_secure`]. Generic [`ZenohBus::open`] and
+//! [`ZenohBus::with_config_file`] load arbitrary configs but do not apply the strict
+//! secure-client validation.
 
 use ncp_core::keys::{valid_id_segment, Keys};
 use std::sync::Arc;
@@ -52,16 +54,16 @@ pub use zenoh::Config as ZenohConfig;
 
 /// Environment variable naming a Zenoh config file (json5/json) to load. When set,
 /// [`ZenohBus::open`] / [`ZenohBus::open_realm`] (and the `ncp-gateway` binary) load
-/// it instead of the hardened default — point it at the shipped ACL/TLS config in
-/// `deploy/` for an enforced deployment.
+/// it instead of the hardened default. For [`ZenohBus::open_secure`], point it at a
+/// configured copy of `deploy/zenoh-client-secure.json5`, never the router ACL file.
 pub const NCP_ZENOH_CONFIG_ENV: &str = "NCP_ZENOH_CONFIG";
 
 /// Build the hardened default config: Zenoh defaults with **multicast scouting
 /// disabled** so a default deployment does not auto-advertise on the LAN. Peers can
 /// still connect via explicit `connect`/`listen` endpoints supplied in a config
 /// file (see [`NCP_ZENOH_CONFIG_ENV`]). This is addressing-hygiene, not auth — the
-/// realm is not a credential; for real authorization load the `deploy/` ACL via
-/// [`ZenohBus::open_secure`].
+/// realm is not a credential; for real authorization run the `deploy/` router ACL
+/// and connect through [`ZenohBus::open_secure`] with the client template.
 fn default_quiet_config() -> Result<Config> {
     let mut cfg = Config::default();
     // Fail-closed on the discovery surface: scouting-off is the security guarantee
@@ -79,6 +81,94 @@ fn default_quiet_config() -> Result<Config> {
 fn config_from_file(path: &std::path::Path) -> Result<Config> {
     Config::from_file(path)
         .map_err(|e| ZenohError(format!("load Zenoh config {}: {e}", path.display())))
+}
+
+fn config_value(config: &Config, path: &str) -> Result<serde_json::Value> {
+    let json = config
+        .get_json(path)
+        .map_err(|e| ZenohError(format!("secure config missing {path}: {e}")))?;
+    serde_json::from_str(&json)
+        .map_err(|e| ZenohError(format!("secure config {path} is not valid JSON: {e}")))
+}
+
+fn required_config_path(config: &Config, path: &str) -> Result<()> {
+    match config_value(config, path)? {
+        serde_json::Value::String(value) if !value.trim().is_empty() => Ok(()),
+        _ => Err(ZenohError(format!(
+            "secure client config requires a non-empty {path}"
+        ))),
+    }
+}
+
+fn collect_endpoint_strings<'a>(value: &'a serde_json::Value, out: &mut Vec<&'a str>) {
+    match value {
+        serde_json::Value::String(endpoint) => out.push(endpoint),
+        serde_json::Value::Array(values) => {
+            for value in values {
+                collect_endpoint_strings(value, out);
+            }
+        }
+        serde_json::Value::Object(values) => {
+            for value in values.values() {
+                collect_endpoint_strings(value, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// `open_secure` is specifically the fail-closed *client* path. Prove that the
+/// supplied config cannot discover or accept a plaintext peer and that it presents
+/// a client certificate while verifying the router against an explicit CA.
+fn validate_secure_client_config(config: &Config) -> Result<()> {
+    if config_value(config, "mode")?.as_str() != Some("client") {
+        return Err(ZenohError(
+            "secure client config requires mode=\"client\"".into(),
+        ));
+    }
+    for path in ["scouting/multicast/enabled", "scouting/gossip/enabled"] {
+        if config_value(config, path)?.as_bool() != Some(false) {
+            return Err(ZenohError(format!(
+                "secure client config requires {path}=false"
+            )));
+        }
+    }
+
+    let endpoints_value = config_value(config, "connect/endpoints")?;
+    let mut endpoints = Vec::new();
+    collect_endpoint_strings(&endpoints_value, &mut endpoints);
+    if endpoints.is_empty()
+        || endpoints
+            .iter()
+            .any(|endpoint| !endpoint.starts_with("tls/"))
+    {
+        return Err(ZenohError(
+            "secure client config requires one or more exclusively tls/ connect endpoints".into(),
+        ));
+    }
+
+    let listen_value = config_value(config, "listen/endpoints")?;
+    let mut listeners = Vec::new();
+    collect_endpoint_strings(&listen_value, &mut listeners);
+    if !listeners.is_empty() {
+        return Err(ZenohError(
+            "secure client config must not expose listen endpoints".into(),
+        ));
+    }
+
+    for path in [
+        "transport/link/tls/root_ca_certificate",
+        "transport/link/tls/connect_certificate",
+        "transport/link/tls/connect_private_key",
+    ] {
+        required_config_path(config, path)?;
+    }
+    if config_value(config, "transport/link/tls/verify_name_on_connect")?.as_bool() != Some(true) {
+        return Err(ZenohError(
+            "secure client config requires transport/link/tls/verify_name_on_connect=true".into(),
+        ));
+    }
+    Ok(())
 }
 
 /// Resolve the effective config for the default open path: if [`NCP_ZENOH_CONFIG_ENV`]
@@ -154,8 +244,7 @@ fn check_id(kind: &str, id: &str) -> Result<()> {
 /// Wire-0.6 publish gate for the perception plane: a `SensorFrame` must decode,
 /// carry the right `kind`, a compatible `ncp_version`, and a stamped `seq >= 1`.
 fn check_sensor_payload(payload: &[u8]) -> Result<()> {
-    ncp_core::decode_validated::<ncp_core::SensorFrame>(payload)
-        .map(drop)
+    ncp_core::validate_sensor_plane_payload(payload)
         .map_err(|e| ZenohError(format!("refusing to publish sensor frame: {e}")))
 }
 
@@ -163,35 +252,132 @@ fn check_sensor_payload(payload: &[u8]) -> Result<()> {
 /// through (a fail-safe is never suppressed — receivers latch it before any
 /// seq/version gate); everything else must pass full wire validation.
 fn check_command_payload(payload: &[u8]) -> Result<()> {
-    if let Ok(cmd) = serde_json::from_slice::<ncp_core::CommandFrame>(payload) {
-        if cmd.mode == ncp_core::Mode::Estop {
-            return Ok(());
-        }
-    }
-    ncp_core::decode_validated::<ncp_core::CommandFrame>(payload)
-        .map(drop)
+    ncp_core::validate_command_plane_payload(payload)
         .map_err(|e| ZenohError(format!("refusing to publish command frame: {e}")))
 }
 
-/// Wire-0.6 publish gate for the observation plane: a binary NCPB bulk block
-/// passes through (it has its own decode-side budget checks); a JSON
-/// `observation_frame` must validate AND carry `seq >= 1` — the plane-published
-/// form must echo its driving sensor seq (`0` is pull-path-only).
-fn check_observation_payload(payload: &[u8]) -> Result<()> {
-    if payload.starts_with(&ncp_core::BULK_MAGIC) {
-        return Ok(());
+/// Publish gate for the observation plane. The shipped transport accepts only a
+/// complete, versioned JSON `observation_frame` and requires `seq >= 1` — the
+/// plane-published form must echo its driving sensor seq (`0` is pull-path-only).
+/// A bare NCPB column block is deliberately rejected: it carries no session, seq,
+/// timestamp, or honesty-boundary provenance. `BulkBlock` remains a local/negotiated
+/// payload codec until a fully specified envelope is implemented across every SDK.
+fn check_observation_payload_for(session_id: &str, payload: &[u8]) -> Result<()> {
+    ncp_core::validate_observation_plane_payload_for(session_id, payload)
+        .map_err(|e| ZenohError(format!("refusing observation frame: {e}")))
+}
+
+/// Validate both layers of lifecycle routing: the selector grants authority for
+/// one verb, and the payload must be that same complete/versioned request. This
+/// prevents a client authorized only for one exact RPC key from smuggling a
+/// different lifecycle message through it.
+fn check_rpc_request(keys: &Keys, selector: &str, payload: &[u8]) -> Result<serde_json::Value> {
+    let selector_kind = selector_request_kind(keys, selector)
+        .ok_or_else(|| ZenohError(format!("unsupported NCP RPC selector {selector:?}")))?;
+    let (request, _) = ncp_core::validate_rpc_request_for(&selector_kind, payload)
+        .map_err(|error| ZenohError(error.to_string()))?;
+    Ok(request)
+}
+
+fn check_rpc_handler_reply(request_kind: &str, session_id: &str, payload: &[u8]) -> Result<()> {
+    ncp_core::validate_rpc_reply_for(request_kind, session_id, payload)
+        .map(drop)
+        .map_err(|error| ZenohError(error.to_string()))
+}
+
+fn rpc_error_payload(
+    error: impl Into<String>,
+    session_id: Option<String>,
+    request_kind: Option<String>,
+) -> Vec<u8> {
+    ncp_core::rpc_error_payload(error, session_id, request_kind)
+}
+
+fn selector_request_kind(keys: &Keys, selector: &str) -> Option<String> {
+    ncp_core::keys::RPC_REQUEST_KINDS
+        .iter()
+        .copied()
+        .find(|kind| keys.rpc_for_kind(kind).is_ok_and(|key| key == selector))
+        .map(str::to_owned)
+}
+
+fn request_session_id(value: &serde_json::Value) -> Option<String> {
+    value
+        .get("session_id")
+        .and_then(serde_json::Value::as_str)
+        .filter(|session_id| valid_id_segment(session_id))
+        .map(str::to_owned)
+}
+
+type RpcHandler = dyn Fn(Vec<u8>) -> Vec<u8> + Send + Sync;
+type RetainedSubscribers = Arc<std::sync::Mutex<Vec<(String, zenoh::pubsub::Subscriber<()>)>>>;
+
+/// Bound concurrent blocking/backend calls. Control RPC is rare; this ceiling is
+/// deliberately generous while preventing a hostile client from turning one
+/// queryable into unbounded tasks/memory.
+const MAX_IN_FLIGHT_RPC_REQUESTS: usize = 64;
+
+fn dispatch_rpc(keys: &Keys, handler: &RpcHandler, selector: &str, req: Vec<u8>) -> Vec<u8> {
+    let selector_kind = selector_request_kind(keys, selector);
+    let parsed = serde_json::from_slice::<serde_json::Value>(&req).ok();
+    let session_id = parsed.as_ref().and_then(request_session_id);
+    match check_rpc_request(keys, selector, &req) {
+        Err(error) => rpc_error_payload(error.to_string(), session_id, selector_kind),
+        Ok(request) => {
+            let request_kind = ncp_core::message_kind(&request)
+                .expect("validated request carries kind")
+                .to_owned();
+            let request_session = request_session_id(&request)
+                .expect("validated lifecycle request carries a safe session_id");
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| handler(req))) {
+                Ok(reply) => {
+                    match check_rpc_handler_reply(&request_kind, &request_session, &reply) {
+                        Ok(()) => reply,
+                        Err(error) => rpc_error_payload(
+                            error.to_string(),
+                            Some(request_session),
+                            Some(request_kind),
+                        ),
+                    }
+                }
+                Err(_) => rpc_error_payload(
+                    "RPC handler panicked",
+                    Some(request_session),
+                    Some(request_kind),
+                ),
+            }
+        }
     }
-    let obs = ncp_core::decode_validated::<ncp_core::ObservationFrame>(payload)
-        .map_err(|e| ZenohError(format!("refusing to publish observation frame: {e}")))?;
-    if obs.seq < 1 {
-        return Err(ZenohError(format!(
-            "refusing to publish observation frame: seq {} < 1 — a frame on the \
-             observation PLANE must echo the driving SensorFrame.seq (seq 0 is \
-             reserved for pull/RPC replies)",
-            obs.seq
-        )));
+}
+
+async fn dispatch_rpc_off_thread(
+    keys: Keys,
+    handler: Arc<RpcHandler>,
+    selector: String,
+    req: Vec<u8>,
+    permit: Arc<tokio::sync::OwnedSemaphorePermit>,
+) -> Vec<u8> {
+    let parsed = serde_json::from_slice::<serde_json::Value>(&req).ok();
+    let error_session = parsed.as_ref().and_then(request_session_id);
+    let error_kind = selector_request_kind(&keys, &selector);
+    match tokio::task::spawn_blocking(move || {
+        // Keep a permit clone in the blocking closure so aborting the async
+        // reply task cannot release capacity while this synchronous handler is
+        // still executing. The caller retains its own clone through reply
+        // delivery, bounding the complete request lifetime rather than only the
+        // backend call.
+        let _permit = permit;
+        dispatch_rpc(&keys, handler.as_ref(), &selector, req)
+    })
+    .await
+    {
+        Ok(reply) => reply,
+        Err(error) => rpc_error_payload(
+            format!("RPC dispatch task failed: {error}"),
+            error_session,
+            error_kind,
+        ),
     }
-    Ok(())
 }
 
 /// An NCP-aware Zenoh session. Wraps a [`zenoh::Session`] with the NCP key scheme
@@ -202,7 +388,11 @@ pub struct ZenohBus {
     keys: Keys,
     // Retain subscriber handles for the session lifetime — a dropped Zenoh
     // Subscriber undeclares its subscription, so callbacks would stop firing.
-    subs: Arc<std::sync::Mutex<Vec<zenoh::pubsub::Subscriber<()>>>>,
+    // Keep each selector so a closed NCP session can release only its own handles.
+    subs: RetainedSubscribers,
+    /// `false` for `from_session`: a wrapper must never close a session owned by
+    /// its host application.
+    owns_session: bool,
 }
 
 impl ZenohBus {
@@ -223,46 +413,55 @@ impl ZenohBus {
         Self::with_config(resolve_default_config()?, keys).await
     }
 
-    /// Open with a Zenoh config loaded from a file (json5/json), e.g. the shipped
-    /// per-plane ACL config in `deploy/zenoh-access-control.json5`. A missing or
-    /// malformed file fails the open (fail-closed) rather than falling back to an
-    /// open default.
+    /// Open with an arbitrary Zenoh config loaded from a file (json5/json). A missing
+    /// or malformed file fails the open rather than falling back. This generic path
+    /// does not validate the secure-client invariants; use [`Self::open_secure`] for
+    /// an enforced deployment.
     pub async fn with_config_file(path: impl AsRef<std::path::Path>, keys: Keys) -> Result<Self> {
         Self::with_config(config_from_file(path.as_ref())?, keys).await
     }
 
     /// Open the secure deployment config: load the file named by [`NCP_ZENOH_CONFIG_ENV`]
-    /// (the operator points it at the shipped `deploy/` ACL/TLS config). Unlike
+    /// (the operator points it at a configured copy of
+    /// `deploy/zenoh-client-secure.json5`). Unlike
     /// [`Self::open`], the env var is **required** here — if it is unset the open
     /// fails rather than starting an unauthenticated session, so a misconfigured
     /// "secure" deployment refuses to come up instead of silently opening a hole.
     pub async fn open_secure(keys: Keys) -> Result<Self> {
         let path = std::env::var_os(NCP_ZENOH_CONFIG_ENV).ok_or_else(|| {
             ZenohError(format!(
-                "open_secure requires {NCP_ZENOH_CONFIG_ENV} to name a Zenoh ACL/TLS \
-                 config (e.g. deploy/zenoh-access-control.json5)"
+                "open_secure requires {NCP_ZENOH_CONFIG_ENV} to name a strict Zenoh \
+                 client config (start from deploy/zenoh-client-secure.json5)"
             ))
         })?;
-        Self::with_config_file(std::path::Path::new(&path), keys).await
+        let config = config_from_file(std::path::Path::new(&path))?;
+        validate_secure_client_config(&config)?;
+        Self::with_config(config, keys).await
     }
 
     /// Open with an explicit config and realm.
     pub async fn with_config(config: Config, keys: Keys) -> Result<Self> {
+        keys.validate()
+            .map_err(|e| ZenohError(format!("refusing invalid realm: {e}")))?;
         let session = zenoh::open(config).await.map_err(err("zenoh open"))?;
         Ok(Self {
             session: Arc::new(session),
             keys,
             subs: Arc::new(std::sync::Mutex::new(Vec::new())),
+            owns_session: true,
         })
     }
 
     /// Wrap an already-open session (so a host app, e.g. a ROS 2 robot client,
     /// can share one Zenoh session across ROS traffic and NCP).
     pub fn from_session(session: Arc<Session>, keys: Keys) -> Self {
+        keys.validate()
+            .expect("refusing to wrap a Zenoh session with an invalid NCP realm");
         Self {
             session,
             keys,
             subs: Arc::new(std::sync::Mutex::new(Vec::new())),
+            owns_session: false,
         }
     }
 
@@ -277,12 +476,41 @@ impl ZenohBus {
 
     /// Control-plane RPC: send a serialized NCP message, return the reply bytes.
     pub async fn request(&self, message: &[u8]) -> Result<Vec<u8>> {
-        let replies = self
-            .session
-            .get(self.keys.rpc())
-            .payload(message)
-            .await
-            .map_err(err("zenoh get"))?;
+        self.request_inner(message, None).await
+    }
+
+    /// Control-plane RPC with an explicit query deadline. Use this for a long
+    /// `step_request`/`run_request` so the transport deadline is at least the
+    /// expected backend simulation duration; otherwise Zenoh's configured default
+    /// query timeout applies.
+    pub async fn request_with_timeout(
+        &self,
+        message: &[u8],
+        timeout: std::time::Duration,
+    ) -> Result<Vec<u8>> {
+        self.request_inner(message, Some(timeout)).await
+    }
+
+    async fn request_inner(
+        &self,
+        message: &[u8],
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Vec<u8>> {
+        let request: serde_json::Value =
+            serde_json::from_slice(message).map_err(err("parse NCP RPC request"))?;
+        ncp_core::validate(&request).map_err(err("invalid NCP RPC request"))?;
+        let kind = ncp_core::message_kind(&request)
+            .expect("validated NCP request always carries a string kind");
+        let rpc_key = self
+            .keys
+            .rpc_for_kind(kind)
+            .map_err(|error| ZenohError(format!("cannot route NCP RPC kind {kind:?}: {error}")))?;
+        let get = self.session.get(rpc_key.clone()).payload(message);
+        let replies = match timeout {
+            Some(timeout) => get.timeout(timeout).await,
+            None => get.await,
+        }
+        .map_err(err("zenoh get"))?;
         // Capture the last error reply so a remote error (server replied with an
         // error) is distinguishable from a dead server (no reply at all).
         let mut last_err: Option<String> = None;
@@ -295,11 +523,8 @@ impl ZenohBus {
             }
         }
         match last_err {
-            Some(e) => Err(ZenohError(format!(
-                "rpc error reply for {}: {e}",
-                self.keys.rpc()
-            ))),
-            None => Err(ZenohError(format!("no reply for {}", self.keys.rpc()))),
+            Some(e) => Err(ZenohError(format!("rpc error reply for {}: {e}", rpc_key))),
+            None => Err(ZenohError(format!("no reply for {rpc_key}"))),
         }
     }
 
@@ -322,8 +547,12 @@ impl ZenohBus {
         F: Fn(String, Vec<u8>) + Send + Sync + 'static,
     {
         check_id("session", session_id)?;
-        self.subscribe(&self.keys.command(session_id), callback)
-            .await
+        self.subscribe(&self.keys.command(session_id), move |key, payload| {
+            if check_command_payload(&payload).is_ok() {
+                callback(key, payload);
+            }
+        })
+        .await
     }
 
     /// Subscribe to the observation plane (the free read-only observer tap).
@@ -332,8 +561,13 @@ impl ZenohBus {
         F: Fn(String, Vec<u8>) + Send + Sync + 'static,
     {
         check_id("session", session_id)?;
-        self.subscribe(&self.keys.observation(session_id), callback)
-            .await
+        let expected_session = session_id.to_owned();
+        self.subscribe(&self.keys.observation(session_id), move |key, payload| {
+            if check_observation_payload_for(&expected_session, &payload).is_ok() {
+                callback(key, payload);
+            }
+        })
+        .await
     }
 
     /// Subscribe to every plane of a session (observer/diagnostic tap).
@@ -353,37 +587,97 @@ impl ZenohBus {
 
     /// Serve the control-plane RPC queryable. `handler` maps request JSON bytes →
     /// reply JSON bytes (e.g. a gateway forwards it to a Python backend's
-    /// `SessionService.handle_json`). Runs until the returned task is dropped.
-    pub async fn serve_rpc<F>(&self, handler: F) -> Result<()>
+    /// `SessionService.handle_json`). Each accepted query runs independently so a
+    /// slow backend request cannot head-of-line block every lifecycle verb; the
+    /// number of in-flight handlers is bounded and excess queries receive a typed
+    /// `ErrorFrame`. Synchronous handlers run on Tokio's blocking pool rather than
+    /// an async worker. Abort the returned task to stop accepting/replying without
+    /// closing a shared Zenoh session; Rust cannot forcibly cancel a synchronous
+    /// handler already executing, so those remain bounded and finish in the
+    /// blocking pool.
+    pub async fn serve_rpc<F>(&self, handler: F) -> Result<tokio::task::JoinHandle<()>>
     where
         F: Fn(Vec<u8>) -> Vec<u8> + Send + Sync + 'static,
     {
         let queryable = self
             .session
-            .declare_queryable(self.keys.rpc())
+            .declare_queryable(self.keys.rpc_glob())
             .await
             .map_err(err("declare queryable"))?;
-        let handler = Arc::new(handler);
-        tokio::spawn(async move {
-            while let Ok(query) = queryable.recv_async().await {
+        let handler: Arc<RpcHandler> = Arc::new(handler);
+        let keys = self.keys.clone();
+        let permits = Arc::new(tokio::sync::Semaphore::new(MAX_IN_FLIGHT_RPC_REQUESTS));
+        Ok(tokio::spawn(async move {
+            let mut handlers = tokio::task::JoinSet::new();
+            loop {
+                let query = tokio::select! {
+                    // Prefer reaping completed entries whenever both a reply
+                    // task and a new query are ready. Together with the permit
+                    // held through reply delivery, this keeps both active and
+                    // completed-but-unjoined JoinSet entries bounded under a
+                    // continuously readable hostile query stream.
+                    biased;
+                    completed = handlers.join_next(), if !handlers.is_empty() => {
+                        if let Some(Err(error)) = completed {
+                            eprintln!("ncp-zenoh: RPC dispatch task failed: {error}");
+                        }
+                        continue;
+                    },
+                    result = queryable.recv_async() => match result {
+                        Ok(query) => query,
+                        Err(_) => break,
+                    },
+                };
                 let req = query
                     .payload()
                     .map(|p| p.to_bytes().to_vec())
                     .unwrap_or_default();
-                let reply = handler(req);
                 let ke = query.key_expr().clone();
-                if let Err(e) = query.reply(ke, reply).await {
-                    // No log crate in this minimal feature set; surface to stderr so
-                    // a failed reply isn't silently dropped.
-                    eprintln!("ncp-zenoh: rpc reply failed: {e}");
-                }
+                let selector = ke.as_str().to_owned();
+                let permit = match permits.clone().try_acquire_owned() {
+                    Ok(permit) => Arc::new(permit),
+                    Err(_) => {
+                        let parsed = serde_json::from_slice::<serde_json::Value>(&req).ok();
+                        let session_id = parsed.as_ref().and_then(request_session_id);
+                        let request_kind = selector_request_kind(&keys, &selector);
+                        let reply = rpc_error_payload(
+                            "RPC server busy: in-flight request limit reached",
+                            session_id,
+                            request_kind,
+                        );
+                        if let Err(error) = query.reply(ke, reply).await {
+                            eprintln!("ncp-zenoh: busy RPC reply failed: {error}");
+                        }
+                        continue;
+                    }
+                };
+                let handler = handler.clone();
+                let keys = keys.clone();
+                handlers.spawn(async move {
+                    // The public handler is deliberately synchronous (the gateway
+                    // bridges to a blocking TCP backend). Running it directly in
+                    // this async task would still pin a Tokio worker and could
+                    // serialize every request on a current-thread runtime.
+                    let reply =
+                        dispatch_rpc_off_thread(keys, handler, selector, req, permit.clone()).await;
+                    if let Err(error) = query.reply(ke, reply).await {
+                        // No log crate in this minimal feature set; surface to stderr
+                        // so a failed reply isn't silently dropped.
+                        eprintln!("ncp-zenoh: RPC reply failed: {error}");
+                    }
+                    // `permit` intentionally remains live through the awaited
+                    // reply. Dropping it here completes the bounded request.
+                    drop(permit);
+                });
             }
-        });
-        Ok(())
+            // Dropping JoinSet cancels async reply tasks. An already-running
+            // spawn_blocking call cannot be pre-empted by Tokio; its semaphore
+            // permit stays owned until the synchronous handler returns.
+        }))
     }
 
     /// Publish an observation frame on a session's observation key: either a JSON
-    /// `observation_frame` or a binary NCPB bulk block (`BULK_MAGIC` prefix).
+    /// complete, versioned JSON `observation_frame`.
     ///
     /// Wire 0.6 (normative): a JSON frame published on the **observation plane**
     /// must echo the driving `SensorFrame.seq` — `seq >= 1` is enforced here
@@ -392,7 +686,7 @@ impl ZenohBus {
     /// seq-join contract that any observer aligns on.
     pub async fn publish_observation(&self, session_id: &str, payload: &[u8]) -> Result<()> {
         check_id("session", session_id)?;
-        check_observation_payload(payload)?;
+        check_observation_payload_for(session_id, payload)?;
         self.put(&self.keys.observation(session_id), payload, Plane::Control)
             .await
     }
@@ -416,8 +710,12 @@ impl ZenohBus {
         F: Fn(String, Vec<u8>) + Send + Sync + 'static,
     {
         check_id("session", session_id)?;
-        self.subscribe(&self.keys.sensor(session_id), callback)
-            .await
+        self.subscribe(&self.keys.sensor(session_id), move |key, payload| {
+            if check_sensor_payload(&payload).is_ok() {
+                callback(key, payload);
+            }
+        })
+        .await
     }
 
     // ───────────── per-named-entity (multi-sensor / multi-actuator) ─────────────
@@ -471,8 +769,12 @@ impl ZenohBus {
         // Guard the glob entry point too (release builds drop the key-builder
         // debug_assert), so a wildcard-bearing id cannot widen the subscription.
         check_id("session", session_id)?;
-        self.subscribe(&self.keys.sensor_glob(session_id), callback)
-            .await
+        self.subscribe(&self.keys.sensor_glob(session_id), move |key, payload| {
+            if check_sensor_payload(&payload).is_ok() {
+                callback(key, payload);
+            }
+        })
+        .await
     }
 
     /// Subscribe to one named actuator's command stream: `…/command/{name}`.
@@ -487,8 +789,15 @@ impl ZenohBus {
     {
         check_id("session", session_id)?;
         check_id("actuator name", name)?;
-        self.subscribe(&self.keys.command_named(session_id, name), callback)
-            .await
+        self.subscribe(
+            &self.keys.command_named(session_id, name),
+            move |key, payload| {
+                if check_command_payload(&payload).is_ok() {
+                    callback(key, payload);
+                }
+            },
+        )
+        .await
     }
 
     /// Subscribe across the whole fleet (every session/plane): `{realm}/session/**`
@@ -521,21 +830,28 @@ impl ZenohBus {
     /// stream (it does NOT buffer unboundedly and cannot exhaust memory). The flip
     /// side is head-of-line: keep `callback` cheap (decode + hand off), and for a
     /// control loop prefer latest-wins (overwrite a shared `SensorFrame`, as
-    /// [`ZenohControlTransport`] does) over doing heavy work here. A panic in
-    /// `callback` unwinds Zenoh's task, so the callback must not panic on
-    /// adversarial input — decode fallibly and drop, never `unwrap`.
+    /// [`ZenohControlTransport`] does) over doing heavy work here. Callback
+    /// panics are contained and logged so one hostile frame cannot silently kill
+    /// the subscription, but callers should still decode fallibly and drop.
     pub async fn subscribe<F>(&self, key: &str, callback: F) -> Result<()>
     where
         F: Fn(String, Vec<u8>) + Send + Sync + 'static,
     {
+        let selector = key.to_string();
         let callback = Arc::new(callback);
         let sub = self
             .session
-            .declare_subscriber(key.to_string())
+            .declare_subscriber(selector.clone())
             .callback(move |sample| {
                 let key = sample.key_expr().as_str().to_string();
                 let payload = sample.payload().to_bytes().to_vec();
-                callback(key, payload);
+                if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    callback(key, payload);
+                }))
+                .is_err()
+                {
+                    eprintln!("ncp-zenoh: subscriber callback panicked; sample dropped");
+                }
             })
             .await
             .map_err(err("declare subscriber"))?;
@@ -543,16 +859,39 @@ impl ZenohBus {
         self.subs
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .push(sub);
+            .push((selector, sub));
         Ok(())
     }
 
-    /// Gracefully close the underlying Zenoh session (undeclare queryables /
-    /// subscribers and flush). In Zenoh 1.x `Session::close` takes `&self` and
-    /// works even when the `Arc<Session>` is shared (e.g. by an embedded
-    /// `ZenohControlTransport`), so this is correct despite `ZenohBus: Clone`.
+    /// Undeclare every subscriber owned by this wrapper for one NCP session.
+    /// Long-lived fleet processes should call this after `close_session` so a
+    /// create/close cycle does not retain callbacks forever. Other sessions and
+    /// fleet-wide subscriptions remain active.
+    pub fn unsubscribe_session(&self, session_id: &str) -> Result<usize> {
+        check_id("session", session_id)?;
+        let glob = self.keys.session_glob(session_id);
+        let prefix = glob
+            .strip_suffix("/**")
+            .expect("session_glob always ends in /**");
+        let prefix_slash = format!("{prefix}/");
+        let mut subscribers = self.subs.lock().unwrap_or_else(|e| e.into_inner());
+        let before = subscribers.len();
+        subscribers
+            .retain(|(selector, _)| selector != prefix && !selector.starts_with(&prefix_slash));
+        Ok(before - subscribers.len())
+    }
+
+    /// Release this wrapper's subscribers and, only when this wrapper opened the
+    /// Zenoh session itself, gracefully close the underlying session. A wrapper
+    /// created with [`Self::from_session`] never closes its host's borrowed
+    /// session.
     pub async fn close(&self) -> Result<()> {
-        self.session.close().await.map_err(err("zenoh close"))
+        self.subs.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        if self.owns_session {
+            self.session.close().await.map_err(err("zenoh close"))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -562,11 +901,81 @@ impl ZenohBus {
 /// `CommandFrame`s to the safety-gated action plane (`…/command`). Drop it into a
 /// `ncp_core::NeuroControlLoop` to run a spiking or reflex controller over Zenoh
 /// **streaming** — no per-tick RPC round trip. Construct within a tokio runtime.
-pub struct ZenohControlTransport {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum CommandPriority {
+    Active,
+    Hold,
+    Estop,
+}
+
+#[derive(Debug)]
+struct PendingCommand {
+    bytes: Vec<u8>,
+    priority: CommandPriority,
+}
+
+fn command_priority(mode: &ncp_core::Mode) -> CommandPriority {
+    match mode {
+        ncp_core::Mode::Active => CommandPriority::Active,
+        ncp_core::Mode::Estop => CommandPriority::Estop,
+        _ => CommandPriority::Hold,
+    }
+}
+
+/// Store at most one not-yet-published command. Equal-priority frames conflate to
+/// the latest, while a pending fail-safe cannot be overwritten by Active.
+fn enqueue_command(
+    slot: &std::sync::Mutex<Option<PendingCommand>>,
+    pending: PendingCommand,
+) -> bool {
+    let mut slot = slot.lock().unwrap_or_else(|error| error.into_inner());
+    if slot
+        .as_ref()
+        .is_some_and(|current| current.priority > pending.priority)
+    {
+        return false;
+    }
+    *slot = Some(pending);
+    true
+}
+
+async fn dispatch_commands(
     bus: ZenohBus,
     session_id: String,
+    slot: Arc<std::sync::Mutex<Option<PendingCommand>>>,
+    notify: Arc<tokio::sync::Notify>,
+) {
+    loop {
+        notify.notified().await;
+        loop {
+            let pending = slot
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .take();
+            let Some(pending) = pending else {
+                break;
+            };
+            if let Err(error) = bus.publish_command(&session_id, &pending.bytes).await {
+                eprintln!("ncp: command publish failed for session {session_id:?}: {error}");
+                if pending.priority != CommandPriority::Active {
+                    // A failed fail-safe must remain ahead of any later Active.
+                    // One worker plus one slot bounds memory regardless of outage.
+                    enqueue_command(&slot, pending);
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    notify.notify_one();
+                    break;
+                }
+            }
+        }
+    }
+}
+
+pub struct ZenohControlTransport {
+    _bus: ZenohBus,
     latest: Arc<std::sync::Mutex<Option<ncp_core::SensorFrame>>>,
-    handle: tokio::runtime::Handle,
+    command_slot: Arc<std::sync::Mutex<Option<PendingCommand>>>,
+    command_notify: Arc<tokio::sync::Notify>,
+    command_worker: tokio::task::JoinHandle<()>,
 }
 
 impl ZenohControlTransport {
@@ -589,12 +998,27 @@ impl ZenohControlTransport {
             }
         })
         .await?;
+        let command_slot = Arc::new(std::sync::Mutex::new(None));
+        let command_notify = Arc::new(tokio::sync::Notify::new());
+        let command_worker = tokio::spawn(dispatch_commands(
+            bus.clone(),
+            session_id.clone(),
+            command_slot.clone(),
+            command_notify.clone(),
+        ));
         Ok(Self {
-            bus,
-            session_id,
+            _bus: bus,
             latest,
-            handle: tokio::runtime::Handle::current(),
+            command_slot,
+            command_notify,
+            command_worker,
         })
+    }
+}
+
+impl Drop for ZenohControlTransport {
+    fn drop(&mut self) {
+        self.command_worker.abort();
     }
 }
 
@@ -630,6 +1054,18 @@ fn command_publish_decision(cmd: &ncp_core::CommandFrame) -> PublishDecision {
     }
 }
 
+fn normalize_command_for_publish(
+    command: &ncp_core::CommandFrame,
+) -> std::borrow::Cow<'_, ncp_core::CommandFrame> {
+    if command.mode == ncp_core::Mode::Estop && ncp_core::WireFrame::validate_wire(command).is_err()
+    {
+        let mut governor = ncp_core::SafetyGovernor::default();
+        std::borrow::Cow::Owned(governor.govern(command, None, 0.0, None))
+    } else {
+        std::borrow::Cow::Borrowed(command)
+    }
+}
+
 impl ncp_core::ControlTransport for ZenohControlTransport {
     fn send_command(&self, command: &ncp_core::CommandFrame) {
         // Wire 0.6: never publish a wire-invalid frame (fail loud at the sender,
@@ -644,15 +1080,22 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
                 return;
             }
         }
-        let Ok(bytes) = serde_json::to_vec(command) else {
+        // Normalize a malformed in-memory ESTOP to a complete zeroed wire frame;
+        // the raw publisher gate intentionally gives ESTOP priority, but a typed
+        // NaN/control-character payload still needs to serialize predictably.
+        let command = normalize_command_for_publish(command);
+        let Ok(bytes) = serde_json::to_vec(command.as_ref()) else {
             return;
         };
-        let bus = self.bus.clone();
-        let session_id = self.session_id.clone();
-        // Fire-and-forget put on the action plane (express + DROP + RealTime QoS).
-        self.handle.spawn(async move {
-            let _ = bus.publish_command(&session_id, &bytes).await;
-        });
+        if enqueue_command(
+            &self.command_slot,
+            PendingCommand {
+                bytes,
+                priority: command_priority(&command.mode),
+            },
+        ) {
+            self.command_notify.notify_one();
+        }
     }
 
     fn latest_sensor(&self) -> Option<ncp_core::SensorFrame> {
@@ -667,24 +1110,24 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
 /// error frame surfaces as `Err`, and a wrong-but-valid-JSON reply is rejected
 /// rather than silently decoding into an all-default `Resp`. Pure (no transport),
 /// so it is unit-testable.
-fn check_reply_kind(reply: &[u8], expect_kind: &str) -> Result<()> {
-    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(reply) {
-        match ncp_core::message_kind(&v) {
-            Some("error") => {
-                return Err(ZenohError(format!(
-                    "NCP error: {}",
-                    v.get("error").and_then(|e| e.as_str()).unwrap_or("unknown")
-                )));
-            }
-            Some(k) if k != expect_kind => {
-                return Err(ZenohError(format!(
-                    "NCP reply kind mismatch: expected {expect_kind:?}, got {k:?}"
-                )));
-            }
-            _ => {}
-        }
+fn check_reply(
+    reply: &[u8],
+    request_kind: &str,
+    expect_session_id: &str,
+) -> Result<serde_json::Value> {
+    let value = ncp_core::validate_rpc_reply_for(request_kind, expect_session_id, reply)
+        .map_err(|error| ZenohError(error.to_string()))?;
+    let kind = ncp_core::message_kind(&value).expect("validate requires string kind");
+    if kind == "error" {
+        return Err(ZenohError(format!(
+            "NCP error: {}",
+            value
+                .get("error")
+                .and_then(|field| field.as_str())
+                .expect("validated ErrorFrame has a string error")
+        )));
     }
-    Ok(())
+    Ok(value)
 }
 
 /// Convenience: a typed NCP client over Zenoh.
@@ -705,7 +1148,24 @@ impl ZenohNcpClient {
     /// contract revision (e.g. it added an optional field). See
     /// [`ncp_core::ContractStatus`].
     pub async fn open(&self, msg: &ncp_core::OpenSession) -> Result<ncp_core::SessionOpened> {
-        let opened: ncp_core::SessionOpened = self.rpc(msg, "session_opened").await?;
+        self.open_inner(msg, None).await
+    }
+
+    /// Open with an explicit transport query deadline.
+    pub async fn open_with_timeout(
+        &self,
+        msg: &ncp_core::OpenSession,
+        timeout: std::time::Duration,
+    ) -> Result<ncp_core::SessionOpened> {
+        self.open_inner(msg, Some(timeout)).await
+    }
+
+    async fn open_inner(
+        &self,
+        msg: &ncp_core::OpenSession,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<ncp_core::SessionOpened> {
+        let opened: ncp_core::SessionOpened = self.rpc(msg, "session_opened", timeout).await?;
         let status = ncp_core::negotiate(&opened.ncp_version, opened.contract_hash.as_deref())
             .map_err(|e| ZenohError(format!("session_opened version: {e}")))?;
         if let Some(advisory) = status.advisory() {
@@ -717,34 +1177,81 @@ impl ZenohNcpClient {
 
     /// Step a session; returns the parsed `ObservationFrame`.
     pub async fn step(&self, msg: &ncp_core::StepRequest) -> Result<ncp_core::ObservationFrame> {
-        self.rpc(msg, "observation_frame").await
+        self.rpc(msg, "observation_frame", None).await
+    }
+
+    /// Step with an explicit transport query deadline.
+    pub async fn step_with_timeout(
+        &self,
+        msg: &ncp_core::StepRequest,
+        timeout: std::time::Duration,
+    ) -> Result<ncp_core::ObservationFrame> {
+        self.rpc(msg, "observation_frame", Some(timeout)).await
     }
 
     /// Run a session for a duration; returns the parsed `ObservationFrame`.
     pub async fn run(&self, msg: &ncp_core::RunRequest) -> Result<ncp_core::ObservationFrame> {
-        self.rpc(msg, "observation_frame").await
+        self.rpc(msg, "observation_frame", None).await
+    }
+
+    /// Run with an explicit transport query deadline. The deadline should cover
+    /// the requested simulation duration plus backend overhead.
+    pub async fn run_with_timeout(
+        &self,
+        msg: &ncp_core::RunRequest,
+        timeout: std::time::Duration,
+    ) -> Result<ncp_core::ObservationFrame> {
+        self.rpc(msg, "observation_frame", Some(timeout)).await
     }
 
     /// Close a session.
     pub async fn close(&self, msg: &ncp_core::CloseSession) -> Result<ncp_core::SessionClosed> {
-        self.rpc(msg, "session_closed").await
+        self.rpc(msg, "session_closed", None).await
     }
 
-    async fn rpc<Req, Resp>(&self, msg: &Req, expect_kind: &str) -> Result<Resp>
+    /// Close with an explicit transport query deadline.
+    pub async fn close_with_timeout(
+        &self,
+        msg: &ncp_core::CloseSession,
+        timeout: std::time::Duration,
+    ) -> Result<ncp_core::SessionClosed> {
+        self.rpc(msg, "session_closed", Some(timeout)).await
+    }
+
+    async fn rpc<Req, Resp>(
+        &self,
+        msg: &Req,
+        expect_kind: &str,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Resp>
     where
         Req: serde::Serialize,
         Resp: serde::de::DeserializeOwned,
     {
+        let request = serde_json::to_value(msg).map_err(err("serialize request"))?;
+        let session_id = request
+            .get("session_id")
+            .and_then(|field| field.as_str())
+            .ok_or_else(|| ZenohError("NCP request carries no string session_id".into()))?;
+        let request_kind = request
+            .get("kind")
+            .and_then(|field| field.as_str())
+            .ok_or_else(|| ZenohError("NCP request carries no string kind".into()))?;
+        if ncp_core::expected_rpc_reply_kind(request_kind) != Some(expect_kind) {
+            return Err(ZenohError(format!(
+                "typed RPC mismatch: request {request_kind:?} cannot expect {expect_kind:?}"
+            )));
+        }
         let req = serde_json::to_vec(msg).map_err(err("serialize request"))?;
-        let reply = self.bus.request(&req).await?;
+        let reply = match timeout {
+            Some(timeout) => self.bus.request_with_timeout(&req, timeout).await?,
+            None => self.bus.request(&req).await?,
+        };
         // Reject an error frame or a wrong-`kind` reply before the typed decode,
         // so a misrouted reply cannot silently become an all-default `Resp` —
         // then (wire 0.6) validate the reply against the wire contract for its
         // kind (required fields incl. a compatible `ncp_version`).
-        check_reply_kind(&reply, expect_kind)?;
-        let value: serde_json::Value =
-            serde_json::from_slice(&reply).map_err(err("parse reply"))?;
-        ncp_core::validate(&value).map_err(err("invalid reply"))?;
+        let value = check_reply(&reply, request_kind, session_id)?;
         serde_json::from_value(value).map_err(err("parse reply"))
     }
 }
@@ -763,15 +1270,185 @@ mod tests {
     }
 
     #[test]
-    fn check_reply_kind_rejects_wrong_kind_and_error_frames() {
+    fn check_reply_rejects_wrong_kind_session_and_unversioned_errors() {
         // Right kind -> Ok.
-        assert!(
-            check_reply_kind(br#"{"kind":"session_opened","ok":true}"#, "session_opened").is_ok()
-        );
+        let opened = serde_json::json!({
+            "kind": "session_opened",
+            "ncp_version": ncp_core::NCP_VERSION,
+            "session_id": "s",
+            "ok": true,
+            "backend": "mock",
+            "provenance": {
+                "network_ref": "model",
+                "backend": "mock",
+                "calibrated_posterior": false,
+                "is_simulation_output": true,
+                "advisory_only": true
+            }
+        });
+        assert!(check_reply(&serde_json::to_vec(&opened).unwrap(), "open_session", "s").is_ok());
         // Wrong-but-valid-JSON kind -> Err (not a silent all-default decode).
-        assert!(check_reply_kind(br#"{"kind":"observation_frame"}"#, "session_opened").is_err());
-        // An error frame -> Err.
-        assert!(check_reply_kind(br#"{"kind":"error","error":"boom"}"#, "session_opened").is_err());
+        let observation = serde_json::json!({
+            "kind": "observation_frame",
+            "ncp_version": ncp_core::NCP_VERSION,
+            "session_id": "s",
+            "seq": 0,
+            "records": {},
+            "calibrated_posterior": false,
+            "is_simulation_output": true
+        });
+        assert!(check_reply(
+            &serde_json::to_vec(&observation).unwrap(),
+            "open_session",
+            "s"
+        )
+        .is_err());
+        assert!(check_reply(
+            &serde_json::to_vec(&opened).unwrap(),
+            "open_session",
+            "other"
+        )
+        .is_err());
+        // An error frame must itself be versioned, then surfaces as Err.
+        let error = ncp_core::ErrorFrame {
+            error: "boom".into(),
+            session_id: Some("s".into()),
+            ..Default::default()
+        };
+        assert!(check_reply(&serde_json::to_vec(&error).unwrap(), "open_session", "s").is_err());
+        let wrong_error = ncp_core::ErrorFrame {
+            error: "boom".into(),
+            session_id: Some("s".into()),
+            request_kind: Some("close_session".into()),
+            ..Default::default()
+        };
+        assert!(check_reply(
+            &serde_json::to_vec(&wrong_error).unwrap(),
+            "open_session",
+            "s"
+        )
+        .is_err());
+        assert!(check_reply(br#"{"kind":"error","error":"boom"}"#, "open_session", "s").is_err());
+    }
+
+    #[test]
+    fn rpc_selector_payload_and_handler_reply_are_bound_together() {
+        let keys = Keys::default();
+        let request = ncp_core::OpenSession {
+            session_id: "s".into(),
+            network: ncp_core::NetworkRef {
+                ref_: "model".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let bytes = serde_json::to_vec(&request).unwrap();
+        assert!(check_rpc_request(&keys, "ncp/rpc/open_session", &bytes).is_ok());
+        assert!(check_rpc_request(&keys, "ncp/rpc/run_request", &bytes).is_err());
+        assert!(check_rpc_request(
+            &keys,
+            "ncp/rpc/open_session",
+            br#"{"kind":"open_session","session_id":"s"}"#,
+        )
+        .is_err());
+
+        let opened = ncp_core::SessionOpened {
+            session_id: "s".into(),
+            ok: false,
+            error: Some("unavailable".into()),
+            ..Default::default()
+        };
+        assert!(check_rpc_handler_reply(
+            "open_session",
+            "s",
+            &serde_json::to_vec(&opened).unwrap()
+        )
+        .is_ok());
+        assert!(
+            check_rpc_handler_reply("run_request", "s", &serde_json::to_vec(&opened).unwrap())
+                .is_err()
+        );
+
+        let error = ncp_core::ErrorFrame {
+            error: "rejected".into(),
+            ..Default::default()
+        };
+        assert!(
+            check_rpc_handler_reply("open_session", "s", &serde_json::to_vec(&error).unwrap())
+                .is_ok()
+        );
+        assert!(check_rpc_handler_reply(
+            "open_session",
+            "s",
+            br#"{"kind":"error","error":"unversioned"}"#,
+        )
+        .is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn synchronous_rpc_handler_runs_off_the_async_worker() {
+        let keys = Keys::default();
+        let request = ncp_core::OpenSession {
+            session_id: "s".into(),
+            network: ncp_core::NetworkRef {
+                ref_: "model".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let request = serde_json::to_vec(&request).unwrap();
+        let reply = ncp_core::SessionOpened {
+            session_id: "s".into(),
+            ok: false,
+            error: Some("unavailable".into()),
+            ..Default::default()
+        };
+        let reply = serde_json::to_vec(&reply).unwrap();
+        let handler: Arc<RpcHandler> = Arc::new(move |_| {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            reply.clone()
+        });
+        let permits = Arc::new(tokio::sync::Semaphore::new(1));
+        let permit = Arc::new(permits.clone().acquire_owned().await.unwrap());
+        let dispatch_permit = permit.clone();
+        let started = std::time::Instant::now();
+        let dispatch = dispatch_rpc_off_thread(
+            keys,
+            handler,
+            "ncp/rpc/open_session".into(),
+            request,
+            dispatch_permit,
+        );
+        let heartbeat = async {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            started.elapsed()
+        };
+        let (reply, heartbeat_elapsed) = tokio::join!(dispatch, heartbeat);
+        assert!(
+            heartbeat_elapsed < std::time::Duration::from_millis(150),
+            "blocking RPC handler pinned the current-thread runtime for {heartbeat_elapsed:?}"
+        );
+        assert!(check_reply(&reply, "open_session", "s").is_ok());
+        assert_eq!(
+            permits.available_permits(),
+            0,
+            "the caller's permit clone must bound the reply-delivery phase"
+        );
+        drop(permit);
+        assert_eq!(permits.available_permits(), 1);
+    }
+
+    #[test]
+    fn generated_rpc_error_is_a_valid_typed_frame() {
+        let payload = rpc_error_payload(
+            "bad selector",
+            Some("s".into()),
+            Some("open_session".into()),
+        );
+        let value: serde_json::Value = serde_json::from_slice(&payload).unwrap();
+        ncp_core::validate(&value).unwrap();
+        assert_eq!(value["kind"], "error");
+        assert_eq!(value["ncp_version"], ncp_core::NCP_VERSION);
     }
 
     #[test]
@@ -791,6 +1468,105 @@ mod tests {
     }
 
     #[test]
+    fn observation_publish_rejects_unenveloped_bulk_and_missing_provenance() {
+        let raw = ncp_core::BulkBlock::new()
+            .with("times", ncp_core::Column::F64(vec![1.0]))
+            .encode()
+            .unwrap();
+        assert!(
+            check_observation_payload_for("s", &raw).is_err(),
+            "a bare NCPB block has no session/seq/provenance and must not publish"
+        );
+
+        let valid = ncp_core::ObservationFrame {
+            session_id: "s".into(),
+            seq: 1,
+            ..Default::default()
+        };
+        assert!(check_observation_payload_for("s", &serde_json::to_vec(&valid).unwrap()).is_ok());
+        assert!(
+            check_observation_payload_for("other", &serde_json::to_vec(&valid).unwrap()).is_err(),
+            "the payload session must match the observation key session"
+        );
+
+        let missing_boundary = serde_json::json!({
+            "kind": "observation_frame",
+            "ncp_version": ncp_core::NCP_VERSION,
+            "session_id": "s",
+            "seq": 1,
+            "records": {}
+        });
+        assert!(check_observation_payload_for(
+            "s",
+            &serde_json::to_vec(&missing_boundary).unwrap()
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn command_publish_gate_rejects_invalid_active_but_never_drops_estop() {
+        let invalid_active = serde_json::json!({
+            "kind": "command_frame",
+            "ncp_version": ncp_core::NCP_VERSION,
+            "seq": 0,
+            "mode": "active",
+            "ttl_ms": 200.0,
+            "channels": {"velocity_setpoint": {"data": [1.0]}}
+        });
+        assert!(check_command_payload(&serde_json::to_vec(&invalid_active).unwrap()).is_err());
+
+        let malformed_estop = serde_json::json!({
+            "kind": "wrong",
+            "seq": 0,
+            "mode": "estop",
+            "channels": {"velocity_setpoint": {"data": [9.0]}}
+        });
+        assert!(
+            check_command_payload(&serde_json::to_vec(&malformed_estop).unwrap()).is_ok(),
+            "an explicit ESTOP is latched by receivers before envelope validation"
+        );
+
+        let mut invalid_estop = ncp_core::CommandFrame {
+            t: f64::NAN,
+            seq: 0,
+            frame_id: String::new(),
+            mode: ncp_core::Mode::Estop,
+            ..Default::default()
+        };
+        invalid_estop.channels.insert(
+            "bad\nchannel".into(),
+            ncp_core::ChannelValue::scalar(f64::NAN, None),
+        );
+        let normalized = normalize_command_for_publish(&invalid_estop);
+        assert_eq!(normalized.mode, ncp_core::Mode::Estop);
+        ncp_core::WireFrame::validate_wire(normalized.as_ref())
+            .expect("transport must normalize an in-memory ESTOP to publishable zero output");
+    }
+
+    #[test]
+    fn command_dispatch_slot_is_bounded_and_fail_safe_prioritized() {
+        let slot = std::sync::Mutex::new(None);
+        let pending = |byte: u8, priority| PendingCommand {
+            bytes: vec![byte],
+            priority,
+        };
+        assert!(enqueue_command(&slot, pending(1, CommandPriority::Active)));
+        assert!(enqueue_command(&slot, pending(2, CommandPriority::Hold)));
+        assert!(
+            !enqueue_command(&slot, pending(3, CommandPriority::Active)),
+            "Active must not overwrite a pending HOLD"
+        );
+        assert!(enqueue_command(&slot, pending(4, CommandPriority::Estop)));
+        assert!(
+            !enqueue_command(&slot, pending(5, CommandPriority::Hold)),
+            "HOLD must not overwrite a pending ESTOP"
+        );
+        let queued = slot.into_inner().unwrap().unwrap();
+        assert_eq!(queued.priority, CommandPriority::Estop);
+        assert_eq!(queued.bytes, vec![4]);
+    }
+
+    #[test]
     fn default_config_disables_multicast_scouting() {
         // The hardened default open() path must not auto-advertise on the LAN:
         // scouting/multicast/enabled is forced false. Zenoh's own default is true,
@@ -802,6 +1578,82 @@ mod tests {
             "false",
             "multicast scouting must be off by default"
         );
+    }
+
+    fn secure_client_test_config() -> Config {
+        let mut cfg = Config::default();
+        for (path, value) in [
+            ("mode", r#""client""#),
+            ("connect/endpoints", r#"["tls/router.example:7447"]"#),
+            ("listen/endpoints", "[]"),
+            ("scouting/multicast/enabled", "false"),
+            ("scouting/gossip/enabled", "false"),
+            ("transport/link/tls/root_ca_certificate", r#""ca.pem""#),
+            ("transport/link/tls/connect_certificate", r#""client.pem""#),
+            (
+                "transport/link/tls/connect_private_key",
+                r#""client-key.pem""#,
+            ),
+            ("transport/link/tls/verify_name_on_connect", "true"),
+        ] {
+            cfg.insert_json5(path, value).unwrap();
+        }
+        cfg
+    }
+
+    fn isolated_test_config() -> Config {
+        let mut cfg = default_quiet_config().expect("isolated test config");
+        for (path, value) in [
+            ("scouting/gossip/enabled", "false"),
+            ("listen/endpoints", "[]"),
+            ("connect/endpoints", "[]"),
+            ("transport/shared_memory/enabled", "false"),
+        ] {
+            cfg.insert_json5(path, value)
+                .expect("isolated tests disable external transports");
+        }
+        cfg
+    }
+
+    #[test]
+    fn secure_client_config_gate_rejects_plaintext_discovery_and_missing_identity() {
+        let valid = secure_client_test_config();
+        validate_secure_client_config(&valid).expect("complete mTLS client config");
+
+        let mut plaintext = secure_client_test_config();
+        plaintext
+            .insert_json5("connect/endpoints", r#"["tcp/router.example:7447"]"#)
+            .unwrap();
+        assert!(validate_secure_client_config(&plaintext).is_err());
+
+        let mut discovery = secure_client_test_config();
+        discovery
+            .insert_json5("scouting/multicast/enabled", "true")
+            .unwrap();
+        assert!(validate_secure_client_config(&discovery).is_err());
+
+        let mut anonymous = secure_client_test_config();
+        anonymous
+            .insert_json5("transport/link/tls/connect_certificate", "null")
+            .unwrap();
+        assert!(validate_secure_client_config(&anonymous).is_err());
+
+        let mut no_hostname_check = secure_client_test_config();
+        no_hostname_check
+            .insert_json5("transport/link/tls/verify_name_on_connect", "false")
+            .unwrap();
+        assert!(validate_secure_client_config(&no_hostname_check).is_err());
+    }
+
+    #[test]
+    fn shipped_zenoh_configs_parse_and_client_template_passes_secure_gate() {
+        let deploy = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/deploy");
+        config_from_file(&deploy.join("zenoh-access-control.json5"))
+            .expect("secure router template must match the locked Zenoh config schema");
+        let client = config_from_file(&deploy.join("zenoh-client-secure.json5"))
+            .expect("secure client template must match the locked Zenoh config schema");
+        validate_secure_client_config(&client)
+            .expect("shipped client template must satisfy open_secure's fail-closed gate");
     }
 
     #[test]
@@ -834,11 +1686,88 @@ mod tests {
         let _ = cfg.insert_json5("scouting/multicast/enabled", "false");
         let _ = cfg.insert_json5("listen/endpoints", "[]");
         let _ = cfg.insert_json5("connect/endpoints", "[]");
+        let _ = cfg.insert_json5("transport/shared_memory/enabled", "false");
         let bus = ZenohBus::with_config(cfg, Keys::default()).await.unwrap();
         let e = bus.put_sensor("bad/id", b"{}").await.unwrap_err();
         assert!(e.to_string().contains("invalid session id segment"), "{e}");
         // A glob-escaping entity name on a named publish is rejected too.
         assert!(bus.put_sensor_named("uav3", "imu*", b"{}").await.is_err());
         let _ = bus.close().await;
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn session_subscribers_are_releasable_without_closing_the_bus() {
+        let bus = ZenohBus::with_config(isolated_test_config(), Keys::default())
+            .await
+            .unwrap();
+        bus.subscribe_commands("s1", |_, _| {}).await.unwrap();
+        bus.subscribe_observations("s1", |_, _| {}).await.unwrap();
+        bus.subscribe_commands("s2", |_, _| {}).await.unwrap();
+        bus.subscribe_fleet(|_, _| {}).await.unwrap();
+        assert_eq!(bus.subs.lock().unwrap().len(), 4);
+
+        assert_eq!(bus.unsubscribe_session("s1").unwrap(), 2);
+        let selectors: Vec<String> = bus
+            .subs
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(selector, _)| selector.clone())
+            .collect();
+        assert_eq!(selectors.len(), 2);
+        assert!(selectors.iter().any(|selector| selector.contains("/s2/")));
+        assert!(selectors
+            .iter()
+            .any(|selector| selector.ends_with("/session/**")));
+        assert!(bus.unsubscribe_session("bad/*").is_err());
+        bus.close().await.unwrap();
+        assert!(bus.subs.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn closing_a_borrowed_wrapper_does_not_close_the_host_session() {
+        let session = Arc::new(zenoh::open(isolated_test_config()).await.unwrap());
+        let borrowed = ZenohBus::from_session(session.clone(), Keys::default());
+        assert!(!borrowed.owns_session);
+        borrowed.subscribe_fleet(|_, _| {}).await.unwrap();
+        borrowed.close().await.unwrap();
+        assert!(borrowed.subs.lock().unwrap().is_empty());
+
+        // A successful operation through the host handle proves close() released
+        // only this wrapper's handles and left the borrowed session alive.
+        session
+            .put("ncp-test/borrowed-still-open", b"ok")
+            .await
+            .unwrap();
+        session.close().await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_panicking_subscriber_drops_one_sample_but_stays_alive() {
+        let bus = ZenohBus::with_config(isolated_test_config(), Keys::default())
+            .await
+            .unwrap();
+        let attempts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let seen = attempts.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        bus.subscribe("ncp-test/callback-panic", move |_, _| {
+            if seen.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+                panic!("intentional callback fault");
+            }
+            tx.send(()).unwrap();
+        })
+        .await
+        .unwrap();
+
+        bus.put("ncp-test/callback-panic", b"first", Plane::Control)
+            .await
+            .unwrap();
+        bus.put("ncp-test/callback-panic", b"second", Plane::Control)
+            .await
+            .unwrap();
+        rx.recv_timeout(std::time::Duration::from_secs(2))
+            .expect("the subscription must receive a sample after the contained panic");
+        assert!(attempts.load(std::sync::atomic::Ordering::SeqCst) >= 2);
+        bus.close().await.unwrap();
     }
 }

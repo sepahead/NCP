@@ -29,10 +29,10 @@ maturin develop -m ncp-python/Cargo.toml --features extension-module
 ```python
 import ncp
 
-ncp.NCP_VERSION                      # "0.6"
+ncp.NCP_VERSION                      # "0.7"
 k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 k.command("uav3")                    # "ncp/session/uav3/command"
-ncp.decode_command(codec_json, '{"vel_x":200.0}', t=0.0, seq=7)  # CommandFrame JSON
+ncp.decode_command(codec_json, '{"vel_x":200.0}', seq=7, t=0.0)  # CommandFrame JSON
 ```
 
 The module also exposes `check_version`, `encode_rates`, `govern` (the one-shot safety
@@ -42,6 +42,20 @@ safety — where an inbound ESTOP must survive across calls — use the persiste
 the one-shot `govern` wrapper is stateless by construction and so cannot latch (it stays
 for stateless/corpus use), whereas an `ncp.Governor` instance holds the ESTOP latch across
 ticks.
+
+A live actuator also needs **`ncp.ActionBuffer`**. Governor enforces sensor freshness,
+geofence, and speed policy; ActionBuffer independently enforces command `ttl_ms`,
+monotonic seq/replay rejection, bounded predictive-horizon replay, and its own ESTOP
+latch. Governor alone is not a command-arrival watchdog:
+
+```python
+buffer = ncp.ActionBuffer()
+buffer.on_command(now_s, command_json)
+channels_json = buffer.active(now_s)  # None means HOLD / no actuation
+```
+
+`decode_command` requires a caller-owned, strictly increasing wire-safe `seq`; it does
+not manufacture a sequence counter for the application.
 
 See the normative spec [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md)
 and the [repository README](../README.md) for the full protocol, the message kinds,

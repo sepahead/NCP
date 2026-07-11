@@ -9,7 +9,7 @@
  */
 
 // Canonical, generated message types + enums (the JSON projection of proto/ncp.proto).
-export type * from './generated'
+export type * from './generated/index.js'
 
 // Client orchestration, JSON-wire helpers, and the WebSocket transport.
 export {
@@ -20,8 +20,12 @@ export {
   NcpVersionError,
   contractStatus,
   assertScientificBoundary,
+  assertNcpMessage,
   NcpScientificBoundaryError,
-} from './client'
+  JSON_SAFE_INTEGER_MAX,
+  JSON_SAFE_INTEGER_MIN,
+  MAX_HORIZON_STEPS,
+} from './client.js'
 export type {
   Send,
   Wire,
@@ -35,8 +39,8 @@ export type {
   SessionClosedReply,
   ObservationFrameReply,
   ObservationData,
-} from './client'
-export { WebSocketNeuroSim } from './ws'
+} from './client.js'
+export { WebSocketNeuroSim } from './ws.js'
 
 // Plant-side safety + resilience (the ncp-core safety.rs / resilience.rs port,
 // behaviour-pinned to the shared corpus) + the wire-0.6 data-plane ingress gate.
@@ -48,5 +52,5 @@ export {
   maxHorizonLen,
   LINK_LOSS_ESTOP_FACTOR,
   MAX_TTL_MS,
-} from './safety'
-export type { CommandLike, SensorLike, WireChannels } from './safety'
+} from './safety.js'
+export type { CommandLike, SensorLike, WireChannels } from './safety.js'

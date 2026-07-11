@@ -33,6 +33,8 @@ fn base_cfg() -> ZenohConfig {
     c.insert_json5("scouting/multicast/enabled", "false")
         .unwrap();
     c.insert_json5("scouting/gossip/enabled", "false").unwrap();
+    c.insert_json5("transport/shared_memory/enabled", "false")
+        .unwrap();
     c
 }
 
@@ -77,7 +79,8 @@ fn mock_handler(req: Vec<u8>) -> Vec<u8> {
             json!({"kind": "session_closed", "ncp_version": NCP_VERSION, "session_id": sid, "ok": true})
         }
         other => {
-            json!({"kind": "error", "session_id": sid, "error": format!("unknown kind {other}")})
+            json!({"kind": "error", "ncp_version": NCP_VERSION, "session_id": sid,
+                   "request_kind": other, "error": format!("unknown kind {other}")})
         }
     };
     serde_json::to_vec(&reply).unwrap()
@@ -91,7 +94,7 @@ async fn ncp_rpc_over_real_zenoh_tcp_link() {
     let server = ZenohBus::with_config(listen_cfg(port), Keys::default())
         .await
         .expect("open server session (listen)");
-    server.serve_rpc(mock_handler).await.expect("serve_rpc");
+    let _rpc_task = server.serve_rpc(mock_handler).await.expect("serve_rpc");
 
     // Client session CONNECTS to it — a separate session, real tcp transport between them.
     let client_bus = ZenohBus::with_config(connect_cfg(port), Keys::default())
@@ -197,7 +200,7 @@ async fn mixed_version_open_is_rejected_over_the_wire() {
     let server = ZenohBus::with_config(listen_cfg(port), Keys::default())
         .await
         .expect("open server session (listen)");
-    server
+    let _rpc_task = server
         .serve_rpc(stale_version_handler)
         .await
         .expect("serve_rpc");

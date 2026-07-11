@@ -10,16 +10,17 @@
 # What "coherent" means here:
 #   - the Cargo workspace package version (Cargo.toml [workspace.package].version,
 #     falling back to [package].version for a single-crate repo)
-#   - the npm package.json "version" (where a package.json is present)
+#   - both root and ncp-ts npm package.json versions
+#   - the ncp-core/ncp-zenoh workspace path-dependency version pins
 #   - the CITATION.cff "version"
 #   must all be byte-equal. A release that bumps one but forgets another is the
 #   classic "moved tag / stale metadata" footgun this guard exists to catch.
 #
 # With an optional <tag> argument it additionally asserts:
-#   - the annotated-tag object PEELS (^{commit}) to a commit that is exactly the
-#     commit the tag ref resolves to (a lightweight tag peels to itself; an
-#     annotated tag peels through its tag object) — i.e. the tag has not been
-#     moved/re-pointed since it was cut, and
+#   - the ref is an annotated tag object (lightweight release tags are rejected)
+#     and peels cleanly to a commit. Historical immutability itself is enforced by
+#     remote tag protection; Git stores no prior ref target for a local script to
+#     compare after a move.
 #   - the version embedded in the tag name (the numeric part of e.g. v0.2.8)
 #     equals the coherent in-tree version, so no lockfile/manifest disagrees
 #     with the tag.
@@ -98,6 +99,23 @@ npm_version() {
   awk -F'"' '/^[[:space:]]*"version"[[:space:]]*:/ { print $4; exit }' "$f"
 }
 
+ncp_ts_npm_version() {
+  local f="$REPO_ROOT/ncp-ts/package.json"
+  [[ -f "$f" ]] || return
+  awk -F'"' '/^[[:space:]]*"version"[[:space:]]*:/ { print $4; exit }' "$f"
+}
+
+workspace_dep_version() {
+  local dep="$1" f="$REPO_ROOT/Cargo.toml"
+  [[ -f "$f" ]] || return
+  DEP="$dep" perl -ne '
+    if (/^\s*\Q$ENV{DEP}\E\s*=.*\bversion\s*=\s*"([^"]+)"/) {
+      print "$1\n";
+      exit;
+    }
+  ' "$f"
+}
+
 # CITATION.cff: a top-level `version:` key. Values may be quoted or bare.
 cff_version() {
   local f="$REPO_ROOT/CITATION.cff"
@@ -135,6 +153,9 @@ readme_bibtex_version() {
 
 CARGO_VER="$(cargo_version || true)"
 NPM_VER="$(npm_version || true)"
+NCP_TS_NPM_VER="$(ncp_ts_npm_version || true)"
+NCP_CORE_DEP_VER="$(workspace_dep_version ncp-core || true)"
+NCP_ZENOH_DEP_VER="$(workspace_dep_version ncp-zenoh || true)"
 CFF_VER="$(cff_version || true)"
 README_VER="$(readme_bibtex_version || true)"
 
@@ -142,11 +163,21 @@ echo "Version coherence (repo: $REPO_ROOT)"
 echo
 printf '  %-22s %s\n' "Cargo (workspace/pkg)" "${CARGO_VER:-<not present>}"
 printf '  %-22s %s\n' "npm (package.json)"     "${NPM_VER:-<not present>}"
+printf '  %-22s %s\n' "npm (ncp-ts)"           "${NCP_TS_NPM_VER:-<not present>}"
+printf '  %-22s %s\n' "dep pin (ncp-core)"      "${NCP_CORE_DEP_VER:-<not present>}"
+printf '  %-22s %s\n' "dep pin (ncp-zenoh)"     "${NCP_ZENOH_DEP_VER:-<not present>}"
 printf '  %-22s %s\n' "CITATION.cff"           "${CFF_VER:-<not present>}"
 printf '  %-22s %s\n' "README bibtex"          "${README_VER:-<not present>}"
 echo
 
 problems=()
+
+[[ -f "$REPO_ROOT/ncp-ts/package.json" && -z "$NCP_TS_NPM_VER" ]] && \
+  problems+=("ncp-ts/package.json exists but has no readable version")
+[[ -f "$REPO_ROOT/Cargo.toml" && -z "$NCP_CORE_DEP_VER" ]] && \
+  problems+=("Cargo.toml has no readable ncp-core path-dependency version pin")
+[[ -f "$REPO_ROOT/Cargo.toml" && -z "$NCP_ZENOH_DEP_VER" ]] && \
+  problems+=("Cargo.toml has no readable ncp-zenoh path-dependency version pin")
 
 # Collect the versions that are actually present; require at least one source
 # of truth and that all present sources agree.
@@ -154,6 +185,9 @@ present_labels=()
 present_values=()
 [[ -n "$CARGO_VER" ]] && { present_labels+=("Cargo"); present_values+=("$CARGO_VER"); }
 [[ -n "$NPM_VER"   ]] && { present_labels+=("npm");   present_values+=("$NPM_VER"); }
+[[ -n "$NCP_TS_NPM_VER" ]] && { present_labels+=("ncp-ts npm"); present_values+=("$NCP_TS_NPM_VER"); }
+[[ -n "$NCP_CORE_DEP_VER" ]] && { present_labels+=("ncp-core dep pin"); present_values+=("$NCP_CORE_DEP_VER"); }
+[[ -n "$NCP_ZENOH_DEP_VER" ]] && { present_labels+=("ncp-zenoh dep pin"); present_values+=("$NCP_ZENOH_DEP_VER"); }
 [[ -n "$CFF_VER"   ]] && { present_labels+=("CITATION.cff"); present_values+=("$CFF_VER"); }
 [[ -n "$README_VER" ]] && { present_labels+=("README bibtex"); present_values+=("$README_VER"); }
 
@@ -253,6 +287,10 @@ if [[ -n "$TAG" ]]; then
      && ! git -C "$REPO_ROOT" rev-parse -q --verify "$TAG" >/dev/null 2>&1; then
     problems+=("tag '$TAG' does not exist in this repository")
   else
+    tag_type="$(git -C "$REPO_ROOT" cat-file -t "refs/tags/$TAG" 2>/dev/null || true)"
+    if [[ "$tag_type" != "tag" ]]; then
+      problems+=("tag '$TAG' is '$tag_type', not an annotated tag object")
+    fi
     # The ref as it stands (for an annotated tag this is the tag OBJECT sha).
     ref_target="$(git -C "$REPO_ROOT" rev-parse "$TAG")"
     # Peel to the commit it ultimately names.

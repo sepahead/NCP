@@ -1,4 +1,4 @@
-# Neuro-Cybernetic Protocol (NCP) v0.6
+# Neuro-Cybernetic Protocol (NCP) wire 0.7
 
 A versioned, **transport-agnostic, project-agnostic** standard for letting a
 running NEST simulation serve external robot / UAV / simulation systems —
@@ -77,22 +77,22 @@ compatibility gate (above), while `contract_hash` (carried in
 wire-semantically-canonicalized proto) is an **advisory** identity signal — a
 mismatch within a compatible version is *logged, not rejected* (the peers are on
 different but compatible contract revisions). A strict `verify_contract` opt-in
-exists for deployments that mandate an exact revision. NCP is **0.6** — pre-1.0, the
-wire may still change; pin the exact version you build against.
+exists for deployments that mandate an exact revision. Wire 0.7 is released as the
+latest immutable tag, `v0.7.0`, with contract hash `f05e328cad20959d`. NCP is
+pre-1.0 and the wire may still change, so pin an immutable release tag.
 
 The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handshake:
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/sequence-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/sequence-light.svg">
-  <img alt="NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (commander) and SERVER (sim backend). Three grouped phases top to bottom. OPEN: CLIENT sends OpenSession (ncp_version, contract_hash, network, record, stimulus, sim); SERVER applies a HARD version gate (check_version, exact major.minor, fail-closed) plus an ADVISORY contract_hash compare, then replies SessionOpened — ok=true opens the session (backend, resolved, provenance, contract_hash), ok=false returns an error with no session. STEP/OBSERVE loop, once per chunk: CLIENT sends StepRequest or RunRequest (advance_ms, 0 means use chunk_ms, with a stimulus); SERVER replies ObservationFrame (seq, t, sim_time_ms, records) — the heaviest, glowing vermillion trace, because it asserts two fixed provenance invariants on every frame: is_simulation_output=true and calibrated_posterior=false (the honesty boundary). CLOSE: CLIENT sends CloseSession; SERVER replies SessionClosed ok=true. Wire 0.6, contract hash 24e8e6e31e1dec8a." src="docs/diagrams/sequence-light.svg" width="820">
+  <img alt="NCP session-lifecycle sequence diagram. The client opens with ncp_version and contract_hash; the server applies the hard exact-version gate and advisory hash comparison, then returns a provenance-bearing SessionOpened or a typed ErrorFrame. Step/Run requests embed a same-session StimulusFrame and return an explicit-honesty-boundary ObservationFrame. CloseSession returns SessionClosed. Released wire 0.7, contract hash f05e328cad20959d." src="docs/diagrams/sequence-light.svg" width="820">
 </picture>
 
-### 1.1 Wire-0.6 acceptance rules (normative)
+### 1.1 Wire-0.7 acceptance rules (normative)
 
-Wire 0.6 is a **semantic** break with an **unchanged serialization** — no proto field,
-type, or encoding changed (so `contract_hash` stays `24e8e6e31e1dec8a`), but what a
-conforming peer **MUST** send and what a receiver **MUST** accept did. The key words
+Wire 0.7 is an incompatible acceptance-and-shape cut (`contract_hash =
+f05e328cad20959d`). The key words
 **MUST**, **MUST NOT**, and **MAY** are used as in
 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html) /
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html).
@@ -100,15 +100,45 @@ conforming peer **MUST** send and what a receiver **MUST** accept did. The key w
 - **`ncp_version` is mandatory on every message.** A receiver **MUST** reject a message
   whose `ncp_version` is absent or wire-incompatible — an absent version no longer
   defaults to the receiver's own, and the full `(major, minor)` must match (pre-1.0,
-  minor-is-breaking). The same holds for an absent `kind`.
+  minor-is-breaking). Each component is one or more unsigned ASCII decimal digits
+  in the `u64` range; signs, whitespace, overflow, and a patch component are
+  invalid. The same mandatory-presence rule holds for `kind`.
+- **Every JSON `int64` is precision-safe.** Because the JSON projection uses numbers,
+  every int64-valued `seq`, id, size, seed, sender, resolved count, and link counter
+  **MUST** lie in `[-(2^53-1), +(2^53-1)]`. A receiver **MUST** reject a larger value
+  before a JavaScript/binary64 peer can round it to different bytes. JSON Schema's
+  semantic integer rule applies: mathematically integral spellings such as `1`,
+  `1.0`, and `1e0` are equivalent and **MUST** receive the same decision; fractions
+  are rejected.
+- **Additive enum strings are lossless.** A receiver **MUST** accept any non-empty
+  string in an extensible enum position and preserve an unrecognized value exactly
+  across decode → encode. On the action plane, only the exact mode `active` grants
+  authority; every unknown mode fails closed to HOLD.
+- **Honesty-boundary values are explicit.** `ObservationFrame` and a successful
+  `SessionOpened.provenance` **MUST** carry `calibrated_posterior=false` and
+  `is_simulation_output=true`. Omission is invalid; a receiver MUST NOT fabricate
+  those assertions from local defaults.
+- **Failures are typed and versioned.** An RPC failure is `ErrorFrame{kind="error",
+  ncp_version, error, session_id?, request_kind?}` and passes the same version/kind
+  gate as a success reply. Clients **MUST** verify reply session identity.
+- **Nested stimuli are complete envelopes.** A Step/Run `stimulus`, when present,
+  **MUST** be a compatible `stimulus_frame` whose `session_id` equals the outer request.
 - **Closed-loop `seq` is stamped and strictly increasing.** A `sensor_frame` and a
   `command_frame` **MUST** carry `seq >= 1`, strictly increasing per stream, and a
   `command_frame` echoes the driving `sensor_frame.seq`. `seq == 0` is no longer an
   accept-everything escape hatch — a plant-side watchdog/buffer **MUST NOT** accept
   `seq < 1` (an inbound ESTOP still latches regardless — a fail-safe is never dropped).
+- **Fail-safe modes outrank replay rejection.** A plant-side action buffer **MUST**
+  clear buffered actuation on every mode other than exact `active` before applying
+  envelope/sequence rejection; `estop` additionally latches. Only a complete,
+  accepted `active` frame may add or refresh actuation authority.
+- **Local clock rewinds revoke authority.** A plant watchdog **MUST** retain its
+  local high-water mark, HOLD through a backward/non-finite step and catch-up, and
+  require a fresh non-duplicate command before actuation resumes.
 - **Observation-plane `seq` echoes the driving sensor.** An `observation_frame`
   **published on the observation plane MUST** echo the driving `SensorFrame.seq`
   (`>= 1`, publisher-enforced); `seq == 0` remains the pull/RPC-reply form only.
+  Its payload `session_id` **MUST** equal the session encoded in its pub/sub key.
 - **Stream-restart recovery (no wire epoch field).** A receiver re-anchors a restarted
   stream to a new epoch only on a strictly-**lower** `seq`, and only once the stream has
   already expired; an **equal** `seq` never re-anchors, so a frozen or replayed frame
@@ -149,6 +179,16 @@ surface. Lifecycle (each message has a JSON Schema of the same name):
 | `observation_frame` | server → client | recorded data per record port (see below) |
 | `close_session` / `session_closed` | both | tear down |
 
+### Time domains
+
+Every envelope field named `t` is measured in **seconds on the producing peer's
+local monotonic clock**. It is ordered only within that producer's stream and MUST
+NOT be compared across peers or used as a network freshness deadline. A
+`CommandFrame` echoes the driving `SensorFrame.t`; an `ObservationFrame` published
+on the observation plane does likewise. Cross-plane correlation uses `seq`, and
+plant-side watchdogs use the plant's local arrival clock. `sim_time_ms` and each
+`Observation.times[]` entry are instead authoritative simulation milliseconds.
+
 ### NetworkRef — what to simulate
 - `kind=handle` — a backend-issued `pynest_script_id` / `compiled_module_id` (a
   backend-generated network; the canonical, handle-based path).
@@ -183,7 +223,9 @@ named scalars beyond the value, e.g. a siegert neuron's `drift_factor` /
 `[500.0]` pA, `[40.0]` Hz, or a list of spike times.
 
 ### ObservationFrame — the returned neural data
-`records: { port → Observation }`, where `Observation` is
+`records: { series_name → Observation }`, where each unique series name maps to
+an `Observation` and the nested `Observation.port` names the negotiated record
+port. This permits multiple named `recordable` series from one port. `Observation` is
 `{ port, target, observable, times[], values[], senders[], unit, recordable }`:
 - analog (`V_m`): `times` (ms) + `values` (mV), parallel.
 - `spikes`: `times` (spike times, ms) + `senders` (neuron ids), parallel.
@@ -196,13 +238,13 @@ named scalars beyond the value, e.g. a siegert neuron's `drift_factor` /
 This is exactly "pass stimuli → get back membrane potential, conductance, spiking,
 binary-state, or rate data from a single neuron / synapse / population".
 
-**Bulk option (#6).** For large spike trains / `V_m` traces, the observation plane
-may additionally carry a `bulk_observation` frame — the same metadata plus a packed
-little-endian column block (`ncp-core::bulk`; proto `BulkObservation`) instead of
-`repeated double`/`int64`: parse-free, random-access, ~2× smaller. It is an
-**additive, negotiated** option on the observation/analysis plane only (never the
-hot action loop); the JSON `ObservationFrame` above stays the canonical
-representation. See [`PERFORMANCE.md`](PERFORMANCE.md).
+**Bulk codec status (#6).** `ncp-core::BulkBlock` defines and golden-vector-pins a
+packed little-endian column block for large arrays. It is currently a local/offline
+codec, not a complete transport frame: a bare NCPB block has no session, seq,
+timestamp, or provenance and `ncp-zenoh` therefore rejects it. The proto
+`BulkObservation` reserves the complete metadata envelope for a future
+capabilities-negotiated implementation that must ship across every binding before
+it is enabled. JSON `ObservationFrame` is the only shipped observation-plane frame.
 
 ## 4. The closed-loop controller (layered)
 
@@ -219,8 +261,7 @@ service. `SafetyLimits` bound commands and a stale sensor forces `HOLD`.
 NCP separates the **contract** from the **medium**. The contract is proto-native:
 the **protobuf IDL** `proto/ncp.proto` is the normative *schema* source of truth, and the
 **JSON Schemas** in `schemas/` are its JSON projection (kept in parity, CI-guarded).
-The serialization shipped on every medium below is **JSON** (plus the binary
-`BulkBlock` for bulk observations); protobuf *binary* is defined by the schema but is
+The serialization shipped on every medium below is **JSON**; protobuf *binary* is defined by the schema but is
 **not** a wired runtime encoding today — see §5A.
 The medium is a per-deployment choice behind the `Transport` abstraction — do
 **not** marry NCP to one wire. With many heterogeneous projects this matters; the
@@ -231,7 +272,7 @@ want each client wired to a server address.
 
 | Medium | Coupling | Upsides | Downsides | Use when |
 |---|---|---|---|---|
-| **Zenoh** — *recommended decoupled default* | **low** — addresses *data* (`{realm}/**`), automatic discovery, many-to-many | RPC via **queryable**, streaming via **pub/sub**; location-transparent; N server instances on one keyspace; **robot/UAV clients already speak it** (a `ZenohBridge`, ROS 2 `rmw_zenoh`); carries opaque payloads (JSON today; binary `BulkBlock` for bulk; protobuf only if negotiated) | younger RPC ecosystem; you define the queryable convention; browsers need a router's WS plugin | the many-project fleet; robotics-native; multiple/replicated server instances |
+| **Zenoh** — *recommended decoupled default* | **low** — addresses *data* (`{realm}/**`), automatic discovery, many-to-many | RPC via **queryable**, streaming via **pub/sub**; location-transparent; N server instances on one keyspace; **robot/UAV clients already speak it** (a `ZenohBridge`, ROS 2 `rmw_zenoh`); carries opaque JSON payloads today | younger RPC ecosystem; you define the queryable convention; browsers need a router's WS plugin | the many-project fleet; robotics-native; multiple/replicated server instances |
 | **WebSocket + JSON** — *zero-friction fallback* | medium (client → one URL) | works from any language incl. browsers/Tauri-webview; human-readable; no codegen | no typing/codegen; manual correlation; verbose at high rate | quick starts, debugging, the frontend (shipped: `/api/neurocontrol/ws`) |
 | **gRPC** (HTTP/2 + protobuf) — *optional point-to-point* | **high** — client dials a host:port; needs a load balancer to scale | first-class bi-di streaming; typed codegen from `ncp.proto`; deadlines/backpressure | endpoint coupling; browser needs grpc-web/Connect; protoc step | cloud/enterprise point-to-point with a known endpoint |
 | **ROS 2 (DDS) + rosbridge** | low (within ROS) | native for ROS projects; QoS; rosbridge bridges browsers | couples non-ROS projects to ROS; heavy | the project is already ROS 2 |
@@ -248,7 +289,7 @@ for deployments that specifically want it. The bus binding is `bus.py`
 (`Bus`/`LocalBus`/`ZenohBus` + `NcpBusServer`/`NcpBusClient`);
 `SessionService.handle_json(message)` is the
 transport-neutral seam every binding calls.
-## 5A. Wire encoding: JSON runtime today, binary `BulkBlock` for bulk, protobuf as the schema
+## 5A. Wire encoding: JSON runtime today, protobuf as the schema
 
 First principles: a *schema* (which fields exist, with what types and names) and an
 *encoding* (how the bytes are laid out on the wire) are independent decisions, and
@@ -264,7 +305,7 @@ not in the reference SDK today.
   This is the contract every binding must agree on, in any encoding.
 
 - **Shipped runtime encoding = JSON.** Every reference peer today serializes the
-  Sensor / Command / RPC planes as JSON via `serde_json` (`ncp-zenoh` publishes
+  Sensor / Command / RPC / Observation planes as JSON via `serde_json` (`ncp-zenoh` publishes
   `serde_json::to_vec(frame)` and the gateway + WebSocket binding are JSON
   end-to-end). JSON is the deliberate debuggable default: self-describing,
   language-neutral, and inspectable on the bus with no codegen. Its cost is small
@@ -273,12 +314,11 @@ not in the reference SDK today.
   ~195 B (release, measured), a fraction of a microsecond against a 20–1000 Hz
   control budget. See [`PERFORMANCE.md`](PERFORMANCE.md).
 
-- **Binary path = `BulkBlock`, for bulk observations only.** Large numeric arrays
-  (spike trains, `V_m` / `g_ex` / `w` traces) ride a packed little-endian columnar
-  block (`ncp-core::bulk`; proto `BulkObservation`) — parse-free, random-access, and
-  ~2× smaller than `repeated double` / JSON. It is **additive and negotiated**, on
-  the observation / analysis plane only, **never** the hot action loop (see §3,
-  "Bulk option").
+- **`BulkBlock` is a bounded codec, not a frame.** The packed NCPB column format is
+  implemented and cross-language golden-vector-pinned for offline/local use, with a
+  64 MiB input ceiling and cumulative allocation budget. It is not accepted bare on
+  Zenoh. A future binary path must wrap it in the complete `BulkObservation`
+  metadata and ship encode/decode/conformance in Rust, Python, C/C++, and TypeScript.
 
 - **Protobuf *binary* is defined but not wired.** The `prost` (Rust), `ts-proto`
   (TS), and `protobuf-python` outputs under `gen/` are **preview** codegen
@@ -294,9 +334,8 @@ the whole NCP contract + safety overhead is ~0.003–0.1 % of the control budget
 (see [`PERFORMANCE.md`](PERFORMANCE.md)). JSON's debuggability is worth more than
 protobuf's byte savings until a bandwidth- or kHz-constrained consumer proves
 otherwise. The clean upgrade path is then an **opt-in, capabilities-negotiated
-binary encoding** for the action / perception planes — exactly how `BulkBlock` was
-added for observations (advertised in the handshake, JSON staying the
-always-available default) — **not** stripping fields from the self-describing JSON
+binary encoding** for the action / perception planes (advertised in the handshake,
+JSON staying the always-available default) — **not** stripping fields from the self-describing JSON
 wire (which would break `validate()` / version diagnosis). This is tracked in
 [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) ("Hot action/perception planes are
 JSON-only").
@@ -308,10 +347,10 @@ JSON-only").
 > `ZBytes` / SHM removes a per-frame copy **with no wire change**. See
 > [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
 >
-> **Bulk decode hardening (audited, not fixed).** `BulkBlock::decode` enforces no
-> cumulative allocation budget, so an overlapping/duplicate column directory can
-> amplify memory ~64,000× (OOM DoS) — a receiver-side concern for any peer that
-> accepts bulk observations. See [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
+> **Bulk decode hardening (fixed in 0.7).** Encode/decode enforce 64 MiB / 4,096-column
+> ceilings, checked narrowing conversions, a cumulative name+column allocation
+> budget, and sorted `O(n log n)` region validation; overlapping directory entries
+> cannot amplify a small input into unbounded heap or pairwise parser work.
 
 
 ## 6. How a project integrates — and why the commander core stays project-agnostic
@@ -352,10 +391,10 @@ The **NEST brain is not split**: a closed sensorimotor loop is one
 `nest.Run(chunk)` binding sense→act; only the wire diverges.
 
 ```text
-{realm}/rpc                              control-plane RPC   queryable, reliable
+{realm}/rpc/{request_kind}               control-plane RPC   exact query key; server declares {realm}/rpc/*
 {realm}/session/{id}/sensor[/{name}]     perception plane    pub/sub, best-effort DROP (lossy-OK)
 {realm}/session/{id}/command[/{name}]    action plane        pub/sub, express + DROP + RealTime, safety-gated
-{realm}/session/{id}/observation         neural / diagnostic pub/sub — free read-only observer tap
+{realm}/session/{id}/observation         neural / diagnostic commander publishes; observers subscribe read-only
 ```
 
 Per-entity sub-keys (`…/sensor/imu`, `…/command/cmd_vel`) address the
@@ -402,27 +441,24 @@ key words **MUST**, **MUST NOT**, and **MAY** are used as defined in
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) (only the uppercase forms
 carry the normative meaning).
 
-**Known safety gaps (audited — not yet fixed).** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)
-catalogs 35 audited findings (3 high, 17 medium, 15 low). Several bear directly on
-the conformance rules above and on a plant's own safety enforcement; do **not**
-assume the reference code already handles them (these are *proposals* in the audit,
-and some would be wire-breaking to fully resolve):
-
-- **The `ttl_ms` watchdog can fail OPEN.** An unbounded or non-finite (`+Inf`)
-  `ttl_ms` makes the `CommandWatchdog` deadline backstop never expire
-  (`safety.rs:417` / `:432`), defeating the action-plane liveness rule above. A
-  conformant plant should clamp / sanitize the enforced ttl locally and treat a
-  non-finite ttl as immediately stale.
-- **An empty position channel bypasses the geofence.** A `Some(pos)` with empty
-  `data` is treated as the origin (`r = 0`) and passes the fence (`safety.rs:293`);
-  the horizon look-ahead has the same gap (`safety.rs:338`).
-- **Channel *arity* is unvalidated.** A truncated vec3 position frame makes the
-  geofence under-report distance and fail to ESTOP (`safety.rs:293`); frames should
-  be checked against the negotiated `ChannelSpec` width before enforcement.
-- **Channel *units* are unvalidated free text.** The speed clamp and geofence
-  assume SI units (m/s, m) but never verify the negotiated `ChannelSpec.unit`, so a
-  unit mismatch silently mis-scales (`safety.rs:369`). A canonical SI vocabulary for
-  safety-relevant channels is the proposed fix.
+**Safety hardening status.** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) is the
+live audit. The former high-severity bulk allocation, unbounded/non-finite TTL,
+empty/truncated position, and unit-confusion paths are fixed and regression-tested.
+Enabled limits require canonical width-three SI `pose_position`/`velocity_setpoint`
+contracts. Under its explicit kinematic command model, the reference governor
+projects velocity over the complete TTL/horizon
+actuation window and HOLDs or truncates before a geofence crossing; it never turns
+a non-empty unsafe horizon into the empty legacy form (which means replay tick 0).
+For that projection, the sensor and command effective `frame_id` values **MUST**
+match (`frame_id` defaults to `"world"` when omitted); mismatched coordinate frames
+HOLD because adding their vectors would be dimensionally meaningless.
+When a fresh, validated position is already outside a configured geofence, the
+reference governor **MUST** latch ESTOP regardless of the current command mode or
+validity; a controller HOLD cannot conceal a breached physical boundary.
+Plants still **MUST** deploy both the governor and the independent `ActionBuffer` /
+watchdog at the actuator boundary; a controller-side check alone is not authority,
+and the physical flight controller / safety PLC remains responsible for a braking-
+and-dynamics-aware geofence.
 - **`seq == 0` anti-replay escape hatch — RESOLVED in wire 0.6.** The action plane now
   requires a stamped, strictly-increasing `seq >= 1`, and `CommandWatchdog`/`ActionBuffer`
   reject `seq < 1`, so a default-constructed (`seq = 0`) `CommandFrame` no longer bypasses
@@ -432,14 +468,15 @@ and some would be wire-breaking to fully resolve):
 
 **The reference gateway (`ncp-gateway`).** When the commander's brain is NEST (Python)
 — as in the Engram reference — its NCP *server* stays Python. The gateway gives it a production-grade Rust Zenoh edge
-— it runs the `{realm}/rpc` queryable and the pub/sub planes and forwards each RPC
+— it declares the `{realm}/rpc/*` queryable and forwards each validated request
+received on its exact `{realm}/rpc/{request_kind}` key
 to the Python `SessionService` over a localhost socket, reusing the one
 transport-neutral seam `handle_json`. NEST never leaves Python; the fleet-facing
 transport is Rust:
 
 ```text
- Zenoh bus ──(SHM/QoS)──► ncp-gateway (Rust) ──(localhost JSON)──► bridge_server.py → SessionService → nest.Run
-    ▲ robot/UAV bodies / analysis-observer clients / dashboards attach as peers / observers
+ Zenoh RPC ──► ncp-gateway (Rust) ──(localhost JSON)──► bridge_server.py → SessionService → nest.Run
+ sensor / command / observation pub-sub planes connect directly between NCP peers
 ```
 
 ```bash
@@ -488,11 +525,13 @@ addressing (`Keys::sensor_glob`/`command_glob`/`fleet_glob`, per-named-entity
 docs `PERFORMANCE.md`, `RESILIENCE.md`, `NEST_REALTIME.md`, `NEUROMORPHIC.md`,
 `INTEGRATING.md`.
 
-Scaffolded / next: **action-plane auth/ACL** — a default-deny per-plane Zenoh ACL
-template + TLS/ACL enablement steps now ship (#7; `deploy/zenoh-access-control.json5`,
-`SECURITY.md`), with live mTLS-enforcement validation the remaining P0; a `no_std`
+Implemented as an opt-in deployment profile: **action-plane auth/ACL** — a complete
+default-deny mTLS router template, strict client template, safe realm renderer, and
+TLS/ACL enablement steps now ship (#7; `deploy/`, `SECURITY.md`), with receiver-acknowledged
+live enforcement validation the remaining P0; next: a `no_std`
 core + tiny transport
 (zenoh-pico / micro-ROS) for MCUs; per-session capability negotiation; spike-time/
 weight stimuli; multi-population/multi-model handles; an optional **gRPC** binding
-from `ncp.proto`; a conformance program + neutral spec home for the standard (see
+from `ncp.proto`; independent implementations + a neutral spec home for the standard (the
+pragmatic cross-language shape/behavior conformance corpus already ships; see
 [`GOVERNANCE.md`](GOVERNANCE.md)); and a trained SNN-RL controller.

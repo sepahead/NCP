@@ -1,4 +1,4 @@
-import type { Observable } from "./Observable";
+import type { Observable } from "./Observable.js";
 /**
  * One recording: client `port` name ← `observable` of `target` population.
  */

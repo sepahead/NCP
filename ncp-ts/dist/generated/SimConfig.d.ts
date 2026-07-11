@@ -1,4 +1,4 @@
-import type { SimMode } from "./SimMode";
+import type { SimMode } from "./SimMode.js";
 /**
  * Integration / streaming configuration.
  */

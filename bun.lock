@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@sepehrmn/ncp",
+      "name": "@sepahead/ncp",
       "devDependencies": {
         "typescript": "5.9.2",
       },

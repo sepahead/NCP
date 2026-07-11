@@ -1,4 +1,4 @@
-import type { StimulusKind } from "./StimulusKind";
+import type { StimulusKind } from "./StimulusKind.js";
 /**
  * One stimulus input port.
  */

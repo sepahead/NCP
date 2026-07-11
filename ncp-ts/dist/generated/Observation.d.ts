@@ -1,4 +1,4 @@
-import type { Observable } from "./Observable";
+import type { Observable } from "./Observable.js";
 /**
  * Recorded data for one record port. `times`+`values` are parallel for analog;
  * `times`+`senders` are parallel for spikes.

@@ -13,13 +13,11 @@
  * for a WebSocket implementation; a Zenoh/native transport can implement the same
  * `Send`).
  */
-import type { ChannelValue, NetworkRef, Observation, ObservationFrame, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated';
+import type { ChannelValue, ErrorFrame as GeneratedErrorFrame, NetworkRef, Observation, ObservationFrame, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated/index.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
- *  Wire 0.6: every message MUST carry a compatible `ncp_version` (absent is
- *  rejected, never coerced) and the closed-loop frames MUST stamp `seq` — see
- *  `VERSIONING.md`. The serialization is unchanged from 0.5, so the contract
- *  hash is identical; the version string is the compatibility gate. */
-export declare const NCP_VERSION = "0.6";
+ * Wire 0.7 adds exact JSON-integer bounds, lossless additive enums, explicit
+ * provenance, typed errors, and stricter kind/nested-frame validation. */
+export declare const NCP_VERSION = "0.7";
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
@@ -27,7 +25,11 @@ export declare const NCP_VERSION = "0.6";
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export declare const NCP_CONTRACT_HASH = "24e8e6e31e1dec8a";
+export declare const NCP_CONTRACT_HASH = "f05e328cad20959d";
+/** Exact integer range shared by every JSON implementation (binary64 included). */
+export declare const JSON_SAFE_INTEGER_MAX = 9007199254740991;
+export declare const JSON_SAFE_INTEGER_MIN: number;
+export declare const MAX_HORIZON_STEPS = 65536;
 /** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
  *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
  *  string = an advisory message describing the mismatch (for logging/telemetry). */
@@ -60,6 +62,13 @@ export declare class NcpScientificBoundaryError extends Error {
  * Rust/Python/C++ peers. Throws [`NcpScientificBoundaryError`] on a violation.
  */
 export declare function assertScientificBoundary(frame: Record<string, unknown>): void;
+/** Rust `char::is_control` parity for the JSON identifiers NCP constrains.
+ * JavaScript's common C0/DEL-only regex misses the C1 range U+0080..U+009F. */
+export declare function hasWireControlCharacters(value: string): boolean;
+/** Full TypeScript ingress gate for the shared validation contract. Unknown object
+ * fields remain allowed; known fields are type/value checked exactly like the Rust
+ * reference, including nested stimulus identity and safe JSON integers. */
+export declare function assertNcpMessage(value: unknown, expectedKind?: string): asserts value is Record<string, unknown>;
 /**
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for
@@ -76,6 +85,7 @@ export type SessionOpenedReply = Wire<SessionOpened>;
 export type SessionClosedReply = Wire<SessionClosed>;
 export type ObservationFrameReply = Wire<ObservationFrame>;
 export type ObservationData = Wire<Observation>;
+export type ErrorFrame = Wire<GeneratedErrorFrame>;
 /**
  * Construction views. The canonical message types are maximally strict (ts-rs
  * marks every Rust field required), but the JSON Schemas default most fields, so
@@ -91,16 +101,6 @@ export type SimInput = Partial<Wire<SimConfig>>;
 /** Any transport: serialize `message`, deliver it to the NCP session service, and
  *  resolve with the reply payload (already parsed from the wire). */
 export type Send = (message: Record<string, unknown>) => Promise<unknown>;
-/**
- * The session service replies to a failed request with one `{ kind: 'error', … }`
- * frame (and keeps the socket open). `unwrap` surfaces it as a thrown error instead
- * of letting an error-shaped object masquerade as a success reply.
- */
-export interface ErrorFrame {
-    kind: 'error';
-    error: string;
-    session_id?: string | null;
-}
 export declare class NeuroSimClient {
     private readonly send;
     constructor(send: Send);

@@ -1,7 +1,8 @@
 /**
  * Link-health telemetry from the seq-gap / CUSUM monitor (published on the
  * control plane). `burst=true` flags sustained loss — a possible jam — at which
- * point the only sound response is to fail safe, not add redundancy.
+ * point the only sound response is to fail safe, not add redundancy. `t` is
+ * producer-local monotonic seconds and is never compared across peers.
  */
 export type LinkStatus = {
     ncp_version: string;

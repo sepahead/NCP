@@ -1,0 +1,31 @@
+// NCP mTLS client template for Zenoh 1.9.
+//
+// Copy this file per identity, replace the router DNS name and certificate paths,
+// and ensure the leaf certificate's exact Common Name appears under the matching
+// subject in zenoh-access-control.json5. `ZenohBus::open_secure` validates these
+// fail-closed properties before opening: client mode, TLS-only explicit endpoints,
+// no listeners/discovery, a CA + client certificate/private key, and hostname
+// verification enabled.
+{
+  mode: "client",
+  connect: {
+    endpoints: ["tls/router.example.invalid:7447"],
+    exit_on_failure: true,
+  },
+  listen: { endpoints: [] },
+  scouting: {
+    multicast: { enabled: false },
+    gossip: { enabled: false },
+  },
+  transport: {
+    link: {
+      tls: {
+        root_ca_certificate: "deploy/certs/ca.pem",
+        connect_private_key: "deploy/certs/client-key.pem",
+        connect_certificate: "deploy/certs/client.pem",
+        verify_name_on_connect: true,
+        close_link_on_expiration: true,
+      },
+    },
+  },
+}

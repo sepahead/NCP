@@ -1,4 +1,4 @@
-import type { EntityRef } from "./EntityRef";
+import type { EntityRef } from "./EntityRef.js";
 /**
  * Binds a client entity to a stimulus or record port.
  */

@@ -4,12 +4,8 @@
 //
 // Since wire 0.6, ncp-ts ships the plant-side safety port (SafetyGovernor /
 // CommandWatchdog / ActionBuffer in `safety.ts`), so this runner replays the FULL
-// `govern` corpus through the TS governor in addition to the handshake/boundary
-// functions (checkVersion = the hard version gate, contractStatus = the advisory
-// contract check, assertScientificBoundary = the boundary discriminators). The
-// required-field half of `validate` remains owned by the full peers; the TS
-// data-plane ingress gate is `assertWireFrame`, exercised in the safety
-// self-checks at the end of this runner.
+// `govern` and `action_buffer` corpora through the TS safety primitives in
+// addition to the full message-validation and handshake functions.
 //
 // Fail-loud coverage: every corpus function must be either implemented here or in an
 // explicit out-of-scope allowlist; a corpus function in NEITHER set is a hard error,
@@ -19,29 +15,27 @@
 // Run after `npm run build` (imports the published dist surface):
 //   node ncp-ts/scripts/check-behavior.mjs
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-// Import the concrete dist/*.js (not the index barrel): tsconfig uses
-// `moduleResolution: Bundler`, so the emitted barrel re-exports are extensionless
-// and node's native ESM loader cannot resolve them. client.js/safety.js load
-// under plain node (their ./generated imports are type-only, erased at compile).
+// Import the public package barrel with Node's native ESM loader. This makes the
+// behavioral corpus double as an entrypoint smoke: extensionless or stale dist
+// exports fail before any vector can run.
 import {
   NCP_VERSION,
   NCP_CONTRACT_HASH,
   checkVersion,
   NcpVersionError,
   contractStatus,
-  assertScientificBoundary,
+  assertNcpMessage,
   NcpScientificBoundaryError,
-} from '../dist/client.js'
-import {
+  NeuroSimClient,
   ActionBuffer,
   CommandWatchdog,
   SafetyGovernor,
   assertWireFrame,
   maxHorizonLen,
-} from '../dist/safety.js'
+} from '../dist/index.js'
 
 const here = dirname(fileURLToPath(import.meta.url)) // ncp-ts/scripts
 const corpusPath = join(here, '..', '..', 'conformance', 'behavior', 'vectors.json')
@@ -63,10 +57,14 @@ check(
 )
 
 // Functions ncp-ts implements vs deliberately out-of-scope for the thin client.
-// `validate` is implemented for the scientific-boundary subset only (the
-// required-field half is owned by the full peers). `govern` is fully replayed
-// through the TS SafetyGovernor since wire 0.6.
-const IMPLEMENTED = new Set(['check_version', 'contract_status', 'validate', 'govern'])
+// All shared decision families must be explicitly implemented here.
+const IMPLEMENTED = new Set([
+  'check_version',
+  'contract_status',
+  'validate',
+  'govern',
+  'action_buffer',
+])
 const OUT_OF_SCOPE = new Set([])
 for (const fn of Object.keys(corpus.cases)) {
   check(
@@ -77,6 +75,46 @@ for (const fn of Object.keys(corpus.cases)) {
 }
 
 let covered = 0
+
+// Canonical wire-shape fixtures — every shipped JSON message kind must pass the
+// actual TypeScript ingress gate, not merely overlap with behavior examples.
+const vectorsDir = join(here, '..', '..', 'conformance', 'vectors')
+let goldenCovered = 0
+for (const filename of readdirSync(vectorsDir).filter((name) => name.endsWith('.json')).sort()) {
+  const message = JSON.parse(readFileSync(join(vectorsDir, filename), 'utf8'))
+  const kind = message.kind
+  try {
+    assertNcpMessage(message, kind)
+    if (['sensor_frame', 'command_frame', 'observation_frame'].includes(kind)) {
+      assertWireFrame(message, kind)
+    }
+  } catch (error) {
+    failures.push(`golden[${filename}]: canonical ${JSON.stringify(kind)} rejected: ${error}`)
+  }
+  goldenCovered++
+}
+
+// SimConfig has two non-nullable timing controls and two nullable optionals.
+// Keep the raw-shape distinction pinned even if the shared corpus is temporarily
+// consumed from an older tag that predates these negative vectors.
+for (const field of ['dt_ms', 'chunk_ms']) {
+  let rejected = false
+  try {
+    assertNcpMessage(
+      {
+        kind: 'open_session',
+        ncp_version: NCP_VERSION,
+        session_id: 'null-sim-timing',
+        network: { kind: 'builtin', ref: 'iaf_cond_exp' },
+        sim: { [field]: null },
+      },
+      'open_session',
+    )
+  } catch {
+    rejected = true
+  }
+  check(rejected, `validate: open_session.sim.${field}=null rejected`)
+}
 
 // check_version — full parity with the reference gate.
 for (const c of corpus.cases.check_version) {
@@ -111,26 +149,36 @@ for (const c of corpus.cases.contract_status) {
   covered++
 }
 
-// validate — the thin client enforces the scientific-BOUNDARY discriminators via
-// assertScientificBoundary. Cover the boundary-bearing vectors (a violation must
-// throw); the required-field-only vectors are out of the thin client's scope.
+// validate — every vector goes through the full TS ingress gate; data-plane
+// vectors additionally exercise the specialized assertWireFrame path.
 const hasBoundary = (m) => {
   const carrier = m.kind === 'session_opened' && m.provenance ? m.provenance : m
   return 'is_simulation_output' in carrier || 'calibrated_posterior' in carrier
 }
 let boundaryCovered = 0
+let dataPlaneCovered = 0
 for (const c of corpus.cases.validate) {
   const { name, input, expect } = c
-  if (!hasBoundary(input.message)) continue // required-field-only — out of scope
+  const boundary = hasBoundary(input.message)
+  const dataPlane = ['sensor_frame', 'command_frame', 'observation_frame'].includes(input.kind)
   let threw = false
   try {
-    assertScientificBoundary(input.message)
+    assertNcpMessage(input.message, input.kind)
+    if (dataPlane) assertWireFrame(input.message, input.kind)
   } catch (e) {
     threw = true
-    check(e instanceof NcpScientificBoundaryError, `validate[${name}]: threw non-boundary ${e}`)
+    if (
+      boundary &&
+      !dataPlane &&
+      expect.valid === false &&
+      (name.includes('calibrated') || name.includes('not_sim'))
+    ) {
+      check(e instanceof NcpScientificBoundaryError, `validate[${name}]: threw non-boundary ${e}`)
+    }
   }
-  check(threw === !expect.valid, `validate[${name}]: boundary throw=${threw} vs expected valid=${expect.valid}`)
-  boundaryCovered++
+  check(threw === !expect.valid, `validate[${name}]: throw=${threw} vs expected valid=${expect.valid}`)
+  if (boundary) boundaryCovered++
+  if (dataPlane) dataPlaneCovered++
   covered++
 }
 
@@ -165,6 +213,40 @@ for (const c of corpus.cases.govern) {
   covered++
 }
 
+// action_buffer — stateful replay/deadline/ESTOP decisions. This is separate
+// from the one-shot governor vectors because ordering and reset behavior are the
+// safety properties under test.
+for (const c of corpus.cases.action_buffer) {
+  const buffer = new ActionBuffer()
+  for (const [index, operation] of c.operations.entries()) {
+    if (operation.op === 'command') {
+      buffer.onCommand(operation.now_s, operation.command)
+    } else if (operation.op === 'reset') {
+      buffer.reset()
+    } else if (operation.op === 'active') {
+      const output = buffer.active(operation.now_s)
+      check(
+        (output !== null) === operation.expect.active,
+        `action_buffer[${c.name}][${index}]: active=${output !== null} != ${operation.expect.active}`,
+      )
+      check(
+        buffer.isEstopped() === operation.expect.estopped,
+        `action_buffer[${c.name}][${index}]: estopped=${buffer.isEstopped()} != ${operation.expect.estopped}`,
+      )
+      if (typeof operation.expect.value === 'number') {
+        const value = output?.velocity_setpoint?.data?.[0]
+        check(
+          typeof value === 'number' && Math.abs(value - operation.expect.value) < 1e-12,
+          `action_buffer[${c.name}][${index}]: value=${value} != ${operation.expect.value}`,
+        )
+      }
+    } else {
+      check(false, `action_buffer[${c.name}][${index}]: unknown op ${operation.op}`)
+    }
+  }
+  covered++
+}
+
 // ── Safety self-checks: the wire-0.6 seq/ttl/latch semantics of the TS port ──
 // (mirrors the ncp-core unit tests; no test framework in ncp-ts, so asserted here)
 {
@@ -191,9 +273,18 @@ for (const c of corpus.cases.govern) {
 
   // ActionBuffer: unstamped rejected, ESTOP latches regardless, horizon replay.
   const ab = new ActionBuffer()
-  ab.onCommand(1.0, { mode: 'active', seq: 0, channels: { velocity_setpoint: { data: [9] } } })
+  ab.onCommand(1.0, {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    mode: 'active',
+    seq: 0,
+    ttl_ms: 200,
+    channels: { velocity_setpoint: { data: [9] } },
+  })
   check(ab.shouldHold(1.0), 'buffer: unstamped Active never actuates')
   ab.onCommand(1.0, {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
     mode: 'active',
     seq: 1,
     ttl_ms: 200,
@@ -210,16 +301,165 @@ for (const c of corpus.cases.govern) {
   check(ab.shouldHold(1.3), 'buffer: past ttl -> HOLD')
   ab.onCommand(2.0, { mode: 'estop', seq: 0, channels: {} }) // unstamped ESTOP still latches
   check(ab.isEstopped(), 'buffer: an unstamped ESTOP still latches')
-  ab.onCommand(2.1, { mode: 'active', seq: 2, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
+  ab.onCommand(2.1, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', seq: 2, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
   check(ab.shouldHold(2.1), 'buffer: latched ESTOP suppresses later Active')
   ab.reset()
-  ab.onCommand(2.2, { mode: 'active', seq: 3, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
+  check(ab.shouldHold(2.1), 'buffer: reset discards every pre-ESTOP command')
+  ab.onCommand(2.2, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', seq: 3, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
   check(!ab.shouldHold(2.2), 'buffer: reset restores actuation')
+
+  const aliasBuffer = new ActionBuffer()
+  const callerOwned = {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    mode: 'active',
+    seq: 1,
+    ttl_ms: 200,
+    channels: { velocity_setpoint: { data: [0.25] } },
+  }
+  aliasBuffer.onCommand(3, callerOwned)
+  callerOwned.mode = 'hold'
+  callerOwned.channels.velocity_setpoint.data[0] = 99
+  check(
+    aliasBuffer.active(3)?.velocity_setpoint?.data?.[0] === 0.25,
+    'buffer: caller mutation after acceptance cannot alter live actuation',
+  )
 
   // maxHorizonLen bounds.
   check(maxHorizonLen(200, 50) === 4, 'maxHorizonLen: exact floor')
   check(maxHorizonLen(Infinity, 50) === 0, 'maxHorizonLen: non-finite ttl -> 0')
   check(maxHorizonLen(200, 0) === 0, 'maxHorizonLen: dt<=0 -> 0')
+  check(maxHorizonLen(60_000, 0.5) === 65_536, 'maxHorizonLen: resource ceiling')
+
+  // SafetyGovernor capability negotiation: canonical channels win regardless of
+  // declaration order, and enabled limits require vec3/width-3/SI-unit specs.
+  const safety = {
+    max_speed_mps: 1,
+    max_tilt_rad: null,
+    geofence_radius_m: 10,
+    command_timeout_ms: 500,
+  }
+  const negotiated = SafetyGovernor.fromCapabilities({
+    safety,
+    sensor_channels: [
+      { name: 'imu_accel', kind: 'vec3', unit: 'm/s2', size: null },
+      { name: 'pose_position', kind: 'vec3', unit: 'm', size: 3n },
+    ],
+    command_channels: [
+      { name: 'thrust', kind: 'scalar', unit: 'N', size: null },
+      { name: 'velocity_setpoint', kind: 'vec3', unit: 'm/s', size: 3n },
+    ],
+  })
+  check(negotiated.safetyOk(), 'governor capabilities: compatible canonical specs negotiate')
+  const negotiatedOut = negotiated.govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      seq: 1,
+      mode: 'active',
+      ttl_ms: 200,
+      channels: { velocity_setpoint: { data: [2, 0, 0], unit: 'm/s' } },
+    },
+    {
+      kind: 'sensor_frame',
+      ncp_version: NCP_VERSION,
+      seq: 1,
+      channels: { pose_position: { data: [3, 0, 0], unit: 'm' } },
+    },
+    1,
+    1,
+  )
+  check(
+    negotiatedOut.mode === 'active' && negotiatedOut.channels.velocity_setpoint?.data[0] === 1,
+    'governor capabilities: canonical velocity channel is clamped even when declared second',
+  )
+
+  for (const position of [
+    { name: 'pose_position', kind: 'vec3', unit: null, size: 3n },
+    { name: 'pose_position', kind: 'vec3', unit: 'cm', size: 3n },
+    { name: 'pose_position', kind: 'scalar', unit: 'm', size: null },
+    { name: 'pose_position', kind: 'vec3', unit: 'm', size: 2n },
+  ]) {
+    const governor = SafetyGovernor.fromCapabilities({
+      safety: { ...safety, max_speed_mps: null },
+      sensor_channels: [position],
+      command_channels: [
+        { name: 'velocity_setpoint', kind: 'vec3', unit: 'm/s', size: 3n },
+      ],
+    })
+    check(!governor.safetyOk(), 'governor capabilities: incompatible position fails closed')
+  }
+  for (const velocity of [
+    { name: 'velocity_setpoint', kind: 'vec3', unit: null, size: 3n },
+    { name: 'velocity_setpoint', kind: 'vec3', unit: 'km/h', size: 3n },
+    { name: 'velocity_setpoint', kind: 'scalar', unit: 'm/s', size: null },
+    { name: 'velocity_setpoint', kind: 'vec3', unit: 'm/s', size: 4n },
+  ]) {
+    const governor = SafetyGovernor.fromCapabilities({
+      safety: { ...safety, geofence_radius_m: null },
+      sensor_channels: [],
+      command_channels: [velocity],
+    })
+    check(!governor.safetyOk(), 'governor capabilities: incompatible velocity fails closed')
+  }
+  const reactiveOnlyFence = SafetyGovernor.fromCapabilities({
+    safety: { ...safety, max_speed_mps: null },
+    sensor_channels: [
+      { name: 'pose_position', kind: 'vec3', unit: 'm', size: 3n },
+    ],
+    command_channels: [],
+  })
+  check(
+    !reactiveOnlyFence.safetyOk(),
+    'governor capabilities: geofence requires a projectable velocity contract',
+  )
+  const invalidConfig = new SafetyGovernor(
+    { ...safety, geofence_radius_m: null, max_speed_mps: null },
+    'pose_position',
+    'velocity\nspoof',
+    ['velocity\nspoof'],
+    ['pose_position'],
+  )
+  const configHold = invalidConfig.govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      seq: 1,
+      mode: 'active',
+      ttl_ms: 200,
+      channels: { velocity_setpoint: { data: [1, 0, 0], unit: 'm/s' } },
+    },
+    {
+      kind: 'sensor_frame',
+      ncp_version: NCP_VERSION,
+      seq: 1,
+      channels: { pose_position: { data: [0, 0, 0], unit: 'm' } },
+    },
+    1,
+    1,
+  )
+  check(configHold.mode === 'hold', 'governor config: invalid channel fails closed')
+  try {
+    assertWireFrame(configHold, 'command_frame')
+  } catch (error) {
+    check(false, `governor config: fail-closed HOLD must remain publishable (${error})`)
+  }
+  const sanitizedEstop = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    {
+      kind: 'command_frame',
+      mode: 'estop',
+      seq: 0,
+      frame_id: 'world\u0085spoof',
+      channels: { 'bad\u0085channel': { data: [1] } },
+    },
+    null,
+    1,
+    null,
+  )
+  check(
+    sanitizedEstop.frame_id === 'world' && !('bad\u0085channel' in sanitizedEstop.channels),
+    'governor fail-safe output strips C1 control characters',
+  )
 
   // assertWireFrame: the data-plane ingress gate.
   const okFrame = { kind: 'command_frame', ncp_version: NCP_VERSION, seq: 1 }
@@ -255,16 +495,140 @@ for (const c of corpus.cases.govern) {
     'assertWireFrame: misrouted kind rejected',
   )
   check(
-    !rejects({ kind: 'observation_frame', ncp_version: NCP_VERSION, seq: 0 }, 'observation_frame'),
+    !rejects(
+      {
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        seq: 0,
+        records: {},
+        calibrated_posterior: false,
+        is_simulation_output: true,
+      },
+      'observation_frame',
+    ),
     'assertWireFrame: observation seq 0 (pull path) accepted',
   )
   check(
-    rejects({ kind: 'observation_frame', ncp_version: NCP_VERSION, seq: -1 }, 'observation_frame'),
+    rejects(
+      {
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        seq: -1,
+        records: {},
+        calibrated_posterior: false,
+        is_simulation_output: true,
+      },
+      'observation_frame',
+    ),
     'assertWireFrame: negative observation seq rejected',
+  )
+  check(
+    rejects({ kind: 'command_frame', ncp_version: NCP_VERSION, seq: 2 ** 53 }, 'command_frame'),
+    'assertWireFrame: precision-unsafe seq rejected',
+  )
+  check(
+    rejects(
+      {
+        kind: 'sensor_frame',
+        ncp_version: NCP_VERSION,
+        seq: 1,
+        channels: { pose: { data: 'bad' } },
+      },
+      'sensor_frame',
+    ),
+    'assertWireFrame: malformed channel rejected',
   )
 }
 
-const outOfScope = corpus.cases.validate.length - boundaryCovered
+// NeuroSimClient must validate reply identity/boundary, not just cast `unknown`.
+{
+  const rejectsAsync = async (promise) => {
+    try {
+      await promise
+      return false
+    } catch {
+      return true
+    }
+  }
+  const rejectionMessage = async (promise) => {
+    try {
+      await promise
+      return ''
+    } catch (error) {
+      return String(error)
+    }
+  }
+  check(
+    await rejectsAsync(
+      new NeuroSimClient(async () => ({
+        kind: 'command_frame',
+        ncp_version: NCP_VERSION,
+        seq: 1,
+        session_id: 's',
+      })).close('s'),
+    ),
+    'client: wrong reply kind rejected',
+  )
+  check(
+    await rejectsAsync(
+      new NeuroSimClient(async () => ({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 'other',
+        seq: 0,
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+      })).step('s'),
+    ),
+    'client: cross-session reply rejected',
+  )
+  check(
+    await rejectsAsync(
+      new NeuroSimClient(async () => ({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        seq: 0,
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: true,
+      })).step('s'),
+    ),
+    'client: dishonest scientific boundary rejected',
+  )
+  check(
+    (
+      await rejectionMessage(
+        new NeuroSimClient(async () => ({
+          kind: 'error',
+          ncp_version: NCP_VERSION,
+          error: 'misrouted',
+          session_id: 's',
+          request_kind: 'close_session',
+        })).step('s'),
+      )
+    ).includes('request_kind mismatch'),
+    'client: a typed error is bound to the originating request kind',
+  )
+  check(
+    (
+      await rejectionMessage(
+        new NeuroSimClient(async () => ({
+          kind: 'error',
+          ncp_version: NCP_VERSION,
+          error: 'cross-session',
+          session_id: 'other',
+          request_kind: 'step_request',
+        })).step('s'),
+      )
+    ).includes('session mismatch'),
+    'client: a typed error is bound to the originating session',
+  )
+}
+
 if (failures.length) {
   console.error(`FAIL ncp-ts behavioral conformance: ${failures.length} vector(s) diverged:`)
   for (const f of failures) console.error(`  - ${f}`)
@@ -272,7 +636,7 @@ if (failures.length) {
 }
 console.log(
   `OK ncp-ts behavioral conformance: ${covered} vectors match (check_version + ` +
-    `contract_status + scientific-boundary + govern) + safety self-checks. ` +
-    `${outOfScope} required-field validate vectors out-of-scope for the thin client ` +
-    `— gated by ncp-core/ncp-python/ncp-cpp.`,
+    `contract_status + ${boundaryCovered} scientific-boundary + ${dataPlaneCovered} data-plane ` +
+    `validate + govern + action_buffer), ${goldenCovered} canonical JSON fixtures pass, ` +
+    `plus full-message validation and safety/client self-checks.`,
 )

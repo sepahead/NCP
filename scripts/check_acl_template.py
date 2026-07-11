@@ -8,12 +8,12 @@ This guard runs in CI without a Zenoh runtime and fails closed on:
 
   1. an invalid `messages` token (e.g. the `get` that zenohd rejects — the real
      token for the querier/get side is `query`), and
-  2. a violation of either PUT-authority invariant: only the `commander` (brain)
-     policy may PUT on the `.../command/**` plane, AND only the `robot` (body)
-     policy may PUT on the `.../sensor/**` plane. The perception plane is a control
-     input too — a spoofed SensorFrame steers the controller and can defeat the
-     geofence (false-data injection) — so it is restricted symmetrically to the
-     action plane.
+  2. a violation of a PUT-authority invariant: only `commander` may write command
+     or the exact observation key, while only `robot` may write sensor data, and
+  3. loss of the observer's read-only coverage across sensor, command, and
+     observation. The perception plane is a control input too — a spoofed
+     SensorFrame steers the controller and can defeat the geofence (false-data
+     injection) — so it is restricted symmetrically to the action plane.
 
 On every run it also self-tests (a tampered template MUST be rejected) so the
 guard cannot silently rot into a no-op.
@@ -26,9 +26,12 @@ mechanical drift class the review found.
 from __future__ import annotations
 
 import json
+import copy
 import re
 import sys
 from pathlib import Path
+
+from render_acl_template import render, valid_realm
 
 # Valid Zenoh 1.x access-control `messages` tokens. `get` is deliberately ABSENT:
 # the get/querier side is `query`. Keep this in sync with zenoh's AclMessage.
@@ -44,8 +47,14 @@ VALID_TOKENS = {
     "declare_liveliness_subscriber",
     "liveliness_query",
 }
+WRITE_TOKENS = {"put", "delete"}
+PLANE_COMMAND = "command"
+PLANE_SENSOR = "sensor"
+PLANE_OBSERVATION = "observation"
+PLANE_RPC = "rpc"
 
 ACL_PATH = Path(__file__).resolve().parent.parent / "deploy" / "zenoh-access-control.json5"
+ZENOH_MANIFEST = Path(__file__).resolve().parent.parent / "ncp-zenoh" / "Cargo.toml"
 
 
 def load_json5(text: str) -> dict:
@@ -58,52 +67,210 @@ def load_json5(text: str) -> dict:
     return json.loads(text)
 
 
+def _nested(cfg: dict, *path: str):
+    value = cfg
+    for part in path:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
+
+
+def _endpoint_strings(value) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for value in value for item in _endpoint_strings(value)]
+    if isinstance(value, dict):
+        return [item for value in value.values() for item in _endpoint_strings(value)]
+    return []
+
+
+def _classify_key(key: object) -> tuple[str, str] | None:
+    """Return ``(realm, plane)`` only for an audited exact template shape.
+
+    Rejecting broader expressions is load-bearing: a rule on ``session/**`` would
+    intersect every data plane but evade substring-only authority checks.
+    """
+    if not isinstance(key, str) or not key:
+        return None
+    if "/session/" in key:
+        realm, suffix = key.split("/session/", 1)
+        plane = {
+            "*/command/**": PLANE_COMMAND,
+            "*/sensor/**": PLANE_SENSOR,
+            "*/observation": PLANE_OBSERVATION,
+        }.get(suffix)
+        return (realm, plane) if plane is not None else None
+    if "/rpc/" in key:
+        realm, suffix = key.split("/rpc/", 1)
+        return (realm, PLANE_RPC) if suffix == "*" else None
+    return None
+
+
 def check(cfg: dict) -> list[str]:
-    """Return ACL problems (empty == OK). Pure, so it is self-testable."""
+    """Return router/mTLS/ACL problems (empty == OK). Pure and self-testable."""
     ac = cfg.get("access_control", {})
     rules = ac.get("rules", [])
+    subjects_cfg = ac.get("subjects", [])
     policies = ac.get("policies", [])
     errors: list[str] = []
 
-    # (1) every messages token must be a real Zenoh ACL token; track PUT authority
-    # on the two control planes (command = action, sensor = perception/FDI input).
+    # The advertised asset must be a complete fail-closed router, not an ACL
+    # fragment that can accidentally be opened over plaintext/default discovery.
+    if cfg.get("mode") != "router":
+        errors.append('secure router must set mode="router"')
+    listeners = _endpoint_strings(_nested(cfg, "listen", "endpoints"))
+    if not listeners or any(not endpoint.startswith("tls/") for endpoint in listeners):
+        errors.append("router listen endpoints must be non-empty and exclusively tls/")
+    if _endpoint_strings(_nested(cfg, "connect", "endpoints")):
+        errors.append("standalone secure router template must not connect to upstream endpoints")
+    for path in (("scouting", "multicast", "enabled"), ("scouting", "gossip", "enabled")):
+        if _nested(cfg, *path) is not False:
+            errors.append(f"secure router requires {'/'.join(path)}=false")
+    tls = _nested(cfg, "transport", "link", "tls") or {}
+    if tls.get("enable_mtls") is not True:
+        errors.append("secure router requires transport/link/tls/enable_mtls=true")
+    if tls.get("close_link_on_expiration") is not True:
+        errors.append("secure router requires transport/link/tls/close_link_on_expiration=true")
+    if _nested(cfg, "listen", "exit_on_failure") is not True:
+        errors.append("secure router requires listen/exit_on_failure=true")
+    for field in ("root_ca_certificate", "listen_certificate", "listen_private_key"):
+        if not isinstance(tls.get(field), str) or not tls[field].strip():
+            errors.append(f"secure router requires a non-empty TLS {field}")
+
+    if ac.get("enabled") is not True:
+        errors.append("access_control.enabled must be true")
+    if ac.get("default_permission") != "deny":
+        errors.append('access_control.default_permission must be "deny"')
+
+    rule_ids = [rule.get("id") for rule in rules]
+    subject_ids = [subject.get("id") for subject in subjects_cfg]
+    if None in rule_ids or len(set(rule_ids)) != len(rule_ids):
+        errors.append("ACL rule ids must be present and unique")
+    if None in subject_ids or len(set(subject_ids)) != len(subject_ids):
+        errors.append("ACL subject ids must be present and unique")
+    known_rules, known_subjects = set(rule_ids), set(subject_ids)
+
+    # Certificate subject selectors must be explicit, exact, and globally unique.
+    # Mapping one certificate CN to two subjects collapses role separation.
+    cn_subject: dict[str, str] = {}
+    for subject in subjects_cfg:
+        subject_id = subject.get("id")
+        cns = subject.get("cert_common_names")
+        if not isinstance(cns, list) or not cns:
+            errors.append(f"subject {subject_id!r} needs explicit certificate CNs")
+            continue
+        for cn in cns:
+            if not isinstance(cn, str) or not cn.strip() or any(c in cn for c in "*$#?"):
+                errors.append(f"subject {subject_id!r} has unsafe/non-exact CN {cn!r}")
+            elif cn in cn_subject:
+                errors.append(
+                    f"certificate CN {cn!r} is assigned to both {cn_subject[cn]!r} "
+                    f"and {subject_id!r}"
+                )
+            else:
+                cn_subject[cn] = subject_id
+
+    rule_subjects: dict[str, set[str]] = {rid: set() for rid in known_rules}
+    for policy in policies:
+        p_rules = set(policy.get("rules", []))
+        p_subjects = set(policy.get("subjects", []))
+        for missing in p_rules - known_rules:
+            errors.append(f"policy references unknown rule {missing!r}")
+        for missing in p_subjects - known_subjects:
+            errors.append(f"policy references unknown subject {missing!r}")
+        for rid in p_rules & known_rules:
+            rule_subjects[rid].update(p_subjects)
+
     command_put_rules: set[str] = set()
     sensor_put_rules: set[str] = set()
+    observation_put_rules: set[str] = set()
+    rpc_query_rules: set[str] = set()
+    rpc_serve_rules: set[str] = set()
+    rule_planes: dict[str, set[str]] = {}
+    realms: set[str] = set()
     for rule in rules:
         rid = rule.get("id", "<unnamed>")
-        for tok in rule.get("messages", []):
-            if tok not in VALID_TOKENS:
+        messages = set(rule.get("messages", []))
+        keys = rule.get("key_exprs", [])
+        if rule.get("permission") != "allow":
+            errors.append(f"rule {rid!r} must be an explicit allow rule")
+        if set(rule.get("flows", [])) != {"ingress", "egress"}:
+            errors.append(f"rule {rid!r} must cover exactly ingress and egress flows")
+        if not messages:
+            errors.append(f"rule {rid!r} must contain at least one messages token")
+        if not isinstance(keys, list) or not keys:
+            errors.append(f"rule {rid!r} must contain at least one key expression")
+            keys = []
+        for token in messages:
+            if token not in VALID_TOKENS:
                 errors.append(
-                    f"rule {rid!r}: invalid messages token {tok!r} "
+                    f"rule {rid!r}: invalid messages token {token!r} "
                     f"(zenohd would reject the config; did you mean 'query'?)"
                 )
-        keys = rule.get("key_exprs", [])
-        puts = any(t in ("put", "delete") for t in rule.get("messages", []))
-        if puts and any("/command/" in k or k.endswith("/command") for k in keys):
+        planes: set[str] = set()
+        for key in keys:
+            classified = _classify_key(key)
+            if classified is None:
+                errors.append(
+                    f"rule {rid!r} has an unaudited or overly broad NCP key {key!r}"
+                )
+                continue
+            realm, plane = classified
+            realms.add(realm)
+            planes.add(plane)
+        rule_planes[rid] = planes
+        puts = bool(messages & WRITE_TOKENS)
+        if puts and PLANE_COMMAND in planes:
             command_put_rules.add(rid)
-        # The perception (sensor) plane is ALSO a control input: a spoofed sensor
-        # frame steers the controller and can defeat the geofence (false-data
-        # injection). Restrict sensor PUTs to the body, symmetric to command PUTs.
-        if puts and any("/sensor/" in k or k.endswith("/sensor") for k in keys):
+        if puts and PLANE_SENSOR in planes:
             sensor_put_rules.add(rid)
+        if puts and PLANE_OBSERVATION in planes:
+            observation_put_rules.add(rid)
+        if "query" in messages and PLANE_RPC in planes:
+            rpc_query_rules.add(rid)
+        if messages & {"declare_queryable", "reply"} and PLANE_RPC in planes:
+            rpc_serve_rules.add(rid)
 
-    # (2) PUT authority on each control plane is restricted to exactly one subject:
-    #     command -> commander (the brain); sensor -> robot (body). These are ROLES,
-    #     not project names — the template is project-neutral.
-    for pol in policies:
-        subjects = set(pol.get("subjects", []))
-        for rid in pol.get("rules", []):
-            if rid in command_put_rules and subjects != {"commander"}:
-                errors.append(
-                    f"policy for subjects {sorted(subjects)} binds command-put rule "
-                    f"{rid!r}: only 'commander' may publish on the action plane"
-                )
-            if rid in sensor_put_rules and subjects != {"robot"}:
-                errors.append(
-                    f"policy for subjects {sorted(subjects)} binds sensor-put rule "
-                    f"{rid!r}: only 'robot' (the body) may publish on the perception "
-                    f"plane — a spoofed sensor frame is an FDI command channel"
-                )
+    if len(realms) != 1 or not realms or not valid_realm(next(iter(realms), "")):
+        errors.append(f"all ACL keys must share one valid exact realm, got {sorted(realms)}")
+
+    def authorities(rule_set: set[str]) -> set[str]:
+        return set().union(*(rule_subjects.get(rid, set()) for rid in rule_set)) if rule_set else set()
+
+    if authorities(command_put_rules) != {"commander"}:
+        errors.append("command PUT authority must exist and equal exactly {'commander'}")
+    if authorities(sensor_put_rules) != {"robot"}:
+        errors.append("sensor PUT authority must exist and equal exactly {'robot'}")
+    if authorities(observation_put_rules) != {"commander"}:
+        errors.append("observation PUT authority must exist and equal exactly {'commander'}")
+    if authorities(rpc_query_rules) != {"commander"}:
+        errors.append("lifecycle RPC query authority must equal exactly {'commander'}")
+    if authorities(rpc_serve_rules) != {"commander"}:
+        errors.append("lifecycle RPC serve/reply authority must equal exactly {'commander'}")
+
+    # Analysis clients need aligned sensor/command/observation reads, but never a
+    # write token. This also guards the Prisoma deployment contract.
+    observer_rules = {rid for rid, bound in rule_subjects.items() if "observer" in bound}
+    observer_read_planes = set().union(
+        *(
+            rule_planes.get(rule.get("id"), set())
+            for rule in rules
+            if rule.get("id") in observer_rules
+            and "declare_subscriber" in rule.get("messages", [])
+        )
+    )
+    required_observer_planes = {PLANE_SENSOR, PLANE_COMMAND, PLANE_OBSERVATION}
+    missing_observer_planes = required_observer_planes - observer_read_planes
+    if missing_observer_planes:
+        errors.append(
+            "observer must have read-only sensor/command/observation coverage; "
+            f"missing {sorted(missing_observer_planes)}"
+        )
+    for rule in rules:
+        if rule.get("id") in observer_rules and set(rule.get("messages", [])) & WRITE_TOKENS:
+            errors.append(f"observer is bound to write rule {rule.get('id')!r}")
 
     return errors
 
@@ -112,53 +279,145 @@ def _selftest() -> list[str]:
     """Negative self-tests (stdlib-only): a tampered template MUST be rejected, so
     the guard cannot silently rot into a no-op. Run on every invocation."""
     failures: list[str] = []
-    cases = [
-        # (description, tampered config, must-be-rejected)
-        (
-            "a non-robot sensor-put policy",
-            {
-                "access_control": {
-                    "rules": [
-                        {
-                            "id": "x",
-                            "messages": ["put"],
-                            "key_exprs": ["ncp/session/*/sensor/**"],
-                        }
-                    ],
-                    "policies": [{"rules": ["x"], "subjects": ["observer"]}],
-                }
-            },
-        ),
-        (
-            "a non-commander command-put policy",
-            {
-                "access_control": {
-                    "rules": [
-                        {
-                            "id": "y",
-                            "messages": ["put"],
-                            "key_exprs": ["ncp/session/*/command/**"],
-                        }
-                    ],
-                    "policies": [{"rules": ["y"], "subjects": ["robot"]}],
-                }
-            },
-        ),
-        (
-            "an invalid 'get' messages token",
-            {
-                "access_control": {
-                    "rules": [
-                        {"id": "z", "messages": ["get"], "key_exprs": ["ncp/rpc"]}
-                    ],
-                    "policies": [],
-                }
-            },
-        ),
+    base_text = ACL_PATH.read_text(encoding="utf-8")
+    base = load_json5(base_text)
+    if check(base):
+        return ["the untampered template does not pass the guard"]
+
+    cases: list[tuple[str, dict]] = []
+    wrong_command = copy.deepcopy(base)
+    next(
+        policy
+        for policy in wrong_command["access_control"]["policies"]
+        if "commander-publishes-command-observation" in policy["rules"]
+    )["subjects"] = ["robot"]
+    cases.append(("a non-commander command-put policy", wrong_command))
+
+    no_sensor_authority = copy.deepcopy(base)
+    no_sensor_authority["access_control"]["policies"] = [
+        policy
+        for policy in no_sensor_authority["access_control"]["policies"]
+        if "robot-publishes-sensor" not in policy["rules"]
     ]
-    for desc, cfg in cases:
+    cases.append(("missing sensor-put authority", no_sensor_authority))
+
+    wrong_observation = copy.deepcopy(base)
+    next(
+        policy
+        for policy in wrong_observation["access_control"]["policies"]
+        if "commander-publishes-command-observation" in policy["rules"]
+    )["subjects"] = ["commander", "robot"]
+    cases.append(("non-commander observation-put authority", wrong_observation))
+
+    no_observation_authority = copy.deepcopy(base)
+    publisher_rule = next(
+        rule
+        for rule in no_observation_authority["access_control"]["rules"]
+        if rule["id"] == "commander-publishes-command-observation"
+    )
+    publisher_rule["key_exprs"].remove("ncp/session/*/observation")
+    cases.append(("missing observation-put authority", no_observation_authority))
+
+    broad_observation = copy.deepcopy(base)
+    publisher_rule = next(
+        rule
+        for rule in broad_observation["access_control"]["rules"]
+        if rule["id"] == "commander-publishes-command-observation"
+    )
+    publisher_rule["key_exprs"][-1] = "ncp/session/**"
+    cases.append(("an over-broad session write expression", broad_observation))
+
+    invalid_token = copy.deepcopy(base)
+    invalid_token["access_control"]["rules"][0]["messages"].append("get")
+    cases.append(("an invalid 'get' messages token", invalid_token))
+
+    no_mtls = copy.deepcopy(base)
+    no_mtls["transport"]["link"]["tls"]["enable_mtls"] = False
+    cases.append(("a router with mTLS disabled", no_mtls))
+
+    observer_rpc = copy.deepcopy(base)
+    next(
+        policy
+        for policy in observer_rpc["access_control"]["policies"]
+        if "commander-rpc" in policy["rules"]
+    )["subjects"] = ["commander", "observer"]
+    cases.append(("observer lifecycle-RPC authority", observer_rpc))
+
+    missing_observer_sensor = copy.deepcopy(base)
+    observer_rule = next(
+        rule
+        for rule in missing_observer_sensor["access_control"]["rules"]
+        if rule["id"] == "observer-reads"
+    )
+    observer_rule["key_exprs"].remove("ncp/session/*/sensor/**")
+    cases.append(("observer without sensor-plane read coverage", missing_observer_sensor))
+
+    missing_observer_command = copy.deepcopy(base)
+    observer_rule = next(
+        rule
+        for rule in missing_observer_command["access_control"]["rules"]
+        if rule["id"] == "observer-reads"
+    )
+    observer_rule["key_exprs"].remove("ncp/session/*/command/**")
+    cases.append(("observer without command-plane read coverage", missing_observer_command))
+
+    missing_observer_observation = copy.deepcopy(base)
+    observer_rule = next(
+        rule
+        for rule in missing_observer_observation["access_control"]["rules"]
+        if rule["id"] == "observer-reads"
+    )
+    observer_rule["key_exprs"].remove("ncp/session/*/observation")
+    cases.append(
+        ("observer without observation-plane read coverage", missing_observer_observation)
+    )
+
+    observer_write = copy.deepcopy(base)
+    next(
+        policy
+        for policy in observer_write["access_control"]["policies"]
+        if "robot-publishes-sensor" in policy["rules"]
+    )["subjects"].append("observer")
+    cases.append(("observer sensor-plane write authority", observer_write))
+
+    shared_cn = copy.deepcopy(base)
+    next(
+        subject
+        for subject in shared_cn["access_control"]["subjects"]
+        if subject["id"] == "observer"
+    )["cert_common_names"].append("commander")
+    cases.append(("one certificate CN mapped to multiple roles", shared_cn))
+
+    no_expiration_close = copy.deepcopy(base)
+    no_expiration_close["transport"]["link"]["tls"]["close_link_on_expiration"] = False
+    cases.append(("a router retaining expired TLS links", no_expiration_close))
+
+    for description, cfg in cases:
         if not check(cfg):
-            failures.append(f"{desc} was NOT rejected")
+            failures.append(f"{description} was NOT rejected")
+
+    # Realm rendering is part of deployment correctness, and malformed realm input
+    # must never widen a key expression.
+    rendered = render(base_text, "engram/ncp")
+    rendered_cfg = load_json5(rendered)
+    if check(rendered_cfg):
+        failures.append("a valid multi-segment rendered realm was rejected")
+    mixed_template = base_text.replace(
+        '"ncp/session/*/observation"', '"other/session/*/observation"', 1
+    )
+    try:
+        render(mixed_template, "engram/ncp")
+    except ValueError:
+        pass
+    else:
+        failures.append("a template with mixed realms was NOT rejected")
+    for bad in ["", "ncp/**", "/ncp", "ncp/", "ncp//fleet", "ncp\ncommand"]:
+        try:
+            render(base_text, bad)
+        except ValueError:
+            pass
+        else:
+            failures.append(f"unsafe rendered realm {bad!r} was NOT rejected")
     return failures
 
 
@@ -178,6 +437,12 @@ def main() -> int:
         return 1
 
     errors = check(cfg)
+    manifest = ZENOH_MANIFEST.read_text(encoding="utf-8")
+    if '"transport_tls"' not in manifest:
+        errors.append(
+            "ncp-zenoh does not compile Zenoh's transport_tls feature; the documented "
+            "mTLS deployment would be impossible in the standalone SDK"
+        )
     if errors:
         print("FAIL: ACL template guard found problems:", file=sys.stderr)
         for e in errors:
@@ -187,7 +452,8 @@ def main() -> int:
     n_rules = len(cfg.get("access_control", {}).get("rules", []))
     print(
         f"OK: {ACL_PATH.name} — {n_rules} rules, tokens valid, "
-        f"command-put restricted to commander, sensor-put to robot"
+        "command/observation PUT restricted to commander, sensor PUT to robot, "
+        "observer read coverage complete, TLS transport compiled"
     )
     return 0
 

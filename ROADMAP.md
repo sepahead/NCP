@@ -20,7 +20,12 @@ paper-reproduction claim, and the provenance discriminators are mandatory and
 fail-closed precisely to keep that boundary machine-checkable. It is a single
 reference SDK (proto-native — `proto/ncp.proto` normative, `ncp-core` the Rust
 reference implementation; Python via PyO3, TypeScript types via ts-rs, a C ABI for
-C/C++) with field-set-parity drift guards, not yet a multi-implementation program. It is **pre-1.0** (current wire `0.6` — `v0.6.0` is the enforcement cut that made `ncp_version` mandatory on every message and the closed-loop `seq` discipline normative, a *semantic* break with an unchanged serialization so `CONTRACT_HASH` stays `24e8e6e31e1dec8a`; earlier wires: `0.5` the stable-wire cut that promoted the command/sim `mode` strings to proto enums (`Mode`/`SimMode`), recomputing `CONTRACT_HASH`; `0.4` the decoupling+robustness release (consumer-neutral proto package, advisory contract handshake, additive-is-non-breaking), `0.3` added the contract-hash field, `0.2` the neuron-family + bulk codec): the wire
+C/C++) with field/type/cardinality parity guards and a shared four-surface behavior
+corpus. Python/C deliberately reuse the Rust reference and independent live-transport
+clients remain future work. It is **pre-1.0** (released wire `0.7`, contract
+`f05e328cad20959d`; `0.7` closes precision, enum, provenance, nested-frame,
+typed-error, and hostile-bulk acceptance gaps; the latest immutable release is
+`v0.7.0`; earlier wires are documented in `VERSIONING.md`): the wire
 may change, minor versions are treated as breaking, and the version guard fails
 rather than silently coercing. NCP's contribution is a typed, provenance-first, safety-gated wire
 contract — not novel control science and not the first SNN-in-the-loop robot loop
@@ -30,37 +35,37 @@ contract — not novel control science and not the first SNN-in-the-loop robot l
 
 ## P0 — Authenticate the action/command plane
 
-**This is the #1 gap, honestly disclosed in `SECURITY.md`.** Today the
-action/command plane is unauthenticated and effectively world-writable on an open
-realm: any participant that can reach the realm can publish actions, and
-`controller_id` is self-asserted. The local `mode`/`ttl_ms` governor is
+**This is the #1 deployment gate, honestly disclosed in `SECURITY.md`.** The
+default/open transport is unauthenticated and effectively world-writable to any
+participant that can reach it; `controller_id` is self-asserted unless mTLS proves
+the peer. The local `mode`/`ttl_ms` governor is
 defense-in-depth, not network security.
 
-**Landed (#7):** a default-deny, per-plane Zenoh ACL template
+**Landed (#7):** a complete TLS-only, mTLS-required, default-deny Zenoh router template
 ([`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5)) in which
 only an authenticated commander may publish commands and observers are read-only,
-plus concrete mutual-TLS + ACL enablement steps and the DDS-Security / MAVLink-2
+plus a strict client template, safe realm renderer, concrete enablement steps, and
+the DDS-Security / MAVLink-2
 comparators in [`SECURITY.md`](SECURITY.md).
 
 **Landed (hardening pass):** the ACL template is now **loadable** — it previously
 used `"get"` in `messages`, which is not a valid Zenoh token, so zenohd would
 reject the whole config (the mitigation read as "secured" while doing nothing).
-Fixed to the correct tokens (`query` / `declare_subscriber`), clarified the
-exact-string `cert_common_names` matching, and added `scripts/check_acl_template.py`
-(CI guard: invalid-token detection + the "only `commander` may PUT on `…/command/**`"
-safety invariant), wired into `scripts/check.sh`.
+Fixed to the correct tokens (`query` / `declare_subscriber`), clarified exact CN
+matching, and added `scripts/check_acl_template.py`. The CI guard now proves the
+complete TLS/default-deny shape, exact identities, RPC authority, command/sensor/
+observation PUT authority, and observer read-only coverage.
 
 - **Validate the mTLS-bound identity in a live deployment.** The remaining P0 work
   is exercising the ACL + mutual-TLS enforcement end-to-end (a perception-only
   identity is *rejected* on the action plane; only the commander succeeds), so the
   `controller_id` is *proven* by the transport rather than self-asserted. *Why:*
   this closes the textbook confused-deputy / world-writable failure class — the
-  template now ships a *loadable* mechanism; only live enforcement validation
-  remains (it needs a real deployment, so it is out of CI's reach). The
-  [`scripts/verify_acl_deployment.py`](scripts/verify_acl_deployment.py) script
-  automates the five-step P0 closure checklist (both PUT-authority invariants +
-  the mTLS no-cert rejection) against a live realm, producing the P0 evidence in
-  one command.
+  template now ships a *loadable* mechanism; only a recorded live run remains.
+  `scripts/verify_acl_deployment.py` now uses authenticated observer-received
+  nonces, same-plane allowed baselines, bounded denial windows, a late-delivery
+  quarantine, and a separate no-certificate connection test. A successful live
+  run is evidence; `--self-test` alone is not.
 
 P0 is the gate for any deployment beyond a trusted, closed realm. Until live mTLS
 enforcement is validated, the `SECURITY.md` "closed realm only" guidance stands.
@@ -69,34 +74,31 @@ enforcement is validated, the `SECURITY.md` "closed realm only" guidance stands.
 
 ## P0 (near-term, no wire change) — Land the three high-severity hardening fixes
 
-[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) catalogs an adversarial audit of
-the SDK (correctness, safety, robustness, overhead): 35 line-referenced findings
-(3 high, 17 medium, 15 low), each tagged `safe` (internal) or `wire-breaking`
-(needs a version bump + consumer buy-in across Engram/crebain/prisoma). The three
+[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) catalogs continuing adversarial audits
+of the SDK (correctness, safety, robustness, overhead). The three original
 **high** findings are all `safe` — local correctness fixes that change no on-wire
 bytes, and each turns a current *fail-open* into the intended *fail-closed*.
 **All three are now fixed** (commit `0672168`, each wire-safe and regression-tested),
 alongside further `safe` fail-closed hardening (non-finite/negative safety limits,
 backward-clock steps, `LinkMonitor` overflow, bounded `max_horizon_len`), and the
-wire-0.6 enforcement cut then closed two of the three `wire-breaking` findings (the
-`seq==0` replay hatch and the unenforced data-plane version check) — **11 of 35
-resolved** (24 open: 23 `safe`, 1 `wire-breaking`). The three high items are retained
+wire-0.6 enforcement cut then closed the replay/version gaps, and 0.7 closes the
+newly found cross-language acceptance/provenance/bulk gaps. The three high items are retained
 below for provenance, marked ✓ **DONE**. The remaining medium/low work is tracked in
 `KNOWN_LIMITATIONS.md`.
 
 1. **Bulk-decode OOM amplification — `bulk.rs:356` · safety · safe. ✓ DONE (`0672168`).**
-   `BulkBlock::decode` allocates per declared column with no cumulative budget, so
-   overlapping / duplicate column offsets let a small frame declare on the order of
+   `BulkBlock::decode` previously allocated per declared column with no cumulative budget, so
+   overlapping / duplicate column and name offsets let a small frame declare on the order of
    ~64,000× its own size in allocations — an observation-plane OOM denial-of-
    service. *Fix:* bound the running total of declared payload by the input length;
    a conforming block lays its columns out disjointly (`sum(data_len) <=
    bytes.len()`), so the budget rejects only amplifying blocks and accepts every
-   well-formed one. This is the bulk/observation analysis plane — the binary
-   `BulkBlock` path — not the JSON hot loop.
+   well-formed one. A 64 MiB absolute ceiling and fallible encoder now complement
+   this budget. Bare blocks are no longer accepted as observation frames.
 
 2. **Watchdog defeated by an unbounded / non-finite `ttl_ms` —
    `safety.rs:417` (and the `+Inf` path at `safety.rs:432`) · safety · safe. ✓ DONE (`0672168`).** The
-   `CommandWatchdog` deadline backstop trusts the wire `ttl_ms` verbatim
+   `CommandWatchdog` deadline backstop previously trusted the wire `ttl_ms` verbatim
    (`self.ttl_s = ttl_ms.max(0.0) / 1000.0`), so a huge or `+Inf` value disables
    the staleness deadline outright — a single command can permanently pin the
    actuator "live," defeating the very fail-safe `SECURITY.md` leans on as defense-
@@ -105,7 +107,7 @@ below for provenance, marked ✓ **DONE**. The remaining medium/low work is trac
    unchanged; only local enforcement is bounded.
 
 3. **Empty position channel bypasses the geofence — `safety.rs:293` · safety ·
-   safe. ✓ DONE (`0672168`).** An empty position-channel vector yields `r = 0`, so a malformed or
+   safe. ✓ DONE (`0672168`).** An empty position-channel vector previously yielded `r = 0`, so a malformed or
    dropped position frame reads as "at the origin, inside the fence" instead of
    failing safe — the opposite of the adjacent `None`-channel arm, which correctly
    HOLDs. *Fix:* treat an empty position vector like a missing channel (HOLD),
@@ -119,10 +121,9 @@ these secure what the safety governor and bulk decoder do with a *malformed or
 adversarial* frame once it is admitted. Both are prerequisites for any deployment
 beyond a trusted, closed realm — but unlike the mTLS/ACL P0, these need **no live
 infrastructure** to close, only the patch and a test, which is why they are the
-cheapest high-value safety work available now. The audit's `medium` /
-`wire-breaking` findings (e.g. per-verb RPC ACL, `ncp_version` enforcement on the
-data plane, the `seq==0` anti-replay escape hatch) map onto the P1/P2 sections
-below and inherit their version-bump + consumer-coordination cost.
+cheapest high-value safety work available now. Wire 0.6 resolved the version/seq
+gaps and the wire-0.7 release resolves per-verb RPC addressing; the remaining
+items are tracked individually rather than by the retired numeric audit summary.
 
 
 ---
@@ -146,39 +147,37 @@ below and inherit their version-bump + consumer-coordination cost.
 
 ## P1 — Versioning: from local guard to negotiated, pinned handshake
 
-NCP's current `check_version` correctly fails closed (it compares the received
-`ncp_version` against the locally compiled version and refuses a mismatch rather
-than coercing). But it is a one-sided local guard with no integrity binding.
+NCP's `check_version` correctly fails closed, and the version is now negotiated in
+the two-way lifecycle handshake with typed/versioned failures.
 
-- **Make version a peer-negotiated handshake on the control plane.** Surface a
-  typed incompatibility from a two-way exchange, not just a local reject. *Why:*
-  this turns "I refuse" into "we agreed (or explicitly did not)," which is what a
-  multi-peer protocol needs.
+- **Peer-negotiated handshake on the control plane. (Landed.)** `OpenSession` and
+  every typed reply enforce the full pre-1.0 major/minor compatibility gate;
+  incompatibility returns `ErrorFrame` rather than a fabricated success shape.
 - **Pin and verify the wire-contract definition. (Landed; hardened.)**
   `ncp_core::CONTRACT_HASH` + `verify_contract` + `negotiate(version, hash)` let peers
-  reject a post-agreement schema mutation; a conformance test recomputes the hash from
+  detect a post-agreement schema mutation; a conformance test recomputes the hash from
   the real proto so a forgotten bump fails CI. The hash is now **comment-insensitive**:
   it is FNV-1a of the *canonicalized* proto (`canonical_proto` strips comments and
   normalizes whitespace, respecting string literals) via `contract_hash_of_proto`, so a
   comment- or formatting-only edit no longer flips it — closing the spurious-rebump
   churn the `v0.2.5`/`v0.2.6` releases documented. **(v0.3.0)** the hash is now carried in
   the control-plane handshake envelope: `OpenSession`/`SessionOpened` gained a `contract_hash`
-  field, `ncp-zenoh::open` calls `negotiate(version, hash)` (client half) and engram's
-  `SessionService.handle` checks the incoming hash (server half), and the Python peer
-  recomputes the same hash from the proto (byte-identical `canonical_proto` port).
+  field, the typed clients/servers call `negotiate(version, hash)`, and the shared
+  corpus pins every binding to the Rust-computed contract identity.
   **(v0.4.0)** the separation of concerns was completed: `ncp_version` is the *hard
   compatibility gate*, and the contract hash is an **advisory identity signal**
   (`negotiate` returns `ContractStatus`; a mismatch is logged, not rejected) — so
   additive evolution and the consumer-neutral `package ncp.v0` rename don't break a
-  version-compatible flow. `canonical_proto` is now wire-semantic (drops
-  `package`/`option`/`import`), so naming changes are hash-neutral. *Remaining:*
-  recompute the hash in the TS/C++ peers (Rust + Python done), and upgrade FNV → a
+  version-compatible flow. `canonical_proto` is now wire-semantic: it drops
+  `package`/top-level `option`, preserves syntax/imports plus structured `wire string`
+  and `wire key` annotations, and makes naming changes hash-neutral. *Remaining:*
+  upgrade FNV → a
   signed/cryptographic digest if the threat model needs adversarial (not just accidental)
   integrity.
 - **Keep failing closed. (Hardened.)** `check_version` no longer coerces a malformed
   minor to 0 (the latent fail-open the review found): minor parsing is now as strict
   as major. *Remaining:* the documented "minor is breaking" rule + a
-  backward-compatibility (upgrade-success) check in the conformance suite.
+  backward-compatibility policy check across a future stable-major upgrade.
 
 ---
 
@@ -187,8 +186,7 @@ than coercing). But it is a one-sided local guard with no integrity binding.
 `conformance.rs` checks field-set and required-array parity between serialized Rust
 messages and the JSON Schemas; `scripts/check_proto_schema_parity.py` adds the
 `proto/ncp.proto` ↔ JSON Schema side (field-set + enum wire-string parity). Real
-drift guards, but intentionally not full validation, with no coverage of version
-negotiation or the safety governor.
+drift guards, supplemented by concrete schema validation and shared behavior vectors.
 
 **Landed (#9):** a golden-vector corpus — JSON message vectors *and* a binary
 bulk-codec vector — in [`conformance/vectors/`](conformance/vectors/), validated by
@@ -197,12 +195,9 @@ run); a `buf breaking` WIRE/WIRE_JSON gate against the `v0.2.0` baseline; and
 [`GOVERNANCE.md`](GOVERNANCE.md) documenting the governance model + the mechanical
 interop gates + the neutral-home path.
 
-- **Extend the corpus to behavioral outcomes across every binding.** Add expected
-  outcomes for `validate()`, `check_version()`, and the safety-governor
-  (`mode`/`ttl_ms`) behavior, and have the Rust, Python, TS, and C peers all run
-  against them. *Why:* the message/field corpus proves wire shape; behavioral
-  vectors make "`ncp-core` is the reference implementation" a *verifiable* claim for
-  every binding, not just the Rust one.
+- **Behavioral outcomes across every binding. (Landed.)** Rust, Python, TypeScript,
+  and C/C++ replay the same `validate`, version/hash, and safety-governor vectors;
+  the dedicated Python wheel job and TS distribution job hard-gate their peers.
 - **Scope it honestly.** Conformance here is implementation-vs-spec compliance, not
   interoperability (which would require multiple independent implementations
   interacting). Do not claim alignment to formal ISO/IEC 9646 / ETSI methodologies;
@@ -233,7 +228,7 @@ interop gates + the neutral-home path.
   maturin is the canonical PyO3-to-PyPI path; a published wheel is table stakes for
   the Python peer to be usable without a Rust toolchain.
 - **Zenodo DOI via the GitHub–Zenodo archive.** Tagged releases now exist
-  (through `v0.6.x`); enable the GitHub–Zenodo integration so a release is archived
+  (through `v0.7.0`); enable the GitHub–Zenodo integration so a release is archived
   and a DOI minted, then add it to the existing `CITATION.cff`. *Why:* a DOI is the
   minimum citable artifact; the repo currently has a `CITATION.cff` with no DOI.
 - **Defer JOSS.** A JOSS submission is viable only after roughly six months of
@@ -375,24 +370,21 @@ generic named-recordable + named-param mechanism, wired in the reference backend
 NEST `multimeter`/`step_rate_generator`/`spin_detector`. The wire `ncp_version` was
 bumped `0.1`→`0.2`, so the version guard fires on the new enum values — an old `0.1`
 peer is fail-closed rejected rather than silently dropping a frame carrying
-`binary_state`/`rate_inject` (the enums have no `serde(other)` fallback), and
+`binary_state`/`rate_inject`, and
 downstream consumers re-pin to `tag=v0.2.0` to speak the new wire.
 
 **Remaining:** niche driving (binary `noise_generator`, siegert
-`diffusion_connection`) needs a driver-neuron topology; and stamping observations
-with the driving `seq` so a split-plane observer can align its dynamics channel on
-`seq` rather than arrival time. Optionally add `#[serde(other)]` enum fallbacks for
-graceful cross-minor degradation.
+`diffusion_connection`) needs a driver-neuron topology. Observation-plane seq
+stamping landed in wire 0.6, and lossless unknown-enum preservation landed in the
+wire-0.7 release.
 
 ## #6 bulk observation codec (landed in v0.2.0)
 
-The observation/analysis plane can carry bulk numeric arrays (spike trains, `V_m`
-traces) as a packed little-endian column block — `ncp-core::bulk` (`BulkBlock`) +
-the proto `BulkObservation` envelope — parse-free and ~2× smaller than `repeated
-double`, byte-pinned across languages by a binary conformance vector. It is an
-**additive, negotiated, observation-plane-only** option; the canonical JSON
-`ObservationFrame` stays the always-available representation, and the hot action
-loop never uses it. See [`PERFORMANCE.md`](PERFORMANCE.md).
+`ncp-core::bulk::BulkBlock` is a bounded, parse-free packed column codec, roughly
+2× smaller than repeated doubles and byte-pinned by a binary conformance vector.
+It is currently local/offline only. The proto reserves a complete `BulkObservation`
+envelope, but no peer may transport it until negotiated encode/decode/conformance
+ships in every SDK. JSON `ObservationFrame` is the only shipped representation.
 
 ## Honest positioning
 

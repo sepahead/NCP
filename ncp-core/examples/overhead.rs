@@ -127,7 +127,7 @@ fn main() {
     println!("\n=== bulk observation codec: binary BulkBlock vs JSON (1000 spike times) ===");
     let times: Vec<f64> = (0..1000).map(|i| i as f64 * 0.137).collect();
     let block = BulkBlock::new().with("times", Column::F64(times.clone()));
-    let bulk_bytes = block.encode();
+    let bulk_bytes = block.encode().unwrap();
     let json_bytes = serde_json::to_vec(&times).unwrap();
     row(
         "BulkBlock encode (1000 f64)",
@@ -135,7 +135,8 @@ fn main() {
             black_box(
                 BulkBlock::new()
                     .with("times", Column::F64(black_box(times.clone())))
-                    .encode(),
+                    .encode()
+                    .unwrap(),
             );
         }),
         bulk_bytes.len(),

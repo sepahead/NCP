@@ -1,0 +1,7 @@
+{
+  "ncp_version": "0.7",
+  "kind": "error",
+  "error": "invalid request",
+  "session_id": "session-01",
+  "request_kind": "open_session"
+}

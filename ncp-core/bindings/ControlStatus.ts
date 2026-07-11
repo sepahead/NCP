@@ -2,6 +2,7 @@
 import type { Mode } from "./Mode";
 
 /**
- * Controller → plant / telemetry: loop health and mode.
+ * Controller → plant / telemetry: loop health and mode. `t` is producer-local
+ * monotonic seconds and is never compared across peers.
  */
 export type ControlStatus = { ncp_version: string, kind: string, seq: bigint, t: number, mode: Mode, sim_time_ms: number, loop_latency_ms: number, safety_ok: boolean, note: string | null, };

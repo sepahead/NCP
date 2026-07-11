@@ -1,8 +1,8 @@
-import type { EntityBinding } from "./EntityBinding";
-import type { NetworkRef } from "./NetworkRef";
-import type { RecordSpec } from "./RecordSpec";
-import type { SimConfig } from "./SimConfig";
-import type { StimulusSpec } from "./StimulusSpec";
+import type { EntityBinding } from "./EntityBinding.js";
+import type { NetworkRef } from "./NetworkRef.js";
+import type { RecordSpec } from "./RecordSpec.js";
+import type { SimConfig } from "./SimConfig.js";
+import type { StimulusSpec } from "./StimulusSpec.js";
 /**
  * Request a simulation: declare what to record and what to stimulate.
  */

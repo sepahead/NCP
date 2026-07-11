@@ -1,5 +1,5 @@
-import type { ChannelValue } from "./ChannelValue";
-import type { Mode } from "./Mode";
+import type { ChannelValue } from "./ChannelValue.js";
+import type { Mode } from "./Mode.js";
 /**
  * Controller → plant: the proposed actuation, with `mode`/`ttl_ms` safety
  * metadata.
@@ -9,7 +9,8 @@ import type { Mode } from "./Mode";
  * on it, and the plant's anti-replay/anti-stale layers (`ActionBuffer` /
  * `CommandWatchdog`) reject `seq < 1` outright: the pre-0.6 "`seq == 0` always
  * accepted" escape hatch is REMOVED (it let a default-constructed or all-zeros
- * frame refresh liveness and bypass replay rejection on the action plane).
+ * frame refresh liveness and bypass replay rejection on the action plane). `t`
+ * echoes the driving `SensorFrame.t` in producer-local monotonic seconds.
  */
 export type CommandFrame = {
     ncp_version: string;

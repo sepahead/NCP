@@ -15,19 +15,18 @@
 //! `SafetyGovernor` (HOLD / ESTOP / speed-clamp / watchdog) decisions.
 
 use ncp_core::{
-    check_version, contract_status, validate, CommandFrame, ContractStatus, SafetyGovernor,
-    SafetyLimits, SensorFrame, CONTRACT_HASH, NCP_VERSION,
+    check_version, contract_status, validate, ActionBuffer, CommandFrame, ContractStatus,
+    SafetyGovernor, SafetyLimits, SensorFrame, CONTRACT_HASH, NCP_VERSION,
 };
 use serde_json::Value;
 use std::path::PathBuf;
 
-/// Load the corpus from the sibling `conformance/behavior/` directory. The path
-/// resolves both pre- and post-extraction (ncp-core stays a workspace member, so
-/// the repo-root `conformance/` travels with it via `../..`).
+/// Load the crate-local corpus snapshot. The package-surface gate byte-compares
+/// it with the canonical repository corpus before testing the extracted archive.
 fn load_corpus() -> Value {
     let path = PathBuf::from(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../conformance/behavior"
+        "/testdata/conformance/behavior"
     ))
     .join("vectors.json");
     let text = std::fs::read_to_string(&path)
@@ -155,6 +154,60 @@ fn govern_corpus() {
                 (got_mag - want_mag).abs() < 1e-9,
                 "govern[{name}]: velocity magnitude want {want_mag}, got {got_mag}"
             );
+        }
+    }
+}
+
+#[test]
+fn action_buffer_corpus() {
+    let corpus = load_corpus();
+    for case in cases(&corpus, "action_buffer") {
+        let name = case["name"].as_str().unwrap();
+        let operations = case["operations"]
+            .as_array()
+            .unwrap_or_else(|| panic!("action_buffer[{name}]: operations is not an array"));
+        let mut buffer = ActionBuffer::new();
+        for (index, operation) in operations.iter().enumerate() {
+            match operation["op"].as_str().unwrap() {
+                "command" => {
+                    let command: CommandFrame =
+                        serde_json::from_value(operation["command"].clone()).unwrap_or_else(|e| {
+                            panic!("action_buffer[{name}][{index}]: bad command: {e}")
+                        });
+                    buffer.on_command(operation["now_s"].as_f64().unwrap(), command);
+                }
+                "reset" => buffer.reset(),
+                "active" => {
+                    let output = buffer.active(operation["now_s"].as_f64().unwrap());
+                    let expect = &operation["expect"];
+                    let want_active = expect["active"].as_bool().unwrap();
+                    assert_eq!(
+                        output.is_some(),
+                        want_active,
+                        "action_buffer[{name}][{index}]: active state"
+                    );
+                    assert_eq!(
+                        buffer.is_estopped(),
+                        expect["estopped"].as_bool().unwrap(),
+                        "action_buffer[{name}][{index}]: ESTOP state"
+                    );
+                    if let Some(want) = expect.get("value").and_then(Value::as_f64) {
+                        let got = output
+                            .as_ref()
+                            .and_then(|channels| channels.get("velocity_setpoint"))
+                            .and_then(|channel| channel.data.first())
+                            .copied()
+                            .unwrap_or_else(|| {
+                                panic!("action_buffer[{name}][{index}]: missing output value")
+                            });
+                        assert!(
+                            (got - want).abs() < 1e-12,
+                            "action_buffer[{name}][{index}]: want {want}, got {got}"
+                        );
+                    }
+                }
+                op => panic!("action_buffer[{name}][{index}]: unknown operation {op:?}"),
+            }
         }
     }
 }

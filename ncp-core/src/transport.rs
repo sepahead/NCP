@@ -6,8 +6,11 @@
 //!
 //! Clocks are injectable so the loop is deterministic under test.
 
-use crate::messages::{ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame};
-use crate::safety::SafetyGovernor;
+use crate::messages::{
+    ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame, WireFrame,
+    JSON_SAFE_INTEGER_MAX,
+};
+use crate::safety::{SafetyGovernor, MAX_TTL_MS};
 use std::sync::{Arc, Mutex};
 
 /// Moves sensor/command frames between a controller and a plant.
@@ -119,39 +122,77 @@ impl Default for ReflexController {
 
 impl Controller for ReflexController {
     fn step(&mut self, sensor: Option<&SensorFrame>, _dt_ms: f64) -> CommandFrame {
-        let Some(sensor) = sensor else {
+        let hold = |sensor: Option<&SensorFrame>| {
             let mut ch = crate::messages::Map::new();
             ch.insert(
                 "velocity_setpoint".into(),
                 ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
             );
-            return CommandFrame {
+            let mut command = CommandFrame {
                 mode: Mode::Hold,
                 channels: ch,
                 ..Default::default()
             };
-        };
-        let get3 = |name: &str| -> [f64; 3] {
-            let mut out = [0.0; 3];
-            if let Some(cv) = sensor.channels.get(name) {
-                for (i, slot) in out.iter_mut().enumerate() {
-                    *slot = cv.data.get(i).copied().unwrap_or(0.0);
-                }
+            if let Some(sensor) = sensor {
+                command.seq = sensor.seq;
+                command.t = sensor.t;
+                command.frame_id.clone_from(&sensor.frame_id);
             }
-            out
+            command
         };
-        let p = get3(&self.position_channel);
-        let v = get3(&self.velocity_channel);
-        let mut cmd = Vec::with_capacity(3);
+        let Some(sensor) = sensor else {
+            return hold(None);
+        };
+        if sensor.validate_wire().is_err()
+            || !self.kp.is_finite()
+            || !self.kd.is_finite()
+            || !self.max_speed.is_finite()
+            || self.max_speed < 0.0
+            || self.target.iter().any(|value| !value.is_finite())
+            || self.position_channel.is_empty()
+            || self.velocity_channel.is_empty()
+        {
+            return hold(Some(sensor));
+        }
+        let get3 = |name: &str, unit: &str| -> Option<[f64; 3]> {
+            let channel = sensor.channels.get(name)?;
+            if channel.unit.as_deref() != Some(unit)
+                || channel.data.len() != 3
+                || channel.data.iter().any(|value| !value.is_finite())
+            {
+                return None;
+            }
+            Some([channel.data[0], channel.data[1], channel.data[2]])
+        };
+        let Some(p) = get3(&self.position_channel, "m") else {
+            return hold(Some(sensor));
+        };
+        let Some(v) = get3(&self.velocity_channel, "m/s") else {
+            return hold(Some(sensor));
+        };
+        let mut cmd = [0.0; 3];
         for i in 0..3 {
             let u = -self.kp * (p[i] - self.target[i]) - self.kd * v[i];
-            cmd.push(u.clamp(-self.max_speed, self.max_speed));
+            if !u.is_finite() {
+                return hold(Some(sensor));
+            }
+            cmd[i] = u;
+        }
+        let magnitude = cmd.iter().map(|value| value * value).sum::<f64>().sqrt();
+        if !magnitude.is_finite() {
+            return hold(Some(sensor));
+        }
+        if magnitude > self.max_speed && magnitude > 0.0 {
+            let scale = self.max_speed / magnitude;
+            for value in &mut cmd {
+                *value *= scale;
+            }
         }
         let mut ch = crate::messages::Map::new();
         ch.insert(
             "velocity_setpoint".into(),
             ChannelValue {
-                data: cmd,
+                data: cmd.to_vec(),
                 unit: Some("m/s".into()),
             },
         );
@@ -189,6 +230,10 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     /// regression on a live stream) must not steer the controller or leak its seq
     /// into commands; it goes stale naturally via `last_sensor_t`.
     accepted_sensor: Option<SensorFrame>,
+    /// Highest valid local tick-clock sample. A backward step between ticks is
+    /// a clock fault even if the clock remains monotonic within the current tick;
+    /// retain the high-water mark so the loop HOLDs until time catches up.
+    last_tick_now: Option<f64>,
 }
 
 impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
@@ -204,6 +249,7 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             last_sensor_t: None,
             last_sensor_ts: None,
             accepted_sensor: None,
+            last_tick_now: None,
         }
     }
 
@@ -214,16 +260,33 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
     }
 
     fn dt_ms(&self) -> f64 {
-        1000.0 / self.rate_hz
+        if self.rate_is_safe() {
+            1000.0 / self.rate_hz
+        } else {
+            0.0
+        }
+    }
+
+    fn rate_is_safe(&self) -> bool {
+        if !self.rate_hz.is_finite() || self.rate_hz <= 0.0 {
+            return false;
+        }
+        let dt_ms = 1000.0 / self.rate_hz;
+        dt_ms.is_finite() && dt_ms > 0.0 && dt_ms * 2.0 <= MAX_TTL_MS
     }
 
     /// One control step: read sensor → controller → safety → send.
     pub fn tick(&mut self) -> CommandFrame {
         let now = (self.now_fn)();
+        let tick_clock_ok =
+            now.is_finite() && self.last_tick_now.is_none_or(|previous| now >= previous);
         // Wire 0.6: an unstamped sensor (`seq < 1`) is not a wire-legal frame —
         // treat it as ABSENT entirely (no freshness refresh, no link feed, no
         // echo, not even geofence input): an invalid frame is no frame.
-        let candidate = self.transport.latest_sensor().filter(|s| s.seq >= 1);
+        let candidate = self
+            .transport
+            .latest_sensor()
+            .filter(|sensor| tick_clock_ok && sensor.validate_wire().is_ok());
         // FIX 4 (0.6 form): the sensor is "fresh" only when its `seq` STRICTLY
         // advanced — seq, not arrival, is the stream discipline, so a
         // frozen/cached re-delivery (same seq) NEVER refreshes the watchdog clock
@@ -234,23 +297,25 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         // `CommandWatchdog::on_command`); the link monitor is reset for the new
         // epoch so the regression is not misread as a giant duplicate run.
         if let Some(s) = candidate {
-            let timeout_s = self.gov.limits.command_timeout_ms / 1000.0;
+            let timeout_s = self.gov.limits.command_timeout_ms.min(MAX_TTL_MS) / 1000.0;
             // NaN-safe: a non-finite timeout or clock reads as expired (the
             // governor independently fail-closes on a bad timeout).
             let expired = self.last_sensor_t.is_none_or(|t| {
                 let age = now - t;
-                !timeout_s.is_finite() || !age.is_finite() || age > timeout_s
+                !timeout_s.is_finite() || !age.is_finite() || age >= timeout_s
             });
             let (advanced, new_epoch) = match self.last_sensor_ts {
                 None => (true, false),
-                Some((_, pseq)) => {
+                Some((previous_t, pseq)) => {
                     let restart = expired && s.seq < pseq;
-                    (s.seq > pseq || restart, restart)
+                    let advances_same_epoch = s.seq > pseq && s.t >= previous_t;
+                    (advances_same_epoch || restart, restart)
                 }
             };
             if advanced {
                 if new_epoch {
                     self.link.reset();
+                    self.controller.reset();
                 }
                 self.last_sensor_t = Some(now);
                 self.last_sensor_ts = Some((s.t, s.seq));
@@ -260,40 +325,111 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                 self.accepted_sensor = Some(s);
             }
         }
+        let rate_is_safe = self.rate_is_safe();
         let dt_ms = self.dt_ms();
-        let sensor = self.accepted_sensor.as_ref();
-        let mut cmd = self.controller.step(sensor, dt_ms);
+        let timeout_s = self.gov.limits.command_timeout_ms.min(MAX_TTL_MS) / 1000.0;
+        let sensor_is_fresh = tick_clock_ok
+            && timeout_s.is_finite()
+            && timeout_s > 0.0
+            && self.last_sensor_t.is_some_and(|last| {
+                let age = now - last;
+                age.is_finite() && age >= 0.0 && age < timeout_s
+            });
+        let sensor = if sensor_is_fresh {
+            self.accepted_sensor.as_ref()
+        } else {
+            None
+        };
+        let (mut cmd, controller_fault) = if rate_is_safe && sensor.is_some() {
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                self.controller.step(sensor, dt_ms)
+            })) {
+                Ok(command) => (command, false),
+                Err(_) => (CommandFrame::default(), true),
+            }
+        } else {
+            (CommandFrame::default(), false)
+        };
         // CommandFrame.seq echoes the originating SensorFrame.seq so the split-plane
         // V<->A join pairs the action with the sensor that produced it (the normative
         // invariant; an observer joining V to A on seq depends on it). The loop's own
         // free-running tick counter is carried only on ControlStatus, below.
-        if let Some(s) = sensor {
+        // Safe commands still carry the last accepted sensor envelope even when
+        // that sensor has just gone stale. This lets a duplicate-seq HOLD clear a
+        // remote ActionBuffer immediately and lets a later ESTOP propagate; only
+        // the controller input itself is withheld while stale.
+        if let Some(s) = self.accepted_sensor.as_ref() {
             cmd.seq = s.seq;
+            cmd.t = s.t;
+            cmd.frame_id.clone_from(&s.frame_id);
+        }
+        // Couple the emitted deadline to the loop period BEFORE the governor
+        // projects the geofence trajectory. Extending TTL after safety would
+        // authorize replay beyond the interval that was checked. Never repair a
+        // non-finite/non-positive controller TTL into an actuating command.
+        if rate_is_safe && cmd.ttl_ms.is_finite() && cmd.ttl_ms > 0.0 {
+            cmd.ttl_ms = cmd.ttl_ms.max(dt_ms * 2.0).min(MAX_TTL_MS);
+        }
+        // A controller-produced Active frame must satisfy the entire typed wire
+        // gate before safety processing. Invalid TTL/channel/horizon data becomes
+        // HOLD; it is never repaired into an actuating frame.
+        if cmd.mode == Mode::Active && cmd.validate_wire().is_err() {
+            cmd.mode = Mode::Hold;
         }
         // Escalate to a latched ESTOP if the link monitor reports a jam (a sustained
         // loss burst): a collapsed link must de-energize to safe, not sit in
         // self-clearing HOLD. Checked every tick so the latch persists once tripped.
         self.gov.note_link(self.link.is_burst());
         let mut cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t);
-        // Couple the emitted deadline to the loop period: a command must outlive at
-        // least the next tick, or a slow (sub-~5 Hz) loop would expire every command
-        // before its successor arrives and chatter HOLD on a healthy link.
-        cmd.ttl_ms = cmd.ttl_ms.max(self.dt_ms() * 2.0);
-        self.transport.send_command(&cmd);
         // loop_latency_ms is a real health field: emit the measured tick cost (not a
-        // constant 0.0) and flag an overrun past the loop period in `note`.
-        let loop_latency_ms = ((self.now_fn)() - now) * 1000.0;
+        // constant 0.0) and flag an overrun past the loop period in `note`. Measure
+        // before publishing: if the clock failed during computation, force this
+        // very command to HOLD rather than merely reporting the fault afterward.
+        let end = (self.now_fn)();
+        let measured_latency_ms = (end - now) * 1000.0;
+        let clock_ok =
+            tick_clock_ok && end.is_finite() && end >= now && measured_latency_ms.is_finite();
+        if !clock_ok && cmd.mode != Mode::Estop {
+            cmd.mode = Mode::Hold;
+            cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t);
+        }
+        // Before the first stamped sensor there is no truthful action-plane seq
+        // to echo. Do not invent provenance or publish a wire-invalid seq=0
+        // command; the plant is already required to default HOLD and run its own
+        // watchdog. Once a sensor has been accepted, every fail-safe is stamped.
+        if self.accepted_sensor.is_some() && cmd.validate_wire().is_ok() {
+            self.transport.send_command(&cmd);
+        }
+        let loop_latency_ms = if clock_ok { measured_latency_ms } else { 0.0 };
+        let note = if !rate_is_safe {
+            Some(format!(
+                "invalid control rate: {:?} Hz cannot meet the finite watchdog bound",
+                self.rate_hz
+            ))
+        } else if controller_fault {
+            Some("controller panicked; command forced safe by governor".into())
+        } else if !clock_ok {
+            Some("control-loop clock anomaly; command forced safe by governor".into())
+        } else if !sensor_is_fresh {
+            Some("sensor unavailable or stale; command forced safe by governor".into())
+        } else if loop_latency_ms > dt_ms {
+            Some(format!("overrun: {loop_latency_ms:.1}ms > {dt_ms:.1}ms"))
+        } else {
+            None
+        };
         self.transport.send_status(&ControlStatus {
             seq: self.seq,
-            t: now,
-            mode: cmd.mode,
+            t: if now.is_finite() { now } else { 0.0 },
+            mode: cmd.mode.clone(),
             loop_latency_ms,
-            safety_ok: self.gov.safety_ok(),
-            note: (loop_latency_ms > self.dt_ms())
-                .then(|| format!("overrun: {loop_latency_ms:.1}ms > {:.1}ms", self.dt_ms())),
+            safety_ok: self.gov.safety_ok() && rate_is_safe && clock_ok && !controller_fault,
+            note,
             ..Default::default()
         });
-        self.seq += 1;
+        self.seq = self.seq.saturating_add(1).min(JSON_SAFE_INTEGER_MAX);
+        if clock_ok {
+            self.last_tick_now = Some(end);
+        }
         cmd
     }
 }
@@ -307,6 +443,65 @@ fn monotonic_secs() -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn velocity_command(x: f64, ttl_ms: f64) -> CommandFrame {
+        let mut channels = crate::messages::Map::new();
+        channels.insert(
+            "velocity_setpoint".into(),
+            ChannelValue::vec3(x, 0.0, 0.0, Some("m/s")),
+        );
+        CommandFrame {
+            mode: Mode::Active,
+            ttl_ms,
+            channels,
+            ..Default::default()
+        }
+    }
+
+    struct TrackingController {
+        steps: Arc<AtomicUsize>,
+        resets: Arc<AtomicUsize>,
+        velocity: f64,
+        ttl_ms: f64,
+    }
+
+    impl Controller for TrackingController {
+        fn reset(&mut self) {
+            self.resets.fetch_add(1, Ordering::SeqCst);
+        }
+
+        fn step(&mut self, _sensor: Option<&SensorFrame>, _dt_ms: f64) -> CommandFrame {
+            self.steps.fetch_add(1, Ordering::SeqCst);
+            velocity_command(self.velocity, self.ttl_ms)
+        }
+    }
+
+    struct PanickingController;
+
+    impl Controller for PanickingController {
+        fn step(&mut self, _sensor: Option<&SensorFrame>, _dt_ms: f64) -> CommandFrame {
+            panic!("controller fault")
+        }
+    }
+
+    fn sensor_with_motion(t: f64, seq: i64, position_x: f64) -> SensorFrame {
+        let mut channels = crate::messages::Map::new();
+        channels.insert(
+            "pose_position".into(),
+            ChannelValue::vec3(position_x, 0.0, 0.0, Some("m")),
+        );
+        channels.insert(
+            "pose_velocity".into(),
+            ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
+        );
+        SensorFrame {
+            t,
+            seq,
+            channels,
+            ..Default::default()
+        }
+    }
 
     #[test]
     fn reflex_loop_holds_without_sensor_then_drives() {
@@ -329,6 +524,10 @@ mod tests {
         // No sensor yet -> HOLD.
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Hold);
+        assert!(
+            transport.commands().is_empty(),
+            "without a stamped sensor the loop must not invent an action seq"
+        );
 
         // Provide a sensor with a position error -> ACTIVE drive back toward origin.
         let mut ch = crate::messages::Map::new();
@@ -579,6 +778,7 @@ mod tests {
         transport.push_sensor(SensorFrame {
             t: 0.1,
             seq: 7,
+            frame_id: "map".into(),
             channels: ch,
             ..Default::default()
         });
@@ -588,6 +788,189 @@ mod tests {
             cmd.seq, 7,
             "CommandFrame.seq must echo SensorFrame.seq, not the loop tick counter"
         );
+        assert_eq!(cmd.t, 0.1, "the driving sensor timestamp is echoed");
+        assert_eq!(cmd.frame_id, "map", "the coordinate frame is echoed");
+    }
+
+    #[test]
+    fn controller_is_not_stepped_on_a_stale_sensor() {
+        let transport = InProcessTransport::new();
+        let clock = Arc::new(Mutex::new(0.0_f64));
+        let clock2 = clock.clone();
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            TrackingController {
+                steps: steps.clone(),
+                resets: Arc::new(AtomicUsize::new(0)),
+                velocity: 0.1,
+                ttl_ms: 200.0,
+            },
+            20.0,
+            SafetyLimits {
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(move || *clock2.lock().unwrap()));
+        transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
+        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(steps.load(Ordering::SeqCst), 1);
+
+        *clock.lock().unwrap() = 0.5;
+        assert_eq!(loop_.tick().mode, Mode::Hold);
+        assert_eq!(
+            steps.load(Ordering::SeqCst),
+            1,
+            "a cached/stale sensor must not advance controller state"
+        );
+    }
+
+    #[test]
+    fn controller_panic_is_contained_and_reported() {
+        let transport = InProcessTransport::new();
+        transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            PanickingController,
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        let command = loop_.tick();
+        assert_eq!(command.mode, Mode::Hold);
+        assert!(command
+            .channels
+            .values()
+            .flat_map(|channel| &channel.data)
+            .all(|value| *value == 0.0));
+        let status = transport.statuses().pop().unwrap();
+        assert!(!status.safety_ok);
+        assert!(status.note.unwrap().contains("controller panicked"));
+    }
+
+    #[test]
+    fn ttl_is_normalized_before_geofence_projection() {
+        let transport = InProcessTransport::new();
+        transport.push_sensor(sensor_with_motion(1.0, 1, 9.5));
+        let mut loop_ = NeuroControlLoop::new(
+            transport,
+            TrackingController {
+                steps: Arc::new(AtomicUsize::new(0)),
+                resets: Arc::new(AtomicUsize::new(0)),
+                velocity: 1.0,
+                ttl_ms: 200.0,
+            },
+            2.0,
+            SafetyLimits {
+                geofence_radius_m: Some(10.0),
+                command_timeout_ms: 2_000.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "the final 1000ms ttl crosses the fence even though the controller's original 200ms ttl did not"
+        );
+    }
+
+    #[test]
+    fn backward_tick_clock_holds_until_the_high_water_mark_is_recovered() {
+        let transport = InProcessTransport::new();
+        transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        let times = Arc::new(Mutex::new(std::collections::VecDeque::from([
+            1.0, 1.0, 0.5, 0.5, 1.1, 1.1,
+        ])));
+        let times2 = times.clone();
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits {
+                command_timeout_ms: 500.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(move || {
+            times2.lock().unwrap().pop_front().unwrap_or(1.1)
+        }));
+        assert_eq!(loop_.tick().mode, Mode::Active);
+
+        transport.push_sensor(sensor_with_motion(1.1, 2, 0.0));
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "a backward step between ticks must fail closed"
+        );
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Active,
+            "fresh input may resume only after the clock exceeds its high-water mark"
+        );
+    }
+
+    #[test]
+    fn controller_reset_runs_on_sensor_epoch_restart() {
+        let transport = InProcessTransport::new();
+        let clock = Arc::new(Mutex::new(0.0_f64));
+        let clock2 = clock.clone();
+        let resets = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            TrackingController {
+                steps: Arc::new(AtomicUsize::new(0)),
+                resets: resets.clone(),
+                velocity: 0.1,
+                ttl_ms: 200.0,
+            },
+            20.0,
+            SafetyLimits {
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_clock(Box::new(move || *clock2.lock().unwrap()));
+        transport.push_sensor(sensor_with_motion(0.0, 500, 0.0));
+        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(resets.load(Ordering::SeqCst), 0);
+
+        *clock.lock().unwrap() = 0.5;
+        transport.push_sensor(sensor_with_motion(0.5, 1, 0.0));
+        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(
+            resets.load(Ordering::SeqCst),
+            1,
+            "a lower seq accepted after expiry starts a new controller epoch"
+        );
+    }
+
+    #[test]
+    fn reflex_controller_rejects_bad_inputs_and_clamps_vector_magnitude() {
+        let mut reflex = ReflexController::default();
+        let mut missing_velocity = sensor_with_motion(0.0, 1, 1.0);
+        missing_velocity.channels.remove("pose_velocity");
+        assert_eq!(reflex.step(Some(&missing_velocity), 50.0).mode, Mode::Hold);
+
+        let mut wrong_unit = sensor_with_motion(0.0, 2, 1.0);
+        wrong_unit.channels.get_mut("pose_velocity").unwrap().unit = Some("km/h".into());
+        assert_eq!(reflex.step(Some(&wrong_unit), 50.0).mode, Mode::Hold);
+
+        let valid = sensor_with_motion(0.0, 3, 10.0);
+        let command = reflex.step(Some(&valid), 50.0);
+        let velocity = &command.channels["velocity_setpoint"].data;
+        let magnitude = velocity
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        assert!((magnitude - reflex.max_speed).abs() < 1e-12);
+
+        reflex.max_speed = f64::NAN;
+        assert_eq!(reflex.step(Some(&valid), 50.0).mode, Mode::Hold);
     }
 
     #[test]
@@ -674,5 +1057,79 @@ mod tests {
             "loop_latency_ms must be a measured value, got {}",
             st.loop_latency_ms
         );
+    }
+
+    #[test]
+    fn invalid_or_unwatchdoggable_rate_forces_hold() {
+        for rate_hz in [0.0, -20.0, f64::NAN, 0.01] {
+            let transport = InProcessTransport::new();
+            let mut channels = crate::messages::Map::new();
+            channels.insert(
+                "pose_position".into(),
+                ChannelValue::vec3(1.0, 0.0, 0.0, Some("m")),
+            );
+            channels.insert(
+                "pose_velocity".into(),
+                ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
+            );
+            transport.push_sensor(SensorFrame {
+                seq: 1,
+                channels,
+                ..Default::default()
+            });
+            let mut loop_ = NeuroControlLoop::new(
+                transport.clone(),
+                ReflexController::default(),
+                rate_hz,
+                SafetyLimits::default(),
+            )
+            .with_clock(Box::new(|| 1.0));
+            let command = loop_.tick();
+            assert_eq!(command.mode, Mode::Hold, "rate={rate_hz:?}");
+            assert!(command.ttl_ms.is_finite(), "rate={rate_hz:?}");
+            let status = transport.statuses().pop().unwrap();
+            assert!(!status.safety_ok, "rate={rate_hz:?}");
+            assert!(status.note.unwrap().contains("invalid control rate"));
+        }
+    }
+
+    #[test]
+    fn clock_failure_during_tick_forces_current_command_hold() {
+        let transport = InProcessTransport::new();
+        let mut channels = crate::messages::Map::new();
+        channels.insert(
+            "pose_position".into(),
+            ChannelValue::vec3(1.0, 0.0, 0.0, Some("m")),
+        );
+        channels.insert(
+            "pose_velocity".into(),
+            ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
+        );
+        transport.push_sensor(SensorFrame {
+            seq: 1,
+            channels,
+            ..Default::default()
+        });
+        let times = Arc::new(Mutex::new(std::collections::VecDeque::from([1.0, 0.0])));
+        let times2 = times.clone();
+        let mut loop_ = NeuroControlLoop::new(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(move || {
+            times2.lock().unwrap().pop_front().unwrap_or(0.0)
+        }));
+        let command = loop_.tick();
+        assert_eq!(command.mode, Mode::Hold);
+        assert!(command
+            .channels
+            .values()
+            .flat_map(|channel| &channel.data)
+            .all(|value| *value == 0.0));
+        let status = transport.statuses().pop().unwrap();
+        assert!(!status.safety_ok);
+        assert!(status.note.unwrap().contains("clock anomaly"));
     }
 }

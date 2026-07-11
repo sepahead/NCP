@@ -37,37 +37,148 @@ CODEC = json.dumps(
 
 
 def test_module_pins_exported():
-    # Wire 0.6 is a semantic break with an unchanged serialization, so the
-    # CONTRACT_HASH is identical to wire 0.5 — the version string is the gate.
-    assert ncp.NCP_VERSION == "0.6"
-    assert ncp.CONTRACT_HASH == "24e8e6e31e1dec8a"
+    assert ncp.NCP_VERSION == "0.7"
+    assert ncp.CONTRACT_HASH == "f05e328cad20959d"
 
 
 def test_codec_roundtrip_encode_then_decode():
     # encode: lerp(1.0, [-2,2] -> [0,200]) = 150 Hz.
-    sensor = json.dumps({"kind": "sensor_frame", "channels": {"pose_error": {"data": [1.0, 0.0, 0.0]}}})
+    sensor = json.dumps(
+        {
+            "kind": "sensor_frame",
+            "ncp_version": "0.7",
+            "seq": 1,
+            "t": 0.0,
+            "channels": {"pose_error": {"data": [1.0, 0.0, 0.0]}},
+        }
+    )
     rates = json.loads(ncp.encode_rates(CODEC, sensor))
     assert rates.get("err_x") == pytest.approx(150.0)
 
     # decode: lerp(150 Hz, [0,200] -> [-1.5,1.5]) = 0.75 m/s, on velocity_setpoint[0].
-    command = json.loads(ncp.decode_command(CODEC, json.dumps(rates)))
+    command = json.loads(ncp.decode_command(CODEC, json.dumps(rates), seq=1, mode="active"))
     vel = command["channels"]["velocity_setpoint"]["data"]
     assert vel[0] == pytest.approx(0.75)
 
 
+def test_codec_rejects_incomplete_sensor_and_unsafe_command_metadata():
+    versionless = json.dumps(
+        {
+            "kind": "sensor_frame",
+            "seq": 1,
+            "t": 0.0,
+            "channels": {"pose_error": {"data": [1.0]}},
+        }
+    )
+    with pytest.raises(ValueError):
+        ncp.encode_rates(CODEC, versionless)
+    with pytest.raises(ValueError):
+        ncp.encode_rates(CODEC, "")
+    with pytest.raises(ValueError):
+        ncp.decode_command(CODEC, "{}", seq=0)
+    with pytest.raises(ValueError):
+        ncp.decode_command(CODEC, "{}", seq=1, t=float("nan"))
+
+
 def test_decision_functions_callable():
     # Smoke only — exhaustive cross-language parity is the corpus's job.
-    assert ncp.check_version("0.6", False) is True
-    assert ncp.check_version("0.5", False) is False  # previous wire: incompatible
-    assert ncp.contract_status("24e8e6e31e1dec8a") == "match"
-    frame = '{"kind":"command_frame","ncp_version":"0.6","seq":1}'
+    assert ncp.check_version("0.7", False) is True
+    assert ncp.check_version("0.6", False) is False  # previous wire: incompatible
+    assert ncp.contract_status("f05e328cad20959d") == "match"
+    frame = '{"kind":"command_frame","ncp_version":"0.7","seq":1}'
     result = ncp.validate("command_frame", frame)
     assert '"kind":"command_frame"' in result  # canonical JSON, not just truthy
     # Wire 0.6: a version-less or unstamped command frame is rejected.
     with pytest.raises(ValueError):
         ncp.validate("command_frame", '{"kind":"command_frame"}')
     with pytest.raises(ValueError):
-        ncp.validate("command_frame", '{"kind":"command_frame","ncp_version":"0.6","seq":0}')
+        ncp.validate("command_frame", '{"kind":"command_frame","ncp_version":"0.7","seq":0}')
+    with pytest.raises(ValueError):
+        ncp.validate("command_frame", '{"ncp_version":"0.7","seq":1}')
+
+    error = {
+        "kind": "error",
+        "ncp_version": "0.7",
+        "error": "rejected",
+        "request_kind": "open_session",
+    }
+    assert json.loads(ncp.validate("error", json.dumps(error)))["error"] == "rejected"
+
+
+def test_rpc_keys_are_kind_scoped_and_realm_validated():
+    keys = ncp.Keys("fleet/ncp")
+    assert keys.rpc() == "fleet/ncp/rpc"
+    assert keys.rpc_for_kind("open_session") == "fleet/ncp/rpc/open_session"
+    assert keys.rpc_glob() == "fleet/ncp/rpc/*"
+    with pytest.raises(ValueError):
+        keys.rpc_for_kind("session_opened")
+    with pytest.raises(ValueError):
+        ncp.Keys("ncp/*")
+    with pytest.raises(ValueError):
+        keys.command("s1/*")
+    with pytest.raises(ValueError):
+        keys.sensor_named("s1", "imu/**")
+
+
+def test_unknown_enum_roundtrips_losslessly():
+    frame = {
+        "kind": "open_session",
+        "ncp_version": "0.7",
+        "session_id": "s",
+        "network": {"kind": "future_network_kind", "ref": "model"},
+    }
+    canonical = json.loads(ncp.validate("open_session", json.dumps(frame)))
+    assert canonical["network"]["kind"] == "future_network_kind"
+
+
+def test_decode_command_defaults_to_hold():
+    command = json.loads(ncp.decode_command(CODEC, "{}", seq=1))
+    assert command["mode"] == "hold"
+
+
+def test_action_buffer_enforces_horizon_ttl_and_replay():
+    buffer = ncp.ActionBuffer()
+    command = {
+        "kind": "command_frame",
+        "ncp_version": "0.7",
+        "seq": 10,
+        "t": 0.0,
+        "mode": "active",
+        "ttl_ms": 200.0,
+        "channels": {"velocity_setpoint": {"data": [0.1]}},
+        "horizon": [
+            {"velocity_setpoint": {"data": [0.2]}},
+            {"velocity_setpoint": {"data": [0.3]}},
+        ],
+        "horizon_dt_ms": 50.0,
+    }
+    buffer.on_command(1.0, json.dumps(command))
+    assert json.loads(buffer.active(1.06))["velocity_setpoint"]["data"][0] == pytest.approx(0.2)
+    assert buffer.should_hold(1.16) is True
+
+    replay = {**command, "channels": {"velocity_setpoint": {"data": [9.0]}}, "horizon": []}
+    buffer.on_command(2.0, json.dumps(replay))
+    assert buffer.should_hold(2.0) is True
+
+
+def test_action_buffer_latches_unstamped_estop_until_reset():
+    buffer = ncp.ActionBuffer()
+    buffer.on_command(0.0, '{"mode":"estop"}')
+    assert buffer.is_estopped() is True
+    assert buffer.active(0.0) is None
+    buffer.reset()
+    assert buffer.is_estopped() is False
+
+    invalid_active = {
+        "kind": "command_frame",
+        "ncp_version": "0.7",
+        "seq": 0,
+        "mode": "active",
+        "ttl_ms": 200.0,
+        "channels": {"velocity_setpoint": {"data": [1.0]}},
+    }
+    buffer.on_command(0.1, json.dumps(invalid_active))
+    assert buffer.should_hold(0.1) is True
 
 
 def test_persistent_governor_latches_across_calls():
@@ -78,12 +189,33 @@ def test_persistent_governor_latches_across_calls():
     active = json.dumps(
         {
             "kind": "command_frame",
+            "ncp_version": "0.7",
+            "seq": 1,
             "mode": "active",
+            "ttl_ms": 200.0,
             "channels": {"velocity_setpoint": {"data": [1.0, 0.0, 0.0], "unit": "m/s"}},
         }
     )
-    breach = json.dumps({"kind": "sensor_frame", "channels": {"pose_position": {"data": [10.0, 0.0, 0.0]}}})
-    safe = json.dumps({"kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}})
+    breach = json.dumps(
+        {
+            "kind": "sensor_frame",
+            "ncp_version": "0.7",
+            "seq": 1,
+            "channels": {
+                "pose_position": {"data": [10.0, 0.0, 0.0], "unit": "m"}
+            },
+        }
+    )
+    safe = json.dumps(
+        {
+            "kind": "sensor_frame",
+            "ncp_version": "0.7",
+            "seq": 2,
+            "channels": {
+                "pose_position": {"data": [0.0, 0.0, 0.0], "unit": "m"}
+            },
+        }
+    )
 
     out = json.loads(gov.govern(active, 1.0, breach, 1.0))
     assert out["mode"] == "estop"

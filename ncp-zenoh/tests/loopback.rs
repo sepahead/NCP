@@ -19,6 +19,8 @@ fn loopback_cfg() -> ZenohConfig {
     c.insert_json5("scouting/multicast/enabled", "false")
         .unwrap();
     c.insert_json5("scouting/gossip/enabled", "false").unwrap();
+    c.insert_json5("transport/shared_memory/enabled", "false")
+        .unwrap();
     c
 }
 

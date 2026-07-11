@@ -14,7 +14,16 @@
 //! producer-overrun backstop: if the brain (`nest.Run`) misses the deadline, the
 //! plant-side governor fails safe to HOLD independent of the controller.
 
-use crate::messages::{Capabilities, ChannelValue, CommandFrame, Mode, SafetyLimits, SensorFrame};
+use crate::messages::{
+    Capabilities, ChannelKind, ChannelSpec, ChannelValue, CommandFrame, Mode, SafetyLimits,
+    SensorFrame, WireFrame, JSON_SAFE_INTEGER_MAX,
+};
+
+const POSITION_CHANNEL: &str = "pose_position";
+const VELOCITY_CHANNEL: &str = "velocity_setpoint";
+const POSITION_UNIT: &str = "m";
+const VELOCITY_UNIT: &str = "m/s";
+const SAFETY_VECTOR_WIDTH: usize = 3;
 
 #[derive(Clone, Debug)]
 pub struct SafetyGovernor {
@@ -37,17 +46,23 @@ pub struct SafetyGovernor {
     /// then HOLDs and reports `safety_ok=false`. A misconfiguration cannot be
     /// fixed at runtime, so it does not clear on [`reset`](SafetyGovernor::reset).
     config_fail_closed: bool,
+    /// Whether the canonical negotiated position spec is a width-3 vector in metres.
+    position_contract_valid: bool,
+    /// Whether the canonical negotiated velocity spec is a width-3 vector in m/s.
+    velocity_contract_valid: bool,
 }
 
 impl Default for SafetyGovernor {
     fn default() -> Self {
         Self {
             limits: SafetyLimits::default(),
-            position_channel: "pose_position".to_string(),
-            velocity_channel: "velocity_setpoint".to_string(),
-            command_channels: vec!["velocity_setpoint".to_string()],
+            position_channel: POSITION_CHANNEL.to_string(),
+            velocity_channel: VELOCITY_CHANNEL.to_string(),
+            command_channels: vec![VELOCITY_CHANNEL.to_string()],
             estop: false,
             config_fail_closed: false,
+            position_contract_valid: true,
+            velocity_contract_valid: true,
         }
     }
 }
@@ -57,8 +72,10 @@ impl SafetyGovernor {
     /// Prefer [`from_capabilities`](SafetyGovernor::from_capabilities) so the enforced channels track the negotiated
     /// handshake.
     pub fn new(limits: SafetyLimits) -> Self {
+        let config_fail_closed = Self::invalid_numeric_limits(&limits);
         Self {
             limits,
+            config_fail_closed,
             ..Default::default()
         }
     }
@@ -83,13 +100,20 @@ impl SafetyGovernor {
         } else {
             command_channels
         };
-        let config_fail_closed = Self::detect_misconfig(
-            &limits,
-            &position_channel,
-            &velocity_channel,
-            &command_channels,
-            &sensor_channels,
-        );
+        let config_fail_closed = Self::invalid_numeric_limits(&limits)
+            || Self::invalid_channel_config(
+                &position_channel,
+                &velocity_channel,
+                &command_channels,
+                &sensor_channels,
+            )
+            || Self::detect_misconfig(
+                &limits,
+                &position_channel,
+                &velocity_channel,
+                &command_channels,
+                &sensor_channels,
+            );
         Self {
             limits,
             position_channel,
@@ -97,6 +121,8 @@ impl SafetyGovernor {
             command_channels,
             estop: false,
             config_fail_closed,
+            position_contract_valid: true,
+            velocity_contract_valid: true,
         }
     }
 
@@ -112,19 +138,60 @@ impl SafetyGovernor {
         sensor_channels: &[String],
     ) -> bool {
         let geofence_bad = limits.geofence_radius_m.is_some_and(|r| r > 0.0)
-            && !sensor_channels.is_empty()
             && !sensor_channels.iter().any(|c| c == position_channel);
-        let speed_bad = limits.max_speed_mps.is_some_and(|s| s > 0.0)
-            && !command_channels.iter().any(|c| c == velocity_channel);
+        let needs_velocity = limits.max_speed_mps.is_some_and(|s| s > 0.0)
+            || limits.geofence_radius_m.is_some_and(|r| r > 0.0);
+        let speed_bad = needs_velocity && !command_channels.iter().any(|c| c == velocity_channel);
         geofence_bad || speed_bad
     }
 
-    /// Resolve the enforced channels from the negotiated [`Capabilities`]. The
-    /// position channel is the first sensor channel (falling back to
-    /// `pose_position`); the velocity channel is the first command channel
-    /// (falling back to `velocity_setpoint`); the HOLD/zero set is every declared
-    /// command channel. Geofence/speed limits come from `caps.safety`. A limit
-    /// referencing an undeclared channel starts the governor fail-closed.
+    /// Numeric limits are configuration, not live telemetry. Detect bad values
+    /// at construction so `safety_ok()` cannot report healthy before the first
+    /// command reaches the governor.
+    fn invalid_numeric_limits(limits: &SafetyLimits) -> bool {
+        let bad_optional =
+            |value: Option<f64>| value.is_some_and(|value| !value.is_finite() || value < 0.0);
+        !limits.command_timeout_ms.is_finite()
+            || limits.command_timeout_ms <= 0.0
+            || bad_optional(limits.max_speed_mps)
+            || bad_optional(limits.max_tilt_rad)
+            || bad_optional(limits.geofence_radius_m)
+    }
+
+    fn invalid_channel_config(
+        position_channel: &str,
+        velocity_channel: &str,
+        command_channels: &[String],
+        sensor_channels: &[String],
+    ) -> bool {
+        let valid = |name: &str| !name.is_empty() && !name.chars().any(char::is_control);
+        let unique_valid = |names: &[String]| {
+            let mut seen = std::collections::BTreeSet::new();
+            names
+                .iter()
+                .all(|name| valid(name) && seen.insert(name.as_str()))
+        };
+        !valid(position_channel)
+            || !valid(velocity_channel)
+            || !unique_valid(command_channels)
+            || !unique_valid(sensor_channels)
+    }
+
+    fn compatible_safety_vec3(spec: Option<&ChannelSpec>, expected_unit: &str) -> bool {
+        spec.is_some_and(|spec| {
+            spec.kind == ChannelKind::Vec3
+                && spec.unit.as_deref() == Some(expected_unit)
+                && spec
+                    .size
+                    .is_none_or(|size| size == SAFETY_VECTOR_WIDTH as i64)
+        })
+    }
+
+    /// Resolve safety inputs from negotiated [`Capabilities`]. Safety semantics
+    /// bind to the explicit canonical `pose_position` and `velocity_setpoint`
+    /// names, never whichever declaration happens to be first. An enabled limit
+    /// requires the matching spec to be `vec3`, width 3 (implicit or `size=3`),
+    /// and in its canonical SI unit.
     pub fn from_capabilities(caps: &Capabilities) -> Self {
         let command_channels: Vec<String> = caps
             .command_channels
@@ -136,21 +203,49 @@ impl SafetyGovernor {
             .iter()
             .map(|c| c.name.clone())
             .collect();
-        let velocity_channel = command_channels
-            .first()
-            .cloned()
-            .unwrap_or_else(|| "velocity_setpoint".to_string());
-        let position_channel = sensor_channels
-            .first()
-            .cloned()
-            .unwrap_or_else(|| "pose_position".to_string());
-        Self::with_channels(
+        let position_contract_valid = Self::compatible_safety_vec3(
+            caps.sensor_channels
+                .iter()
+                .find(|channel| channel.name == POSITION_CHANNEL),
+            POSITION_UNIT,
+        );
+        let velocity_contract_valid = Self::compatible_safety_vec3(
+            caps.command_channels
+                .iter()
+                .find(|channel| channel.name == VELOCITY_CHANNEL),
+            VELOCITY_UNIT,
+        );
+        let mut governor = Self::with_channels(
             caps.safety.clone(),
-            position_channel,
-            velocity_channel,
+            POSITION_CHANNEL,
+            VELOCITY_CHANNEL,
             command_channels,
             sensor_channels,
-        )
+        );
+        governor.position_contract_valid = position_contract_valid;
+        governor.velocity_contract_valid = velocity_contract_valid;
+        governor.config_fail_closed |= governor.enabled_channel_contract_invalid();
+        governor
+    }
+
+    fn enabled_channel_contract_invalid(&self) -> bool {
+        (self
+            .limits
+            .geofence_radius_m
+            .is_some_and(|radius| radius > 0.0)
+            && !self.position_contract_valid)
+            || ((self.limits.max_speed_mps.is_some_and(|speed| speed > 0.0)
+                || self
+                    .limits
+                    .geofence_radius_m
+                    .is_some_and(|radius| radius > 0.0))
+                && !self.velocity_contract_valid)
+    }
+
+    fn valid_safety_vector(channel: &ChannelValue, expected_unit: &str) -> bool {
+        channel.unit.as_deref() == Some(expected_unit)
+            && channel.data.len() == SAFETY_VECTOR_WIDTH
+            && channel.data.iter().all(|value| value.is_finite())
     }
 
     /// Clear a latched ESTOP. Only a supervisor calls this — after a fresh govern
@@ -192,18 +287,29 @@ impl SafetyGovernor {
     fn zeroed_channels(&self, command: &CommandFrame) -> crate::messages::Map<ChannelValue> {
         let mut m = crate::messages::Map::new();
         for (name, cv) in &command.channels {
+            if name.is_empty() || name.chars().any(char::is_control) {
+                continue;
+            }
+            let (width, unit) = if name == &self.velocity_channel {
+                (SAFETY_VECTOR_WIDTH, Some(VELOCITY_UNIT.to_string()))
+            } else {
+                (cv.data.len().max(1), cv.unit.clone())
+            };
             m.insert(
                 name.clone(),
                 ChannelValue {
-                    data: vec![0.0; cv.data.len().max(1)],
-                    unit: cv.unit.clone(),
+                    data: vec![0.0; width],
+                    unit,
                 },
             );
         }
         for name in &self.command_channels {
+            if name.is_empty() || name.chars().any(char::is_control) {
+                continue;
+            }
             m.entry(name.clone()).or_insert_with(|| {
                 if name == &self.velocity_channel {
-                    ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s"))
+                    ChannelValue::vec3(0.0, 0.0, 0.0, Some(VELOCITY_UNIT))
                 } else {
                     ChannelValue::scalar(0.0, None)
                 }
@@ -212,10 +318,32 @@ impl SafetyGovernor {
         m
     }
 
+    fn safe_envelope(command: &CommandFrame) -> (f64, i64, String) {
+        let t = if command.t.is_finite() {
+            command.t
+        } else {
+            0.0
+        };
+        let seq = if (1..=JSON_SAFE_INTEGER_MAX).contains(&command.seq) {
+            command.seq
+        } else {
+            1
+        };
+        let frame_id =
+            if command.frame_id.is_empty() || command.frame_id.chars().any(char::is_control) {
+                "world".to_string()
+            } else {
+                command.frame_id.clone()
+            };
+        (t, seq, frame_id)
+    }
+
     fn estop_frame(&self, command: &CommandFrame) -> CommandFrame {
+        let (t, seq, frame_id) = Self::safe_envelope(command);
         CommandFrame {
-            t: command.t,
-            seq: command.seq,
+            t,
+            seq,
+            frame_id,
             mode: Mode::Estop,
             channels: self.zeroed_channels(command),
             ..Default::default()
@@ -223,9 +351,11 @@ impl SafetyGovernor {
     }
 
     fn hold_frame(&self, command: &CommandFrame) -> CommandFrame {
+        let (t, seq, frame_id) = Self::safe_envelope(command);
         CommandFrame {
-            t: command.t,
-            seq: command.seq,
+            t,
+            seq,
+            frame_id,
             mode: Mode::Hold,
             channels: self.zeroed_channels(command),
             ..Default::default()
@@ -255,20 +385,15 @@ impl SafetyGovernor {
             self.estop = true;
             return self.estop_frame(command);
         }
-        // Config-level fail-closed (a limit references an undeclared channel):
-        // HOLD every command; `safety_ok()` reports false.
-        if self.config_fail_closed {
-            return self.hold_frame(command);
+        // `limits` is public for source compatibility. Enabling a limit after
+        // construction must not bypass an incompatible negotiated channel spec.
+        if self.enabled_channel_contract_invalid() {
+            self.config_fail_closed = true;
         }
 
-        // Only `Active` commands may actuate. A remaining non-Active inbound mode
-        // (Init/Hold, or any mode added later) must never drive the plant, so
-        // normalize it to a zeroed HOLD here — defense-in-depth with
-        // `ActionBuffer::active`'s allowlist, so the governor also never forwards
-        // an actuating setpoint under a non-Active mode.
-        if !matches!(command.mode, Mode::Active) {
-            return self.hold_frame(command);
-        }
+        // A timestamp without the actual validated sensor document is not proof
+        // of perception liveness. Hostile/misrouted/versionless sensors HOLD.
+        let sensor = sensor.filter(|frame| frame.validate_wire().is_ok());
 
         // A configured-but-nonsensical geofence/speed limit (non-finite or
         // negative) must fail closed, not silently disable enforcement:
@@ -278,20 +403,13 @@ impl SafetyGovernor {
         // so guard here at every tick (not only at construction), and latch
         // `config_fail_closed` so `safety_ok()` reports the misconfiguration.
         // `0.0` stays the documented "disabled" value — only `< 0` / non-finite trips.
-        let bad_limit = |v: Option<f64>| v.is_some_and(|x| !x.is_finite() || x < 0.0);
-        if bad_limit(self.limits.geofence_radius_m) || bad_limit(self.limits.max_speed_mps) {
+        if Self::invalid_numeric_limits(&self.limits) {
             self.config_fail_closed = true; // unrecoverable misconfig -> safety_ok()=false
-            return self.hold_frame(command);
         }
 
-        // A non-finite / non-positive `command_timeout_ms` cannot bound sensor
-        // staleness. The staleness backstop below already defaults it closed
-        // (treats every tick as stale -> HOLD), but that HOLD would be invisible
-        // to `safety_ok()` — the governor would look healthy while wedged in HOLD.
-        // Latch `config_fail_closed` so a misconfigured timeout is reported.
-        // (`0.0` is degenerate here, NOT a "disabled" value like the geofence.)
-        if !self.limits.command_timeout_ms.is_finite() || self.limits.command_timeout_ms <= 0.0 {
-            self.config_fail_closed = true;
+        // Config-level fail-closed (an undeclared/incompatible channel or bad
+        // numeric limit): HOLD every command; `safety_ok()` reports false.
+        if self.config_fail_closed {
             return self.hold_frame(command);
         }
 
@@ -299,16 +417,20 @@ impl SafetyGovernor {
         // timeout is treated as "always stale" (HOLD), never "never stale". Note
         // `f64::NAN.max(0.0) == 0.0`, so the old `.max(0.0)` pre-clamp turned NaN
         // into a never-stale 0 — fail-open. Compare the raw ms value instead.
-        let timeout_ms = self.limits.command_timeout_ms;
+        // A huge-but-finite timeout is just as capable of defeating freshness as
+        // +Inf. Enforcement is local and bounded even though the wire preserves
+        // the configured value, mirroring the command TTL watchdog.
+        let timeout_ms = self.limits.command_timeout_ms.min(MAX_TTL_MS);
         let timeout_s = timeout_ms / 1000.0;
-        let stale = match last_sensor_s {
-            None => true,
-            Some(last) => {
-                // A non-finite clock (NaN/±inf `now_s` or `last`) makes the
-                // `(now_s - last) > timeout_s` comparison NaN→false — i.e. "not
-                // stale", a fail-OPEN on a bad clock. Treat any non-finite clock
-                // input as stale (HOLD), defaulting the staleness backstop closed.
-                !now_s.is_finite()
+        let stale = sensor.is_none()
+            || match last_sensor_s {
+                None => true,
+                Some(last) => {
+                    // A non-finite clock (NaN/±inf `now_s` or `last`) makes the
+                    // `(now_s - last) >= timeout_s` comparison NaN→false — i.e. "not
+                    // stale", a fail-OPEN on a bad clock. Treat any non-finite clock
+                    // input as stale (HOLD), defaulting the staleness backstop closed.
+                    !now_s.is_finite()
                     || !last.is_finite()
                     || !timeout_ms.is_finite()
                     || timeout_ms <= 0.0
@@ -317,9 +439,9 @@ impl SafetyGovernor {
                     // negative → never `> timeout_s` → "not stale", a fail-OPEN on a
                     // rewound clock. Treat any backward step as stale (HOLD).
                     || now_s < last
-                    || (now_s - last) > timeout_s
-            }
-        };
+                    || (now_s - last) >= timeout_s
+                }
+            };
         if stale {
             // Sustained TOTAL silence escalates HOLD -> latched ESTOP. A single
             // missed deadline is a transient (non-latching HOLD, self-clears when
@@ -334,7 +456,7 @@ impl SafetyGovernor {
             if let Some(last) = last_sensor_s {
                 if now_s.is_finite() && last.is_finite() && now_s >= last {
                     let deadline_s = (timeout_s * LINK_LOSS_ESTOP_FACTOR).min(MAX_TTL_MS / 1000.0);
-                    if (now_s - last) > deadline_s {
+                    if (now_s - last) >= deadline_s {
                         self.estop = true; // latch: the link is collapsed
                         return self.estop_frame(command);
                     }
@@ -344,12 +466,16 @@ impl SafetyGovernor {
             return self.hold_frame(command);
         }
 
+        // `stale` includes missing/invalid sensor documents, so reaching this
+        // point proves the frame passed `validate_wire` above.
+        let sensor = sensor.expect("non-stale safety path has a validated sensor");
+
         // Geofence: if a positive radius is configured we MUST be able to evaluate
         // it. An absent position channel (sensor missing it, or no sensor) is a
         // fail-closed condition, not a silent no-op.
         if let Some(radius) = self.limits.geofence_radius_m {
             if radius > 0.0 {
-                let pos = sensor.and_then(|s| s.channels.get(&self.position_channel));
+                let pos = sensor.channels.get(&self.position_channel);
                 match pos {
                     None => {
                         // Cannot evaluate the fence -> fail closed. HOLD (non-latching:
@@ -357,12 +483,10 @@ impl SafetyGovernor {
                         return self.hold_frame(command);
                     }
                     Some(pos) => {
-                        // An empty position vector (e.g. a declared vec3 channel that
-                        // arrives with no data) makes r = sqrt(0) = 0 — "at the origin",
-                        // inside any fence — silently bypassing the geofence. Treat
-                        // missing data like an absent channel: fail closed (HOLD,
-                        // non-latching since the data may reappear).
-                        if pos.data.is_empty() {
+                        // The limit is metres over a three-dimensional position.
+                        // Summing a truncated vector understates distance; accepting
+                        // an unrecognised unit silently rescales the fence.
+                        if !Self::valid_safety_vector(pos, POSITION_UNIT) {
                             return self.hold_frame(command);
                         }
                         let r = pos.data.iter().map(|c| c * c).sum::<f64>().sqrt();
@@ -375,6 +499,22 @@ impl SafetyGovernor {
                     }
                 }
             }
+        }
+
+        // Freshness, total-silence escalation, and the CURRENT geofence state
+        // deliberately run before command validation/mode checks. A controller
+        // HOLD (or malformed non-ESTOP frame) is safe for this tick, but it must
+        // not mask a collapsed link or an already-breached physical boundary.
+        // The governor remains an actuation boundary for direct Rust callers: a
+        // typed struct is not authority for prospective motion.
+        if command.validate_wire().is_err() {
+            return self.hold_frame(command);
+        }
+
+        // Only `Active` commands may actuate. A remaining non-Active inbound mode
+        // (Init/Hold, or any mode added later) must never drive the plant.
+        if !matches!(command.mode, Mode::Active) {
+            return self.hold_frame(command);
         }
 
         let mut out = command.clone();
@@ -394,6 +534,14 @@ impl SafetyGovernor {
                 let mut safe_len = out.horizon.len();
                 for (i, step) in out.horizon.iter_mut().enumerate() {
                     if self.clamp_velocity(step, max_speed).is_err() {
+                        // `ActionBuffer` treats an empty horizon as the legacy
+                        // "hold tick-0 until ttl" form. Truncating a non-empty
+                        // horizon to zero would therefore do the opposite of
+                        // HOLD and replay the current setpoint. If the first
+                        // future step is unsafe, reject the entire command.
+                        if i == 0 {
+                            return self.hold_frame(command);
+                        }
                         safe_len = i;
                         break;
                     }
@@ -402,45 +550,128 @@ impl SafetyGovernor {
             }
         }
 
-        // Geofence horizon look-ahead: the speed-clamped horizon is replayed
-        // open-loop through a dropout, so if the plant is within one horizon's worth
-        // of travel of the fence, that replay could cross it unchecked (the tick-0
-        // check above only guards the current position). Truncate the horizon when
-        // near the fence so replay HOLDs; tick-0 still actuates. (When here, the
-        // geofence block above has already ensured `r <= radius` and a finite `r`.)
+        // Prospective geofence enforcement: an in-bounds sample is not enough.
+        // `ActionBuffer` may replay tick 0 until ttl (legacy/no-horizon form) or
+        // replay each predictive step open-loop. Project the actual canonical
+        // velocity trajectory through that entire possible actuation window and
+        // reject/truncate before it can cross the sphere.
         if let Some(radius) = self.limits.geofence_radius_m {
-            if radius > 0.0 && !out.horizon.is_empty() {
-                if let Some(pos) = sensor.and_then(|s| s.channels.get(&self.position_channel)) {
-                    let r = pos.data.iter().map(|c| c * c).sum::<f64>().sqrt();
-                    let dt_s = command.horizon_dt_ms.unwrap_or(0.0) / 1000.0;
-                    let n = out.horizon.len() as f64;
-                    // Max distance the open-loop horizon can carry the plant from `r`.
-                    // Unbounded speed + a horizon => cannot bound the excursion => drop it.
-                    let margin = match self.limits.max_speed_mps {
-                        Some(v) if v > 0.0 && dt_s > 0.0 => v * n * dt_s,
-                        _ => f64::INFINITY,
-                    };
-                    if r.is_finite() && r > radius - margin {
-                        out.horizon.clear();
-                    }
+            if radius > 0.0 {
+                if command.frame_id != sensor.frame_id {
+                    return self.hold_frame(command);
+                }
+                let pos = sensor
+                    .channels
+                    .get(&self.position_channel)
+                    .expect("positive geofence validated position above");
+                if self
+                    .enforce_geofence_trajectory(&mut out, pos, radius)
+                    .is_err()
+                {
+                    return self.hold_frame(command);
                 }
             }
         }
         out
     }
 
+    fn enforce_geofence_trajectory(
+        &self,
+        command: &mut CommandFrame,
+        position: &ChannelValue,
+        radius: f64,
+    ) -> Result<(), ()> {
+        let mut projected = [position.data[0], position.data[1], position.data[2]];
+        let ttl_s = command.ttl_ms.min(MAX_TTL_MS) / 1000.0;
+        if !ttl_s.is_finite() || ttl_s <= 0.0 {
+            return Err(());
+        }
+
+        if command.horizon.is_empty() {
+            return self
+                .advance_geofence_position(&mut projected, &command.channels, ttl_s, radius)
+                .and_then(|inside| inside.then_some(()).ok_or(()));
+        }
+
+        let dt_s = command.horizon_dt_ms.ok_or(())? / 1000.0;
+        if !dt_s.is_finite() || dt_s <= 0.0 {
+            return Err(());
+        }
+        let tick_zero_s = ttl_s.min(dt_s);
+        if !self.advance_geofence_position(
+            &mut projected,
+            &command.channels,
+            tick_zero_s,
+            radius,
+        )? {
+            return Err(());
+        }
+        let mut remaining_s = (ttl_s - tick_zero_s).max(0.0);
+        let mut safe_len = command.horizon.len();
+        for (index, step) in command.horizon.iter().enumerate() {
+            if remaining_s <= 0.0 {
+                break; // watchdog expires before this step; leaving it is inert
+            }
+            let duration_s = remaining_s.min(dt_s);
+            let safe = self
+                .advance_geofence_position(&mut projected, step, duration_s, radius)
+                .unwrap_or(false);
+            if !safe {
+                // Empty has legacy "replay tick 0" semantics. We cannot encode
+                // "tick 0 then drain" with a zero-length horizon, so rejecting
+                // the whole command is the only fail-closed decision at index 0.
+                if index == 0 {
+                    return Err(());
+                }
+                safe_len = index;
+                break;
+            }
+            remaining_s = (remaining_s - duration_s).max(0.0);
+        }
+        command.horizon.truncate(safe_len);
+        Ok(())
+    }
+
+    fn advance_geofence_position(
+        &self,
+        position: &mut [f64; SAFETY_VECTOR_WIDTH],
+        channels: &crate::messages::Map<ChannelValue>,
+        duration_s: f64,
+        radius: f64,
+    ) -> Result<bool, ()> {
+        let velocity = channels.get(&self.velocity_channel).ok_or(())?;
+        if !Self::valid_safety_vector(velocity, VELOCITY_UNIT)
+            || !duration_s.is_finite()
+            || duration_s < 0.0
+        {
+            return Err(());
+        }
+        for (coordinate, speed) in position.iter_mut().zip(&velocity.data) {
+            *coordinate += speed * duration_s;
+        }
+        let norm = position
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        Ok(norm.is_finite() && norm <= radius)
+    }
+
     /// Clamp the velocity channel of `channels` to `max_speed` (m/s), in place,
     /// preserving direction and unit. `Ok(())` if it was within the limit or
-    /// successfully scaled down; `Err(())` if the velocity channel is absent or
-    /// its magnitude is non-finite — i.e. the limit cannot be enforced and the
-    /// caller must fail safe. Shared by the tick-0 command and every horizon step
-    /// so the speed bound holds across the entire predictive replay.
+    /// successfully scaled down; `Err(())` if the velocity channel is absent, not
+    /// exactly a width-3 `m/s` vector, or has non-finite magnitude — i.e. the limit
+    /// cannot be enforced and the caller must fail safe. Shared by tick 0 and every
+    /// horizon step so the speed bound holds across the entire predictive replay.
     fn clamp_velocity(
         &self,
         channels: &mut crate::messages::Map<ChannelValue>,
         max_speed: f64,
     ) -> Result<(), ()> {
         let vel = channels.get(&self.velocity_channel).ok_or(())?;
+        if !Self::valid_safety_vector(vel, VELOCITY_UNIT) {
+            return Err(());
+        }
         let mag = vel.data.iter().map(|c| c * c).sum::<f64>().sqrt();
         if !mag.is_finite() {
             return Err(());
@@ -466,7 +697,7 @@ impl SafetyGovernor {
 /// but the plant-side deadline backstop must stay finite: an absurdly large (or
 /// `+Inf`) ttl would let a single command keep the plant "live" indefinitely,
 /// defeating the watchdog. 60 s is far beyond any real control deadline.
-const MAX_TTL_MS: f64 = 60_000.0;
+pub const MAX_TTL_MS: f64 = 60_000.0;
 
 /// How many consecutive `command_timeout_ms` deadlines of TOTAL sensor silence
 /// escalate the non-latching staleness HOLD to a latched ESTOP. One missed
@@ -477,18 +708,76 @@ const MAX_TTL_MS: f64 = 60_000.0;
 /// in self-clearing HOLD on a dead link — is not.
 const LINK_LOSS_ESTOP_FACTOR: f64 = 20.0;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
+struct WatchdogClock {
+    high_water_s: Option<f64>,
+    faulted: bool,
+}
+
+#[derive(Debug)]
 pub struct CommandWatchdog {
     last_recv_s: Option<f64>,
     ttl_s: f64,
     /// Highest accepted command `seq`. The deadline refreshes only on a strictly
     /// advancing seq, so a stale/duplicate command cannot extend liveness.
     last_seq: i64,
+    /// Highest local clock sample observed by either ingestion or enforcement.
+    /// Interior state is intentional: `should_hold(&self)` is the polling API,
+    /// and a rewind seen there must revoke authority for later ingestion too.
+    clock: std::sync::Mutex<WatchdogClock>,
+}
+
+impl Clone for CommandWatchdog {
+    fn clone(&self) -> Self {
+        let clock = *self.clock.lock().unwrap_or_else(|error| error.into_inner());
+        Self {
+            last_recv_s: self.last_recv_s,
+            ttl_s: self.ttl_s,
+            last_seq: self.last_seq,
+            clock: std::sync::Mutex::new(clock),
+        }
+    }
+}
+
+impl Default for CommandWatchdog {
+    fn default() -> Self {
+        Self {
+            last_recv_s: None,
+            ttl_s: 0.0,
+            last_seq: 0,
+            clock: std::sync::Mutex::new(WatchdogClock::default()),
+        }
+    }
 }
 
 impl CommandWatchdog {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// `Some(true)` means the clock has caught up but a fresh command is still
+    /// required; `Some(false)` is healthy; `None` is a fault at this sample.
+    fn observe_clock(&self, now_s: f64) -> Option<bool> {
+        let mut clock = self.clock.lock().unwrap_or_else(|error| error.into_inner());
+        if !now_s.is_finite() {
+            clock.faulted = true;
+            return None;
+        }
+        if let Some(high_water) = clock.high_water_s {
+            if now_s < high_water {
+                clock.faulted = true;
+                return None;
+            }
+        }
+        clock.high_water_s = Some(now_s);
+        Some(clock.faulted)
+    }
+
+    fn clear_clock_fault(&self) {
+        self.clock
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .faulted = false;
     }
 
     /// Record an accepted command received at local time `now_s` with its `ttl_ms`
@@ -513,10 +802,15 @@ impl CommandWatchdog {
     /// SECURITY.md); seq discipline defends against transport artifacts and buggy
     /// peers, and integrity against adversaries is mTLS's job.
     pub fn on_command(&mut self, now_s: f64, ttl_ms: f64, seq: i64) {
-        if seq < 1 {
+        let Some(recovering_clock) = self.observe_clock(now_s) else {
+            return;
+        };
+        if !(1..=JSON_SAFE_INTEGER_MAX).contains(&seq) {
             return; // unstamped/invalid seq never refreshes liveness (wire 0.6)
         }
-        if seq <= self.last_seq && (seq == self.last_seq || !self.should_hold(now_s)) {
+        if seq <= self.last_seq
+            && (seq == self.last_seq || (!recovering_clock && !self.should_hold(now_s)))
+        {
             return; // duplicate (always), or stale/reordered while the stream is LIVE
         }
         self.last_seq = seq;
@@ -530,15 +824,19 @@ impl CommandWatchdog {
         } else {
             0.0
         };
+        self.clear_clock_fault();
     }
 
     /// True if the plant must fail safe to HOLD: no command yet, or the latest is
     /// past its ttl. (A non-positive ttl is treated as immediately stale.)
     pub fn should_hold(&self, now_s: f64) -> bool {
+        if self.observe_clock(now_s) != Some(false) {
+            return true;
+        }
         match self.last_recv_s {
             None => true,
             // A non-finite clock (`now_s` or the stored `t`) makes
-            // `(now_s - t) > ttl_s` evaluate NaN→false — "not expired", a
+            // `(now_s - t) >= ttl_s` evaluates NaN→false — "not expired", a
             // fail-OPEN backstop on a bad clock. Treat any non-finite clock as
             // expired (HOLD), so the deadline backstop defaults closed.
             Some(t) => {
@@ -546,10 +844,10 @@ impl CommandWatchdog {
                     || !t.is_finite()
                     || self.ttl_s <= 0.0
                     // A backward clock step makes `(now_s - t)` negative → never
-                    // `> ttl_s` → "not expired", a fail-OPEN on a rewound clock.
+                    // `>= ttl_s` → "not expired", a fail-OPEN on a rewound clock.
                     // Treat any backward step as expired (HOLD).
                     || now_s < t
-                    || (now_s - t) > self.ttl_s
+                    || (now_s - t) >= self.ttl_s
             }
         }
     }
@@ -559,6 +857,22 @@ impl CommandWatchdog {
 mod tests {
     use super::*;
 
+    fn active_command() -> CommandFrame {
+        CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
+            channels: channels_with("velocity_setpoint", 1.0, "m/s"),
+            ..Default::default()
+        }
+    }
+
+    fn fresh_sensor() -> SensorFrame {
+        SensorFrame {
+            seq: 1,
+            ..Default::default()
+        }
+    }
+
     #[test]
     fn command_watchdog_enforces_ttl() {
         let mut wd = CommandWatchdog::new();
@@ -566,6 +880,13 @@ mod tests {
         wd.on_command(1.0, 200.0, 1); // ttl 200 ms
         assert!(!wd.should_hold(1.1), "within ttl -> apply");
         assert!(wd.should_hold(1.3), "0.3 s > 0.2 s ttl -> HOLD");
+
+        let mut exact = CommandWatchdog::new();
+        exact.on_command(0.0, 1_000.0, 1);
+        assert!(
+            exact.should_hold(1.0),
+            "the command expires at its deadline, not one tick after it"
+        );
     }
 
     #[test]
@@ -580,7 +901,7 @@ mod tests {
             "deadline anchored at the seq=5 command; stale frames must not extend it"
         );
         // A strictly-advancing command refreshes it.
-        wd.on_command(1.2, 200.0, 6);
+        wd.on_command(1.25, 200.0, 6);
         assert!(!wd.should_hold(1.3), "seq=6 advances -> refreshed");
     }
 
@@ -590,7 +911,7 @@ mod tests {
         // A spray of unstamped (0) or garbage (negative / i64::MIN) frames must
         // never grant liveness — that was the anti-replay/anti-stale bypass.
         let mut wd = CommandWatchdog::new();
-        for bad_seq in [0, -1, i64::MIN] {
+        for bad_seq in [0, -1, i64::MIN, JSON_SAFE_INTEGER_MAX + 1, i64::MAX] {
             wd.on_command(1.0, 200.0, bad_seq);
             assert!(
                 wd.should_hold(1.05),
@@ -632,14 +953,15 @@ mod tests {
             wd.should_hold(1.75),
             "duplicate within the new epoch does not refresh"
         );
-        // seq == i64::MAX is accepted without panic; a duplicate MAX cannot advance.
+        // The largest JSON-safe wire sequence is accepted without panic; a
+        // duplicate at that bound cannot advance.
         let mut wd2 = CommandWatchdog::new();
-        wd2.on_command(0.0, 200.0, i64::MAX);
+        wd2.on_command(0.0, 200.0, JSON_SAFE_INTEGER_MAX);
         assert!(!wd2.should_hold(0.1));
-        wd2.on_command(0.15, 200.0, i64::MAX);
+        wd2.on_command(0.15, 200.0, JSON_SAFE_INTEGER_MAX);
         assert!(
             wd2.should_hold(0.3),
-            "duplicate i64::MAX does not extend the deadline"
+            "a duplicate at the JSON-safe bound does not extend the deadline"
         );
     }
 
@@ -691,14 +1013,42 @@ mod tests {
             },
         );
         let sensor = SensorFrame {
+            seq: 1,
             channels: ch,
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
             "an empty position vector must fail closed (HOLD), not bypass the geofence"
+        );
+    }
+
+    #[test]
+    fn geofence_breach_latches_even_when_command_holds() {
+        let mut gov = SafetyGovernor::new(SafetyLimits {
+            geofence_radius_m: Some(5.0),
+            ..Default::default()
+        });
+        let command = CommandFrame {
+            seq: 1,
+            mode: Mode::Hold,
+            channels: channels_with("velocity_setpoint", 0.0, "m/s"),
+            ..Default::default()
+        };
+        let sensor = SensorFrame {
+            seq: 1,
+            channels: channels_with("pose_position", 10.0, "m"),
+            ..Default::default()
+        };
+
+        let out = gov.govern(&command, Some(&sensor), 1.0, Some(1.0));
+
+        assert_eq!(out.mode, Mode::Estop);
+        assert!(
+            gov.is_estopped(),
+            "a controller HOLD must not hide an already-breached geofence"
         );
     }
 
@@ -717,8 +1067,7 @@ mod tests {
     }
 
     #[test]
-    fn geofence_horizon_lookahead_truncates_near_fence() {
-        // radius 10 m, max_speed 5 m/s, horizon 4 steps @ 100 ms => margin 5*4*0.1 = 2 m.
+    fn geofence_lookahead_projects_direction_and_truncates_before_crossing() {
         let mut gov = SafetyGovernor::new(SafetyLimits {
             geofence_radius_m: Some(10.0),
             max_speed_mps: Some(5.0),
@@ -726,7 +1075,9 @@ mod tests {
             ..Default::default()
         });
         let cmd = CommandFrame {
+            seq: 1,
             mode: Mode::Active,
+            ttl_ms: 500.0,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
             horizon: vec![
                 channels_with("velocity_setpoint", 1.0, "m/s"),
@@ -737,8 +1088,10 @@ mod tests {
             horizon_dt_ms: Some(100.0),
             ..Default::default()
         };
-        // r=9: inside the fence but within the 2 m horizon margin (9 > 10-2).
+        // A gentle outward trajectory remains inside for its full ttl and should
+        // not be discarded merely because the plant is near the boundary.
         let near = SensorFrame {
+            seq: 1,
             channels: channels_with("pose_position", 9.0, "m"),
             ..Default::default()
         };
@@ -748,12 +1101,29 @@ mod tests {
             Mode::Active,
             "tick-0 inside the fence still actuates"
         );
-        assert!(
-            out.horizon.is_empty(),
-            "near the fence the open-loop horizon must be truncated"
+        assert_eq!(out.horizon.len(), 4, "the exact safe trajectory is kept");
+
+        // At 5 m/s: tick 0 reaches 9.5 m, horizon[0] reaches exactly 10 m,
+        // horizon[1] would reach 10.5 m. Keep only the representable safe prefix.
+        let crossing = CommandFrame {
+            channels: channels_with("velocity_setpoint", 5.0, "m/s"),
+            horizon: vec![
+                channels_with("velocity_setpoint", 5.0, "m/s"),
+                channels_with("velocity_setpoint", 5.0, "m/s"),
+                channels_with("velocity_setpoint", 5.0, "m/s"),
+            ],
+            ..cmd.clone()
+        };
+        let out = gov.govern(&crossing, Some(&near), 1.5, Some(1.5));
+        assert_eq!(out.mode, Mode::Active);
+        assert_eq!(
+            out.horizon.len(),
+            1,
+            "trajectory must drain before the first crossing step"
         );
         // r=3: well inside (3 < 10-2) -> horizon preserved.
         let inside = SensorFrame {
+            seq: 2,
             channels: channels_with("pose_position", 3.0, "m"),
             ..Default::default()
         };
@@ -765,6 +1135,74 @@ mod tests {
         );
     }
 
+    #[test]
+    fn geofence_projects_legacy_tick_zero_for_the_full_ttl() {
+        let mut gov = SafetyGovernor::new(SafetyLimits {
+            geofence_radius_m: Some(10.0),
+            command_timeout_ms: 500.0,
+            ..Default::default()
+        });
+        let sensor = SensorFrame {
+            seq: 1,
+            channels: channels_with("pose_position", 9.9, "m"),
+            ..Default::default()
+        };
+        let outward = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
+            ttl_ms: 200.0,
+            channels: channels_with("velocity_setpoint", 1.0, "m/s"),
+            ..Default::default()
+        };
+        assert_eq!(
+            gov.govern(&outward, Some(&sensor), 1.0, Some(1.0)).mode,
+            Mode::Hold,
+            "legacy no-horizon tick 0 would cross while replayed to ttl"
+        );
+
+        let inward = CommandFrame {
+            seq: 2,
+            channels: channels_with("velocity_setpoint", -1.0, "m/s"),
+            ..outward
+        };
+        assert_eq!(
+            gov.govern(&inward, Some(&sensor), 2.0, Some(2.0)).mode,
+            Mode::Active,
+            "direction-aware projection must preserve an inward command"
+        );
+
+        let body_frame = CommandFrame {
+            seq: 3,
+            frame_id: "body".into(),
+            ..inward
+        };
+        assert_eq!(
+            gov.govern(&body_frame, Some(&sensor), 3.0, Some(3.0)).mode,
+            Mode::Hold,
+            "position and velocity must share one coordinate frame"
+        );
+    }
+
+    #[test]
+    fn first_unsafe_horizon_step_cannot_become_legacy_replay() {
+        let mut gov = SafetyGovernor::new(SafetyLimits {
+            max_speed_mps: Some(1.0),
+            ..Default::default()
+        });
+        let cmd = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
+            ttl_ms: 200.0,
+            channels: channels_with("velocity_setpoint", 0.5, "m/s"),
+            horizon: vec![channels_with("velocity_setpoint", 0.5, "km/h")],
+            horizon_dt_ms: Some(50.0),
+            ..Default::default()
+        };
+        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
+        assert_eq!(out.mode, Mode::Hold);
+        assert!(out.horizon.is_empty());
+    }
+
     fn channels_with(name: &str, x: f64, unit: &str) -> crate::messages::Map<ChannelValue> {
         let mut m = crate::messages::Map::new();
         m.insert(
@@ -774,6 +1212,21 @@ mod tests {
         m
     }
 
+    fn channel_spec(
+        name: &str,
+        kind: ChannelKind,
+        unit: Option<&str>,
+        size: Option<i64>,
+    ) -> ChannelSpec {
+        ChannelSpec {
+            name: name.into(),
+            kind,
+            unit: unit.map(str::to_string),
+            size,
+            ..Default::default()
+        }
+    }
+
     #[test]
     fn nan_velocity_setpoint_fails_safe_to_hold() {
         let mut gov = SafetyGovernor::new(SafetyLimits {
@@ -781,11 +1234,13 @@ mod tests {
             ..Default::default()
         });
         let cmd = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
             channels: channels_with("velocity_setpoint", f64::NAN, "m/s"),
             ..Default::default()
         };
         // Fresh sensor (now == last → not stale); a NaN must not slip past the clamp.
-        let out = gov.govern(&cmd, None, 1.0, Some(1.0));
+        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Hold, "NaN velocity must fail safe to HOLD");
         let v = out
             .channels
@@ -795,20 +1250,25 @@ mod tests {
     }
 
     #[test]
-    fn nan_position_triggers_estop_under_active_geofence() {
+    fn nonfinite_sensor_payload_holds_before_geofence_evaluation() {
         let mut gov = SafetyGovernor::new(SafetyLimits {
             geofence_radius_m: Some(10.0),
             ..Default::default()
         });
         let sensor = SensorFrame {
+            seq: 1,
             channels: channels_with("pose_position", f64::NAN, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
-            Mode::Estop,
-            "NaN position must fail safe to ESTOP under an active geofence"
+            Mode::Hold,
+            "an invalid non-finite SensorFrame must fail closed before geofence evaluation"
+        );
+        assert!(
+            !gov.is_estopped(),
+            "an invalid frame is dropped; it cannot assert a breach"
         );
     }
 
@@ -820,10 +1280,11 @@ mod tests {
         });
         // pose 3,0,0 → r=3 > 0; with radius 0 the fence is disabled (matches loop.py).
         let sensor = SensorFrame {
+            seq: 1,
             channels: channels_with("pose_position", 3.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Active,
@@ -841,20 +1302,22 @@ mod tests {
         });
         // Breach the fence: pose 99,0,0 -> r=99 > 10 -> ESTOP.
         let breach = SensorFrame {
+            seq: 1,
             channels: channels_with("pose_position", 99.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&breach), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&breach), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Estop, "geofence breach must ESTOP");
         assert!(gov.is_estopped());
         assert!(!gov.safety_ok());
 
         // Now feed a perfectly safe state — the latch must keep returning ESTOP.
         let inside = SensorFrame {
+            seq: 2,
             channels: channels_with("pose_position", 1.0, "m"),
             ..Default::default()
         };
-        let still = gov.govern(&CommandFrame::default(), Some(&inside), 2.0, Some(2.0));
+        let still = gov.govern(&active_command(), Some(&inside), 2.0, Some(2.0));
         assert_eq!(
             still.mode,
             Mode::Estop,
@@ -872,7 +1335,7 @@ mod tests {
         // Supervisor reset clears it; the next safe state is ACTIVE again.
         gov.reset();
         assert!(!gov.is_estopped());
-        let after = gov.govern(&CommandFrame::default(), Some(&inside), 3.0, Some(3.0));
+        let after = gov.govern(&active_command(), Some(&inside), 3.0, Some(3.0));
         assert_eq!(
             after.mode,
             Mode::Active,
@@ -892,7 +1355,7 @@ mod tests {
             // last == now: under a *valid* timeout this is the freshest possible
             // sensor (not stale). A bad timeout must STILL force HOLD (fail closed),
             // never fall through to ACTIVE.
-            let out = gov.govern(&CommandFrame::default(), None, 10.0, Some(10.0));
+            let out = gov.govern(&active_command(), None, 10.0, Some(10.0));
             assert_eq!(
                 out.mode,
                 Mode::Hold,
@@ -905,10 +1368,204 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            ok.govern(&CommandFrame::default(), None, 10.0, Some(10.0))
+            ok.govern(&active_command(), Some(&fresh_sensor()), 10.0, Some(10.0))
                 .mode,
             Mode::Active
         );
+    }
+
+    #[test]
+    fn capabilities_resolve_canonical_safety_channels_not_first_channels() {
+        let caps = Capabilities {
+            sensor_channels: vec![
+                channel_spec("imu_accel", ChannelKind::Vec3, Some("m/s2"), None),
+                channel_spec(
+                    POSITION_CHANNEL,
+                    ChannelKind::Vec3,
+                    Some(POSITION_UNIT),
+                    Some(3),
+                ),
+            ],
+            command_channels: vec![
+                channel_spec("thrust", ChannelKind::Scalar, Some("N"), None),
+                channel_spec(
+                    VELOCITY_CHANNEL,
+                    ChannelKind::Vec3,
+                    Some(VELOCITY_UNIT),
+                    Some(3),
+                ),
+            ],
+            safety: SafetyLimits {
+                geofence_radius_m: Some(10.0),
+                max_speed_mps: Some(1.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut gov = SafetyGovernor::from_capabilities(&caps);
+        assert!(gov.safety_ok(), "compatible canonical specs must negotiate");
+
+        let command = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
+            channels: channels_with(VELOCITY_CHANNEL, 2.0, VELOCITY_UNIT),
+            ..Default::default()
+        };
+        let sensor = SensorFrame {
+            seq: 1,
+            channels: channels_with(POSITION_CHANNEL, 3.0, POSITION_UNIT),
+            ..Default::default()
+        };
+        let out = gov.govern(&command, Some(&sensor), 1.0, Some(1.0));
+        assert_eq!(out.mode, Mode::Active);
+        assert_eq!(out.channels[VELOCITY_CHANNEL].data, vec![1.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn capabilities_fail_closed_on_incompatible_position_spec() {
+        let incompatible = [
+            channel_spec(POSITION_CHANNEL, ChannelKind::Vec3, None, Some(3)),
+            channel_spec(POSITION_CHANNEL, ChannelKind::Vec3, Some("cm"), Some(3)),
+            channel_spec(
+                POSITION_CHANNEL,
+                ChannelKind::Scalar,
+                Some(POSITION_UNIT),
+                None,
+            ),
+            channel_spec(
+                POSITION_CHANNEL,
+                ChannelKind::Vec3,
+                Some(POSITION_UNIT),
+                Some(2),
+            ),
+        ];
+        for position in incompatible {
+            let caps = Capabilities {
+                sensor_channels: vec![position],
+                command_channels: vec![channel_spec(
+                    VELOCITY_CHANNEL,
+                    ChannelKind::Vec3,
+                    Some(VELOCITY_UNIT),
+                    Some(3),
+                )],
+                safety: SafetyLimits {
+                    geofence_radius_m: Some(10.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            assert!(!SafetyGovernor::from_capabilities(&caps).safety_ok());
+        }
+    }
+
+    #[test]
+    fn capabilities_fail_closed_on_incompatible_velocity_spec() {
+        let incompatible = [
+            channel_spec(VELOCITY_CHANNEL, ChannelKind::Vec3, None, Some(3)),
+            channel_spec(VELOCITY_CHANNEL, ChannelKind::Vec3, Some("km/h"), Some(3)),
+            channel_spec(
+                VELOCITY_CHANNEL,
+                ChannelKind::Scalar,
+                Some(VELOCITY_UNIT),
+                None,
+            ),
+            channel_spec(
+                VELOCITY_CHANNEL,
+                ChannelKind::Vec3,
+                Some(VELOCITY_UNIT),
+                Some(4),
+            ),
+        ];
+        for velocity in incompatible {
+            let caps = Capabilities {
+                command_channels: vec![velocity],
+                safety: SafetyLimits {
+                    max_speed_mps: Some(1.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            assert!(!SafetyGovernor::from_capabilities(&caps).safety_ok());
+        }
+    }
+
+    #[test]
+    fn geofence_requires_a_projectable_velocity_contract() {
+        let caps = Capabilities {
+            sensor_channels: vec![channel_spec(
+                POSITION_CHANNEL,
+                ChannelKind::Vec3,
+                Some(POSITION_UNIT),
+                Some(3),
+            )],
+            safety: SafetyLimits {
+                geofence_radius_m: Some(10.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(
+            !SafetyGovernor::from_capabilities(&caps).safety_ok(),
+            "a reactive-only fence cannot guarantee that replay stays in bounds"
+        );
+    }
+
+    #[test]
+    fn geofence_rejects_wrong_unit_or_truncated_position() {
+        let mut gov = SafetyGovernor::new(SafetyLimits {
+            geofence_radius_m: Some(5.0),
+            ..Default::default()
+        });
+        for position in [
+            ChannelValue {
+                data: vec![3.0, 0.0, 0.0],
+                unit: Some("cm".into()),
+            },
+            ChannelValue {
+                data: vec![3.0],
+                unit: Some(POSITION_UNIT.into()),
+            },
+        ] {
+            let sensor = SensorFrame {
+                seq: 1,
+                channels: [(POSITION_CHANNEL.into(), position)].into_iter().collect(),
+                ..Default::default()
+            };
+            let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+            assert_eq!(out.mode, Mode::Hold);
+            assert!(!gov.is_estopped());
+        }
+    }
+
+    #[test]
+    fn speed_clamp_rejects_wrong_unit_or_truncated_velocity() {
+        let mut gov = SafetyGovernor::new(SafetyLimits {
+            max_speed_mps: Some(1.0),
+            ..Default::default()
+        });
+        for velocity in [
+            ChannelValue {
+                data: vec![0.5, 0.0, 0.0],
+                unit: Some("km/h".into()),
+            },
+            ChannelValue {
+                data: vec![0.5],
+                unit: Some(VELOCITY_UNIT.into()),
+            },
+        ] {
+            let command = CommandFrame {
+                seq: 1,
+                mode: Mode::Active,
+                channels: [(VELOCITY_CHANNEL.into(), velocity)].into_iter().collect(),
+                ..Default::default()
+            };
+            let out = gov.govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
+            assert_eq!(out.mode, Mode::Hold);
+            assert_eq!(
+                out.channels[VELOCITY_CHANNEL].data.len(),
+                SAFETY_VECTOR_WIDTH
+            );
+        }
     }
 
     // ───────────── FIX 3: geofence on a non-default channel; absent => fail closed ─────────────
@@ -928,10 +1585,11 @@ mod tests {
         );
         // Breach on the *negotiated* channel name, not "pose_position".
         let breach = SensorFrame {
+            seq: 1,
             channels: channels_with("ned_pos", 50.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&breach), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&breach), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Estop,
@@ -954,10 +1612,11 @@ mod tests {
             vec!["imu_accel".into()], // ...but the sensor specs don't declare it
         );
         let sensor = SensorFrame {
+            seq: 1,
             channels: channels_with("imu_accel", 0.0, "m/s2"),
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -984,10 +1643,11 @@ mod tests {
             vec!["ned_pos".into()],
         );
         let sensor = SensorFrame {
+            seq: 1,
             channels: channels_with("other", 1.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&CommandFrame::default(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1019,13 +1679,15 @@ mod tests {
             ChannelValue::vec3(3.0, 4.0, 0.0, Some("m/s")), // mag 5 > 1
         );
         let cmd = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
             channels: tick0,
             horizon: vec![over],
             horizon_dt_ms: Some(50.0),
             ..Default::default()
         };
         // Fresh sensor, no geofence -> ACTIVE; the horizon must come back clamped.
-        let out = gov.govern(&cmd, None, 1.0, Some(1.0));
+        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Active);
         let hv = &out.horizon[0]["velocity_setpoint"].data;
         let mag = hv.iter().map(|c| c * c).sum::<f64>().sqrt();
@@ -1036,7 +1698,7 @@ mod tests {
     }
 
     #[test]
-    fn nonfinite_horizon_step_truncates_replay() {
+    fn nonfinite_horizon_step_rejects_the_active_command() {
         let mut gov = SafetyGovernor::new(SafetyLimits {
             max_speed_mps: Some(2.0),
             ..Default::default()
@@ -1050,17 +1712,23 @@ mod tests {
             m
         };
         let cmd = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
             channels: step(0.5),
             // good, then non-finite, then good: replay must stop AT the poisoned step.
             horizon: vec![step(1.0), step(f64::NAN), step(1.0)],
             horizon_dt_ms: Some(50.0),
             ..Default::default()
         };
-        let out = gov.govern(&cmd, None, 1.0, Some(1.0));
+        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(
-            out.horizon.len(),
-            1,
-            "horizon truncates at the first unclampable (non-finite) step"
+            out.mode,
+            Mode::Hold,
+            "a non-finite predictive step invalidates the Active payload"
+        );
+        assert!(
+            out.horizon.is_empty(),
+            "the safe HOLD carries no replay horizon"
         );
     }
 
@@ -1094,11 +1762,13 @@ mod tests {
             let mut gov = SafetyGovernor::new(limits);
             // A would-be-actuating command on the freshest possible sensor.
             let cmd = CommandFrame {
+                seq: 1,
                 mode: Mode::Active,
                 channels: channels_with("velocity_setpoint", 99.0, "m/s"),
                 ..Default::default()
             };
             let sensor = SensorFrame {
+                seq: 1,
                 channels: channels_with("pose_position", 1000.0, "m"),
                 ..Default::default()
             };
@@ -1122,11 +1792,13 @@ mod tests {
         });
         let out = ok.govern(
             &CommandFrame {
+                seq: 1,
                 mode: Mode::Active,
                 channels: channels_with("velocity_setpoint", 2.0, "m/s"),
                 ..Default::default()
             },
             Some(&SensorFrame {
+                seq: 1,
                 channels: channels_with("pose_position", 3.0, "m"),
                 ..Default::default()
             }),
@@ -1150,7 +1822,7 @@ mod tests {
             ..Default::default()
         });
         // last_sensor at t=2.0, now stepped BACK to t=1.0 -> (now-last) = -1.0.
-        let out = gov.govern(&CommandFrame::default(), None, 1.0, Some(2.0));
+        let out = gov.govern(&active_command(), Some(&fresh_sensor()), 1.0, Some(2.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1163,14 +1835,29 @@ mod tests {
             wd.should_hold(1.0),
             "the watchdog must HOLD when the clock steps backward past the recv time"
         );
+        wd.on_command(1.0, 500.0, 2);
+        assert!(
+            wd.should_hold(2.0),
+            "a command received on the rewound clock must not restore authority, and catch-up alone is insufficient"
+        );
+        wd.on_command(2.0, 500.0, 2);
+        assert!(
+            !wd.should_hold(2.1),
+            "a fresh command at the recovered high-water mark may restore liveness"
+        );
     }
 
     #[test]
     fn nan_clock_forces_hold() {
         // safety-2: a non-finite `now_s` must be treated as stale (HOLD), not slip
-        // past the `(now_s - last) > timeout` comparison as "fresh".
+        // past the `(now_s - last) >= timeout` comparison as "fresh".
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
-        let out = gov.govern(&CommandFrame::default(), None, f64::NAN, Some(1.0));
+        let out = gov.govern(
+            &active_command(),
+            Some(&fresh_sensor()),
+            f64::NAN,
+            Some(1.0),
+        );
         assert_eq!(out.mode, Mode::Hold, "NaN clock must fail safe to HOLD");
 
         let mut wd = CommandWatchdog::new();
@@ -1199,6 +1886,8 @@ mod tests {
         );
         ch.insert("aux_servo".into(), ChannelValue::scalar(7.0, Some("rad")));
         let cmd = CommandFrame {
+            seq: 1,
+            mode: Mode::Active,
             channels: ch,
             ..Default::default()
         };
@@ -1221,7 +1910,7 @@ mod tests {
     fn total_silence_escalates_hold_to_latched_estop() {
         // Default command_timeout_ms = 500 ms -> escalation deadline = 20 * 0.5 = 10 s.
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
-        let cmd = CommandFrame::default();
+        let cmd = active_command();
         // A brief dropout (well under the deadline) is a non-latching HOLD.
         let out = gov.govern(&cmd, None, 6.0, Some(1.0)); // 5 s silence
         assert_eq!(out.mode, Mode::Hold, "a brief dropout HOLDs (non-latching)");
@@ -1232,10 +1921,10 @@ mod tests {
         assert_eq!(out.mode, Mode::Estop, "a collapsed link must latch ESTOP");
         assert!(gov.is_estopped(), "the ESTOP must latch");
         // Latched: even fresh data now returns ESTOP until a supervisor reset.
-        let out = gov.govern(&cmd, None, 12.0, Some(12.0));
+        let out = gov.govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
         assert_eq!(out.mode, Mode::Estop, "ESTOP stays latched until reset");
         gov.reset();
-        let out = gov.govern(&cmd, None, 12.0, Some(12.0));
+        let out = gov.govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
         assert_eq!(
             out.mode,
             Mode::Active,
@@ -1250,15 +1939,38 @@ mod tests {
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
         for mode in [Mode::Init, Mode::Hold] {
             let cmd = CommandFrame {
-                mode,
+                seq: 1,
+                mode: mode.clone(),
                 channels: channels_with("velocity_setpoint", 1.0, "m/s"),
                 ..Default::default()
             };
-            let out = gov.govern(&cmd, None, 1.0, Some(1.0));
+            let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
             assert_eq!(out.mode, Mode::Hold, "{mode:?} must normalize to HOLD");
             let v = out.channels.get("velocity_setpoint").expect("present");
             assert!(v.data.iter().all(|c| *c == 0.0), "HOLD zeroes the setpoint");
         }
+    }
+
+    #[test]
+    fn noncanonical_unknown_active_never_gains_authority() {
+        let mut gov = SafetyGovernor::new(SafetyLimits::default());
+        let command = CommandFrame {
+            seq: 1,
+            mode: Mode::Unknown("active".into()),
+            ttl_ms: 200.0,
+            channels: channels_with("velocity_setpoint", 1.0, "m/s"),
+            ..Default::default()
+        };
+
+        let out = gov.govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
+
+        assert_eq!(out.mode, Mode::Hold);
+        assert!(
+            out.channels
+                .values()
+                .all(|channel| channel.data.iter().all(|value| *value == 0.0)),
+            "an ambiguous in-memory mode must fail closed to zero output"
+        );
     }
 
     #[test]
@@ -1286,6 +1998,7 @@ mod tests {
         assert!(gov.is_estopped(), "inbound ESTOP must latch");
         // A subsequent perfectly-safe Active command is still ESTOP until reset.
         let active = CommandFrame {
+            seq: 1,
             mode: Mode::Active,
             channels: channels_with("velocity_setpoint", 0.5, "m/s"),
             ..Default::default()
@@ -1297,7 +2010,8 @@ mod tests {
         );
         gov.reset();
         assert_eq!(
-            gov.govern(&active, None, 3.0, Some(3.0)).mode,
+            gov.govern(&active, Some(&fresh_sensor()), 3.0, Some(3.0))
+                .mode,
             Mode::Active,
             "reset restores normal governing"
         );
@@ -1310,12 +2024,62 @@ mod tests {
                 command_timeout_ms: bad,
                 ..Default::default()
             });
-            let out = gov.govern(&CommandFrame::default(), None, 1.0, Some(1.0));
+            assert!(
+                !gov.safety_ok(),
+                "bad timeout {bad} must be visible before the first command"
+            );
+            let out = gov.govern(&active_command(), None, 1.0, Some(1.0));
             assert_eq!(out.mode, Mode::Hold, "bad timeout {bad} must HOLD");
             assert!(
                 !gov.safety_ok(),
                 "a bad command_timeout_ms ({bad}) must report safety_ok()=false, not a healthy HOLD"
             );
         }
+    }
+
+    #[test]
+    fn invalid_advisory_limit_is_visible_at_construction() {
+        let gov = SafetyGovernor::new(SafetyLimits {
+            max_tilt_rad: Some(f64::NAN),
+            ..Default::default()
+        });
+        assert!(
+            !gov.safety_ok(),
+            "an invalid plant-enforced advisory limit cannot report healthy"
+        );
+    }
+
+    #[test]
+    fn invalid_or_duplicate_negotiated_channels_fail_closed_at_construction() {
+        let gov = SafetyGovernor::with_channels(
+            SafetyLimits::default(),
+            "pose",
+            "velocity",
+            vec!["velocity".into(), "velocity".into()],
+            vec!["pose".into()],
+        );
+        assert!(!gov.safety_ok());
+
+        let gov = SafetyGovernor::with_channels(
+            SafetyLimits::default(),
+            "pose\nspoof",
+            "velocity",
+            vec!["velocity".into()],
+            vec!["pose".into()],
+        );
+        assert!(!gov.safety_ok());
+
+        let mut gov = SafetyGovernor::with_channels(
+            SafetyLimits::default(),
+            "pose",
+            "velocity\nspoof",
+            vec!["velocity\nspoof".into()],
+            vec!["pose".into()],
+        );
+        let output = gov.govern(&active_command(), Some(&fresh_sensor()), 1.0, Some(1.0));
+        assert_eq!(output.mode, Mode::Hold);
+        output
+            .validate_wire()
+            .expect("config-fail HOLD must still be a complete publishable frame");
     }
 }

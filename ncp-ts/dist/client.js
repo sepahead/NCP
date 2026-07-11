@@ -14,11 +14,9 @@
  * `Send`).
  */
 /** The protocol version this client stamps on every request (`ncp_version`).
- *  Wire 0.6: every message MUST carry a compatible `ncp_version` (absent is
- *  rejected, never coerced) and the closed-loop frames MUST stamp `seq` — see
- *  `VERSIONING.md`. The serialization is unchanged from 0.5, so the contract
- *  hash is identical; the version string is the compatibility gate. */
-export const NCP_VERSION = '0.6';
+ * Wire 0.7 adds exact JSON-integer bounds, lossless additive enums, explicit
+ * provenance, typed errors, and stricter kind/nested-frame validation. */
+export const NCP_VERSION = '0.7';
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
@@ -26,7 +24,11 @@ export const NCP_VERSION = '0.6';
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export const NCP_CONTRACT_HASH = '24e8e6e31e1dec8a';
+export const NCP_CONTRACT_HASH = 'f05e328cad20959d';
+/** Exact integer range shared by every JSON implementation (binary64 included). */
+export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991;
+export const JSON_SAFE_INTEGER_MIN = -JSON_SAFE_INTEGER_MAX;
+export const MAX_HORIZON_STEPS = 65_536;
 /** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
  *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
  *  string = an advisory message describing the mismatch (for logging/telemetry). */
@@ -54,13 +56,16 @@ function parseMajorMinor(version) {
     if (parts.length < 1 || parts.length > 2)
         fail();
     const part = (s) => {
-        // Base-10 non-negative integer only — reject empty/undefined, signs, whitespace,
-        // junk (matches Rust's `u64::parse`, which `check_version` rejects, not coerces).
-        if (s === undefined || !/^[0-9]+$/.test(s) || !Number.isSafeInteger(Number(s)))
+        // Language-neutral grammar: ASCII decimal digits only, bounded by u64::MAX.
+        // BigInt preserves the full Rust range instead of imposing JS's 2^53 limit.
+        if (s === undefined || s.length > 20 || !/^[0-9]+$/.test(s))
             return fail();
-        return Number(s);
+        const value = BigInt(s);
+        if (value > 18446744073709551615n)
+            return fail();
+        return value;
     };
-    return [part(parts[0]), parts.length === 2 ? part(parts[1]) : 0];
+    return [part(parts[0]), parts.length === 2 ? part(parts[1]) : 0n];
 }
 /**
  * The HARD wire-compatibility gate — `true` if `version` can speak our wire.
@@ -75,7 +80,7 @@ function parseMajorMinor(version) {
 export function checkVersion(version, strict = false) {
     const [gotMajor, gotMinor] = parseMajorMinor(version);
     const [wantMajor, wantMinor] = parseMajorMinor(NCP_VERSION);
-    const compatible = wantMajor === 0 ? gotMajor === wantMajor && gotMinor === wantMinor : gotMajor === wantMajor;
+    const compatible = wantMajor === 0n ? gotMajor === wantMajor && gotMinor === wantMinor : gotMajor === wantMajor;
     if (!compatible) {
         if (strict) {
             throw new NcpVersionError(`NCP version mismatch: got ${version}, want ${NCP_VERSION}`);
@@ -103,7 +108,8 @@ export function assertScientificBoundary(frame) {
     const carrier = kind === 'session_opened' && frame.provenance && typeof frame.provenance === 'object'
         ? frame.provenance
         : frame;
-    if (!('is_simulation_output' in carrier) && !('calibrated_posterior' in carrier)) {
+    const boundaryKind = kind === 'observation_frame' || kind === 'session_opened';
+    if (!boundaryKind && !('is_simulation_output' in carrier) && !('calibrated_posterior' in carrier)) {
         return; // not a boundary-carrying frame (e.g. a control reply)
     }
     if (carrier.is_simulation_output !== true) {
@@ -113,12 +119,535 @@ export function assertScientificBoundary(frame) {
         throw new NcpScientificBoundaryError(`NCP boundary: calibrated_posterior must be false (got ${JSON.stringify(carrier.calibrated_posterior)})`);
     }
 }
-function unwrap(reply) {
-    if (reply === null || typeof reply !== 'object') {
-        throw new Error(`NCP: reply is not an object: ${JSON.stringify(reply)}`);
+const REQUIRED = {
+    capabilities: [
+        'command_channels',
+        'control_rate_hz',
+        'controller_id',
+        'kind',
+        'ncp_version',
+        'role',
+        'safety',
+        'sensor_channels',
+    ],
+    close_session: ['kind', 'ncp_version', 'session_id'],
+    command_frame: ['kind', 'ncp_version', 'seq'],
+    control_status: ['kind', 'loop_latency_ms', 'mode', 'ncp_version', 'safety_ok', 'seq', 't'],
+    error: ['error', 'kind', 'ncp_version'],
+    link_status: [
+        'burst',
+        'kind',
+        'last_seq',
+        'loss_rate',
+        'lost',
+        'ncp_version',
+        'received',
+        'session_id',
+        't',
+    ],
+    observation_frame: [
+        'calibrated_posterior',
+        'is_simulation_output',
+        'kind',
+        'ncp_version',
+        'records',
+        'seq',
+        'session_id',
+    ],
+    open_session: ['kind', 'ncp_version', 'network', 'session_id'],
+    run_request: ['duration_ms', 'kind', 'ncp_version', 'session_id'],
+    sensor_frame: ['kind', 'ncp_version', 'seq'],
+    session_closed: ['kind', 'ncp_version', 'ok', 'session_id'],
+    session_opened: ['backend', 'kind', 'ncp_version', 'ok', 'session_id'],
+    step_request: ['kind', 'ncp_version', 'session_id'],
+    stimulus_frame: ['kind', 'ncp_version', 'session_id'],
+};
+function isRecord(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+function requireRecord(value, path) {
+    if (!isRecord(value))
+        throw new Error(`${path} must be an object`);
+    return value;
+}
+function requireNonemptyString(value, path) {
+    if (typeof value !== 'string' || value.length === 0) {
+        throw new Error(`${path} must be a non-empty string`);
     }
+    return value;
+}
+const WIRE_CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/u;
+/** Rust `char::is_control` parity for the JSON identifiers NCP constrains.
+ * JavaScript's common C0/DEL-only regex misses the C1 range U+0080..U+009F. */
+export function hasWireControlCharacters(value) {
+    return WIRE_CONTROL_CHARACTERS.test(value);
+}
+function requireCleanNonemptyString(value, path) {
+    const text = requireNonemptyString(value, path);
+    if (hasWireControlCharacters(text)) {
+        throw new Error(`${path} must contain no control characters`);
+    }
+    return text;
+}
+function assertOptionalString(value, path) {
+    if (value === undefined || value === null)
+        return;
+    if (typeof value !== 'string')
+        throw new Error(`${path} must be a string or null`);
+}
+function assertOptionalBoolean(value, path) {
+    if (value === undefined)
+        return;
+    if (typeof value !== 'boolean')
+        throw new Error(`${path} must be a boolean`);
+}
+function assertStringArray(value, path) {
+    if (value === undefined)
+        return;
+    if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+        throw new Error(`${path} must be an array of strings`);
+    }
+}
+function assertStringMap(value, path) {
+    if (value === undefined)
+        return;
+    const entries = requireRecord(value, path);
+    for (const [key, entry] of Object.entries(entries)) {
+        if (typeof entry !== 'string') {
+            throw new Error(`${path}[${JSON.stringify(key)}] must be a string`);
+        }
+    }
+}
+function assertSafeInteger(value, path, nullable = false) {
+    if (nullable && value === null)
+        return;
+    if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+        throw new Error(`${path} must be an exact JSON integer in [${JSON_SAFE_INTEGER_MIN}, ${JSON_SAFE_INTEGER_MAX}]`);
+    }
+}
+function assertFiniteNumber(value, path, nullable = false) {
+    if (nullable && value === null)
+        return 0;
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`${path} must be ${nullable ? 'a finite number or null' : 'a finite number'}`);
+    }
+    return value;
+}
+function assertSafeIntegerArray(value, path) {
+    if (value === undefined)
+        return;
+    if (!Array.isArray(value))
+        throw new Error(`${path} must be an array`);
+    value.forEach((entry, index) => assertSafeInteger(entry, `${path}[${index}]`));
+}
+function assertFiniteNumberArray(value, path) {
+    if (value === undefined)
+        return;
+    if (!Array.isArray(value))
+        throw new Error(`${path} must be an array`);
+    value.forEach((entry, index) => assertFiniteNumber(entry, `${path}[${index}]`));
+}
+function assertSafeIntegerMap(value, path) {
+    if (value === undefined)
+        return;
+    const entries = requireRecord(value, path);
+    for (const [key, entry] of Object.entries(entries)) {
+        assertSafeInteger(entry, `${path}[${JSON.stringify(key)}]`);
+    }
+}
+function assertChannelMap(value, path, requireData = false) {
+    if (value === undefined) {
+        if (requireData)
+            throw new Error(`${path} must contain at least one channel`);
+        return;
+    }
+    const channels = requireRecord(value, path);
+    if (requireData && Object.keys(channels).length === 0) {
+        throw new Error(`${path} must contain at least one channel`);
+    }
+    for (const [name, raw] of Object.entries(channels)) {
+        if (name.length === 0 || hasWireControlCharacters(name)) {
+            throw new Error(`${path} channel name ${JSON.stringify(name)} must be non-empty and contain no control characters`);
+        }
+        const channel = requireRecord(raw, `${path}.${name}`);
+        if (channel.data !== undefined || requireData) {
+            if (!Array.isArray(channel.data) ||
+                (requireData && channel.data.length === 0) ||
+                channel.data.some((sample) => typeof sample !== 'number' || !Number.isFinite(sample))) {
+                throw new Error(`${path}.${name}.data must be a non-empty array of finite numbers`);
+            }
+        }
+        assertOptionalString(channel.unit, `${path}.${name}.unit`);
+    }
+}
+function assertSessionId(message, kind) {
+    const sessionId = requireNonemptyString(message.session_id, `${kind}.session_id`);
+    if (/[/*$#?\s\u0000-\u001f\u007f-\u009f]/u.test(sessionId)) {
+        throw new Error(`${kind}.session_id must be a safe single key segment`);
+    }
+}
+/** Full TypeScript ingress gate for the shared validation contract. Unknown object
+ * fields remain allowed; known fields are type/value checked exactly like the Rust
+ * reference, including nested stimulus identity and safe JSON integers. */
+export function assertNcpMessage(value, expectedKind) {
+    const message = requireRecord(value, 'NCP message');
+    const kind = requireNonemptyString(message.kind, 'NCP message.kind');
+    if (expectedKind !== undefined && kind !== expectedKind) {
+        throw new Error(`NCP kind mismatch: expected ${JSON.stringify(expectedKind)}, got ${JSON.stringify(kind)}`);
+    }
+    const required = REQUIRED[kind];
+    if (required === undefined)
+        throw new Error(`unknown NCP message kind ${JSON.stringify(kind)}`);
+    for (const field of required) {
+        if (!(field in message))
+            throw new Error(`${kind}: required field ${JSON.stringify(field)} is missing`);
+    }
+    if (typeof message.ncp_version !== 'string') {
+        throw new NcpVersionError(`${kind}: ncp_version must be a string`);
+    }
+    checkVersion(message.ncp_version, true);
+    if (['open_session', 'session_opened', 'step_request', 'run_request', 'stimulus_frame', 'observation_frame', 'close_session', 'session_closed', 'link_status'].includes(kind)) {
+        assertSessionId(message, kind);
+    }
+    switch (kind) {
+        case 'open_session': {
+            const network = requireRecord(message.network, 'open_session.network');
+            requireNonemptyString(network.kind, 'open_session.network.kind');
+            requireNonemptyString(network.ref, 'open_session.network.ref');
+            assertOptionalString(network.model_name, 'open_session.network.model_name');
+            assertSafeIntegerMap(network.population_sizes, 'open_session.network.population_sizes');
+            if (network.params !== undefined) {
+                for (const [key, number] of Object.entries(requireRecord(network.params, 'open_session.network.params'))) {
+                    assertFiniteNumber(number, `open_session.network.params[${JSON.stringify(key)}]`);
+                }
+            }
+            const sim = message.sim === undefined ? undefined : requireRecord(message.sim, 'open_session.sim');
+            if (sim !== undefined) {
+                if (sim.seed !== undefined)
+                    assertSafeInteger(sim.seed, 'open_session.sim.seed', true);
+                for (const [field, allowZero, nullable] of [
+                    ['dt_ms', false, false],
+                    ['chunk_ms', false, false],
+                    ['duration_ms', true, true],
+                ]) {
+                    const value = sim[field];
+                    if (value === undefined || (nullable && value === null))
+                        continue;
+                    const number = assertFiniteNumber(value, `open_session.sim.${field}`);
+                    if (number < 0 || (!allowZero && number === 0)) {
+                        throw new Error(`open_session.sim.${field} must be ${allowZero ? '>=' : '>'} 0`);
+                    }
+                }
+                if (sim.mode !== undefined)
+                    requireNonemptyString(sim.mode, 'open_session.sim.mode');
+            }
+            const record = message.record === undefined ? undefined : requireRecord(message.record, 'open_session.record');
+            const recordTargets = record?.targets;
+            if (recordTargets !== undefined) {
+                if (!Array.isArray(recordTargets))
+                    throw new Error('open_session.record.targets must be an array');
+                recordTargets.forEach((raw, index) => {
+                    const target = requireRecord(raw, `open_session.record.targets[${index}]`);
+                    requireNonemptyString(target.port, `open_session.record.targets[${index}].port`);
+                    requireNonemptyString(target.target, `open_session.record.targets[${index}].target`);
+                    requireNonemptyString(target.observable, `open_session.record.targets[${index}].observable`);
+                    assertSafeIntegerArray(target.ids, `open_session.record.targets[${index}].ids`);
+                    assertStringArray(target.recordables, `open_session.record.targets[${index}].recordables`);
+                    if (target.cadence_ms !== undefined) {
+                        const cadence = assertFiniteNumber(target.cadence_ms, `open_session.record.targets[${index}].cadence_ms`);
+                        if (cadence <= 0)
+                            throw new Error(`open_session.record.targets[${index}].cadence_ms must be > 0`);
+                    }
+                });
+            }
+            const stimulus = message.stimulus === undefined
+                ? undefined
+                : requireRecord(message.stimulus, 'open_session.stimulus');
+            const stimulusTargets = stimulus?.targets;
+            if (stimulusTargets !== undefined) {
+                if (!Array.isArray(stimulusTargets))
+                    throw new Error('open_session.stimulus.targets must be an array');
+                stimulusTargets.forEach((raw, index) => {
+                    const target = requireRecord(raw, `open_session.stimulus.targets[${index}]`);
+                    requireNonemptyString(target.port, `open_session.stimulus.targets[${index}].port`);
+                    requireNonemptyString(target.target, `open_session.stimulus.targets[${index}].target`);
+                    requireNonemptyString(target.kind, `open_session.stimulus.targets[${index}].kind`);
+                    assertSafeIntegerArray(target.ids, `open_session.stimulus.targets[${index}].ids`);
+                    if (target.params !== undefined) {
+                        for (const [name, value] of Object.entries(requireRecord(target.params, `open_session.stimulus.targets[${index}].params`))) {
+                            assertFiniteNumber(value, `open_session.stimulus.targets[${index}].params[${JSON.stringify(name)}]`);
+                        }
+                    }
+                });
+            }
+            if (message.bindings !== undefined) {
+                if (!Array.isArray(message.bindings))
+                    throw new Error('open_session.bindings must be an array');
+                message.bindings.forEach((raw, index) => {
+                    const binding = requireRecord(raw, `open_session.bindings[${index}]`);
+                    requireNonemptyString(binding.port, `open_session.bindings[${index}].port`);
+                    const direction = requireNonemptyString(binding.direction, `open_session.bindings[${index}].direction`);
+                    if (direction !== 'record' && direction !== 'stimulus') {
+                        throw new Error(`open_session.bindings[${index}].direction must be "record" or "stimulus"`);
+                    }
+                    const entity = requireRecord(binding.entity, `open_session.bindings[${index}].entity`);
+                    requireNonemptyString(entity.path, `open_session.bindings[${index}].entity.path`);
+                    requireNonemptyString(entity.role, `open_session.bindings[${index}].entity.role`);
+                    assertStringMap(entity.meta, `open_session.bindings[${index}].entity.meta`);
+                });
+            }
+            assertOptionalString(message.contract_hash, 'open_session.contract_hash');
+            break;
+        }
+        case 'session_opened': {
+            const backend = requireNonemptyString(message.backend, 'session_opened.backend');
+            if (typeof message.ok !== 'boolean')
+                throw new Error('session_opened.ok must be a boolean');
+            assertSafeIntegerMap(message.resolved, 'session_opened.resolved');
+            if (message.ok) {
+                const provenance = requireRecord(message.provenance, 'session_opened.provenance');
+                requireNonemptyString(provenance.network_ref, 'session_opened.provenance.network_ref');
+                const provenanceBackend = requireNonemptyString(provenance.backend, 'session_opened.provenance.backend');
+                if (provenanceBackend !== backend) {
+                    throw new Error('session_opened.provenance.backend must equal session_opened.backend');
+                }
+                if (provenance.advisory_only !== true) {
+                    throw new Error('session_opened.provenance.advisory_only must be explicitly true');
+                }
+                if (provenance.seed !== undefined)
+                    assertSafeInteger(provenance.seed, 'session_opened.provenance.seed', true);
+                assertOptionalString(provenance.note, 'session_opened.provenance.note');
+                assertScientificBoundary(message);
+                if (message.error !== undefined && message.error !== null) {
+                    throw new Error('session_opened.error must be null when ok=true');
+                }
+            }
+            else {
+                requireNonemptyString(message.error, 'session_opened.error');
+                if (message.provenance !== undefined && message.provenance !== null) {
+                    throw new Error('session_opened.provenance must be null when ok=false');
+                }
+            }
+            assertOptionalString(message.contract_hash, 'session_opened.contract_hash');
+            break;
+        }
+        case 'session_closed':
+            if (message.ok !== true)
+                throw new Error('session_closed.ok must be true; failures use ErrorFrame');
+            break;
+        case 'error':
+            requireNonemptyString(message.error, 'error.error');
+            if (message.request_kind !== undefined && message.request_kind !== null) {
+                requireNonemptyString(message.request_kind, 'error.request_kind');
+            }
+            if (message.session_id !== undefined && message.session_id !== null) {
+                assertSessionId(message, 'error');
+            }
+            break;
+        case 'run_request': {
+            const duration = assertFiniteNumber(message.duration_ms, 'run_request.duration_ms');
+            if (duration <= 0)
+                throw new Error('run_request.duration_ms must be > 0');
+            if (message.stimulus !== undefined && message.stimulus !== null) {
+                assertNcpMessage(message.stimulus, 'stimulus_frame');
+                if (message.stimulus.session_id !== message.session_id) {
+                    throw new Error('run_request.stimulus session_id does not match outer request');
+                }
+            }
+            break;
+        }
+        case 'step_request':
+            if (message.advance_ms !== undefined && message.advance_ms !== null && assertFiniteNumber(message.advance_ms, 'step_request.advance_ms') < 0) {
+                throw new Error('step_request.advance_ms must be >= 0');
+            }
+            if (message.stimulus !== undefined && message.stimulus !== null) {
+                assertNcpMessage(message.stimulus, 'stimulus_frame');
+                if (message.stimulus.session_id !== message.session_id) {
+                    throw new Error('step_request.stimulus session_id does not match outer request');
+                }
+            }
+            break;
+        case 'stimulus_frame':
+            if (message.t !== undefined)
+                assertFiniteNumber(message.t, 'stimulus_frame.t');
+            assertChannelMap(message.values, 'stimulus_frame.values');
+            break;
+        case 'sensor_frame':
+        case 'command_frame':
+        case 'observation_frame': {
+            assertSafeInteger(message.seq, `${kind}.seq`);
+            const min = kind === 'observation_frame' ? 0 : 1;
+            if (message.seq < min)
+                throw new Error(`${kind}.seq must be >= ${min}`);
+            if (message.t !== undefined)
+                assertFiniteNumber(message.t, `${kind}.t`);
+            if (kind === 'sensor_frame') {
+                if (message.frame_id !== undefined) {
+                    requireCleanNonemptyString(message.frame_id, 'sensor_frame.frame_id');
+                }
+                assertChannelMap(message.channels, 'sensor_frame.channels');
+            }
+            if (kind === 'command_frame') {
+                if (message.frame_id !== undefined) {
+                    requireCleanNonemptyString(message.frame_id, 'command_frame.frame_id');
+                }
+                assertChannelMap(message.channels, 'command_frame.channels');
+                if (message.mode !== undefined)
+                    requireNonemptyString(message.mode, 'command_frame.mode');
+                if (message.ttl_ms !== undefined) {
+                    assertFiniteNumber(message.ttl_ms, 'command_frame.ttl_ms');
+                }
+                if (message.mode === 'active') {
+                    const ttl = assertFiniteNumber(message.ttl_ms, 'command_frame.ttl_ms');
+                    if (ttl <= 0)
+                        throw new Error('command_frame Active ttl_ms must be > 0');
+                    assertChannelMap(message.channels, 'command_frame.channels', true);
+                }
+                if (message.horizon !== undefined) {
+                    if (!Array.isArray(message.horizon))
+                        throw new Error('command_frame.horizon must be an array');
+                    if (message.horizon.length > MAX_HORIZON_STEPS) {
+                        throw new Error(`command_frame.horizon exceeds the ${MAX_HORIZON_STEPS}-step resource ceiling`);
+                    }
+                    message.horizon.forEach((step, index) => assertChannelMap(step, `command_frame.horizon[${index}]`, message.mode === 'active'));
+                    if (message.mode === 'active' && message.horizon.length > 0) {
+                        const dt = assertFiniteNumber(message.horizon_dt_ms, 'command_frame.horizon_dt_ms');
+                        if (dt <= 0)
+                            throw new Error('command_frame predictive horizon requires horizon_dt_ms > 0');
+                        const ttl = message.ttl_ms;
+                        if (message.horizon.length > MAX_HORIZON_STEPS ||
+                            message.horizon.length > Math.floor(ttl / dt)) {
+                            throw new Error(`command_frame.horizon must satisfy N <= ttl_ms / horizon_dt_ms and N <= ${MAX_HORIZON_STEPS}`);
+                        }
+                    }
+                }
+                if (message.horizon_dt_ms !== undefined && message.horizon_dt_ms !== null) {
+                    assertFiniteNumber(message.horizon_dt_ms, 'command_frame.horizon_dt_ms');
+                }
+            }
+            if (kind === 'observation_frame') {
+                if (message.sim_time_ms !== undefined) {
+                    assertFiniteNumber(message.sim_time_ms, 'observation_frame.sim_time_ms');
+                }
+                assertScientificBoundary(message);
+                const records = requireRecord(message.records, 'observation_frame.records');
+                for (const [recordKey, raw] of Object.entries(records)) {
+                    if (recordKey.length === 0 || hasWireControlCharacters(recordKey)) {
+                        throw new Error(`observation record-series key ${JSON.stringify(recordKey)} must be non-empty and contain no control characters`);
+                    }
+                    const record = requireRecord(raw, `observation_frame.records[${JSON.stringify(recordKey)}]`);
+                    requireNonemptyString(record.port, `observation_frame.records[${JSON.stringify(recordKey)}].port`);
+                    requireNonemptyString(record.target, `observation_frame.records[${JSON.stringify(recordKey)}].target`);
+                    requireNonemptyString(record.observable, `observation_frame.records[${JSON.stringify(recordKey)}].observable`);
+                    assertFiniteNumberArray(record.times, `observation_frame.records[${JSON.stringify(recordKey)}].times`);
+                    assertFiniteNumberArray(record.values, `observation_frame.records[${JSON.stringify(recordKey)}].values`);
+                    assertSafeIntegerArray(record.senders, `observation_frame.records[${JSON.stringify(recordKey)}].senders`);
+                    assertOptionalString(record.unit, `observation_frame.records[${JSON.stringify(recordKey)}].unit`);
+                    assertOptionalString(record.recordable, `observation_frame.records[${JSON.stringify(recordKey)}].recordable`);
+                    const times = Array.isArray(record.times) ? record.times.length : 0;
+                    const values = Array.isArray(record.values) ? record.values.length : 0;
+                    const senders = Array.isArray(record.senders) ? record.senders.length : 0;
+                    if (values > 0 && senders > 0)
+                        throw new Error(`observation record ${JSON.stringify(recordKey)} carries values and senders`);
+                    if ((times > 0 || values > 0 || senders > 0) && times !== Math.max(values, senders)) {
+                        throw new Error(`observation record ${JSON.stringify(recordKey)} has mismatched parallel arrays`);
+                    }
+                }
+            }
+            break;
+        }
+        case 'control_status': {
+            assertSafeInteger(message.seq, 'control_status.seq');
+            if (message.seq < 0)
+                throw new Error('control_status.seq must be >= 0');
+            assertFiniteNumber(message.t, 'control_status.t');
+            if (message.sim_time_ms !== undefined) {
+                assertFiniteNumber(message.sim_time_ms, 'control_status.sim_time_ms');
+            }
+            const latency = assertFiniteNumber(message.loop_latency_ms, 'control_status.loop_latency_ms');
+            if (latency < 0)
+                throw new Error('control_status.loop_latency_ms must be >= 0');
+            requireNonemptyString(message.mode, 'control_status.mode');
+            if (typeof message.safety_ok !== 'boolean')
+                throw new Error('control_status.safety_ok must be boolean');
+            assertOptionalString(message.note, 'control_status.note');
+            break;
+        }
+        case 'link_status': {
+            for (const field of ['last_seq', 'received', 'lost']) {
+                assertSafeInteger(message[field], `link_status.${field}`);
+            }
+            if (message.last_seq < -1)
+                throw new Error('link_status.last_seq must be >= -1');
+            if (message.received < 0 || message.lost < 0) {
+                throw new Error('link_status received/lost must be >= 0');
+            }
+            assertFiniteNumber(message.t, 'link_status.t');
+            const loss = assertFiniteNumber(message.loss_rate, 'link_status.loss_rate');
+            if (loss < 0 || loss > 1)
+                throw new Error('link_status.loss_rate must be in [0, 1]');
+            if (typeof message.burst !== 'boolean')
+                throw new Error('link_status.burst must be boolean');
+            break;
+        }
+        case 'capabilities': {
+            requireNonemptyString(message.controller_id, 'capabilities.controller_id');
+            requireNonemptyString(message.role, 'capabilities.role');
+            const rate = assertFiniteNumber(message.control_rate_hz, 'capabilities.control_rate_hz');
+            if (rate <= 0)
+                throw new Error('capabilities.control_rate_hz must be > 0');
+            for (const field of ['sensor_channels', 'command_channels']) {
+                if (!Array.isArray(message[field]))
+                    throw new Error(`capabilities.${field} must be an array`);
+                const names = new Set();
+                message[field].forEach((raw, index) => {
+                    const channel = requireRecord(raw, `capabilities.${field}[${index}]`);
+                    const name = requireNonemptyString(channel.name, `capabilities.${field}[${index}].name`);
+                    requireNonemptyString(channel.kind, `capabilities.${field}[${index}].kind`);
+                    if (names.has(name))
+                        throw new Error(`capabilities.${field} contains duplicate channel ${JSON.stringify(name)}`);
+                    names.add(name);
+                    if (channel.size !== undefined && channel.size !== null) {
+                        assertSafeInteger(channel.size, `capabilities.${field}[${index}].size`);
+                        if (channel.size <= 0)
+                            throw new Error(`capabilities.${field}[${index}].size must be > 0`);
+                    }
+                    assertOptionalString(channel.unit, `capabilities.${field}[${index}].unit`);
+                    assertOptionalBoolean(channel.optional, `capabilities.${field}[${index}].optional`);
+                    assertOptionalString(channel.description, `capabilities.${field}[${index}].description`);
+                });
+            }
+            assertOptionalString(message.codec_id, 'capabilities.codec_id');
+            const safety = requireRecord(message.safety, 'capabilities.safety');
+            const timeout = assertFiniteNumber(safety.command_timeout_ms, 'capabilities.safety.command_timeout_ms');
+            if (timeout <= 0)
+                throw new Error('capabilities.safety.command_timeout_ms must be > 0');
+            for (const field of ['max_speed_mps', 'max_tilt_rad', 'geofence_radius_m']) {
+                if (safety[field] !== undefined && safety[field] !== null) {
+                    if (assertFiniteNumber(safety[field], `capabilities.safety.${field}`) < 0) {
+                        throw new Error(`capabilities.safety.${field} must be >= 0`);
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
+function unwrap(reply, requestKind, expectedKind, expectedSessionId) {
+    assertNcpMessage(reply);
     if (reply.kind === 'error') {
-        throw new Error(`NCP error: ${reply.error}`);
+        const error = reply;
+        if (error.request_kind != null && error.request_kind !== requestKind) {
+            throw new Error(`NCP error request_kind mismatch: expected ${JSON.stringify(requestKind)}, got ${JSON.stringify(error.request_kind)}`);
+        }
+        if (error.session_id != null && error.session_id !== expectedSessionId) {
+            throw new Error(`NCP error session mismatch: expected ${JSON.stringify(expectedSessionId)}, got ${JSON.stringify(error.session_id)}`);
+        }
+        throw new Error(`NCP error: ${error.error}`);
+    }
+    const kind = reply.kind;
+    if (kind !== expectedKind) {
+        throw new Error(`NCP reply kind mismatch: expected ${JSON.stringify(expectedKind)}, got ${JSON.stringify(kind)}`);
     }
     // Wire 0.6: every reply must carry a COMPATIBLE ncp_version — an absent or
     // incompatible version fails closed here (never coerced), so a stale-wire
@@ -129,6 +658,19 @@ function unwrap(reply) {
         throw new NcpVersionError('NCP reply carries no ncp_version (mandatory since wire 0.6)');
     }
     checkVersion(ver, true);
+    const sessionId = reply.session_id;
+    if (sessionId !== expectedSessionId) {
+        throw new Error(`NCP reply session mismatch: expected ${JSON.stringify(expectedSessionId)}, got ${JSON.stringify(sessionId)}`);
+    }
+    if (expectedKind === 'observation_frame') {
+        const seq = reply.seq;
+        if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < 0) {
+            throw new Error(`NCP observation reply carries invalid seq ${JSON.stringify(seq)}`);
+        }
+    }
+    if (expectedKind === 'observation_frame' || expectedKind === 'session_opened') {
+        assertScientificBoundary(reply);
+    }
     return reply;
 }
 export class NeuroSimClient {
@@ -144,7 +686,7 @@ export class NeuroSimClient {
         if (sim.seed != null && !Number.isSafeInteger(sim.seed)) {
             throw new Error(`NCP: sim.seed must be a safe integer (<= 2^53-1); got ${sim.seed}`);
         }
-        const reply = await this.send({
+        const request = {
             kind: 'open_session',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
@@ -154,8 +696,10 @@ export class NeuroSimClient {
             sim,
             bindings: [],
             contract_hash: NCP_CONTRACT_HASH,
-        });
-        const opened = unwrap(reply);
+        };
+        assertNcpMessage(request, 'open_session');
+        const reply = await this.send(request);
+        const opened = unwrap(reply, 'open_session', 'session_opened', sessionId);
         // Advisory contract-hash check (the reply half): log a mismatch, do not throw —
         // the version is the hard gate (mirrors the NCP session-service contract).
         const advisory = contractStatus(opened.contract_hash);
@@ -165,7 +709,7 @@ export class NeuroSimClient {
     }
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
     async step(sessionId, stimulus = {}, advanceMs) {
-        const reply = await this.send({
+        const request = {
             kind: 'step_request',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
@@ -176,12 +720,14 @@ export class NeuroSimClient {
                 session_id: sessionId,
                 values: stimulus,
             },
-        });
-        return unwrap(reply);
+        };
+        assertNcpMessage(request, 'step_request');
+        const reply = await this.send(request);
+        return unwrap(reply, 'step_request', 'observation_frame', sessionId);
     }
     /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */
     async run(sessionId, durationMs, stimulus = {}) {
-        const reply = await this.send({
+        const request = {
             kind: 'run_request',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
@@ -192,17 +738,21 @@ export class NeuroSimClient {
                 session_id: sessionId,
                 values: stimulus,
             },
-        });
-        return unwrap(reply);
+        };
+        assertNcpMessage(request, 'run_request');
+        const reply = await this.send(request);
+        return unwrap(reply, 'run_request', 'observation_frame', sessionId);
     }
     /** Close the session. */
     async close(sessionId) {
-        const reply = await this.send({
+        const request = {
             kind: 'close_session',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
-        });
-        return unwrap(reply);
+        };
+        assertNcpMessage(request, 'close_session');
+        const reply = await this.send(request);
+        return unwrap(reply, 'close_session', 'session_closed', sessionId);
     }
 }
 //# sourceMappingURL=client.js.map

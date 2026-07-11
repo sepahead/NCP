@@ -12,8 +12,11 @@ pub mod transport;
 
 pub use bulk::{observation_from_bulk, BulkBlock, BulkError, Column, BULK_MAGIC, BULK_VERSION};
 pub use bus::{Bus, BusError, LocalBus, NcpBusClient, NcpBusServer, QueryHandler, SubCallback};
-pub use codec::{default_uav_velocity_codec, CodecSpec, DecoderChannelMap, EncoderChannelMap};
-pub use keys::{valid_id_segment, Keys, DEFAULT_REALM};
+pub use codec::{
+    default_uav_velocity_codec, CodecError, CodecSpec, DecoderChannelMap, EncoderChannelMap,
+    MAX_CODEC_COMPONENTS,
+};
+pub use keys::{valid_id_segment, InvalidKeySegment, InvalidRealm, Keys, DEFAULT_REALM};
 pub use messages::*;
 pub use resilience::{max_horizon_len, ActionBuffer, LinkMonitor};
 pub use safety::{CommandWatchdog, SafetyGovernor};
@@ -54,7 +57,7 @@ mod wire_tests {
     #[test]
     fn step_request_roundtrip_from_python_json() {
         let json = r#"{
-            "ncp_version": "0.6",
+            "ncp_version": "0.7",
             "kind": "step_request",
             "session_id": "s1",
             "advance_ms": 50.0,
@@ -93,9 +96,9 @@ mod wire_tests {
 
     #[test]
     fn version_guard() {
-        // Wire is pre-1.0 (0.6), so the minor is breaking: an exact (major,
+        // Wire is pre-1.0 (0.7), so the minor is breaking: an exact (major,
         // minor) match is required and a same-major/different-minor is rejected.
-        assert!(check_version("0.6", true).unwrap()); // exact match ok
+        assert!(check_version("0.7", true).unwrap()); // exact match ok
         assert!(check_version("0.5", true).is_err()); // old 0.5 wire is now a breaking minor diff -> Err under strict
         assert!(check_version("0.4", true).is_err()); // old 0.4 wire is now a breaking minor diff -> Err under strict
         assert!(check_version("0.1", true).is_err()); // old 0.1 wire is now a breaking minor diff -> Err under strict
@@ -220,7 +223,8 @@ mod wire_tests {
         // (Fixtures carry the wire-0.6 required ncp_version + seq.)
         let lie = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "seq": 1, "calibrated_posterior": true
+            "seq": 1, "records": {}, "calibrated_posterior": true,
+            "is_simulation_output": true
         });
         assert!(
             validate(&lie).is_err(),
@@ -228,7 +232,8 @@ mod wire_tests {
         );
         let lie2 = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "seq": 1, "is_simulation_output": false
+            "seq": 1, "records": {}, "calibrated_posterior": false,
+            "is_simulation_output": false
         });
         assert!(
             validate(&lie2).is_err(),
@@ -237,18 +242,23 @@ mod wire_tests {
         // The honest default values pass; absent boundary fields also pass.
         let ok = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "seq": 1, "calibrated_posterior": false, "is_simulation_output": true
+            "seq": 1, "records": {}, "calibrated_posterior": false,
+            "is_simulation_output": true
         });
         assert!(validate(&ok).is_ok());
+        // The honesty fields are mandatory in wire 0.7; omission must not be
+        // silently repaired with serde defaults.
         let absent = serde_json::json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": "s1", "seq": 0
         });
-        assert!(validate(&absent).is_ok());
+        assert!(validate(&absent).is_err());
 
         // session_opened: the pin reaches into the nested provenance object...
         let bad_prov = serde_json::json!({
             "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "provenance": {"network_ref": "n", "backend": "b", "is_simulation_output": false}
+            "ok": true,
+            "provenance": {"network_ref": "n", "backend": "b", "calibrated_posterior": false,
+                           "is_simulation_output": false, "advisory_only": true}
         });
         assert!(
             validate(&bad_prov).is_err(),
@@ -257,7 +267,7 @@ mod wire_tests {
         // ...and a null provenance (the nullable wire form) is simply skipped.
         let null_prov = serde_json::json!({
             "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "provenance": null
+            "ok": false, "backend": "unknown", "error": "backend unavailable", "provenance": null
         });
         assert!(validate(&null_prov).is_ok());
     }

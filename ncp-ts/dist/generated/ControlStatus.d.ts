@@ -1,6 +1,7 @@
-import type { Mode } from "./Mode";
+import type { Mode } from "./Mode.js";
 /**
- * Controller → plant / telemetry: loop health and mode.
+ * Controller → plant / telemetry: loop health and mode. `t` is producer-local
+ * monotonic seconds and is never compared across peers.
  */
 export type ControlStatus = {
     ncp_version: string;

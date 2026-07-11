@@ -30,7 +30,7 @@
 //! action/perception planes can never be mistaken for the current case's verdict.
 
 use ncp_core::keys::Keys;
-use ncp_core::{CommandFrame, SafetyGovernor, SafetyLimits, SensorFrame};
+use ncp_core::{CommandFrame, Mode, SafetyGovernor, SafetyLimits, SensorFrame, WireFrame};
 use ncp_zenoh::{ZenohBus, ZenohConfig};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -54,6 +54,8 @@ fn base_cfg() -> ZenohConfig {
     c.insert_json5("scouting/multicast/enabled", "false")
         .unwrap();
     c.insert_json5("scouting/gossip/enabled", "false").unwrap();
+    c.insert_json5("transport/shared_memory/enabled", "false")
+        .unwrap();
     c
 }
 
@@ -71,12 +73,12 @@ fn connect_cfg(port: u16) -> ZenohConfig {
     c
 }
 
-/// Load the `govern` cases from the shared behavioral corpus (same path the
-/// in-process conformance test uses; `conformance/` travels with the workspace).
+/// Load the `govern` cases from the crate-local snapshot of the shared corpus.
+/// The package-surface gate byte-compares it with the canonical root fixture.
 fn govern_cases() -> Vec<Value> {
     let path = PathBuf::from(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../conformance/behavior"
+        "/testdata/conformance/behavior"
     ))
     .join("vectors.json");
     let text = std::fs::read_to_string(&path)
@@ -179,11 +181,8 @@ async fn govern_over_wire(
     let seq = SEQ.fetch_add(1, Ordering::Relaxed);
     command.seq = seq;
     sensor.seq = seq;
-    // The corpus inputs are BEHAVIORAL fixtures (partial frames); wire-legality
-    // stamping is this rig's job — wire 0.6 publish gates require a compatible
-    // ncp_version (a partial frame deserializes to a detectable "").
-    command.ncp_version = ncp_core::NCP_VERSION.to_string();
-    sensor.ncp_version = ncp_core::NCP_VERSION.to_string();
+    // The corpus carries complete envelopes. Only the per-exchange sequence is
+    // replaced so read-back can be correlated without repairing any other field.
     let sbytes = serde_json::to_vec(&sensor).unwrap();
     let cbytes = serde_json::to_vec(&command).unwrap();
 
@@ -252,8 +251,12 @@ async fn safety_governor_decisions_survive_the_wire() {
     let sink: Arc<Mutex<Vec<Value>>> = Arc::new(Mutex::new(Vec::new()));
     {
         let snk = sink.clone();
+        // The test rig intentionally reflects a governed CommandFrame on the
+        // observation key. Use the explicitly raw subscriber to match the raw
+        // diagnostic `put` in `spawn_plant`; the NCP-aware observation helper
+        // correctly rejects a non-ObservationFrame.
         client
-            .subscribe_observations(SID, move |_k, bytes| {
+            .subscribe(&client.keys().observation(SID), move |_k, bytes| {
                 if let Ok(v) = serde_json::from_slice::<Value>(&bytes) {
                     snk.lock().unwrap().push(v);
                 }
@@ -262,9 +265,11 @@ async fn safety_governor_decisions_survive_the_wire() {
             .expect("subscribe observations");
     }
 
-    // ── 1. Every `govern` corpus case must reach the same verdict over the wire ──
-    // Each case gets a FRESH governor (govern() latches ESTOP) configured from the
-    // case's limits/clock; the command + sensor cross the real transport.
+    // ── 1. Valid corpus inputs preserve their verdict over Zenoh; hostile inputs
+    // are rejected at the publisher gate before they can reach the plant. ──
+    // Each executable case gets a FRESH governor (govern() latches ESTOP).
+    let mut transported = 0usize;
+    let mut rejected_at_ingress = 0usize;
     for case in govern_cases() {
         let name = case["name"].as_str().unwrap().to_string();
         let input = &case["input"];
@@ -272,17 +277,52 @@ async fn safety_governor_decisions_survive_the_wire() {
             .unwrap_or_else(|e| panic!("govern[{name}]: bad limits: {e}"));
         let command: CommandFrame = serde_json::from_value(input["command"].clone())
             .unwrap_or_else(|e| panic!("govern[{name}]: bad command: {e}"));
-        let sensor: SensorFrame = serde_json::from_value(input["sensor"].clone())
+        let sensor: Option<SensorFrame> = serde_json::from_value(input["sensor"].clone())
             .unwrap_or_else(|e| panic!("govern[{name}]: bad sensor: {e}"));
         let now_s = input["now_s"].as_f64().expect("now_s");
         let last_sensor_s = input["last_sensor_s"].as_f64(); // None when null
+
+        let command_valid = command.validate_wire().is_ok();
+        let sensor_valid = sensor
+            .as_ref()
+            .is_some_and(|frame| frame.validate_wire().is_ok());
+        if !command_valid || !sensor_valid {
+            if !command_valid && command.mode != Mode::Estop {
+                let bytes = serde_json::to_vec(&command).unwrap();
+                assert!(
+                    client.publish_command(SID, &bytes).await.is_err(),
+                    "govern[{name}]: invalid non-ESTOP command must be rejected by the publisher"
+                );
+                rejected_at_ingress += 1;
+            }
+            if let Some(sensor) = sensor.as_ref().filter(|_| !sensor_valid) {
+                let bytes = serde_json::to_vec(sensor).unwrap();
+                assert!(
+                    client.put_sensor(SID, &bytes).await.is_err(),
+                    "govern[{name}]: invalid sensor must be rejected by the publisher"
+                );
+                rejected_at_ingress += 1;
+            }
+            // A deliberately malformed ESTOP is allowed by policy and is covered
+            // by the pure publish-gate + cross-language corpus tests; publishing
+            // it here would race the next case's fresh-governor reset.
+            continue;
+        }
         {
             let mut s = state.lock().unwrap();
             s.gov = SafetyGovernor::new(limits);
             s.now_s = now_s;
             s.last_sensor_s = last_sensor_s;
         }
-        let got = govern_over_wire(&client, &state, &sink, command, sensor).await;
+        let got = govern_over_wire(
+            &client,
+            &state,
+            &sink,
+            command,
+            sensor.expect("sensor_valid proves presence"),
+        )
+        .await;
+        transported += 1;
         assert_eq!(
             got["mode"].as_str().unwrap(),
             case["expect"]["mode"].as_str().unwrap(),
@@ -296,6 +336,11 @@ async fn safety_governor_decisions_survive_the_wire() {
             );
         }
     }
+    assert!(transported >= 10, "unexpected loss of valid wire coverage");
+    assert!(
+        rejected_at_ingress >= 4,
+        "hostile corpus cases did not exercise the publisher gates"
+    );
 
     // ── 2. The ESTOP LATCH survives the transport (the wire-specific property) ──
     // One persistent governor: a geofence breach latches ESTOP, and a SUBSEQUENT
@@ -311,12 +356,14 @@ async fn safety_governor_decisions_survive_the_wire() {
         s.last_sensor_s = Some(1.0);
     }
     let active_cmd: CommandFrame = serde_json::from_value(json!({
-        "kind": "command_frame", "mode": "active",
+        "kind": "command_frame", "ncp_version": ncp_core::NCP_VERSION,
+        "seq": 1, "mode": "active", "ttl_ms": 200.0,
         "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}
     }))
     .unwrap();
     let breach: SensorFrame = serde_json::from_value(json!({
-        "kind": "sensor_frame", "channels": {"pose_position": {"data": [10.0, 0.0, 0.0]}}
+        "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION, "seq": 1,
+        "channels": {"pose_position": {"data": [10.0, 0.0, 0.0], "unit": "m"}}
     }))
     .unwrap();
     let estopped = govern_over_wire(&client, &state, &sink, active_cmd.clone(), breach).await;
@@ -327,7 +374,8 @@ async fn safety_governor_decisions_survive_the_wire() {
     );
 
     let safe: SensorFrame = serde_json::from_value(json!({
-        "kind": "sensor_frame", "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}
+        "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION, "seq": 1,
+        "channels": {"pose_position": {"data": [0.0, 0.0, 0.0], "unit": "m"}}
     }))
     .unwrap();
     let still = govern_over_wire(&client, &state, &sink, active_cmd, safe).await;

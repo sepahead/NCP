@@ -14,17 +14,17 @@
 //! field-set + required parity is enough to catch wire drift and is
 //! dependency-free (only `serde` / `serde_json`, both normal ncp-core deps).
 //!
-//! The schema dir is located via `CARGO_MANIFEST_DIR/../schemas`, which resolves
-//! to `ncp/schemas` both pre- and post-extraction (ncp-core stays a workspace
-//! member, so the sibling `schemas/` directory travels with it).
+//! The schema dir is a crate-local snapshot under `testdata/schemas`. A repository
+//! gate byte-compares it with the canonical root `schemas/`, and keeping it inside
+//! the crate makes these tests runnable from the published Cargo archive.
 
 use ncp_core::messages::*;
 use serde_json::Value;
 use std::path::PathBuf;
 
-/// Load `<name>.schema.json` from the sibling `ncp/schemas/` directory.
+/// Load `<name>.schema.json` from the packaged schema snapshot.
 fn load_schema(name: &str) -> Value {
-    let path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../schemas"))
+    let path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/testdata/schemas"))
         .join(format!("{name}.schema.json"));
     let text = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("failed to read schema {}: {e}", path.display()));
@@ -153,6 +153,11 @@ fn control_status_conforms() {
 #[test]
 fn link_status_conforms() {
     assert_parity("link_status", &LinkStatus::default());
+}
+
+#[test]
+fn error_frame_conforms() {
+    assert_parity("error", &ErrorFrame::default());
 }
 
 /// Targeted: `NetworkRef.ref_` must serialize on the wire as `"ref"`, never

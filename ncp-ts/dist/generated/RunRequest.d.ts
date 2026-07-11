@@ -1,4 +1,4 @@
-import type { StimulusFrame } from "./StimulusFrame";
+import type { StimulusFrame } from "./StimulusFrame.js";
 /**
  * Batch: advance `duration_ms` holding a stimulus; returns an `ObservationFrame`.
  */

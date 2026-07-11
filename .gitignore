@@ -11,6 +11,15 @@ ncp-ts/node_modules/
 __pycache__/
 *.pyc
 
+# Deployment identity material (never commit real mTLS credentials)
+deploy/certs/
+*.pem
+*.crt
+*.cer
+*.key
+*.p12
+*.pfx
+
 # Internal review scratch (not a shipped artifact)
 REVIEW_AND_PLAN.md
 

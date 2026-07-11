@@ -1,6 +1,6 @@
 {
   "name": "@sepahead/ncp",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Canonical NCP (Neuro-Cybernetic Protocol) TypeScript types + transport-agnostic client. Wire-identical to the normative proto/ncp.proto contract (proto-native) and the Rust and Python peers.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
@@ -8,19 +8,21 @@
   "homepage": "https://github.com/sepahead/NCP#readme",
   "exports": {
     ".": {
-      "types": "./ncp-ts/dist/index.d.ts",
-      "import": "./ncp-ts/dist/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
-  "files": ["ncp-ts/dist", "ncp-ts/src", "ncp-ts/README.md"],
+  "files": ["dist", "src", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
   "sideEffects": false,
   "engines": { "node": ">=18" },
   "scripts": {
-    "sync": "node ncp-ts/scripts/sync-bindings.mjs",
-    "build": "tsc -p ncp-ts/tsconfig.json",
-    "check:behavior": "node ncp-ts/scripts/check-behavior.mjs",
-    "regen": "cargo test -p ncp-core --features ts && node ncp-ts/scripts/sync-bindings.mjs && tsc -p ncp-ts/tsconfig.json",
-    "clean": "rm -rf ncp-ts/dist"
+    "sync": "node scripts/sync-bindings.mjs",
+    "build": "tsc -p tsconfig.json",
+    "check:behavior": "node scripts/check-behavior.mjs",
+    "check:ws": "node scripts/check-ws.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "regen": "cargo test -p ncp-core --features ts && node scripts/sync-bindings.mjs && tsc -p tsconfig.json",
+    "clean": "rm -rf dist"
   },
   "devDependencies": { "typescript": "5.9.2" }
 }

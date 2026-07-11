@@ -1,4 +1,4 @@
-import type { StimulusFrame } from "./StimulusFrame";
+import type { StimulusFrame } from "./StimulusFrame.js";
 /**
  * Advance one chunk; optional stimulus; returns an `ObservationFrame`.
  */

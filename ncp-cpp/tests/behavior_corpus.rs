@@ -3,19 +3,23 @@
 //!
 //! `corpus.rs` proves the C ABI agrees on the *wire shape* (every golden message
 //! validates). This proves it agrees on *behavior*: the same `check_version` /
-//! `contract_status` / `validate` / `govern` decisions the Rust reference is pinned
-//! to (`ncp-core/tests/behavior_conformance.rs`) and the Python binding replays
+//! `contract_status` / `validate` / `govern` / `action_buffer` decisions the Rust
+//! reference is pinned to (`ncp-core/tests/behavior_conformance.rs`) and the Python binding replays
 //! (`scripts/check_behavior_vectors.py`). C++ has the full surface, so it runs the
 //! whole corpus — a divergence in any C-ABI decision path fails CI here.
 
-use ncp_cpp::{ncp_check_version, ncp_contract_status, ncp_govern, ncp_string_free, ncp_validate};
+use ncp_cpp::{
+    ncp_action_buffer_active, ncp_action_buffer_free, ncp_action_buffer_is_estopped,
+    ncp_action_buffer_new, ncp_action_buffer_on_command, ncp_action_buffer_reset,
+    ncp_check_version, ncp_contract_status, ncp_govern, ncp_string_free, ncp_validate,
+};
 use serde_json::Value;
 use std::ffi::{CStr, CString};
 use std::path::PathBuf;
 
 fn load_corpus() -> Value {
-    let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../conformance/behavior/vectors.json");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("testdata/conformance/behavior/vectors.json");
     let text = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("read behavior corpus {}: {e}", path.display()));
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("behavior corpus is not JSON: {e}"))
@@ -151,5 +155,75 @@ fn govern_through_the_c_abi() {
                 "govern[{name}]: |velocity| want {want_mag}, got {got_mag}"
             );
         }
+    }
+}
+
+#[test]
+fn action_buffer_through_the_c_abi() {
+    let corpus = load_corpus();
+    for case in cases(&corpus, "action_buffer") {
+        let name = case["name"].as_str().unwrap();
+        let buffer = ncp_action_buffer_new();
+        assert!(
+            !buffer.is_null(),
+            "action_buffer[{name}]: allocation failed"
+        );
+
+        for (index, operation) in case["operations"].as_array().unwrap().iter().enumerate() {
+            match operation["op"].as_str().unwrap() {
+                "command" => {
+                    let command =
+                        CString::new(serde_json::to_string(&operation["command"]).unwrap())
+                            .unwrap();
+                    assert_eq!(
+                        unsafe {
+                            ncp_action_buffer_on_command(
+                                buffer,
+                                operation["now_s"].as_f64().unwrap(),
+                                command.as_ptr(),
+                            )
+                        },
+                        0,
+                        "action_buffer[{name}] operation {index}: command parse"
+                    );
+                }
+                "reset" => unsafe { ncp_action_buffer_reset(buffer) },
+                "active" => {
+                    let now_s = operation["now_s"].as_f64().unwrap();
+                    let out = unsafe { ncp_action_buffer_active(buffer, now_s) };
+                    assert!(
+                        !out.is_null(),
+                        "action_buffer[{name}] operation {index}: active returned NULL"
+                    );
+                    let active: Value = {
+                        let json = unsafe { CStr::from_ptr(out) }.to_str().unwrap();
+                        let value = serde_json::from_str(json).unwrap();
+                        unsafe { ncp_string_free(out) };
+                        value
+                    };
+                    let expect = &operation["expect"];
+                    assert_eq!(
+                        !active.is_null(),
+                        expect["active"].as_bool().unwrap(),
+                        "action_buffer[{name}] operation {index}: active state"
+                    );
+                    if let Some(want) = expect["value"].as_f64() {
+                        assert_eq!(
+                            active["velocity_setpoint"]["data"][0].as_f64(),
+                            Some(want),
+                            "action_buffer[{name}] operation {index}: selected value"
+                        );
+                    }
+                    assert_eq!(
+                        unsafe { ncp_action_buffer_is_estopped(buffer) } == 1,
+                        expect["estopped"].as_bool().unwrap(),
+                        "action_buffer[{name}] operation {index}: ESTOP latch"
+                    );
+                }
+                other => panic!("action_buffer[{name}] operation {index}: unknown op {other:?}"),
+            }
+        }
+
+        unsafe { ncp_action_buffer_free(buffer) };
     }
 }

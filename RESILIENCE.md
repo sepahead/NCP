@@ -26,19 +26,17 @@ case**, not the only case.
 - **Control-RPC plane** (lifecycle; Reliable/Block): rare, not real-time — ARQ is
   correct, no change.
 
-## Review finding (fix first): `ttl_ms` is currently dead metadata
+## Review finding (fixed): `ttl_ms` must be enforced plant-side
 
-`CommandFrame.ttl_ms` is carried on the wire and documented as ≡ DDS LIFESPAN, but
-**no code enforces it** — the `SafetyGovernor` only checks *sensor* staleness
-(`command_timeout_ms`, default 500 ms), and a typical robot/UAV actuator has no command-age
-check. Every resilience idea below assumes the deadline backstop exists, so
-**enforcing `ttl_ms` plant-side is item 0** (a `CommandWatchdog` primitive now
-ships in `ncp-core::safety` — see below — so the plant can HOLD on an expired or
-missing command). **Caveat — the shipped watchdog enforces `ttl_ms` but does not
-yet *bound* it: an unbounded (huge) or non-finite (`+Inf`) `ttl_ms` leaves the
-backstop fail-OPEN (and `+Inf` permanently disables it). See the first-principles
-note at the end of this doc and `KNOWN_LIMITATIONS.md` (`safety.rs:417`,
-`safety.rs:432`); not yet fixed.**
+`CommandFrame.ttl_ms` is the application-layer analogue of DDS LIFESPAN. The
+reference `CommandWatchdog` and `ActionBuffer` now enforce it: expiry, a missing
+command, a non-finite value, or a clock anomaly all resolve to HOLD. Enforced TTLs
+are capped at `MAX_TTL_MS` (60 seconds), so a hostile huge or `+Inf` value cannot
+pin the actuator live. NCP cannot install that watchdog in hardware it does not
+own; every plant integration must wire the primitive into its final actuator path.
+The watchdog retains a local clock high-water mark: after a rewind/non-finite
+sample, old authority remains revoked until the clock catches up and a fresh,
+non-duplicate command is accepted. Catch-up alone never revives a stale command.
 
 ## The layered design (what survives the pruning)
 
@@ -65,7 +63,8 @@ free). The NEST controller emits a horizon by rolling its readout forward N tick
 **Safety invariant (load-bearing):** replaying a stale predicted command is
 open-loop dead-reckoning — if a disturbance hits during the blackout it actively
 commands the wrong thing and diverges on an unstable mode. Therefore **N is capped
-at `ttl_ms / horizon_dt_ms`**, each horizon entry `i` expires at
+by both `floor(min(ttl_ms, MAX_TTL_MS) / horizon_dt_ms)` and
+`MAX_HORIZON_STEPS = 65_536`**, each horizon entry `i` expires at
 `t + i·horizon_dt_ms`, and once the buffer drains or any entry is past `ttl_ms`,
 **HOLD fires**. The whole safety argument rests on this cap.
 
@@ -92,17 +91,19 @@ rungs that exist today; an autonomous-RTL rung would need a new `Mode` variant +
 MAVROS SET_MODE path that a given robot/UAV client may not yet have — out of scope until built).
 
 The plant-side `SafetyGovernor` state machine (verified against
-`ncp-core/src/safety.rs`) — `ACTIVE` clamps speed and truncates the predictive
-horizon near the geofence; a stale/missing sensor (or NaN clock/velocity, bad
-timeout, absent geofence channel) drops to **non-latching** `HOLD` that self-clears
-on fresh in-bounds data; a geofence breach, NaN position, or sustained link burst
-**latches** `ESTOP` (cleared only by a supervisor `reset()`); a limit referencing an
+`ncp-core/src/safety.rs`) — `ACTIVE` clamps speed and projects the actual canonical
+velocity path over the full TTL/horizon window, preserving safe inward motion but
+HOLDing/truncating before a geofence crossing; a stale/missing sensor (or non-finite
+clock, velocity, or position, bad timeout, absent geofence channel) drops to
+**non-latching** `HOLD` that self-clears on fresh in-bounds data; an actual geofence
+breach or sustained link burst **latches** `ESTOP` (cleared only by a supervisor
+`reset()`); a limit referencing an
 undeclared channel is a `config_fail_closed` HOLD that `reset()` does **not** clear:
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/fsm-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/fsm-light.svg">
-  <img alt="NCP plant-side safety governor finite state machine. Four states: ACTIVE (nominal — clamps speed and truncates the predictive horizon near the geofence), HOLD (non-latching — self-clears on fresh in-bounds data), ESTOP (latched and de-energized — exits only via a supervisor reset(); the emphasized vermillion glowing state with corner lock-ticks), and CONFIG-FAIL-CLOSED (a limit cites an undeclared channel; permanent for the session, safety_ok=false, reset() does not clear it). Transitions: INIT to ACTIVE; ACTIVE self-loops on a fresh sensor; ACTIVE to HOLD on a stale or missing sensor, non-finite clock or velocity, bad timeout, or absent geofence channel; HOLD back to ACTIVE on fresh in-bounds data; ACTIVE and HOLD both latch to ESTOP on a geofence breach, non-finite position, or link-loss burst (the heaviest strokes); ESTOP self-loops while latched with every CommandFrame zeroed, returning to ACTIVE only after a supervisor reset() with the plant in bounds; ACTIVE enters CONFIG-FAIL-CLOSED when a limit references an undeclared channel, then self-loops. Invariant: HOLD, ESTOP, and CONFIG-FAIL-CLOSED all emit a ZEROED command frame — fail-safe to zero, not latch-last." src="docs/diagrams/fsm-light.svg" width="820">
+  <img alt="NCP plant-side safety governor finite state machine. Four states: ACTIVE (nominal — clamps speed and truncates the predictive horizon near the geofence), HOLD (non-latching — self-clears on fresh in-bounds data), ESTOP (latched and de-energized — exits only via a supervisor reset(); the emphasized vermillion glowing state with corner lock-ticks), and CONFIG-FAIL-CLOSED (a limit cites an undeclared channel; permanent for the session, safety_ok=false, reset() does not clear it). Transitions: INIT to ACTIVE; ACTIVE self-loops on a fresh sensor; ACTIVE to HOLD on a stale or missing sensor, non-finite clock, velocity, or position, bad timeout, or absent geofence channel; HOLD back to ACTIVE on fresh in-bounds data; ACTIVE and HOLD both latch to ESTOP on an actual geofence breach or link-loss burst (the heaviest strokes); ESTOP self-loops while latched with every CommandFrame zeroed, returning to ACTIVE only after a supervisor reset() with the plant in bounds; ACTIVE enters CONFIG-FAIL-CLOSED when a limit references an undeclared channel, then self-loops. Invariant: HOLD, ESTOP, and CONFIG-FAIL-CLOSED all emit a ZEROED command frame — fail-safe to zero, not latch-last." src="docs/diagrams/fsm-light.svg" width="820">
 </picture>
 
 **The hard PHY boundary, stated plainly:** no application-layer scheme — not PPC,
@@ -179,24 +180,26 @@ important thing NCP can do is detect goodput collapse and fail safe honestly.
 
 ## Minimal first implementation (corrected order)
 
-> **Status (wire 0.6).** Steps 0–2 now ship as tested `ncp-core` primitives,
+> **Status (wire 0.7).** Steps 0–2 now ship as tested `ncp-core` primitives,
 > re-exported from the crate root: `CommandWatchdog` (the `ttl_ms` deadline
 > backstop), `ActionBuffer` + `max_horizon_len` (PPC horizon replay, capped at
-> `N ≤ ttl_ms / horizon_dt_ms`), and `LinkMonitor` (seq-gap loss + CUSUM burst →
+> `N ≤ ttl_ms / horizon_dt_ms` and `N ≤ 65_536`), and `LinkMonitor` (seq-gap loss + CUSUM burst →
 > `LinkStatus`). Step 3's jam latch ships as `SafetyGovernor::note_link(burst)`
 > (today the trip is the CUSUM `burst` flag; the `p̂ < p_c` / goodput-collapse
-> gating remains the documented target). What is *not* done: the residual
-> ttl-bounding fix (below), step 4's PID priorities (offline), and — crucially —
-> the **consumer wiring**. NCP ships and unit-tests the mechanism; it cannot HOLD
-> an actuator it does not own, so each consumer (Engram-as-hub, crebain, prisoma)
-> must call these in its own actuator/telemetry loop. The numbered list below
+> gating remains the documented target). What is *not* done: step 4's PID
+> priorities (offline) and — crucially — the **consumer wiring**. NCP ships and
+> unit-tests the mechanism; it cannot HOLD an actuator it does not own, so every
+> actuator-owning commander/body integration must call these in its actuator loop.
+> A read-only observer such as Prisoma consumes the telemetry and never calls an
+> actuator primitive. TTL/horizon enforcement is
+> bounded and non-finite values fail closed. The numbered list below
 > therefore now reads as the *integration* order, not a from-scratch build list.
 
 
 0. **Enforce `ttl_ms`** plant-side (`CommandWatchdog` in `ncp-core::safety` — done;
    wire it into the actuator handler).
 1. **PPC horizon** on `CommandFrame` (`horizon` field), actuator buffer keyed on
-   `seq`, **N ≤ ttl_ms/horizon_dt_ms**, per-entry expiry, HOLD on drain.
+   `seq`, **N ≤ ttl_ms/horizon_dt_ms and N ≤ 65,536**, per-entry expiry, HOLD on drain.
 2. **seq-gap + CUSUM detector + `LinkStatus`** telemetry.
 3. **Staged SafetyGovernor**: HOLD→ESTOP on `p̂<p_c` / goodput collapse (no RTL rung
    until the `Mode` variant + MAVROS path exist).
@@ -206,7 +209,7 @@ important thing NCP can do is detect goodput collapse and fail safe honestly.
 No new dependencies, no wire-breaking edits — additive `Option`/`Vec` fields and
 `ncp-core` logic only.
 
-## First-principles: the three plant-side primitives (and the ttl fail-OPEN gap)
+## First-principles: the three plant-side primitives
 
 Stripped to essentials, degraded-link resilience in NCP is three small,
 dependency-light primitives plus one cap. They are deliberately *library*
@@ -230,12 +233,20 @@ free, using only the `seq` already on the wire; no new redundancy field.
 
 The load-bearing catch: a replayed prediction is **open-loop dead-reckoning**. If a
 disturbance hits during the blackout, replay actively commands the wrong thing and,
-on an unstable mode, diverges. Hence the hard cap `N ≤ ttl_ms / horizon_dt_ms`
-(`max_horizon_len`): the replay can never outlive the very deadline that says "this
-command is stale." Each entry carries a per-tick expiry; on drain, `ActionBuffer`
+on an unstable mode, diverges. Hence `max_horizon_len` enforces both
+`N ≤ floor(min(ttl_ms, MAX_TTL_MS) / horizon_dt_ms)` and `N ≤ 65,536`: replay can
+never outlive the deadline or allocate an unbounded prediction. The deadline says "this
+command is stale" and expires inclusively at that boundary. Each entry's applicability
+is derived from the cadence and TTL; on drain, `ActionBuffer`
 returns `None` and the plant HOLDs. Ride-through is therefore *exactly*
 `N · horizon_dt_ms` and not one tick more — a property you can state, bound, and
 test, which is the whole point of putting it in the contract.
+
+Fail-safe delivery outranks replay discipline: every non-`Active` mode clears
+buffered actuation before envelope and sequence checks, and `ESTOP` also latches.
+Thus even a duplicate or malformed HOLD cannot be discarded while an older
+Active horizon continues. Only a complete accepted `Active` frame can add or
+refresh actuation authority.
 
 ### Why the ttl watchdog is the backstop everything else rests on
 First principle: every layer above assumes a deadline beneath it. PPC is only safe
@@ -257,22 +268,10 @@ already expired; an **equal** `seq` never re-anchors, so a frozen or replayed fr
 cannot forge liveness. An inbound ESTOP latches regardless of `seq` — a fail-safe is
 never dropped.
 
-> **Residual fail-OPEN gap (not fixed — see `KNOWN_LIMITATIONS.md`).** The watchdog
-> sanitizes the *clock* but does **not** bound the *deadline*. `on_command` stores
-> `ttl_ms.max(0.0)/1000.0` verbatim, so:
-> - an **unbounded / very large** `ttl_ms` makes the plant treat an arbitrarily
->   stale command as live — the deadline backstop is effectively fail-OPEN
->   (`safety.rs:417`, high severity, `safe` to fix);
-> - a single **non-finite `+Inf`** `ttl_ms` sets `ttl_s = +Inf`, so `(now − t) >
->   ttl_s` is never true and the backstop is **permanently disabled** by one frame
->   (`safety.rs:432`, `safe` to fix);
-> - relatedly, `max_horizon_len` returns `usize::MAX` for a non-finite/huge
->   `ttl_ms` and is only advisory (`resilience.rs:110`).
->
-> Until this is addressed, a conformant plant should sanitize locally: map a
-> non-finite `ttl_ms` to `0` (= immediately stale) and clamp large values to a
-> documented maximum (e.g. derived from `SafetyLimits.command_timeout_ms`). The
-> wire still carries `ttl_ms` unchanged; only local *enforcement* is bounded.
+> **Bounded deadline (fixed).** `CommandWatchdog` maps non-finite TTL to immediate
+> expiry and clamps enforcement to `MAX_TTL_MS`; `max_horizon_len` returns zero for
+> non-finite/invalid TTL or step size and caps finite output at 65,536. No hostile command can create an infinite
+> liveness or predictive-replay horizon.
 
 ### Why the link monitor only detects, and the governor decides
 First principle: separate measurement from policy so each is independently
@@ -291,4 +290,3 @@ ride-through window and no more. Under a wideband jam that drives goodput to ~0 
 longer than `N · horizon_dt_ms`, the only correct behavior is the fail-safe —
 detect the collapse and HOLD→ESTOP honestly; frequency-hopping/DSSS is the radio's
 job, not NCP's.
-

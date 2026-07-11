@@ -1,23 +1,26 @@
 //! Packed little-endian **columnar codec** for bulk numeric observation data (#6).
 //!
-//! The observation/analysis plane carries large numeric arrays — spike trains
+//! Observation/analysis data can contain large numeric arrays — spike trains
 //! (`senders`), `V_m`/`g_ex`/`w` traces (`values`), and their `times`. Encoding
 //! those as protobuf `repeated double` or JSON is parse+serialize work that scales
 //! with the event count (~11 ms for 50k spikes, measured). This module carries
-//! them instead as a **self-describing little-endian column block** inside a thin
-//! `bytes` envelope: fixed-width, parse-free (bulk `copy_from_slice`, no
+//! them instead as a **self-describing little-endian column block** for bounded
+//! local/offline storage and conformance fixtures: fixed-width (bulk
+//! `copy_from_slice`, no
 //! tokenizer), and random-access via a column directory of byte offsets — the
 //! property Arrow IPC / Cap'n Proto provide, without the dependency.
 //!
 //! ## Boundary
 //!
-//! This codec is for the **observation/analysis data plane only** — the bulk
-//! channel. The small, latency-critical control-loop frames
+//! This codec is reserved for observation/analysis data. It is **not currently a
+//! transported NCP plane payload**: every shipped plane carries a complete JSON
+//! message, and a bare NCPB block lacks session, sequence, timestamp, and
+//! provenance. The small, latency-critical control-loop frames
 //! ([`SensorFrame`](crate::SensorFrame) / [`CommandFrame`](crate::CommandFrame) /
-//! [`StimulusFrame`](crate::StimulusFrame)) stay JSON/protobuf and **never** ride
-//! this codec; it must never be on the hot action loop. It is an additive wire
-//! option (v0.2): peers negotiate it; the JSON `ObservationFrame` remains the
-//! canonical, always-available representation.
+//! [`StimulusFrame`](crate::StimulusFrame)) stay JSON and **never** ride this
+//! codec. A future negotiated `BulkObservation` envelope must ship in every SDK
+//! before transport use; JSON [`ObservationFrame`](crate::ObservationFrame) is
+//! the only implemented observation-plane frame.
 //!
 //! ## Wire layout (all integers little-endian)
 //!
@@ -43,12 +46,21 @@
 //! allocation-bomb `n_rows`, or a `total_len` that disagrees with the buffer all
 //! fail closed with [`BulkError`] rather than panic or over-read.
 
-use crate::messages::{Observable, Observation};
+use crate::messages::{Observable, Observation, ObservationFrame, WireFrame};
 
 /// Magic prefix identifying an NCP bulk column block.
 pub const BULK_MAGIC: [u8; 4] = *b"NCPB";
 /// On-wire format version for [`BulkBlock`].
 pub const BULK_VERSION: u8 = 1;
+/// Maximum accepted encoded block size. Bulk observations are analytical data,
+/// not an unbounded file-transfer channel; bounding them limits per-message memory
+/// and keeps hostile Zenoh payloads from monopolising a process. The motivating
+/// 50k-spike payload is under 1 MiB.
+pub const BULK_MAX_BYTES: usize = 64 * 1024 * 1024;
+/// Maximum directory width accepted by the local/offline bulk codec. Real NCP
+/// observations use a handful of parallel columns; 4096 is intentionally
+/// generous while bounding per-column metadata and adversarial parser work.
+pub const BULK_MAX_COLUMNS: usize = 4096;
 
 const HEADER_LEN: usize = 12;
 const DIR_ENTRY_LEN: usize = 16;
@@ -144,6 +156,7 @@ pub enum BulkError {
     BadMagic,
     UnsupportedVersion(u8),
     UnsupportedFlags(u8),
+    UnsupportedPadding(u8),
     LengthMismatch {
         declared: usize,
         actual: usize,
@@ -155,6 +168,11 @@ pub enum BulkError {
     Overflow,
     /// A column name was not valid utf-8.
     BadName,
+    DuplicateName,
+    OverlappingRegion,
+    ConflictingPayloadColumns,
+    InvalidObservationColumnType(&'static str),
+    InvalidObservationData,
     /// The parallel numeric columns (`times`/`values`/`senders`) disagree in
     /// length — they index the same events/samples, so a mismatch is corrupt.
     ColumnLengthMismatch {
@@ -163,6 +181,8 @@ pub enum BulkError {
         b: &'static str,
         b_len: usize,
     },
+    /// A format/resource ceiling was exceeded while encoding or decoding.
+    LimitExceeded(&'static str),
 }
 
 impl std::fmt::Display for BulkError {
@@ -172,17 +192,41 @@ impl std::fmt::Display for BulkError {
             BulkError::BadMagic => write!(f, "bulk block has wrong magic (expected NCPB)"),
             BulkError::UnsupportedVersion(v) => write!(f, "unsupported bulk version {v}"),
             BulkError::UnsupportedFlags(x) => write!(f, "unsupported bulk flags {x:#x}"),
+            BulkError::UnsupportedPadding(x) => {
+                write!(f, "unsupported non-zero bulk directory padding {x:#x}")
+            }
             BulkError::LengthMismatch { declared, actual } => {
                 write!(f, "bulk total_len {declared} != buffer {actual}")
             }
             BulkError::BadDtype(d) => write!(f, "unknown bulk dtype {d}"),
             BulkError::OutOfBounds => write!(f, "bulk directory offset out of bounds"),
             BulkError::Overflow => write!(f, "bulk column size overflow"),
-            BulkError::BadName => write!(f, "bulk column name not valid utf-8"),
+            BulkError::BadName => {
+                write!(f, "bulk column name must be non-empty control-free UTF-8")
+            }
+            BulkError::DuplicateName => write!(f, "bulk column names must be unique"),
+            BulkError::OverlappingRegion => {
+                write!(
+                    f,
+                    "bulk name/data regions overlap or enter the header/directory"
+                )
+            }
+            BulkError::ConflictingPayloadColumns => {
+                write!(f, "bulk observation cannot carry both values and senders")
+            }
+            BulkError::InvalidObservationColumnType(name) => write!(
+                f,
+                "bulk observation column {name} uses an incompatible numeric dtype"
+            ),
+            BulkError::InvalidObservationData => write!(
+                f,
+                "bulk observation metadata or numeric arrays violate the canonical ObservationFrame contract"
+            ),
             BulkError::ColumnLengthMismatch { a, a_len, b, b_len } => write!(
                 f,
                 "bulk parallel columns disagree: {a} has {a_len}, {b} has {b_len}"
             ),
+            BulkError::LimitExceeded(limit) => write!(f, "bulk limit exceeded: {limit}"),
         }
     }
 }
@@ -217,6 +261,11 @@ impl BulkBlock {
     /// mismatch is a corrupt/hostile block — fail closed rather than silently
     /// pairing arrays of different lengths.
     pub fn check_parallel(&self) -> Result<(), BulkError> {
+        if self.get("values").is_some_and(|column| !column.is_empty())
+            && self.get("senders").is_some_and(|column| !column.is_empty())
+        {
+            return Err(BulkError::ConflictingPayloadColumns);
+        }
         let mut expected: Option<(&'static str, usize)> = None;
         for name in ["times", "values", "senders"] {
             let n = match self.get(name) {
@@ -244,15 +293,59 @@ impl BulkBlock {
 
     /// Serialize to the packed little-endian block.
     ///
-    /// Limits (far above the observation-plane envelope): at most 65535 columns,
-    /// and each column's element count, the per-column byte offsets, and the total
-    /// block length must each fit in a `u32`. Inputs beyond these would wrap the
-    /// header casts; the observation bulk channel is orders of magnitude smaller
-    /// (a 50k-spike block is ~1.6 MB), so this is a documented bound, not a guard.
-    pub fn encode(&self) -> Vec<u8> {
+    /// Limits (far above the observation-plane envelope): at most 4096 columns,
+    /// 65535 bytes per name, `u32::MAX` rows per column, and 64 MiB total. Every
+    /// narrowing conversion/allocation is checked and returned as [`BulkError`].
+    pub fn encode(&self) -> Result<Vec<u8>, BulkError> {
+        self.check_parallel()?;
         let n_cols = self.columns.len();
+        if n_cols > BULK_MAX_COLUMNS {
+            return Err(BulkError::LimitExceeded("more than 4096 columns"));
+        }
+
+        // Preflight every narrowing conversion and allocation before reserving or
+        // writing. The previous infallible casts silently wrapped a 65,536-column
+        // block to n_cols=0 and could truncate large names/offsets.
+        let dir_len = n_cols
+            .checked_mul(DIR_ENTRY_LEN)
+            .ok_or(BulkError::Overflow)?;
+        let mut name_pool_len = 0usize;
+        let mut data_len = 0usize;
+        let mut unique_names = std::collections::BTreeSet::new();
+        for (name, col) in &self.columns {
+            if name.is_empty() || name.chars().any(char::is_control) {
+                return Err(BulkError::BadName);
+            }
+            if !unique_names.insert(name.as_str()) {
+                return Err(BulkError::DuplicateName);
+            }
+            u16::try_from(name.len())
+                .map_err(|_| BulkError::LimitExceeded("column name longer than 65535 bytes"))?;
+            u32::try_from(col.len())
+                .map_err(|_| BulkError::LimitExceeded("column has more than u32::MAX rows"))?;
+            name_pool_len = name_pool_len
+                .checked_add(name.len())
+                .ok_or(BulkError::Overflow)?;
+            data_len = data_len
+                .checked_add(
+                    col.len()
+                        .checked_mul(Column::width(col.dtype()))
+                        .ok_or(BulkError::Overflow)?,
+                )
+                .ok_or(BulkError::Overflow)?;
+        }
+        let total_len = HEADER_LEN
+            .checked_add(dir_len)
+            .and_then(|n| n.checked_add(name_pool_len))
+            .and_then(|n| n.checked_add(data_len))
+            .ok_or(BulkError::Overflow)?;
+        if total_len > BULK_MAX_BYTES {
+            return Err(BulkError::LimitExceeded("encoded block exceeds 64 MiB"));
+        }
+        u32::try_from(total_len)
+            .map_err(|_| BulkError::LimitExceeded("encoded block exceeds u32::MAX bytes"))?;
+
         // Names laid out after the directory; column data after the name pool.
-        let dir_len = n_cols * DIR_ENTRY_LEN;
         let name_pool_start = HEADER_LEN + dir_len;
 
         // Pre-compute the name pool and per-column data offsets.
@@ -273,7 +366,7 @@ impl BulkBlock {
             col.encode_data(&mut data);
         }
 
-        let total_len = data_start + data.len();
+        debug_assert_eq!(data_start + data.len(), total_len);
         let mut out = Vec::with_capacity(total_len);
         out.extend_from_slice(&BULK_MAGIC);
         out.push(BULK_VERSION);
@@ -293,7 +386,7 @@ impl BulkBlock {
         out.extend_from_slice(&name_pool);
         out.extend_from_slice(&data);
         debug_assert_eq!(out.len(), total_len);
-        out
+        Ok(out)
     }
 
     /// Parse a packed block. Fully bounds-checked against untrusted input.
@@ -311,12 +404,18 @@ impl BulkBlock {
             return Err(BulkError::UnsupportedFlags(bytes[5]));
         }
         let n_cols = u16::from_le_bytes([bytes[6], bytes[7]]) as usize;
+        if n_cols > BULK_MAX_COLUMNS {
+            return Err(BulkError::LimitExceeded("more than 4096 columns"));
+        }
         let total_len = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]) as usize;
         if total_len != bytes.len() {
             return Err(BulkError::LengthMismatch {
                 declared: total_len,
                 actual: bytes.len(),
             });
+        }
+        if total_len > BULK_MAX_BYTES {
+            return Err(BulkError::LimitExceeded("encoded block exceeds 64 MiB"));
         }
         // The directory itself must fit.
         let dir_end = HEADER_LEN
@@ -337,24 +436,59 @@ impl BulkBlock {
         // allocates n_rows per column), enabling large memory amplification (OOM)
         // from a tiny hostile block.
         let mut alloc_budget = bytes.len();
-        let mut columns = Vec::with_capacity(n_cols);
+        struct PendingColumn {
+            name: String,
+            dtype: u8,
+            n_rows: usize,
+            data_off: usize,
+            data_end: usize,
+        }
+
+        let mut pending = Vec::with_capacity(n_cols);
+        let mut unique_names = std::collections::BTreeSet::new();
+        // Validate overlap in one sort + adjacent scan after parsing the
+        // directory. Checking every new span against every previous span made a
+        // maximum-width hostile directory O(n^2) even when its 1 MiB input was
+        // otherwise well formed.
+        let mut occupied: Vec<(usize, usize)> = Vec::with_capacity(n_cols * 2);
         for i in 0..n_cols {
             let base = HEADER_LEN + i * DIR_ENTRY_LEN;
             let e = &bytes[base..base + DIR_ENTRY_LEN];
             let name_off = u32::from_le_bytes([e[0], e[1], e[2], e[3]]) as usize;
             let name_len = u16::from_le_bytes([e[4], e[5]]) as usize;
             let dtype = e[6];
+            if e[7] != 0 {
+                return Err(BulkError::UnsupportedPadding(e[7]));
+            }
             let n_rows = u32::from_le_bytes([e[8], e[9], e[10], e[11]]) as usize;
             let data_off = u32::from_le_bytes([e[12], e[13], e[14], e[15]]) as usize;
 
             // Name slice in bounds.
             let name_end = name_off.checked_add(name_len).ok_or(BulkError::Overflow)?;
+            if name_off < dir_end || name_end < name_off {
+                return Err(BulkError::OverlappingRegion);
+            }
+            // `to_string` copies the name. Charge that allocation BEFORE making it,
+            // just like numeric column data; overlapping directory entries must not
+            // amplify one input slice into many heap allocations.
+            alloc_budget = alloc_budget
+                .checked_sub(name_len)
+                .ok_or(BulkError::OutOfBounds)?;
             let name_bytes = bytes
                 .get(name_off..name_end)
                 .ok_or(BulkError::OutOfBounds)?;
+            if name_off != name_end {
+                occupied.push((name_off, name_end));
+            }
             let name = std::str::from_utf8(name_bytes)
                 .map_err(|_| BulkError::BadName)?
                 .to_string();
+            if name.is_empty() || name.chars().any(char::is_control) {
+                return Err(BulkError::BadName);
+            }
+            if !unique_names.insert(name.clone()) {
+                return Err(BulkError::DuplicateName);
+            }
 
             let width = Column::width(dtype);
             if width == 0 {
@@ -367,14 +501,42 @@ impl BulkBlock {
                 .checked_sub(data_len)
                 .ok_or(BulkError::OutOfBounds)?;
             let data_end = data_off.checked_add(data_len).ok_or(BulkError::Overflow)?;
-            let data = bytes
+            if data_off < dir_end || data_end < data_off {
+                return Err(BulkError::OverlappingRegion);
+            }
+            bytes
                 .get(data_off..data_end)
                 .ok_or(BulkError::OutOfBounds)?;
-
-            let col = decode_column(dtype, data, n_rows);
-            columns.push((name, col));
+            if data_off != data_end {
+                occupied.push((data_off, data_end));
+            }
+            pending.push(PendingColumn {
+                name,
+                dtype,
+                n_rows,
+                data_off,
+                data_end,
+            });
         }
-        Ok(BulkBlock { columns })
+
+        occupied.sort_unstable_by_key(|&(start, end)| (start, end));
+        for spans in occupied.windows(2) {
+            if spans[1].0 < spans[0].1 {
+                return Err(BulkError::OverlappingRegion);
+            }
+        }
+
+        // Only allocate numeric columns after every directory region has passed
+        // the global disjointness check.
+        let mut columns = Vec::with_capacity(n_cols);
+        for entry in pending {
+            let data = &bytes[entry.data_off..entry.data_end];
+            let col = decode_column(entry.dtype, data, entry.n_rows);
+            columns.push((entry.name, col));
+        }
+        let block = BulkBlock { columns };
+        block.check_parallel()?;
+        Ok(block)
     }
 }
 
@@ -428,15 +590,15 @@ impl Observation {
     }
 
     /// Round-trip the bulk arrays through the packed codec, returning the encoded
-    /// bytes — the observation-plane bulk envelope payload for this port.
-    pub fn to_bulk_bytes(&self) -> Vec<u8> {
+    /// bytes for local/offline use or a conformance fixture.
+    pub fn to_bulk_bytes(&self) -> Result<Vec<u8>, BulkError> {
         self.to_bulk_block().encode()
     }
 }
 
-/// Reconstruct an [`Observation`] from its metadata plus a packed bulk block —
-/// the receive side of the bulk envelope. `observable`/`port`/etc. travel in the
-/// small JSON envelope; the numeric arrays travel in `block`.
+/// Reconstruct an [`Observation`] from metadata plus a local packed block. The
+/// result is checked against the canonical ObservationFrame semantics; this is
+/// not permission to publish the bare block on an NCP plane.
 pub fn observation_from_bulk(
     port: impl Into<String>,
     target: impl Into<String>,
@@ -447,8 +609,24 @@ pub fn observation_from_bulk(
 ) -> Result<Observation, BulkError> {
     let b = BulkBlock::decode(block)?;
     b.check_parallel()?; // cross-column length invariant: fail closed on a corrupt block
+    if b.get("times")
+        .is_some_and(|column| !matches!(column, Column::F32(_) | Column::F64(_)))
+    {
+        return Err(BulkError::InvalidObservationColumnType("times"));
+    }
+    if b.get("values")
+        .is_some_and(|column| !matches!(column, Column::F32(_) | Column::F64(_)))
+    {
+        return Err(BulkError::InvalidObservationColumnType("values"));
+    }
+    if b.get("senders")
+        .is_some_and(|column| !matches!(column, Column::I32(_) | Column::I64(_)))
+    {
+        return Err(BulkError::InvalidObservationColumnType("senders"));
+    }
+    let port = port.into();
     let mut obs = Observation {
-        port: port.into(),
+        port: port.clone(),
         target: target.into(),
         observable,
         unit,
@@ -456,6 +634,14 @@ pub fn observation_from_bulk(
         ..Default::default()
     };
     obs.apply_bulk_block(&b);
+    let frame = ObservationFrame {
+        session_id: "bulk-local-validation".into(),
+        records: [(port, obs.clone())].into_iter().collect(),
+        ..Default::default()
+    };
+    frame
+        .validate_wire()
+        .map_err(|_| BulkError::InvalidObservationData)?;
     Ok(obs)
 }
 
@@ -470,7 +656,7 @@ mod tests {
             .with("b_f64", Column::F64(vec![1.0, 2.0, 3.5, -4.0]))
             .with("c_i32", Column::I32(vec![-1, 0, 7, i32::MIN]))
             .with("d_i64", Column::I64(vec![0, -9_000_000_000, i64::MAX]));
-        let bytes = b.encode();
+        let bytes = b.encode().unwrap();
         let back = BulkBlock::decode(&bytes).unwrap();
         assert_eq!(b, back);
     }
@@ -478,12 +664,15 @@ mod tests {
     #[test]
     fn roundtrip_empty_block_and_empty_columns() {
         let empty = BulkBlock::new();
-        assert_eq!(BulkBlock::decode(&empty.encode()).unwrap(), empty);
+        assert_eq!(BulkBlock::decode(&empty.encode().unwrap()).unwrap(), empty);
 
         let with_empty = BulkBlock::new()
             .with("times", Column::F64(vec![]))
             .with("senders", Column::I64(vec![]));
-        assert_eq!(BulkBlock::decode(&with_empty.encode()).unwrap(), with_empty);
+        assert_eq!(
+            BulkBlock::decode(&with_empty.encode().unwrap()).unwrap(),
+            with_empty
+        );
     }
 
     #[test]
@@ -517,26 +706,111 @@ mod tests {
     }
 
     #[test]
+    fn decode_rejects_amplifying_overlapping_names() {
+        // Two directory entries alias the same 1024-byte name. Each slice is in
+        // bounds, but copying it twice would allocate more name data than the
+        // entire input. The shared allocation budget must reject before the second
+        // String allocation (the 65k-column form was a multi-GiB OOM vector).
+        let name_len = 1024usize;
+        let name_off = HEADER_LEN + 2 * DIR_ENTRY_LEN;
+        let total = name_off + name_len;
+        let mut bytes = vec![b'a'; total];
+        bytes[0..4].copy_from_slice(&BULK_MAGIC);
+        bytes[4] = BULK_VERSION;
+        bytes[5] = 0;
+        bytes[6..8].copy_from_slice(&2u16.to_le_bytes());
+        bytes[8..12].copy_from_slice(&(total as u32).to_le_bytes());
+        for i in 0..2 {
+            let base = HEADER_LEN + i * DIR_ENTRY_LEN;
+            bytes[base..base + 4].copy_from_slice(&(name_off as u32).to_le_bytes());
+            bytes[base + 4..base + 6].copy_from_slice(&(name_len as u16).to_le_bytes());
+            bytes[base + 6] = DTYPE_F64;
+            bytes[base + 8..base + 12].copy_from_slice(&0u32.to_le_bytes());
+            bytes[base + 12..base + 16].copy_from_slice(&(total as u32).to_le_bytes());
+        }
+        assert!(BulkBlock::decode(&bytes).is_err());
+    }
+
+    #[test]
+    fn bulk_column_ceiling_bounds_directory_work() {
+        let block = BulkBlock {
+            columns: (0..=BULK_MAX_COLUMNS)
+                .map(|index| (format!("c{index}"), Column::F64(Vec::new())))
+                .collect(),
+        };
+        assert!(matches!(
+            block.encode(),
+            Err(BulkError::LimitExceeded("more than 4096 columns"))
+        ));
+
+        // The decode gate runs before allocating/parsing the directory.
+        let n_cols = BULK_MAX_COLUMNS + 1;
+        let total_len = HEADER_LEN + n_cols * DIR_ENTRY_LEN;
+        let mut hostile = vec![0; total_len];
+        hostile[0..4].copy_from_slice(&BULK_MAGIC);
+        hostile[4] = BULK_VERSION;
+        hostile[6..8].copy_from_slice(&(n_cols as u16).to_le_bytes());
+        hostile[8..12].copy_from_slice(&(total_len as u32).to_le_bytes());
+        assert_eq!(
+            BulkBlock::decode(&hostile),
+            Err(BulkError::LimitExceeded("more than 4096 columns"))
+        );
+
+        // A maximum-width valid directory still round-trips; overlap checking
+        // is O(n log n), not the former pairwise O(n^2) scan.
+        let max = BulkBlock {
+            columns: (0..BULK_MAX_COLUMNS)
+                .map(|index| (format!("c{index}"), Column::F64(Vec::new())))
+                .collect(),
+        };
+        let encoded = max.encode().expect("maximum-width block encodes");
+        assert_eq!(
+            BulkBlock::decode(&encoded)
+                .expect("maximum-width block decodes")
+                .columns
+                .len(),
+            BULK_MAX_COLUMNS
+        );
+    }
+
+    #[test]
     fn decode_rejects_unequal_parallel_columns() {
         // times has 3, senders has 2 -> corrupt parallel block -> fail closed.
         let bad = BulkBlock::new()
             .with("times", Column::F64(vec![0.0, 1.0, 2.0]))
             .with("senders", Column::I64(vec![1, 2]));
-        let err =
-            observation_from_bulk("spk", "pop", Observable::Spikes, None, None, &bad.encode())
-                .unwrap_err();
+        let err = bad.encode().unwrap_err();
         assert!(
             matches!(err, BulkError::ColumnLengthMismatch { .. }),
             "unequal parallel columns must fail closed, got {err:?}"
         );
+        let mut hostile = BulkBlock::new()
+            .with("aaaaa", Column::F64(vec![0.0, 1.0, 2.0]))
+            .with("xxxxxxx", Column::I64(vec![1, 2]))
+            .encode()
+            .unwrap();
+        for (index, replacement) in [(0usize, b"times".as_slice()), (1, b"senders".as_slice())] {
+            let base = HEADER_LEN + index * DIR_ENTRY_LEN;
+            let name_off = u32::from_le_bytes(hostile[base..base + 4].try_into().unwrap()) as usize;
+            hostile[name_off..name_off + replacement.len()].copy_from_slice(replacement);
+        }
+        assert!(matches!(
+            BulkBlock::decode(&hostile),
+            Err(BulkError::ColumnLengthMismatch { .. })
+        ));
         // Equal lengths still round-trip cleanly.
         let ok = BulkBlock::new()
             .with("times", Column::F64(vec![0.0, 1.0]))
             .with("senders", Column::I64(vec![1, 2]));
-        assert!(
-            observation_from_bulk("spk", "pop", Observable::Spikes, None, None, &ok.encode())
-                .is_ok()
-        );
+        assert!(observation_from_bulk(
+            "spk",
+            "pop",
+            Observable::Spikes,
+            None,
+            None,
+            &ok.encode().unwrap(),
+        )
+        .is_ok());
     }
 
     #[test]
@@ -545,7 +819,7 @@ mod tests {
             "vm",
             Column::F64(vec![f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 0.0]),
         );
-        let back = BulkBlock::decode(&b.encode()).unwrap();
+        let back = BulkBlock::decode(&b.encode().unwrap()).unwrap();
         if let Some(Column::F64(v)) = back.get("vm") {
             assert!(v[0].is_nan());
             assert_eq!(v[1], f64::INFINITY);
@@ -567,7 +841,7 @@ mod tests {
             senders: vec![3, 3, 7, 12],
             ..Default::default()
         };
-        let bytes = spk.to_bulk_bytes();
+        let bytes = spk.to_bulk_bytes().unwrap();
         let rebuilt =
             observation_from_bulk("spk", "exc", Observable::Spikes, None, None, &bytes).unwrap();
         assert_eq!(rebuilt.times, spk.times);
@@ -585,7 +859,7 @@ mod tests {
             ..Default::default()
         };
         let mut back = BulkBlock::new();
-        back = BulkBlock::decode(&vm.to_bulk_bytes()).unwrap_or(back);
+        back = BulkBlock::decode(&vm.to_bulk_bytes().unwrap()).unwrap_or(back);
         let mut rebuilt_vm = Observation::default();
         rebuilt_vm.apply_bulk_block(&back);
         assert_eq!(rebuilt_vm.times, vm.times);
@@ -594,21 +868,106 @@ mod tests {
     }
 
     #[test]
+    fn observation_reconstruction_rejects_type_confusion_and_invalid_arrays() {
+        let float_senders = BulkBlock::new()
+            .with("times", Column::F64(vec![1.0]))
+            .with("senders", Column::F64(vec![1.0]))
+            .encode()
+            .unwrap();
+        assert_eq!(
+            observation_from_bulk("spk", "pop", Observable::Spikes, None, None, &float_senders,),
+            Err(BulkError::InvalidObservationColumnType("senders"))
+        );
+
+        let missing_times = BulkBlock::new()
+            .with("values", Column::F64(vec![-65.0]))
+            .encode()
+            .unwrap();
+        assert_eq!(
+            observation_from_bulk(
+                "vm",
+                "pop",
+                Observable::Vm,
+                Some("mV".into()),
+                None,
+                &missing_times,
+            ),
+            Err(BulkError::InvalidObservationData)
+        );
+
+        let nonfinite = BulkBlock::new()
+            .with("times", Column::F64(vec![1.0]))
+            .with("values", Column::F64(vec![f64::NAN]))
+            .encode()
+            .unwrap();
+        assert_eq!(
+            observation_from_bulk("vm", "pop", Observable::Vm, None, None, &nonfinite,),
+            Err(BulkError::InvalidObservationData)
+        );
+    }
+
+    #[test]
     fn compact_f32_widths_halve_senders_and_values() {
         // The issue's f32-values + i32-senders compaction path.
         let block = BulkBlock::new()
-            .with("values", Column::F32(vec![1.0, 2.0, 3.0]))
-            .with("senders", Column::I32(vec![1, 2, 3]));
-        let bytes = block.encode();
-        let mut obs = Observation::default();
-        obs.apply_bulk_block(&BulkBlock::decode(&bytes).unwrap());
-        assert_eq!(obs.values, vec![1.0, 2.0, 3.0]); // widened losslessly to f64
-        assert_eq!(obs.senders, vec![1, 2, 3]); // widened to i64
+            .with("analog", Column::F32(vec![1.0, 2.0, 3.0]))
+            .with("ids", Column::I32(vec![1, 2, 3]));
+        let bytes = block.encode().unwrap();
+        let decoded = BulkBlock::decode(&bytes).unwrap();
+        assert_eq!(decoded.get("analog").unwrap().as_f64(), vec![1.0, 2.0, 3.0]);
+        assert_eq!(decoded.get("ids").unwrap().as_i64(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn rejects_duplicate_names_nonzero_padding_and_conflicting_payloads() {
+        let mut duplicate = BulkBlock::new()
+            .with("aaaa", Column::F64(vec![1.0]))
+            .with("bbbb", Column::F64(vec![2.0]))
+            .encode()
+            .unwrap();
+        let second = HEADER_LEN + DIR_ENTRY_LEN;
+        let second_name_off =
+            u32::from_le_bytes(duplicate[second..second + 4].try_into().unwrap()) as usize;
+        duplicate[second_name_off..second_name_off + 4].copy_from_slice(b"aaaa");
+        assert_eq!(BulkBlock::decode(&duplicate), Err(BulkError::DuplicateName));
+
+        let mut padded = BulkBlock::new()
+            .with("x", Column::F64(vec![1.0]))
+            .encode()
+            .unwrap();
+        padded[HEADER_LEN + 7] = 1;
+        assert_eq!(
+            BulkBlock::decode(&padded),
+            Err(BulkError::UnsupportedPadding(1))
+        );
+
+        let duplicate_builder = BulkBlock::new()
+            .with("x", Column::F64(vec![]))
+            .with("x", Column::F64(vec![]));
+        assert_eq!(duplicate_builder.encode(), Err(BulkError::DuplicateName));
+
+        // Encode under neutral names, then mutate the same-length name bytes to
+        // the mutually-exclusive observation columns.
+        let mut conflicting = BulkBlock::new()
+            .with("values", Column::F64(vec![1.0]))
+            .with("xxxxxxx", Column::I64(vec![1]))
+            .encode()
+            .unwrap();
+        let second_name_off =
+            u32::from_le_bytes(conflicting[second..second + 4].try_into().unwrap()) as usize;
+        conflicting[second_name_off..second_name_off + 7].copy_from_slice(b"senders");
+        assert_eq!(
+            BulkBlock::decode(&conflicting),
+            Err(BulkError::ConflictingPayloadColumns)
+        );
     }
 
     #[test]
     fn rejects_bad_magic() {
-        let mut bytes = BulkBlock::new().with("x", Column::F64(vec![1.0])).encode();
+        let mut bytes = BulkBlock::new()
+            .with("x", Column::F64(vec![1.0]))
+            .encode()
+            .unwrap();
         bytes[0] = b'X';
         assert_eq!(BulkBlock::decode(&bytes), Err(BulkError::BadMagic));
     }
@@ -617,7 +976,8 @@ mod tests {
     fn rejects_truncation() {
         let bytes = BulkBlock::new()
             .with("x", Column::F64(vec![1.0, 2.0, 3.0]))
-            .encode();
+            .encode()
+            .unwrap();
         // Drop the last 4 bytes: total_len no longer matches the buffer.
         let truncated = &bytes[..bytes.len() - 4];
         assert!(matches!(
@@ -641,16 +1001,17 @@ mod tests {
         bytes.push(BULK_VERSION);
         bytes.push(0);
         bytes.extend_from_slice(&1u16.to_le_bytes()); // n_cols = 1
-        let total_len = (HEADER_LEN + DIR_ENTRY_LEN) as u32;
+        let total_len = (HEADER_LEN + DIR_ENTRY_LEN + 1) as u32;
         bytes.extend_from_slice(&total_len.to_le_bytes());
-        // directory entry: name_off=total_len(empty name), name_len=0, dtype=f64,
+        // directory entry: one-byte name immediately after the directory,
         // n_rows=u32::MAX, data_off=total_len
-        bytes.extend_from_slice(&total_len.to_le_bytes()); // name_off
-        bytes.extend_from_slice(&0u16.to_le_bytes()); // name_len
+        bytes.extend_from_slice(&(total_len - 1).to_le_bytes()); // name_off
+        bytes.extend_from_slice(&1u16.to_le_bytes()); // name_len
         bytes.push(DTYPE_F64);
         bytes.push(0);
         bytes.extend_from_slice(&u32::MAX.to_le_bytes()); // n_rows
         bytes.extend_from_slice(&total_len.to_le_bytes()); // data_off (== end)
+        bytes.push(b'x');
         assert_eq!(bytes.len(), total_len as usize);
         // n_rows*8 points way past the buffer -> OutOfBounds, never an allocation.
         assert_eq!(BulkBlock::decode(&bytes), Err(BulkError::OutOfBounds));
@@ -658,7 +1019,10 @@ mod tests {
 
     #[test]
     fn rejects_bad_dtype() {
-        let mut bytes = BulkBlock::new().with("x", Column::F64(vec![1.0])).encode();
+        let mut bytes = BulkBlock::new()
+            .with("x", Column::F64(vec![1.0]))
+            .encode()
+            .unwrap();
         // dtype byte sits at directory entry offset 6.
         bytes[HEADER_LEN + 6] = 99;
         assert_eq!(BulkBlock::decode(&bytes), Err(BulkError::BadDtype(99)));
@@ -673,13 +1037,13 @@ mod tests {
     fn matches_committed_golden_vector() {
         let golden = include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../conformance/vectors/bulk_observation.bin"
+            "/testdata/conformance/vectors/bulk_observation.bin"
         ));
         let block = BulkBlock::new()
             .with("times", Column::F64(vec![1.5, 2.5, 9.0]))
             .with("senders", Column::I64(vec![7, 7, 9]));
         assert_eq!(
-            block.encode().as_slice(),
+            block.encode().unwrap().as_slice(),
             &golden[..],
             "Rust bulk encoding drifted from the committed golden vector"
         );
@@ -695,7 +1059,7 @@ mod tests {
         let block = BulkBlock::new()
             .with("times", Column::F64(times.clone()))
             .with("senders", Column::I64(senders.clone()));
-        let bytes = block.encode();
+        let bytes = block.encode().unwrap();
         // Header + dir + names + 50k*8 (times) + 50k*8 (senders).
         assert_eq!(bytes.len(), HEADER_LEN + 2 * DIR_ENTRY_LEN + 5 + 7 + n * 16);
         let back = BulkBlock::decode(&bytes).unwrap();

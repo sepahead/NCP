@@ -7,7 +7,7 @@ normative protocol, used to validate the JSON transport and the conformance corp
 
 NCP is one normative protocol with peers in Rust (`ncp-core`), Python (`ncp-python`), TypeScript
 (`ncp-ts`), and C++ (`ncp-cpp`). The wire contract lives in [`proto/ncp.proto`](../proto/ncp.proto);
-the schemas here are one of the three wire projections (Rust serde / JSON Schema / protobuf) that a
+the schemas here are one of the three contract projections (Rust serde / JSON Schema / protobuf) that a
 parity guard keeps from drifting apart.
 
 ## Source of truth & regeneration (IMPORTANT)
@@ -15,13 +15,13 @@ parity guard keeps from drifting apart.
 These files are **generated, not hand-edited**, and **NCP owns their generation**
 (proto-first): `cargo run -p ncp-core --features schema --bin gen-schemas` derives them
 directly from the `ncp-core` serde reference types — the conformance-locked reference
-implementation of `proto/ncp.proto`, which carry the enum wire strings (`#[serde(rename)]`),
-the fail-safe field defaults, the `kind` discriminator const, and the `required_fields`
-validation contract. CI **regenerates and diffs** them on every run (the schemas cannot
-drift from the Rust types), and `scripts/check_schema_defaults.py` independently pins
-every field default to the reference (it caught `CommandFrame.mode` defaulting to the
-actuating `"active"` instead of the fail-safe `"hold"` — a bug the previous
-consumer-Pydantic source had introduced).
+implementation of `proto/ncp.proto`, which carries the enum wire strings
+(`#[serde(rename)]`), legitimate optional defaults, `kind` discriminator consts, and
+the `required_fields` validation contract. Deserialize-only missing-field sentinels
+are stripped: required/const fields do not advertise defaults, and every retained
+default is type-compatible. CI **regenerates and diffs** the schemas on every run,
+while `scripts/check_schema_defaults.py` independently pins these invariants and the
+fail-closed `CommandFrame.mode = "hold"` default.
 
 Downstream consumers (e.g. engram) are pure **consumers** of these schemas: they validate
 their own representations *against* this projection, they do not produce it. (Engram's
@@ -29,10 +29,11 @@ their own representations *against* this projection, they do not produce it. (En
 copy.)
 
 Do not edit a `*.schema.json` by hand — run `gen-schemas` and commit the result.
-[`index.json`](index.json) lists the message set (`ncp_version` `0.6`): `capabilities`,
+[`index.json`](index.json) lists the v0.7.0 release's message set
+(`ncp_version` `0.7`): `capabilities`,
 `open_session` / `session_opened`, `close_session` / `session_closed`, `run_request`,
 `step_request`, `sensor_frame` / `stimulus_frame` / `observation_frame` / `command_frame`,
-`control_status`, `link_status`.
+`control_status`, `link_status`, and the typed RPC `error` frame.
 
 ## Drift guards
 

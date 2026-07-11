@@ -1,4 +1,4 @@
-import type { StimulusTarget } from "./StimulusTarget";
+import type { StimulusTarget } from "./StimulusTarget.js";
 export type StimulusSpec = {
     targets: Array<StimulusTarget>;
 };

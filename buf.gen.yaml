@@ -4,8 +4,8 @@ version: v2
 #             wire). prost output is for evaluating the eventual proto-native rewire.
 #   - TS    : ncp-ts currently ships ts-rs-generated types; ts-proto is the
 #             proto-native alternative for the @sepahead/ncp package.
-#   - Python: engram keeps Pydantic (canonical for storage/validation per
-#             CLAUDE.md); this is the optional binary-codec path only.
+#   - Python: the shipped `ncp-python` surface wraps ncp-core through PyO3;
+#             this generated tree is an optional future protobuf-codec path only.
 # Output goes to gen/ (gitignored). Run `npx @bufbuild/buf generate`.
 # See proto/ncp.proto header for the normativity model.
 clean: true

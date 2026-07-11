@@ -1,4 +1,4 @@
-import type { ChannelValue } from "./ChannelValue";
+import type { ChannelValue } from "./ChannelValue.js";
 /**
  * Plant → controller: the latest sensed state. Carries `seq`/`t` so a command
  * can be stamped with the sensor it was computed from (the correspondence the
@@ -7,7 +7,8 @@ import type { ChannelValue } from "./ChannelValue";
  * Wire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly
  * increasing per stream. `seq = 0` is "unstamped" — receivers drop it (it is
  * also the serde default, so a default-constructed frame is not wire-legal
- * until stamped).
+ * until stamped). `t` is producer-local monotonic seconds and is never compared
+ * across peers.
  */
 export type SensorFrame = {
     ncp_version: string;

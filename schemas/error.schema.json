@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A typed, versioned failure reply. Error payloads are wire messages too: leaving\nthem unversioned lets a stale or misrouted peer bypass the same identity checks\napplied to successful replies.",
+  "properties": {
+    "error": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "error",
+      "type": "string"
+    },
+    "ncp_version": {
+      "const": "0.7",
+      "type": "string"
+    },
+    "request_kind": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "session_id": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "error",
+    "kind",
+    "ncp_version"
+  ],
+  "title": "ErrorFrame",
+  "type": "object"
+}

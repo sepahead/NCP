@@ -3,11 +3,12 @@
  * message in order, so requests are correlated FIFO. Use this `send` with
  * `NeuroSimClient`, or implement `Send` over another bus (e.g. Zenoh) instead.
  */
-import type { Send } from './client';
+import type { Send } from './client.js';
 export declare class WebSocketNeuroSim {
     private readonly ws;
     private readonly pending;
     private readonly ready;
+    private readonly settleReady;
     private closedError;
     constructor(url?: string);
     private static messageOf;

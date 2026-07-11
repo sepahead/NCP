@@ -7,8 +7,51 @@
 //! population's readout rate back onto a command-channel component. Mirrors
 //! `backend/neurocontrol/codec.py`.
 
-use crate::messages::{ChannelValue, CommandFrame, Map, Mode, SensorFrame};
+use crate::messages::{
+    ChannelValue, CommandFrame, Map, Mode, SensorFrame, WireFrame, JSON_SAFE_INTEGER_MAX,
+};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+
+/// Maximum zero-based component index accepted from an untrusted codec spec.
+/// This bounds per-channel allocation during decode while remaining far above
+/// practical actuator dimensionality.
+pub const MAX_CODEC_COMPONENTS: usize = 4096;
+
+/// Invalid codec configuration or input. Codec JSON is deployment data rather
+/// than part of the NCP wire, but it still sits on the actuation path and must
+/// reject ambiguous/non-finite values instead of manufacturing a command.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CodecError(pub String);
+
+impl std::fmt::Display for CodecError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for CodecError {}
+
+fn valid_codec_name(value: &str) -> bool {
+    !value.is_empty() && !value.chars().any(|ch| ch.is_control())
+}
+
+fn validate_range(range: (f64, f64), path: &str, nonnegative: bool) -> Result<(), CodecError> {
+    let (lo, hi) = range;
+    let span = hi - lo;
+    if !lo.is_finite()
+        || !hi.is_finite()
+        || !span.is_finite()
+        || span <= 0.0
+        || (nonnegative && lo < 0.0)
+    {
+        return Err(CodecError(format!(
+            "{path} must be a finite, strictly increasing{} range with a finite span",
+            if nonnegative { ", non-negative" } else { "" }
+        )));
+    }
+    Ok(())
+}
 
 fn clamp(x: f64, lo: f64, hi: f64) -> f64 {
     // A non-finite input (NaN/±inf) has no defensible clamped value and would
@@ -106,6 +149,147 @@ impl Default for CodecSpec {
 }
 
 impl CodecSpec {
+    /// Validate deployment-supplied codec configuration before it can allocate,
+    /// overwrite an ambiguous mapping, or produce non-finite rates/setpoints.
+    pub fn validate(&self) -> Result<(), CodecError> {
+        if !valid_codec_name(&self.codec_id) {
+            return Err(CodecError(
+                "codec_id must be non-empty and contain no control characters".into(),
+            ));
+        }
+
+        let mut encoder_populations = BTreeSet::new();
+        for (index, mapping) in self.encoder.iter().enumerate() {
+            let path = format!("encoder[{index}]");
+            if !valid_codec_name(&mapping.channel) || !valid_codec_name(&mapping.population) {
+                return Err(CodecError(format!(
+                    "{path}.channel and population must be non-empty and contain no control characters"
+                )));
+            }
+            if mapping.coding != "rate" {
+                return Err(CodecError(format!(
+                    "{path}.coding {:?} is unsupported (expected \"rate\")",
+                    mapping.coding
+                )));
+            }
+            if mapping.component >= MAX_CODEC_COMPONENTS {
+                return Err(CodecError(format!(
+                    "{path}.component {} exceeds the allocation ceiling {}",
+                    mapping.component,
+                    MAX_CODEC_COMPONENTS - 1
+                )));
+            }
+            if !(1..=JSON_SAFE_INTEGER_MAX).contains(&mapping.n_neurons) {
+                return Err(CodecError(format!(
+                    "{path}.n_neurons must be within 1..={JSON_SAFE_INTEGER_MAX}"
+                )));
+            }
+            validate_range(mapping.value_range, &format!("{path}.value_range"), false)?;
+            validate_range(
+                mapping.rate_range_hz,
+                &format!("{path}.rate_range_hz"),
+                true,
+            )?;
+            if !encoder_populations.insert(mapping.population.as_str()) {
+                return Err(CodecError(format!(
+                    "{path}.population {:?} duplicates an earlier encoder output",
+                    mapping.population
+                )));
+            }
+        }
+
+        let mut decoder_components = BTreeSet::new();
+        for (index, mapping) in self.decoder.iter().enumerate() {
+            let path = format!("decoder[{index}]");
+            if !valid_codec_name(&mapping.population) || !valid_codec_name(&mapping.command_channel)
+            {
+                return Err(CodecError(format!(
+                    "{path}.population and command_channel must be non-empty and contain no control characters"
+                )));
+            }
+            if mapping.readout != "rate" {
+                return Err(CodecError(format!(
+                    "{path}.readout {:?} is unsupported (expected \"rate\")",
+                    mapping.readout
+                )));
+            }
+            if mapping.component >= MAX_CODEC_COMPONENTS {
+                return Err(CodecError(format!(
+                    "{path}.component {} exceeds the allocation ceiling {}",
+                    mapping.component,
+                    MAX_CODEC_COMPONENTS - 1
+                )));
+            }
+            validate_range(
+                mapping.rate_range_hz,
+                &format!("{path}.rate_range_hz"),
+                true,
+            )?;
+            validate_range(mapping.value_range, &format!("{path}.value_range"), false)?;
+            if !decoder_components.insert((mapping.command_channel.as_str(), mapping.component)) {
+                return Err(CodecError(format!(
+                    "{path} duplicates command component {:?}[{}]",
+                    mapping.command_channel, mapping.component
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Checked wire-ingress form used by language bindings. `None` is an
+    /// intentional missing sensor and maps every population to its neutral rate;
+    /// a supplied frame must be a complete compatible SensorFrame.
+    pub fn encode_checked(&self, sensor: Option<&SensorFrame>) -> Result<Map<f64>, CodecError> {
+        self.validate()?;
+        if let Some(sensor) = sensor {
+            sensor
+                .validate_wire()
+                .map_err(|error| CodecError(format!("invalid sensor frame: {error}")))?;
+        }
+        let rates = self.encode(sensor);
+        if rates.values().any(|rate| !rate.is_finite()) {
+            return Err(CodecError(
+                "codec produced a non-finite population rate".into(),
+            ));
+        }
+        Ok(rates)
+    }
+
+    /// Checked wire-egress form used by language bindings. The caller owns the
+    /// monotonically increasing sequence; the returned command has passed the
+    /// complete CommandFrame wire gate (including Active payload requirements).
+    pub fn decode_checked(
+        &self,
+        pop_rates: &Map<f64>,
+        t: f64,
+        seq: i64,
+        frame_id: &str,
+        mode: Mode,
+    ) -> Result<CommandFrame, CodecError> {
+        self.validate()?;
+        if pop_rates
+            .iter()
+            .any(|(name, rate)| !valid_codec_name(name) || !rate.is_finite())
+        {
+            return Err(CodecError(
+                "population rates must have non-empty names and finite values".into(),
+            ));
+        }
+        if !t.is_finite() {
+            return Err(CodecError("command timestamp must be finite".into()));
+        }
+        if !valid_codec_name(frame_id) {
+            return Err(CodecError(
+                "frame_id must be non-empty and contain no control characters".into(),
+            ));
+        }
+        let command = self.decode(pop_rates, t, seq, frame_id, mode);
+        command
+            .validate_wire()
+            .map_err(|error| CodecError(format!("decoded command is not wire-valid: {error}")))?;
+        Ok(command)
+    }
+
     /// Map a `SensorFrame` to `{population: firing_rate_hz}`.
     pub fn encode(&self, sensor: Option<&SensorFrame>) -> Map<f64> {
         let mut rates: Map<f64> = Map::new();
@@ -125,7 +309,15 @@ impl CodecSpec {
                     );
                 }
                 _ => {
-                    rates.insert(m.population.clone(), m.rate_range_hz.0);
+                    // Missing/short sensor data must not masquerade as the
+                    // value-range minimum. For a position/error codec that low
+                    // rate represents a real extreme and can provoke a full-scale
+                    // response downstream. Preserve shape but encode the neutral
+                    // midpoint instead.
+                    rates.insert(
+                        m.population.clone(),
+                        0.5 * (m.rate_range_hz.0 + m.rate_range_hz.1),
+                    );
                 }
             }
         }
@@ -147,8 +339,7 @@ impl CodecSpec {
             // `component` is deserialized from an untrusted CodecSpec; bound the
             // per-channel buffer growth so a hostile/garbage value cannot drive an
             // unbounded Vec<f64> allocation (OOM/DoS). 4096 >> any real dimensionality.
-            const MAX_COMPONENT: usize = 4096;
-            if m.component >= MAX_COMPONENT {
+            if m.component >= MAX_CODEC_COMPONENTS {
                 continue;
             }
             // A dropped/renamed readout population must NOT be treated as "rate =
@@ -223,5 +414,101 @@ pub fn default_uav_velocity_codec() -> CodecSpec {
         codec_id: default_codec_id(),
         encoder: enc,
         decoder: dec,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn stamped_sensor() -> SensorFrame {
+        SensorFrame {
+            seq: 1,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn default_codec_is_valid_and_checked_paths_emit_finite_wire_data() {
+        let codec = default_uav_velocity_codec();
+        codec.validate().unwrap();
+        let rates = codec.encode_checked(Some(&stamped_sensor())).unwrap();
+        assert!(rates.values().all(|rate| rate.is_finite()));
+
+        let command = codec
+            .decode_checked(&rates, 0.0, 1, "world", Mode::Active)
+            .unwrap();
+        assert_eq!(command.mode, Mode::Active);
+        command.validate_wire().unwrap();
+    }
+
+    #[test]
+    fn checked_codec_rejects_invalid_wire_envelopes_and_outputs() {
+        let codec = default_uav_velocity_codec();
+        let unstamped = SensorFrame::default();
+        assert!(codec.encode_checked(Some(&unstamped)).is_err());
+        assert!(codec
+            .decode_checked(&Map::new(), 0.0, 0, "world", Mode::Active)
+            .is_err());
+        assert!(codec
+            .decode_checked(&Map::new(), f64::NAN, 1, "world", Mode::Active)
+            .is_err());
+
+        let mut nonfinite_rates = Map::new();
+        nonfinite_rates.insert("vel_x".into(), f64::INFINITY);
+        assert!(codec
+            .decode_checked(&nonfinite_rates, 0.0, 1, "world", Mode::Active)
+            .is_err());
+
+        assert!(CodecSpec::default()
+            .decode_checked(&Map::new(), 0.0, 1, "world", Mode::Active)
+            .is_err());
+    }
+
+    #[test]
+    fn missing_or_short_sensor_channel_encodes_neutral_not_extreme() {
+        let codec = default_uav_velocity_codec();
+        let sensor = stamped_sensor();
+        let rates = codec.encode_checked(Some(&sensor)).unwrap();
+        assert_eq!(rates["err_x"], 100.0);
+        assert_eq!(rates["err_y"], 100.0);
+        assert_eq!(rates["err_z"], 100.0);
+
+        let mut short = stamped_sensor();
+        short.channels.insert(
+            "pose_error".into(),
+            ChannelValue {
+                data: vec![2.0],
+                unit: Some("m".into()),
+            },
+        );
+        let rates = codec.encode_checked(Some(&short)).unwrap();
+        assert_eq!(rates["err_x"], 200.0);
+        assert_eq!(rates["err_y"], 100.0);
+        assert_eq!(rates["err_z"], 100.0);
+    }
+
+    #[test]
+    fn codec_validation_rejects_ambiguous_or_unbounded_config() {
+        let mut codec = default_uav_velocity_codec();
+        codec.encoder[0].rate_range_hz = (0.0, f64::INFINITY);
+        assert!(codec.validate().is_err());
+
+        let mut codec = default_uav_velocity_codec();
+        codec.decoder[0].component = MAX_CODEC_COMPONENTS;
+        assert!(codec.validate().is_err());
+
+        let mut codec = default_uav_velocity_codec();
+        codec.encoder[1].population = codec.encoder[0].population.clone();
+        assert!(codec.validate().is_err());
+
+        let mut codec = default_uav_velocity_codec();
+        codec.decoder[1].command_channel = codec.decoder[0].command_channel.clone();
+        codec.decoder[1].component = codec.decoder[0].component;
+        assert!(codec.validate().is_err());
+
+        let mut codec = default_uav_velocity_codec();
+        codec.encoder[0].coding = "future-coding".into();
+        assert!(codec.validate().is_err());
     }
 }
