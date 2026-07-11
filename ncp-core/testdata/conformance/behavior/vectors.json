@@ -1,552 +1,5019 @@
 {
   "description": "Behavioral conformance corpus: language-neutral {function, input, expect} decision vectors that pin every independent NCP implementation to the SAME runtime decisions as the ncp-core reference. Complements conformance/vectors/*.json (which pins wire/serde shape) by pinning behavior: check_version accept/reject, contract_status advisory match/mismatch/absent, validate required-field + scientific-boundary, and the safety-governor HOLD/ESTOP/clamp/watchdog outcomes. Every vector here is asserted against ncp-core by ncp-core/tests/behavior_conformance.rs (so the corpus can never claim an outcome the reference does not produce) and replayed through the Python binding by scripts/check_behavior_vectors.py.",
-  "ncp_version": "0.7",
-  "contract_hash": "f05e328cad20959d",
+  "ncp_version": "0.8",
+  "contract_hash": "d1b50a2d8a265276",
   "cases": {
     "check_version": [
-      {"name": "self_compatible", "input": {"version": "0.7", "strict": false}, "expect": {"compatible": true}},
-      {"name": "self_compatible_strict", "input": {"version": "0.7", "strict": true}, "expect": {"compatible": true}},
-      {"name": "minor_missing_is_zero", "input": {"version": "0", "strict": false}, "expect": {"compatible": false}},
-      {"name": "pre1_minor_is_breaking", "input": {"version": "0.8", "strict": false}, "expect": {"compatible": false}},
-      {"name": "pre1_prev_wire_incompatible", "input": {"version": "0.6", "strict": false}, "expect": {"compatible": false}},
-      {"name": "major_bump_incompatible", "input": {"version": "1.0", "strict": false}, "expect": {"compatible": false}},
-      {"name": "strict_mismatch_raises", "input": {"version": "0.8", "strict": true}, "expect": {"error": true}},
-      {"name": "patch_component_rejected", "input": {"version": "0.7.0", "strict": false}, "expect": {"error": true}},
-      {"name": "garbage_minor_rejected", "input": {"version": "0.GARBAGE", "strict": false}, "expect": {"error": true}},
-      {"name": "leading_plus_rejected", "input": {"version": "+0.7", "strict": false}, "expect": {"error": true}},
-      {"name": "u64_max_component_is_parseable", "input": {"version": "18446744073709551615.0", "strict": false}, "expect": {"compatible": false}},
-      {"name": "u64_overflow_rejected", "input": {"version": "18446744073709551616.0", "strict": false}, "expect": {"error": true}},
-      {"name": "empty_rejected", "input": {"version": "", "strict": false}, "expect": {"error": true}}
+      {
+        "name": "self_compatible",
+        "input": {
+          "version": "0.8",
+          "strict": false
+        },
+        "expect": {
+          "compatible": true
+        }
+      },
+      {
+        "name": "self_compatible_strict",
+        "input": {
+          "version": "0.8",
+          "strict": true
+        },
+        "expect": {
+          "compatible": true
+        }
+      },
+      {
+        "name": "minor_missing_is_zero",
+        "input": {
+          "version": "0",
+          "strict": false
+        },
+        "expect": {
+          "compatible": false
+        }
+      },
+      {
+        "name": "pre1_minor_is_breaking",
+        "input": {
+          "version": "0.7",
+          "strict": false
+        },
+        "expect": {
+          "compatible": false
+        }
+      },
+      {
+        "name": "pre1_prev_wire_incompatible",
+        "input": {
+          "version": "0.6",
+          "strict": false
+        },
+        "expect": {
+          "compatible": false
+        }
+      },
+      {
+        "name": "major_bump_incompatible",
+        "input": {
+          "version": "1.0",
+          "strict": false
+        },
+        "expect": {
+          "compatible": false
+        }
+      },
+      {
+        "name": "strict_mismatch_raises",
+        "input": {
+          "version": "0.7",
+          "strict": true
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "patch_component_rejected",
+        "input": {
+          "version": "0.8.0",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "garbage_minor_rejected",
+        "input": {
+          "version": "0.GARBAGE",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "leading_plus_rejected",
+        "input": {
+          "version": "+0.8",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "u64_max_component_is_parseable",
+        "input": {
+          "version": "18446744073709551615.0",
+          "strict": false
+        },
+        "expect": {
+          "compatible": false
+        }
+      },
+      {
+        "name": "u64_overflow_rejected",
+        "input": {
+          "version": "18446744073709551616.0",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "empty_rejected",
+        "input": {
+          "version": "",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      }
     ],
     "contract_status": [
-      {"name": "match", "input": {"peer_hash": "f05e328cad20959d"}, "expect": {"status": "match"}},
-      {"name": "not_advertised", "input": {"peer_hash": null}, "expect": {"status": "not_advertised"}},
-      {"name": "mismatch", "input": {"peer_hash": "deadbeefdeadbeef"}, "expect": {"status": "mismatch"}}
+      {
+        "name": "match",
+        "input": {
+          "peer_hash": "d1b50a2d8a265276"
+        },
+        "expect": {
+          "status": "match"
+        }
+      },
+      {
+        "name": "not_advertised",
+        "input": {
+          "peer_hash": null
+        },
+        "expect": {
+          "status": "not_advertised"
+        }
+      },
+      {
+        "name": "mismatch",
+        "input": {
+          "peer_hash": "deadbeefdeadbeef"
+        },
+        "expect": {
+          "status": "mismatch"
+        }
+      }
     ],
     "validate": [
-      {"name": "open_session_ok", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "iaf_psc_alpha"}}}, "expect": {"valid": true}},
-      {"name": "open_session_missing_network", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s"}}, "expect": {"valid": false}},
-      {"name": "open_session_missing_version", "input": {"kind": "open_session", "message": {"kind": "open_session", "session_id": "s", "network": {"kind": "builtin", "ref": "iaf_psc_alpha"}}}, "expect": {"valid": false}},
-      {"name": "open_session_bom_session_id_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s\ufeffspoof", "network": {"kind": "builtin", "ref": "iaf_psc_alpha"}}}, "expect": {"valid": false}},
-      {"name": "open_session_additive_enum_preserved", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "future_network_kind", "ref": "model"}}}, "expect": {"valid": true}},
-      {"name": "open_session_unsafe_seed_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "sim": {"seed": 9007199254740992}}}, "expect": {"valid": false}},
-      {"name": "open_session_integral_exponent_seed_ok", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "sim": {"seed": 1e0}}}, "expect": {"valid": true}},
-      {"name": "open_session_record_target_missing_identity_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "record": {"targets": [{"target": "pop", "observable": "V_m"}]}}}, "expect": {"valid": false}},
-      {"name": "open_session_stimulus_target_missing_kind_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "stimulus": {"targets": [{"port": "in", "target": "pop"}]}}}, "expect": {"valid": false}},
-      {"name": "open_session_binding_missing_entity_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "bindings": [{"port": "in", "direction": "stimulus"}]}}, "expect": {"valid": false}},
-      {"name": "open_session_record_wrong_type_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "record": "not-an-object"}}, "expect": {"valid": false}},
-      {"name": "open_session_optional_nested_type_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model", "model_name": 7}}}, "expect": {"valid": false}},
-      {"name": "open_session_contract_hash_type_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "contract_hash": 7}}, "expect": {"valid": false}},
-      {"name": "open_session_record_sequence_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "record": []}}, "expect": {"valid": false}},
-      {"name": "open_session_stimulus_sequence_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "stimulus": []}}, "expect": {"valid": false}},
-      {"name": "open_session_sim_sequence_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "sim": []}}, "expect": {"valid": false}},
-      {"name": "open_session_sim_null_dt_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "sim": {"dt_ms": null}}}, "expect": {"valid": false}},
-      {"name": "open_session_sim_null_chunk_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "sim": {"chunk_ms": null}}}, "expect": {"valid": false}},
-      {"name": "open_session_record_target_sequence_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "record": {"targets": [[]]}}}, "expect": {"valid": false}},
-      {"name": "open_session_stimulus_target_sequence_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "stimulus": {"targets": [[]]}}}, "expect": {"valid": false}},
-      {"name": "open_session_binding_sequence_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s", "network": {"kind": "builtin", "ref": "model"}, "bindings": [[]]}}, "expect": {"valid": false}},
-      {"name": "open_session_control_character_session_rejected", "input": {"kind": "open_session", "message": {"kind": "open_session", "ncp_version": "0.7", "session_id": "s\u0001x", "network": {"kind": "builtin", "ref": "model"}}}, "expect": {"valid": false}},
-      {"name": "step_request_missing_session_id", "input": {"kind": "step_request", "message": {"kind": "step_request", "ncp_version": "0.7"}}, "expect": {"valid": false}},
-      {"name": "step_request_nested_stimulus_ok", "input": {"kind": "step_request", "message": {"kind": "step_request", "ncp_version": "0.7", "session_id": "s", "stimulus": {"kind": "stimulus_frame", "ncp_version": "0.7", "session_id": "s"}}}, "expect": {"valid": true}},
-      {"name": "step_request_nested_stimulus_missing_version_rejected", "input": {"kind": "step_request", "message": {"kind": "step_request", "ncp_version": "0.7", "session_id": "s", "stimulus": {"kind": "stimulus_frame", "session_id": "s"}}}, "expect": {"valid": false}},
-      {"name": "step_request_nested_stimulus_wrong_kind_rejected", "input": {"kind": "step_request", "message": {"kind": "step_request", "ncp_version": "0.7", "session_id": "s", "stimulus": {"kind": "command_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1}}}, "expect": {"valid": false}},
-      {"name": "step_request_nested_stimulus_cross_session_rejected", "input": {"kind": "step_request", "message": {"kind": "step_request", "ncp_version": "0.7", "session_id": "s", "stimulus": {"kind": "stimulus_frame", "ncp_version": "0.7", "session_id": "other"}}}, "expect": {"valid": false}},
-      {"name": "run_request_missing_duration", "input": {"kind": "run_request", "message": {"kind": "run_request", "ncp_version": "0.7", "session_id": "s"}}, "expect": {"valid": false}},
-      {"name": "run_request_stimulus_channel_sequence_rejected", "input": {"kind": "run_request", "message": {"kind": "run_request", "ncp_version": "0.7", "session_id": "s", "duration_ms": 1, "stimulus": {"kind": "stimulus_frame", "ncp_version": "0.7", "session_id": "s", "values": {"drive": []}}}}, "expect": {"valid": false}},
-      {"name": "step_request_stimulus_channel_sequence_rejected", "input": {"kind": "step_request", "message": {"kind": "step_request", "ncp_version": "0.7", "session_id": "s", "stimulus": {"kind": "stimulus_frame", "ncp_version": "0.7", "session_id": "s", "values": {"drive": []}}}}, "expect": {"valid": false}},
-      {"name": "stimulus_frame_channel_sequence_rejected", "input": {"kind": "stimulus_frame", "message": {"kind": "stimulus_frame", "ncp_version": "0.7", "session_id": "s", "values": {"drive": []}}}, "expect": {"valid": false}},
-      {"name": "command_frame_stamped_ok", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1}}, "expect": {"valid": true}},
-      {"name": "command_frame_missing_kind_rejected", "input": {"kind": "command_frame", "message": {"ncp_version": "0.7", "seq": 1}}, "expect": {"valid": false}},
-      {"name": "command_frame_missing_version_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "seq": 1}}, "expect": {"valid": false}},
-      {"name": "command_frame_stale_wire_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.5", "seq": 1}}, "expect": {"valid": false}},
-      {"name": "command_frame_unstamped_seq_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 0}}, "expect": {"valid": false}},
-      {"name": "command_frame_unsafe_seq_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 9007199254740992}}, "expect": {"valid": false}},
-      {"name": "command_frame_integral_decimal_seq_ok", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1.0}}, "expect": {"valid": true}},
-      {"name": "command_frame_fractional_seq_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1.5}}, "expect": {"valid": false}},
-      {"name": "command_frame_control_character_frame_id_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "frame_id": "world\nspoof"}}, "expect": {"valid": false}},
-      {"name": "command_frame_c1_channel_name_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "channels": {"bad\u0085channel": {"data": [0]}}}}, "expect": {"valid": false}},
-      {"name": "command_frame_active_without_ttl_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "channels": {}}}, "expect": {"valid": false}},
-      {"name": "command_frame_active_without_channels_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200, "channels": {}}}, "expect": {"valid": false}},
-      {"name": "command_frame_active_omitted_channels_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200}}, "expect": {"valid": false}},
-      {"name": "command_frame_active_empty_channel_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200, "channels": {"velocity_setpoint": {"data": []}}}}, "expect": {"valid": false}},
-      {"name": "command_frame_active_horizon_without_cadence_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200, "channels": {"velocity_setpoint": {"data": [0]}}, "horizon": [{"velocity_setpoint": {"data": [0]}}]}}, "expect": {"valid": false}},
-      {"name": "command_frame_horizon_outlives_ttl_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200, "channels": {"velocity_setpoint": {"data": [0]}}, "horizon": [{"velocity_setpoint": {"data": [0]}}, {"velocity_setpoint": {"data": [0]}}, {"velocity_setpoint": {"data": [0]}}, {"velocity_setpoint": {"data": [0]}}, {"velocity_setpoint": {"data": [0]}}], "horizon_dt_ms": 50}}, "expect": {"valid": false}},
-      {"name": "command_frame_active_complete_ok", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200, "channels": {"velocity_setpoint": {"data": [0]}}, "horizon": [{"velocity_setpoint": {"data": [0]}}], "horizon_dt_ms": 20}}, "expect": {"valid": true}},
-      {"name": "command_frame_empty_mode_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": ""}}, "expect": {"valid": false}},
-      {"name": "sensor_frame_stamped_ok", "input": {"kind": "sensor_frame", "message": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1}}, "expect": {"valid": true}},
-      {"name": "sensor_frame_malformed_channel_rejected", "input": {"kind": "sensor_frame", "message": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "channels": {"pose": {"data": "not-an-array"}}}}, "expect": {"valid": false}},
-      {"name": "sensor_frame_channel_sequence_rejected", "input": {"kind": "sensor_frame", "message": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "channels": {"pose_error": []}}}, "expect": {"valid": false}},
-      {"name": "command_frame_channel_sequence_rejected", "input": {"kind": "command_frame", "message": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "channels": {"velocity_setpoint": []}}}, "expect": {"valid": false}},
-      {"name": "sensor_frame_defaulted_string_null_rejected", "input": {"kind": "sensor_frame", "message": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "frame_id": null}}, "expect": {"valid": false}},
-      {"name": "sensor_frame_unstamped_seq_rejected", "input": {"kind": "sensor_frame", "message": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 0}}, "expect": {"valid": false}},
-      {"name": "unknown_kind_rejected", "input": {"kind": "frobnicate", "message": {"kind": "frobnicate", "session_id": "s"}}, "expect": {"valid": false}},
-      {"name": "observation_frame_ok", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": true}},
-      {"name": "observation_series_key_can_differ_from_port", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {"gex": {"port": "vm", "target": "n", "observable": "V_m", "recordable": "g_ex", "times": [1.0], "values": [2.5]}}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": true}},
-      {"name": "observation_frame_pull_seq0_ok", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 0, "records": {}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": true}},
-      {"name": "observation_frame_missing_boundary_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {}}}, "expect": {"valid": false}},
-      {"name": "observation_frame_mismatched_arrays_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {"spk": {"port": "spk", "target": "n", "observable": "spikes", "times": [1.0, 2.0], "senders": [1]}}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": false}},
-      {"name": "observation_frame_optional_metadata_type_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {"vm": {"port": "vm", "target": "n", "observable": "V_m", "unit": 7}}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": false}},
-      {"name": "observation_frame_c1_record_key_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {"vm\u0085spoof": {"port": "vm", "target": "n", "observable": "V_m", "times": [], "values": []}}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": false}},
-      {"name": "observation_frame_record_missing_observable_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {"vm": {"port": "vm", "target": "n"}}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": false}},
-      {"name": "observation_frame_record_sequence_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "records": {"vm": []}, "calibrated_posterior": false, "is_simulation_output": true}}, "expect": {"valid": false}},
-      {"name": "observation_frame_negative_seq_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": -1}}, "expect": {"valid": false}},
-      {"name": "observation_frame_calibrated_true_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "calibrated_posterior": true, "is_simulation_output": true}}, "expect": {"valid": false}},
-      {"name": "observation_frame_not_sim_rejected", "input": {"kind": "observation_frame", "message": {"kind": "observation_frame", "ncp_version": "0.7", "session_id": "s", "seq": 1, "calibrated_posterior": false, "is_simulation_output": false}}, "expect": {"valid": false}},
-      {"name": "session_opened_provenance_ok", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "y", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": false, "is_simulation_output": true, "advisory_only": true}}}, "expect": {"valid": true}},
-      {"name": "session_opened_provenance_calibrated_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "y", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": true, "is_simulation_output": true, "advisory_only": true}}}, "expect": {"valid": false}},
-      {"name": "session_opened_missing_provenance_identity_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "y", "provenance": {"calibrated_posterior": false, "is_simulation_output": true, "advisory_only": true}}}, "expect": {"valid": false}},
-      {"name": "session_opened_nonadvisory_claim_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "y", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": false, "is_simulation_output": true, "advisory_only": false}}}, "expect": {"valid": false}},
-      {"name": "session_opened_backend_mismatch_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "a", "provenance": {"network_ref": "x", "backend": "b", "calibrated_posterior": false, "is_simulation_output": true, "advisory_only": true}}}, "expect": {"valid": false}},
-      {"name": "session_opened_success_with_error_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "y", "error": "contradiction", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": false, "is_simulation_output": true, "advisory_only": true}}}, "expect": {"valid": false}},
-      {"name": "session_opened_failure_with_provenance_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": false, "backend": "y", "error": "failed", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": false, "is_simulation_output": true, "advisory_only": true}}}, "expect": {"valid": false}},
-      {"name": "session_opened_optional_metadata_type_rejected", "input": {"kind": "session_opened", "message": {"kind": "session_opened", "ncp_version": "0.7", "session_id": "s", "ok": true, "backend": "y", "provenance": {"network_ref": "x", "backend": "y", "calibrated_posterior": false, "is_simulation_output": true, "advisory_only": true, "note": 7}}}, "expect": {"valid": false}},
-      {"name": "session_closed_false_uses_error_frame_rejected", "input": {"kind": "session_closed", "message": {"kind": "session_closed", "ncp_version": "0.7", "session_id": "s", "ok": false}}, "expect": {"valid": false}},
-      {"name": "capabilities_complete_ok", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [], "command_channels": [], "safety": {"command_timeout_ms": 500}}}, "expect": {"valid": true}},
-      {"name": "capabilities_missing_safety_timeout_rejected", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [], "command_channels": [], "safety": {}}}, "expect": {"valid": false}},
-      {"name": "capabilities_duplicate_channel_rejected", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [{"name": "pose", "kind": "vec3"}, {"name": "pose", "kind": "scalar"}], "command_channels": [], "safety": {"command_timeout_ms": 500}}}, "expect": {"valid": false}},
-      {"name": "capabilities_optional_channel_type_rejected", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [{"name": "pose", "kind": "vec3", "optional": "yes"}], "command_channels": [], "safety": {"command_timeout_ms": 500}}}, "expect": {"valid": false}},
-      {"name": "capabilities_sensor_channel_sequence_rejected", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [[]], "command_channels": [], "safety": {"command_timeout_ms": 500}}}, "expect": {"valid": false}},
-      {"name": "capabilities_command_channel_sequence_rejected", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [], "command_channels": [[]], "safety": {"command_timeout_ms": 500}}}, "expect": {"valid": false}},
-      {"name": "capabilities_safety_sequence_rejected", "input": {"kind": "capabilities", "message": {"kind": "capabilities", "ncp_version": "0.7", "controller_id": "controller-1", "role": "controller", "control_rate_hz": 50, "sensor_channels": [], "command_channels": [], "safety": []}}, "expect": {"valid": false}},
-      {"name": "control_status_complete_ok", "input": {"kind": "control_status", "message": {"kind": "control_status", "ncp_version": "0.7", "seq": 0, "t": 0, "mode": "hold", "loop_latency_ms": 0, "safety_ok": true}}, "expect": {"valid": true}},
-      {"name": "control_status_negative_latency_rejected", "input": {"kind": "control_status", "message": {"kind": "control_status", "ncp_version": "0.7", "seq": 0, "t": 0, "mode": "hold", "loop_latency_ms": -1, "safety_ok": true}}, "expect": {"valid": false}},
-      {"name": "link_status_complete_ok", "input": {"kind": "link_status", "message": {"kind": "link_status", "ncp_version": "0.7", "session_id": "s", "t": 0, "last_seq": -1, "received": 0, "lost": 0, "loss_rate": 0, "burst": false}}, "expect": {"valid": true}},
-      {"name": "link_status_invalid_loss_rejected", "input": {"kind": "link_status", "message": {"kind": "link_status", "ncp_version": "0.7", "session_id": "s", "t": 0, "last_seq": -1, "received": 0, "lost": 0, "loss_rate": 1.5, "burst": false}}, "expect": {"valid": false}},
-      {"name": "error_frame_ok", "input": {"kind": "error", "message": {"kind": "error", "ncp_version": "0.7", "session_id": "s", "error": "bad request"}}, "expect": {"valid": true}},
-      {"name": "error_frame_unversioned_rejected", "input": {"kind": "error", "message": {"kind": "error", "error": "bad request"}}, "expect": {"valid": false}}
+      {
+        "name": "open_session_ok",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "open_session_missing_network",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_missing_version",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_bom_session_id_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s\ufeffspoof",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_additive_enum_preserved",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "future_network_kind",
+              "ref": "model"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "open_session_unsafe_seed_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "sim": {
+              "seed": 9007199254740992
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_integral_exponent_seed_ok",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "sim": {
+              "seed": 1.0
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "open_session_record_target_missing_identity_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "record": {
+              "targets": [
+                {
+                  "target": "pop",
+                  "observable": "V_m"
+                }
+              ]
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_stimulus_target_missing_kind_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "stimulus": {
+              "targets": [
+                {
+                  "port": "in",
+                  "target": "pop"
+                }
+              ]
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_binding_missing_entity_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "bindings": [
+              {
+                "port": "in",
+                "direction": "stimulus"
+              }
+            ]
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_record_wrong_type_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "record": "not-an-object"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_optional_nested_type_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model",
+              "model_name": 7
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_contract_hash_type_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "contract_hash": 7
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_record_sequence_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "record": []
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_stimulus_sequence_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "stimulus": []
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_sim_sequence_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "sim": []
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_sim_null_dt_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "sim": {
+              "dt_ms": null
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_sim_null_chunk_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "sim": {
+              "chunk_ms": null
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_record_target_sequence_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "record": {
+              "targets": [
+                []
+              ]
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_stimulus_target_sequence_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "stimulus": {
+              "targets": [
+                []
+              ]
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_binding_sequence_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "bindings": [
+              []
+            ]
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_control_character_session_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "0.8",
+            "session_id": "s\u0001x",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_missing_session_id",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "0.8",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_nested_stimulus_ok",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "0.8",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "step_request_nested_stimulus_missing_version_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_nested_stimulus_wrong_kind_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "session_id": "s",
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_nested_stimulus_cross_session_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "0.8",
+              "session_id": "other",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "run_request_missing_duration",
+        "input": {
+          "kind": "run_request",
+          "message": {
+            "kind": "run_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "run_request_stimulus_channel_sequence_rejected",
+        "input": {
+          "kind": "run_request",
+          "message": {
+            "kind": "run_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "duration_ms": 1,
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "0.8",
+              "session_id": "s",
+              "values": {
+                "drive": []
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_stimulus_channel_sequence_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "0.8",
+              "session_id": "s",
+              "values": {
+                "drive": []
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "stimulus_frame_channel_sequence_rejected",
+        "input": {
+          "kind": "stimulus_frame",
+          "message": {
+            "kind": "stimulus_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "values": {
+              "drive": []
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_stamped_ok",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "command_frame_missing_kind_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_missing_version_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_stale_wire_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.5",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_unstamped_seq_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_unsafe_seq_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 9007199254740992
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_integral_decimal_seq_ok",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1.0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "command_frame_fractional_seq_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1.5
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_control_character_frame_id_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "frame_id": "world\nspoof",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_c1_channel_name_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "channels": {
+              "bad\u0085channel": {
+                "data": [
+                  0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_without_ttl_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_without_channels_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_omitted_channels_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "ttl_ms": 200,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_empty_channel_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {
+              "velocity_setpoint": {
+                "data": []
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_horizon_without_cadence_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0
+                ]
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              }
+            ],
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_horizon_outlives_ttl_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0
+                ]
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              },
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              },
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              },
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              },
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              }
+            ],
+            "horizon_dt_ms": 50,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_complete_ok",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0
+                ]
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              }
+            ],
+            "horizon_dt_ms": 20,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "command_frame_empty_mode_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "mode": "",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "sensor_frame_stamped_ok",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "sensor_frame_malformed_channel_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "channels": {
+              "pose": {
+                "data": "not-an-array"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "sensor_frame_channel_sequence_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "channels": {
+              "pose_error": []
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_channel_sequence_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "channels": {
+              "velocity_setpoint": []
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "sensor_frame_defaulted_string_null_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "frame_id": null,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "sensor_frame_unstamped_seq_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "unknown_kind_rejected",
+        "input": {
+          "kind": "frobnicate",
+          "message": {
+            "kind": "frobnicate",
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_ok",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {},
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "observation_series_key_can_differ_from_port",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {
+              "gex": {
+                "port": "vm",
+                "target": "n",
+                "observable": "V_m",
+                "recordable": "g_ex",
+                "times": [
+                  1.0
+                ],
+                "values": [
+                  2.5
+                ]
+              }
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "observation_frame_pull_no_source_ok",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {},
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "observation_frame_missing_boundary_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_mismatched_arrays_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {
+              "spk": {
+                "port": "spk",
+                "target": "n",
+                "observable": "spikes",
+                "times": [
+                  1.0,
+                  2.0
+                ],
+                "senders": [
+                  1
+                ]
+              }
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_optional_metadata_type_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {
+              "vm": {
+                "port": "vm",
+                "target": "n",
+                "observable": "V_m",
+                "unit": 7
+              }
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_c1_record_key_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {
+              "vm\u0085spoof": {
+                "port": "vm",
+                "target": "n",
+                "observable": "V_m",
+                "times": [],
+                "values": []
+              }
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_record_missing_observable_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {
+              "vm": {
+                "port": "vm",
+                "target": "n"
+              }
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_record_sequence_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "records": {
+              "vm": []
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_negative_seq_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": -1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_calibrated_true_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "calibrated_posterior": true,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "observation_frame_not_sim_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "calibrated_posterior": false,
+            "is_simulation_output": false,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_provenance_ok",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "y",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "session_opened_provenance_calibrated_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "y",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": true,
+              "is_simulation_output": true,
+              "advisory_only": true
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_missing_provenance_identity_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "y",
+            "provenance": {
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_nonadvisory_claim_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "y",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": false
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_backend_mismatch_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "a",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "b",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_success_with_error_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "y",
+            "error": "contradiction",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_failure_with_provenance_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": false,
+            "backend": "y",
+            "error": "failed",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_opened_optional_metadata_type_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": true,
+            "backend": "y",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true,
+              "note": 7
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_closed_false_uses_error_frame_rejected",
+        "input": {
+          "kind": "session_closed",
+          "message": {
+            "kind": "session_closed",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "ok": false,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_complete_ok",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "capabilities_missing_safety_timeout_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {}
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_duplicate_channel_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [
+              {
+                "name": "pose",
+                "kind": "vec3"
+              },
+              {
+                "name": "pose",
+                "kind": "scalar"
+              }
+            ],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_optional_channel_type_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [
+              {
+                "name": "pose",
+                "kind": "vec3",
+                "optional": "yes"
+              }
+            ],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_sensor_channel_sequence_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [
+              []
+            ],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_command_channel_sequence_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [
+              []
+            ],
+            "safety": {
+              "command_timeout_ms": 500
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_safety_sequence_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "0.8",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": []
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "control_status_complete_ok",
+        "input": {
+          "kind": "control_status",
+          "message": {
+            "kind": "control_status",
+            "ncp_version": "0.8",
+            "t": 0,
+            "mode": "hold",
+            "loop_latency_ms": 0,
+            "safety_ok": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "control_status_negative_latency_rejected",
+        "input": {
+          "kind": "control_status",
+          "message": {
+            "kind": "control_status",
+            "ncp_version": "0.8",
+            "t": 0,
+            "mode": "hold",
+            "loop_latency_ms": -1,
+            "safety_ok": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "link_status_complete_ok",
+        "input": {
+          "kind": "link_status",
+          "message": {
+            "kind": "link_status",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "t": 0,
+            "received": 0,
+            "lost": 0,
+            "loss_rate": 0,
+            "burst": false,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "stream": {
+            "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+            "seq": 1
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "link_status_invalid_loss_rejected",
+        "input": {
+          "kind": "link_status",
+          "message": {
+            "kind": "link_status",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "t": 0,
+            "received": 0,
+            "lost": 0,
+            "loss_rate": 1.5,
+            "burst": false,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "stream": {
+            "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+            "seq": 1
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_frame_ok",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "0.8",
+            "session_id": "s",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "error_frame_unversioned_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      }
     ],
     "govern": [
       {
         "name": "clean_active_passthrough",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "active", "velocity_setpoint_magnitude": 2.0}
+        "expect": {
+          "mode": "active",
+          "velocity_setpoint_magnitude": 2.0
+        }
       },
       {
         "name": "invalid_active_payload_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]} }},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "versionless_active_command_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "unstamped_active_command_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 0, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "misrouted_active_command_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "invalid_sensor_envelope_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "missing_sensor_document_holds_despite_fresh_timestamp",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
           "sensor": null,
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "malformed_estop_still_latches",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "wrong", "seq": 0, "mode": "estop", "channels": {"velocity_setpoint": {"data": [9.0, 0.0, 0.0], "unit": "m/s"}}},
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "wrong",
+            "mode": "estop",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  9.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
           "sensor": null,
-          "now_s": 1.0, "last_sensor_s": null
+          "now_s": 1.0,
+          "last_sensor_s": null
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "stale_sensor_holds",
         "input": {
-          "limits": {"command_timeout_ms": 200.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.5, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 200.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.5,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "sensor_deadline_is_exclusive_of_actuation",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {}},
-          "now_s": 1.0, "last_sensor_s": 0.5
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 0.5
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "link_collapse_escalates_estop",
         "input": {
-          "limits": {"command_timeout_ms": 200.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 6.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 200.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 6.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "link_collapse_escalates_even_when_controller_holds",
         "input": {
-          "limits": {"command_timeout_ms": 200.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "hold", "channels": {"velocity_setpoint": {"data": [0.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {}},
-          "now_s": 6.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 200.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "hold",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 6.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "inbound_estop_latches",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "estop", "channels": {"velocity_setpoint": {"data": [9.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "estop",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  9.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "init_mode_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "init", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "init",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "absent_mode_defaults_to_hold",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]} }},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "no_last_sensor_holds",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": null
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": null
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "absent_sensor_past_link_collapse_deadline_estops",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
           "sensor": null,
-          "now_s": 12.0, "last_sensor_s": 1.0
+          "now_s": 12.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "invalid_sensor_past_link_collapse_deadline_estops",
         "input": {
-          "limits": {"command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "seq": 1, "channels": {}},
-          "now_s": 12.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 12.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "nonpositive_timeout_default_deny_holds",
         "input": {
-          "limits": {"command_timeout_ms": 0.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "command_timeout_ms": 0.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "huge_sensor_timeout_is_bounded_and_estops",
         "input": {
-          "limits": {"command_timeout_ms": 1e300},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 61.0, "last_sensor_s": 0.0
+          "limits": {
+            "command_timeout_ms": 1e+300
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 61.0,
+          "last_sensor_s": 0.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_breach_estops",
         "input": {
-          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [10.0, 0.0, 0.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 5.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  10.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_breach_estops_even_when_controller_holds",
         "input": {
-          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "hold", "channels": {"velocity_setpoint": {"data": [0.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [10.0, 0.0, 0.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 5.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "hold",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  10.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "estop", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "estop",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_missing_position_holds",
         "input": {
-          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 5.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_wrong_unit_holds",
         "input": {
-          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [0.5, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [3.0, 0.0, 0.0], "unit": "cm"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 5.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.5,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  3.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "cm"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_truncated_vec3_holds",
         "input": {
-          "limits": {"geofence_radius_m": 5.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [0.5, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [3.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 5.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.5,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  3.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_outward_tick0_would_cross_ttl_holds",
         "input": {
-          "limits": {"geofence_radius_m": 10.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [1.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [9.9, 0.0, 0.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 10.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  9.9,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_inward_tick0_near_boundary_active",
         "input": {
-          "limits": {"geofence_radius_m": 10.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [-1.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [9.9, 0.0, 0.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 10.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  9.9,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "active", "velocity_setpoint_magnitude": 1.0}
+        "expect": {
+          "mode": "active",
+          "velocity_setpoint_magnitude": 1.0
+        }
       },
       {
         "name": "geofence_first_horizon_crossing_holds",
         "input": {
-          "limits": {"geofence_radius_m": 10.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [-1.0, 0.0, 0.0], "unit": "m/s"}}, "horizon": [{"velocity_setpoint": {"data": [5.0, 0.0, 0.0], "unit": "m/s"}}], "horizon_dt_ms": 100.0},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [9.8, 0.0, 0.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 10.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    5.0,
+                    0.0,
+                    0.0
+                  ],
+                  "unit": "m/s"
+                }
+              }
+            ],
+            "horizon_dt_ms": 100.0,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  9.8,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "geofence_coordinate_frame_mismatch_holds",
         "input": {
-          "limits": {"geofence_radius_m": 10.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "frame_id": "body", "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [-1.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "frame_id": "world", "channels": {"pose_position": {"data": [9.9, 0.0, 0.0], "unit": "m"}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "geofence_radius_m": 10.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "frame_id": "body",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "frame_id": "world",
+            "channels": {
+              "pose_position": {
+                "data": [
+                  9.9,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "overspeed_clamped",
         "input": {
-          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "max_speed_mps": 1.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "active", "velocity_setpoint_magnitude": 1.0}
+        "expect": {
+          "mode": "active",
+          "velocity_setpoint_magnitude": 1.0
+        }
       },
       {
         "name": "within_speed_passthrough",
         "input": {
-          "limits": {"max_speed_mps": 5.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "max_speed_mps": 5.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  2.0,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "active", "velocity_setpoint_magnitude": 2.0}
+        "expect": {
+          "mode": "active",
+          "velocity_setpoint_magnitude": 2.0
+        }
       },
       {
         "name": "speed_limit_wrong_unit_holds",
         "input": {
-          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [0.5, 0.0, 0.0], "unit": "km/h"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "max_speed_mps": 1.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.5,
+                  0.0,
+                  0.0
+                ],
+                "unit": "km/h"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "speed_limit_truncated_vec3_holds",
         "input": {
-          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [0.5], "unit": "m/s"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "max_speed_mps": 1.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.5
+                ],
+                "unit": "m/s"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "speed_limit_velocity_channel_absent_holds",
         "input": {
-          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"thrust": {"data": [0.9], "unit": "N"}}},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {"pose_position": {"data": [0.0, 0.0, 0.0]}}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "max_speed_mps": 1.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "thrust": {
+                "data": [
+                  0.9
+                ],
+                "unit": "N"
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {
+              "pose_position": {
+                "data": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       },
       {
         "name": "speed_limit_first_horizon_step_invalid_holds",
         "input": {
-          "limits": {"max_speed_mps": 1.0, "command_timeout_ms": 500.0},
-          "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "ttl_ms": 200.0, "mode": "active", "channels": {"velocity_setpoint": {"data": [0.5, 0.0, 0.0], "unit": "m/s"}}, "horizon": [{"velocity_setpoint": {"data": [0.5, 0.0, 0.0], "unit": "km/h"}}], "horizon_dt_ms": 50.0},
-          "sensor": {"kind": "sensor_frame", "ncp_version": "0.7", "seq": 1, "t": 0.0, "channels": {}},
-          "now_s": 1.0, "last_sensor_s": 1.0
+          "limits": {
+            "max_speed_mps": 1.0,
+            "command_timeout_ms": 500.0
+          },
+          "command": {
+            "kind": "command_frame",
+            "ncp_version": "0.8",
+            "ttl_ms": 200.0,
+            "mode": "active",
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0.5,
+                  0.0,
+                  0.0
+                ],
+                "unit": "m/s"
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0.5,
+                    0.0,
+                    0.0
+                  ],
+                  "unit": "km/h"
+                }
+              }
+            ],
+            "horizon_dt_ms": 50.0,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "sensor": {
+            "kind": "sensor_frame",
+            "ncp_version": "0.8",
+            "t": 0.0,
+            "channels": {},
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          },
+          "now_s": 1.0,
+          "last_sensor_s": 1.0
         },
-        "expect": {"mode": "hold", "velocity_setpoint_magnitude": 0.0}
+        "expect": {
+          "mode": "hold",
+          "velocity_setpoint_magnitude": 0.0
+        }
       }
     ],
     "action_buffer": [
       {
         "name": "horizon_replay_then_hold",
         "operations": [
-          {"op": "command", "now_s": 1.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [0.1]}}, "horizon": [{"velocity_setpoint": {"data": [0.2]}}, {"velocity_setpoint": {"data": [0.3]}}], "horizon_dt_ms": 50.0}},
-          {"op": "active", "now_s": 1.0, "expect": {"active": true, "value": 0.1, "estopped": false}},
-          {"op": "active", "now_s": 1.06, "expect": {"active": true, "value": 0.2, "estopped": false}},
-          {"op": "active", "now_s": 1.11, "expect": {"active": true, "value": 0.3, "estopped": false}},
-          {"op": "active", "now_s": 1.16, "expect": {"active": false, "estopped": false}},
-          {"op": "active", "now_s": 1.21, "expect": {"active": false, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 1.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.1
+                  ]
+                }
+              },
+              "horizon": [
+                {
+                  "velocity_setpoint": {
+                    "data": [
+                      0.2
+                    ]
+                  }
+                },
+                {
+                  "velocity_setpoint": {
+                    "data": [
+                      0.3
+                    ]
+                  }
+                }
+              ],
+              "horizon_dt_ms": 50.0,
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.0,
+            "expect": {
+              "active": true,
+              "value": 0.1,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.06,
+            "expect": {
+              "active": true,
+              "value": 0.2,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.11,
+            "expect": {
+              "active": true,
+              "value": 0.3,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.16,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.21,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "duplicates_and_live_reordering_do_not_overwrite",
         "operations": [
-          {"op": "command", "now_s": 0.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 5, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [0.5]}}}},
-          {"op": "command", "now_s": 0.05, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 5, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [9.0]}}}},
-          {"op": "command", "now_s": 0.05, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 3, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [8.0]}}}},
-          {"op": "active", "now_s": 0.1, "expect": {"active": true, "value": 0.5, "estopped": false}},
-          {"op": "active", "now_s": 0.21, "expect": {"active": false, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 0.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.5
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 5
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.05,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    9.0
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 5
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.05,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    8.0
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 3
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.1,
+            "expect": {
+              "active": true,
+              "value": 0.5,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.21,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "duplicate_hold_is_never_dropped",
         "operations": [
-          {"op": "command", "now_s": 0.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 5, "mode": "active", "ttl_ms": 1000.0, "channels": {"velocity_setpoint": {"data": [0.5]}}}},
-          {"op": "active", "now_s": 0.1, "expect": {"active": true, "value": 0.5, "estopped": false}},
-          {"op": "command", "now_s": 0.1, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 5, "mode": "hold", "ttl_ms": 1000.0, "channels": {"velocity_setpoint": {"data": [0.0]}}}},
-          {"op": "active", "now_s": 0.1, "expect": {"active": false, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 0.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 1000.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.5
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 5
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.1,
+            "expect": {
+              "active": true,
+              "value": 0.5,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.1,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "hold",
+              "ttl_ms": 1000.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.0
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 5
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.1,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "invalid_non_estop_envelope_is_ignored",
         "operations": [
-          {"op": "command", "now_s": 0.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [0.4]}}}},
-          {"op": "command", "now_s": 0.05, "command": {"kind": "command_frame", "seq": 2, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [9.0]}}}},
-          {"op": "active", "now_s": 0.1, "expect": {"active": true, "value": 0.4, "estopped": false}},
-          {"op": "active", "now_s": 0.21, "expect": {"active": false, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 0.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.4
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.05,
+            "command": {
+              "kind": "command_frame",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    9.0
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 2
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.1,
+            "expect": {
+              "active": true,
+              "value": 0.4,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.21,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "estop_latches_and_reset_requires_fresh_command",
         "operations": [
-          {"op": "command", "now_s": 0.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [0.4]}}}},
-          {"op": "command", "now_s": 0.01, "command": {"kind": "wrong", "seq": 0, "mode": "estop", "channels": {"velocity_setpoint": {"data": [9.0]}}}},
-          {"op": "active", "now_s": 0.02, "expect": {"active": false, "estopped": true}},
-          {"op": "reset"},
-          {"op": "active", "now_s": 0.02, "expect": {"active": false, "estopped": false}},
-          {"op": "command", "now_s": 0.03, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 200.0, "channels": {"velocity_setpoint": {"data": [0.7]}}}},
-          {"op": "active", "now_s": 0.04, "expect": {"active": true, "value": 0.7, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 0.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.4
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.01,
+            "command": {
+              "kind": "wrong",
+              "mode": "estop",
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    9.0
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 0
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.02,
+            "expect": {
+              "active": false,
+              "estopped": true
+            }
+          },
+          {
+            "op": "reset"
+          },
+          {
+            "op": "active",
+            "now_s": 0.02,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.03,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 200.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.7
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.04,
+            "expect": {
+              "active": true,
+              "value": 0.7,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "lower_sequence_reanchors_only_after_expiry",
         "operations": [
-          {"op": "command", "now_s": 0.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 100, "mode": "active", "ttl_ms": 100.0, "channels": {"velocity_setpoint": {"data": [0.2]}}}},
-          {"op": "command", "now_s": 0.05, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 100.0, "channels": {"velocity_setpoint": {"data": [0.8]}}}},
-          {"op": "active", "now_s": 0.06, "expect": {"active": true, "value": 0.2, "estopped": false}},
-          {"op": "active", "now_s": 0.11, "expect": {"active": false, "estopped": false}},
-          {"op": "command", "now_s": 0.11, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 100.0, "channels": {"velocity_setpoint": {"data": [0.8]}}}},
-          {"op": "active", "now_s": 0.12, "expect": {"active": true, "value": 0.8, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 0.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 100.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.2
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 100
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.05,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 100.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.8
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.06,
+            "expect": {
+              "active": true,
+              "value": 0.2,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.11,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 0.11,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 100.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.8
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.12,
+            "expect": {
+              "active": true,
+              "value": 0.8,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "deadline_is_exclusive_of_actuation",
         "operations": [
-          {"op": "command", "now_s": 0.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 1000.0, "channels": {"velocity_setpoint": {"data": [0.2]}}}},
-          {"op": "active", "now_s": 0.999, "expect": {"active": true, "value": 0.2, "estopped": false}},
-          {"op": "active", "now_s": 1.0, "expect": {"active": false, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 0.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 1000.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.2
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 0.999,
+            "expect": {
+              "active": true,
+              "value": 0.2,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 1.0,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          }
         ]
       },
       {
         "name": "backward_clock_requires_fresh_command_after_catchup",
         "operations": [
-          {"op": "command", "now_s": 2.0, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 1, "mode": "active", "ttl_ms": 2000.0, "channels": {"velocity_setpoint": {"data": [0.2]}}}},
-          {"op": "active", "now_s": 2.5, "expect": {"active": true, "value": 0.2, "estopped": false}},
-          {"op": "active", "now_s": 2.4, "expect": {"active": false, "estopped": false}},
-          {"op": "active", "now_s": 2.5, "expect": {"active": false, "estopped": false}},
-          {"op": "command", "now_s": 2.5, "command": {"kind": "command_frame", "ncp_version": "0.7", "seq": 2, "mode": "active", "ttl_ms": 2000.0, "channels": {"velocity_setpoint": {"data": [0.8]}}}},
-          {"op": "active", "now_s": 2.5, "expect": {"active": true, "value": 0.8, "estopped": false}}
+          {
+            "op": "command",
+            "now_s": 2.0,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 2000.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.2
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 1
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 2.5,
+            "expect": {
+              "active": true,
+              "value": 0.2,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 2.4,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 2.5,
+            "expect": {
+              "active": false,
+              "estopped": false
+            }
+          },
+          {
+            "op": "command",
+            "now_s": 2.5,
+            "command": {
+              "kind": "command_frame",
+              "ncp_version": "0.8",
+              "mode": "active",
+              "ttl_ms": 2000.0,
+              "channels": {
+                "velocity_setpoint": {
+                  "data": [
+                    0.8
+                  ]
+                }
+              },
+              "stream": {
+                "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+                "seq": 2
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              },
+              "session_id": "s"
+            }
+          },
+          {
+            "op": "active",
+            "now_s": 2.5,
+            "expect": {
+              "active": true,
+              "value": 0.8,
+              "estopped": false
+            }
+          }
         ]
       }
     ]

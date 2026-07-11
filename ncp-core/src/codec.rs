@@ -259,6 +259,7 @@ impl CodecSpec {
     /// Checked wire-egress form used by language bindings. The caller owns the
     /// monotonically increasing sequence; the returned command has passed the
     /// complete CommandFrame wire gate (including Active payload requirements).
+    #[allow(clippy::too_many_arguments)]
     pub fn decode_checked(
         &self,
         pop_rates: &Map<f64>,
@@ -328,6 +329,7 @@ impl CodecSpec {
     }
 
     /// Map `{population: readout_rate_hz}` to a `CommandFrame`.
+    #[allow(clippy::too_many_arguments)]
     pub fn decode(
         &self,
         pop_rates: &Map<f64>,

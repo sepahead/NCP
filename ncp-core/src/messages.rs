@@ -3317,12 +3317,17 @@ fn validate_semantics(
                     return Err(ValidationError(format!("link_status.{field} must be >= 0")));
                 }
             }
-            let last_seq = obj
-                .get("last_seq")
-                .and_then(json_exact_i64)
-                .ok_or_else(|| ValidationError("link_status.last_seq must be an integer".into()))?;
-            if last_seq < -1 {
-                return Err(ValidationError("link_status.last_seq must be >= -1".into()));
+            // Wire 0.8: `last_arrival_seq` is optional (absent before the first valid
+            // observed frame); when present it must be a non-negative integer.
+            if let Some(la) = obj.get("last_arrival_seq").filter(|v| !v.is_null()) {
+                let la = json_exact_i64(la).ok_or_else(|| {
+                    ValidationError("link_status.last_arrival_seq must be an integer".into())
+                })?;
+                if la < 0 {
+                    return Err(ValidationError(
+                        "link_status.last_arrival_seq must be >= 0".into(),
+                    ));
+                }
             }
             let loss = finite_number(
                 obj.get("loss_rate")

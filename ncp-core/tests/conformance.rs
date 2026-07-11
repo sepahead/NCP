@@ -201,8 +201,8 @@ fn observation_frame_carries_provenance_and_seq() {
         "ObservationFrame.is_simulation_output must default to true"
     );
     assert!(
-        obj.contains_key("seq"),
-        "ObservationFrame must carry a `seq` field; keys: {:?}",
+        obj.get("stream").and_then(Value::as_object).is_some(),
+        "ObservationFrame must carry a wire-0.8 `stream` position; keys: {:?}",
         obj.keys().collect::<Vec<_>>()
     );
 }
