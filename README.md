@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img alt="NCP logo" src="assets/logo-light.svg" width="200">
+  </picture>
+</p>
+
 # NCP — Neuro-Cybernetic Protocol
 
 > A single versioned, typed, cross-language **wire contract** for a running NEST point- and rate-neuron simulation (spiking, binary, and rate-based models) to perceive and act through robots, UAVs, and analysis clients — safety-gated and provenance-first.
