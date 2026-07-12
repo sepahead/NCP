@@ -65,21 +65,37 @@ globbing sibling repos for a `.ncp-consumer` descriptor. You register by committ
 that file to **your own** repo root; NCP never changes.
 
 `.ncp-consumer` is a small line-oriented file (`#` comments) declaring which of your
-files carry the NCP pin and, optionally, how to re-pin a bespoke layout:
+files carry the NCP pin and, optionally, how to re-pin a bespoke layout. Tag-based
+entries have two fields; exact-revision entries additionally record a release label
+and full commit:
 
 ```text
 # how this repo pins NCP — read by NCP's generic, consumer-agnostic tooling.
 cargo_tag   src-tauri/Cargo.toml     # NCP git-dep `tag = "vX"` (+ explicit `version`, if present)
 cargo_lock  src-tauri/Cargo.lock     # resolved `NCP?tag=vX`
+cargo_rev   Cargo.toml v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
+cargo_lock_rev Cargo.lock v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
 npm_tag     package.json             # `"@…/ncp": "github:…/NCP#vX"`
 npm_lock    bun.lock                 # same spec `#vX` (+ resolved commit)
 mirror_ref  ncp/.mirror-ref          # a vendored-mirror pin file (the tag string)
+python_wire backend/neurocontrol/protocol.py v0.8.0 # Python NCP_VERSION wire
 repin_cmd   scripts/sync_mirror.sh {TAG}   # OPTIONAL consumer-owned re-pin ({TAG} substituted)
 ```
 
-Declare only the lines that apply to you (a pure observer might declare just
-`cargo_tag`/`cargo_lock`; a vendored mirror declares `mirror_ref` + a `repin_cmd`
-that runs its own sync). `check-consumer-pins.sh` then verifies every discovered
+Declare only the lines that apply to you. Use `cargo_tag`/`cargo_lock` for a tag
+pin, or `cargo_rev`/`cargo_lock_rev` with both the corresponding release tag and
+full 40-hex commit when a consumer deliberately requires an immutable revision.
+The offline checker enforces that the declared revision and any explicit Cargo
+version agree across the manifest and lockfile. It reports—but cannot independently
+prove—the consumer-declared tag-to-commit relationship; `repin-ncp.sh` derives that
+commit from the local canonical NCP tag.
+A vendored mirror declares `mirror_ref` + a `repin_cmd` that runs its own sync.
+If that consumer also implements the wire in Python, add `python_wire` with the
+runtime module and consumer-declared release tag. The checker then requires its
+`NCP_VERSION = "MAJOR.MINOR"` constant to match that release's wire. The generic
+repinner never rewrites runtime protocol code; a mirror-only bump therefore stays
+red until the consumer completes and tests its own migration.
+`check-consumer-pins.sh` then verifies every discovered
 consumer pins one agreed tag, and `repin-ncp.sh <tag>` re-pins them all — both with
 no NCP-side edit when a new consumer appears.
 

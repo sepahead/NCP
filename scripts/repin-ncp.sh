@@ -12,8 +12,11 @@
 #   cargo_tag  <Cargo.toml>     # rewrite ncp-core/ncp-zenoh `tag = "vX"` and any
 #                               #   explicit `version = "X"` constraint, then
 #                               #   `cargo update -p ncp-core -p ncp-zenoh --manifest-path <Cargo.toml>`
+#   cargo_rev  <Cargo.toml> <tag> <40-hex-rev>  # rewrite exact revision/version,
+#                               #   descriptor metadata, and lockfile
 #   npm_tag    <package.json>   # rewrite `github:.../NCP#vX` (key kept), then `bun install`
-#   cargo_lock / npm_lock / mirror_ref  # declared for the pin CHECKER; refreshed implicitly here
+#   cargo_lock / cargo_lock_rev / npm_lock / mirror_ref / python_wire  # checker-only
+#                               # (runtime wire migrations are deliberately manual)
 #   repin_cmd  <cmd ... {TAG}>  # consumer-owned re-pin command, run in the consumer dir
 #                               #   ({TAG} is substituted). Use for mirrors / bespoke flows.
 #
@@ -34,7 +37,7 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 TAG="$1"
-if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?(\+[0-9A-Za-z.]+)?$ ]]; then
+if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
   echo "ERROR: tag '$TAG' is not a valid NCP tag (expected like v0.3.0 or v0.3.0-rc.1)." >&2
   exit 2
 fi
@@ -48,6 +51,8 @@ if [[ ! -d "$BASE_DIR" ]]; then
   exit 2
 fi
 BASE_DIR="$(cd "$BASE_DIR" && pwd)"
+
+TAG_REV=""
 
 # Locate bun (prefer ~/.bun/bin/bun, else PATH).
 BUN_BIN=""
@@ -72,7 +77,26 @@ repin_cargo_manifest() {
     if (/^\s*[A-Za-z0-9_-]+\s*=\s*\{.*git\s*=\s*"[^"]*\/NCP"/) {
       s{(tag\s*=\s*")[^"]*(")}{$1 . $ENV{TAG} . $2}ge;
       s{(version\s*=\s*")[^"]*(")}{$1 . $ENV{CARGO_VERSION} . $2}ge;
+      s{(\s+#\s*)v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\s*$}{$1 . $ENV{TAG}}e;
     }
+  ' "$1"
+}
+repin_cargo_rev_manifest() {
+  TAG="$TAG" TAG_REV="$TAG_REV" CARGO_VERSION="$CARGO_VERSION" perl -pi -e '
+    if (/^\s*[A-Za-z0-9_-]+\s*=\s*\{.*git\s*=\s*"[^"]*\/NCP"/) {
+      s{(rev\s*=\s*")[^"]*(")}{$1 . $ENV{TAG_REV} . $2}ge;
+      s{(version\s*=\s*")[^"]*(")}{$1 . $ENV{CARGO_VERSION} . $2}ge;
+      s{(\s+#\s*)v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\s*$}{$1 . $ENV{TAG}}e;
+    }
+  ' "$1"
+}
+update_revision_descriptor() {
+  TAG="$TAG" TAG_REV="$TAG_REV" perl -pi -e '
+    chomp;
+    if (/^(\s*cargo_(?:rev|lock_rev)\s+\S+)(?:\s+\S+\s+\S+)?(\s*(?:#.*)?)$/) {
+      $_ = "$1 $ENV{TAG} $ENV{TAG_REV}$2";
+    }
+    $_ .= "\n";
   ' "$1"
 }
 # package.json / bun.lock spec: only the #<tag> fragment changes; the scope key is kept.
@@ -93,13 +117,29 @@ if [[ "${#descriptors[@]}" -eq 0 ]]; then
   exit 1
 fi
 
+# Revision-pinned consumers deliberately avoid relying on a movable remote tag.
+# Resolve the requested release to its commit only when such a consumer exists;
+# tag-only fleets can still be re-pinned from a shallow checkout without tags.
+has_revision_consumer=0
+for desc in "${descriptors[@]}"; do
+  if perl -ne '$found = 1 if /^\s*cargo_rev\s+/; END { exit(!$found) }' "$desc"; then
+    has_revision_consumer=1
+    break
+  fi
+done
+if [[ "$has_revision_consumer" -eq 1 ]] &&
+   ! TAG_REV="$(git -C "$NCP_ROOT" rev-parse --verify "refs/tags/${TAG}^{commit}" 2>/dev/null)"; then
+  echo "ERROR: revision-pinned consumers require local tag '$TAG', but it is unavailable." >&2
+  exit 2
+fi
+
 for desc in "${descriptors[@]}"; do
   consumer_dir="$(cd "$(dirname "$desc")" && pwd)"
   consumer_name="$(basename "$consumer_dir")"
   hdr "$consumer_name"
 
   # Parse the descriptor into typed target lists.
-  cargo_tomls=(); npm_jsons=(); repin_cmd=""
+  cargo_tomls=(); cargo_rev_tomls=(); npm_jsons=(); repin_cmd=""
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%%#*}"
     # shellcheck disable=SC2206
@@ -107,12 +147,14 @@ for desc in "${descriptors[@]}"; do
     [[ "${#fields[@]}" -ge 2 ]] || continue
     case "${fields[0]}" in
       cargo_tag) cargo_tomls+=("${fields[1]}") ;;
+      cargo_rev) cargo_rev_tomls+=("${fields[1]}") ;;
       npm_tag)   npm_jsons+=("${fields[1]}") ;;
       repin_cmd) repin_cmd="${line#*repin_cmd }" ;;   # rest of line, verbatim
     esac
   done < "$desc"
 
   touched=0
+  consumer_failed=0
   review_files=()
 
   # 1) Consumer-owned custom re-pin (e.g. a vendored mirror's sync script).
@@ -144,12 +186,34 @@ for desc in "${descriptors[@]}"; do
         note "refreshing lockfile (cargo update -p ncp-core -p ncp-zenoh --manifest-path $rel) ..."
         if ( cd "$consumer_dir" && cargo update -p ncp-core -p ncp-zenoh --manifest-path "$rel" ); then
           note "Cargo.lock refreshed"
-        else warn "cargo update failed in $consumer_name ($rel) — Cargo.lock NOT refreshed; re-run before committing"; fi
-      else warn "cargo not found — Cargo.lock NOT refreshed for $consumer_name"; fi
-    else warn "declared cargo_tag file missing: $f"; fi
+        else warn "cargo update failed in $consumer_name ($rel) — Cargo.lock NOT refreshed; re-run before committing"; consumer_failed=1; fi
+      else warn "cargo not found — Cargo.lock NOT refreshed for $consumer_name"; consumer_failed=1; fi
+    else warn "declared cargo_tag file missing: $f"; consumer_failed=1; fi
   done
 
-  # 3) Standard npm/bun re-pin. (Same bash-3.2 empty-array guard as the cargo loop —
+  # 3) Exact-revision Cargo re-pin. The descriptor records the human release
+  # tag and immutable commit together so the checker can verify both the
+  # manifest and resolved lock source without consulting a remote tag.
+  repinned_revision=0
+  for rel in ${cargo_rev_tomls[@]+"${cargo_rev_tomls[@]}"}; do
+    f="$consumer_dir/$rel"
+    if [[ -f "$f" ]]; then
+      repin_cargo_rev_manifest "$f"; note "rewrote ncp-core/ncp-zenoh rev/version -> $TAG ($TAG_REV) in $rel"; touched=1; repinned_revision=1; review_files+=("$rel")
+      if command -v cargo >/dev/null 2>&1; then
+        note "refreshing lockfile (cargo update -p ncp-core -p ncp-zenoh --manifest-path $rel) ..."
+        if ( cd "$consumer_dir" && cargo update -p ncp-core -p ncp-zenoh --manifest-path "$rel" ); then
+          note "Cargo.lock refreshed"
+        else warn "cargo update failed in $consumer_name ($rel) — Cargo.lock NOT refreshed; re-run before committing"; consumer_failed=1; fi
+      else warn "cargo not found — Cargo.lock NOT refreshed for $consumer_name"; consumer_failed=1; fi
+    else warn "declared cargo_rev file missing: $f"; consumer_failed=1; fi
+  done
+  if [[ "$repinned_revision" -eq 1 ]]; then
+    update_revision_descriptor "$desc"
+    review_files+=(".ncp-consumer")
+    note "updated revision-pin descriptor metadata -> $TAG ($TAG_REV)"
+  fi
+
+  # 4) Standard npm/bun re-pin. (Same bash-3.2 empty-array guard as the cargo loop —
   # a cargo-only consumer like prisoma has no npm_jsons and must not abort here.)
   for rel in ${npm_jsons[@]+"${npm_jsons[@]}"}; do
     f="$consumer_dir/$rel"
@@ -158,13 +222,17 @@ for desc in "${descriptors[@]}"; do
       if [[ -n "$BUN_BIN" ]]; then
         note "running 'bun install' to regenerate the lockfile ..."
         if ( cd "$consumer_dir" && "$BUN_BIN" install ); then note "bun lockfile refreshed"
-        else warn "'bun install' failed in $consumer_name — lockfile NOT refreshed; re-run before committing"; fi
-      else warn "bun not found — lockfile NOT refreshed for $consumer_name; run 'bun install' manually"; fi
-    else warn "declared npm_tag file missing: $f"; fi
+        else warn "'bun install' failed in $consumer_name — lockfile NOT refreshed; re-run before committing"; consumer_failed=1; fi
+      else warn "bun not found — lockfile NOT refreshed for $consumer_name; run 'bun install' manually"; consumer_failed=1; fi
+    else warn "declared npm_tag file missing: $f"; consumer_failed=1; fi
   done
 
   if [[ "$touched" -eq 1 ]]; then
-    [[ -n "${review_files+x}" ]] && add_summary "$consumer_name" "REPINNED" "$(printf '%s ' "${review_files[@]}")-> $TAG"
+    if [[ "$consumer_failed" -eq 1 ]]; then
+      add_summary "$consumer_name" "INCOMPLETE" "pin files changed, but a required refresh failed"
+    else
+      [[ -n "${review_files+x}" ]] && add_summary "$consumer_name" "REPINNED" "$(printf '%s ' "${review_files[@]}")-> $TAG"
+    fi
     REVIEW_CMDS+=("# $consumer_name
   git -C \"$consumer_dir\" diff
   git -C \"$consumer_dir\" add -A && git -C \"$consumer_dir\" commit -m \"chore: re-pin NCP to $TAG\"")
@@ -172,6 +240,11 @@ for desc in "${descriptors[@]}"; do
     add_summary "$consumer_name" "SKIPPED" "no re-pinnable target found (.ncp-consumer declared none present)"
   fi
 done
+
+hdr "Post-repin verification"
+if ! "$SCRIPT_DIR/check-consumer-pins.sh" "$TAG" "$BASE_DIR"; then
+  warn "consumer pin verification failed after re-pin"
+fi
 
 hdr "Summary — re-pin to $TAG"
 printf '\n%-22s %-9s %s\n' "REPO" "STATUS" "DETAIL"
@@ -194,4 +267,5 @@ else
 fi
 if [[ "$HAD_WARNINGS" -ne 0 ]]; then
   echo "One or more steps were skipped or failed (see '!' lines above). Review before committing." >&2
+  exit 1
 fi

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Report the NCP pin each downstream consumer references and verify they agree.
-# READ-ONLY: never writes to any repo, runs no builds, makes no network/git calls —
-# it only inspects pin files on disk. Use it as a pre-flight or CI guard around an
-# NCP tag bump.
+# READ-ONLY: never writes to any repo, runs no builds, and makes no network/git
+# calls — it only inspects descriptors and pin files on disk. Use it as a
+# pre-flight or CI guard around an NCP tag bump.
 #
 # DECOUPLED BY DESIGN: this script holds **no knowledge of any specific consumer**.
 # It discovers consumers by globbing for a `.ncp-consumer` descriptor in each
@@ -11,12 +11,15 @@
 # onboarding a new consumer therefore requires ZERO changes here. See
 # `INTEGRATING.md` (§"Registering a consumer") for the descriptor format.
 #
-# `.ncp-consumer` format — one `<type> <relative-path>` per line, `#` comments:
+# `.ncp-consumer` format — `#` comments are allowed:
 #   cargo_tag   <Cargo.toml>     # ncp-core/ncp-zenoh git-dep `tag = "vX"`
 #   cargo_lock  <Cargo.lock>     # resolved `NCP?tag=vX`
+#   cargo_rev   <Cargo.toml> <tag> <40-hex-rev>      # immutable revision pin
+#   cargo_lock_rev <Cargo.lock> <tag> <40-hex-rev>   # resolved revision source
 #   npm_tag     <package.json>   # `@sepehrmn/ncp": "github:sepahead/NCP#vX`
 #   npm_lock    <bun.lock>       # same spec `#vX` (+ resolved commit, informational)
 #   mirror_ref  <.mirror-ref>    # a vendored-mirror pin file containing the tag
+#   python_wire <module.py> <tag> # NCP_VERSION major.minor must match tag wire
 #
 # Tracks sepahead/NCP#8 (drift-guarded pins).
 set -euo pipefail
@@ -93,14 +96,85 @@ first_match() {
   if [[ -z "$out" ]]; then printf '%s' "__UNRESOLVED__"; else printf '%s' "$out"; fi
 }
 
+# Revision descriptors must cover every NCP dependency/source in the declared
+# file. Checking only the first match would let ncp-core and ncp-zenoh drift.
+all_manifest_revisions_match() {
+  local file="$1" expected_rev="$2" expected_version="$3"
+  [[ -f "$file" ]] || return 1
+  EXPECTED_REV="$expected_rev" EXPECTED_VERSION="$expected_version" perl -ne '
+    if (/^\s*ncp-(?:core|zenoh)\b/ && /\bgit\s*=\s*"[^"]*\/NCP"/) {
+      $seen = 1;
+      if (/\brev\s*=\s*"([0-9a-f]{40})"/) {
+        $bad = 1 if $1 ne $ENV{EXPECTED_REV};
+      } else {
+        $bad = 1;
+      }
+      if (/\bversion\s*=\s*"([^"]+)"/) {
+        $bad = 1 if $1 ne $ENV{EXPECTED_VERSION};
+      }
+    }
+    END { exit(!$seen || $bad); }
+  ' "$file"
+}
+
+all_lock_revisions_match() {
+  local file="$1" expected="$2"
+  [[ -f "$file" ]] || return 1
+  EXPECTED="$expected" perl -ne '
+    if (/git\+https:\/\/github\.com\/[^\/]+\/NCP/) {
+      $seen = 1;
+      my ($requested) = /[?&]rev=([0-9a-f]{40})(?:[&#"])/;
+      my ($resolved) = /#([0-9a-f]{40})/;
+      $bad = 1 if !defined($requested) || !defined($resolved)
+        || $requested ne $ENV{EXPECTED} || $resolved ne $ENV{EXPECTED};
+    }
+    END { exit(!$seen || $bad); }
+  ' "$file"
+}
+
 # Per-type pin extraction. Each maps a declared file to the pinned tag (or sentinel).
 extract_pin() {
-  local type="$1" file="$2"
+  local type="$1" file="$2" declared_tag="${3:-}" declared_rev="${4:-}"
   case "$type" in
     cargo_tag)
       first_match "$file" '^\s*ncp-(?:core|zenoh)\b.*\bgit\s*=\s*"[^"]*/NCP".*\btag\s*=\s*"([^"]+)"' ;;
     cargo_lock)
       first_match "$file" 'git\+https://github\.com/[^/]+/NCP\?tag=([^#"]+)' ;;
+    cargo_rev)
+      if [[ ! "$declared_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]] ||
+         [[ ! "$declared_rev" =~ ^[0-9a-f]{40}$ ]]; then
+        printf '%s' "__UNRESOLVED__"
+        return
+      fi
+      if all_manifest_revisions_match "$file" "$declared_rev" "${declared_tag#v}"; then
+        printf '%s' "$declared_tag"
+      else
+        printf '%s' "__UNRESOLVED__"
+      fi ;;
+    cargo_lock_rev)
+      if [[ ! "$declared_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]] ||
+         [[ ! "$declared_rev" =~ ^[0-9a-f]{40}$ ]]; then
+        printf '%s' "__UNRESOLVED__"
+        return
+      fi
+      if all_lock_revisions_match "$file" "$declared_rev"; then
+        printf '%s' "$declared_tag"
+      else
+        printf '%s' "__UNRESOLVED__"
+      fi ;;
+    python_wire)
+      if [[ ! "$declared_tag" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+        printf '%s' "__UNRESOLVED__"
+        return
+      fi
+      local declared_wire="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+      local runtime_wire
+      runtime_wire="$(first_match "$file" '^\s*NCP_VERSION\s*=\s*"([0-9]+\.[0-9]+)"')"
+      if [[ "$runtime_wire" == "$declared_wire" ]]; then
+        printf '%s' "$declared_tag"
+      else
+        printf '%s' "__UNRESOLVED__"
+      fi ;;
     npm_tag|npm_lock)
       first_match "$file" '"\@[^"/]+/ncp"\s*:\s*"github:[^/]+/NCP#([^"]+)"' ;;
     mirror_ref)
@@ -136,12 +210,17 @@ for desc in "${descriptors[@]}"; do
     # Only pin-bearing types are checked here; directives like `repin_cmd` (used by
     # repin-ncp.sh) are not pins and are skipped.
     case "$type" in
-      cargo_tag|cargo_lock|npm_tag|npm_lock|mirror_ref) ;;
+      cargo_tag|cargo_lock|cargo_rev|cargo_lock_rev|npm_tag|npm_lock|mirror_ref|python_wire) ;;
       *) continue ;;
     esac
     file="$consumer_dir/$rel"
-    tag="$(extract_pin "$type" "$file")"
+    tag="$(extract_pin "$type" "$file" "${fields[2]:-}" "${fields[3]:-}")"
     add_row "$consumer_name/$rel ($type)" "$tag"
+    if [[ "$type" == "cargo_rev" || "$type" == "cargo_lock_rev" ]]; then
+      NOTES+=("$consumer_name/$rel immutable revision = ${fields[3]:-<missing>} (consumer-declared release ${fields[2]:-<missing>})")
+    elif [[ "$type" == "python_wire" ]]; then
+      NOTES+=("$consumer_name/$rel Python runtime wire checked against consumer-declared release ${fields[2]:-<missing>}")
+    fi
     # bun.lock also records the resolved commit (NCP#<sha>) — informational only.
     if [[ "$type" == "npm_lock" && -f "$file" ]]; then
       commit="$(RE='/NCP#([0-9a-f]{7,40})"' perl -ne 'if (/$ENV{RE}/) { print "$1\n"; exit }' "$file" 2>/dev/null || true)"

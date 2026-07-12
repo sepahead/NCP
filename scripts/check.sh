@@ -75,6 +75,7 @@ python3 scripts/check_proto_schema_parity.py
 python3 scripts/check_conformance_vectors.py
 python3 scripts/check_wire_baseline.py
 python3 scripts/check_schema_defaults.py
+scripts/test_consumer_pins.sh
 cargo run -q -p ncp-core --features schema --bin gen-schemas -- \
     "$tmp_dir/schemas-fresh"
 diff -ru -x README.md "$tmp_dir/schemas-fresh" schemas
