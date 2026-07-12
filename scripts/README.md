@@ -36,8 +36,8 @@ resolves the repo root from its own location.
 scripts/check.sh                         # full local gate (mirrors CI)
 python3 scripts/sync_rust_package_testdata.py
 python3 scripts/check_rust_packages.py --offline
-scripts/check-consumer-pins.sh v0.7.1    # verify all consumers pin the latest release
-scripts/repin-ncp.sh v0.7.1              # re-pin all consumers to that immutable tag
+scripts/check-consumer-pins.sh v0.8.0    # verify all consumers pin the latest release
+scripts/repin-ncp.sh v0.8.0              # re-pin all consumers to that immutable tag
 python3 scripts/check_proto_schema_parity.py
 python3 scripts/check_acl_template.py
 python3 scripts/verify_acl_deployment.py --self-test

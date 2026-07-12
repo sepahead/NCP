@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-12
+
+### Wire 0.8 (breaking)
+
+The `v0.8.0` release speaks wire `0.8` with contract hash `d1b50a2d8a265276`. It
+replaces the overloaded top-level `seq` with typed stream identity and source
+correlation, fences session incarnations, and requires session identity on the
+control plane. Its frozen JSON baseline (`conformance/baseline/v0.8.0/`),
+cross-language release gates, and coordinated consumer pins establish it as the
+latest immutable release. This is increment 1 of the wire-0.8 line
+(see `docs/wire-0.8-stream-identity.md`); authority leasing (F-02), `publisher_id`
+binding, and applied-command/stop acknowledgements are deferred to later increments.
+
+#### Changed (wire contract and addressing)
+
+- The single top-level `seq` — overloaded as an origin delivery sequence on
+  `SensorFrame` but a source echo on `CommandFrame` / plane `ObservationFrame`,
+  which `LinkMonitor`/`ActionBuffer` then misread as delivery loss (F-01) — is
+  deleted and `reserved` (number **and** name) on every data-plane frame. There is
+  no 0.8 alias.
+- Every data-plane frame carries `stream: StreamPosition {epoch, seq}`: `epoch` is
+  an opaque per-incarnation UUIDv4 (equality-only, unordered), `seq` starts at 1
+  per epoch and strictly increases. `stream` is the **only** sequence read for loss
+  accounting, `LinkMonitor`, and `ActionBuffer`.
+- `source: StreamPosition` carries the directly-driving frame's `{epoch, seq}` for
+  correlation/provenance only (never loss accounting). `source` **absence** replaces
+  the old observation `seq == 0` sentinel; `command.source` is scoped to the
+  enclosing frame's session, and cross-session source references are invalid.
+- A server-issued `session: SessionRef {generation}` is issued on
+  `SessionOpened(ok=true)` and required on every post-open session-scoped frame
+  (Step/Run/Close/SessionClosed/Stimulus and the data plane), conditional on
+  `ErrorFrame` (both or neither). The effective session identity is the inseparable
+  pair `(session_id, generation)`, validated atomically under the session lock
+  **before any side effect**, with no key→`session_id` or active→`generation` repair.
+- `session_id` is now **required on the control plane** (`SensorFrame`,
+  `CommandFrame`, `ControlStatus`) for transport-agnosticism: the normative gRPC
+  `Control` stream has no Zenoh key to recover identity from, so the frame is
+  self-describing and the Zenoh key becomes a redundant equality-checked binding.
+- `t` is uniformly this publisher's local monotonic creation time scoped to
+  `stream.epoch`; the driving sensor's time travels explicitly in optional
+  `source_t`. No frame smuggles another peer's clock into `t`.
+- `LinkStatus` reports the monitored stream's `observed_stream` (`{active epoch,
+  forward high-water seq}`), its own `stream`, and `session`; `last_arrival_seq`
+  is optional. Reorder/duplicate diagnostic counters are deferred until a bounded
+  reorder window is normatively fixed.
+
+#### Safety and robustness
+
+- Receivers key stream state by `(session generation + authenticated publisher +
+  routing key + message kind)` and keep `active_epoch`/`last_seq`/`retired_epochs`.
+  A foreign random epoch cannot auto-replace the active stream (the foreign-epoch
+  hijack is closed); a retired epoch is rejected even with a large seq; a duplicate
+  or stale `seq` never refreshes the command watchdog.
+- Session fencing rejects stale-generation and wrong-`session_id` traffic before any
+  stimulus, advance, close, TTL refresh, epoch/seq state change, mode change, or
+  ESTOP latch — a wrong-session ESTOP does not latch.
+
+### Migration
+
+Consumers re-pin to `v0.8.0` and move every `.seq` join to the typed
+`stream`/`source` `{epoch, seq}` (observers correlate on `source`; bodies stamp
+`stream`, copy `source`, and carry `session_id`/`session.generation`). See
+`docs/wire-0.8-stream-identity.md` §11.
+
 ## [0.7.1] - 2026-07-11
 
 Wire `0.7` and `CONTRACT_HASH=f05e328cad20959d` are unchanged from `v0.7.0`.

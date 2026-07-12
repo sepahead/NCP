@@ -201,7 +201,7 @@ important thing NCP can do is detect goodput collapse and fail safe honestly.
 
 ## Minimal first implementation (corrected order)
 
-> **Status (wire 0.7).** Steps 0–2 now ship as tested `ncp-core` primitives,
+> **Status (wire 0.8).** Steps 0–2 now ship as tested `ncp-core` primitives,
 > re-exported from the crate root: `CommandWatchdog` (the `ttl_ms` deadline
 > backstop), `ActionBuffer` + `max_horizon_len` (PPC horizon replay, capped at
 > `N ≤ ttl_ms / horizon_dt_ms` and `N ≤ 65_536`), and `LinkMonitor` (seq-gap loss + CUSUM burst →

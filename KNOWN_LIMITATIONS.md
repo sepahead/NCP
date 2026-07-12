@@ -1,7 +1,7 @@
 # Known Limitations & Hardening Backlog
 
-> Wire **0.7**, released as the latest immutable tag `v0.7.1` (SDK manifests
-> 0.7.1). This tracks findings from continuing adversarial reviews of NCP
+> Wire **0.8**, released as the latest immutable tag `v0.8.0` (SDK manifests
+> 0.8.0). This tracks findings from continuing adversarial reviews of NCP
 > (correctness, safety, robustness, overhead) **and their current status**. Each
 > notes whether the fix changes the on-wire contract (`wire-breaking`, needs a
 > version bump + consumer buy-in across all pinned consumers) or is internal

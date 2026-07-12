@@ -353,7 +353,7 @@ def topology(th):
     s = [svg_open(W, H), defs(th), background(th, W, H)]
     s.append(title_block(th, "TOPOLOGY",
                          "COMMANDER ⇄ BODY  ·  4 QoS PLANES  ·  OBSERVER ATTACHES FOR FREE", W))
-    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.7.1 · WIRE 0.7 · CONTRACT f05e328cad20959d"))
+    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.8.0 · WIRE 0.8 · CONTRACT d1b50a2d8a265276"))
 
     # node coords
     U1 = (44, 252, 200, 96)    # commander  (center 144,300)
@@ -479,8 +479,8 @@ TOPOLOGY_ALT = ("NCP topology: one Commander (a NEST-brain neuromorphic controll
     "({realm}/rpc/{request_kind}) is a reliable, bidirectional request/reply rail; the server declares "
     "{realm}/rpc/*. PERCEPTION ({realm}/session/{id}/sensor[/{name}]) is a "
     "dashed best-effort DROP plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) "
-    "is a dotted read-only tap published by the Commander to the Observer. NCP wire 0.7 release, "
-    "contract hash f05e328cad20959d.")
+    "is a dotted read-only tap published by the Commander to the Observer. NCP wire 0.8 release, "
+    "contract hash d1b50a2d8a265276.")
 
 
 # ───────────────────────────── 2. ECOSYSTEM ─────────────────────────────
@@ -488,8 +488,8 @@ def ecosystem(th):
     W, H = 820, 520
     s = [svg_open(W, H), defs(th), background(th, W, H)]
     s.append(title_block(th, "ECOSYSTEM",
-                         "LATEST IMMUTABLE TAG v0.7.1  ·  WIRE 0.7 RELEASE", W))
-    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.7.1 · WIRE 0.7 · CONTRACT f05e328cad20959d"))
+                         "LATEST IMMUTABLE TAG v0.8.0  ·  WIRE 0.8 RELEASE", W))
+    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.8.0 · WIRE 0.8 · CONTRACT d1b50a2d8a265276"))
     ctr, obs, ctl = th["contract"], th["observation"], th["control"]
 
     # pin + submodule edges (under the cards)
@@ -525,7 +525,7 @@ def ecosystem(th):
     s.append(line(hx + 22, hy + 128, hx + hw - 22, hy + 128, "#ffffff", 1, op=0.18))
     s.append(T(cx, hy + 140, "peers: ncp-python · ncp-cpp · @sepahead/ncp", 8.5, 500, "#ffffff", anchor="middle", op=0.76, mono=True))
     s.append(rect(cx - 62, hy + 147, 124, 15, rx=6, fill="#ffffff", op=0.13))
-    s.append(T(cx, hy + 157.5, "v0.7.1 · f05e328c", 9, 700, "#ffffff", anchor="middle", mono=True))
+    s.append(T(cx, hy + 157.5, "v0.8.0 · d1b50a2d", 9, 700, "#ffffff", anchor="middle", mono=True))
 
     # pid-rs pendant (quarantined: dashed, no rail, muted)
     qx, qy, qw, qh = 632, 388, 152, 84
@@ -545,7 +545,7 @@ def ecosystem(th):
         return (rect(x - 1.5, y - 1.5, w + 3, h + 3, rx=8, fill=th["bg_bot"])
                 + rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
                 + rect(x + 7, y + 6, 10, 10, rx=2, fill=ctr)
-                + T(x + 23, y + 15, "v0.7.1", 9.5, 700, th["tsec"], mono=True))
+                + T(x + 23, y + 15, "v0.8.0", 9.5, 700, th["tsec"], mono=True))
     s.append(pinchip(326, 192))
     s.append(pinchip(326, 298))
     s.append(pinchip(326, 404))
@@ -560,7 +560,7 @@ def ecosystem(th):
     ly = 488
     s.append(rect(28, ly, W - 56, 26, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1))
     s.append(line(48, ly + 13, 70, ly + 13, ctr, 2))
-    s.append(T(78, ly + 17, "pin tag v0.7.1 (depends-on)", 9.5, 600, th["tsec"]))
+    s.append(T(78, ly + 17, "pin tag v0.8.0 (depends-on)", 9.5, 600, th["tsec"]))
     s.append(line(300, ly + 13, 322, ly + 13, obs, 1.5, dash="6 4"))
     s.append(T(330, ly + 17, "git submodule · NOT an NCP wire consumer", 9.5, 600, th["tsec"]))
     s.append(rect(600, ly + 8, 12, 10, rx=2, fill="url(#contractHero)"))
@@ -570,9 +570,9 @@ def ecosystem(th):
 
 
 ECOSYSTEM_ALT = ("NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, "
-    "ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepahead/ncp; wire 0.7 release, "
-    "contract f05e328cad20959d). Three example consumers in a left column pin the latest "
-    "immutable tag, v0.7.1: Engram (example commander), "
+    "ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepahead/ncp; wire 0.8 release, "
+    "contract d1b50a2d8a265276). Three example consumers in a left column pin the latest "
+    "immutable tag, v0.8.0: Engram (example commander), "
     "crebain (example body), prisoma (example observer client). A separate pid-rs node (PID estimators "
     "science library) links to prisoma by a distinct dashed grey edge labelled 'git submodule · NOT an NCP "
     "wire consumer' and does not connect to the contract.")
@@ -584,7 +584,7 @@ def versioning(th):
     s = [svg_open(W, H), defs(th), background(th, W, H)]
     s.append(title_block(th, "VERSION HANDSHAKE",
                          "COMPATIBILITY GATE  ·  HARD FAIL-CLOSED  ·  EXACT MAJOR.MINOR", W))
-    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.7.1 · WIRE 0.7 · CONTRACT f05e328cad20959d"))
+    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.8.0 · WIRE 0.8 · CONTRACT d1b50a2d8a265276"))
     ctr, verm, grn, ctl, obs = th["contract"], th["action"], th["active"], th["control"], th["observation"]
 
     # ---- edges (painted under cards) ----
@@ -605,11 +605,11 @@ def versioning(th):
     bx, by, bw, bh = 56, 196, 220, 128
     s.append(card(th, bx, by, bw, bh, ctr, "S0"))
     s.append(ic_break(bx + 16, by + 38, 24, ctr))
-    s.append(T(bx + 48, by + 46, "WIRE 0.6 → 0.7", 14, 700, th["tprim"]))
-    s.append(T(bx + 48, by + 61, "acceptance + shape", 10.5, 500, th["tsec"]))
-    s.append(T(bx + 18, by + 86, "safe ints · typed errors", 9.5, 500, th["tmut"], mono=True))
+    s.append(T(bx + 48, by + 46, "WIRE 0.7 → 0.8", 14, 700, th["tprim"]))
+    s.append(T(bx + 48, by + 61, "identity + correlation", 10.5, 500, th["tsec"]))
+    s.append(T(bx + 18, by + 86, "stream+source · session fence", 9.5, 500, th["tmut"], mono=True))
     s.append(T(bx + 18, by + 103, "hash CHANGED:", 9.5, 500, th["tmut"], mono=True))
-    s.append(T(bx + 18, by + 116, "f05e328cad20959d", 9.5, 700, ctr, mono=True))
+    s.append(T(bx + 18, by + 116, "d1b50a2d8a265276", 9.5, 700, ctr, mono=True))
 
     # ---- N2 GATE (diamond) ----
     s.append(diamond(440, 260, 76, th, ctr))
@@ -625,7 +625,7 @@ def versioning(th):
     s.append(ic_noentry(rx_ + rw - 40, ry + 8, 22, verm))
     s.append(rect(rx_ + 18, ry + 40, 9, 9, rx=2, fill=verm))
     s.append(T(rx_ + 33, ry + 48, "REJECTED", 14, 700, th["tprim"]))
-    s.append(T(rx_ + 18, ry + 66, "peer 0.6 ≠ 0.7", 10.5, 500, th["tsec"]))
+    s.append(T(rx_ + 18, ry + 66, "peer 0.7 ≠ 0.8", 10.5, 500, th["tsec"]))
     s.append(T(rx_ + 18, ry + 84, "fail-closed · Err · NO coerce", 9.5, 500, th["tmut"], mono=True))
 
     # ---- N4 ACCEPT (hero, green glow) ----
@@ -638,7 +638,7 @@ def versioning(th):
     s.append(T(ax + 27, ay + 20.5, "A0", 10, 700, th["tsec"], mono=True, anchor="middle"))
     s.append(ic_play(ax + aw - 40, ay + 8, 22, grn))
     s.append(T(ax + 18, ay + 50, "SESSION OPENS", 14, 700, th["tprim"]))
-    s.append(T(ax + 18, ay + 68, "peer 0.7 → Ok", 10.5, 500, th["tsec"]))
+    s.append(T(ax + 18, ay + 68, "peer 0.8 → Ok", 10.5, 500, th["tsec"]))
     s.append(T(ax + 18, ay + 86, "exact (major, minor) match", 9.5, 500, th["tmut"], mono=True))
 
     # ---- N5 ADVISORY ----
@@ -662,12 +662,12 @@ def versioning(th):
                 + T(x + 22, y + 15, eyebrow, 9.5, 700, sq_hue)
                 + T(x + 22 + len(eyebrow) * 6.3 + 8, y + 15, key, 9, 500, th["tmut"], mono=True))
     s.append(echip(320, 260, ctl, "", "negotiate", w=84))
-    # fork branch conditions are shown on the destination cards (peer 0.6 != 0.7 / peer 0.7)
+    # fork branch conditions are shown on the destination cards (peer 0.7 != 0.8 / peer 0.8)
 
     # ---- legend ----
     ly = 500
     items = [(verm, "■", "HARD", "fail-closed · Err, no coerce"),
-             (grn, "▶", "OPEN", "exact 0.7 match → session"),
+             (grn, "▶", "OPEN", "exact 0.8 match → session"),
              (obs, "≈", "ADVISORY", "logged, not rejected")]
     lx = 40
     for hue, gly, concept, tail in items:
@@ -679,13 +679,14 @@ def versioning(th):
     return "".join(s)
 
 
-VERSIONING_ALT = ("NCP version-compatibility handshake. The wire contract breaks from 0.6 to 0.7: "
-    "kind and honesty-boundary presence are enforced, JSON integers are precision-safe, additive enums "
-    "round-trip losslessly, and errors are versioned, so the contract hash changes to f05e328cad20959d. "
+VERSIONING_ALT = ("NCP version-compatibility handshake. The wire contract breaks from 0.7 to 0.8: "
+    "the overloaded top-level seq is deleted and replaced by a typed stream identity (epoch + seq), "
+    "a source correlation reference, and a fenced session generation required on every post-open frame, "
+    "so the contract hash changes to d1b50a2d8a265276. "
     "This feeds a hard compatibility gate, check_version, which requires an exact major.minor match and "
-    "fails closed. A peer on 0.6 does not equal 0.7 and is rejected with no coercion; a peer on 0.7 matches exactly and the session "
+    "fails closed. A peer on 0.7 does not equal 0.8 and is rejected with no coercion; a peer on 0.8 matches exactly and the session "
     "opens (the highlighted green outcome). Separately, off the success path, a contract_hash difference "
-    "is advisory only — logged, not rejected. Wire 0.7's latest immutable tag is v0.7.1 with a "
+    "is advisory only — logged, not rejected. Wire 0.8's latest immutable tag is v0.8.0 with a "
     "matching frozen conformance baseline.")
 
 
@@ -695,7 +696,7 @@ def fsm(th):
     s = [svg_open(W, H), defs(th), background(th, W, H)]
     s.append(title_block(th, "SAFETY GOVERNOR · FSM",
                          "PLANT-SIDE STATE MACHINE  ·  FAIL-SAFE TO ZERO  ·  ESTOP LATCHES", W))
-    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.7.1 · WIRE 0.7 · SHEET 04/05"))
+    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.8.0 · WIRE 0.8 · SHEET 04/05"))
     grn, amb, verm, pink, obs = th["active"], th["hold"], th["action"], th["configfail"], th["observation"]
     ink = "#0d1117" if th["name"] == "dark" else "#1b2733"
 
@@ -836,7 +837,7 @@ def sequence(th):
     s = [svg_open(W, H), defs(th), background(th, W, H)]
     s.append(title_block(th, "SESSION LIFECYCLE",
                          "CLIENT ⇄ SERVER  ·  OPEN → STEP / OBSERVE → CLOSE", W))
-    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.7.1 · WIRE 0.7 · proto/ncp.proto"))
+    s.append(sheet_meta(th, W - 28, 48, "NCP · v0.8.0 · WIRE 0.8 · proto/ncp.proto"))
     ctl, obs, ctr, verm, grn, pink = (th["control"], th["observation"], th["contract"],
                                       th["action"], th["active"], th["configfail"])
     CLx, SVx = 246, 574
@@ -946,8 +947,8 @@ SEQUENCE_ALT = ("NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (
     "0 means use chunk_ms, with a stimulus); SERVER replies ObservationFrame (seq, t, sim_time_ms, records) "
     "— the heaviest, glowing vermillion trace, because it asserts two fixed provenance invariants on every "
     "frame: is_simulation_output=true and calibrated_posterior=false (the honesty boundary). CLOSE: CLIENT "
-    "sends CloseSession; SERVER replies SessionClosed ok=true. Released wire 0.7, contract "
-    "hash f05e328cad20959d.")
+    "sends CloseSession; SERVER replies SessionClosed ok=true. Released wire 0.8, contract "
+    "hash d1b50a2d8a265276.")
 
 
 DIAGRAMS = {

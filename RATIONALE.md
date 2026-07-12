@@ -340,7 +340,7 @@ is native, no browser WASM), so TS is the least-unified peer.
 robot/UAV mapping failing safe to zero velocity on hold/estop — a *protocol* concept
 no surveyed alternative states as an enum (though DDS LIFESPAN≈`ttl_ms` and
 OWNERSHIP/LIVELINESS cover much of the rest). *Disadvantage (confronted directly):*
-this is a **single reference implementation** (wire `0.7`, latest release `v0.7.1`, pre-1.0)
+this is a **single reference implementation** (wire `0.8`, latest release `v0.8.0`, pre-1.0)
 with four SDK surfaces replaying one golden + behavioral corpus (Python/C wrap the
 Rust core; TypeScript independently ports the plant-side decisions), not yet four
 independent live-transport implementations, on a bus whose
@@ -397,7 +397,7 @@ and neutral governance do not.
 
 ## Disadvantages & open risks (summary)
 
-NCP is **pre-1.0 (wire `0.7`, latest release `v0.7.1`) with a single reference implementation** and a pragmatic
+NCP is **pre-1.0 (wire `0.8`, latest release `v0.8.0`) with a single reference implementation** and a pragmatic
 golden-vector conformance corpus (not a multi-implementor interop program). The
 **Python NEST server is still the real brain**; the Rust gateway is a
 localhost-socket bridge, so NCP does not yet own the hot integrator path. The

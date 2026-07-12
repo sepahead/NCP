@@ -1,4 +1,4 @@
-# Neuro-Cybernetic Protocol (NCP) wire 0.7
+# Neuro-Cybernetic Protocol (NCP) wire 0.8
 
 A versioned, **transport-agnostic, project-agnostic** standard for letting a
 running NEST simulation serve external robot / UAV / simulation systems —
@@ -77,8 +77,8 @@ compatibility gate (above), while `contract_hash` (carried in
 wire-semantically-canonicalized proto) is an **advisory** identity signal — a
 mismatch within a compatible version is *logged, not rejected* (the peers are on
 different but compatible contract revisions). A strict `verify_contract` opt-in
-exists for deployments that mandate an exact revision. Wire 0.7 is released as the
-latest immutable tag, `v0.7.1`, with contract hash `f05e328cad20959d`. NCP is
+exists for deployments that mandate an exact revision. Wire 0.8 is released as the
+latest immutable tag, `v0.8.0`, with contract hash `d1b50a2d8a265276`. NCP is
 pre-1.0 and the wire may still change, so pin an immutable release tag.
 
 The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handshake:
@@ -86,13 +86,18 @@ The session lifecycle, with the version (HARD) + contract-hash (ADVISORY) handsh
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/sequence-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/sequence-light.svg">
-  <img alt="NCP session-lifecycle sequence diagram. The client opens with ncp_version and contract_hash; the server applies the hard exact-version gate and advisory hash comparison, then returns a provenance-bearing SessionOpened or a typed ErrorFrame. Step/Run requests embed a same-session StimulusFrame and return an explicit-honesty-boundary ObservationFrame. CloseSession returns SessionClosed. Released wire 0.7, contract hash f05e328cad20959d." src="docs/diagrams/sequence-light.svg" width="820">
+  <img alt="NCP session-lifecycle sequence diagram. The client opens with ncp_version and contract_hash; the server applies the hard exact-version gate and advisory hash comparison, then returns a provenance-bearing SessionOpened or a typed ErrorFrame. Step/Run requests embed a same-session StimulusFrame and return an explicit-honesty-boundary ObservationFrame. CloseSession returns SessionClosed. Released wire 0.8, contract hash d1b50a2d8a265276." src="docs/diagrams/sequence-light.svg" width="820">
 </picture>
 
-### 1.1 Wire-0.7 acceptance rules (normative)
+### 1.1 Wire-0.8 acceptance rules (normative)
 
-Wire 0.7 is an incompatible acceptance-and-shape cut (`contract_hash =
-f05e328cad20959d`). The key words
+Wire 0.8 is an incompatible identity-and-correlation cut (`contract_hash =
+d1b50a2d8a265276`) layered on the wire-0.7 acceptance-and-shape rules below, which
+it retains. Wire 0.8 additionally deletes the overloaded top-level `seq` and adds
+typed `stream`/`source` `StreamPosition`s, control-plane `session_id`, and a
+server-issued `SessionRef{generation}` fenced atomically before any side effect;
+those identity/correlation rules are specified normatively in
+[`docs/wire-0.8-stream-identity.md`](docs/wire-0.8-stream-identity.md). The key words
 **MUST**, **MUST NOT**, and **MAY** are used as in
 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html) /
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html).

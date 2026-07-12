@@ -23,7 +23,7 @@ One commander (e.g. an Engram/NEST brain, or any neuromorphic controller) coordi
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/topology-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/topology-light.svg">
-  <img alt="NCP topology: one Commander (a NEST-brain neuromorphic controller, U1) coordinates one Body/plant (robot or UAV, U2) over four QoS planes, plus a read-only Observer client (O1) that attaches for free. The safety-gated ACTION plane is the focal element — the heaviest, brightest vermillion trace running dead-center from Commander to Body, carrying {realm}/session/{id}/command[/{name}] as express, RealTime, safety-gated traffic with a visible mode enum (init, active, hold, estop — estop flagged danger-red) and a ttl_ms HOLD fail-safe. CONTROL requests use exact {realm}/rpc/{request_kind} keys and the server declares {realm}/rpc/*. PERCEPTION ({realm}/session/{id}/sensor[/{name}]) is a dashed best-effort DROP plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) is a dotted tap published by the Commander and subscribed read-only by the Observer. NCP wire 0.7 release, contract hash f05e328cad20959d." src="docs/diagrams/topology-light.svg" width="860">
+  <img alt="NCP topology: one Commander (a NEST-brain neuromorphic controller, U1) coordinates one Body/plant (robot or UAV, U2) over four QoS planes, plus a read-only Observer client (O1) that attaches for free. The safety-gated ACTION plane is the focal element — the heaviest, brightest vermillion trace running dead-center from Commander to Body, carrying {realm}/session/{id}/command[/{name}] as express, RealTime, safety-gated traffic with a visible mode enum (init, active, hold, estop — estop flagged danger-red) and a ttl_ms HOLD fail-safe. CONTROL requests use exact {realm}/rpc/{request_kind} keys and the server declares {realm}/rpc/*. PERCEPTION ({realm}/session/{id}/sensor[/{name}]) is a dashed best-effort DROP plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) is a dotted tap published by the Commander and subscribed read-only by the Observer. NCP wire 0.8 release, contract hash d1b50a2d8a265276." src="docs/diagrams/topology-light.svg" width="860">
 </picture>
 
 | Plane | Key | QoS | Purpose |
@@ -74,8 +74,8 @@ One normative wire ([`proto/ncp.proto`](proto/ncp.proto) / [`NEURO_CYBERNETIC_PR
 
 | Peer | Install / depend | Open session · step · observe | Transport(s) |
 |---|---|---|---|
-| **`ncp-core`** (Rust) | `ncp-core = { git = "https://github.com/sepahead/NCP", tag = "v0.7.1" }` | Build `OpenSession` / `CommandFrame`, `serde_json::to_string` → wire — see [`ncp-core/README.md`](ncp-core/README.md) | none (serde-only; in-process bus + control loop) |
-| **`ncp-zenoh`** (Rust transport) | `ncp-zenoh = { git = "https://github.com/sepahead/NCP", tag = "v0.7.1" }` | `let bus = ZenohBus::open().await?; let client = ZenohNcpClient::new(bus); client.open(&msg).await?` — see [`ncp-zenoh/README.md`](ncp-zenoh/README.md) | Zenoh (queryable RPC + per-plane pub/sub) |
+| **`ncp-core`** (Rust) | `ncp-core = { git = "https://github.com/sepahead/NCP", tag = "v0.8.0" }` | Build `OpenSession` / `CommandFrame`, `serde_json::to_string` → wire — see [`ncp-core/README.md`](ncp-core/README.md) | none (serde-only; in-process bus + control loop) |
+| **`ncp-zenoh`** (Rust transport) | `ncp-zenoh = { git = "https://github.com/sepahead/NCP", tag = "v0.8.0" }` | `let bus = ZenohBus::open().await?; let client = ZenohNcpClient::new(bus); client.open(&msg).await?` — see [`ncp-zenoh/README.md`](ncp-zenoh/README.md) | Zenoh (queryable RPC + per-plane pub/sub) |
 | **`ncp-python`** (Python / PyO3) | `maturin develop -m ncp-python/Cargo.toml --features extension-module` | `import ncp; ncp.Keys("ncp").command("uav3"); ncp.decode_command(...)` — see [`ncp-python/README.md`](ncp-python/README.md) | transport-agnostic (JSON wire via `ncp-core`) |
 | **`ncp-cpp`** (C / C++ ABI) | `cargo build -p ncp-cpp` → link `libncp_cpp`, `#include "ncp.h"` | `char *v = ncp_version(); /* ... */ ncp_string_free(v);` — see [`ncp-cpp/README.md`](ncp-cpp/README.md) | transport-agnostic (JSON in/out over the C ABI) |
 | **`ncp-ts`** (`@sepahead/ncp`, TypeScript) | `npm install @sepahead/ncp` | `const ncp = new NeuroSimClient(transport.send); await ncp.open(...); await ncp.step(...); await ncp.close(...)` — see [`ncp-ts/README.md`](ncp-ts/README.md) | WebSocket (`WebSocketNeuroSim`) or any `Send` bus |
@@ -86,8 +86,8 @@ NCP is **not yet published to crates.io** (pre-1.0). Depend on it as a pinned gi
 
 ```toml
 [dependencies]
-ncp-core  = { git = "https://github.com/sepahead/NCP", tag = "v0.7.1" }
-ncp-zenoh = { git = "https://github.com/sepahead/NCP", tag = "v0.7.1" }  # latest immutable release
+ncp-core  = { git = "https://github.com/sepahead/NCP", tag = "v0.8.0" }
+ncp-zenoh = { git = "https://github.com/sepahead/NCP", tag = "v0.8.0" }  # latest immutable release
 ```
 
 A minimal, wire-correct snippet using `ncp-core` — build a safety-gated `CommandFrame`, then refuse an incompatible peer version:
@@ -137,7 +137,7 @@ python scripts/bench_overlap.py    # transport/compute overlap (GIL) measurement
 - [`SECURITY.md`](SECURITY.md) — threat model, the disclosed action-plane limitation, and the TLS + ACL enablement steps.
 - [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — the live adversarial hardening backlog. All original high-severity safety findings are fixed; wire 0.7 additionally closes enum loss, unsafe JSON integers, fabricated provenance, unversioned errors, nested-frame identity, bare-bulk publication, and bulk encode/decode resource gaps. Remaining medium/low integration and performance risks stay explicit.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to build, test, and propose changes.
-- [`CHANGELOG.md`](CHANGELOG.md) — per-release notes (latest immutable tag: `v0.7.1`, wire 0.7).
+- [`CHANGELOG.md`](CHANGELOG.md) — per-release notes (latest immutable tag: `v0.8.0`, wire 0.8).
 
 ## Examples
 
@@ -170,13 +170,13 @@ The drone-loop and NEST demos show the two halves of the hub model: a commander 
 ## Ecosystem
 
 NCP is the **wire contract only** — it bakes in no consumer. These are the reference
-and example peers that pin it (latest released pin: `tag = v0.7.1`, wire 0.7); your own commander,
+and example peers that pin it (latest released pin: `tag = v0.8.0`, wire 0.8); your own commander,
 body, or analysis client speaks the same wire:
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/ecosystem-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/ecosystem-light.svg">
-  <img alt="NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepahead/ncp; wire 0.7 release, contract f05e328cad20959d). Three example consumers in a left column pin the latest immutable release tag v0.7.1: Engram (example commander), crebain (example body), prisoma (example observer client). A separate pid-rs node (PID estimators science library) links to prisoma by a distinct dashed grey edge labelled 'git submodule · NOT an NCP wire consumer' and does not connect to the contract." src="docs/diagrams/ecosystem-light.svg" width="820">
+  <img alt="NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepahead/ncp; wire 0.8 release, contract d1b50a2d8a265276). Three example consumers in a left column pin the latest immutable release tag v0.8.0: Engram (example commander), crebain (example body), prisoma (example observer client). A separate pid-rs node (PID estimators science library) links to prisoma by a distinct dashed grey edge labelled 'git submodule · NOT an NCP wire consumer' and does not connect to the contract." src="docs/diagrams/ecosystem-light.svg" width="820">
 </picture>
 
 The example observer client [`prisoma`](https://github.com/sepahead/prisoma) is public; the other peers shown are illustrative.
@@ -229,8 +229,8 @@ Python (PyO3), C/C++ (C ABI), and TypeScript (`@sepahead/ncp`) — all wire-iden
 the one `proto/ncp.proto` contract.
 
 ### Which version do I pin?
-Pin the latest immutable release tag, **`v0.7.1`**, for production. It speaks wire
-`0.7` with contract hash `f05e328cad20959d`. Pre-1.0
+Pin the latest immutable release tag, **`v0.8.0`**, for production. It speaks wire
+`0.8` with contract hash `d1b50a2d8a265276`. Pre-1.0
 the minor is breaking, so a `0.6` peer and a `0.7` peer cleanly refuse each other.
 
 ### Is the action plane secure?
@@ -246,7 +246,7 @@ Both appear, but they play different roles. **Protobuf is the schema** — [`pro
 
 NCP is **pre-1.0 and experimental.** Specifically:
 
-- **The wire may change.** Minor versions are treated as breaking; the version guard fails closed rather than coercing. Pin `v0.7.1` for the latest release.
+- **The wire may change.** Minor versions are treated as breaking; the version guard fails closed rather than coercing. Pin `v0.8.0` for the latest release.
 - **One reference implementation, four gated surfaces.** `proto/ncp.proto` is the normative contract and `ncp-core` (Rust) is the behavioral reference. Python and C/C++ call that core through FFI; TypeScript independently ports the plant-side decisions. All four replay one behavior corpus, while independent live-transport clients outside Rust remain deliberately deferred.
 - **The default/open configuration is unauthenticated.** Anyone who can reach that bus can publish commands. A complete opt-in mTLS router/client profile and default-deny ACL ship under `deploy/`, but the local `mode`/`ttl_ms` governor remains defense-in-depth, **not** network security. Use the secure profile or a trusted isolated network; see [`SECURITY.md`](SECURITY.md).
 - **A hardening backlog is open, audited, and partly closed.** [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) keeps each remaining risk and proposed fix visible. Wire 0.7 resolves the newly found cross-language acceptance/provenance/bulk issues without pretending the transport, unit/arity negotiation, or deployment-security work is finished.
@@ -254,7 +254,7 @@ NCP is **pre-1.0 and experimental.** Specifically:
 ## Citing
 
 A Zenodo DOI will be minted when the project is archived to Zenodo; until then,
-cite the latest immutable release (`v0.7.1`) from the repository. The metadata block
+cite the latest immutable release (`v0.8.0`) from the repository. The metadata block
 below stays coherent with [`CITATION.cff`](CITATION.cff).
 
 ```bibtex
@@ -262,7 +262,7 @@ below stays coherent with [`CITATION.cff`](CITATION.cff).
   author  = {Sepehr Mahmoudian},
   title   = {NCP — Neuro-Cybernetic Protocol},
   year    = {2026},
-  version = {0.7.1},
+  version = {0.8.0},
   url     = {https://github.com/sepahead/NCP}
 }
 ```

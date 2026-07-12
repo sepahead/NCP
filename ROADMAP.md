@@ -22,10 +22,11 @@ reference SDK (proto-native — `proto/ncp.proto` normative, `ncp-core` the Rust
 reference implementation; Python via PyO3, TypeScript types via ts-rs, a C ABI for
 C/C++) with field/type/cardinality parity guards and a shared four-surface behavior
 corpus. Python/C deliberately reuse the Rust reference and independent live-transport
-clients remain future work. It is **pre-1.0** (released wire `0.7`, contract
-`f05e328cad20959d`; `0.7` closes precision, enum, provenance, nested-frame,
-typed-error, and hostile-bulk acceptance gaps; the latest immutable release is
-`v0.7.1`; earlier wires are documented in `VERSIONING.md`): the wire
+clients remain future work. It is **pre-1.0** (released wire `0.8`, contract
+`d1b50a2d8a265276`; `0.8` deletes the overloaded top-level `seq` for typed
+`stream`/`source` identity and a fenced `session` generation, closing the F-01
+false-loss / foreign-epoch-hijack gaps; the latest immutable release is
+`v0.8.0`; earlier wires are documented in `VERSIONING.md`): the wire
 may change, minor versions are treated as breaking, and the version guard fails
 rather than silently coercing. NCP's contribution is a typed, provenance-first, safety-gated wire
 contract — not novel control science and not the first SNN-in-the-loop robot loop
@@ -280,7 +281,7 @@ Zenoh / bulk-observation; F-29) makes "NCP-compatible" a precise, per-profile cl
   maturin is the canonical PyO3-to-PyPI path; a published wheel is table stakes for
   the Python peer to be usable without a Rust toolchain.
 - **Zenodo DOI via the GitHub–Zenodo archive.** Tagged releases now exist
-  (through `v0.7.1`); enable the GitHub–Zenodo integration so a release is archived
+  (through `v0.8.0`); enable the GitHub–Zenodo integration so a release is archived
   and a DOI minted, then add it to the existing `CITATION.cff`. *Why:* a DOI is the
   minimum citable artifact; the repo currently has a `CITATION.cff` with no DOI.
 - **Defer JOSS.** A JOSS submission is viable only after roughly six months of

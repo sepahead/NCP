@@ -29,7 +29,7 @@ their own representations *against* this projection, they do not produce it. (En
 copy.)
 
 Do not edit a `*.schema.json` by hand — run `gen-schemas` and commit the result.
-[`index.json`](index.json) lists the v0.7.1 release's message set
+[`index.json`](index.json) lists the v0.8.0 release's message set
 (`ncp_version` `0.7`): `capabilities`,
 `open_session` / `session_opened`, `close_session` / `session_closed`, `run_request`,
 `step_request`, `sensor_frame` / `stimulus_frame` / `observation_frame` / `command_frame`,

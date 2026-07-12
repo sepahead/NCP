@@ -193,20 +193,25 @@ The two reference peers exercise the **two ends of the same wire**: Engram *comm
 Both pin NCP by tag and add zero code to each other. This section walks the real flow
 each one implements, so you can copy the shape for your own commander or observer.
 
-> **Wire 0.7 requirements (both ends).** The latest immutable release is `v0.7.1`.
-> On wire 0.7, every
+> **Wire 0.8 requirements (both ends).** The latest immutable release is `v0.8.0`.
+> On wire 0.8, every
 > message carries a compatible `ncp_version` (an absent or mismatched version is
-> rejected, not defaulted); a `sensor_frame`/`command_frame` stamps `seq >= 1`, strictly
-> increasing per stream, with each `command_frame` echoing the driving `sensor_frame.seq`;
-> and an `observation_frame` **published on the observation plane** echoes that same
-> driving `SensorFrame.seq` (`seq == 0` is only the pull/RPC-reply form). All JSON
+> rejected, not defaulted) and — for every post-open session-scoped frame — the
+> inseparable identity pair `session_id` + `session.generation` (the server issues the
+> generation on `SessionOpened`; `session_id` is now required on the control plane too).
+> The overloaded top-level `seq` is gone: a `sensor_frame`/`command_frame`/`observation_frame`
+> carries a typed `stream: {epoch, seq}` — its own ordered stream, `seq >= 1` per epoch,
+> strictly increasing, the single loss/`LinkMonitor` read — and a `command_frame`
+> correlates its driver by copying `source: {epoch, seq}` (a plane `observation_frame`
+> copies the driving sensor's `{epoch, seq}`; **`source` absence**, not `seq == 0`, is the
+> pull/RPC-reply form). All JSON
 > int64 values stay within ±(2^53−1); unknown enum strings are preserved; observation
 > provenance is explicit; nested stimuli match the outer session; and RPC errors are
 > versioned `ErrorFrame`s. A glob
 > subscriber skips a `kind` it does not recognize *before* validating, so additive kinds
 > stay non-breaking. Onboarding a new consumer still needs **zero NCP-repo changes** — pin
-> the tag, stamp/echo `seq`, carry the version, and drop a `.ncp-consumer` descriptor in
-> your own repo (see [Registering a consumer](#registering-a-consumer-zero-ncp-repo-changes)).
+> the tag, stamp `stream`/copy `source`, carry the version + session identity, and drop a
+> `.ncp-consumer` descriptor in your own repo (see [Registering a consumer](#registering-a-consumer-zero-ncp-repo-changes)).
 
 ```text
           engram/ncp/rpc/{request_kind}  (server queryable: engram/ncp/rpc/*)
@@ -286,7 +291,7 @@ for the data plane — same wire, no gateway.
 Prisoma is a **read-only** tap: it opens the *same realm*, subscribes to the three
 data-plane keys, and turns each closed-loop tick into a `(V,L,D,A)` sample for its
 Partial Information Decomposition — **it publishes nothing on the action plane.** Its
-`ncp-observer` crate is a NCP consumer (latest released pin `v0.7.1`) built entirely on
+`ncp-observer` crate is a NCP consumer (latest released pin `v0.8.0`) built entirely on
 `ncp_core` + `ncp_zenoh`:
 
 ```rust

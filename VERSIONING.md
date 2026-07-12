@@ -18,19 +18,25 @@ NCP versions the SDK with [SemVer](https://semver.org) and carries a shorter
 - **PATCH** — clarifications/docs with no wire effect.
 
 **Wire version vs crate/package version.** The latest immutable release is
-`v0.7.1` and its `ncp_version` wire string is `0.7`. The Rust crates and the `@sepahead/ncp`
+`v0.8.0` and its `ncp_version` wire string is `0.8`. The Rust crates and the `@sepahead/ncp`
 package carry their own SemVer (see `Cargo.toml` / `package.json` for the current
 SDK version — the manifests are the single source of truth) for the SDK. They usually move
 together, but a PATCH that touches only code/docs/build artifacts leaves the wire
-string unchanged. Pin **`tag = "v0.7.1"`** for the latest release.
+string unchanged. Pin **`tag = "v0.8.0"`** for the latest release.
 
-**Wire 0.7 is an incompatible acceptance-and-shape release.** It requires `kind` in
-every schema, bounds JSON `int64` numbers to ±(2^53−1), preserves unknown enum
-strings losslessly, requires explicit scientific-boundary assertions, versions
-error replies, makes nested stimulus identity enforceable, and completes the
-reserved bulk-observation metadata envelope. The contract hash is
-`f05e328cad20959d`. Bare NCPB blocks are no longer accepted as complete Zenoh
-observation messages because they carry no session, seq, timestamp, or provenance.
+**Wire 0.8 is an incompatible identity-and-correlation release.** It deletes the
+overloaded top-level `seq` (number **and** name `reserved` on every data-plane
+frame) and replaces it with a typed `stream: StreamPosition {epoch, seq}` — each
+frame's own ordered stream identity and the single loss/`LinkMonitor`/`ActionBuffer`
+read — plus a `source: StreamPosition` correlation reference (the driving frame;
+`source` **absence** replaces the old observation `seq == 0` sentinel) and an
+optional `source_t`. Every post-open session-scoped frame carries the inseparable
+identity pair `(session_id, session.generation)`: `session_id` is now required on
+the control plane too (transport-agnosticism — the gRPC `Control` stream has no
+Zenoh key to recover it from), and a server-issued `SessionRef{generation}` fences
+stale incarnations, validated atomically before any side effect with no
+key/generation repair. Receivers key stream state by `epoch` and never let a
+foreign epoch displace the active stream. The contract hash is `d1b50a2d8a265276`.
 
 **Additive evolution is NON-breaking (since v0.4).** Adding an *optional* field or a
 new message type does **not** bump the minor — protobuf/serde ignore unknown fields,
@@ -45,10 +51,14 @@ contract revision" without breaking anyone.
 
 **Pre-1.0 caveat:** while `0.x`, an *incompatible* minor bump is breaking and the
 version guard fails closed on a minor difference (`check_version`). Pin an exact
-released version (`tag = "v0.7.1"` today). `0.x` is explicitly unstable.
+released version (`tag = "v0.8.0"` today). `0.x` is explicitly unstable.
 
-The current released wire is **`0.7`** (`ncp_version = "0.7"`). Earlier wires: `0.6` was
-the **enforcement cut**: mandatory `ncp_version`, stamped closed-loop `seq`,
+The current released wire is **`0.8`** (`ncp_version = "0.8"`). Earlier wires: `0.7`
+was the **acceptance-and-shape cut** (mandatory `kind`, JSON `int64` bounded to
+±(2^53−1), lossless unknown enums, explicit scientific-boundary assertions,
+versioned `ErrorFrame`s, enforceable nested stimulus identity, and the complete
+reserved bulk-observation metadata envelope — contract hash `f05e328cad20959d`);
+`0.6` was the **enforcement cut**: mandatory `ncp_version`, stamped closed-loop `seq`,
 normative observation-plane seq stamping, and removal of the `seq == 0` escape
 hatch — a semantic break with unchanged serialization. `0.5`
 was the **stable-wire cut** (the three bare proto `string mode` fields were
@@ -63,7 +73,7 @@ column codec (#6).
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/versioning-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/versioning-light.svg">
-  <img alt="NCP version-compatibility handshake. The wire breaks from 0.6 to 0.7: kind/provenance presence is enforced, JSON integers are precision-safe, additive enums round-trip losslessly, and errors are versioned, changing the contract hash to f05e328cad20959d. check_version requires an exact major.minor match and fails closed: 0.6 is rejected, while 0.7 opens the session. A same-version contract-hash difference remains advisory." src="docs/diagrams/versioning-light.svg" width="820">
+  <img alt="NCP version-compatibility handshake. The wire breaks from 0.7 to 0.8: the overloaded top-level seq is replaced by a typed stream identity (epoch + seq) and a source correlation reference, and a fenced session generation is required on every post-open frame, changing the contract hash to d1b50a2d8a265276. check_version requires an exact major.minor match and fails closed: 0.7 is rejected, while 0.8 opens the session. A same-version contract-hash difference remains advisory." src="docs/diagrams/versioning-light.svg" width="820">
 </picture>
 
 ## Enforcement: `buf breaking`

@@ -1,19 +1,22 @@
 # Release readiness — NCP wire contract
 
-Status of NCP's wire-0.7 **`v0.7.1` release**: can the `v0.7.x` line evolve
+Status of NCP's wire-0.8 **`v0.8.0` release**: can the `v0.8.x` line evolve
 additively without breaking peers, and is the live medium + contract proven? This is
 an honest, adversarially-reviewed assessment, not a green-badge claim.
 
-**Verdict (wire `0.7`, latest release `v0.7.1`; checklist re-audited from the `v0.5.0`
+**Verdict (wire `0.8`, latest release `v0.8.0`; checklist re-audited from the `v0.5.0`
 foundation):** the implementation
 closes acceptance, provenance, enum, error-frame, integer-precision, and hostile-bulk
-gaps found after the `0.6` enforcement cut. `0.5` was the deliberate stable-wire cut
-and `0.6` made `ncp_version` plus closed-loop `seq` normative; the
+gaps found after the `0.6` enforcement cut, and wire `0.8` then deletes the overloaded
+top-level `seq` for typed stream/source identity and a fenced session generation
+(closing the F-01 false-loss / foreign-epoch-hijack gaps). `0.5` was the deliberate stable-wire cut
+, `0.6` made `ncp_version` plus closed-loop `seq` normative, and `0.7` was the
+acceptance-and-shape cut; the
 control-plane contract is proven end-to-end across a real process + language boundary,
 over a real transport, with the safety authority and the version gate exercised on the
 wire. NCP remains pre-1.0 (`0.x`, minor-is-breaking) by policy, with the residual
-caveats called out at the end. The 0.7 JSON baseline is frozen, the release gates
-pass, consumers are coordinated, and `v0.7.1` is the latest immutable tag.
+caveats called out at the end. The 0.8 JSON baseline is frozen, the release gates
+pass, consumers are coordinated, and `v0.8.0` is the latest immutable tag.
 
 ## Where it stands
 
@@ -38,8 +41,8 @@ from the wire — engram's `MockBackend` emits real `Observation` frames):
 |---|---|---|---|
 | 1 | **Safety governor over the wire** | release-blocking | ✅ `ncp-zenoh/tests/safety_governor_over_wire.rs`: a plant runs `SafetyGovernor::govern` on each `CommandFrame` received over a real Zenoh link; corpus-driven HOLD/ESTOP/clamp verdicts, and the **ESTOP latch survives the wire** (a breach latches; a subsequent clean frame is still ESTOP). |
 | 2 | **Lossless additive enum handling** | release-blocking | ✅ Rust preserves unknown strings in `Unknown(String)`; JSON Schemas and TypeScript accept non-empty future strings while documenting known values; `Mode` grants authority only to exact `active`. The behavior corpus exercises the rule. |
-| 3 | **Frozen JSON-wire baseline gate** | release-blocking | ✅ `conformance/baseline/v0.7.0/` freezes the released JSON projection; the recursive manifest protects additive compatibility and `--verify-exact` proves the audit snapshot is byte-identical at tag time. |
-| 4 | **Wire-version single source + mixed-version e2e** | should-fix | ✅ Each peer + the corpus are cross-checked for `NCP_VERSION`/`CONTRACT_HASH` (`behavior_conformance.rs`, `check-version-coherence.sh`); an incompatible `0.6` peer is fail-closed against `0.7`, with the same-version happy path retained. |
+| 3 | **Frozen JSON-wire baseline gate** | release-blocking | ✅ `conformance/baseline/v0.8.0/` freezes the released JSON projection; the recursive manifest protects additive compatibility and `--verify-exact` proves the audit snapshot is byte-identical at tag time. |
+| 4 | **Wire-version single source + mixed-version e2e** | should-fix | ✅ Each peer + the corpus are cross-checked for `NCP_VERSION`/`CONTRACT_HASH` (`behavior_conformance.rs`, `check-version-coherence.sh`); an incompatible prior-minor peer is fail-closed against the current wire, with the same-version happy path retained. |
 | 5 | **new→old reply tolerance + nested unknown field** | should-fix | ✅ Reply-side + nested-message forward-compat tested (Rust + engram Pydantic); a pin asserts no wire model sets `extra='forbid'`. |
 
 **Consciously deferred (nice-to-have, not blocking):** TS + C++ *live-transport* clients
@@ -53,7 +56,7 @@ documented here rather than left silent.
 ## Residual caveats (disclosed limitations, by policy — not open blockers)
 
 - **Pre-1.0 (`0.x`).** The wire may still change; minor-is-breaking, the version guard
-  fails closed. Pin the latest immutable release, `tag = "v0.7.1"`.
+  fails closed. Pin the latest immutable release, `tag = "v0.8.0"`.
 - **Single reference implementation.** `proto/ncp.proto` is normative; `ncp-core` (Rust)
   is the reference and the other peers are bindings/mirrors verified by parity + the
   shared behavioral corpus. Python/C reuse the reference core and independent
@@ -64,4 +67,4 @@ documented here rather than left silent.
 
 **Bottom line:** the live cross-process loop is real and tested, and the forward-compat
 and safety properties are proven on the wire. The frozen JSON baseline and completed
-release gates make `v0.7.1` the latest immutable wire-0.7 release.
+release gates make `v0.8.0` the latest immutable wire-0.8 release.
