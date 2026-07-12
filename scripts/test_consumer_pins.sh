@@ -9,6 +9,13 @@ REV="2f5bd586d4bb20c90362bb6f5698b7f64057ba4e"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+resolved_release="$(git -C "$SCRIPT_DIR/.." rev-parse --verify 'refs/tags/v0.8.0^{commit}' 2>/dev/null || true)"
+if [[ "$resolved_release" != "$REV" ]]; then
+  echo "ERROR: consumer pin regressions require local tag v0.8.0 at $REV; got ${resolved_release:-<missing>}" >&2
+  echo "       CI checkout must fetch tags (actions/checkout fetch-depth: 0)." >&2
+  exit 1
+fi
+
 # Deterministic cargo stand-in: optionally fail, or refresh the lockfile with
 # the source supplied by the test. This keeps the regression suite offline.
 mkdir -p "$tmp/fake-bin"

@@ -21,6 +21,11 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
+          # Consumer re-pin regressions verify that immutable revision pins
+          # resolve from the declared release tag. A depth-1/no-tags checkout
+          # makes that offline invariant untestable and previously failed the
+          # suite before any assertion could report why.
+          fetch-depth: 0
 
       # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.88.0").
       # 1.88 is the floor: transitive deps in Cargo.lock (darling, time/time-core,
