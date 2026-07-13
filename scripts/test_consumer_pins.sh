@@ -43,8 +43,8 @@ printf '%s\n' \
   "cargo_rev Cargo.toml v0.8.0 $REV" \
   "cargo_lock_rev Cargo.lock v0.8.0 $REV" > "$tmp/rev-consumer/.ncp-consumer"
 printf '%s\n' \
-  "ncp-core = { git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" \
-  "ncp-zenoh = { git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" > "$tmp/rev-consumer/Cargo.toml"
+  "ncp-core = { version = \"=0.8.0\", git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" \
+  "ncp-zenoh = { version = \"0.8.0\", git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" > "$tmp/rev-consumer/Cargo.toml"
 printf '%s\n' \
   "source = \"git+https://github.com/sepahead/NCP?rev=$REV#$REV\"" \
   "source = \"git+https://github.com/sepahead/NCP?rev=$REV#$REV\"" > "$tmp/rev-consumer/Cargo.lock"
@@ -88,13 +88,15 @@ if "$CHECKER" v0.8.0 "$tmp" >/dev/null 2>&1; then
   exit 1
 fi
 
-printf '%s\n' \
-  "ncp-core = { version = \"0.8.0\", git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" \
-  "ncp-zenoh = { version = \"0.7.0\", git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" > "$tmp/rev-consumer/Cargo.toml"
-if "$CHECKER" v0.8.0 "$tmp" >/dev/null 2>&1; then
-  echo "ERROR: a stale explicit Cargo version was accepted" >&2
-  exit 1
-fi
+for invalid_version in '=0.7.0' '^0.8.0' '~0.8.0' '>=0.8.0' '0.8.*'; do
+  printf '%s\n' \
+    "ncp-core = { version = \"=0.8.0\", git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" \
+    "ncp-zenoh = { version = \"$invalid_version\", git = \"https://github.com/sepahead/NCP\", rev = \"$REV\" }" > "$tmp/rev-consumer/Cargo.toml"
+  if "$CHECKER" v0.8.0 "$tmp" >/dev/null 2>&1; then
+    echo "ERROR: incompatible/ranged Cargo version $invalid_version was accepted" >&2
+    exit 1
+  fi
+done
 
 # A tag-only fleet must not require the target tag in the local NCP checkout.
 mkdir -p "$tmp/tag-only-base/tag-only"

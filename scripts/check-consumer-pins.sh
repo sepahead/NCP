@@ -110,7 +110,11 @@ all_manifest_revisions_match() {
         $bad = 1;
       }
       if (/\bversion\s*=\s*"([^"]+)"/) {
-        $bad = 1 if $1 ne $ENV{EXPECTED_VERSION};
+        my $version = $1;
+        my $expected = $ENV{EXPECTED_VERSION};
+        # The Cargo explicit exact comparator is semantically equivalent to the
+        # release label. Keep every range/wildcard form fail-closed.
+        $bad = 1 if $version ne $expected && $version ne "=$expected";
       }
     }
     END { exit(!$seen || $bad); }
