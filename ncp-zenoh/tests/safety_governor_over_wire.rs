@@ -211,15 +211,16 @@ async fn govern_over_wire(
     let sbytes = serde_json::to_vec(&sensor).unwrap();
     let cbytes = serde_json::to_vec(&command).unwrap();
 
-    // Publish the sensor until the plant has stored exactly this one (seq match):
-    // guarantees the correct sensor is in place before the command is governed,
-    // regardless of cross-key delivery ordering.
+    // Each stream position is attempted exactly once. Reissuing the same bytes
+    // after an ambiguous put would violate the transport-owned high-water fence.
+    // Wait for the plant to store this sensor before publishing the command so
+    // cross-key delivery ordering cannot change the verdict.
+    client
+        .put_sensor(SID, &live_session, &sbytes)
+        .await
+        .expect("put sensor");
     let mut sensor_ready = false;
     for _ in 0..100 {
-        client
-            .put_sensor(SID, &live_session, &sbytes)
-            .await
-            .expect("put sensor");
         tokio::time::sleep(Duration::from_millis(50)).await;
         if state
             .lock()
@@ -237,12 +238,14 @@ async fn govern_over_wire(
         "sensor (seq {seq}) never crossed the perception plane within ~5s"
     );
 
-    // Publish the command and wait for the governed read-back with the same seq.
+    // The command position is likewise consumed by its single publication
+    // attempt. Poll only the reliable diagnostic read-back; never retry the
+    // action frame at the same position.
+    client
+        .publish_command(SID, &live_session, &cbytes)
+        .await
+        .expect("publish command");
     for _ in 0..100 {
-        client
-            .publish_command(SID, &live_session, &cbytes)
-            .await
-            .expect("publish command");
         tokio::time::sleep(Duration::from_millis(50)).await;
         if let Some(v) = sink
             .lock()
@@ -402,7 +405,7 @@ async fn safety_governor_decisions_survive_the_wire() {
         s.now_s = 1.0;
         s.last_sensor_s = Some(1.0);
     }
-    // Wire 0.8: the publisher gates require a complete stream/session identity, so
+    // Wire 1.0 publisher gates require a complete stream/session identity, so
     // these hand-built latch-test frames carry it (the per-exchange seq is stamped
     // by `govern_over_wire`). epoch/generation are canonical UUIDv4s.
     let mut active_cmd: CommandFrame = serde_json::from_value(json!({
