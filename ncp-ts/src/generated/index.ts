@@ -1,7 +1,9 @@
 // Canonical NCP TypeScript types — GENERATED from the Rust ncp-core types via
 // ts-rs. Do not edit by hand; run `bun run regen` from the repository root.
+export type { AuthorityLease } from './AuthorityLease.js';
 export type { Capabilities } from './Capabilities.js';
 export type { ChannelKind } from './ChannelKind.js';
+export type { ChannelRequirement } from './ChannelRequirement.js';
 export type { ChannelSpec } from './ChannelSpec.js';
 export type { ChannelValue } from './ChannelValue.js';
 export type { CloseSession } from './CloseSession.js';
@@ -11,6 +13,9 @@ export type { EntityBinding } from './EntityBinding.js';
 export type { EntityRef } from './EntityRef.js';
 export type { EntityRole } from './EntityRole.js';
 export type { ErrorFrame } from './ErrorFrame.js';
+export type { GatewayAttribution } from './GatewayAttribution.js';
+export type { IdentityClaim } from './IdentityClaim.js';
+export type { LifecycleState } from './LifecycleState.js';
 export type { LinkStatus } from './LinkStatus.js';
 export type { Mode } from './Mode.js';
 export type { NetworkRef } from './NetworkRef.js';
@@ -19,8 +24,13 @@ export type { Observable } from './Observable.js';
 export type { Observation } from './Observation.js';
 export type { ObservationFrame } from './ObservationFrame.js';
 export type { OpenSession } from './OpenSession.js';
+export type { OperationContext } from './OperationContext.js';
+export type { OperationOutcome } from './OperationOutcome.js';
+export type { Plane } from './Plane.js';
+export type { PrincipalRole } from './PrincipalRole.js';
 export type { RecordSpec } from './RecordSpec.js';
 export type { RecordTarget } from './RecordTarget.js';
+export type { ResponderReceipt } from './ResponderReceipt.js';
 export type { Role } from './Role.js';
 export type { RunRequest } from './RunRequest.js';
 export type { SafetyLimits } from './SafetyLimits.js';

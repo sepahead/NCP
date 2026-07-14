@@ -15,8 +15,8 @@
 //! plant-side governor fails safe to HOLD independent of the controller.
 
 use crate::messages::{
-    Capabilities, ChannelKind, ChannelSpec, ChannelValue, CommandFrame, Mode, SafetyLimits,
-    SensorFrame, StreamPosition, WireFrame, JSON_SAFE_INTEGER_MAX,
+    Capabilities, ChannelKind, ChannelRequirement, ChannelSpec, ChannelValue, CommandFrame, Mode,
+    SafetyLimits, SensorFrame, StreamPosition, WireFrame, JSON_SAFE_INTEGER_MAX,
 };
 
 const POSITION_CHANNEL: &str = "pose_position";
@@ -179,7 +179,8 @@ impl SafetyGovernor {
 
     fn compatible_safety_vec3(spec: Option<&ChannelSpec>, expected_unit: &str) -> bool {
         spec.is_some_and(|spec| {
-            spec.kind == ChannelKind::Vec3
+            spec.requirement == ChannelRequirement::Required
+                && spec.kind == ChannelKind::Vec3
                 && spec.unit.as_deref() == Some(expected_unit)
                 && spec
                     .size
@@ -248,10 +249,11 @@ impl SafetyGovernor {
             && channel.data.iter().all(|value| value.is_finite())
     }
 
-    /// Clear a latched ESTOP. Only a supervisor calls this — after a fresh govern
-    /// the latch may re-engage if the tripping condition still holds. A config-level
-    /// fail-closed latch (undeclared limit channel) is NOT cleared: it is an
-    /// unrecoverable misconfiguration, not a transient breach.
+    /// Clear this governor's local ESTOP latch after an external supervisor and
+    /// plant interlock have authorized the generation cut. This method does not
+    /// authenticate that decision or restore session authority. On a fresh govern
+    /// the latch may re-engage if the condition remains. A config-level fail-closed
+    /// latch is not cleared: it is an unrecoverable misconfiguration.
     pub fn reset(&mut self) {
         self.estop = false;
     }
@@ -790,16 +792,6 @@ impl CommandWatchdog {
             .faulted = false;
     }
 
-    /// Re-anchor the seq discipline for a NEW stream epoch: clear the high-water so
-    /// the next command (whatever its seq — a restarted publisher counts from 1) is
-    /// accepted as fresh rather than misread as a duplicate/stale replay. An
-    /// epoch-aware receiver (e.g. [`ActionBuffer`](crate::resilience::ActionBuffer))
-    /// calls this ONLY after it has authorized an epoch transition; the ttl deadline
-    /// itself is refreshed by the `on_command` that follows.
-    pub fn reanchor(&mut self) {
-        self.last_seq = 0;
-    }
-
     /// Record an accepted command received at local time `now_s` with its `ttl_ms`
     /// and `seq`. The deadline refreshes only when `seq` strictly advances — a
     /// duplicate/stale/replayed command (`seq <= last`) must NOT extend liveness, or
@@ -810,28 +802,18 @@ impl CommandWatchdog {
     /// hatch let a default-constructed or hostile all-zeros frame keep the plant
     /// "commanded" forever, defeating the deadline backstop.
     ///
-    /// **Stream-epoch re-anchor (restart recovery):** a *strictly-lower* `seq` is
-    /// additionally accepted when the stream is already EXPIRED
-    /// ([`should_hold`](Self::should_hold) is true) — a legitimately restarted
-    /// controller restarts its counter at 1, and without this rule the plant would
-    /// reject its frames forever. An *equal* `seq` NEVER re-anchors: a single
-    /// frozen/replayed frame re-delivered across expiry windows must fail safe
-    /// permanently, not duty-cycle liveness. Re-anchoring only from the expired
-    /// (already holding, safe) state grants nothing an injecting attacker could
-    /// not get by forging a fresh high `seq` — the wire is unauthenticated (see
-    /// SECURITY.md); seq discipline defends against transport artifacts and buggy
-    /// peers, and integrity against adversaries is mTLS's job.
+    /// Expiry never resets the high-water mark. A restarted publisher must establish
+    /// a newly authorized stream declaration/epoch and a fresh watchdog instance;
+    /// accepting a lower sequence in-place would reopen replay after every timeout.
     pub fn on_command(&mut self, now_s: f64, ttl_ms: f64, seq: i64) {
-        let Some(recovering_clock) = self.observe_clock(now_s) else {
+        let Some(_) = self.observe_clock(now_s) else {
             return;
         };
         if !(1..=JSON_SAFE_INTEGER_MAX).contains(&seq) {
             return; // unstamped/invalid seq never refreshes liveness (wire 0.6)
         }
-        if seq <= self.last_seq
-            && (seq == self.last_seq || (!recovering_clock && !self.should_hold(now_s)))
-        {
-            return; // duplicate (always), or stale/reordered while the stream is LIVE
+        if seq <= self.last_seq {
+            return; // duplicate/stale/reordered, including after expiry
         }
         self.last_seq = seq;
         self.last_recv_s = Some(now_s);
@@ -958,7 +940,7 @@ mod tests {
     }
 
     #[test]
-    fn restart_reanchors_only_after_expiry() {
+    fn lower_sequence_never_reanchors_after_expiry() {
         let mut wd = CommandWatchdog::new();
         wd.on_command(1.0, 200.0, 1000); // live stream at seq 1000
                                          // While LIVE, a lower/equal seq (replay or premature restart) is rejected.
@@ -967,16 +949,13 @@ mod tests {
             wd.should_hold(1.35),
             "a low seq on a live stream must not refresh (deadline still anchored at t=1.0)"
         );
-        // After expiry (the plant is already HOLDing — a safe state), a restarted
-        // controller's low seq re-anchors the stream and restores liveness.
+        // Expiry does not authorize a replay-window reset. A restarted publisher
+        // needs a fresh declaration/watchdog rather than a lower in-place seq.
         assert!(wd.should_hold(1.5), "expired");
-        wd.on_command(1.5, 200.0, 1); // restart epoch: seq restarts at 1
-        assert!(!wd.should_hold(1.6), "post-expiry restart re-anchors");
-        // The new epoch's discipline applies: its own replays are rejected.
-        wd.on_command(1.62, 200.0, 1);
+        wd.on_command(1.5, 200.0, 1);
         assert!(
-            wd.should_hold(1.75),
-            "duplicate within the new epoch does not refresh"
+            wd.should_hold(1.6),
+            "post-expiry lower sequence remains rejected"
         );
         // The largest JSON-safe wire sequence is accepted without panic; a
         // duplicate at that bound cannot advance.
@@ -994,7 +973,7 @@ mod tests {
     fn nan_clock_on_command_stays_fail_safe() {
         // A non-finite receive clock corrupts nothing observable: the stored
         // deadline is non-finite, so should_hold stays true (fail-closed), and a
-        // later valid-clock frame re-anchors (the stream reads as expired).
+        // later valid-clock, strictly newer frame recovers liveness.
         let mut wd = CommandWatchdog::new();
         wd.on_command(f64::NAN, 200.0, 1);
         assert!(wd.should_hold(0.1), "NaN-anchored deadline must HOLD");
@@ -1270,6 +1249,7 @@ mod tests {
             kind,
             unit: unit.map(str::to_string),
             size,
+            requirement: ChannelRequirement::Required,
             ..Default::default()
         }
     }

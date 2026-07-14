@@ -1,0 +1,39 @@
+{
+  "schema": "ncp.canonical-digest-encoding.v1",
+  "hash": "sha256",
+  "output": "64-lowercase-hex",
+  "stream": "domain bytes followed by one encoded projected JSON value",
+  "domain_rule": "1..128 lowercase ASCII bytes matching [a-z0-9](?:[a-z0-9.-]*[a-z0-9])?, followed by exactly one terminal NUL byte; no embedded NUL",
+  "byte_order": "network-big-endian",
+  "lengths": "unsigned-u64",
+  "object_order": "ascending lexicographic order of decoded valid-Unicode key UTF-8 bytes",
+  "number_semantics": "finite IEEE-754 binary64 bits in network byte order; integer and exactly equivalent binary64 spellings are identical; negative zero is preserved, including lexical -0 and -0.0 as the same negative-zero value",
+  "string_semantics": "decoded valid Unicode encoded as UTF-8",
+  "tags": {
+    "null": "00",
+    "false": "01",
+    "true": "02",
+    "number_followed_by_8_binary64_bytes": "03",
+    "string_followed_by_u64_byte_length_and_utf8": "04",
+    "array_followed_by_u64_count_and_values": "05",
+    "object_followed_by_u64_count_and_string-key-value-pairs": "06"
+  },
+  "limits": {
+    "max_projection_bytes_including_domain": 2097152,
+    "max_nesting_depth": 32,
+    "max_finite_number_magnitude": 1e300
+  },
+  "reject": [
+    "invalid-unicode",
+    "non-finite-number",
+    "number-outside-magnitude-budget",
+    "nesting-depth-overflow",
+    "projection-byte-overflow",
+    "non-string-object-key"
+  ],
+  "used_by": [
+    "contract/request-digest.v1.json",
+    "contract/security-state-digest.v1.json",
+    "contract/plant-profile.v1.json"
+  ]
+}

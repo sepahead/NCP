@@ -15,10 +15,12 @@
 #   cargo_rev  <Cargo.toml> <tag> <40-hex-rev>  # rewrite exact revision/version,
 #                               #   descriptor metadata, and lockfile
 #   npm_tag    <package.json>   # rewrite `github:.../NCP#vX` (key kept), then `bun install`
+#   mirror_rev <pin-file> <tag> <40-hex-rev> # immutable mirror metadata; the
+#                               #   consumer-owned command updates the mirror/pin
 #   cargo_lock / cargo_lock_rev / npm_lock / mirror_ref / python_wire  # checker-only
 #                               # (runtime wire migrations are deliberately manual)
-#   repin_cmd  <cmd ... {TAG}>  # consumer-owned re-pin command, run in the consumer dir
-#                               #   ({TAG} is substituted). Use for mirrors / bespoke flows.
+#   repin_cmd  <cmd ... {TAG} ... {REV}> # consumer-owned command, run in its repo;
+#                               #   placeholders are substituted. Use for mirrors/bespoke flows.
 #
 # This script edits files + refreshes lockfiles ONLY. It does NOT git-commit, push, or
 # stage anything. It prints a per-repo summary and the suggested review/commit commands.
@@ -37,20 +39,20 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 TAG="$1"
-if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+NCP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+PIN_GUARD="$SCRIPT_DIR/consumer_pin_guard.py"
+if ! python3 "$PIN_GUARD" validate-tag "$TAG" >/dev/null; then
   echo "ERROR: tag '$TAG' is not a valid NCP tag (expected like v0.3.0 or v0.3.0-rc.1)." >&2
   exit 2
 fi
-CARGO_VERSION="${TAG#v}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NCP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BASE_DIR="${2:-$(cd "$NCP_ROOT/.." && pwd)}"
 if [[ ! -d "$BASE_DIR" ]]; then
   echo "ERROR: base-dir '$BASE_DIR' does not exist." >&2
   exit 2
 fi
-BASE_DIR="$(cd "$BASE_DIR" && pwd)"
+BASE_DIR="$(cd "$BASE_DIR" && pwd -P)"
 
 TAG_REV=""
 
@@ -67,41 +69,27 @@ note()  { printf '  . %s\n' "$1"; }
 hdr()   { printf '\n== %s ==\n' "$1"; }
 warn()  { printf '  ! %s\n' "$1" >&2; HAD_WARNINGS=1; }
 
-# Portable in-place edits. Cargo: rewrite the NCP tag and any explicit package
-# version on dependency lines that point at a */NCP git source. A comment merely
-# mentioning the tag/version is never touched. Updating both fields matters when a
-# new tag also bumps the SDK version: Cargo otherwise rejects the tagged package
-# before it can refresh the lockfile.
+# Syntax-aware in-place edits are delegated to the same parser used by the
+# read-only checker. It validates the complete candidate before one atomic replace.
 repin_cargo_manifest() {
-  TAG="$TAG" CARGO_VERSION="$CARGO_VERSION" perl -pi -e '
-    if (/^\s*[A-Za-z0-9_-]+\s*=\s*\{.*git\s*=\s*"[^"]*\/NCP"/) {
-      s{(tag\s*=\s*")[^"]*(")}{$1 . $ENV{TAG} . $2}ge;
-      s{(version\s*=\s*")[^"]*(")}{$1 . $ENV{CARGO_VERSION} . $2}ge;
-      s{(\s+#\s*)v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\s*$}{$1 . $ENV{TAG}}e;
-    }
-  ' "$1"
+  python3 "$PIN_GUARD" rewrite-cargo "$1" --mode tag --tag "$TAG"
 }
 repin_cargo_rev_manifest() {
-  TAG="$TAG" TAG_REV="$TAG_REV" CARGO_VERSION="$CARGO_VERSION" perl -pi -e '
-    if (/^\s*[A-Za-z0-9_-]+\s*=\s*\{.*git\s*=\s*"[^"]*\/NCP"/) {
-      s{(rev\s*=\s*")[^"]*(")}{$1 . $ENV{TAG_REV} . $2}ge;
-      s{(version\s*=\s*")[^"]*(")}{$1 . $ENV{CARGO_VERSION} . $2}ge;
-      s{(\s+#\s*)v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\s*$}{$1 . $ENV{TAG}}e;
-    }
-  ' "$1"
+  python3 "$PIN_GUARD" rewrite-cargo "$1" --mode rev --tag "$TAG" --revision "$TAG_REV"
 }
 update_revision_descriptor() {
   TAG="$TAG" TAG_REV="$TAG_REV" perl -pi -e '
     chomp;
-    if (/^(\s*cargo_(?:rev|lock_rev)\s+\S+)(?:\s+\S+\s+\S+)?(\s*(?:#.*)?)$/) {
+    if (/^(\s*(?:cargo_(?:rev|lock_rev)|mirror_rev)\s+\S+)(?:\s+\S+\s+\S+)?(\s*(?:#.*)?)$/) {
       $_ = "$1 $ENV{TAG} $ENV{TAG_REV}$2";
     }
     $_ .= "\n";
   ' "$1"
 }
-# package.json / bun.lock spec: only the #<tag> fragment changes; the scope key is kept.
+# package.json string tokens are decoded before replacement, so JSON escapes and
+# arbitrary dependency aliases cannot evade or redirect the rewrite.
 repin_package_json() {
-  perl -pi -e 's{(github:[^/]+/NCP#)[^"]*}{${1}'"$TAG"'}g' "$1"
+  python3 "$PIN_GUARD" rewrite-npm "$1" --tag "$TAG"
 }
 
 echo "Re-pinning all NCP consumers to tag: $TAG"
@@ -117,12 +105,20 @@ if [[ "${#descriptors[@]}" -eq 0 ]]; then
   exit 1
 fi
 
+# One shared parser validates every descriptor and declared file before the first
+# consumer command or write. This includes exact arities, physical paths, TOML/JSON
+# decoding, selector exclusivity, origin policy, and fleet revision coherence.
+if ! python3 "$PIN_GUARD" preflight "$BASE_DIR"; then
+  echo "No consumers were modified because descriptor validation failed." >&2
+  exit 1
+fi
+
 # Revision-pinned consumers deliberately avoid relying on a movable remote tag.
 # Resolve the requested release to its commit only when such a consumer exists;
 # tag-only fleets can still be re-pinned from a shallow checkout without tags.
 has_revision_consumer=0
 for desc in "${descriptors[@]}"; do
-  if perl -ne '$found = 1 if /^\s*cargo_rev\s+/; END { exit(!$found) }' "$desc"; then
+  if perl -ne '$found = 1 if /^\s*(?:cargo_(?:rev|lock_rev)|mirror_rev)\s+/; END { exit(!$found) }' "$desc"; then
     has_revision_consumer=1
     break
   fi
@@ -134,20 +130,20 @@ if [[ "$has_revision_consumer" -eq 1 ]] &&
 fi
 
 for desc in "${descriptors[@]}"; do
-  consumer_dir="$(cd "$(dirname "$desc")" && pwd)"
+  consumer_dir="$(cd "$(dirname "$desc")" && pwd -P)"
   consumer_name="$(basename "$consumer_dir")"
   hdr "$consumer_name"
 
   # Parse the descriptor into typed target lists.
-  cargo_tomls=(); cargo_rev_tomls=(); npm_jsons=(); repin_cmd=""
+  cargo_tomls=(); cargo_rev_tomls=(); npm_jsons=(); repin_cmd=""; consumer_revision_pinned=0
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%%#*}"
-    # shellcheck disable=SC2206
-    fields=($line)
+    IFS=$' \t' read -r -a fields <<< "$line"
     [[ "${#fields[@]}" -ge 2 ]] || continue
     case "${fields[0]}" in
       cargo_tag) cargo_tomls+=("${fields[1]}") ;;
-      cargo_rev) cargo_rev_tomls+=("${fields[1]}") ;;
+      cargo_rev) cargo_rev_tomls+=("${fields[1]}"); consumer_revision_pinned=1 ;;
+      cargo_lock_rev|mirror_rev) consumer_revision_pinned=1 ;;
       npm_tag)   npm_jsons+=("${fields[1]}") ;;
       repin_cmd) repin_cmd="${line#*repin_cmd }" ;;   # rest of line, verbatim
     esac
@@ -159,11 +155,24 @@ for desc in "${descriptors[@]}"; do
 
   # 1) Consumer-owned custom re-pin (e.g. a vendored mirror's sync script).
   if [[ -n "$repin_cmd" ]]; then
+    if [[ "$repin_cmd" == *'{REV}'* ]] &&
+       { [[ "$consumer_revision_pinned" -ne 1 ]] || [[ -z "$TAG_REV" ]]; }; then
+      warn "repin_cmd requests {REV}, but the descriptor has no revision-pinned row"
+      add_summary "$consumer_name" "FAILED" "{REV} requested without revision metadata"
+      continue
+    fi
     cmd="${repin_cmd//\{TAG\}/$TAG}"
+    cmd="${cmd//\{REV\}/$TAG_REV}"
     note "running consumer repin_cmd: $cmd"
     if ( cd "$consumer_dir" && bash -c "$cmd" ); then
       touched=1
-      add_summary "$consumer_name" "REPINNED" "via repin_cmd -> $TAG"
+      if [[ "$consumer_revision_pinned" -eq 1 ]]; then
+        update_revision_descriptor "$desc"
+        note "updated revision-pin descriptor metadata -> $TAG ($TAG_REV)"
+        add_summary "$consumer_name" "REPINNED" "via repin_cmd -> $TAG ($TAG_REV)"
+      else
+        add_summary "$consumer_name" "REPINNED" "via repin_cmd -> $TAG"
+      fi
       REVIEW_CMDS+=("# $consumer_name (consumer-owned re-pin)
   git -C \"$consumer_dir\" diff
   git -C \"$consumer_dir\" add -A && git -C \"$consumer_dir\" commit -m \"chore: re-pin NCP to $TAG\"")

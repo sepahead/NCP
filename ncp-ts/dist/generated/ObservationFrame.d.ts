@@ -1,11 +1,13 @@
 import type { Observation } from "./Observation.js";
+import type { ResponderReceipt } from "./ResponderReceipt.js";
 import type { SessionRef } from "./SessionRef.js";
 import type { StreamPosition } from "./StreamPosition.js";
 /**
  * The returned neural data, keyed by a unique record-series name. The nested
  * `Observation.port` identifies the negotiated record port; distinct
  * `recordable` series from one port therefore remain representable. `t` is
- * producer-local monotonic seconds (the plane form echoes `SensorFrame.t`);
+ * this observation publisher's local monotonic creation time; a driving
+ * sensor's position/time travels separately in `source`/`source_t`.
  * `sim_time_ms` is authoritative simulation time.
  */
 export type ObservationFrame = {
@@ -36,5 +38,10 @@ export type ObservationFrame = {
      * The live session incarnation this stream belongs to.
      */
     session: SessionRef;
+    /**
+     * Present on step/run RPC replies; absent on ordinary observation-plane
+     * publication. Clients require it before claiming a mutating RPC completed.
+     */
+    receipt: ResponderReceipt | null;
 };
 //# sourceMappingURL=ObservationFrame.d.ts.map

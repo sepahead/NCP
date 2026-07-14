@@ -1,56 +1,54 @@
-# ncp-gateway
+# `ncp-gateway`
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
-
-A reference Rust NCP edge for a NEST-based commander (e.g. Engram): a **binary** that
-serves the lifecycle RPC key family and bridges each request to a separate Python
-`SessionService` process. Streaming data planes connect directly between NCP peers.
-
-When the commander's brain is NEST (Python), its NCP *server* stays Python. This gateway gives it a
-production-grade Rust Zenoh edge: it declares `{realm}/rpc/*`, receives client requests on
-exact `{realm}/rpc/{request_kind}` keys, then forwards each RPC to Python `bridge_server.py` over a localhost
-socket — reusing the transport-neutral `handle_json` seam. The fleet-facing, latency-sensitive
-transport becomes Rust (SHM/QoS, many-to-many discovery, free observer taps); `nest.Run` stays
-in Python.
-
-In the polyglot NCP SDK, one normative wire contract is spoken by peers in Rust, Python, TypeScript,
-and C/C++. `ncp-gateway` is the Rust deployment edge in front of a Python commander; it builds on
-[`ncp-core`](../ncp-core) (keys/realms) and [`ncp-zenoh`](../ncp-zenoh) (the Zenoh transport).
+`ncp-gateway` is a native same-wire lifecycle edge for the unreleased,
+release-blocked NCP `1.0.0-rc.1` candidate. It serves Zenoh lifecycle RPC keys and
+forwards validated canonical JSON over a loopback newline-delimited socket to a
+Python `SessionService`.
 
 ```text
- Zenoh bus  ──(SHM/QoS)──►  ncp-gateway (this)  ──(TCP, newline-JSON)──►  bridge_server.py
-    ▲                          {realm}/rpc/* queryable                    SessionService.handle_json → nest.Run
-    └── robot/UAV bodies, analysis/observer clients, dashboards attach as peers / observers
+native NCP 1.0 peers -> Zenoh {realm}/rpc/* -> ncp-gateway
+                                              -> loopback native-1.0 SessionService
 ```
 
-## Run
+This binary is **not** the 0.8-to-1.0 migration gateway. It does not translate old
+fields or invent identity/authority/operations/receipts. Engram's local native-1.0
+migration is in progress but is not compatible merely because candidate files exist:
+the backend must implement native wire 1.0 end to end and return correctly correlated
+session generations and responder receipts.
+
+Configuration:
 
 ```text
+NCP_REALM        canonical deployment realm (default: ncp)
+NCP_BRIDGE_ADDR  loopback SessionService address (default: 127.0.0.1:28474)
+NCP_ZENOH_CONFIG requests the fail-closed production-secure path; startup currently refuses because authenticated peer identity is not callback-visible
+```
+
+```bash
 cargo run -p ncp-gateway
 ```
 
-Configuration is via environment variables:
+Query an installed binary without opening a transport with
+`ncp-gateway --identity-json`. It reports package and wire versions, compact proto
+hash, complete normative contract digest, and build identity. This RC reports
+`unreleased-worktree`; an immutable release builder must supply an exact identity.
 
-```text
-NCP_REALM        key-expression realm           (default: ncp; set per deployment)
-NCP_BRIDGE_ADDR  Python bridge_server.py addr   (default: 127.0.0.1:28474)
-NCP_ZENOH_CONFIG strict Zenoh client config     (optional; required for secure deployment)
-```
+The gateway validates selector/request/reply/session shape and uses bounded Zenoh
+RPC concurrency. Its loopback reply reader requires one newline-terminated JSON
+frame, caps the read at the normative frame ceiling, and runs the universal bounded
+preflight before returning bytes to the transport; malformed, duplicate-key,
+unterminated, and oversized replies are contained as internal bridge failures. The
+local socket does not upgrade backend trust. The current Zenoh adapter cannot bind a
+transport-authenticated remote principal to `IdentityClaim`, so setting
+`NCP_ZENOH_CONFIG` causes startup to fail closed rather than expose a purportedly
+secure remote bus. Remote deployment remains unavailable until that binding is
+implemented and the end-to-end security/audit gate passes.
 
-The gateway serves only lifecycle RPC on `{realm}/rpc/*`. Sensor, command, and
-observation planes connect directly between NCP peers. Ctrl-C to stop.
+The actual legacy translation primitive is `ncp_core::migration` and requires
+explicit authenticated terminating context plus visible gateway attribution. See
+[`INTEGRATING.md`](../INTEGRATING.md),
+[`SECURITY.md`](../SECURITY.md), and
+[`RELEASE_READINESS.md`](../RELEASE_READINESS.md).
 
-For a secure deployment, run a separately realm-rendered
-`deploy/zenoh-access-control.json5` as the router and point `NCP_ZENOH_CONFIG` at a
-configured copy of `deploy/zenoh-client-secure.json5`. The gateway's strict client
-open rejects the router config (`mode="router"`) and any plaintext/discovery-capable
-client config.
-
-## See also
-
-- The normative wire contract: [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md)
-- Repository overview: [NCP README](../README.md)
-
-## License
-
-Licensed under either of [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE) at your option.
+Licensed under either [MIT](../LICENSE-MIT) or
+[Apache-2.0](../LICENSE-APACHE).

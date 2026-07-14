@@ -1,12 +1,17 @@
+import type { ResponderReceipt } from "./ResponderReceipt.js";
 import type { SessionRef } from "./SessionRef.js";
 /**
  * A typed, versioned failure reply. Error payloads are wire messages too: leaving
  * them unversioned lets a stale or misrouted peer bypass the same identity checks
  * applied to successful replies.
+ *
+ * `code` is a closed contract value from `contract/errors.v1.json`; the
+ * human-readable `error` string is diagnostic and never substitutes for it.
  */
 export type ErrorFrame = {
     ncp_version: string;
     kind: string;
+    code: string;
     error: string;
     session_id: string | null;
     request_kind: string | null;
@@ -15,5 +20,10 @@ export type ErrorFrame = {
      * assert the generation is active. Present iff `session_id` is (copy both or neither).
      */
     session: SessionRef | null;
+    /**
+     * Optional terminal receipt. Pre-authentication/shape failures have no
+     * responder receipt; a committed rejection or cancellation does.
+     */
+    receipt: ResponderReceipt | null;
 };
 //# sourceMappingURL=ErrorFrame.d.ts.map

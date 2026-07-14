@@ -7,15 +7,73 @@
 //! Clocks are injectable so the loop is deterministic under test.
 
 use crate::messages::{
-    ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame, StreamPosition,
-    WireFrame, JSON_SAFE_INTEGER_MAX,
+    AuthorityLease, ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame,
+    SessionRef, StreamPosition, WireFrame, JSON_SAFE_INTEGER_MAX,
 };
 use crate::safety::{SafetyGovernor, MAX_TTL_MS};
 use std::sync::{Arc, Mutex};
 
+/// A fail-closed local control-loop construction error.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ControlLoopConfigError(pub String);
+
+impl std::fmt::Display for ControlLoopConfigError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ControlLoopConfigError {}
+
+/// Mint a fresh CSPRNG-backed canonical UUIDv4 for one logical publisher stream.
+///
+/// Stream epochs are equality-only identifiers, not credentials, but the wire
+/// contract requires them to be unpredictable and fresh across publisher
+/// restarts. Entropy failure therefore aborts construction instead of falling
+/// back to time/PID/counters that can collide after snapshots or process reuse.
+pub fn mint_stream_epoch() -> Result<String, ControlLoopConfigError> {
+    let mut bytes = [0_u8; 16];
+    getrandom::fill(&mut bytes).map_err(|error| {
+        ControlLoopConfigError(format!("failed to obtain stream-epoch entropy: {error}"))
+    })?;
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    Ok(format!(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        bytes[0],
+        bytes[1],
+        bytes[2],
+        bytes[3],
+        bytes[4],
+        bytes[5],
+        bytes[6],
+        bytes[7],
+        bytes[8],
+        bytes[9],
+        bytes[10],
+        bytes[11],
+        bytes[12],
+        bytes[13],
+        bytes[14],
+        bytes[15],
+    ))
+}
+
+/// Result of handing one candidate command to a transport-owned publication
+/// slot. A replacement reuses the not-yet-published position and therefore must
+/// not advance the loop's publisher counter. `Accepted` is bounded local slot
+/// admission, not a delivery acknowledgement; an asynchronous put can still be
+/// delivery-ambiguous and must consume its transport position.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CommandSendOutcome {
+    Accepted,
+    ReplacedPending,
+    Rejected,
+}
+
 /// Moves sensor/command frames between a controller and a plant.
 pub trait ControlTransport: Send + Sync {
-    fn send_command(&self, command: &CommandFrame);
+    fn send_command(&self, command: &CommandFrame) -> CommandSendOutcome;
     fn latest_sensor(&self) -> Option<SensorFrame>;
     fn send_status(&self, _status: &ControlStatus) {}
 }
@@ -69,10 +127,11 @@ impl InProcessTransport {
 }
 
 impl ControlTransport for InProcessTransport {
-    fn send_command(&self, command: &CommandFrame) {
+    fn send_command(&self, command: &CommandFrame) -> CommandSendOutcome {
         let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         g.last_command = Some(command.clone());
         g.commands.push(command.clone());
+        CommandSendOutcome::Accepted
     }
     fn latest_sensor(&self) -> Option<SensorFrame> {
         self.inner
@@ -134,16 +193,10 @@ impl Controller for ReflexController {
                 ..Default::default()
             };
             if let Some(sensor) = sensor {
-                // Wire 0.8: this reference loop is single-stream — it echoes the driving
-                // sensor's stream as both its own `stream` and its `source`. A real
-                // commander mints its OWN command stream (task 3); loss accounting keys
-                // on `stream.seq` either way.
-                command.stream = sensor.stream.clone();
                 command.source = Some(sensor.stream.clone());
                 command.source_t = sensor.t;
                 command.session = sensor.session.clone();
                 command.session_id.clone_from(&sensor.session_id);
-                command.t = sensor.t;
                 command.frame_id.clone_from(&sensor.frame_id);
             }
             command
@@ -205,8 +258,6 @@ impl Controller for ReflexController {
             },
         );
         CommandFrame {
-            t: sensor.t,
-            stream: sensor.stream.clone(),
             source: Some(sensor.stream.clone()),
             source_t: sensor.t,
             session: sensor.session.clone(),
@@ -226,8 +277,21 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     pub controller: C,
     pub rate_hz: f64,
     gov: SafetyGovernor,
+    /// Immutable live-session binding. A new server-issued generation requires
+    /// a new loop instance, which also mints new publisher epochs and resets all
+    /// controller/link/governor state. Payload data can never rebind the loop.
+    session_id: String,
+    session: SessionRef,
+    /// Current authenticated commander lease supplied by the host authority
+    /// service. The loop never fabricates or acquires authority from payload data.
+    authority: Option<AuthorityLease>,
     now_fn: Box<dyn Fn() -> f64 + Send>,
-    seq: i64,
+    command_stream_epoch: String,
+    command_seq: i64,
+    status_stream_epoch: String,
+    /// Last consumed position in the loop-owned status stream. Zero means no
+    /// status has been published yet and is never emitted on the wire.
+    status_seq: i64,
     /// Link-health monitor over the inbound sensor `seq` stream — feeds the
     /// HOLD->ESTOP jam escalation (a sustained loss burst latches ESTOP).
     link: crate::resilience::LinkMonitor,
@@ -237,8 +301,8 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     /// advances (FIX 4) — a repeated/stale frame must still trip the stale-sensor
     /// HOLD even though a frame "arrived".
     last_sensor_ts: Option<(f64, i64)>,
-    /// The last ACCEPTED sensor frame — the only one the controller/governor/echo
-    /// consume. A frame that fails seq discipline (unstamped, or a replayed
+    /// The last ACCEPTED sensor frame — the only one the controller/governor/source
+    /// correlation consumes. A frame that fails seq discipline (unstamped, or a replayed
     /// regression on a live stream) must not steer the controller or leak its seq
     /// into commands; it goes stale naturally via `last_sensor_t`.
     accepted_sensor: Option<SensorFrame>,
@@ -246,38 +310,77 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     /// a clock fault even if the clock remains monotonic within the current tick;
     /// retain the high-water mark so the loop HOLDs until time catches up.
     last_tick_now: Option<f64>,
-    /// Wire 0.8 (§7): the accepted sensor stream's active epoch + a bounded ring of
-    /// retired epochs. A FOREIGN epoch cannot advance the LIVE perception stream (no
-    /// hijack via a fresh high seq under a new random epoch); a new epoch is adopted
-    /// only as a restart, once the current sensor has EXPIRED; a RETIRED epoch never
-    /// revives. Same-epoch frames keep the existing seq discipline unchanged.
+    /// Declaration-bound sensor stream epoch. A foreign epoch never replaces it in
+    /// place, including after expiry; a restarted publisher requires a fresh typed
+    /// declaration and loop instance.
     active_sensor_epoch: Option<String>,
-    retired_sensor_epochs: std::collections::VecDeque<String>,
 }
 
 impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
-    pub fn new(transport: T, controller: C, rate_hz: f64, safety: SafetyLimits) -> Self {
-        Self {
+    pub fn new(
+        transport: T,
+        controller: C,
+        rate_hz: f64,
+        safety: SafetyLimits,
+        session_id: impl Into<String>,
+        session: SessionRef,
+    ) -> Result<Self, ControlLoopConfigError> {
+        let session_id = session_id.into();
+        if !crate::valid_id_segment(&session_id) {
+            return Err(ControlLoopConfigError(
+                "control loop session_id must be one safe key segment".into(),
+            ));
+        }
+        if !crate::is_canonical_uuid_v4(&session.generation) {
+            return Err(ControlLoopConfigError(
+                "control loop session generation must be a canonical lowercase UUIDv4".into(),
+            ));
+        }
+        let command_stream_epoch = mint_stream_epoch()?;
+        let mut status_stream_epoch = mint_stream_epoch()?;
+        while status_stream_epoch == command_stream_epoch {
+            status_stream_epoch = mint_stream_epoch()?;
+        }
+        Ok(Self {
             transport,
             controller,
             rate_hz,
             gov: SafetyGovernor::new(safety),
+            session_id,
+            session,
+            authority: None,
             now_fn: Box::new(monotonic_secs),
-            seq: 0,
+            command_stream_epoch,
+            command_seq: 0,
+            status_stream_epoch,
+            status_seq: 0,
             link: crate::resilience::LinkMonitor::with_defaults("ncp-loop"),
             last_sensor_t: None,
             last_sensor_ts: None,
             active_sensor_epoch: None,
-            retired_sensor_epochs: std::collections::VecDeque::new(),
             accepted_sensor: None,
             last_tick_now: None,
-        }
+        })
     }
 
     /// Override the clock (tests).
     pub fn with_clock(mut self, now_fn: Box<dyn Fn() -> f64 + Send>) -> Self {
         self.now_fn = now_fn;
         self
+    }
+
+    /// Bind the active lease obtained from the authenticated host authority
+    /// service. This is explicit because controller output cannot self-authorize.
+    pub fn with_authority(mut self, authority: AuthorityLease) -> Self {
+        self.authority = Some(authority);
+        self
+    }
+
+    /// Replace or clear the host-provided commander lease (renewal, transfer, or
+    /// expiry). A missing, malformed, or wrong-session lease forces Active output
+    /// to HOLD before it reaches the transport.
+    pub fn set_authority(&mut self, authority: Option<AuthorityLease>) {
+        self.authority = authority;
     }
 
     fn dt_ms(&self) -> f64 {
@@ -296,87 +399,37 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         dt_ms.is_finite() && dt_ms > 0.0 && dt_ms * 2.0 <= MAX_TTL_MS
     }
 
-    /// Retire a sensor stream epoch into the bounded tombstone ring so it can never
-    /// revive (§7 rule 5). Bounded so a hostile epoch-churn peer cannot grow it
-    /// without limit; a real single-publisher session retires one epoch per restart.
-    fn retire_sensor_epoch(&mut self, epoch: String) {
-        const RETIRED_EPOCH_CAP: usize = 256;
-        if self.retired_sensor_epochs.contains(&epoch) {
-            return;
-        }
-        if self.retired_sensor_epochs.len() >= RETIRED_EPOCH_CAP {
-            self.retired_sensor_epochs.pop_front();
-        }
-        self.retired_sensor_epochs.push_back(epoch);
-    }
-
     /// One control step: read sensor → controller → safety → send.
     pub fn tick(&mut self) -> CommandFrame {
         let now = (self.now_fn)();
         let tick_clock_ok =
             now.is_finite() && self.last_tick_now.is_none_or(|previous| now >= previous);
-        // Wire 0.6: an unstamped sensor (`seq < 1`) is not a wire-legal frame —
+        // Wire 1.0: an unstamped sensor (`seq < 1`) is not a wire-legal frame —
         // treat it as ABSENT entirely (no freshness refresh, no link feed, no
-        // echo, not even geofence input): an invalid frame is no frame.
-        let candidate = self
-            .transport
-            .latest_sensor()
-            .filter(|sensor| tick_clock_ok && sensor.validate_wire().is_ok());
-        // FIX 4 (0.6 form): the sensor is "fresh" only when its `seq` STRICTLY
-        // advanced — seq, not arrival, is the stream discipline, so a
-        // frozen/cached re-delivery (same seq) NEVER refreshes the watchdog clock
-        // (not even after expiry — no duty-cycled Active/HOLD oscillation on a
-        // wedged stream) and the stale-sensor HOLD still trips. A strictly-LOWER
-        // seq re-anchors a new stream epoch only once the current stream is
-        // already EXPIRED (the plant-restart rule, mirroring
-        // `CommandWatchdog::on_command`); the link monitor is reset for the new
-        // epoch so the regression is not misread as a giant duplicate run.
+        // correlate, not even geofence input): an invalid frame is no frame.
+        let candidate = self.transport.latest_sensor().filter(|sensor| {
+            tick_clock_ok
+                && sensor.validate_wire().is_ok()
+                && sensor.session_id == self.session_id
+                && sensor.session == self.session
+        });
+        // The sensor is fresh only when its declaration-bound epoch is unchanged,
+        // `seq` strictly advances, and publisher-local `t` does not regress. Arrival
+        // alone never refreshes the watchdog, including after expiry. A lower seq or
+        // foreign epoch cannot re-anchor this live loop; publisher restart requires
+        // a fresh loop/route declaration with new controller and LinkMonitor state.
         if let Some(s) = candidate {
-            let timeout_s = self.gov.limits.command_timeout_ms.min(MAX_TTL_MS) / 1000.0;
-            // NaN-safe: a non-finite timeout or clock reads as expired (the
-            // governor independently fail-closes on a bad timeout).
-            let expired = self.last_sensor_t.is_none_or(|t| {
-                let age = now - t;
-                !timeout_s.is_finite() || !age.is_finite() || age >= timeout_s
-            });
-            // Wire 0.8 (§7): epoch-keyed acceptance. A FOREIGN epoch may adopt the
-            // stream only as a restart, once the current sensor has EXPIRED — a live
-            // stream is never hijacked by a fresh high seq under a new random epoch;
-            // a RETIRED epoch never revives. Same-epoch frames keep the seq
-            // discipline unchanged (a strictly-lower seq re-anchors only after
-            // expiry — the legacy restart recovery — without changing the epoch).
             let same_epoch = self
                 .active_sensor_epoch
                 .as_deref()
-                .is_some_and(|e| e == s.stream.epoch);
-            let is_retired = self
-                .retired_sensor_epochs
-                .iter()
-                .any(|e| e == &s.stream.epoch);
-            let (advanced, epoch_changed, seq_restart) = match self.last_sensor_ts {
-                None => (true, false, false),
-                Some((previous_t, pseq)) => {
-                    if same_epoch {
-                        let restart = expired && s.stream.seq < pseq;
-                        let advances = s.stream.seq > pseq && s.t >= previous_t;
-                        (advances || restart, false, restart)
-                    } else if is_retired {
-                        (false, false, false)
-                    } else {
-                        (expired, expired, false)
-                    }
-                }
-            };
+                .is_none_or(|epoch| epoch == s.stream.epoch);
+            let advanced = same_epoch
+                && self
+                    .last_sensor_ts
+                    .is_none_or(|(previous_t, previous_seq)| {
+                        s.stream.seq > previous_seq && s.t >= previous_t
+                    });
             if advanced {
-                if epoch_changed {
-                    if let Some(old) = self.active_sensor_epoch.take() {
-                        self.retire_sensor_epoch(old);
-                    }
-                }
-                if epoch_changed || seq_restart {
-                    self.link.reset();
-                    self.controller.reset();
-                }
                 if self.active_sensor_epoch.is_none() {
                     self.active_sensor_epoch = Some(s.stream.epoch.clone());
                 }
@@ -413,22 +466,39 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         } else {
             (CommandFrame::default(), false)
         };
-        // CommandFrame.seq echoes the originating SensorFrame.seq so the split-plane
-        // V<->A join pairs the action with the sensor that produced it (the normative
-        // invariant; an observer joining V to A on seq depends on it). The loop's own
-        // free-running tick counter is carried only on ControlStatus, below.
-        // Safe commands still carry the last accepted sensor envelope even when
-        // that sensor has just gone stale. This lets a duplicate-seq HOLD clear a
-        // remote ActionBuffer immediately and lets a later ESTOP propagate; only
-        // the controller input itself is withheld while stale.
-        if let Some(s) = self.accepted_sensor.as_ref() {
-            cmd.stream = s.stream.clone();
+        // The command owns a distinct stream and local creation time. The driving
+        // sensor travels only in `source`/`source_t`; equating publisher streams
+        // would turn intentional sensor decimation into command loss/replay state.
+        // A candidate seq is committed only after publication, so rejected frames
+        // do not create artificial gaps in the action stream.
+        let next_command_seq = self
+            .command_seq
+            .checked_add(1)
+            .filter(|seq| *seq <= JSON_SAFE_INTEGER_MAX);
+        if let (Some(s), Some(command_seq)) = (self.accepted_sensor.as_ref(), next_command_seq) {
+            cmd.stream = StreamPosition {
+                epoch: self.command_stream_epoch.clone(),
+                seq: command_seq,
+            };
             cmd.source = Some(s.stream.clone());
             cmd.source_t = s.t;
-            cmd.session = s.session.clone();
-            cmd.session_id.clone_from(&s.session_id);
-            cmd.t = s.t;
+            cmd.session = self.session.clone();
+            cmd.session_id.clone_from(&self.session_id);
+            cmd.t = if now.is_finite() { now } else { 0.0 };
             cmd.frame_id.clone_from(&s.frame_id);
+        }
+        if cmd.mode == Mode::Active {
+            cmd.authority = self
+                .authority
+                .as_ref()
+                .filter(|lease| {
+                    lease.session_epoch == cmd.session.generation
+                        && crate::authority::validate_lease_shape(lease).is_ok()
+                })
+                .cloned();
+            if cmd.authority.is_none() {
+                cmd.mode = Mode::Hold;
+            }
         }
         // Couple the emitted deadline to the loop period BEFORE the governor
         // projects the geofence trajectory. Extending TTL after safety would
@@ -460,12 +530,15 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             cmd.mode = Mode::Hold;
             cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t);
         }
-        // Before the first stamped sensor there is no truthful action-plane seq
-        // to echo. Do not invent provenance or publish a wire-invalid seq=0
-        // command; the plant is already required to default HOLD and run its own
-        // watchdog. Once a sensor has been accepted, every fail-safe is stamped.
+        // Before the first accepted sensor there is no truthful session/source
+        // binding. At command-sequence exhaustion, fail closed instead of reusing
+        // the final position. The plant remains responsible for its own watchdog.
         if self.accepted_sensor.is_some() && cmd.validate_wire().is_ok() {
-            self.transport.send_command(&cmd);
+            if let Some(next_seq) = next_command_seq {
+                if self.transport.send_command(&cmd) == CommandSendOutcome::Accepted {
+                    self.command_seq = next_seq;
+                }
+            }
         }
         let loop_latency_ms = if clock_ok { measured_latency_ms } else { 0.0 };
         let note = if !rate_is_safe {
@@ -484,20 +557,31 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         } else {
             None
         };
-        self.transport.send_status(&ControlStatus {
-            // TODO(wire-0.8 task 3): give the status stream a proper epoch identity.
-            stream: StreamPosition {
-                seq: self.seq,
+        // A status position is consumed before the publication attempt. If the
+        // transport drops it, the resulting gap is observable; the same position
+        // is never reused. At 2^53-1 exhaustion this publisher becomes silent
+        // until a fresh loop declaration mints a new stream epoch.
+        if let Some(next_status_seq) = self
+            .status_seq
+            .checked_add(1)
+            .filter(|seq| *seq <= JSON_SAFE_INTEGER_MAX)
+        {
+            self.status_seq = next_status_seq;
+            self.transport.send_status(&ControlStatus {
+                stream: StreamPosition {
+                    epoch: self.status_stream_epoch.clone(),
+                    seq: next_status_seq,
+                },
+                session: self.session.clone(),
+                session_id: self.session_id.clone(),
+                t: if now.is_finite() { now } else { 0.0 },
+                mode: cmd.mode.clone(),
+                loop_latency_ms,
+                safety_ok: self.gov.safety_ok() && rate_is_safe && clock_ok && !controller_fault,
+                note,
                 ..Default::default()
-            },
-            t: if now.is_finite() { now } else { 0.0 },
-            mode: cmd.mode.clone(),
-            loop_latency_ms,
-            safety_ok: self.gov.safety_ok() && rate_is_safe && clock_ok && !controller_fault,
-            note,
-            ..Default::default()
-        });
-        self.seq = self.seq.saturating_add(1).min(JSON_SAFE_INTEGER_MAX);
+            });
+        }
         if clock_ok {
             self.last_tick_now = Some(end);
         }
@@ -516,6 +600,16 @@ mod tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, SID};
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn bound_loop<T: ControlTransport, C: Controller>(
+        transport: T,
+        controller: C,
+        rate_hz: f64,
+        safety: SafetyLimits,
+    ) -> NeuroControlLoop<T, C> {
+        NeuroControlLoop::new(transport, controller, rate_hz, safety, SID, session())
+            .expect("test session binding is canonical")
+    }
 
     fn velocity_command(x: f64, ttl_ms: f64) -> CommandFrame {
         let mut channels = crate::messages::Map::new();
@@ -577,13 +671,26 @@ mod tests {
         }
     }
 
+    fn test_authority() -> AuthorityLease {
+        AuthorityLease {
+            session_epoch: session().generation,
+            term: 1,
+            lease_id: "20000000-0000-4000-8000-000000000001".into(),
+            issuer_principal_id: "controller-principal-1".into(),
+            holder_principal_id: "controller-principal-1".into(),
+            holder_entity_id: "controller-1".into(),
+            issued_at_utc_ms: 1_700_000_000_000,
+            expires_at_utc_ms: 1_700_000_060_000,
+        }
+    }
+
     #[test]
     fn reflex_loop_holds_without_sensor_then_drives() {
         let transport = InProcessTransport::new();
         let controller = ReflexController::default();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             controller,
             20.0,
@@ -593,6 +700,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
         // No sensor yet -> HOLD.
@@ -624,19 +732,40 @@ mod tests {
         *clock.lock().unwrap() = 0.05;
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Active);
-        assert_eq!(cmd.stream.seq, 1, "command echoes the driving sensor seq");
+        assert_eq!(
+            cmd.stream.seq, 1,
+            "first published command starts its own stream"
+        );
+        assert_eq!(cmd.source.as_ref().map(|source| source.seq), Some(1));
         let v = &cmd.channels["velocity_setpoint"].data;
         assert!(v[0] < 0.0, "should push back toward origin, got {v:?}");
     }
 
     #[test]
+    fn control_loop_never_self_authorizes_active_output() {
+        let transport = InProcessTransport::new();
+        transport.push_sensor(sensor_with_motion(0.0, 1, 1.0));
+        let mut loop_ = bound_loop(
+            transport,
+            ReflexController::default(),
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 0.0));
+
+        let command = loop_.tick();
+        assert_eq!(command.mode, Mode::Hold);
+        assert!(command.authority.is_none());
+    }
+
+    #[test]
     fn unstamped_sensor_is_treated_as_absent() {
-        // Wire 0.6: a seq<1 sensor is not wire-legal — the loop must treat it as
-        // NO sensor (stale HOLD), never actuate from it or echo its seq.
+        // Wire 1.0: a seq<1 sensor is not wire-legal — the loop must treat it as
+        // NO sensor (stale HOLD), never actuate from it or cite it as a source.
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -646,6 +775,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         let mut ch = crate::messages::Map::new();
         ch.insert(
@@ -671,7 +801,7 @@ mod tests {
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -681,6 +811,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
         // One frozen frame (t=0, seq=1) that we never update.
@@ -744,14 +875,11 @@ mod tests {
     }
 
     #[test]
-    fn restarted_sensor_stream_reanchors_after_expiry() {
-        // A restarted PLANT restarts its sensor seq near 1. After the stale
-        // timeout has expired, a strictly-lower seq starts a new epoch (and the
-        // link monitor is reset so the regression is not misread as loss).
+    fn restarted_sensor_stream_requires_a_fresh_loop_declaration() {
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -761,6 +889,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         let frame = |t: f64, seq: i64| {
             let mut m = crate::messages::Map::new();
@@ -785,29 +914,26 @@ mod tests {
         transport.push_sensor(frame(0.0, 500));
         assert_eq!(loop_.tick().mode, Mode::Active);
         // Restart frame arrives BEFORE expiry: rejected while the old anchor is
-        // live — it must neither steer the controller nor leak into the echo.
+        // live — it must neither steer the controller nor replace correlation.
         *clock.lock().unwrap() = 0.1;
         transport.push_sensor(frame(0.1, 1));
         let cmd = loop_.tick();
         assert_eq!(cmd.mode, Mode::Active, "old anchor still fresh");
         assert_eq!(
-            cmd.stream.seq, 500,
-            "a regressed frame on a live stream must not steer or be echoed"
+            cmd.source.as_ref().map(|source| source.seq),
+            Some(500),
+            "a regressed frame on a live stream must not steer or become the source"
         );
-        // Once the old anchor EXPIRES, the pending restart frame (still the
-        // transport's latest) is adopted as a new epoch — recovery is immediate,
-        // with a stale-adoption window bounded by command_timeout_ms.
+        // Expiry does not reopen the declaration's replay window.
         *clock.lock().unwrap() = 0.5; // past the 200 ms timeout
         let cmd = loop_.tick();
-        assert_eq!(cmd.mode, Mode::Active, "restart epoch adopted at expiry");
-        assert_eq!(cmd.stream.seq, 1, "the new epoch's seq is echoed");
-        // The adopted frame is a one-shot: it goes stale after the timeout, and —
-        // being equal-seq now — it can NEVER re-anchor again (no oscillation).
+        assert_eq!(cmd.mode, Mode::Hold, "lower sequence remains rejected");
+        assert_eq!(cmd.source.as_ref().map(|source| source.seq), Some(500));
         *clock.lock().unwrap() = 0.8;
         assert_eq!(
             loop_.tick().mode,
             Mode::Hold,
-            "one-shot restart frame goes stale"
+            "rejected restart frame remains unusable"
         );
         *clock.lock().unwrap() = 2.0;
         assert_eq!(
@@ -815,29 +941,27 @@ mod tests {
             Mode::Hold,
             "equal-seq frame never re-anchors"
         );
-        // A genuinely advancing frame resumes the new epoch.
+        // Only a position that advances the already-declared epoch can resume this
+        // loop. A real publisher restart constructs a fresh transport/loop.
         *clock.lock().unwrap() = 2.1;
-        transport.push_sensor(frame(2.1, 2));
+        transport.push_sensor(frame(2.1, 501));
         assert_eq!(
             loop_.tick().mode,
             Mode::Active,
-            "a restarted, advancing stream recovers without operator intervention"
+            "the existing declared stream may advance after a pause"
         );
     }
 
     #[test]
     fn foreign_sensor_epoch_cannot_hijack_a_live_stream() {
-        // Wire 0.8 (§7): a FOREIGN stream epoch must not advance the LIVE perception
-        // stream — a hostile/glitched peer cannot steer the controller with a fresh
-        // high seq under a new random epoch. A foreign epoch is adopted only as a
-        // restart after the current sensor EXPIRES; a RETIRED epoch never revives.
+        // A foreign epoch never replaces this declaration's bound epoch in-place.
         use crate::messages::StreamPosition;
         let ep_a = "aaaaaaaa-0000-4000-8000-000000000001";
         let ep_b = "bbbbbbbb-0000-4000-8000-000000000002";
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -847,6 +971,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         let frame = |t: f64, epoch: &str, seq: i64| {
             let mut m = crate::messages::Map::new();
@@ -872,41 +997,45 @@ mod tests {
         };
         // Establish epoch A, live.
         transport.push_sensor(frame(0.0, ep_a, 5));
-        assert_eq!(loop_.tick().stream.seq, 5, "epoch A accepted");
+        assert_eq!(
+            loop_.tick().source.as_ref().map(|source| source.seq),
+            Some(5),
+            "epoch A accepted"
+        );
         // A foreign epoch with a huge seq must NOT hijack the LIVE stream.
         *clock.lock().unwrap() = 0.1;
         transport.push_sensor(frame(0.1, ep_b, 9999));
         assert_eq!(
-            loop_.tick().stream.seq,
-            5,
+            loop_.tick().source.as_ref().map(|source| source.seq),
+            Some(5),
             "a foreign epoch cannot advance a LIVE stream (no hijack)"
         );
-        // After epoch A expires, the pending foreign-epoch frame is adopted (restart).
+        // Expiry still does not authorize the foreign epoch.
         *clock.lock().unwrap() = 0.5;
-        assert_eq!(
-            loop_.tick().stream.seq,
-            9999,
-            "a foreign epoch is adopted only after the live stream expires"
-        );
-        // Epoch A is now RETIRED: a later A frame never revives it, even advancing.
-        *clock.lock().unwrap() = 1.0; // epoch B (t=0.5) has since expired
-        transport.push_sensor(frame(1.0, ep_a, 100_000));
         assert_eq!(
             loop_.tick().mode,
             Mode::Hold,
-            "a retired epoch never revives"
+            "a foreign epoch remains rejected after expiry"
+        );
+        // The already-bound epoch can still advance with a fresh position.
+        *clock.lock().unwrap() = 1.0;
+        transport.push_sensor(frame(1.0, ep_a, 6));
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Active,
+            "the declared epoch may advance after a pause"
         );
     }
 
     #[test]
-    fn command_seq_echoes_sensor_seq() {
-        // Normative invariant: CommandFrame.seq echoes the originating
-        // SensorFrame.seq (so the split-plane V<->A join pairs an action with the
-        // sensor that produced it), NOT the loop's free-running tick counter.
+    fn command_owns_stream_and_source_correlates_sensor() {
+        // Wire 1.0: the command owns a contiguous publisher stream and local
+        // creation time. The driving sensor is correlated only through
+        // source/source_t, so decimation is not misclassified as command loss.
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -916,13 +1045,14 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
-        // One sensor-less tick advances the loop's internal counter to 1.
+        // A sensor-less tick publishes nothing and therefore consumes no action
+        // stream position.
         let _ = loop_.tick();
 
-        // A sensor with a distinctive seq=7: the emitted command must carry seq=7
-        // (the sensor echo), not 1 (the loop counter).
+        // A sensor with distinctive identity/time drives the first command.
         let mut ch = crate::messages::Map::new();
         ch.insert(
             "pose_position".into(),
@@ -945,11 +1075,79 @@ mod tests {
         *clock.lock().unwrap() = 0.05;
         let cmd = loop_.tick();
         assert_eq!(
-            cmd.stream.seq, 7,
-            "CommandFrame.seq must echo SensorFrame.seq, not the loop tick counter"
+            cmd.stream.seq, 1,
+            "the first command owns position 1 in its own stream"
         );
-        assert_eq!(cmd.t, 0.1, "the driving sensor timestamp is echoed");
+        assert_ne!(cmd.stream.epoch, stream(7).epoch);
+        assert_eq!(cmd.source.as_ref().map(|source| source.seq), Some(7));
+        assert_eq!(cmd.source_t, 0.1, "source_t retains the sensor timestamp");
+        assert_eq!(cmd.t, 0.05, "command t is the command publisher's clock");
         assert_eq!(cmd.frame_id, "map", "the coordinate frame is echoed");
+    }
+
+    #[test]
+    fn loop_session_binding_is_immutable_and_rejects_new_generation_payloads() {
+        let transport = InProcessTransport::new();
+        let clock = Arc::new(Mutex::new(0.0_f64));
+        let clock2 = clock.clone();
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits {
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_authority(test_authority())
+        .with_clock(Box::new(move || *clock2.lock().unwrap()));
+
+        transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
+        let first = loop_.tick();
+        assert_eq!(first.session, session());
+        assert_eq!(first.source.as_ref().map(|source| source.seq), Some(1));
+
+        let mut foreign_generation = sensor_with_motion(0.05, 2, 0.0);
+        foreign_generation.session.generation = "50000000-0000-4000-8000-000000000005".into();
+        transport.push_sensor(foreign_generation);
+        *clock.lock().unwrap() = 0.05;
+        let second = loop_.tick();
+        assert_eq!(second.session, session());
+        assert_eq!(
+            second.source.as_ref().map(|source| source.seq),
+            Some(1),
+            "a payload cannot rebind a live loop to another generation"
+        );
+
+        *clock.lock().unwrap() = 0.3;
+        assert_eq!(
+            loop_.tick().mode,
+            Mode::Hold,
+            "a rejected generation eventually leaves the original sensor stale"
+        );
+    }
+
+    #[test]
+    fn loop_construction_rejects_invalid_binding_and_epochs_are_csprng_fresh() {
+        let invalid = NeuroControlLoop::new(
+            InProcessTransport::new(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits::default(),
+            "bad/*",
+            session(),
+        );
+        assert!(invalid.is_err());
+
+        let mut epochs = std::collections::BTreeSet::new();
+        for _ in 0..128 {
+            let epoch = mint_stream_epoch().expect("platform CSPRNG is available");
+            assert!(crate::is_canonical_uuid_v4(&epoch));
+            assert!(
+                epochs.insert(epoch),
+                "fresh publisher epochs must not collide"
+            );
+        }
     }
 
     #[test]
@@ -958,7 +1156,7 @@ mod tests {
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let steps = Arc::new(AtomicUsize::new(0));
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             TrackingController {
                 steps: steps.clone(),
@@ -972,6 +1170,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
         assert_eq!(loop_.tick().mode, Mode::Active);
@@ -990,12 +1189,13 @@ mod tests {
     fn controller_panic_is_contained_and_reported() {
         let transport = InProcessTransport::new();
         transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             PanickingController,
             20.0,
             SafetyLimits::default(),
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(|| 1.0));
 
         let command = loop_.tick();
@@ -1014,7 +1214,7 @@ mod tests {
     fn ttl_is_normalized_before_geofence_projection() {
         let transport = InProcessTransport::new();
         transport.push_sensor(sensor_with_motion(1.0, 1, 9.5));
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport,
             TrackingController {
                 steps: Arc::new(AtomicUsize::new(0)),
@@ -1029,6 +1229,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(|| 1.0));
 
         assert_eq!(
@@ -1046,7 +1247,7 @@ mod tests {
             1.0, 1.0, 0.5, 0.5, 1.1, 1.1,
         ])));
         let times2 = times.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -1055,6 +1256,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || {
             times2.lock().unwrap().pop_front().unwrap_or(1.1)
         }));
@@ -1074,12 +1276,12 @@ mod tests {
     }
 
     #[test]
-    fn controller_reset_runs_on_sensor_epoch_restart() {
+    fn controller_is_not_reset_by_replayed_lower_sensor_sequence() {
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let resets = Arc::new(AtomicUsize::new(0));
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             TrackingController {
                 steps: Arc::new(AtomicUsize::new(0)),
@@ -1093,6 +1295,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         transport.push_sensor(sensor_with_motion(0.0, 500, 0.0));
         assert_eq!(loop_.tick().mode, Mode::Active);
@@ -1100,11 +1303,11 @@ mod tests {
 
         *clock.lock().unwrap() = 0.5;
         transport.push_sensor(sensor_with_motion(0.5, 1, 0.0));
-        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(loop_.tick().mode, Mode::Hold);
         assert_eq!(
             resets.load(Ordering::SeqCst),
-            1,
-            "a lower seq accepted after expiry starts a new controller epoch"
+            0,
+            "a replay cannot reset controller state after expiry"
         );
     }
 
@@ -1140,7 +1343,7 @@ mod tests {
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
@@ -1150,6 +1353,7 @@ mod tests {
                 ..Default::default()
             },
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
         let frame = |t: f64, seq: i64| {
@@ -1201,12 +1405,13 @@ mod tests {
         let transport = InProcessTransport::new();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
             SafetyLimits::default(),
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || {
             let mut t = clock2.lock().unwrap();
             *t += 0.001; // +1 ms per read
@@ -1218,6 +1423,50 @@ mod tests {
             st.loop_latency_ms > 0.0,
             "loop_latency_ms must be a measured value, got {}",
             st.loop_latency_ms
+        );
+    }
+
+    #[test]
+    fn status_stream_starts_at_one_and_advances_strictly() {
+        let transport = InProcessTransport::new();
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        let _ = loop_.tick();
+        let _ = loop_.tick();
+
+        let statuses = transport.statuses();
+        assert_eq!(statuses.len(), 2);
+        assert_eq!(statuses[0].stream.seq, 1);
+        assert_eq!(statuses[1].stream.seq, 2);
+        assert_eq!(statuses[0].stream.epoch, statuses[1].stream.epoch);
+    }
+
+    #[test]
+    fn status_stream_exhaustion_never_reuses_the_last_position() {
+        let transport = InProcessTransport::new();
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            ReflexController::default(),
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+        loop_.status_seq = JSON_SAFE_INTEGER_MAX - 1;
+
+        let _ = loop_.tick();
+        assert_eq!(transport.statuses()[0].stream.seq, JSON_SAFE_INTEGER_MAX);
+
+        let _ = loop_.tick();
+        assert_eq!(
+            transport.statuses().len(),
+            1,
+            "an exhausted status publisher must become silent rather than repeat 2^53-1"
         );
     }
 
@@ -1242,12 +1491,13 @@ mod tests {
                 channels,
                 ..Default::default()
             });
-            let mut loop_ = NeuroControlLoop::new(
+            let mut loop_ = bound_loop(
                 transport.clone(),
                 ReflexController::default(),
                 rate_hz,
                 SafetyLimits::default(),
             )
+            .with_authority(test_authority())
             .with_clock(Box::new(|| 1.0));
             let command = loop_.tick();
             assert_eq!(command.mode, Mode::Hold, "rate={rate_hz:?}");
@@ -1280,12 +1530,13 @@ mod tests {
         });
         let times = Arc::new(Mutex::new(std::collections::VecDeque::from([1.0, 0.0])));
         let times2 = times.clone();
-        let mut loop_ = NeuroControlLoop::new(
+        let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
             20.0,
             SafetyLimits::default(),
         )
+        .with_authority(test_authority())
         .with_clock(Box::new(move || {
             times2.lock().unwrap().pop_front().unwrap_or(0.0)
         }));

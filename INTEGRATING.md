@@ -1,420 +1,169 @@
-# Integrating NCP into a new project
+# Integrating the NCP 1.0 candidate
 
-NCP is designed so adopting it is **simple and minimally invasive** — and, for the
-"a NEST point/rate neural network served live to external clients" use case, better than the
-alternatives (the honest comparison, including where it is *not*, is in
-[`RATIONALE.md`](RATIONALE.md)).
+> **Do not deploy this as released 1.0.** Repository HEAD is the unreleased,
+> release-blocked `1.0.0-rc.1` candidate (wire `1.0`, compact proto hash
+> `163acc57d8a62b66`). `v0.8.0` remains the latest immutable release and is not
+> natively compatible.
 
-## Topology: the roles a deployment wires together
+An integration is certified only when it installs immutable candidate artifacts,
+reports the same complete normative/corpus digests, passes every applicable vector
+with zero skips, passes the live secure/fault subset, and supplies its own plant
+safety case where it can actuate. A source checkout compiling is not certification.
 
-NCP itself is **generic** — it bakes in no consumer, no robot, no brain (see
-[`README.md`](README.md) and [`RATIONALE.md`](RATIONALE.md)). What a *deployment*
-does with the contract is wire independent peers into a few recurring roles. The
-reference fleet looks like this, and understanding it first makes the rest of this
-guide concrete:
+## Choose a role
 
-- **Hub / command-center — Engram.** Engram runs the NEST spiking-simulation
-  backend and is the *commander*. Crucially, it drives robots and UAVs
-  **interchangeably through NCP**: to Engram every body is just a `session` exposing
-  the same perception/action planes, so the same controller steers a simulated quad,
-  a real UAV, or another NEST model without special-casing any of them. Engram's Rust
-  edge is `ncp-gateway`, which terminates the Zenoh bus and bridges control-plane RPC
-  to the Python NEST host (`bridge_server.py`) over a localhost socket — NEST stays in
-  Python while the wire stays language-neutral.
-- **Body / tactical app — crebain**, a tactical-UAV application. crebain is
-  deliberately **"both or either"**: it runs **standalone** on its own self-contained
-  drone stack (the Tauri app + MAVROS, no NCP at all), **and/or** it joins a fleet over
-  NCP — the two paths are not mutually exclusive. NCP support is a self-contained,
-  **off-by-default** `ncp` Cargo feature living in `src-tauri/src/ncp/`, so the
-  standalone build *and its command-contract test* are byte-for-byte unchanged whether
-  or not the fleet path is compiled in. With the feature on, crebain publishes its pose
-  on the perception plane and is steered by `CommandFrame`s on the action plane,
-  failing safe to zero velocity on `hold`/`estop`.
-- **Observer — [prisoma](https://github.com/sepahead/prisoma)** (and similar). A
-  read-only consumer that *taps* the observation plane (and optionally perception) and
-  **drives nothing** — it never publishes the action plane.
+- A **commander** opens and mutates sessions and may hold action authority.
+- A **body** serves simulation/plant data, publishes perception and observation,
+  validates the plant profile, and remains final actuator authority.
+- An **observer** subscribes read-only and cannot mutate lifecycle or action.
+- An **operator** may initiate the deployment's body-local or out-of-band ESTOP
+  reset procedure, or override authority, only when explicitly enrolled for that
+  permission. Wire 1.0 has no stable reset RPC.
 
-The whole point of the contract is exactly this interop: Engram-the-hub neither knows
-nor cares whether a `session` is crebain's simulated quad, a real airframe, or a NEST
-network — they are addressed, versioned, and safety-gated identically. Adding a new
-body or observer is just a new peer pinning the wire tag; it changes **zero** hub code
-(the minimal-invasiveness contract below).
+Enroll the cryptographic principal, entity, role, and exact plane set in one
+default-deny authority manifest. Do not infer a role from a key or payload alone.
 
+## Native 1.0 checklist
 
-## The minimal-invasiveness contract
+1. Pin one immutable candidate artifact set; record source revision, package hashes,
+   package version, wire version, full normative digest, compact proto hash, corpus
+   digest, toolchains, OS, and architecture.
+2. Apply the universal JSON budget before generic allocation and semantic decoding.
+3. Negotiate the exact security profile/digest, stable capability set, channel
+   requirements, and content-addressed plant profile where applicable. Compute both
+   digests from the normative typed projections in
+   [`contract/security-state-digest.v1.json`](contract/security-state-digest.v1.json),
+   [`contract/plant-profile.v1.json`](contract/plant-profile.v1.json), and
+   [`contract/canonical-digest.v1.json`](contract/canonical-digest.v1.json), never
+   from language-specific JSON serialization.
+4. Bind each payload claim and plane delivery to the verified transport principal.
+5. Treat the successful `SessionOpened.session.generation` as the only live
+   incarnation. At every typed data-plane publish/subscribe boundary, require that
+   generation and exact payload-ID-to-concrete-route equality before callbacks or
+   safety latches. Reject stale nested sessions, operations, leases, and replies;
+   ESTOP may omit only its lease, never its complete envelope or live binding.
+6. Treat a successful authorized ESTOP reset as a session-generation cut: retire
+   the current generation, authority and lease, and all stream state; remain
+   non-actuating until a fresh `SessionOpened`, new generation, new streams, and new
+   matching authority lease. Do not expose a local reset helper as a remote reset
+   RPC. Reject every pre-reset frame by session binding before latch or control
+   processing.
+7. Require a valid bounded authority lease for active action and for step/run/close.
+8. Generate canonical operation IDs/request digests and verify responder receipts;
+   never retry when the result is unprovable except through the specified
+   `outcome_unknown` recovery policy.
+9. Implement the four queue policies exactly: control reject, perception latest,
+   action highest fail-safe severity (ESTOP, HOLD/non-active, Active) with
+   equal-severity latest-wins, observation drop-oldest-and-count.
+10. Keep `calibrated_posterior=false` and `is_simulation_output=true` on simulation
+   results.
+11. Replay the exact applicable vector set from
+    [`conformance/manifest.v1.json`](conformance/manifest.v1.json), then run the live
+    secure/fault matrix from [`RELEASE_READINESS.md`](RELEASE_READINESS.md).
 
-1. **The commander stays project-agnostic.** The NCP commander/backend (e.g. Engram)
-   speaks only NCP (entity/channel-addressed messages). It carries **no** project
-   topic names, message types, or field layouts. So adding your project changes
-   **zero** commander code.
-2. **Your project owns its mapping, in your repo, in your language.** A thin
-   adapter maps your sensors/actuators ↔ NCP `SensorFrame`/`CommandFrame`/stimulus/
-   record. That is the *only* code you write.
-3. **It bolts on without touching what you have.** A robot/UAV client's
-   integration can be a self-contained `src/ncp/` module behind an off-by-default
-   `ncp` Cargo feature — the default build and its command-contract test stay
-   unchanged. An analysis/observer client's is a read-only observer crate that
-   drives nothing. Neither needs to edit existing code.
+## Breaking migration from 0.8
 
-## Registering a consumer (zero NCP-repo changes)
+There is no in-place decode fallback. At minimum, a consumer must account for these
+breaking changes:
 
-The principle above extends to the **release tooling**: onboarding a consumer must
-not require editing the NCP repo. NCP names no consumer — its pin tooling
-(`scripts/check-consumer-pins.sh`, `scripts/repin-ncp.sh`) **discovers** consumers by
-globbing sibling repos for a `.ncp-consumer` descriptor. You register by committing
-that file to **your own** repo root; NCP never changes.
+| Wire 0.8 | Wire 1.0 candidate |
+|---|---|
+| exact pre-1.0 wire `0.8` | stable-major wire `1.0` |
+| compact hash `d1b50a2d8a265276` | compact hash `163acc57d8a62b66` plus full normative SHA-256 digest |
+| `ChannelSpec.optional: bool` | closed `requirement: required|optional`; unknown/absent rejects |
+| profile/identity context often deployment-only | negotiated `IdentityClaim`, security profile, and security-state digest |
+| no stable capability manifest | exact closed stable capability set required |
+| no plant-profile digest | plant role requires content-addressed plant profile |
+| session generation only | session generation plus bounded authority lease on active/mutating paths |
+| step/run/close lacked operation proof | operation context and authenticated terminal receipt |
+| implementation-local JSON/resource limits | universal normative envelope budget |
+| informal proxying | explicit `gateway_permitted` and visible gateway attribution only |
 
-`.ncp-consumer` is a small line-oriented file (`#` comments) declaring which of your
-files carry the NCP pin and, optionally, how to re-pin a bespoke layout. Tag-based
-entries have two fields; exact-revision entries additionally record a release label
-and full commit:
+Audit every persisted frame, cache key, retry loop, router ACL, test fixture, UI
+status, example, and telemetry consumer—not just public structs. An old cached frame
+must fail as stale rather than acquire a new session or authority by default.
 
-```text
-# how this repo pins NCP — read by NCP's generic, consumer-agnostic tooling.
-cargo_tag   src-tauri/Cargo.toml     # NCP git-dep `tag = "vX"` (+ explicit `version`, if present)
-cargo_lock  src-tauri/Cargo.lock     # resolved `NCP?tag=vX`
-cargo_rev   Cargo.toml v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
-cargo_lock_rev Cargo.lock v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
-npm_tag     package.json             # `"@…/ncp": "github:…/NCP#vX"`
-npm_lock    bun.lock                 # same spec `#vX` (+ resolved commit)
-mirror_ref  ncp/.mirror-ref          # a vendored-mirror pin file (the tag string)
-python_wire backend/neurocontrol/protocol.py v0.8.0 # Python NCP_VERSION wire
-repin_cmd   scripts/sync_mirror.sh {TAG}   # OPTIONAL consumer-owned re-pin ({TAG} substituted)
-```
+## Labelled terminating gateway
 
-Declare only the lines that apply to you. Use `cargo_tag`/`cargo_lock` for a tag
-pin, or `cargo_rev`/`cargo_lock_rev` with both the corresponding release tag and
-full 40-hex commit when a consumer deliberately requires an immutable revision.
-The offline checker enforces that the declared revision and any explicit Cargo
-version agree across the manifest and lockfile. It reports—but cannot independently
-prove—the consumer-declared tag-to-commit relationship; `repin-ncp.sh` derives that
-commit from the local canonical NCP tag.
-A vendored mirror declares `mirror_ref` + a `repin_cmd` that runs its own sync.
-If that consumer also implements the wire in Python, add `python_wire` with the
-runtime module and consumer-declared release tag. The checker then requires its
-`NCP_VERSION = "MAJOR.MINOR"` constant to match that release's wire. The generic
-repinner never rewrites runtime protocol code; a mirror-only bump therefore stays
-red until the consumer completes and tests its own migration.
-`check-consumer-pins.sh` then verifies every discovered
-consumer pins one agreed tag, and `repin-ncp.sh <tag>` re-pins them all — both with
-no NCP-side edit when a new consumer appears.
+`ncp-core::migration` provides the bounded migration primitive. It is terminating,
+authenticated, visible as source wire 0.8, and one-way into a separately validated
+native 1.0 context. It maps explicit legacy `optional=false` to `required` and
+`optional=true` to `optional`. Missing, null, string, mixed old/new, transparent, or
+context-free inputs reject.
 
-## 5-minute quickstart, per language (one canonical Rust core)
+The gateway cannot invent identity, security, session epoch, authority, operation,
+receipt, plant, or scientific evidence. A result that traverses it is labelled
+legacy-translated and cannot count as native 1.0 certification. Native peers may set
+`gateway_permitted=false`.
 
-**Rust** — depend on the SDK; subscribe/publish the planes or open a session:
-```rust
-let bus = ncp_zenoh::ZenohBus::open().await?;                 // realm "ncp" default; for a deployment realm: open_realm(Keys::new("engram/ncp")) — see "Realm & keys" below
-bus.subscribe_commands("uav1", |_k, b| { /* CommandFrame → your actuator */ }).await?;
-bus.put_sensor("uav1", &serde_json::to_vec(&sensor_frame)?).await?;
-// or, to be the controller: ncp_zenoh::ZenohControlTransport + ncp_core::NeuroControlLoop
-```
+[`ncp-gateway`](ncp-gateway/) is unrelated to this version translation. It is a
+same-wire native-1.0 lifecycle edge and requires a native-1.0 Python
+`SessionService`.
 
-**Python** — `import ncp` (the PyO3 module); speak JSON to the gateway/WS:
-```python
-import ncp                       # canonical keys/codec/version/validation in Rust
-k = ncp.Keys()                   # k.sensor("uav1"), k.command("uav1"), ...
-cmd_json = ncp.decode_command(codec_json, rates_json, t=0.0, seq=7)
-```
+## Registering a consumer
 
-**TypeScript** — import the Rust-generated types; keep your WS/Tauri transport:
-```ts
-import type { SensorFrame, CommandFrame, ObservationFrame } from "ncp/bindings";
-// send/receive the same JSON over /api/neurocontrol/ws or your ZenohBridge
-```
-
-**C++** — include `ncp.h`, link `ncp_cpp`:
-```cpp
-#include "ncp.h"
-char* key = ncp_key_command("ncp", "uav1");   // ncp_string_free(key)
-char* cmd = ncp_decode_command(codec_json, rates_json, 0.0,
-                               /*epoch=*/"00000000-0000-4000-8000-000000000001", 7,
-                               /*session_generation=*/"00000000-0000-4000-8000-0000000000a2",
-                               /*session_id=*/"uav1", /*frame_id=*/NULL, /*mode=*/NULL);
-```
-
-In every language the *behavior* (key scheme, codec, version guard, safety,
-validation) comes from the one Rust core, so all peers are wire-identical.
-
-## Realm & keys — how peers find each other on the bus
-
-Every NCP message rides a Zenoh **key expression** built from one `{realm}` prefix
-plus the plane. The realm is **addressing, not a credential**: every peer in a
-deployment agrees on the same realm string so their keyspaces line up — a wrong realm
-just means you never meet, it grants nothing (for actual authorization see the
-per-plane ACL + mTLS in [`SECURITY.md`](SECURITY.md)).
+Consumer discovery is generic: `scripts/check-consumer-pins.sh` and
+`scripts/repin-ncp.sh` inspect every sibling repository that commits a
+`.ncp-consumer` descriptor. Adding a consumer never adds its name or layout to NCP.
+The line-oriented descriptor accepts `#` comments and only declares consumer-owned
+relative files:
 
 ```text
-{realm}/rpc/{request_kind}               control-plane RPC   (exact request key; server declares {realm}/rpc/*)
-{realm}/session/{id}/sensor[/{name}]     perception plane    (pub/sub, best-effort DROP)
-{realm}/session/{id}/command[/{name}]    action plane        (pub/sub, best-effort DROP + express; ttl_ms is plant-side, safety-gated)
-{realm}/session/{id}/observation         observation plane   (commander publishes; observers subscribe read-only)
+cargo_tag       Cargo.toml
+cargo_lock      Cargo.lock
+cargo_rev       Cargo.toml v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
+cargo_lock_rev  Cargo.lock v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
+npm_tag         package.json
+npm_lock        bun.lock
+mirror_ref      ncp/.mirror-ref
+mirror_rev      ncp/.mirror-rev v0.8.0 2f5bd586d4bb20c90362bb6f5698b7f64057ba4e
+python_wire     backend/protocol.py v0.8.0
+repin_cmd       scripts/sync_ncp_mirror.sh {TAG} {REV}
 ```
 
-The default realm is the neutral `"ncp"`. A deployment picks its own — an Engram
-fleet standardises on `"engram/ncp"`, and every consumer (a crebain bridge, a prisoma
-observer) targets that same string. You set it equivalently from any peer:
+`cargo_rev`, `cargo_lock_rev`, and `mirror_rev` bind a consumer-declared release
+label to one lowercase 40-hex revision. For `mirror_rev`, the pin file contains
+exactly that revision (optionally followed by one final LF); tag strings, branch
+names, abbreviated hashes, whitespace, and extra lines fail the checker. This lets a
+vendored mirror follow an immutable pushed candidate revision without pinning
+movable `main` or requiring a premature tag. It does **not** make that candidate a
+release: the offline checker reports the declared label and verifies the local pin
+bytes, but cannot prove that a tag exists or resolves to the declared commit.
 
-- **Rust SDK:** `ZenohBus::open_realm(Keys::new("engram/ncp"))`. Plain
-  `ZenohBus::open()` uses the `"ncp"` default — it does **not** read `NCP_REALM`.
-- **`ncp-gateway` and the examples:** the `NCP_REALM` env var (default `ncp`).
-- **Other language peers:** `ncp.Keys("engram/ncp")` (Python),
-  `ncp_key_command("engram/ncp", id)` (C/C++).
+`repin-ncp.sh <tag>` has the stronger local-checkout boundary for every revision
+descriptor: it requires the canonical tag in the local NCP checkout, resolves its
+peeled 40-hex commit, supplies `{TAG}` and `{REV}` to a consumer-owned `repin_cmd`,
+and updates the descriptor metadata after the command succeeds. The custom command
+must atomically synchronize the mirror and write its revision pin; post-repin
+verification fails if either remains stale. The generic script never hand-edits
+vendored protocol content, runtime wire constants, commits, pushes, or tags.
 
-`{id}` names one session (e.g. `uav1`). Per-entity sub-keys (`…/sensor/imu`,
-`…/command/cmd_vel`) extend a plane for the multi-sensor / multi-actuator case, and
-subscribers wildcard with `**`: a controller subscribes `…/session/uav1/sensor/**`,
-a fleet observer subscribes `{realm}/session/**`. Ids and names must be single key
-segments — the key builders reject `/ * $ # ?` and whitespace **fail-closed**, so a
-wildcard-bearing id can't leak across sessions.
+Keep `python_wire` beside a mirror descriptor when the consumer has an independent
+runtime implementation. Advancing mirror bytes alone cannot hide a stale runtime
+wire: the checker continues to fail until the consumer completes and tests the
+breaking migration.
 
-### What's actually on the wire (so you size buffers and pick tooling right)
+## Known consumer inventory
 
-- **The runtime encoding is JSON.** The sensor, command, RPC, and observation planes ship
-  `serde_json` payloads — human-readable, debuggable from any Zenoh/WS client, and the
-  default everywhere. The end-to-end cost is tiny (~1 µs for a full control tick; see
-  [`PERFORMANCE.md`](PERFORMANCE.md)), so JSON stays the default.
-- **BulkBlock is not a standalone wire frame.** It is a bounded local/offline
-  column codec. Until the complete versioned/session/seq/provenance envelope ships
-  in every binding, publish observation data as JSON `ObservationFrame`; Zenoh
-  rejects a bare NCPB block.
-- **Protobuf (`proto/ncp.proto` + `gen/`) is the *schema contract*, not the shipped
-  encoding.** It is the IDL / source-of-truth that pins field names and feeds the
-  conformance corpus, and the TypeScript types derive from the same contract — but the
-  prost Rust bindings are **not** compiled into any runtime path (`gen/rust` is not a
-  workspace member and there is no prost runtime dependency). Treat the `.proto` as the
-  spec you conform to, not bytes you parse. A negotiated protobuf encoding is a possible
-  *opt-in* only if a kHz / bandwidth-constrained peer ever needs it.
-
-## Run the examples (copy these; don't start from scratch)
-
-NCP ships runnable, dependency-light examples that exercise the exact planes, keys and
-safety gates a consumer integrates against. Read them before writing your adapter:
-
-| Example | What it shows | Run |
+| Consumer | Current boundary | Native 1.0 status |
 |---|---|---|
-| [`ncp-zenoh/examples/uav_drone_loop.rs`](ncp-zenoh/examples/uav_drone_loop.rs) | The **action plane** end-to-end over Zenoh: a controller publishes `CommandFrame`s; a minimal quad plant subscribes on `{realm}/session/<id>/command`, enforces the `mode` and `ttl_ms` safety gates locally, and writes a JSONL trajectory a body (e.g. the crebain browser drone) can replay. | `cargo run -p ncp-zenoh --example uav_drone_loop` |
-| [`ncp-core/examples/uav_control_safety.rs`](ncp-core/examples/uav_control_safety.rs) | The full safety surface, deterministically and transport-free: closed-loop flight (`NeuroControlLoop` + `ReflexController`), every `SafetyGovernor` gate (speed clamp, geofence→latched ESTOP, stale-sensor HOLD, non-finite-clock fail-safe, horizon clamp), `ActionBuffer` replay through a dropout, and the `CommandWatchdog` ttl deadline. | `cargo run -p ncp-core --example uav_control_safety` |
-| [`ncp-core/examples/overhead.rs`](ncp-core/examples/overhead.rs) | The overhead benchmark — per-tick JSON (de)serialization of the action/perception frames, the safety governor, the reflex controller, and `BulkBlock` vs JSON for the same payload. Run it before claiming NCP is "too much overhead" (full results in [`PERFORMANCE.md`](PERFORMANCE.md)). | `cargo run -p ncp-core --release --example overhead` |
-| [`e2e/nest_five_networks.py`](e2e/nest_five_networks.py) | Five distinct **real NEST** spiking models driven through the NCP RPC contract (`open_session` → `step_request*` with `current_pA` stimulus and spike recording → `close_session`) against Engram's `bridge_server --backend nest`. | see [`e2e/README.md`](e2e/README.md) |
+| Engram | explicit local native-1.0 migration in progress; frozen 0.8 inventory retained as history | not installed-artifact/live certified |
+| crebain | Rust/npm wire-0.8 pins and hardcoded wire/hash | not migrated/certified |
+| crebain-galadriel-producer | wire-0.8 dependency surface | not migrated/certified |
+| galadriel | exact wire-0.8 revision and fixtures | not migrated/certified |
+| haldir | immutable `haldir-ncp08` compatibility surface | add parallel `haldir-ncp10`; retain 08 evidence |
+| prisoma | observer client on wire 0.8 | not migrated/certified |
 
-Because the key scheme, codec, version guard and safety all come from the one Rust
-core, these examples behave identically when reproduced from the Python, TypeScript and
-C++ peers.
+Migration ownership stays with each consumer. Protocol core must not add
+consumer-specific classes, topics, fields, or safety semantics.
 
+## Package notes
 
-## Worked integration — Engram (commander) and Prisoma (observer)
+- `ncp-core` and `ncp-zenoh` are Rust candidate crates.
+- `@sepahead/ncp` contains independently implemented TypeScript validation/client
+  decisions; WebSocket is experimental.
+- `ncp-python` and `ncp-cpp` expose Rust through FFI and are not independent peers.
+- `ncp-gateway` requires a native 1.0 backend.
 
-The two reference peers exercise the **two ends of the same wire**: Engram *commands*
-(RPC + action + observation), Prisoma *observes* (a read-only tap that drives nothing).
-Both pin NCP by tag and add zero code to each other. This section walks the real flow
-each one implements, so you can copy the shape for your own commander or observer.
-
-> **Wire 0.8 requirements (both ends).** The latest immutable release is `v0.8.0`.
-> On wire 0.8, every
-> message carries a compatible `ncp_version` (an absent or mismatched version is
-> rejected, not defaulted) and — for every post-open session-scoped frame — the
-> inseparable identity pair `session_id` + `session.generation` (the server issues the
-> generation on `SessionOpened`; `session_id` is now required on the control plane too).
-> The overloaded top-level `seq` is gone: a `sensor_frame`/`command_frame`/`observation_frame`
-> carries a typed `stream: {epoch, seq}` — its own ordered stream, `seq >= 1` per epoch,
-> strictly increasing, the single loss/`LinkMonitor` read — and a `command_frame`
-> correlates its driver by copying `source: {epoch, seq}` (a plane `observation_frame`
-> copies the driving sensor's `{epoch, seq}`; **`source` absence**, not `seq == 0`, is the
-> pull/RPC-reply form). All JSON
-> int64 values stay within ±(2^53−1); unknown enum strings are preserved; observation
-> provenance is explicit; nested stimuli match the outer session; and RPC errors are
-> versioned `ErrorFrame`s. A glob
-> subscriber skips a `kind` it does not recognize *before* validating, so additive kinds
-> stay non-breaking. Onboarding a new consumer still needs **zero NCP-repo changes** — pin
-> the tag, stamp `stream`/copy `source`, carry the version + session identity, and drop a
-> `.ncp-consumer` descriptor in your own repo (see [Registering a consumer](#registering-a-consumer-zero-ncp-repo-changes)).
-
-```text
-          engram/ncp/rpc/{request_kind}  (server queryable: engram/ncp/rpc/*)
-   ┌────────────┐  ───────────────────────────►  ┌──────────────────────────┐
-   │  Engram    │                                 │  ncp-gateway (Rust edge) │
-   │  commander │  ◄───────────────────────────   │  → bridge_server.py      │
-   │  (NEST)    │      ObservationFrame / …        │    (SessionService)      │
-   └────────────┘                                  └──────────────────────────┘
-        │  publishes …/{command,observation}; subscribes to plant-published …/sensor
-        ▼
-   ┌───────────────────────────── Zenoh bus (realm "engram/ncp") ─────────────────────────────┐
-        ▲ subscribes read-only (attaches for free — zero commander change)
-   ┌────────────┐
-   │  Prisoma   │  ZenohBus::open_realm(Keys::new("engram/ncp"))
-   │  observer  │  → subscribe_{sensors,commands,observations} → (V,L,D,A) dataset + run log
-   └────────────┘
-```
-
-### Engram — the commander (serve the RPC contract, publish the planes)
-
-Engram runs NEST in Python and terminates the bus with NCP's own **`ncp-gateway`**
-binary. The gateway serves the control-plane queryable at `{realm}/rpc/*`; each client
-request uses the exact `{realm}/rpc/{request_kind}` key. It forwards
-each request to Engram's Python `SessionService` (its `bridge_server.py`) over a
-localhost socket — NEST stays in Python, the wire stays language-neutral. Deploy it
-with the deployment realm and a configured **client** TLS identity. The router runs
-separately from a realm-rendered `deploy/zenoh-access-control.json5`; never point the
-gateway's strict client path at that router config:
-
-```bash
-NCP_REALM=engram/ncp \
-NCP_BRIDGE_ADDR=127.0.0.1:28474 \
-NCP_ZENOH_CONFIG=deploy/zenoh-client-secure.json5 \
-cargo run -p ncp-gateway
-# serves  engram/ncp/rpc/*  →  Python bridge 127.0.0.1:28474
-# streaming sensor/command/observation planes connect directly between peers
-```
-
-The commander's job is to answer the four lifecycle verbs and publish observations.
-Engram implements this as a `SessionService` whose single entry point validates the
-peer version **fail-closed** and treats the contract hash as **advisory**, then
-dispatches by `kind` — the exact policy every NCP commander must follow:
-
-```python
-# Engram side (its neurocontrol package) — the shape any NCP commander implements.
-# The gateway forwards request JSON to SessionService.handle_json(...).
-def handle(self, message):
-    version = message.get("ncp_version")
-    if version is not None:
-        check_version(version, strict=True)      # raises on a wire-incompatible peer
-    if message["kind"] == "open_session":
-        advisory = contract_advisory(message.get("contract_hash"))  # log-only; never rejects
-        if advisory:
-            logger.warning("open_session: %s", advisory)
-    return {                                       # dispatch by kind
-        "open_session": self.open,   "step_request": self.step,
-        "run_request":  self.run,    "close_session": self.close,
-    }[message["kind"]](parse(message))
-```
-
-- `open_session` → `SessionOpened` (declare the NEST network, what to record, and the
-  stimulus/codec). `step_request`/`run_request` → an `ObservationFrame` (the recorded
-  `V_m`/spikes/rate). `close_session` → `SessionClosed`.
-- Each observation is published on `engram/ncp/session/<id>/observation`; a plant's
-  pose arrives on `…/sensor` and the controller's `CommandFrame`s go out on
-  `…/command`, safety-gated by `mode`/`ttl_ms` (see the `uav_drone_loop` example).
-- **The commander names no consumer.** It never mentions Prisoma or crebain — it only
-  serves sessions on the realm. That is what lets an observer attach for free.
-
-A pure-Rust commander uses NCP's own crates directly instead of the Python bridge:
-`ncp_zenoh::ZenohBus::open_realm(Keys::new("engram/ncp"))`, then
-`NcpBusServer::serve_rpc(handler)` for the RPC verbs and `publish_observation(id, …)`
-for the data plane — same wire, no gateway.
-
-### Prisoma — the observer (subscribe read-only, map to `(V,L,D,A)`)
-
-Prisoma is a **read-only** tap: it opens the *same realm*, subscribes to the three
-data-plane keys, and turns each closed-loop tick into a `(V,L,D,A)` sample for its
-Partial Information Decomposition — **it publishes nothing on the action plane.** Its
-`ncp-observer` crate is a NCP consumer (latest released pin `v0.8.0`) built entirely on
-`ncp_core` + `ncp_zenoh`:
-
-```rust
-use ncp_core::keys::Keys;
-use ncp_core::{CommandFrame, ObservationFrame, SensorFrame};
-use ncp_observer::{Mapping, Observer};      // prisoma's own adapter crate
-use ncp_zenoh::ZenohBus;
-use std::sync::{Arc, Mutex};
-
-// Same realm as the commander — a wrong realm just means you never meet.
-let bus = ZenohBus::open_realm(Keys::new("engram/ncp")).await?;
-let observer = Arc::new(Mutex::new(
-    Observer::new("ncp-uav3", "nest", "reach", Mapping::default())
-        .with_runlog("outputs/ncp_runlog.jsonl")?,
-));
-
-// Perception plane → V (sensor channels) + L (the `instruction` channel).
-let o = observer.clone();
-bus.subscribe_sensors("uav3", move |_k, bytes| {
-    if let Ok(f) = serde_json::from_slice::<SensorFrame>(&bytes) {
-        o.lock().unwrap_or_else(|p| p.into_inner()).on_sensor(&f);
-    }
-}).await?;
-
-// Action plane → A (command channels). V and A are joined on `seq`.
-let o = observer.clone();
-bus.subscribe_commands("uav3", move |_k, bytes| {
-    if let Ok(f) = serde_json::from_slice::<CommandFrame>(&bytes) {
-        o.lock().unwrap_or_else(|p| p.into_inner()).on_command(&f);
-    }
-}).await?;
-
-// Observation plane → D (neural record-port readouts, aligned on `seq`).
-let o = observer.clone();
-bus.subscribe_observations("uav3", move |_k, bytes| {
-    if let Ok(f) = serde_json::from_slice::<ObservationFrame>(&bytes) {
-        o.lock().unwrap_or_else(|p| p.into_inner()).on_observation(&f);
-    }
-}).await?;
-
-// On shutdown, write the (V,L,D,A) dataset + close the provenance run log.
-tokio::signal::ctrl_c().await?;
-observer.lock().unwrap_or_else(|p| p.into_inner())
-    .finalize("outputs/ncp_vlda.json")?;
-```
-
-The correctness rule is the **`seq` join**: a `CommandFrame.seq` echoes the
-`SensorFrame.seq` it was computed from, so a sample pairs the action with the sensor
-that produced it — never by arrival time (the perception plane's DROP QoS would
-corrupt that). `ObservationFrame.seq` lets D align the same way; as of wire 0.6 a
-conforming publisher always stamps it on the observation plane (echoing the driving
-`SensorFrame.seq`), so the fall-back to the most-recent readout covers only a
-non-conforming or legacy producer. Prisoma stamps honest
-per-sample provenance (`l_source`, `d_source`) so a degenerate axis is never presented
-as real data. The whole tap is `ncp-observe`:
-
-```bash
-cargo run -p ncp-observer --bin ncp-observe -- \
-    --session uav3 --realm engram/ncp \
-    --out outputs/ncp_vlda.json --runlog outputs/ncp_runlog.jsonl
-```
-
-The takeaway for your own observer: subscribe on the realm, deserialize the frames you
-care about, join on `seq`, and **never touch the action plane** — the pub/sub data
-planes mean your tap costs the commander exactly nothing.
-
-## Picking the integration mechanism (decreasing preference)
-
-1. **Client-side adapter** (best) — your NCP client + mapping in your repo, against
-   `ncp-core`/`ncp.proto`/`schemas/` (your client's own `src/ncp/` adapter module).
-2. **Declarative profile** (data, not code) — a JSON mapping a generic loader
-   consumes; no per-project class in the commander (a declarative profile shipped by
-   your client).
-3. **Plugin package** — a `<commander>-ncp-<you>` package (e.g. `engram-ncp-<you>`)
-   registering a profile via entry points.
-
-## Evaluated from 10 adopter lenses — what each gets, what was missing, what changed
-
-| # | Adopter | Gets | Was missing → status |
-|---|---|---|---|
-| 1 | **Robotics / UAV engineer** | action + perception planes, pose/velocity↔frame mapping, safety mode | streaming control loop over the bus → **added** (`ZenohControlTransport`) |
-| 2 | **Computational neuroscientist** | live data from a *running* NEST kernel (persistent `Prepare`/`Run`), V_m/spikes/rate, stimulus injection | "is it real-time like MUSIC?" → **answered** ([`NEST_REALTIME.md`](NEST_REALTIME.md)); multi-sim coupling → use MUSIC (out of scope, documented) |
-| 3 | **RL researcher** | Gym-like `open`/`step`/`run` over the wire, record/stimulus specs | per-session capability *negotiation* endpoint → partial (`/api/neurocontrol/info` lists backends/messages; richer handshake is roadmap) |
-| 4 | **Data scientist / analyst** | read-only observer tap, PyO3 module, `(V,L,D,A)` mapping | exact stream alignment → **added** (`ObservationFrame.seq`; observer joins D on `seq`) |
-| 5 | **TypeScript / frontend dev** | wire-correct types conforming to `proto/ncp.proto` (today via ts-rs from `ncp-core`; buf/ts-proto is the migration target) | browser transport → WS/Tauri (Zenoh is native, no WASM transport — the typed contract is the unification; documented) |
-| 6 | **C++ / systems dev** | native integration | a C/C++ binding → **added** (`ncp-cpp` C ABI + `ncp.h`, compile-and-run verified) |
-| 7 | **Embedded / MCU dev** | the shipped JSON wire is compact; `BulkBlock` is a bounded local/offline codec | `no_std` core + a tiny transport (zenoh-pico / micro-ROS) → **gap / roadmap** (today `ncp-core` is `std`+serde; Zenoh is heavy) |
-| 8 | **Security engineer** | per-plane keys, scoped read taps; a default-deny per-plane Zenoh ACL template (`deploy/zenoh-access-control.json5`) + mutual-TLS enablement steps (`SECURITY.md`) | **enable the ACL + mTLS** → on an open realm the command key is world-writable until you do; the template ships the mechanism, live mTLS-enforcement validation is the remaining P0 (#7) |
-| 9 | **DevOps / SRE** | reproducible builds, one conformance command | CI + the full cross-language shape/behavior corpus → **added**; independent multi-implementation certification remains roadmap |
-| 10 | **OSS maintainer / standards** | versioned spec + `.proto` + schemas + extractable crate + SemVer guard + pragmatic conformance corpus | neutral spec home and multiple independent implementations → **gap / roadmap** |
-
-Honest summary: lenses 1, 2, 4, 6, 9 were improved this round; 3 and 5 are partial
-by design; **8 (auth) is the one real blocker for an open-network deployment** and
-needs a security policy; 7 and 10 are roadmap. Use NCP when you need a NEST sim
-served live to remote, multi-language clients with safety/provenance and a free
-tap — and read `RATIONALE.md` for when a simpler composition (`rmw_zenoh` +
-messages + a watchdog) is the better call instead.
-
-## Before you deploy: read the limitations
-
-NCP is pre-1.0 and the contract is deliberately conservative. Before any field or
-open-network deployment, read [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — an
-continuing adversarial audit whose live ledger deliberately no longer uses the obsolete
-35-item numeric summary. All original high-severity safety findings are fixed, and wire
-0.7 closes further cross-language, provenance, error, precision, realm, RPC-addressing,
-and hostile-bulk gaps. Remaining integration/performance items stay individually tracked.
-Pair it with [`SECURITY.md`](SECURITY.md): on an open/default configuration the
-action key is world-writable until you enable the shipped per-plane ACL + mTLS (lens 8
-above) — **that (auth) is the one real blocker for an open-network deployment**, not the
-now-closed high-severity safety bugs.
+The RC packages are not published stable artifacts. Do not replace an immutable
+consumer release pin with `main` or a workspace path and call that migration.

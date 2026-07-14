@@ -43,6 +43,14 @@ jobs:
       - name: Format check
         run: cargo fmt --all --check
 
+      # The PyNEST E2E client is intentionally dependency-free at ingress. Its
+      # scanner must reject oversized, malformed, duplicate-key, over-nested,
+      # and over-complex JSON before the generic decoder can allocate from it.
+      - name: Bounded pure-Python line ingress
+        run: |
+          python3 -m unittest -v e2e.test_bounded_json
+          python3 -m py_compile e2e/bounded_json.py e2e/nest_five_networks.py e2e/test_bounded_json.py
+
       # ncp-python (PyO3) is excluded from the cargo gate: its test binary needs
       # libpython on the runtime linker path, and it is built/tested via maturin
       # + pytest (the PyPI path), not the cargo workspace. See ROADMAP.md.
@@ -79,36 +87,23 @@ jobs:
 
       # Regenerate + ensure the TS bindings build (ncp-core `ts` feature).
       - name: Test ncp-core with TS bindings
-        run: cargo test -p ncp-core --features ts --locked
+        run: |
+          cargo test -p ncp-core --features ts --locked
+          # ts-rs 12 leaves spaces before some doc-driven line breaks. The
+          # checked-in generator bridge normalizes those bytes and mirrors the
+          # exact result into the package before either surface is compared.
+          node ncp-ts/scripts/sync-bindings.mjs
 
       # Package tests must not accidentally borrow root-only fixtures or licenses.
       # Assemble all five publishable crates, assert their archive surfaces, then
       # test core/Zenoh/C-ABI and type-check Python/gateway from extracted archives.
-      # Temporary Cargo patches resolve the not-yet-published exact 0.7 NCP crates
+      # Temporary Cargo patches resolve the not-yet-published candidate NCP crates
       # locally without changing the manifests that will be uploaded.
       - name: Rust crate archives are self-contained
         run: python3 scripts/check_rust_packages.py --offline
 
       - name: Rust-generated TS bindings must be committed
-        run: git diff --exit-code -- ncp-core/bindings
-
-      # Guard the protobuf IDL against the JSON Schemas (field-set + enum
-      # wire-string parity). Closes the third side of the serde/schema/proto
-      # triangle; dependency-free, stdlib Python only.
-      - name: Proto <-> JSON-Schema parity
-        run: python3 scripts/check_proto_schema_parity.py
-
-      # Conformance corpus: golden message instances validated against the
-      # schemas — the language-agnostic interop corpus any peer can run.
-      - name: Conformance vectors
-        run: python3 scripts/check_conformance_vectors.py
-
-      # Frozen JSON-wire baseline: extends buf's proto-only guarantee to the whole
-      # serde/Pydantic JSON wire — the CURRENT schemas must be ADDITIVELY compatible
-      # with the snapshot frozen at conformance/baseline/v<wire>.0 (no removed field /
-      # enum value, no field made required, no type change within a wire version).
-      - name: Frozen JSON-wire baseline (additive-only)
-        run: python3 scripts/check_wire_baseline.py
+        run: git diff --exit-code -- ncp-core/bindings ncp-ts/src/generated
 
       # Behavioral conformance: the same decision corpus the Rust reference is
       # pinned to (ncp-core/tests/behavior_conformance.rs, run by the cargo test
@@ -197,30 +192,48 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
+          # Released-baseline and Buf-breaking policy bind exact annotated tag
+          # objects and peeled commits from the local object database. A shallow
+          # checkout cannot prove that immutable-history boundary.
+          fetch-depth: 0
       - name: Install buf
         uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ github.token }}
+
+      # One release-owned, read-only block keeps every machine contract and its
+      # hostile self-test visible together. These checks are stdlib/shell/Buf only;
+      # the expensive Rust/package/schema regeneration remains in build-test.
+      - name: Release-owned machine-contract gates
+        run: |
+          python3 -m unittest -v e2e.test_bounded_json
+          python3 scripts/check_markdown_links.py --self-test
+          python3 scripts/check_markdown_links.py
+          python3 scripts/check_proto_schema_parity.py
+          python3 scripts/check_conformance_vectors.py
+          python3 scripts/generate_conformance_manifest.py
+          python3 scripts/generate_contract_manifest.py --self-test
+          python3 scripts/generate_contract_manifest.py
+          python3 scripts/check_request_digests.py
+          python3 scripts/check_profile_digests.py
+          python3 scripts/check_released_baselines.py --self-test
+          python3 scripts/check_released_baselines.py
+          python3 scripts/check_buf_breaking.py --self-test
+          python3 scripts/check_buf_breaking.py
+          python3 scripts/check_wire_baseline.py --self-test
+          python3 scripts/check_wire_baseline.py
+          python3 scripts/check_wire_baseline.py --verify-current-cut
+          python3 scripts/check_release_gates.py --self-test
+          python3 scripts/check_release_gates.py
+          scripts/check-version-coherence.sh --self-test
+          scripts/check-version-coherence.sh
+
       # The normative wire IDL (proto/ncp.proto) must build and lint. Language-
       # agnostic compat detection no single-language binding can provide.
       - name: buf build
         run: buf build
       - name: buf lint
         run: buf lint
-      # Gate the JSON + binary wire against the FIRST tag of the current wire
-      # version (v0.7.0, the wire-0.7 baseline). A WIRE/WIRE_JSON-breaking change
-      # fails here and must bump the version (see VERSIONING.md).
-      # IMPORTANT: do NOT bump this baseline on a patch/minor-doc release — the
-      # whole v0.7.x lineage is checked against the wire-0.7 origin, so a break
-      # introduced anywhere in 0.7.x is still caught. Move it ONLY when cutting a
-      # new wire. Prior baselines: v0.4.0 (wire 0.4), v0.5.0 (the mode string→enum
-      # promotion), and v0.6.0 (mandatory version/seq acceptance rules). v0.7.0
-      # adds the typed error envelope and completes the reserved bulk-observation
-      # metadata, so it must become the binary compatibility origin for 0.7.
-      - name: buf breaking (vs v0.7.0)
-        uses: bufbuild/buf-breaking-action@c57b3d842a5c3f3b454756ef65305a50a587c5ba # v1.1.4
-        with:
-          against: "https://github.com/sepahead/NCP.git#tag=v0.7.0,subdir=."
 
   ts-dist:
     name: ts dist up-to-date

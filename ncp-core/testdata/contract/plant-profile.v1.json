@@ -1,0 +1,62 @@
+{
+  "schema": "ncp.plant-profile-contract.v1",
+  "wire_version": "1.0",
+  "profile_schema_id": "ncp.plant-profile.v1",
+  "encoding": "contract/canonical-digest.v1.json",
+  "domain_utf8_with_terminal_nul": "ncp.plant-profile-digest.v1\u0000",
+  "profile": {
+    "closed": true,
+    "required_members": [
+      "schema",
+      "status",
+      "profile_id",
+      "revision",
+      "plant_class",
+      "body_entity_id",
+      "command_channels",
+      "hold_action",
+      "estop_action",
+      "body_is_final_authority",
+      "protocol_estop_is_physical_certification",
+      "consumer_safety_case_required",
+      "profile_digest_sha256"
+    ],
+    "const": {
+      "schema": "ncp.plant-profile.v1",
+      "body_is_final_authority": true,
+      "protocol_estop_is_physical_certification": false,
+      "consumer_safety_case_required": true
+    },
+    "enum": {
+      "status": ["reference-non-certifying", "deployment-specific"],
+      "plant_class": ["simulation", "uav", "mobile_base", "arm", "other"]
+    },
+    "revision": "integer 1..9007199254740991",
+    "profile_id_and_body_entity_id": "non-empty canonical IDs <=128 UTF-8 bytes; whitespace, controls, U+FEFF, and /*$#? are forbidden",
+    "command_channels": {
+      "count": "1..256",
+      "order": "unique names in ascending UTF-8 lexical order",
+      "closed_members": ["name", "unit", "arity", "min", "max", "actuator_semantics"],
+      "arity": "integer 1..4096",
+      "bounds": "finite binary64 min and max with min <= max",
+      "name_grammar": "non-empty canonical ID <=128 UTF-8 bytes; whitespace, controls, U+FEFF, and /*$#? are forbidden",
+      "text_limits": "unit is non-empty control-free UTF-8 <=64 bytes; actuator_semantics is non-empty control-free UTF-8 <=512 bytes"
+    },
+    "safe_actions": {
+      "closed_members": ["kind", "channel_values", "hold_max_ms", "body_local_executor"],
+      "kinds": ["neutral", "hold_last", "shutdown"],
+      "neutral_or_shutdown": "hold_max_ms is null and channel_values defines every command channel exactly at matching arity with finite in-range values",
+      "hold_last": "channel_values is empty and hold_max_ms is an integer in 1..1000",
+      "estop_hold_last": "forbidden",
+      "body_local_executor": "non-empty canonical ID <=128 UTF-8 bytes; whitespace, controls, U+FEFF, and /*$#? are forbidden"
+    },
+    "unknown_members": "reject at every profile object boundary"
+  },
+  "digest": {
+    "projection": "the complete validated profile object excluding only the root profile_digest_sha256 member",
+    "unknown_members": "none are permitted, so no unbound extension state exists",
+    "verify": "profile_digest_sha256 must be 64 lowercase hex and exactly equal the computed digest",
+    "cross_language_vectors": "conformance/plant-profile/v1.json"
+  },
+  "boundary": "content addressing and deterministic validation do not certify physical safety; the body remains final actuator authority"
+}

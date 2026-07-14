@@ -1,6 +1,6 @@
 [package]
 name = "ncp-core"
-description = "Neuro-Cybernetic Protocol (NCP) — pure protocol core: wire types, version guard, key scheme, rate codec, safety governor, in-process bus. The normative Rust reference."
+description = "Neuro-Cybernetic Protocol (NCP) informative Rust reference: canonical-JSON validation, lifecycle and authority state, keys, codecs, safety, and an in-process bus."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -19,13 +19,15 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-# TypeScript type generation (Rust is the single source of truth for TS types).
+sha2 = { workspace = true }
+getrandom = { workspace = true }
+# TypeScript type generation from the conformance-locked Rust projection.
 # `cargo test --features ts` writes ncp-core/bindings/*.ts. Off by default.
 # serde-compat so ts-rs honours the existing `#[serde(rename)]` (e.g. "V_m", "ref").
 ts-rs = { version = "12", features = ["serde-compat"], optional = true }
-# JSON-Schema generation from the Rust serde types — NCP OWNS its schema projection
-# proto-first (the serde types are the conformance-locked reference impl of the proto,
-# and their `#[serde(rename)]` carry the enum wire strings). `cargo run --features schema
+# JSON-Schema generation from the Rust serde types. The serde types are the
+# conformance-locked informative projection of the normative field-shape IDL, and
+# their `#[serde(rename)]` carry the canonical JSON enum strings. `cargo run --features schema
 # --bin gen-schemas` regenerates schemas/*.schema.json. Off by default. Replaces the
 # previous inversion where schemas were generated from a downstream consumer's models.
 schemars = { version = "1", optional = true }

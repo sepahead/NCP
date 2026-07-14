@@ -23,12 +23,11 @@ use std::collections::BTreeMap;
 /// `(major, minor)`; once `>=1.0` they check the **major** only. See
 /// [`check_version`].
 ///
-/// Wire `0.7` closes cross-language acceptance gaps: `kind` is schema-required,
-/// JSON int64 values are bounded to the exact binary64 range, additive enum strings
-/// round-trip losslessly, honesty-boundary fields are explicit rather than locally
-/// fabricated, error replies are versioned, and hostile bulk inputs are bounded.
-/// It retains wire `0.6`'s mandatory `ncp_version` and stamped `seq` discipline.
-pub const NCP_VERSION: &str = "0.8";
+/// Wire `1.0` is the unreleased candidate line. It retains the frozen 0.8 stream
+/// identity and honesty boundaries while making safety-relevant channel
+/// requirement state explicit. Release status is independent of this identifier;
+/// the candidate remains blocked until every external gate is evidenced.
+pub const NCP_VERSION: &str = "1.0";
 
 /// Largest integer that every NCP JSON peer can represent exactly. The JSON wire
 /// deliberately uses numbers for proto `int64` fields, but JavaScript parses those
@@ -41,6 +40,7 @@ pub const JSON_SAFE_INTEGER_MIN: i64 = -JSON_SAFE_INTEGER_MAX;
 /// TTL/cadence bound is usually much smaller; this prevents an attacker from
 /// turning a tiny cadence into an effectively unbounded decoded horizon.
 pub const MAX_HORIZON_STEPS: usize = 65_536;
+pub const MAX_CHANNELS: usize = 4_096;
 
 fn ncp_version() -> String {
     NCP_VERSION.to_string()
@@ -162,6 +162,25 @@ mod json_integer {
         }
     }
 
+    pub mod unsigned {
+        use super::*;
+        use serde::ser::Error as _;
+
+        pub fn serialize<S: Serializer>(value: &u64, serializer: S) -> Result<S::Ok, S::Error> {
+            if *value > JSON_SAFE_INTEGER_MAX as u64 {
+                return Err(S::Error::custom(
+                    "integer is outside the exact NCP JSON range",
+                ));
+            }
+            value.serialize(serializer)
+        }
+
+        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<u64, D::Error> {
+            let value = ExactI64::deserialize(deserializer)?.0;
+            u64::try_from(value).map_err(|_| D::Error::custom("integer must be non-negative"))
+        }
+    }
+
     pub mod vec {
         use super::*;
 
@@ -263,13 +282,14 @@ pub(crate) mod test_ids {
 
 /// Implement a string-valued enum whose unknown values are retained exactly.
 ///
-/// NCP explicitly permits additive enum values within one compatible wire. A
-/// catch-all unit variant is not sufficient: serde's `other` accepts the value but
-/// destroys it, so decode -> encode silently rewrites a newer value to `"unknown"`.
-/// Every descriptive enum therefore stores the original string in `Unknown`.
-/// Empty strings are never enum values (proto's `*_UNSPECIFIED` constants are not
-/// part of the JSON wire), so they fail closed instead of becoming an ambiguous
-/// sentinel.
+/// A catch-all unit variant is not sufficient: serde's `other` accepts the value
+/// but destroys it, so decode -> encode silently rewrites an unrecognized value to
+/// `"unknown"`. The original string is therefore stored in `Unknown`, both for
+/// the explicitly open `Mode` and for closed enums that need
+/// faithful diagnostics or relay. Path-level validation decides whether the value
+/// is safe there. Empty strings are never enum values (proto's `*_UNSPECIFIED`
+/// constants are not part of the JSON wire), so they fail closed instead of
+/// becoming an ambiguous sentinel.
 macro_rules! forward_string_enum {
     ($ty:ident { $($wire:literal => $variant:ident),+ $(,)? }) => {
         impl $ty {
@@ -334,7 +354,7 @@ macro_rules! forward_string_enum {
     derive(ts_rs::TS),
     ts(
         export,
-        type = "\"spikes\" | \"V_m\" | \"rate\" | \"weight\" | \"binary_state\" | (string & {})"
+        type = "\"spikes\" | \"V_m\" | \"rate\" | \"weight\" | \"binary_state\""
     )
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -351,7 +371,8 @@ pub enum Observable {
     /// Binary / multi-state neurons: discrete state via spin_detector, not V_m. (#10)
     #[cfg_attr(feature = "schema", schemars(rename = "binary_state"))]
     BinaryState,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    /// An unrecognized value retained for diagnostics or lossless relay. This is
+    /// closed because recording and observation paths require interpretation.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -372,7 +393,7 @@ forward_string_enum!(Observable {
     derive(ts_rs::TS),
     ts(
         export,
-        type = "\"current_pA\" | \"rate_hz\" | \"spike_times\" | \"weight_set\" | \"rate_inject\" | (string & {})"
+        type = "\"current_pA\" | \"rate_hz\" | \"spike_times\" | \"weight_set\" | \"rate_inject\""
     )
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -390,7 +411,8 @@ pub enum StimulusKind {
     /// step_rate_generator); rate models cannot receive spikes. (#10)
     #[cfg_attr(feature = "schema", schemars(rename = "rate_inject"))]
     RateInject,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    /// An unrecognized value retained for diagnostics or lossless relay. Because
+    /// this enum selects an input action, request validation rejects it.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -409,10 +431,7 @@ forward_string_enum!(StimulusKind {
 #[cfg_attr(
     feature = "ts",
     derive(ts_rs::TS),
-    ts(
-        export,
-        type = "\"handle\" | \"builtin\" | \"model_id\" | \"spec\" | (string & {})"
-    )
+    ts(export, type = "\"handle\" | \"builtin\" | \"model_id\" | \"spec\"")
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum NetworkRefKind {
@@ -425,7 +444,8 @@ pub enum NetworkRefKind {
     ModelId,
     #[cfg_attr(feature = "schema", schemars(rename = "spec"))]
     Spec,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    /// An unrecognized value retained for diagnostics or lossless relay. Because
+    /// this enum selects model-loading behavior, request validation rejects it.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -443,7 +463,7 @@ forward_string_enum!(NetworkRefKind {
 #[cfg_attr(
     feature = "ts",
     derive(ts_rs::TS),
-    ts(export, type = "\"stream\" | \"batch\" | (string & {})")
+    ts(export, type = "\"stream\" | \"batch\"")
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum SimMode {
@@ -452,7 +472,8 @@ pub enum SimMode {
     Stream,
     #[cfg_attr(feature = "schema", schemars(rename = "batch"))]
     Batch,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    /// An unrecognized value retained for diagnostics or lossless relay. Because
+    /// this enum selects execution behavior, request validation rejects it.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -504,10 +525,7 @@ forward_string_enum!(Mode {
 #[cfg_attr(
     feature = "ts",
     derive(ts_rs::TS),
-    ts(
-        export,
-        type = "\"system\" | \"actor\" | \"sensor\" | \"actuator\" | (string & {})"
-    )
+    ts(export, type = "\"system\" | \"actor\" | \"sensor\" | \"actuator\"")
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum EntityRole {
@@ -520,7 +538,8 @@ pub enum EntityRole {
     Sensor,
     #[cfg_attr(feature = "schema", schemars(rename = "actuator"))]
     Actuator,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    /// An unrecognized value retained for diagnostics or lossless relay. This is
+    /// closed because bindings may use the role for routing or authorization.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -538,10 +557,7 @@ forward_string_enum!(EntityRole {
 #[cfg_attr(
     feature = "ts",
     derive(ts_rs::TS),
-    ts(
-        export,
-        type = "\"scalar\" | \"vec3\" | \"quat\" | \"array\" | (string & {})"
-    )
+    ts(export, type = "\"scalar\" | \"vec3\" | \"quat\" | \"array\"")
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ChannelKind {
@@ -554,7 +570,8 @@ pub enum ChannelKind {
     Quat,
     #[cfg_attr(feature = "schema", schemars(rename = "array"))]
     Array,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    /// An unrecognized value retained for diagnostics or lossless relay. This is
+    /// closed because required capability paths must interpret the shape.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -567,12 +584,46 @@ forward_string_enum!(ChannelKind {
     "array" => Array,
 });
 
+/// Whether a negotiated channel is mandatory. Wire 1.0 deliberately makes
+/// absence/`"unknown"` non-authorizing; wire 0.8's missing `optional` boolean
+/// optimistically defaulted to `true` and is accepted only by the labelled gateway.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(
+    feature = "ts",
+    derive(ts_rs::TS),
+    ts(export, type = "\"unknown\" | \"required\" | \"optional\"")
+)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum ChannelRequirement {
+    #[default]
+    #[cfg_attr(feature = "schema", schemars(rename = "unknown"))]
+    Indeterminate,
+    #[cfg_attr(feature = "schema", schemars(rename = "required"))]
+    Required,
+    #[cfg_attr(feature = "schema", schemars(rename = "optional"))]
+    Optional,
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    /// An unrecognized value retained for diagnostics or lossless relay. This is
+    /// a closed negotiation enum, so semantic validation rejects it.
+    Unknown(String),
+}
+
+forward_string_enum!(ChannelRequirement {
+    "unknown" => Indeterminate,
+    "required" => Required,
+    "optional" => Optional,
+});
+
 /// Who a peer is in the closed-loop handshake.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(
     feature = "ts",
     derive(ts_rs::TS),
-    ts(export, type = "\"controller\" | \"plant\" | (string & {})")
+    ts(
+        export,
+        type = "\"controller\" | \"plant\" | \"observer\" | \"operator\""
+    )
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Role {
@@ -581,7 +632,12 @@ pub enum Role {
     Controller,
     #[cfg_attr(feature = "schema", schemars(rename = "plant"))]
     Plant,
-    /// A newer additive wire value, retained verbatim for lossless forwarding.
+    #[cfg_attr(feature = "schema", schemars(rename = "observer"))]
+    Observer,
+    #[cfg_attr(feature = "schema", schemars(rename = "operator"))]
+    Operator,
+    /// An unrecognized value retained for diagnostics or lossless relay. This is
+    /// a closed authority-negotiation enum, so semantic validation rejects it.
     #[cfg_attr(feature = "schema", schemars(skip))]
     #[cfg_attr(feature = "ts", ts(skip))]
     Unknown(String),
@@ -590,7 +646,166 @@ pub enum Role {
 forward_string_enum!(Role {
     "controller" => Controller,
     "plant" => Plant,
+    "observer" => Observer,
+    "operator" => Operator,
 });
+
+/// Transport plane named by an authenticated principal claim. Security enums are
+/// closed: an unknown plane never inherits authority from a known one.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Plane {
+    #[default]
+    Unknown,
+    Control,
+    Perception,
+    Action,
+    Observation,
+}
+
+/// Principal role enrolled by a deployment authority manifest. This is distinct
+/// from the older controller/plant handshake role because observers and operators
+/// have security authority without pretending to be a controller or body.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum PrincipalRole {
+    #[default]
+    Unknown,
+    Commander,
+    Body,
+    Observer,
+    Operator,
+}
+
+/// Payload claim that an authenticated transport adapter binds to its verified
+/// peer identity. The claim never authenticates itself.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct IdentityClaim {
+    pub principal_id: String,
+    pub entity_id: String,
+    pub role: PrincipalRole,
+    pub plane: Plane,
+}
+
+/// Visible attribution for a deliberately translated legacy payload. Native
+/// peers omit it; its presence never upgrades the legacy source's security or
+/// scientific/safety evidence.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct GatewayAttribution {
+    pub gateway_id: String,
+    pub source_wire: String,
+}
+
+/// Normative lifecycle state carried by authority/audit projections.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum LifecycleState {
+    #[default]
+    Unknown,
+    Closed,
+    Opening,
+    Init,
+    Active,
+    Hold,
+    Estop,
+    Closing,
+    Reconnecting,
+    Failed,
+}
+
+/// One bounded authority term for a single session incarnation. UTC timestamps
+/// are receipt/audit bounds; receivers derive a local monotonic expiry deadline.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct AuthorityLease {
+    pub session_epoch: String,
+    #[serde(with = "json_integer::unsigned")]
+    #[cfg_attr(feature = "schema", schemars(with = "u64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub term: u64,
+    pub lease_id: String,
+    pub issuer_principal_id: String,
+    pub holder_principal_id: String,
+    pub holder_entity_id: String,
+    #[serde(with = "json_integer::one")]
+    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub issued_at_utc_ms: i64,
+    #[serde(with = "json_integer::one")]
+    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub expires_at_utc_ms: i64,
+}
+
+/// Caller-provided exactly-once context for a state-mutating lifecycle RPC.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct OperationContext {
+    pub operation_id: String,
+    pub request_digest: String,
+    pub session_epoch: String,
+    #[serde(with = "json_integer::unsigned")]
+    #[cfg_attr(feature = "schema", schemars(with = "u64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub expected_state_version: u64,
+    #[serde(with = "json_integer::one")]
+    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub deadline_utc_ms: i64,
+    pub retry: bool,
+}
+
+/// Terminal state of one idempotent lifecycle operation.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OperationOutcome {
+    #[default]
+    Unknown,
+    Succeeded,
+    Rejected,
+    Cancelled,
+    OutcomeUnknown,
+}
+
+/// Authenticated responder receipt returned by a state-mutating lifecycle RPC.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(default)]
+pub struct ResponderReceipt {
+    pub operation_id: String,
+    pub request_digest: String,
+    pub result_digest: String,
+    pub outcome: OperationOutcome,
+    #[serde(with = "json_integer::unsigned")]
+    #[cfg_attr(feature = "schema", schemars(with = "u64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub state_version: u64,
+    #[serde(with = "json_integer::one")]
+    #[cfg_attr(feature = "schema", schemars(with = "i64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub committed_at_utc_ms: i64,
+    pub responder_principal_id: String,
+    pub responder_entity_id: String,
+}
 
 // ───────────────────────── primitives ─────────────────────────
 
@@ -837,6 +1052,15 @@ pub struct OpenSession {
     /// `ncp_version` is the hard compatibility gate. Defaults to our own hash so
     /// every session advertises it; `None` (serialized `null`) = not advertised.
     pub contract_hash: Option<String>,
+    /// Authenticated caller claim; the transport adapter binds it to the peer
+    /// certificate before opening any session state.
+    pub identity: IdentityClaim,
+    pub security_profile: String,
+    pub security_state_digest: String,
+    /// Explicit opt-in to a labelled 0.8→1.0 gateway. `false` is native-only.
+    pub gateway_permitted: bool,
+    /// Present only when this payload was emitted by a terminating gateway.
+    pub gateway: Option<GatewayAttribution>,
 }
 
 impl Default for OpenSession {
@@ -851,6 +1075,11 @@ impl Default for OpenSession {
             sim: SimConfig::default(),
             bindings: Vec::new(),
             contract_hash: Some(CONTRACT_HASH.to_string()),
+            identity: IdentityClaim::default(),
+            security_profile: String::new(),
+            security_state_digest: String::new(),
+            gateway_permitted: false,
+            gateway: None,
         }
     }
 }
@@ -885,6 +1114,18 @@ pub struct SessionOpened {
     /// (0.8) Server-ISSUED session incarnation, present iff `ok`; clients echo
     /// `session.generation` on every subsequent session-scoped frame.
     pub session: Option<SessionRef>,
+    /// Authoritative state version after processing the open request. A successful
+    /// client uses this as the first mutation's `expected_state_version`.
+    #[serde(with = "json_integer::unsigned")]
+    #[cfg_attr(feature = "schema", schemars(with = "u64"))]
+    #[cfg_attr(feature = "ts", ts(type = "bigint"))]
+    pub state_version: u64,
+    /// Authenticated responder claim bound by the transport adapter.
+    pub identity: IdentityClaim,
+    pub security_profile: String,
+    pub security_state_digest: String,
+    pub gateway_permitted: bool,
+    pub gateway: Option<GatewayAttribution>,
 }
 
 impl Default for SessionOpened {
@@ -902,6 +1143,12 @@ impl Default for SessionOpened {
             error: Some("session not opened".into()),
             contract_hash: Some(CONTRACT_HASH.to_string()),
             session: None,
+            state_version: 0,
+            identity: IdentityClaim::default(),
+            security_profile: String::new(),
+            security_state_digest: String::new(),
+            gateway_permitted: false,
+            gateway: None,
         }
     }
 }
@@ -952,6 +1199,8 @@ pub struct StepRequest {
     pub stimulus: Option<StimulusFrame>,
     /// (0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair.
     pub session: SessionRef,
+    pub operation: OperationContext,
+    pub authority: AuthorityLease,
 }
 
 impl Default for StepRequest {
@@ -963,6 +1212,8 @@ impl Default for StepRequest {
             advance_ms: None,
             stimulus: None,
             session: SessionRef::default(),
+            operation: OperationContext::default(),
+            authority: AuthorityLease::default(),
         }
     }
 }
@@ -982,6 +1233,8 @@ pub struct RunRequest {
     pub stimulus: Option<StimulusFrame>,
     /// (0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair.
     pub session: SessionRef,
+    pub operation: OperationContext,
+    pub authority: AuthorityLease,
 }
 
 impl Default for RunRequest {
@@ -993,6 +1246,8 @@ impl Default for RunRequest {
             duration_ms: 0.0,
             stimulus: None,
             session: SessionRef::default(),
+            operation: OperationContext::default(),
+            authority: AuthorityLease::default(),
         }
     }
 }
@@ -1022,7 +1277,8 @@ pub struct Observation {
 /// The returned neural data, keyed by a unique record-series name. The nested
 /// `Observation.port` identifies the negotiated record port; distinct
 /// `recordable` series from one port therefore remain representable. `t` is
-/// producer-local monotonic seconds (the plane form echoes `SensorFrame.t`);
+/// this observation publisher's local monotonic creation time; a driving
+/// sensor's position/time travels separately in `source`/`source_t`.
 /// `sim_time_ms` is authoritative simulation time.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
@@ -1050,6 +1306,9 @@ pub struct ObservationFrame {
     pub source_t: f64,
     /// The live session incarnation this stream belongs to.
     pub session: SessionRef,
+    /// Present on step/run RPC replies; absent on ordinary observation-plane
+    /// publication. Clients require it before claiming a mutating RPC completed.
+    pub receipt: Option<ResponderReceipt>,
 }
 
 // Deserialize-only sentinels: omitted honesty-boundary fields must be detectable
@@ -1077,6 +1336,7 @@ impl Default for ObservationFrame {
             source: None,
             source_t: 0.0,
             session: SessionRef::default(),
+            receipt: None,
         }
     }
 }
@@ -1093,6 +1353,8 @@ pub struct CloseSession {
     pub session_id: String,
     /// (0.8) REQUIRED: a delayed close for an old incarnation must not close a reopen.
     pub session: SessionRef,
+    pub operation: OperationContext,
+    pub authority: AuthorityLease,
 }
 
 impl Default for CloseSession {
@@ -1102,6 +1364,8 @@ impl Default for CloseSession {
             kind: "close_session".into(),
             session_id: String::new(),
             session: SessionRef::default(),
+            operation: OperationContext::default(),
+            authority: AuthorityLease::default(),
         }
     }
 }
@@ -1119,34 +1383,142 @@ pub struct SessionClosed {
     pub ok: bool,
     /// (0.8) the incarnation this close concerns; a delayed reply must attribute to it.
     pub session: SessionRef,
+    pub receipt: ResponderReceipt,
+}
+
+/// Closed error-code vocabulary from the normative `contract/errors.v1.json`
+/// registry. A package-snapshot test keeps this implementation list identical to
+/// the registry used by every binding.
+pub const REGISTERED_ERROR_CODES: &[&str] = &[
+    "NCP-AUTH-001",
+    "NCP-AUTH-002",
+    "NCP-AUTH-003",
+    "NCP-AUTH-004",
+    "NCP-AUTH-005",
+    "NCP-AUTH-006",
+    "NCP-LEASE-001",
+    "NCP-LEASE-002",
+    "NCP-LEASE-003",
+    "NCP-LEASE-004",
+    "NCP-OP-001",
+    "NCP-OP-002",
+    "NCP-OP-003",
+    "NCP-OP-004",
+    "NCP-OP-005",
+    "NCP-OP-006",
+    "NCP-LIMIT-001",
+    "NCP-LIMIT-002",
+    "NCP-LIMIT-003",
+    "NCP-LIMIT-004",
+    "NCP-LIMIT-005",
+    "NCP-LIMIT-006",
+    "NCP-LIMIT-007",
+    "NCP-LIMIT-008",
+    "NCP-LIMIT-009",
+    "NCP-PROFILE-001",
+    "NCP-PROFILE-002",
+    "NCP-PLANT-001",
+    "NCP-PLANT-002",
+    "NCP-PLANT-003",
+    "NCP-STATE-001",
+    "NCP-STATE-002",
+    "NCP-STATE-003",
+    "NCP-VERSION-001",
+    "NCP-FEATURE-001",
+    "NCP-AUDIT-001",
+    "NCP-AUDIT-002",
+    "NCP-GATEWAY-001",
+    "NCP-GATEWAY-002",
+    "NCP-WIRE-001",
+    "NCP-INTERNAL-001",
+];
+
+/// Return whether `code` is a stable wire-1.0 error code.
+pub fn is_registered_error_code(code: &str) -> bool {
+    REGISTERED_ERROR_CODES.contains(&code)
+}
+
+/// Transport-level classification used by the infallible RPC containment path.
+/// Domain handlers may return their own validated `ErrorFrame`; this enum keeps
+/// generic transport wrappers from emitting an unclassified free-form failure.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RpcErrorCode {
+    /// The received selector or message failed semantic wire validation.
+    InvalidMessage,
+    /// Universal bounded-JSON ingress rejected the request. The exact stable
+    /// limit code is retained rather than collapsed into a generic wire error.
+    JsonLimit(crate::bounded_json::JsonLimitCode),
+    /// The server contained a panic, invalid handler reply, unavailable backend,
+    /// or another failure for which it cannot claim a narrower outcome.
+    ContainedInternalFailure,
+}
+
+impl RpcErrorCode {
+    /// Exact stable registry code placed on the wire.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidMessage => "NCP-WIRE-001",
+            Self::JsonLimit(code) => code.stable_code(),
+            Self::ContainedInternalFailure => "NCP-INTERNAL-001",
+        }
+    }
+
+    const fn default_message(self) -> &'static str {
+        match self {
+            Self::InvalidMessage => "invalid NCP message",
+            Self::JsonLimit(_) => "bounded JSON ingress rejected",
+            Self::ContainedInternalFailure => "contained internal failure",
+        }
+    }
 }
 
 /// A typed, versioned failure reply. Error payloads are wire messages too: leaving
 /// them unversioned lets a stale or misrouted peer bypass the same identity checks
 /// applied to successful replies.
+///
+/// `code` is a closed contract value from `contract/errors.v1.json`; the
+/// human-readable `error` string is diagnostic and never substitutes for it.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(default)]
 pub struct ErrorFrame {
     #[serde(default = "missing_version")]
     pub ncp_version: String,
     #[serde(default = "missing_kind")]
     pub kind: String,
+    pub code: String,
     pub error: String,
     pub session_id: Option<String>,
     pub request_kind: Option<String>,
     /// (0.8) Optional correlation copied from the rejected request; presence does NOT
     /// assert the generation is active. Present iff `session_id` is (copy both or neither).
     pub session: Option<SessionRef>,
+    /// Optional terminal receipt. Pre-authentication/shape failures have no
+    /// responder receipt; a committed rejection or cancellation does.
+    pub receipt: Option<ResponderReceipt>,
 }
 
 impl ErrorFrame {
-    pub fn new(error: impl Into<String>) -> Self {
-        Self {
-            error: error.into(),
-            ..Self::default()
+    /// Construct an error frame only when both its registry code and diagnostic
+    /// message are explicit and valid.
+    pub fn new(code: impl Into<String>, error: impl Into<String>) -> Result<Self, ValidationError> {
+        let code = code.into();
+        if !is_registered_error_code(&code) {
+            return Err(ValidationError(format!(
+                "unregistered NCP error code {code:?}"
+            )));
         }
+        let error = error.into();
+        if error.is_empty() {
+            return Err(ValidationError(
+                "ErrorFrame diagnostic must be non-empty".into(),
+            ));
+        }
+        Ok(Self {
+            code,
+            error,
+            ..Self::default()
+        })
     }
 }
 
@@ -1155,10 +1527,12 @@ impl Default for ErrorFrame {
         Self {
             ncp_version: ncp_version(),
             kind: "error".into(),
+            code: String::new(),
             error: String::new(),
             session_id: None,
             request_kind: None,
             session: None,
+            receipt: None,
         }
     }
 }
@@ -1171,6 +1545,7 @@ impl Default for SessionClosed {
             session_id: String::new(),
             ok: true,
             session: SessionRef::default(),
+            receipt: ResponderReceipt::default(),
         }
     }
 }
@@ -1190,7 +1565,7 @@ pub struct ChannelSpec {
     #[cfg_attr(feature = "schema", schemars(with = "Option<i64>"))]
     #[cfg_attr(feature = "ts", ts(type = "bigint | null"))]
     pub size: Option<i64>,
-    pub optional: bool,
+    pub requirement: ChannelRequirement,
     pub description: Option<String>,
 }
 
@@ -1201,7 +1576,7 @@ impl Default for ChannelSpec {
             kind: ChannelKind::Scalar,
             unit: None,
             size: None,
-            optional: true,
+            requirement: ChannelRequirement::Indeterminate,
             description: None,
         }
     }
@@ -1250,6 +1625,14 @@ pub struct Capabilities {
     pub command_channels: Vec<ChannelSpec>,
     pub codec_id: Option<String>,
     pub safety: SafetyLimits,
+    pub identity: IdentityClaim,
+    pub security_profile: String,
+    pub security_state_digest: String,
+    pub stable_capabilities: Vec<String>,
+    /// `false` means native 1.0 only. A gateway is never inferred from absence.
+    pub gateway_permitted: bool,
+    pub plant_profile_digest: Option<String>,
+    pub gateway: Option<GatewayAttribution>,
 }
 
 impl Default for Capabilities {
@@ -1264,19 +1647,22 @@ impl Default for Capabilities {
             command_channels: Vec::new(),
             codec_id: None,
             safety: SafetyLimits::default(),
+            identity: IdentityClaim::default(),
+            security_profile: String::new(),
+            security_state_digest: String::new(),
+            stable_capabilities: Vec::new(),
+            gateway_permitted: false,
+            plant_profile_digest: None,
+            gateway: None,
         }
     }
 }
 
-/// Plant → controller: the latest sensed state. Carries `seq`/`t` so a command
-/// can be stamped with the sensor it was computed from (the correspondence the
-/// split perception/action planes must preserve — join on `seq`, not arrival).
-///
-/// Wire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly
-/// increasing per stream. `seq = 0` is "unstamped" — receivers drop it (it is
-/// also the serde default, so a default-constructed frame is not wire-legal
-/// until stamped). `t` is producer-local monotonic seconds and is never compared
-/// across peers.
+/// Plant → controller: the latest sensed state. Its own `stream`/`t` identify the
+/// sensor publication; a derived command correlates it through `source`/`source_t`
+/// without copying those values into the command publisher's own identity.
+/// Publishers stamp `stream.seq` starting at `1`, strictly increasing within a
+/// canonical `stream.epoch`. `stream.seq = 0` is unstamped and rejected.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1318,13 +1704,11 @@ impl Default for SensorFrame {
 /// Controller → plant: the proposed actuation, with `mode`/`ttl_ms` safety
 /// metadata.
 ///
-/// Wire 0.6 (normative): `seq` MUST echo the originating `SensorFrame.seq`
-/// (`>= 1`, strictly increasing per stream) — the split-plane V↔A join depends
-/// on it, and the plant's anti-replay/anti-stale layers (`ActionBuffer` /
-/// `CommandWatchdog`) reject `seq < 1` outright: the pre-0.6 "`seq == 0` always
-/// accepted" escape hatch is REMOVED (it let a default-constructed or all-zeros
-/// frame refresh liveness and bypass replay rejection on the action plane). `t`
-/// echoes the driving `SensorFrame.t` in producer-local monotonic seconds.
+/// `stream`/`t` belong to the command publisher and advance independently of the
+/// sensor stream. A closed-loop command carries the driving sensor position/time
+/// in `source`/`source_t`; consumers correlate on `source`, never by equating the
+/// two publishers' `stream.seq` or clocks. `ActionBuffer` and
+/// `CommandWatchdog` apply replay/freshness discipline to the command's own stream.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(export))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1364,6 +1748,9 @@ pub struct CommandFrame {
     pub session: SessionRef,
     /// Logical session id (transport-neutral); MUST equal the routing key's session.
     pub session_id: String,
+    /// Required for Active/HOLD authority-bearing commands. Authenticated ESTOP
+    /// may omit it so a stale lease cannot suppress the fail-safe latch.
+    pub authority: Option<AuthorityLease>,
 }
 
 /// Wire default for `CommandFrame.mode`: a frame that omits `mode` is HOLD, never
@@ -1393,6 +1780,7 @@ impl Default for CommandFrame {
             source_t: 0.0,
             session: SessionRef::default(),
             session_id: String::new(),
+            authority: None,
         }
     }
 }
@@ -1414,7 +1802,9 @@ pub struct ControlStatus {
     pub loop_latency_ms: f64,
     pub safety_ok: bool,
     pub note: Option<String>,
-    /// Wire 0.8: this status stream's own incarnation + position.
+    /// This status stream's own incarnation + strictly positive position. A
+    /// publisher never repeats the JSON-safe maximum; it becomes silent until a
+    /// fresh declaration mints another epoch.
     pub stream: StreamPosition,
     /// The live session incarnation.
     pub session: SessionRef,
@@ -1465,14 +1855,16 @@ pub struct LinkStatus {
     pub lost: i64,
     pub loss_rate: f64,
     pub burst: bool,
-    /// Wire 0.8: the LinkStatus stream's OWN incarnation + position — validate this
-    /// before trusting any reported burst/loss/high-water state.
+    /// The LinkStatus stream's own incarnation + strictly positive position —
+    /// validate this before trusting any reported burst/loss/high-water state.
     pub stream: StreamPosition,
     /// The MONITORED stream's epoch + forward high-water seq; absent before the first
-    /// valid observed frame (presence tracks `last_arrival_seq`).
+    /// valid observed frame (presence tracks `last_arrival_seq`). Its seq starts at
+    /// 1 and is the forward high-water.
     pub observed_stream: Option<StreamPosition>,
     /// F-16: seq of the last valid in-epoch ARRIVAL (`< observed_stream.seq` under
-    /// reordering; `==` it on forward arrival). Presence tracks `observed_stream`.
+    /// reordering; `==` it on forward arrival). Range starts at 1, cannot exceed the
+    /// observed high-water, and presence tracks `observed_stream`.
     #[serde(with = "json_integer::option")]
     #[cfg_attr(feature = "schema", schemars(with = "Option<i64>"))]
     #[cfg_attr(feature = "ts", ts(type = "bigint | null"))]
@@ -1523,14 +1915,18 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
         let parse_part = |part: &str| -> Result<u64, NcpVersionError> {
             // `u64::from_str` accepts a leading `+`, while JavaScript's exact
             // grammar does not. Pin the language-neutral wire grammar first:
-            // one or more ASCII decimal digits, bounded by u64::MAX.
-            if part.is_empty() || !part.bytes().all(|byte| byte.is_ascii_digit()) {
+            // canonical ASCII decimal (no leading zeroes), bounded by u64::MAX.
+            if part.is_empty()
+                || !part.bytes().all(|byte| byte.is_ascii_digit())
+                || (part.len() > 1 && part.starts_with('0'))
+            {
                 return Err(err());
             }
             part.parse::<u64>().map_err(|_| err())
         };
-        // Strict: 1 or 2 dot-separated components, each an ASCII base-10 u64
-        // with no sign, whitespace, or trailing junk. A malformed minor
+        // Strict: 1 or 2 dot-separated components, each a canonical ASCII
+        // base-10 u64 with no leading zeroes, sign, whitespace, or trailing
+        // junk. A malformed minor
         // ("2.GARBAGE") or extra component
         // ("0.2.x") must REJECT, never silently coerce to 0 — otherwise the
         // fail-closed guard becomes fail-open the moment our own minor is 0.
@@ -1612,7 +2008,7 @@ pub fn check_version(version: &str, strict: bool) -> Result<bool, NcpVersionErro
 /// property — and still needs a per-language anchor for cross-language parity. The
 /// constant-plus-CI-guard form is kept on purpose. See `VERSIONING.md` (§"Contract
 /// hash") for the full rationale and the handshake design.
-pub const CONTRACT_HASH: &str = "d1b50a2d8a265276";
+pub const CONTRACT_HASH: &str = "163acc57d8a62b66";
 
 /// FNV-1a (64-bit) hex digest of `bytes`. Dependency-free (no sha/digest crate),
 /// adequate for the contract-pinning integrity-vs-accidental-drift use. It is
@@ -1822,9 +2218,11 @@ pub fn negotiate(
 /// WHY a frame was dropped — the data plane otherwise drops silently. Returns
 /// `Some(err)` when the frame carries an incompatible `ncp_version`, a non-string
 /// one, or (since wire 0.6, where the version is mandatory) none at all; `None`
-/// when the frame is compatible or is not parseable JSON (nothing to diagnose).
+/// when the frame is compatible or fails bounded JSON ingress (nothing safe to
+/// diagnose). This best-effort fallback never reparses rejected bytes without
+/// the universal frame, structure, and duplicate-key limits.
 pub fn diagnose_version(bytes: &[u8]) -> Option<NcpVersionError> {
-    let v: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let v = crate::bounded_json::parse_value(bytes).ok()?;
     let Some(field) = v.get("ncp_version") else {
         return Some(NcpVersionError(
             "frame carries no ncp_version (mandatory since wire 0.6)".into(),
@@ -2128,14 +2526,13 @@ impl WireFrame for CommandFrame {
                 ));
             }
             if let Some(dt) = self.horizon_dt_ms.filter(|_| !self.horizon.is_empty()) {
-                let by_ttl = (self.ttl_ms / dt).floor();
-                if !by_ttl.is_finite()
+                let by_ttl = crate::resilience::max_horizon_len(self.ttl_ms, dt);
+                if !self.ttl_ms.is_finite()
                     || self.horizon.len() > MAX_HORIZON_STEPS
-                    || self.horizon.len() as f64 > by_ttl
+                    || self.horizon.len() > by_ttl
                 {
                     return Err(ValidationError(format!(
-                        "command_frame.horizon has {} steps but must satisfy N <= ttl_ms / horizon_dt_ms and N <= {MAX_HORIZON_STEPS}",
-                        self.horizon.len()
+                        "command_frame.horizon has {} steps but the strict watchdog deadline permits at most {by_ttl} (future step time < ttl_ms) and at most {MAX_HORIZON_STEPS}", self.horizon.len()
                     )));
                 }
             }
@@ -2195,6 +2592,11 @@ impl WireFrame for ObservationFrame {
                     "observation_frame.records[{series:?}].target must be non-empty"
                 )));
             }
+            if matches!(observation.observable, Observable::Unknown(_)) {
+                return Err(ValidationError(format!(
+                    "observation_frame.records[{series:?}].observable is unknown"
+                )));
+            }
             if !observation.values.is_empty() && !observation.senders.is_empty() {
                 return Err(ValidationError(format!(
                     "observation_frame.records[{series:?}] cannot carry values and senders in one series"
@@ -2242,8 +2644,16 @@ pub fn decode_validated<T: WireFrame>(bytes: &[u8]) -> Result<T, ValidationError
     // Parse once to Value and run the strict map-only raw contract before the
     // typed conversion, otherwise e.g. `channels: {"x": []}` can become a
     // default ChannelValue even though every schema/peer requires an object.
-    let value: serde_json::Value = serde_json::from_slice(bytes)
-        .map_err(|e| ValidationError(format!("{}: unparseable frame: {e}", T::KIND)))?;
+    let value = crate::bounded_json::parse_value(bytes).map_err(|e| {
+        ValidationError(format!(
+            "{}: unparseable or over-budget frame: {e}",
+            T::KIND
+        ))
+    })?;
+    decode_validated_value(value)
+}
+
+fn decode_validated_value<T: WireFrame>(value: serde_json::Value) -> Result<T, ValidationError> {
     if message_kind(&value) != Some(T::KIND) {
         return Err(ValidationError(format!(
             "kind mismatch: expected {:?}, got {:?}",
@@ -2262,16 +2672,91 @@ pub fn validate_sensor_plane_payload(bytes: &[u8]) -> Result<(), ValidationError
     decode_validated::<SensorFrame>(bytes).map(drop)
 }
 
-/// Action-plane publisher gate. Explicit ESTOP is recognized and allowed before
-/// the normal envelope gate so a fail-safe is never suppressed; every other
-/// command must be a complete compatible wire frame.
-pub fn validate_command_plane_payload(bytes: &[u8]) -> Result<(), ValidationError> {
-    if serde_json::from_slice::<CommandFrame>(bytes)
-        .is_ok_and(|command| command.mode == Mode::Estop)
-    {
-        return Ok(());
+/// Perception-plane gate bound to both the session encoded in the concrete
+/// transport key and the live generation returned by `SessionOpened`.
+pub fn decode_sensor_plane_payload_for(
+    session_id: &str,
+    expected_session: &SessionRef,
+    bytes: &[u8],
+) -> Result<SensorFrame, ValidationError> {
+    if !crate::keys::valid_id_segment(session_id) {
+        return Err(ValidationError(format!(
+            "invalid perception-plane session id {session_id:?}"
+        )));
     }
-    decode_validated::<CommandFrame>(bytes).map(drop)
+    let sensor = decode_validated::<SensorFrame>(bytes)?;
+    validate_data_plane_session_binding(
+        "sensor_frame",
+        session_id,
+        expected_session,
+        &sensor.session_id,
+        &sensor.session,
+    )?;
+    Ok(sensor)
+}
+
+/// Validate a perception-plane payload against its concrete route and live
+/// session generation without retaining the decoded frame.
+pub fn validate_sensor_plane_payload_for(
+    session_id: &str,
+    expected_session: &SessionRef,
+    bytes: &[u8],
+) -> Result<(), ValidationError> {
+    decode_sensor_plane_payload_for(session_id, expected_session, bytes).map(drop)
+}
+
+// Decode once so the public generic and live-session-bound gates make their
+// decisions from the same bounded, duplicate-free document. ESTOP is safety
+// privileged only after this complete wire envelope has been authenticated and
+// fenced; it never bypasses kind/version/stream/session validation.
+fn decode_command_plane_payload(bytes: &[u8]) -> Result<CommandFrame, ValidationError> {
+    let value = crate::bounded_json::parse_value(bytes).map_err(|e| {
+        ValidationError(format!(
+            "command_frame: unparseable or over-budget frame: {e}"
+        ))
+    })?;
+    decode_validated_value(value)
+}
+
+/// Action-plane publisher gate. Every command, including ESTOP, must carry a
+/// complete compatible wire envelope. ESTOP may omit an authority lease only;
+/// it does not bypass envelope or session validation.
+pub fn validate_command_plane_payload(bytes: &[u8]) -> Result<(), ValidationError> {
+    decode_command_plane_payload(bytes).map(drop)
+}
+
+/// Action-plane gate bound to the concrete transport-key session and current live
+/// generation. This applies to ESTOP before callback or latch mutation; ESTOP may
+/// omit authority, not the complete envelope or live binding.
+pub fn decode_command_plane_payload_for(
+    session_id: &str,
+    expected_session: &SessionRef,
+    bytes: &[u8],
+) -> Result<CommandFrame, ValidationError> {
+    if !crate::keys::valid_id_segment(session_id) {
+        return Err(ValidationError(format!(
+            "invalid action-plane session id {session_id:?}"
+        )));
+    }
+    let command = decode_command_plane_payload(bytes)?;
+    validate_data_plane_session_binding(
+        "command_frame",
+        session_id,
+        expected_session,
+        &command.session_id,
+        &command.session,
+    )?;
+    Ok(command)
+}
+
+/// Validate an action-plane payload against its concrete route and live session
+/// generation without retaining the decoded frame.
+pub fn validate_command_plane_payload_for(
+    session_id: &str,
+    expected_session: &SessionRef,
+    bytes: &[u8],
+) -> Result<(), ValidationError> {
+    decode_command_plane_payload_for(session_id, expected_session, bytes).map(drop)
 }
 
 /// Observation-plane publisher gate. A plane-published frame MUST carry a `source`
@@ -2286,16 +2771,22 @@ pub fn validate_observation_plane_payload(bytes: &[u8]) -> Result<(), Validation
                 .into(),
         ));
     }
+    if observation.receipt.is_some() {
+        return Err(ValidationError(
+            "observation_frame: a plane-published frame must not carry an RPC responder receipt"
+                .into(),
+        ));
+    }
     Ok(())
 }
 
-/// Observation-plane publisher/subscriber gate bound to the session encoded in
-/// the transport key. A valid frame for a different session is still misrouted
-/// and must not cross that boundary.
-pub fn validate_observation_plane_payload_for(
+/// Observation-plane publisher/subscriber gate bound to the concrete transport-key
+/// session and current live generation.
+pub fn decode_observation_plane_payload_for(
     session_id: &str,
+    expected_session: &SessionRef,
     bytes: &[u8],
-) -> Result<(), ValidationError> {
+) -> Result<ObservationFrame, ValidationError> {
     if !crate::keys::valid_id_segment(session_id) {
         return Err(ValidationError(format!(
             "invalid observation-plane session id {session_id:?}"
@@ -2309,10 +2800,57 @@ pub fn validate_observation_plane_payload_for(
                 .into(),
         ));
     }
-    if observation.session_id != session_id {
+    if observation.receipt.is_some() {
+        return Err(ValidationError(
+            "observation_frame: a plane-published frame must not carry an RPC responder receipt"
+                .into(),
+        ));
+    }
+    validate_data_plane_session_binding(
+        "observation_frame",
+        session_id,
+        expected_session,
+        &observation.session_id,
+        &observation.session,
+    )?;
+    Ok(observation)
+}
+
+/// Validate an observation-plane payload against its concrete route and live
+/// session generation without retaining the decoded frame.
+pub fn validate_observation_plane_payload_for(
+    session_id: &str,
+    expected_session: &SessionRef,
+    bytes: &[u8],
+) -> Result<(), ValidationError> {
+    decode_observation_plane_payload_for(session_id, expected_session, bytes).map(drop)
+}
+
+/// Require a frame to target the exact live session incarnation selected by the
+/// typed transport boundary. The expected generation comes from a successful
+/// `SessionOpened`; accepting an arbitrary canonical generation here would permit
+/// a delayed frame from an earlier reuse of the same logical session id.
+fn validate_data_plane_session_binding(
+    who: &str,
+    expected_session_id: &str,
+    expected_session: &SessionRef,
+    payload_session_id: &str,
+    payload_session: &SessionRef,
+) -> Result<(), ValidationError> {
+    if !is_canonical_uuid_v4(&expected_session.generation) {
         return Err(ValidationError(format!(
-            "observation_frame session mismatch: key session {session_id:?}, payload session {:?}",
-            observation.session_id
+            "{who}: expected live session generation must be a canonical lowercase UUIDv4"
+        )));
+    }
+    if payload_session_id != expected_session_id {
+        return Err(ValidationError(format!(
+            "{who} session mismatch: key session {expected_session_id:?}, payload session {payload_session_id:?}"
+        )));
+    }
+    if payload_session.generation != expected_session.generation {
+        return Err(ValidationError(format!(
+            "{who} stale-session mismatch: live generation {:?}, payload generation {:?}",
+            expected_session.generation, payload_session.generation
         )));
     }
     Ok(())
@@ -2331,23 +2869,68 @@ pub fn expected_rpc_reply_kind(request_kind: &str) -> Option<&'static str> {
 /// Parse and validate a lifecycle RPC request received on an exact selector.
 /// The caller supplies the request kind authorized by that selector; a different
 /// payload kind is rejected so transport ACLs cannot be bypassed by smuggling.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RpcRequestValidationError {
+    /// The universal bounded-JSON ingress rejected the request before semantic
+    /// decoding. Its exact contract code must be preserved in the reply.
+    JsonLimit(crate::bounded_json::BoundedJsonError),
+    /// The JSON passed structural budgets but failed selector or message
+    /// semantics. These failures use the generic stable wire code.
+    Semantic(ValidationError),
+}
+
+impl RpcRequestValidationError {
+    /// Stable error classification transports must place in their `ErrorFrame`.
+    pub const fn rpc_error_code(&self) -> RpcErrorCode {
+        match self {
+            Self::JsonLimit(error) => RpcErrorCode::JsonLimit(error.code),
+            Self::Semantic(_) => RpcErrorCode::InvalidMessage,
+        }
+    }
+}
+
+impl std::fmt::Display for RpcRequestValidationError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::JsonLimit(error) => {
+                write!(formatter, "invalid or over-budget NCP RPC JSON: {error}")
+            }
+            Self::Semantic(error) => write!(formatter, "{error}"),
+        }
+    }
+}
+
+impl std::error::Error for RpcRequestValidationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::JsonLimit(error) => Some(error),
+            Self::Semantic(error) => Some(error),
+        }
+    }
+}
+
+/// Parse and validate a lifecycle RPC request, retaining bounded-JSON failures
+/// separately from semantic wire failures for exact transport classification.
 pub fn validate_rpc_request_for(
     expected_kind: &str,
     payload: &[u8],
-) -> Result<(serde_json::Value, String), ValidationError> {
+) -> Result<(serde_json::Value, String), RpcRequestValidationError> {
     if !crate::keys::RPC_REQUEST_KINDS.contains(&expected_kind) {
-        return Err(ValidationError(format!(
-            "unsupported RPC selector kind {expected_kind:?}"
+        return Err(RpcRequestValidationError::Semantic(ValidationError(
+            format!("unsupported RPC selector kind {expected_kind:?}"),
         )));
     }
-    let value: serde_json::Value = serde_json::from_slice(payload)
-        .map_err(|error| ValidationError(format!("invalid NCP RPC JSON: {error}")))?;
-    validate(&value)
-        .map_err(|error| ValidationError(format!("invalid NCP RPC request: {error}")))?;
+    let value =
+        crate::bounded_json::parse_value(payload).map_err(RpcRequestValidationError::JsonLimit)?;
+    validate(&value).map_err(|error| {
+        RpcRequestValidationError::Semantic(ValidationError(format!(
+            "invalid NCP RPC request: {error}"
+        )))
+    })?;
     let kind = message_kind(&value).expect("validated request carries kind");
     if kind != expected_kind {
-        return Err(ValidationError(format!(
-            "RPC selector/payload mismatch: expected {expected_kind:?}, got {kind:?}"
+        return Err(RpcRequestValidationError::Semantic(ValidationError(
+            format!("RPC selector/payload mismatch: expected {expected_kind:?}, got {kind:?}"),
         )));
     }
     let session_id = value
@@ -2366,8 +2949,11 @@ pub fn validate_rpc_reply_for(
     session_id: &str,
     payload: &[u8],
 ) -> Result<serde_json::Value, ValidationError> {
-    let value: serde_json::Value = serde_json::from_slice(payload)
-        .map_err(|error| ValidationError(format!("invalid NCP RPC reply JSON: {error}")))?;
+    let value = crate::bounded_json::parse_value(payload).map_err(|error| {
+        ValidationError(format!(
+            "invalid or over-budget NCP RPC reply JSON: {error}"
+        ))
+    })?;
     validate(&value).map_err(|error| ValidationError(format!("invalid NCP RPC reply: {error}")))?;
     let kind = message_kind(&value).expect("validated reply carries kind");
     let expected = expected_rpc_reply_kind(request_kind)
@@ -2376,6 +2962,19 @@ pub fn validate_rpc_reply_for(
         return Err(ValidationError(format!(
             "RPC reply kind mismatch: {request_kind:?} requires {expected:?} or \"error\", got {kind:?}"
         )));
+    }
+    if kind == "observation_frame" && matches!(request_kind, "step_request" | "run_request") {
+        if value.get("source").is_some_and(|source| !source.is_null()) {
+            return Err(ValidationError(
+                "step/run RPC observation replies must omit source; sourced observations belong on the observation plane"
+                    .into(),
+            ));
+        }
+        if value.get("receipt").is_none_or(serde_json::Value::is_null) {
+            return Err(ValidationError(
+                "step/run RPC observation replies require a responder receipt".into(),
+            ));
+        }
     }
     if kind == "error" {
         if let Some(reply_kind) = value
@@ -2406,28 +3005,52 @@ pub fn validate_rpc_reply_for(
     Ok(value)
 }
 
-/// Build the typed, versioned failure reply used by transport servers. This
-/// function is intentionally infallible so a malformed request or panicking
-/// handler still receives a closed, protocol-shaped outcome.
+/// Build the typed, versioned failure reply used by transport servers. The
+/// classification is required at the call site; a diagnostic string alone can
+/// never become an unregistered wire outcome. This function is intentionally
+/// infallible so a malformed request or panicking handler still receives a
+/// closed, protocol-shaped outcome.
 pub fn rpc_error_payload(
+    code: RpcErrorCode,
     error: impl Into<String>,
     session_id: Option<String>,
     request_kind: Option<String>,
 ) -> Vec<u8> {
+    rpc_error_payload_with_session(code, error, session_id, None, request_kind)
+}
+
+/// Build an error reply correlated to a structurally valid session incarnation.
+/// The ID and generation are copied as one unit; callers that cannot prove both
+/// must use [`rpc_error_payload`], which intentionally omits both.
+pub fn rpc_error_payload_with_session(
+    code: RpcErrorCode,
+    error: impl Into<String>,
+    session_id: Option<String>,
+    session: Option<SessionRef>,
+    request_kind: Option<String>,
+) -> Vec<u8> {
     let error = error.into();
+    let session_pair = session_id
+        .filter(|value| crate::keys::valid_id_segment(value))
+        .zip(session.filter(|value| is_canonical_uuid_v4(&value.generation)));
+    let (session_id, session) = session_pair.unzip();
     let frame = ErrorFrame {
+        code: code.as_str().into(),
         error: if error.is_empty() {
-            "internal error".into()
+            code.default_message().into()
         } else {
             error
         },
-        session_id: session_id.filter(|value| crate::keys::valid_id_segment(value)),
+        session_id,
         request_kind: request_kind.filter(|value| !value.is_empty()),
+        session,
         ..Default::default()
     };
     serde_json::to_vec(&frame).unwrap_or_else(|_| {
-        format!(r#"{{"ncp_version":"{NCP_VERSION}","kind":"error","error":"internal error"}}"#)
-            .into_bytes()
+        format!(
+            r#"{{"ncp_version":"{NCP_VERSION}","kind":"error","code":"NCP-INTERNAL-001","error":"contained internal failure"}}"#
+        )
+        .into_bytes()
     })
 }
 
@@ -2437,13 +3060,13 @@ pub fn message_kind(json: &serde_json::Value) -> Option<&str> {
 }
 
 /// The schema-`required` field names for a given message `kind` — the validation
-/// contract (`validate()` enforces these). The serde types default every field
-/// (struct-level `#[serde(default)]`), so this, not the serde derive, is the source
-/// of truth for what a peer MUST send; `gen-schemas` injects these into each
-/// schema's `required` array. Kinds with no further required fields return just
-/// the universal ones; an unknown `kind` returns `None`.
+/// contract (`validate()` enforces these). Most serde types retain compatibility
+/// defaults, while security-sensitive required fields may also fail directly at
+/// deserialization; this list remains the schema generator's source of truth for
+/// what a peer MUST send. Kinds with no further required fields return just the
+/// universal ones; an unknown `kind` returns `None`.
 ///
-/// Wire 0.6: **every** kind requires `ncp_version` (the spec's "every message
+/// Wire 1.0: **every** kind requires `ncp_version` (the spec's "every message
 /// carries `ncp_version`" is now enforced, closing the data-plane gap), and the
 /// closed-loop frames require `seq` (`sensor_frame`/`command_frame` must stamp a
 /// strictly-positive, strictly-increasing `seq`; `observation_frame` must carry
@@ -2456,13 +3079,25 @@ pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
             "command_channels",
             "control_rate_hz",
             "controller_id",
+            "gateway_permitted",
+            "identity",
             "kind",
             "ncp_version",
             "role",
             "safety",
+            "security_profile",
+            "security_state_digest",
             "sensor_channels",
+            "stable_capabilities",
         ],
-        "close_session" => &["kind", "ncp_version", "session", "session_id"],
+        "close_session" => &[
+            "authority",
+            "kind",
+            "ncp_version",
+            "operation",
+            "session",
+            "session_id",
+        ],
         "command_frame" => &["kind", "ncp_version", "session", "session_id", "stream"],
         "control_status" => &[
             "kind",
@@ -2475,7 +3110,7 @@ pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
             "stream",
             "t",
         ],
-        "error" => &["error", "kind", "ncp_version"],
+        "error" => &["code", "error", "kind", "ncp_version"],
         "link_status" => &[
             "burst",
             "kind",
@@ -2498,32 +3133,67 @@ pub fn required_fields(kind: &str) -> Option<&'static [&'static str]> {
             "session_id",
             "stream",
         ],
-        "open_session" => &["kind", "ncp_version", "network", "session_id"],
+        "open_session" => &[
+            "gateway_permitted",
+            "identity",
+            "kind",
+            "ncp_version",
+            "network",
+            "security_profile",
+            "security_state_digest",
+            "session_id",
+        ],
         "run_request" => &[
+            "authority",
             "duration_ms",
             "kind",
             "ncp_version",
+            "operation",
             "session",
             "session_id",
         ],
         "sensor_frame" => &["kind", "ncp_version", "session", "session_id", "stream"],
-        "session_closed" => &["kind", "ncp_version", "ok", "session", "session_id"],
-        "session_opened" => &["backend", "kind", "ncp_version", "ok", "session_id"],
-        "step_request" => &["kind", "ncp_version", "session", "session_id"],
+        "session_closed" => &[
+            "kind",
+            "ncp_version",
+            "ok",
+            "receipt",
+            "session",
+            "session_id",
+        ],
+        "session_opened" => &[
+            "backend",
+            "gateway_permitted",
+            "identity",
+            "kind",
+            "ncp_version",
+            "ok",
+            "security_profile",
+            "security_state_digest",
+            "session_id",
+            "state_version",
+        ],
+        "step_request" => &[
+            "authority",
+            "kind",
+            "ncp_version",
+            "operation",
+            "session",
+            "session_id",
+        ],
         "stimulus_frame" => &["kind", "ncp_version", "session", "session_id"],
         _ => return None,
     })
 }
 
-/// Minimum wire-legal `stream.seq` for a `kind` that carries per-stream seq
-/// discipline (wire 0.8): `sensor_frame`/`command_frame`/`observation_frame` must
-/// stamp `stream.seq >= 1` (strictly increasing per stream — `0`/negative is
-/// unstamped/invalid). The pull/RPC observation form is distinguished by `source`
-/// ABSENCE, not `seq == 0`. Kinds whose seq is free-running telemetry
-/// (`control_status`) or absent return `None`.
+/// Minimum wire-legal `stream.seq` for a kind that carries a stream position.
+/// Every periodically published data or status stream starts at `1`; `0` and
+/// negative positions are unstamped/invalid. The pull/RPC observation form is
+/// distinguished by `source` ABSENCE, not by a `seq == 0` sentinel.
 fn min_seq(kind: &str) -> Option<i64> {
     match kind {
-        "sensor_frame" | "command_frame" | "observation_frame" => Some(1),
+        "sensor_frame" | "command_frame" | "observation_frame" | "control_status"
+        | "link_status" => Some(1),
         _ => None,
     }
 }
@@ -2593,11 +3263,11 @@ fn validate_typed_shape(kind: &str, json: &serde_json::Value) -> Result<(), Vali
 ///   - the payload must be a JSON object,
 ///   - it must carry a known `kind`,
 ///   - every schema-required field for that `kind` must be present,
-///   - (wire 0.6) `ncp_version` must be **compatible** ([`check_version`], exact
+///   - `ncp_version` must be **compatible** ([`check_version`], exact
 ///     `(major, minor)` pre-1.0) — an absent or incompatible version is rejected,
 ///     never coerced to the receiver's own,
-///   - (wire 0.6) `seq` bounds: `sensor_frame`/`command_frame` require an integer
-///     `seq >= 1`; `observation_frame` requires an integer `seq >= 0`.
+///   - every data/status `stream.seq` must be an integer in
+///     `1..=2^53-1`; `0` is never a pull or telemetry sentinel.
 ///
 /// Unknown extra fields are still accepted (forward compatibility within a
 /// compatible version), so this stays wire-safe.
@@ -2616,7 +3286,7 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
             )));
         }
     }
-    // Version-value gate (wire 0.6): presence alone is not enough — the carried
+    // Version-value gate: presence alone is not enough — the carried
     // version must be compatible, or an incompatible-but-parseable frame would
     // still be accepted (the audited data-plane gap). Fail closed, never coerce.
     let ver = obj
@@ -2625,7 +3295,8 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
         .ok_or_else(|| ValidationError(format!("{kind}: `ncp_version` must be a string")))?;
     check_version(ver, true)
         .map_err(|e| ValidationError(format!("{kind}: incompatible ncp_version: {e}")))?;
-    // Seq bounds (wire 0.6): the closed-loop frames must stamp seq. A non-integer
+    // Stream-position bounds: all closed-loop data and status frames must stamp
+    // a positive seq. A non-integer
     // or out-of-range seq is rejected here so the anti-replay/anti-stale layers
     // (`ActionBuffer`/`CommandWatchdog`) never see an unstamped frame.
     if let Some(min) = min_seq(kind) {
@@ -2637,7 +3308,7 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
             .ok_or_else(|| ValidationError(format!("{kind}: `stream.seq` must be an integer")))?;
         if seq < min {
             return Err(ValidationError(format!(
-                "{kind}: stream.seq {seq} < {min} (wire 0.8 requires a stamped, \
+                "{kind}: stream.seq {seq} < {min} (wire 1.0 requires a stamped, \
                  strictly-increasing per-stream stream.seq)"
             )));
         }
@@ -2709,6 +3380,21 @@ fn validate_session_id(
         )));
     }
     Ok(())
+}
+
+fn required_session_epoch<'a>(
+    obj: &'a serde_json::Map<String, serde_json::Value>,
+    path: &str,
+) -> Result<&'a str, ValidationError> {
+    let session = required_json_object(obj.get("session"), &format!("{path}.session"))?;
+    let generation =
+        required_nonempty_string(session, "generation", &format!("{path}.session.generation"))?;
+    if !is_canonical_uuid_v4(generation) {
+        return Err(ValidationError(format!(
+            "{path}.session.generation must be a canonical lowercase UUIDv4"
+        )));
+    }
+    Ok(generation)
 }
 
 fn finite_number(value: &serde_json::Value, path: &str) -> Result<f64, ValidationError> {
@@ -2785,6 +3471,8 @@ fn validate_nested_object_shapes(
     match kind {
         "open_session" => {
             let network = required_json_object(obj.get("network"), "open_session.network")?;
+            required_json_object(obj.get("identity"), "open_session.identity")?;
+            nullable_json_object(obj, "gateway", "open_session.gateway")?;
             for field in ["population_sizes", "params"] {
                 if let Some(value) = network.get(field) {
                     required_json_object(Some(value), &format!("open_session.network.{field}"))?;
@@ -2844,6 +3532,8 @@ fn validate_nested_object_shapes(
             }
         }
         "session_opened" => {
+            required_json_object(obj.get("identity"), "session_opened.identity")?;
+            nullable_json_object(obj, "gateway", "session_opened.gateway")?;
             nullable_json_object(obj, "provenance", "session_opened.provenance")?;
             if let Some(resolved) = obj.get("resolved") {
                 required_json_object(Some(resolved), "session_opened.resolved")?;
@@ -2851,6 +3541,18 @@ fn validate_nested_object_shapes(
         }
         "step_request" | "run_request" => {
             nullable_json_object(obj, "stimulus", &format!("{kind}.stimulus"))?;
+            required_json_object(obj.get("operation"), &format!("{kind}.operation"))?;
+            required_json_object(obj.get("authority"), &format!("{kind}.authority"))?;
+        }
+        "close_session" => {
+            required_json_object(obj.get("operation"), "close_session.operation")?;
+            required_json_object(obj.get("authority"), "close_session.authority")?;
+        }
+        "session_closed" => {
+            required_json_object(obj.get("receipt"), "session_closed.receipt")?;
+        }
+        "error" => {
+            nullable_json_object(obj, "receipt", "error.receipt")?;
         }
         "stimulus_frame" => {
             if let Some(values) = obj.get("values") {
@@ -2863,6 +3565,7 @@ fn validate_nested_object_shapes(
             }
         }
         "command_frame" => {
+            nullable_json_object(obj, "authority", "command_frame.authority")?;
             if let Some(channels) = obj.get("channels") {
                 validate_object_map(channels, "command_frame.channels")?;
             }
@@ -2877,6 +3580,7 @@ fn validate_nested_object_shapes(
             }
         }
         "observation_frame" => {
+            nullable_json_object(obj, "receipt", "observation_frame.receipt")?;
             let records = required_json_object(obj.get("records"), "observation_frame.records")?;
             for (name, record) in records {
                 required_json_object(
@@ -2886,6 +3590,8 @@ fn validate_nested_object_shapes(
             }
         }
         "capabilities" => {
+            required_json_object(obj.get("identity"), "capabilities.identity")?;
+            nullable_json_object(obj, "gateway", "capabilities.gateway")?;
             for field in ["sensor_channels", "command_channels"] {
                 let channels =
                     required_json_array(obj.get(field), &format!("capabilities.{field}"))?;
@@ -2920,6 +3626,338 @@ fn json_exact_i64(value: &serde_json::Value) -> Option<i64> {
         .then_some(value as i64)
 }
 
+const CORE_STABLE_CAPABILITIES: &[&str] = &[
+    "ncp.core.canonical-json.v1",
+    "ncp.core.lifecycle.v1",
+    "ncp.core.authority-lease.v1",
+    "ncp.core.idempotent-mutation.v1",
+    "ncp.core.plant-profile.v1",
+];
+
+const KNOWN_STABLE_CAPABILITIES: &[&str] = &[
+    "ncp.core.canonical-json.v1",
+    "ncp.core.lifecycle.v1",
+    "ncp.core.authority-lease.v1",
+    "ncp.core.idempotent-mutation.v1",
+    "ncp.core.plant-profile.v1",
+    "ncp.transport.zenoh.v1",
+];
+
+fn valid_bounded_id(value: &str) -> bool {
+    value.len() <= 128 && crate::keys::valid_id_segment(value)
+}
+
+fn valid_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+}
+
+fn validate_identity_claim(
+    value: Option<&serde_json::Value>,
+    path: &str,
+    expected_plane: Option<&str>,
+    expected_role: Option<&str>,
+) -> Result<(), ValidationError> {
+    let claim = required_json_object(value, path)?;
+    for field in ["principal_id", "entity_id"] {
+        let identity = required_nonempty_string(claim, field, &format!("{path}.{field}"))?;
+        if !valid_bounded_id(identity) {
+            return Err(ValidationError(format!(
+                "{path}.{field} must be a bounded canonical identity segment"
+            )));
+        }
+    }
+    let role = required_nonempty_string(claim, "role", &format!("{path}.role"))?;
+    if !matches!(role, "commander" | "body" | "observer" | "operator") {
+        return Err(ValidationError(format!(
+            "{path}.role is unknown and cannot authorize this message"
+        )));
+    }
+    if expected_role.is_some_and(|expected| role != expected) {
+        return Err(ValidationError(format!(
+            "{path}.role {role:?} does not match the envelope role"
+        )));
+    }
+    let plane = required_nonempty_string(claim, "plane", &format!("{path}.plane"))?;
+    if !matches!(plane, "control" | "perception" | "action" | "observation") {
+        return Err(ValidationError(format!(
+            "{path}.plane is unknown and cannot authorize this message"
+        )));
+    }
+    if expected_plane.is_some_and(|expected| plane != expected) {
+        return Err(ValidationError(format!(
+            "{path}.plane {plane:?} does not match the transport message plane"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_security_negotiation(
+    obj: &serde_json::Map<String, serde_json::Value>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let profile =
+        required_nonempty_string(obj, "security_profile", &format!("{path}.security_profile"))?;
+    if !matches!(profile, "dev-loopback-insecure" | "production-secure") {
+        return Err(ValidationError(format!(
+            "{path}.security_profile is not a registered NCP 1.0 profile"
+        )));
+    }
+    let digest = required_nonempty_string(
+        obj,
+        "security_state_digest",
+        &format!("{path}.security_state_digest"),
+    )?;
+    if !valid_sha256_hex(digest) {
+        return Err(ValidationError(format!(
+            "{path}.security_state_digest must be 64 lowercase hexadecimal characters"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_gateway_attribution(
+    obj: &serde_json::Map<String, serde_json::Value>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let gateway_permitted = obj
+        .get("gateway_permitted")
+        .and_then(serde_json::Value::as_bool)
+        .ok_or_else(|| ValidationError(format!("{path}.gateway_permitted must be a boolean")))?;
+    let Some(value) = obj.get("gateway").filter(|value| !value.is_null()) else {
+        return Ok(());
+    };
+    if !gateway_permitted {
+        return Err(ValidationError(format!(
+            "{path}.gateway attribution is forbidden when gateway_permitted=false"
+        )));
+    }
+    let gateway = required_json_object(Some(value), &format!("{path}.gateway"))?;
+    let gateway_id =
+        required_nonempty_string(gateway, "gateway_id", &format!("{path}.gateway.gateway_id"))?;
+    if !valid_bounded_id(gateway_id) {
+        return Err(ValidationError(format!(
+            "{path}.gateway.gateway_id must be a bounded canonical identity segment"
+        )));
+    }
+    if required_nonempty_string(
+        gateway,
+        "source_wire",
+        &format!("{path}.gateway.source_wire"),
+    )? != "0.8"
+    {
+        return Err(ValidationError(format!(
+            "{path}.gateway.source_wire must identify the only supported legacy wire, 0.8"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_authority_lease(
+    value: Option<&serde_json::Value>,
+    path: &str,
+    expected_epoch: Option<&str>,
+) -> Result<(), ValidationError> {
+    let lease = required_json_object(value, path)?;
+    let session_epoch =
+        required_nonempty_string(lease, "session_epoch", &format!("{path}.session_epoch"))?;
+    let lease_id = required_nonempty_string(lease, "lease_id", &format!("{path}.lease_id"))?;
+    if !is_canonical_uuid_v4(session_epoch) || !is_canonical_uuid_v4(lease_id) {
+        return Err(ValidationError(format!(
+            "{path}.session_epoch and lease_id must be canonical lowercase UUIDv4 values"
+        )));
+    }
+    if expected_epoch.is_some_and(|expected| session_epoch != expected) {
+        return Err(ValidationError(format!(
+            "{path}.session_epoch does not match the message session generation"
+        )));
+    }
+    let term = lease
+        .get("term")
+        .and_then(json_exact_i64)
+        .ok_or_else(|| ValidationError(format!("{path}.term must be a JSON-safe integer")))?;
+    if term <= 0 {
+        return Err(ValidationError(format!("{path}.term must be > 0")));
+    }
+    for field in [
+        "issuer_principal_id",
+        "holder_principal_id",
+        "holder_entity_id",
+    ] {
+        let identity = required_nonempty_string(lease, field, &format!("{path}.{field}"))?;
+        if !valid_bounded_id(identity) {
+            return Err(ValidationError(format!(
+                "{path}.{field} must be a bounded canonical identity segment"
+            )));
+        }
+    }
+    let issued = lease
+        .get("issued_at_utc_ms")
+        .and_then(json_exact_i64)
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.issued_at_utc_ms must be a JSON-safe integer"
+            ))
+        })?;
+    let expires = lease
+        .get("expires_at_utc_ms")
+        .and_then(json_exact_i64)
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.expires_at_utc_ms must be a JSON-safe integer"
+            ))
+        })?;
+    if issued < 0
+        || expires <= issued
+        || expires - issued > crate::authority::MAX_AUTHORITY_LEASE_MS
+    {
+        return Err(ValidationError(format!(
+            "{path} must have a positive bounded UTC lease interval"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_operation_context(
+    value: Option<&serde_json::Value>,
+    path: &str,
+    expected_epoch: Option<&str>,
+) -> Result<(), ValidationError> {
+    let operation = required_json_object(value, path)?;
+    let operation_id =
+        required_nonempty_string(operation, "operation_id", &format!("{path}.operation_id"))?;
+    let session_epoch =
+        required_nonempty_string(operation, "session_epoch", &format!("{path}.session_epoch"))?;
+    if !is_canonical_uuid_v4(operation_id) || !is_canonical_uuid_v4(session_epoch) {
+        return Err(ValidationError(format!(
+            "{path}.operation_id and session_epoch must be canonical lowercase UUIDv4 values"
+        )));
+    }
+    if expected_epoch.is_some_and(|expected| session_epoch != expected) {
+        return Err(ValidationError(format!(
+            "{path}.session_epoch does not match the message session generation"
+        )));
+    }
+    let digest = required_nonempty_string(
+        operation,
+        "request_digest",
+        &format!("{path}.request_digest"),
+    )?;
+    if !valid_sha256_hex(digest) {
+        return Err(ValidationError(format!(
+            "{path}.request_digest must be 64 lowercase hexadecimal characters"
+        )));
+    }
+    operation
+        .get("expected_state_version")
+        .and_then(json_exact_i64)
+        .filter(|value| *value >= 0)
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.expected_state_version must be a non-negative JSON-safe integer"
+            ))
+        })?;
+    operation
+        .get("deadline_utc_ms")
+        .and_then(json_exact_i64)
+        .filter(|value| *value > 0)
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.deadline_utc_ms must be a positive JSON-safe integer"
+            ))
+        })?;
+    if operation
+        .get("retry")
+        .and_then(serde_json::Value::as_bool)
+        .is_none()
+    {
+        return Err(ValidationError(format!("{path}.retry must be a boolean")));
+    }
+    Ok(())
+}
+
+fn validate_responder_receipt(
+    value: Option<&serde_json::Value>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let receipt = required_json_object(value, path)?;
+    let operation_id =
+        required_nonempty_string(receipt, "operation_id", &format!("{path}.operation_id"))?;
+    if !is_canonical_uuid_v4(operation_id) {
+        return Err(ValidationError(format!(
+            "{path}.operation_id must be a canonical lowercase UUIDv4"
+        )));
+    }
+    for field in ["request_digest", "result_digest"] {
+        let digest = required_nonempty_string(receipt, field, &format!("{path}.{field}"))?;
+        if !valid_sha256_hex(digest) {
+            return Err(ValidationError(format!(
+                "{path}.{field} must be 64 lowercase hexadecimal characters"
+            )));
+        }
+    }
+    let outcome = required_nonempty_string(receipt, "outcome", &format!("{path}.outcome"))?;
+    if !matches!(outcome, "succeeded" | "rejected" | "cancelled") {
+        return Err(ValidationError(format!(
+            "{path}.outcome must be a known terminal outcome"
+        )));
+    }
+    receipt
+        .get("state_version")
+        .and_then(json_exact_i64)
+        .filter(|value| *value >= 0)
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.state_version must be a non-negative JSON-safe integer"
+            ))
+        })?;
+    receipt
+        .get("committed_at_utc_ms")
+        .and_then(json_exact_i64)
+        .filter(|value| *value > 0)
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.committed_at_utc_ms must be a positive JSON-safe integer"
+            ))
+        })?;
+    for field in ["responder_principal_id", "responder_entity_id"] {
+        let identity = required_nonempty_string(receipt, field, &format!("{path}.{field}"))?;
+        if !valid_bounded_id(identity) {
+            return Err(ValidationError(format!(
+                "{path}.{field} must be a bounded canonical identity segment"
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Validate a JSON-projected stream position without relying on serde's support
+/// for positional struct sequences. Status frames do not implement `WireFrame`,
+/// so their envelope positions use this equivalent ingress gate.
+fn validate_json_stream_position(
+    value: Option<&serde_json::Value>,
+    path: &str,
+) -> Result<i64, ValidationError> {
+    let position = required_json_object(value, path)?;
+    let epoch = required_nonempty_string(position, "epoch", &format!("{path}.epoch"))?;
+    if !is_canonical_uuid_v4(epoch) {
+        return Err(ValidationError(format!(
+            "{path}.epoch must be a canonical lowercase UUIDv4"
+        )));
+    }
+    position
+        .get("seq")
+        .and_then(json_exact_i64)
+        .filter(|seq| (1..=JSON_SAFE_INTEGER_MAX).contains(seq))
+        .ok_or_else(|| {
+            ValidationError(format!(
+                "{path}.seq must be a JSON-safe integer within 1..=2^53-1"
+            ))
+        })
+}
+
 fn validate_semantics(
     kind: &str,
     obj: &serde_json::Map<String, serde_json::Value>,
@@ -2934,18 +3972,54 @@ fn validate_semantics(
             | "observation_frame"
             | "close_session"
             | "session_closed"
+            | "sensor_frame"
+            | "command_frame"
+            | "control_status"
             | "link_status"
     ) {
         validate_session_id(obj, kind)?;
     }
 
+    let session_epoch = if matches!(
+        kind,
+        "step_request"
+            | "run_request"
+            | "stimulus_frame"
+            | "observation_frame"
+            | "close_session"
+            | "session_closed"
+            | "sensor_frame"
+            | "command_frame"
+            | "control_status"
+            | "link_status"
+    ) {
+        Some(required_session_epoch(obj, kind)?)
+    } else {
+        None
+    };
+
     match kind {
         "open_session" => {
+            validate_identity_claim(
+                obj.get("identity"),
+                "open_session.identity",
+                Some("control"),
+                Some("commander"),
+            )?;
+            validate_security_negotiation(obj, "open_session")?;
+            validate_gateway_attribution(obj, "open_session")?;
             let network = obj
                 .get("network")
                 .and_then(|value| value.as_object())
                 .ok_or_else(|| ValidationError("open_session.network must be an object".into()))?;
-            required_nonempty_string(network, "kind", "open_session.network.kind")?;
+            let network_kind =
+                required_nonempty_string(network, "kind", "open_session.network.kind")?;
+            if !matches!(network_kind, "handle" | "builtin" | "model_id" | "spec") {
+                return Err(ValidationError(
+                    "open_session.network.kind is unknown and cannot select model-loading behavior"
+                        .into(),
+                ));
+            }
             required_nonempty_string(network, "ref", "open_session.network.ref")?;
             if let Some(sim) = obj.get("sim").and_then(|value| value.as_object()) {
                 for (field, allow_zero) in
@@ -2962,9 +4036,9 @@ fn validate_semantics(
                     }
                 }
                 if let Some(mode) = sim.get("mode") {
-                    if mode.as_str().is_none_or(str::is_empty) {
+                    if !matches!(mode.as_str(), Some("stream" | "batch")) {
                         return Err(ValidationError(
-                            "open_session.sim.mode must be a non-empty enum string".into(),
+                            "open_session.sim.mode must be stream or batch".into(),
                         ));
                     }
                 }
@@ -2981,7 +4055,19 @@ fn validate_semantics(
                     let target = required_json_object(Some(value), &path)?;
                     required_nonempty_string(target, "port", &format!("{path}.port"))?;
                     required_nonempty_string(target, "target", &format!("{path}.target"))?;
-                    required_nonempty_string(target, "observable", &format!("{path}.observable"))?;
+                    let observable = required_nonempty_string(
+                        target,
+                        "observable",
+                        &format!("{path}.observable"),
+                    )?;
+                    if !matches!(
+                        observable,
+                        "spikes" | "V_m" | "rate" | "weight" | "binary_state"
+                    ) {
+                        return Err(ValidationError(format!(
+                            "{path}.observable is unknown and cannot configure recording"
+                        )));
+                    }
                     if let Some(cadence) = target.get("cadence_ms") {
                         if finite_number(cadence, &format!("{path}.cadence_ms"))? <= 0.0 {
                             return Err(ValidationError(format!("{path}.cadence_ms must be > 0")));
@@ -3001,7 +4087,16 @@ fn validate_semantics(
                     let target = required_json_object(Some(value), &path)?;
                     required_nonempty_string(target, "port", &format!("{path}.port"))?;
                     required_nonempty_string(target, "target", &format!("{path}.target"))?;
-                    required_nonempty_string(target, "kind", &format!("{path}.kind"))?;
+                    let stimulus_kind =
+                        required_nonempty_string(target, "kind", &format!("{path}.kind"))?;
+                    if !matches!(
+                        stimulus_kind,
+                        "current_pA" | "rate_hz" | "spike_times" | "weight_set" | "rate_inject"
+                    ) {
+                        return Err(ValidationError(format!(
+                            "{path}.kind is unknown and cannot select stimulus behavior"
+                        )));
+                    }
                     if let Some(params) = target.get("params").and_then(|value| value.as_object()) {
                         for (name, value) in params {
                             finite_number(value, &format!("{path}.params[{name:?}]"))?;
@@ -3031,16 +4126,40 @@ fn validate_semantics(
                     .and_then(|value| value.as_object())
                     .ok_or_else(|| ValidationError(format!("{path}.entity must be an object")))?;
                 required_nonempty_string(entity, "path", &format!("{path}.entity.path"))?;
-                required_nonempty_string(entity, "role", &format!("{path}.entity.role"))?;
+                let entity_role =
+                    required_nonempty_string(entity, "role", &format!("{path}.entity.role"))?;
+                if !matches!(entity_role, "system" | "actor" | "sensor" | "actuator") {
+                    return Err(ValidationError(format!(
+                        "{path}.entity.role is unknown and cannot select binding semantics"
+                    )));
+                }
             }
         }
         "session_opened" => {
+            validate_identity_claim(
+                obj.get("identity"),
+                "session_opened.identity",
+                Some("control"),
+                Some("body"),
+            )?;
+            validate_security_negotiation(obj, "session_opened")?;
+            validate_gateway_attribution(obj, "session_opened")?;
             let backend = required_nonempty_string(obj, "backend", "session_opened.backend")?;
             let ok = obj
                 .get("ok")
                 .and_then(|value| value.as_bool())
                 .ok_or_else(|| ValidationError("session_opened.ok must be a boolean".into()))?;
+            obj.get("state_version")
+                .and_then(json_exact_i64)
+                .filter(|value| *value >= 0)
+                .ok_or_else(|| {
+                    ValidationError(
+                        "session_opened.state_version must be a non-negative JSON-safe integer"
+                            .into(),
+                    )
+                })?;
             if ok {
+                required_session_epoch(obj, "session_opened")?;
                 let provenance = obj
                     .get("provenance")
                     .and_then(|value| value.as_object())
@@ -3092,6 +4211,10 @@ fn validate_semantics(
                 return Err(ValidationError(
                     "session_opened.provenance must be null when ok=false".into(),
                 ));
+            } else if obj.get("session").is_some_and(|value| !value.is_null()) {
+                return Err(ValidationError(
+                    "session_opened.session must be null when ok=false".into(),
+                ));
             }
         }
         "session_closed" => {
@@ -3100,8 +4223,15 @@ fn validate_semantics(
                     "session_closed.ok must be true; failures use a typed ErrorFrame".into(),
                 ));
             }
+            validate_responder_receipt(obj.get("receipt"), "session_closed.receipt")?;
         }
         "error" => {
+            let code = required_nonempty_string(obj, "code", "error.code")?;
+            if !is_registered_error_code(code) {
+                return Err(ValidationError(format!(
+                    "error.code {code:?} is not registered in contract/errors.v1.json"
+                )));
+            }
             required_nonempty_string(obj, "error", "error.error")?;
             if let Some(request_kind) = obj.get("request_kind").filter(|value| !value.is_null()) {
                 if request_kind.as_str().is_none_or(str::is_empty) {
@@ -3120,8 +4250,27 @@ fn validate_semantics(
                     )));
                 }
             }
+            let has_session_id = obj.get("session_id").is_some_and(|value| !value.is_null());
+            let has_session = obj.get("session").is_some_and(|value| !value.is_null());
+            if has_session_id != has_session {
+                return Err(ValidationError(
+                    "error.session_id and error.session must be present or null together".into(),
+                ));
+            }
+            if has_session {
+                required_session_epoch(obj, "error")?;
+            }
+            if let Some(receipt) = obj.get("receipt").filter(|value| !value.is_null()) {
+                validate_responder_receipt(Some(receipt), "error.receipt")?;
+            }
         }
         "run_request" => {
+            validate_operation_context(
+                obj.get("operation"),
+                "run_request.operation",
+                session_epoch,
+            )?;
+            validate_authority_lease(obj.get("authority"), "run_request.authority", session_epoch)?;
             let duration = finite_number(
                 obj.get("duration_ms")
                     .ok_or_else(|| ValidationError("run_request.duration_ms is required".into()))?,
@@ -3134,6 +4283,16 @@ fn validate_semantics(
             }
         }
         "step_request" => {
+            validate_operation_context(
+                obj.get("operation"),
+                "step_request.operation",
+                session_epoch,
+            )?;
+            validate_authority_lease(
+                obj.get("authority"),
+                "step_request.authority",
+                session_epoch,
+            )?;
             if let Some(value) = obj.get("advance_ms").filter(|value| !value.is_null()) {
                 if finite_number(value, "step_request.advance_ms")? < 0.0 {
                     return Err(ValidationError(
@@ -3142,11 +4301,28 @@ fn validate_semantics(
                 }
             }
         }
+        "close_session" => {
+            validate_operation_context(
+                obj.get("operation"),
+                "close_session.operation",
+                session_epoch,
+            )?;
+            validate_authority_lease(
+                obj.get("authority"),
+                "close_session.authority",
+                session_epoch,
+            )?;
+        }
         "command_frame" => {
             if obj.contains_key("mode") {
                 required_nonempty_string(obj, "mode", "command_frame.mode")?;
             }
             if obj.get("mode").and_then(|value| value.as_str()) == Some("active") {
+                validate_authority_lease(
+                    obj.get("authority"),
+                    "command_frame.authority",
+                    session_epoch,
+                )?;
                 let ttl = obj.get("ttl_ms").ok_or_else(|| {
                     ValidationError("command_frame Active mode requires ttl_ms".into())
                 })?;
@@ -3163,9 +4339,18 @@ fn validate_semantics(
                         "command_frame Active mode requires a channels object".into(),
                     ));
                 }
+            } else if let Some(authority) = obj.get("authority").filter(|value| !value.is_null()) {
+                validate_authority_lease(
+                    Some(authority),
+                    "command_frame.authority",
+                    session_epoch,
+                )?;
             }
         }
         "observation_frame" => {
+            if let Some(receipt) = obj.get("receipt").filter(|value| !value.is_null()) {
+                validate_responder_receipt(Some(receipt), "observation_frame.receipt")?;
+            }
             let records = obj
                 .get("records")
                 .and_then(|value| value.as_object())
@@ -3193,11 +4378,19 @@ fn validate_semantics(
                     "target",
                     &format!("observation_frame.records[{record_key:?}].target"),
                 )?;
-                required_nonempty_string(
+                let observable = required_nonempty_string(
                     record,
                     "observable",
                     &format!("observation_frame.records[{record_key:?}].observable"),
                 )?;
+                if !matches!(
+                    observable,
+                    "spikes" | "V_m" | "rate" | "weight" | "binary_state"
+                ) {
+                    return Err(ValidationError(format!(
+                        "observation_frame.records[{record_key:?}].observable is unknown"
+                    )));
+                }
                 let times = record
                     .get("times")
                     .and_then(|value| value.as_array())
@@ -3224,8 +4417,106 @@ fn validate_semantics(
             }
         }
         "capabilities" => {
-            required_nonempty_string(obj, "controller_id", "capabilities.controller_id")?;
-            required_nonempty_string(obj, "role", "capabilities.role")?;
+            let controller_id =
+                required_nonempty_string(obj, "controller_id", "capabilities.controller_id")?;
+            if !valid_bounded_id(controller_id) {
+                return Err(ValidationError(
+                    "capabilities.controller_id must be a bounded canonical identity segment"
+                        .into(),
+                ));
+            }
+            let role = required_nonempty_string(obj, "role", "capabilities.role")?;
+            let principal_role = match role {
+                "controller" => "commander",
+                "plant" => "body",
+                "observer" => "observer",
+                "operator" => "operator",
+                _ => {
+                    return Err(ValidationError(
+                        "capabilities.role is unknown and cannot negotiate authority".into(),
+                    ));
+                }
+            };
+            validate_identity_claim(
+                obj.get("identity"),
+                "capabilities.identity",
+                Some("control"),
+                Some(principal_role),
+            )?;
+            if obj
+                .get("identity")
+                .and_then(|value| value.get("entity_id"))
+                .and_then(serde_json::Value::as_str)
+                != Some(controller_id)
+            {
+                return Err(ValidationError(
+                    "capabilities.controller_id must equal capabilities.identity.entity_id".into(),
+                ));
+            }
+            validate_security_negotiation(obj, "capabilities")?;
+            validate_gateway_attribution(obj, "capabilities")?;
+            let stable = required_json_array(
+                obj.get("stable_capabilities"),
+                "capabilities.stable_capabilities",
+            )?;
+            let mut advertised = std::collections::BTreeSet::new();
+            if stable.len() > 64 {
+                return Err(ValidationError(
+                    "capabilities.stable_capabilities exceeds the 64-entry limit".into(),
+                ));
+            }
+            for (index, capability) in stable.iter().enumerate() {
+                let capability = capability
+                    .as_str()
+                    .filter(|value| !value.is_empty())
+                    .ok_or_else(|| {
+                        ValidationError(format!(
+                            "capabilities.stable_capabilities[{index}] must be a non-empty string"
+                        ))
+                    })?;
+                if !KNOWN_STABLE_CAPABILITIES.contains(&capability) {
+                    return Err(ValidationError(format!(
+                        "capabilities.stable_capabilities contains unknown or non-stable capability {capability:?}"
+                    )));
+                }
+                if !advertised.insert(capability) {
+                    return Err(ValidationError(format!(
+                        "capabilities.stable_capabilities contains duplicate {capability:?}"
+                    )));
+                }
+            }
+            for required in CORE_STABLE_CAPABILITIES {
+                if !advertised.contains(required) {
+                    return Err(ValidationError(format!(
+                        "capabilities.stable_capabilities omits required core capability {required:?}"
+                    )));
+                }
+            }
+            if let Some(digest) = obj
+                .get("plant_profile_digest")
+                .filter(|value| !value.is_null())
+            {
+                let digest = digest.as_str().ok_or_else(|| {
+                    ValidationError(
+                        "capabilities.plant_profile_digest must be a string or null".into(),
+                    )
+                })?;
+                if !valid_sha256_hex(digest) {
+                    return Err(ValidationError(
+                        "capabilities.plant_profile_digest must be 64 lowercase hexadecimal characters"
+                            .into(),
+                    ));
+                }
+            }
+            if role == "plant"
+                && obj
+                    .get("plant_profile_digest")
+                    .is_none_or(serde_json::Value::is_null)
+            {
+                return Err(ValidationError(
+                    "plant capabilities require a content-addressed plant_profile_digest".into(),
+                ));
+            }
             let rate = finite_number(
                 obj.get("control_rate_hz").ok_or_else(|| {
                     ValidationError("capabilities.control_rate_hz is required".into())
@@ -3240,12 +4531,33 @@ fn validate_semantics(
             for field in ["sensor_channels", "command_channels"] {
                 let channels =
                     required_json_array(obj.get(field), &format!("capabilities.{field}"))?;
+                if channels.len() > MAX_CHANNELS {
+                    return Err(ValidationError(format!(
+                        "capabilities.{field} exceeds the {MAX_CHANNELS}-channel limit"
+                    )));
+                }
                 let mut names = std::collections::BTreeSet::new();
                 for (index, value) in channels.iter().enumerate() {
                     let path = format!("capabilities.{field}[{index}]");
                     let channel = required_json_object(Some(value), &path)?;
                     let name = required_nonempty_string(channel, "name", &format!("{path}.name"))?;
-                    required_nonempty_string(channel, "kind", &format!("{path}.kind"))?;
+                    let channel_kind =
+                        required_nonempty_string(channel, "kind", &format!("{path}.kind"))?;
+                    let requirement = required_nonempty_string(
+                        channel,
+                        "requirement",
+                        &format!("{path}.requirement"),
+                    )?;
+                    if !matches!(requirement, "required" | "optional") {
+                        return Err(ValidationError(format!(
+                            "{path}.requirement must explicitly be required or optional"
+                        )));
+                    }
+                    if !matches!(channel_kind, "scalar" | "vec3" | "quat" | "array") {
+                        return Err(ValidationError(format!(
+                            "{path}.kind is unknown and cannot negotiate channel semantics"
+                        )));
+                    }
                     if !names.insert(name) {
                         return Err(ValidationError(format!(
                             "capabilities.{field} contains duplicate channel {name:?}"
@@ -3283,8 +4595,7 @@ fn validate_semantics(
             }
         }
         "control_status" => {
-            // Wire 0.8: identity is `stream` (validated structurally); keep the finite
-            // t / latency gates below.
+            validate_json_stream_position(obj.get("stream"), "control_status.stream")?;
             finite_number(
                 obj.get("t")
                     .ok_or_else(|| ValidationError("control_status.t is required".into()))?,
@@ -3307,6 +4618,7 @@ fn validate_semantics(
             required_nonempty_string(obj, "mode", "control_status.mode")?;
         }
         "link_status" => {
+            validate_json_stream_position(obj.get("stream"), "link_status.stream")?;
             finite_number(
                 obj.get("t")
                     .ok_or_else(|| ValidationError("link_status.t is required".into()))?,
@@ -3320,15 +4632,28 @@ fn validate_semantics(
                     return Err(ValidationError(format!("link_status.{field} must be >= 0")));
                 }
             }
-            // Wire 0.8: `last_arrival_seq` is optional (absent before the first valid
-            // observed frame); when present it must be a non-negative integer.
-            if let Some(la) = obj.get("last_arrival_seq").filter(|v| !v.is_null()) {
-                let la = json_exact_i64(la).ok_or_else(|| {
-                    ValidationError("link_status.last_arrival_seq must be an integer".into())
-                })?;
-                if la < 0 {
+            let observed = obj.get("observed_stream").filter(|value| !value.is_null());
+            let last_arrival = obj.get("last_arrival_seq").filter(|value| !value.is_null());
+            if observed.is_some() != last_arrival.is_some() {
+                return Err(ValidationError(
+                    "link_status.observed_stream and last_arrival_seq must be present together"
+                        .into(),
+                ));
+            }
+            if let (Some(observed), Some(last_arrival)) = (observed, last_arrival) {
+                let high_water =
+                    validate_json_stream_position(Some(observed), "link_status.observed_stream")?;
+                let last_arrival = json_exact_i64(last_arrival)
+                    .filter(|seq| (1..=JSON_SAFE_INTEGER_MAX).contains(seq))
+                    .ok_or_else(|| {
+                        ValidationError(
+                            "link_status.last_arrival_seq must be a JSON-safe integer within 1..=2^53-1"
+                                .into(),
+                        )
+                    })?;
+                if last_arrival > high_water {
                     return Err(ValidationError(
-                        "link_status.last_arrival_seq must be >= 0".into(),
+                        "link_status.last_arrival_seq cannot exceed observed_stream.seq".into(),
                     ));
                 }
             }
@@ -3344,6 +4669,10 @@ fn validate_semantics(
             }
         }
         _ => {}
+    }
+    if matches!(kind, "step_request" | "run_request" | "close_session") {
+        crate::request_digest::verify_request_digest(&serde_json::Value::Object(obj.clone()))
+            .map_err(|error| ValidationError(error.to_string()))?;
     }
     Ok(())
 }
@@ -3533,11 +4862,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn unknown_enum_variant_is_forward_compatible_not_rejected() {
-        // Additive, non-breaking evolution: a peer that introduces a new enum string
-        // (within the same wire version) must NOT make every older peer hard-reject the
-        // whole frame. Each descriptive wire enum deserializes an unrecognized value to
-        // its lossless `Unknown(String)` variant instead of erroring.
+    fn unknown_enum_values_are_preserved_before_path_semantics() {
+        // Deserialization retains every unrecognized string so diagnostics and
+        // relays do not rewrite it. The operational validators below still reject
+        // unknown values at paths where interpretation would be required.
         assert_eq!(
             serde_json::from_str::<Observable>("\"lfp_v5\"").unwrap(),
             Observable::Unknown("lfp_v5".into())
@@ -3555,8 +4883,12 @@ mod tests {
             ChannelKind::Unknown("tensor".into())
         );
         assert_eq!(
-            serde_json::from_str::<Role>("\"observer\"").unwrap(),
-            Role::Unknown("observer".into())
+            serde_json::from_str::<Role>("\"coordinator\"").unwrap(),
+            Role::Unknown("coordinator".into())
+        );
+        assert_eq!(
+            serde_json::from_str::<ChannelRequirement>("\"recommended\"").unwrap(),
+            ChannelRequirement::Unknown("recommended".into())
         );
         assert_eq!(
             serde_json::from_str::<EntityRole>("\"swarm\"").unwrap(),
@@ -3575,17 +4907,82 @@ mod tests {
             serde_json::from_str::<Observable>("\"spikes\"").unwrap(),
             Observable::Spikes
         );
-        // And a whole record_target carrying an unknown observable still deserializes —
-        // the forward-compat property at the message level, not just the bare enum.
+        // A nested carrier also preserves the value before path semantics run.
         let rt: RecordTarget =
             serde_json::from_str(r#"{"port":"p","target":"t","observable":"lfp_v5"}"#).unwrap();
         assert_eq!(rt.observable, Observable::Unknown("lfp_v5".into()));
         assert_eq!(
             serde_json::to_string(&rt.observable).unwrap(),
             "\"lfp_v5\"",
-            "an additive enum value must survive decode -> encode unchanged"
+            "an unknown enum value must survive decode -> encode unchanged"
         );
         assert!(serde_json::from_str::<Observable>("\"\"").is_err());
+    }
+
+    #[test]
+    fn closed_enum_paths_reject_unknown_values_while_mode_remains_fail_safe() {
+        let load = |name: &str| {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("testdata/conformance/vectors")
+                .join(name);
+            serde_json::from_slice::<serde_json::Value>(
+                &std::fs::read(&path)
+                    .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display())),
+            )
+            .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
+        };
+
+        let mut open = load("open_session.json");
+        open["bindings"] = serde_json::json!([{
+            "port": "sensor",
+            "direction": "record",
+            "entity": {"path": "body/sensor", "role": "sensor"}
+        }]);
+        assert!(
+            validate(&open).is_ok(),
+            "canonical open_session must validate"
+        );
+        for (path, value) in [
+            (&["network", "kind"][..], "future_loader"),
+            (&["sim", "mode"][..], "realtime"),
+            (&["record", "targets", "0", "observable"][..], "lfp_v5"),
+            (&["stimulus", "targets", "0", "kind"][..], "optogenetic"),
+            (&["bindings", "0", "entity", "role"][..], "swarm"),
+        ] {
+            let mut candidate = open.clone();
+            let mut node = &mut candidate;
+            for segment in &path[..path.len() - 1] {
+                node = if let Ok(index) = segment.parse::<usize>() {
+                    &mut node.as_array_mut().expect("test path array")[index]
+                } else {
+                    node.get_mut(*segment).expect("test path object member")
+                };
+            }
+            node[path[path.len() - 1]] = value.into();
+            assert!(
+                validate(&candidate).is_err(),
+                "unknown operational enum at {path:?} must fail closed"
+            );
+        }
+
+        let capabilities = load("capabilities.json");
+        assert!(
+            validate(&capabilities).is_ok(),
+            "canonical capabilities must validate"
+        );
+        let mut unknown_channel = capabilities.clone();
+        unknown_channel["sensor_channels"][0]["kind"] = "tensor".into();
+        assert!(
+            validate(&unknown_channel).is_err(),
+            "an unknown required channel kind must fail negotiation"
+        );
+
+        let mut optional_unknown = unknown_channel;
+        optional_unknown["sensor_channels"][0]["requirement"] = "optional".into();
+        assert!(
+            validate(&optional_unknown).is_err(),
+            "a globally closed channel kind must fail even when optional"
+        );
     }
 
     #[test]
@@ -3613,13 +5010,13 @@ mod tests {
     fn check_version_rejects_malformed_minor_no_coercion() {
         // core-wire-1: a present-but-garbage minor or a trailing component must
         // REJECT (Err in strict mode), never silently coerce to minor 0. Tested
-        // here against the live "0.7": none of these may parse to (0, 7).
+        // here against the live "1.0": none may parse as a valid two-component wire.
         for bad in [
-            "0.GARBAGE",
-            "0.7.1",
-            "0.7x",
-            "0.",
-            "0.7.0",
+            "1.GARBAGE",
+            "1.0.1",
+            "1.0x",
+            "1.",
+            "1.0.0",
             "x.6",
             "0.0.0.0",
             "", // an ABSENT ncp_version deserializes to "" — must reject, never coerce
@@ -3629,16 +5026,47 @@ mod tests {
                 "malformed version {bad:?} must be rejected, not coerced"
             );
         }
-        // Exact match passes; a missing minor means 0 and so mismatches 0.7; the
-        // previous wire 0.6 is a breaking minor difference.
-        assert_eq!(check_version("0.8", true), Ok(true));
-        assert!(check_version("0", true).is_err(), "0 -> (0,0) != (0,8)");
+        // Stable wire 1.x is major-compatible; the released 0.8 line remains a
+        // deliberately incompatible gateway boundary.
+        assert_eq!(check_version("1.0", true), Ok(true));
+        assert_eq!(check_version("1", true), Ok(true));
+        assert_eq!(check_version("1.9", true), Ok(true));
+        assert!(check_version("0", true).is_err(), "0.x != 1.x");
         assert!(
-            check_version("0.6", true).is_err(),
-            "previous wire 0.6 is incompatible"
+            check_version("0.8", true).is_err(),
+            "released wire 0.8 is incompatible without the labelled gateway"
         );
         // Non-strict mode surfaces the same rejection as Ok(false), not a coerced pass.
         assert_eq!(check_version("0.1", false), Ok(false));
+    }
+
+    #[test]
+    fn check_version_accepts_canonical_stable_minor_through_u64_max() {
+        for version in ["1", "1.0", "1.9", "1.18446744073709551615"] {
+            assert_eq!(
+                check_version(version, true),
+                Ok(true),
+                "canonical stable-line version {version:?} must be compatible"
+            );
+        }
+    }
+
+    #[test]
+    fn check_version_rejects_noncanonical_or_overflow_components() {
+        for version in [
+            "01",
+            "01.0",
+            "1.00",
+            "1.01",
+            "1.١",
+            "1.0\n",
+            "1.18446744073709551616",
+        ] {
+            assert!(
+                check_version(version, false).is_err(),
+                "noncanonical or out-of-range version {version:?} must be malformed"
+            );
+        }
     }
 
     #[test]
@@ -3830,12 +5258,74 @@ mod tests {
 
     #[test]
     fn rpc_error_builder_always_emits_a_valid_frame() {
-        let bytes = rpc_error_payload("", Some("bad/*".into()), Some(String::new()));
+        let bytes = rpc_error_payload(
+            RpcErrorCode::ContainedInternalFailure,
+            "",
+            Some("bad/*".into()),
+            Some(String::new()),
+        );
         let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         validate(&value).unwrap();
-        assert_eq!(value["error"], "internal error");
+        assert_eq!(value["code"], "NCP-INTERNAL-001");
+        assert_eq!(value["error"], "contained internal failure");
         assert_eq!(value["session_id"], serde_json::Value::Null);
         assert_eq!(value["request_kind"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn rpc_request_validation_preserves_limit_codes_into_error_frames() {
+        fn assert_code(payload: &[u8], expected: &str) {
+            let error = validate_rpc_request_for("open_session", payload).unwrap_err();
+            assert_eq!(error.rpc_error_code().as_str(), expected);
+            let reply = rpc_error_payload(
+                error.rpc_error_code(),
+                error.to_string(),
+                None,
+                Some("open_session".into()),
+            );
+            let frame: serde_json::Value = serde_json::from_slice(&reply).unwrap();
+            validate(&frame).unwrap();
+            assert_eq!(frame["code"], expected);
+        }
+
+        assert_code(
+            br#"{"kind":"open_session","kind":"open_session"}"#,
+            "NCP-LIMIT-007",
+        );
+
+        let too_deep = format!(
+            "{}0{}",
+            "[".repeat(crate::bounded_json::MAX_NESTING_DEPTH + 1),
+            "]".repeat(crate::bounded_json::MAX_NESTING_DEPTH + 1)
+        );
+        assert_code(too_deep.as_bytes(), "NCP-LIMIT-002");
+
+        let too_large = vec![b' '; crate::bounded_json::MAX_FRAME_BYTES + 1];
+        assert_code(&too_large, "NCP-LIMIT-001");
+        assert_code(br#"{"#, "NCP-LIMIT-009");
+
+        let semantic = validate_rpc_request_for("open_session", br#"{}"#).unwrap_err();
+        assert_eq!(semantic.rpc_error_code(), RpcErrorCode::InvalidMessage);
+        assert_eq!(semantic.rpc_error_code().as_str(), "NCP-WIRE-001");
+    }
+
+    #[test]
+    fn registered_error_codes_match_the_packaged_normative_registry() {
+        let registry: serde_json::Value =
+            serde_json::from_str(include_str!("../testdata/contract/errors.v1.json")).unwrap();
+        let codes: Vec<&str> = registry["codes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| entry["code"].as_str().unwrap())
+            .collect();
+        assert_eq!(codes, REGISTERED_ERROR_CODES);
+    }
+
+    #[test]
+    fn error_frame_constructor_rejects_unregistered_code() {
+        let error = ErrorFrame::new("NCP-NOT-REGISTERED", "bad request").unwrap_err();
+        assert!(error.to_string().contains("unregistered NCP error code"));
     }
 
     #[test]
@@ -3848,8 +5338,13 @@ mod tests {
         // version is mandatory) — no longer a silent None.
         assert!(diagnose_version(br#"{"kind":"sensor_frame"}"#).is_some());
         assert!(diagnose_version(br#"{"kind":"sensor_frame","ncp_version":6}"#).is_some());
-        // Unparseable JSON -> None (nothing to diagnose; best-effort, never panics).
+        // Unparseable/ambiguous/over-budget JSON -> None. The diagnostic path
+        // must not bypass bounded ingress after the primary decoder rejects it.
         assert!(diagnose_version(b"not json").is_none());
+        assert!(diagnose_version(br#"{"ncp_version":"1.0","ncp_version":"0.1"}"#).is_none());
+        let mut oversized = br#"{"ncp_version":"0.1"}"#.to_vec();
+        oversized.resize(crate::bounded_json::MAX_FRAME_BYTES + 1, b' ');
+        assert!(diagnose_version(&oversized).is_none());
     }
 
     #[test]
@@ -3930,6 +5425,55 @@ mod tests {
     }
 
     #[test]
+    fn status_positions_are_stamped_and_link_observation_is_coherent() {
+        let mut control = serde_json::json!({
+            "kind": "control_status",
+            "ncp_version": NCP_VERSION,
+            "t": 0.0,
+            "mode": "hold",
+            "loop_latency_ms": 0.0,
+            "safety_ok": true,
+            "stream": {"epoch": EPOCH, "seq": 0},
+            "session": {"generation": GEN},
+            "session_id": SID,
+        });
+        assert!(validate(&control).is_err(), "status seq 0 is unstamped");
+        control["stream"]["seq"] = 1.into();
+        assert!(validate(&control).is_ok());
+        control["stream"]["epoch"] = "not-an-epoch".into();
+        assert!(validate(&control).is_err());
+
+        let mut link = serde_json::json!({
+            "kind": "link_status",
+            "ncp_version": NCP_VERSION,
+            "session_id": SID,
+            "t": 0.0,
+            "received": 1,
+            "lost": 0,
+            "loss_rate": 0.0,
+            "burst": false,
+            "stream": {"epoch": EPOCH, "seq": 1},
+            "session": {"generation": GEN},
+        });
+        assert!(validate(&link).is_ok());
+
+        link["observed_stream"] = serde_json::json!({"epoch": EPOCH, "seq": 2});
+        assert!(
+            validate(&link).is_err(),
+            "observed_stream and last_arrival_seq are a presence pair"
+        );
+        link["last_arrival_seq"] = 0.into();
+        assert!(validate(&link).is_err(), "an observed arrival starts at 1");
+        link["last_arrival_seq"] = 3.into();
+        assert!(
+            validate(&link).is_err(),
+            "last arrival cannot exceed the observed forward high-water"
+        );
+        link["last_arrival_seq"] = 2.into();
+        assert!(validate(&link).is_ok());
+    }
+
+    #[test]
     fn validator_rejects_positional_nested_structs_without_panicking() {
         let cases = [
             serde_json::json!({
@@ -3982,7 +5526,7 @@ mod tests {
     #[test]
     fn decode_validated_gates_kind_version_and_seq() {
         let ok = format!(
-            r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","stream":{{"epoch":"{EPOCH}","seq":3}},"session":{{"generation":"{GEN}"}},"session_id":"s","mode":"active","ttl_ms":200,"channels":{{"velocity_setpoint":{{"data":[0]}}}}}}"#
+            r#"{{"kind":"command_frame","ncp_version":"{NCP_VERSION}","stream":{{"epoch":"{EPOCH}","seq":3}},"session":{{"generation":"{GEN}"}},"session_id":"s","mode":"active","ttl_ms":200,"channels":{{"velocity_setpoint":{{"data":[0]}}}},"authority":{{"session_epoch":"{GEN}","term":1,"lease_id":"20000000-0000-4000-8000-000000000001","issuer_principal_id":"controller-1","holder_principal_id":"controller-1","holder_entity_id":"body-1","issued_at_utc_ms":1000,"expires_at_utc_ms":2000}}}}"#
         );
         let cmd: CommandFrame = decode_validated(ok.as_bytes()).expect("valid frame decodes");
         assert_eq!(cmd.stream.seq, 3);
@@ -4021,6 +5565,63 @@ mod tests {
             br#"{"kind":"command_frame","ncp_version":"0.7","seq":1,"channels":{"velocity":[]}}"#
         )
         .is_err());
+    }
+
+    #[test]
+    fn data_plane_key_session_gates_reject_cross_session_payloads() {
+        let sensor = SensorFrame {
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
+            ..Default::default()
+        };
+        let sensor = serde_json::to_vec(&sensor).unwrap();
+        let live = session();
+        assert!(validate_sensor_plane_payload_for(SID, &live, &sensor).is_ok());
+        assert!(validate_sensor_plane_payload_for("other", &live, &sensor).is_err());
+        let stale = SessionRef {
+            generation: "10000000-0000-4000-8000-000000000003".into(),
+        };
+        assert!(validate_sensor_plane_payload_for(SID, &stale, &sensor).is_err());
+
+        let command = CommandFrame {
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
+            mode: Mode::Hold,
+            ttl_ms: 200.0,
+            ..Default::default()
+        };
+        let command = serde_json::to_vec(&command).unwrap();
+        assert!(validate_command_plane_payload_for(SID, &live, &command).is_ok());
+        assert!(validate_command_plane_payload_for("other", &live, &command).is_err());
+        assert!(validate_command_plane_payload_for(SID, &stale, &command).is_err());
+
+        let mut estop: CommandFrame = serde_json::from_slice(&command).unwrap();
+        estop.mode = Mode::Estop;
+        estop.authority = None;
+        let estop = serde_json::to_vec(&estop).unwrap();
+        assert!(validate_command_plane_payload_for(SID, &live, &estop).is_ok());
+        assert!(validate_command_plane_payload_for("other", &live, &estop).is_err());
+        assert!(validate_command_plane_payload_for(SID, &stale, &estop).is_err());
+        assert!(validate_command_plane_payload_for(
+            SID,
+            &live,
+            format!(r#"{{"mode":"estop","session_id":"{SID}"}}"#).as_bytes()
+        )
+        .is_err());
+
+        let observation = ObservationFrame {
+            stream: stream(2),
+            source: Some(stream(1)),
+            session: live.clone(),
+            session_id: SID.into(),
+            ..Default::default()
+        };
+        let observation = serde_json::to_vec(&observation).unwrap();
+        assert!(validate_observation_plane_payload_for(SID, &live, &observation).is_ok());
+        assert!(validate_observation_plane_payload_for("other", &live, &observation).is_err());
+        assert!(validate_observation_plane_payload_for(SID, &stale, &observation).is_err());
     }
 
     #[test]

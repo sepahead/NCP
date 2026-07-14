@@ -270,6 +270,26 @@ impl CodecSpec {
         session: SessionRef,
         session_id: &str,
     ) -> Result<CommandFrame, CodecError> {
+        self.decode_checked_with_authority(
+            pop_rates, t, stream, frame_id, mode, session, session_id, None,
+        )
+    }
+
+    /// Rate-decode with the authority lease required by an Active wire-1.0
+    /// command. Non-active callers may pass `None`; an Active command without a
+    /// matching lease fails validation rather than minting authority in the codec.
+    #[allow(clippy::too_many_arguments)]
+    pub fn decode_checked_with_authority(
+        &self,
+        pop_rates: &Map<f64>,
+        t: f64,
+        stream: StreamPosition,
+        frame_id: &str,
+        mode: Mode,
+        session: SessionRef,
+        session_id: &str,
+        authority: Option<crate::messages::AuthorityLease>,
+    ) -> Result<CommandFrame, CodecError> {
         self.validate()?;
         if pop_rates
             .iter()
@@ -287,7 +307,8 @@ impl CodecSpec {
                 "frame_id must be non-empty and contain no control characters".into(),
             ));
         }
-        let command = self.decode(pop_rates, t, stream, frame_id, mode, session, session_id);
+        let mut command = self.decode(pop_rates, t, stream, frame_id, mode, session, session_id);
+        command.authority = authority;
         command
             .validate_wire()
             .map_err(|error| CodecError(format!("decoded command is not wire-valid: {error}")))?;

@@ -1,9 +1,13 @@
-// Neuro-Cybernetic Protocol (NCP) v0.8 — protobuf IDL. THE NORMATIVE WIRE CONTRACT.
+// Neuro-Cybernetic Protocol (NCP) 1.0.0-rc.1 candidate — protobuf IDL.
+// Normative field-number/message-shape layer; unreleased and non-certifying.
 //
-// proto-native: this `.proto` is the single source of truth for the NCP wire —
-// message structure, field numbers, types, and the binary encoding. Every other
-// shipped representation is generated from the Rust reference projection or
-// conformance-checked AGAINST it:
+// The precedence registry in `README.md` and `contract/manifest.v1.json` governs:
+// `contract/*.v1.json` (excluding the derived, non-self-hashed
+// `contract/manifest.v1.json`) comes first, then this IDL, generated JSON Schemas,
+// normative prose, and the mandatory corpus. This file is therefore the source of
+// truth for protobuf field numbers and message shapes, not the sole source for
+// authority, limits, security, or behavioral acceptance. Other representations are
+// generated from the Rust projection or conformance-checked against it:
 //
 //   - preview protobuf bindings (Rust/prost, TS/ts-proto, Python) — generated via
 //     buf under ignored `gen/`; these are not the shipped runtime,
@@ -11,8 +15,8 @@
 //     in parity with this file (including enum wire strings),
 //   - Rust serde reference types; Python/C wrap them and TS types derive via ts-rs.
 //
-// `ncp-core` owns BEHAVIOR (codec, safety governor, keys, version), not the wire.
-// Parity is CI-enforced:
+// `ncp-core` implements behavior; it is informative rather than another normative
+// layer. Parity is CI-enforced:
 //   - `scripts/check_proto_schema_parity.py` — this `.proto` <-> JSON Schema
 //     (field-set + enum wire-string parity); run it after editing this file,
 //   - `ncp-core/tests/conformance.rs`        — Rust serde <-> JSON Schema.
@@ -25,13 +29,15 @@
 //
 // Wire conventions:
 //   - every message carries a `kind` string discriminator and an `ncp_version`
-//     string ("0.7"); receivers check the FULL `ncp_version` — pre-1.0 the minor
-//     is breaking, so an exact (major, minor) match is required and any 0.x minor
-//     difference is fail-closed rejected (never coerced). Since wire 0.6 both
-//     fields are MANDATORY on every message (an absent version/kind no longer
-//     defaults to the receiver's own — `required_fields()`/`validate()` and the
-//     JSON Schemas' `required` + `const` enforce it end to end),
-//   - stream/source discipline (wire 0.8, normative): every data-plane frame carries
+//     string ("1.0"). Versions have one or two canonical ASCII-decimal u64
+//     components with no leading zeroes; `1` means `1.0`. Stable peers accept
+//     every well-formed same-major 1.x version, while pre-1.0 peers require an
+//     exact (major, minor) match. Since wire 0.6 both fields are MANDATORY on
+//     every message (an absent version/kind no longer defaults to the receiver's
+//     own — `required_fields()`/`validate()` and the JSON Schemas' `required` +
+//     exact stable-major `pattern` enforce it end to end),
+//   - stream/source discipline (introduced in wire 0.8, retained by 1.0): every
+//     data-plane frame and periodically published status carries
 //     its OWN identity+position in `stream` (a `StreamPosition{epoch, seq}`) and, when
 //     it was driven by another frame, a `source` `StreamPosition` referencing it.
 //     `stream.seq` starts at 1 per `stream.epoch`, strictly increasing, and is the
@@ -42,11 +48,13 @@
 //     ONLY — never loss accounting; its seq may repeat or jump under intentional
 //     decimation. No top-level `seq` remains (retired + `reserved` on every message,
 //     no alias); the old observation-plane `seq == 0` pull/RPC sentinel is replaced by
-//     `source` ABSENCE. A restart is a NEW `stream.epoch`, accepted only via an
-//     authorized epoch transition (or, in the constrained single-publisher profile,
-//     after the prior stream expired); a retired epoch is rejected even with a huge
-//     seq. Non-Active commands clear buffered actuation before replay/envelope
-//     rejection; ESTOP additionally latches. A local clock rewind HOLDs through
+//     `source` ABSENCE. One receiver/publisher declaration is bound to one epoch and
+//     strictly increasing sequence high-water forever: expiry never authorizes a
+//     lower seq or foreign epoch. A restart requires fresh route/session declaration
+//     state; the retired declaration rejects every replay, including ESTOP, before
+//     latch mutation. After authenticated current-session ingress, local non-Active
+//     handling clears buffered actuation before replay checks and ESTOP additionally
+//     latches. A local clock rewind HOLDs through
 //     catch-up until a fresh command arrives. A `session.generation` (server-issued on
 //     `session_opened`) scopes all of a session's streams so a stale-session frame is
 //     rejectable. Wire 0.8 keeps the 0.7 JSON int64 exact ±(2^53-1) range guard,
@@ -74,14 +82,11 @@
 //     sensor's time travels explicitly in `source_t`. `sim_time_ms` and
 //     Observation.times are simulation milliseconds.
 //
-// NCP is transport-agnostic. The recommended *decoupled* default is **Zenoh**
-// (these messages as payloads over a data-centric pub/sub + queryable bus — no
-// client bound to a server address); the same messages ride WebSocket/JSON (the
-// shipped, zero-friction fallback). The `NeuroSim` gRPC service below is an
-// OPTIONAL point-to-point binding for the rare session-lifecycle RPC only — never
-// the per-tick data plane (HTTP/2/TCP is unfit for the hot action loop; see
-// RATIONALE.md and PERFORMANCE.md). Choose the medium per deployment; the
-// contract is one.
+// NCP is transport-agnostic, but this 1.0 candidate stabilizes only Zenoh. The
+// WebSocket/JSON implementation is experimental. The `NeuroSim` service below is
+// an IDL preview retained for field-number planning; gRPC/protobuf runtime transport
+// is excluded from the stable 1.0 scope and is never the per-tick data plane. See
+// `docs/1.0-scope.md`, RATIONALE.md, and PERFORMANCE.md.
 //
 // Lifecycle RPC verbs use distinct queryable keys so an ACL can authorize them
 // independently. These structured annotations are part of CONTRACT_HASH:
@@ -92,7 +97,7 @@
 
 syntax = "proto3";
 
-package ncp.v0;
+package ncp.v1;
 
 // ───────────────────────── primitives ─────────────────────────
 
@@ -117,8 +122,11 @@ message StreamPosition {
   // epoch per logical stream and per restart.
   string epoch = 1;
   // Position within the incarnation. REQUIRED. Range 1 .. 2^53-1. Starts at 1 per
-  // epoch, +1 per new logical frame (assigned AFTER intentional decimation; a retry
-  // keeps its seq), never wraps within an epoch.
+  // epoch and never wraps. In the stable Zenoh binding, admission owns one allocator
+  // across Active/HOLD/ESTOP; a pre-publication latest-wins replacement may inherit
+  // its pending slot, but once publication is attempted that position is consumed.
+  // A delivery-ambiguous recovery is a new logical fail-safe at a new position,
+  // never an exact-position retry.
   int64 seq = 2;
   // Field number 3 is reserved BY POLICY (this registry note — deliberately NOT
   // proto-`reserved`, so it can be added later) for a future `publisher_id` bound to
@@ -133,13 +141,15 @@ message SessionRef {
   string generation = 1;   // server-issued opaque incarnation id (canonical UUIDv4); "" = unset
 }
 
-// Enums. NOTE on forward-compat: every JSON projection preserves an unrecognized,
-// non-empty enum string verbatim so a decode -> encode relay never rewrites a newer
-// additive value. That catch-all is deliberately NOT a proto enum constant: proto3
-// open-enum semantics already preserve unknown numeric values, while the constants
-// below enumerate only the values this revision understands. `Mode` is also open,
-// but an unknown command mode never grants authority: safety treats every mode other
-// than ACTIVE as HOLD.
+// Enums. NOTE on forward-compat: Rust decoding preserves an unrecognized, non-empty
+// JSON enum string verbatim so diagnostics and decode -> encode relays do not rewrite
+// it. Preservation does NOT make every enum same-major extensible: every enum below
+// except Mode is closed because at least one path requires interpretation. Unknown
+// closed values fail semantic validation. Mode alone is open and fail-safe: safety
+// treats every mode other than ACTIVE as HOLD, an invariant every same-major additive
+// mode must preserve. The catch-all is deliberately not a proto constant; proto3
+// already preserves unknown numeric enum values.
+// Closed: record/observation paths must understand the observable.
 enum Observable {
   OBSERVABLE_UNSPECIFIED = 0;
   V_M = 1;                    // wire string "V_m"
@@ -149,6 +159,7 @@ enum Observable {
   BINARY_STATE = 5;           // wire string "binary_state" — spin_detector (binary neurons)
 }
 
+// Closed operational enum: unknown values cannot select stimulus behavior.
 enum StimulusKind {
   STIMULUS_KIND_UNSPECIFIED = 0;
   CURRENT_PA = 1;             // wire string "current_pA"
@@ -158,6 +169,7 @@ enum StimulusKind {
   RATE_INJECT = 5;            // wire string "rate_inject" — continuous-rate drive (rate neurons)
 }
 
+// Closed operational enum: unknown values cannot select model-loading behavior.
 enum NetworkRefKind {
   NETWORK_REF_KIND_UNSPECIFIED = 0;
   HANDLE = 1;     // wire string "handle" — backend-issued compiled-module / script id
@@ -166,6 +178,7 @@ enum NetworkRefKind {
   SPEC = 4;       // wire string "spec"
 }
 
+// Closed: bindings may use the role for routing or authorization.
 enum EntityRole {
   ENTITY_ROLE_UNSPECIFIED = 0;
   SYSTEM = 1;                 // wire string "system"
@@ -174,6 +187,7 @@ enum EntityRole {
   ACTUATOR = 4;               // wire string "actuator"
 }
 
+// Closed capability enum: every negotiated channel shape must be understood.
 enum ChannelKind {
   CHANNEL_KIND_UNSPECIFIED = 0;
   SCALAR = 1;                 // wire string "scalar"
@@ -182,12 +196,62 @@ enum ChannelKind {
   ARRAY = 4;                  // wire string "array"
 }
 
+// Closed negotiation enum; unknown values never weaken a requirement.
+enum ChannelRequirement {
+  CHANNEL_REQUIREMENT_UNSPECIFIED = 0; // wire string "unknown" — never authorizes action
+  CHANNEL_REQUIRED = 1;                // wire string "required"
+  CHANNEL_OPTIONAL = 2;                // wire string "optional"
+}
+
+// Closed negotiation enum; unknown values never acquire peer authority.
 enum Role {
   ROLE_UNSPECIFIED = 0;
   CONTROLLER = 1;             // wire string "controller"
   PLANT = 2;                  // wire string "plant"
+  OBSERVER = 3;               // wire string "observer"
+  OPERATOR = 4;               // wire string "operator"
 }
 
+// Security and authority enums are CLOSED. Their unspecified values map to the
+// explicit JSON string "unknown" and never inherit authority.
+enum Plane {
+  PLANE_UNSPECIFIED = 0;      // wire string "unknown"
+  CONTROL = 1;                // wire string "control"
+  PERCEPTION = 2;             // wire string "perception"
+  ACTION = 3;                 // wire string "action"
+  OBSERVATION = 4;            // wire string "observation"
+}
+
+enum PrincipalRole {
+  PRINCIPAL_ROLE_UNSPECIFIED = 0; // wire string "unknown"
+  COMMANDER = 1;                  // wire string "commander"
+  BODY = 2;                       // wire string "body"
+  PRINCIPAL_OBSERVER = 3;         // wire string "observer"
+  PRINCIPAL_OPERATOR = 4;         // wire string "operator"
+}
+
+enum LifecycleState {
+  LIFECYCLE_STATE_UNSPECIFIED = 0; // wire string "unknown"
+  CLOSED = 1;                      // wire string "closed"
+  OPENING = 2;                     // wire string "opening"
+  LIFECYCLE_INIT = 3;              // wire string "init"
+  LIFECYCLE_ACTIVE = 4;            // wire string "active"
+  LIFECYCLE_HOLD = 5;              // wire string "hold"
+  LIFECYCLE_ESTOP = 6;             // wire string "estop"
+  CLOSING = 7;                     // wire string "closing"
+  RECONNECTING = 8;                // wire string "reconnecting"
+  FAILED = 9;                      // wire string "failed"
+}
+
+enum OperationOutcome {
+  OPERATION_OUTCOME_UNSPECIFIED = 0; // wire string "unknown"
+  SUCCEEDED = 1;                     // wire string "succeeded"
+  REJECTED = 2;                      // wire string "rejected"
+  CANCELLED = 3;                     // wire string "cancelled"
+  OUTCOME_UNKNOWN = 4;               // wire string "outcome_unknown"
+}
+
+// Sole open enum. Every unknown/additive value is non-authorizing and governed as HOLD.
 enum Mode {
   MODE_UNSPECIFIED = 0;
   INIT = 1;                   // wire string "init"
@@ -196,10 +260,56 @@ enum Mode {
   ESTOP = 4;                  // wire string "estop"
 }
 
+// Closed operational enum: unknown values cannot select execution behavior.
 enum SimMode {
   SIM_MODE_UNSPECIFIED = 0;
   STREAM = 1;                 // wire string "stream"
   BATCH = 2;                  // wire string "batch"
+}
+
+// Payload identity is a claim only. A transport adapter MUST bind it to the
+// authenticated peer before it can authorize any operation.
+message IdentityClaim {
+  string principal_id = 1;
+  string entity_id = 2;
+  PrincipalRole role = 3;
+  Plane plane = 4;
+}
+
+message GatewayAttribution {
+  string gateway_id = 1;
+  string source_wire = 2;
+}
+
+message AuthorityLease {
+  string session_epoch = 1;
+  uint64 term = 2;
+  string lease_id = 3;
+  string issuer_principal_id = 4;
+  string holder_principal_id = 5;
+  string holder_entity_id = 6;
+  int64 issued_at_utc_ms = 7;
+  int64 expires_at_utc_ms = 8;
+}
+
+message OperationContext {
+  string operation_id = 1;
+  string request_digest = 2;
+  string session_epoch = 3;
+  uint64 expected_state_version = 4;
+  int64 deadline_utc_ms = 5;
+  bool retry = 6;
+}
+
+message ResponderReceipt {
+  string operation_id = 1;
+  string request_digest = 2;
+  string result_digest = 3;
+  OperationOutcome outcome = 4;
+  uint64 state_version = 5;
+  int64 committed_at_utc_ms = 6;
+  string responder_principal_id = 7;
+  string responder_entity_id = 8;
 }
 
 // ───────────────────────── entity addressing ─────────────────────────
@@ -286,6 +396,11 @@ message OpenSession {
   // mismatch (it does not reject — ncp_version is the hard gate), symmetric with
   // SessionOpened.contract_hash. Empty/absent = not advertised. (#P1 handshake)
   string contract_hash = 9;
+  IdentityClaim identity = 10;
+  string security_profile = 11;
+  string security_state_digest = 12;
+  bool gateway_permitted = 13;
+  GatewayAttribution gateway = 14; // optional; present only on translated payloads
 }
 
 message SessionOpened {
@@ -306,6 +421,14 @@ message SessionOpened {
   // it distinguishes one opening of this `session_id` from a later reuse, so a
   // stale-session frame is rejectable.
   SessionRef session = 10;
+  IdentityClaim identity = 11;
+  string security_profile = 12;
+  string security_state_digest = 13;
+  bool gateway_permitted = 14;
+  GatewayAttribution gateway = 15; // optional; present only on translated payloads
+  // Authoritative state after open; seeds the first mutation's
+  // OperationContext.expected_state_version.
+  uint64 state_version = 16;
 }
 
 message StimulusFrame {
@@ -324,6 +447,8 @@ message StepRequest {
   double advance_ms = 4;            // 0 = use SimConfig.chunk_ms
   StimulusFrame stimulus = 5;
   SessionRef session = 6;           // (0.8) REQUIRED: targets an open incarnation; (session_id, generation) must be the live pair
+  OperationContext operation = 7;
+  AuthorityLease authority = 8;
 }
 
 message RunRequest {
@@ -333,6 +458,8 @@ message RunRequest {
   double duration_ms = 4;
   StimulusFrame stimulus = 5;
   SessionRef session = 6;           // (0.8) REQUIRED: targets an open incarnation; (session_id, generation) must be the live pair
+  OperationContext operation = 7;
+  AuthorityLease authority = 8;
 }
 
 message Observation {
@@ -365,6 +492,7 @@ message ObservationFrame {
                                           // OMITTED for the pull/RPC reply form (absence replaces the old seq==0 sentinel).
   double source_t = 12;                    // driving SensorFrame.t; 0 = unset
   SessionRef session = 13;
+  ResponderReceipt receipt = 14;            // optional; present for mutating RPC replies
 }
 
 // (#6) Reserved complete envelope for a future bulk numeric observation carried
@@ -405,6 +533,8 @@ message CloseSession {
   string kind = 2;                  // "close_session"
   string session_id = 3;
   SessionRef session = 4;           // (0.8) REQUIRED: a delayed close for an old incarnation must not close a reopened session
+  OperationContext operation = 5;
+  AuthorityLease authority = 6;
 }
 
 message SessionClosed {
@@ -413,6 +543,7 @@ message SessionClosed {
   string session_id = 3;
   bool ok = 4;
   SessionRef session = 5;           // (0.8) the incarnation this close concerns; a delayed reply must be attributable to it
+  ResponderReceipt receipt = 6;
 }
 
 // A failure reply is a first-class versioned message; stale/unversioned error
@@ -428,6 +559,8 @@ message ErrorFrame {
   // the request carried a structurally valid SessionRef; omit BOTH for OpenSession
   // failures, missing/malformed generation, and non-session errors (copy both or neither).
   SessionRef session = 6;
+  ResponderReceipt receipt = 7;     // optional; committed rejection/cancellation only
+  string code = 8;                  // REQUIRED: exact member of contract/errors.v1.json
 }
 
 // ───────────────────────── closed-loop control (layered) ─────────────────────────
@@ -437,7 +570,7 @@ message ChannelSpec {
   ChannelKind kind = 2;
   string unit = 3;                  // "" = unset
   int64 size = 4;                   // 0 = unset
-  bool optional = 5;
+  ChannelRequirement requirement = 5; // REQUIRED in canonical JSON; unknown/absent fails closed
   string description = 6;           // "" = unset
 }
 
@@ -459,6 +592,13 @@ message Capabilities {
   repeated ChannelSpec command_channels = 7;
   string codec_id = 8;              // "" = unset
   SafetyLimits safety = 9;
+  IdentityClaim identity = 10;
+  string security_profile = 11;
+  string security_state_digest = 12;
+  repeated string stable_capabilities = 13;
+  bool gateway_permitted = 14;
+  string plant_profile_digest = 15; // optional; empty = controller/non-plant peer
+  GatewayAttribution gateway = 16;  // optional; present only on translated payloads
 }
 
 message SensorFrame {
@@ -499,6 +639,7 @@ message CommandFrame {
   double source_t = 13;              // driving SensorFrame.t, for source-age checks; 0 = unset
   SessionRef session = 14;           // the session incarnation this command stream belongs to
   string session_id = 15;            // (0.8) logical session id (transport-neutral); MUST equal the routing key's session segment
+  AuthorityLease authority = 16;     // Active requires it; authenticated ESTOP may omit it
 }
 
 // Controller -> plant / telemetry: loop health and mode.
@@ -513,7 +654,8 @@ message ControlStatus {
   double loop_latency_ms = 7;
   bool safety_ok = 8;
   string note = 9;                  // "" = unset
-  StreamPosition stream = 10;        // REQUIRED (0.8) when periodically published: this status stream's position.
+  StreamPosition stream = 10;        // REQUIRED when periodically published: this status stream's position;
+                                     // seq starts at 1 and strictly advances (0 is unstamped, never telemetry).
                                      // (An `applied_command` StreamPosition lands with the command-ack increment.)
   SessionRef session = 11;
   string session_id = 12;            // (0.8) logical session id (transport-neutral)
@@ -531,12 +673,13 @@ message LinkStatus {
   int64 lost = 7;             // currently-unresolved gaps in the observed interval; MAY decrease when a late arrival reconciles
   double loss_rate = 8;       // lost / observed sequence span (NOT lost / raw arrival count)
   bool burst = 9;             // sustained loss (possible jam) -> fail safe
-  StreamPosition stream = 10;        // REQUIRED (0.8): the LinkStatus stream's OWN incarnation + position — a consumer
+  StreamPosition stream = 10;        // REQUIRED: the LinkStatus stream's OWN incarnation + positive position — a consumer
                                      // validates THIS before trusting any reported burst/loss/high-water state.
   StreamPosition observed_stream = 11; // the MONITORED stream: its epoch + forward high-water seq. Absent before the first
                                      // valid observed frame (presence <=> last_arrival_seq present).
   optional int64 last_arrival_seq = 12; // F-16: seq of the last valid in-epoch ARRIVAL (< observed_stream.seq under
-                                     // reordering; == it on ordinary forward arrival). Presence tracks observed_stream.
+                                     // reordering; == it on ordinary forward arrival). Range starts at 1, cannot exceed
+                                     // observed_stream.seq, and presence tracks observed_stream.
   SessionRef session = 13;
   // Tags 14, 15 intentionally free: bounded reorder/duplicate CLASSIFICATION counters
   // are deferred — the current algorithm cannot report them identically across bindings

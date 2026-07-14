@@ -2,15 +2,11 @@ import type { ChannelValue } from "./ChannelValue.js";
 import type { SessionRef } from "./SessionRef.js";
 import type { StreamPosition } from "./StreamPosition.js";
 /**
- * Plant → controller: the latest sensed state. Carries `seq`/`t` so a command
- * can be stamped with the sensor it was computed from (the correspondence the
- * split perception/action planes must preserve — join on `seq`, not arrival).
- *
- * Wire 0.6 (normative): publishers MUST stamp `seq` starting at `1`, strictly
- * increasing per stream. `seq = 0` is "unstamped" — receivers drop it (it is
- * also the serde default, so a default-constructed frame is not wire-legal
- * until stamped). `t` is producer-local monotonic seconds and is never compared
- * across peers.
+ * Plant → controller: the latest sensed state. Its own `stream`/`t` identify the
+ * sensor publication; a derived command correlates it through `source`/`source_t`
+ * without copying those values into the command publisher's own identity.
+ * Publishers stamp `stream.seq` starting at `1`, strictly increasing within a
+ * canonical `stream.epoch`. `stream.seq = 0` is unstamped and rejected.
  */
 export type SensorFrame = {
     ncp_version: string;

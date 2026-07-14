@@ -1,0 +1,51 @@
+{
+  "schema": "ncp.security-state-digest.v1",
+  "wire_version": "1.0",
+  "encoding": "contract/canonical-digest.v1.json",
+  "domain_utf8_with_terminal_nul": "ncp.security-state-digest.v1\u0000",
+  "input": "one structurally validated deployment profile",
+  "projection": {
+    "closed": true,
+    "members": [
+      "profile",
+      "bind",
+      "authority",
+      "tls",
+      "allow_downgrade",
+      "insecure_status"
+    ],
+    "bind": "exact validated tcp {kind,host,port} or unix {kind,path} object",
+    "authority": {
+      "members": ["realm", "default_deny", "principals"],
+      "principals_order": "ascending principal_id UTF-8 bytes after duplicate-ID and duplicate-certificate rejection",
+      "principal_members": [
+        "principal_id",
+        "certificate_identity",
+        "entity_id",
+        "role",
+        "planes",
+        "may_reset_estop",
+        "may_override"
+      ],
+      "planes_order": "ascending registered plane string UTF-8 bytes after duplicate rejection",
+      "optional_boolean_defaults": {
+        "may_reset_estop": false,
+        "may_override": false
+      },
+      "identity_grammar": "principal_id, certificate_identity, and entity_id are non-empty canonical IDs <=128 UTF-8 bytes; whitespace, controls, U+FEFF, and /*$#? are forbidden"
+    },
+    "tls": "null or exact {ca_cert,peer_cert,private_key} absolute-path strings",
+    "unknown_members": "reject at every deployment-profile object boundary"
+  },
+  "coverage": {
+    "certificate_and_key_paths": true,
+    "certificate_and_key_file_bytes": false,
+    "reason": "the digest binds the precommitted effective configuration; secret/key bytes are never serialized or logged"
+  },
+  "verification": {
+    "before_digest": "full structural profile validation",
+    "negotiation": "exact lowercase digest equality",
+    "mismatch": "fail closed before session or authority success",
+    "cross_language_vectors": "conformance/security-state-digest/v1.json"
+  }
+}

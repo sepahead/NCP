@@ -15,8 +15,8 @@
 //! terminates the process and cannot be caught.
 
 use ncp_core::{
-    valid_id_segment, ActionBuffer, CodecSpec, CommandFrame, Keys, Map, Mode, SafetyGovernor,
-    SafetyLimits, SensorFrame, WireFrame,
+    valid_id_segment, ActionBuffer, AuthorityLease, CodecSpec, CommandFrame, Keys, Map, Mode,
+    SafetyGovernor, SafetyLimits, SensorFrame, WireFrame,
 };
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -60,6 +60,11 @@ fn cstr_out(s: String) -> *mut c_char {
     }
 }
 
+/// Apply the normative JSON resource and ambiguity limits before a typed decode.
+fn preflight_json(json: &str) -> Result<(), ncp_core::bounded_json::BoundedJsonError> {
+    ncp_core::bounded_json::preflight(json.as_bytes())
+}
+
 /// Free a string returned by any `ncp_*` function.
 ///
 /// # Safety
@@ -74,11 +79,35 @@ pub unsafe extern "C" fn ncp_string_free(s: *mut c_char) {
     })
 }
 
-/// The NCP protocol version (e.g. "0.7"). Caller frees.
+/// The NCP protocol wire version (`"1.0"` for this candidate). Caller frees.
 #[no_mangle]
 pub extern "C" fn ncp_version() -> *mut c_char {
     ffi_guard(std::ptr::null_mut(), || {
         cstr_out(ncp_core::NCP_VERSION.to_string())
+    })
+}
+
+/// This installable C ABI package's SemVer. Caller frees.
+#[no_mangle]
+pub extern "C" fn ncp_package_version() -> *mut c_char {
+    ffi_guard(std::ptr::null_mut(), || {
+        cstr_out(env!("CARGO_PKG_VERSION").to_string())
+    })
+}
+
+/// Complete normative contract SHA-256 (not the compact proto hash). Caller frees.
+#[no_mangle]
+pub extern "C" fn ncp_normative_contract_digest() -> *mut c_char {
+    ffi_guard(std::ptr::null_mut(), || {
+        cstr_out(ncp_core::NORMATIVE_CONTRACT_DIGEST.to_string())
+    })
+}
+
+/// Immutable release-builder identity, or the honest RC sentinel. Caller frees.
+#[no_mangle]
+pub extern "C" fn ncp_build_identity() -> *mut c_char {
+    ffi_guard(std::ptr::null_mut(), || {
+        cstr_out(ncp_core::BUILD_IDENTITY.to_string())
     })
 }
 
@@ -136,6 +165,27 @@ pub unsafe extern "C" fn ncp_contract_status(peer_hash: *const c_char) -> i32 {
     })
 }
 
+/// Compute the normative request-digest-v1 SHA-256 for a step/run/close JSON
+/// request. Caller frees the returned lowercase hexadecimal string.
+///
+/// # Safety
+/// `request_json` must be NULL or a valid NUL-terminated UTF-8 C string.
+#[no_mangle]
+pub unsafe extern "C" fn ncp_request_digest(request_json: *const c_char) -> *mut c_char {
+    ffi_guard(std::ptr::null_mut(), || {
+        let Ok(request_json) = required_cstr(request_json) else {
+            return std::ptr::null_mut();
+        };
+        let Ok(request) = ncp_core::bounded_json::parse_value(request_json.as_bytes()) else {
+            return std::ptr::null_mut();
+        };
+        match ncp_core::request_digest(&request) {
+            Ok(digest) => cstr_out(digest),
+            Err(_) => std::ptr::null_mut(),
+        }
+    })
+}
+
 unsafe fn key_with(realm: *const c_char, f: impl FnOnce(&Keys) -> String) -> *mut c_char {
     let realm = match cstr_in(realm) {
         Ok(Some(realm)) => realm,
@@ -148,7 +198,7 @@ unsafe fn key_with(realm: *const c_char, f: impl FnOnce(&Keys) -> String) -> *mu
     cstr_out(f(&keys))
 }
 
-/// Control-plane prefix `{realm}/rpc`; wire-0.7 requests do not query this prefix.
+/// Control-plane prefix `{realm}/rpc`; wire-1.0 requests do not query this prefix.
 /// Use [`ncp_key_rpc_kind`] for a request or [`ncp_key_rpc_glob`] for a server.
 /// Caller frees.
 /// # Safety
@@ -158,7 +208,7 @@ pub unsafe extern "C" fn ncp_key_rpc(realm: *const c_char) -> *mut c_char {
     ffi_guard(std::ptr::null_mut(), || key_with(realm, |k| k.rpc()))
 }
 
-/// Exact wire-0.7 lifecycle RPC key: `{realm}/rpc/{request_kind}`. Caller frees.
+/// Exact wire-1.0 lifecycle RPC key: `{realm}/rpc/{request_kind}`. Caller frees.
 /// Returns NULL unless `request_kind` is open_session, step_request, run_request,
 /// or close_session.
 /// # Safety
@@ -187,7 +237,7 @@ pub unsafe extern "C" fn ncp_key_rpc_kind(
     })
 }
 
-/// Wire-0.7 server queryable: `{realm}/rpc/*`. Caller frees.
+/// Wire-1.0 server queryable: `{realm}/rpc/*`. Caller frees.
 /// # Safety
 /// `realm` must be NULL or a valid C string.
 #[no_mangle]
@@ -266,6 +316,9 @@ pub unsafe extern "C" fn ncp_encode_rates(
         let Ok(codec_s) = required_cstr(codec_json) else {
             return std::ptr::null_mut();
         };
+        let Ok(()) = preflight_json(codec_s) else {
+            return std::ptr::null_mut();
+        };
         let Ok(codec) = serde_json::from_str::<CodecSpec>(codec_s) else {
             return std::ptr::null_mut();
         };
@@ -275,9 +328,11 @@ pub unsafe extern "C" fn ncp_encode_rates(
         };
         let sensor = match sensor_json {
             None => None,
-            Some(s) if s.trim() == "null" => None,
-            Some(s) => match serde_json::from_str::<SensorFrame>(s) {
-                Ok(sf) => Some(sf),
+            Some(s) => match preflight_json(s)
+                .map_err(|_| ())
+                .and_then(|()| serde_json::from_str::<Option<SensorFrame>>(s).map_err(|_| ()))
+            {
+                Ok(sensor) => sensor,
                 Err(_) => return std::ptr::null_mut(),
             },
         };
@@ -310,8 +365,10 @@ fn parse_mode(s: &str) -> Option<Mode> {
 fn parse_sensor_json(sensor_json: Option<&str>) -> Result<Option<SensorFrame>, ()> {
     match sensor_json {
         None => Ok(None),
-        Some(s) if s.trim() == "null" => Ok(None),
-        Some(s) => serde_json::from_str(s).map(Some).map_err(|_| ()),
+        Some(s) => {
+            preflight_json(s).map_err(|_| ())?;
+            serde_json::from_str::<Option<SensorFrame>>(s).map_err(|_| ())
+        }
     }
 }
 
@@ -335,14 +392,16 @@ fn sanitize_govern_inputs(
 }
 
 /// Rate-decode `{population: rate_hz}` JSON to a `CommandFrame` JSON. The caller
-/// owns the wire-0.8 stream identity: `epoch` (a canonical lowercase UUIDv4
+/// owns the wire-1.0 stream identity: `epoch` (a canonical lowercase UUIDv4
 /// stream epoch) and a monotonically increasing wire-safe `seq` (1..2^53-1),
 /// plus the session identity `session_generation` (a canonical UUIDv4) and the
 /// `session_id`. `frame_id` may be NULL (=> "world"); `mode` is one of
 /// init/active/hold/estop and may be NULL (=> "hold") — an unknown mode returns
 /// NULL. `epoch`, `session_generation` and `session_id` are required (NULL =>
 /// NULL). Returns NULL on malformed input, invalid codec configuration, or an
-/// invalid generated command (e.g. a non-canonical epoch or seq 0). Caller frees.
+/// `authority_json` is required for Active mode and may be NULL otherwise. Returns
+/// NULL on malformed input, invalid codec configuration, or an invalid generated
+/// command (e.g. a non-canonical epoch, seq 0, or missing Active authority). Caller frees.
 /// # Safety
 /// Arguments must be NULL or valid C strings.
 #[no_mangle]
@@ -357,12 +416,16 @@ pub unsafe extern "C" fn ncp_decode_command(
     session_id: *const c_char,
     frame_id: *const c_char,
     mode: *const c_char,
+    authority_json: *const c_char,
 ) -> *mut c_char {
     ffi_guard(std::ptr::null_mut(), || {
         let (Ok(codec_s), Ok(rates_s)) = (required_cstr(codec_json), required_cstr(rates_json))
         else {
             return std::ptr::null_mut();
         };
+        if preflight_json(codec_s).is_err() || preflight_json(rates_s).is_err() {
+            return std::ptr::null_mut();
+        }
         // Stream/session identity is mandatory: a decoded command carries its own
         // position, so an absent epoch/generation/session_id cannot be coerced to
         // a wire-valid frame — fail closed rather than mint a placeholder identity.
@@ -392,6 +455,16 @@ pub unsafe extern "C" fn ncp_decode_command(
         let Some(mode) = parse_mode(mode) else {
             return std::ptr::null_mut();
         };
+        let authority = match cstr_in(authority_json) {
+            Ok(Some(value)) => match preflight_json(value).map_err(|_| ()).and_then(|()| {
+                serde_json::from_str::<Option<AuthorityLease>>(value).map_err(|_| ())
+            }) {
+                Ok(authority) => authority,
+                Err(()) => return std::ptr::null_mut(),
+            },
+            Ok(None) => None,
+            Err(()) => return std::ptr::null_mut(),
+        };
         let stream = ncp_core::StreamPosition {
             epoch: epoch.to_string(),
             seq,
@@ -399,8 +472,9 @@ pub unsafe extern "C" fn ncp_decode_command(
         let session = ncp_core::SessionRef {
             generation: session_generation.to_string(),
         };
-        let Ok(cmd) = codec.decode_checked(&rates, t, stream, frame_id, mode, session, session_id)
-        else {
+        let Ok(cmd) = codec.decode_checked_with_authority(
+            &rates, t, stream, frame_id, mode, session, session_id, authority,
+        ) else {
             return std::ptr::null_mut();
         };
         match serde_json::to_string(&cmd) {
@@ -428,6 +502,9 @@ pub unsafe extern "C" fn ncp_govern(
         else {
             return std::ptr::null_mut();
         };
+        if preflight_json(lim_s).is_err() || preflight_json(cmd_s).is_err() {
+            return std::ptr::null_mut();
+        }
         let (Ok(limits), Ok(mut command)) = (
             serde_json::from_str::<SafetyLimits>(lim_s),
             serde_json::from_str::<CommandFrame>(cmd_s),
@@ -476,6 +553,9 @@ pub unsafe extern "C" fn ncp_governor_new(limits_json: *const c_char) -> *mut Nc
         let Ok(lim_s) = required_cstr(limits_json) else {
             return std::ptr::null_mut();
         };
+        let Ok(()) = preflight_json(lim_s) else {
+            return std::ptr::null_mut();
+        };
         let Ok(limits) = serde_json::from_str::<SafetyLimits>(lim_s) else {
             return std::ptr::null_mut();
         };
@@ -504,6 +584,9 @@ pub unsafe extern "C" fn ncp_governor_govern(
         let Ok(cmd_s) = required_cstr(command_json) else {
             return std::ptr::null_mut();
         };
+        let Ok(()) = preflight_json(cmd_s) else {
+            return std::ptr::null_mut();
+        };
         let Ok(mut command) = serde_json::from_str::<CommandFrame>(cmd_s) else {
             return std::ptr::null_mut();
         };
@@ -528,7 +611,9 @@ pub unsafe extern "C" fn ncp_governor_govern(
     })
 }
 
-/// Clear a latched ESTOP (supervisor authority). NULL is a no-op.
+/// Clear the governor's local ESTOP after external supervisor/interlock
+/// authorization. This does not authenticate or restore session authority.
+/// NULL is a no-op.
 /// # Safety
 /// `gov` must be NULL or a live handle from [`ncp_governor_new`].
 #[no_mangle]
@@ -610,10 +695,12 @@ pub extern "C" fn ncp_action_buffer_new() -> *mut NcpActionBuffer {
 
 /// Ingest one command at the plant's local `now_s`.
 ///
-/// Returns `0` when the JSON was parsed and handed to the fail-closed core. The
-/// core may intentionally ignore an invalid/replayed non-ESTOP frame; an explicit
-/// ESTOP latches before those rejection gates. Returns `-1` for a NULL handle,
-/// NULL/malformed/non-UTF-8 JSON, or an internal panic.
+/// Body-local API, not a remote ingress gate: the caller first binds authenticated
+/// actor/plane and exact live route/session generation. Returns `0` when the JSON
+/// was parsed and handed to the fail-closed core. The core may intentionally ignore
+/// an invalid/replayed non-ESTOP frame; a locally admitted ESTOP latches before local
+/// replay gates. Returns `-1` for a NULL handle, NULL/malformed/non-UTF-8 JSON, or an
+/// internal panic.
 ///
 /// # Safety
 /// `buffer` must be a live, exclusively-held handle from
@@ -629,6 +716,9 @@ pub unsafe extern "C" fn ncp_action_buffer_on_command(
             return -1;
         }
         let Ok(command_json) = required_cstr(command_json) else {
+            return -1;
+        };
+        let Ok(()) = preflight_json(command_json) else {
             return -1;
         };
         let Ok(command) = serde_json::from_str::<CommandFrame>(command_json) else {
@@ -682,7 +772,8 @@ pub unsafe extern "C" fn ncp_action_buffer_should_hold(
     })
 }
 
-/// Clear a latched action-buffer ESTOP. NULL is a no-op.
+/// Clear the local ESTOP and permanently retire this generation-bound buffer. This
+/// does not authenticate a supervisor or restore remote authority. NULL is a no-op.
 ///
 /// # Safety
 /// `buffer` must be NULL or a live, exclusively-held handle from
@@ -713,6 +804,22 @@ pub unsafe extern "C" fn ncp_action_buffer_is_estopped(buffer: *const NcpActionB
     })
 }
 
+/// `1` after reset permanently retired this generation-bound buffer, `0` while it
+/// remains live, `-1` for a NULL handle/internal panic.
+///
+/// # Safety
+/// `buffer` must be NULL or a live handle from [`ncp_action_buffer_new`].
+#[no_mangle]
+pub unsafe extern "C" fn ncp_action_buffer_is_retired(buffer: *const NcpActionBuffer) -> i32 {
+    ffi_guard(-1, || {
+        if buffer.is_null() {
+            return -1;
+        }
+        // SAFETY: caller guarantees `buffer` is a live handle.
+        i32::from((*buffer).0.is_retired())
+    })
+}
+
 /// Release an action-buffer handle. NULL is ignored.
 ///
 /// # Safety
@@ -738,12 +845,15 @@ pub unsafe extern "C" fn ncp_validate(kind: *const c_char, json: *const c_char) 
         let (Ok(kind), Ok(json)) = (required_cstr(kind), required_cstr(json)) else {
             return std::ptr::null_mut();
         };
-        // Canonical kind-aware checks first (required fields + scientific-boundary
-        // value pins) — the typed round-trip alone would silently default a
-        // missing required field and round-trip a tampered discriminator clean.
-        let Ok(mut value) = serde_json::from_str::<serde_json::Value>(json) else {
+        // The C ABI is an ingress boundary, not a trusted typed-conversion helper.
+        // Apply the same byte/depth/node/string/number/duplicate-key preflight as
+        // every other NCP 1.0 ingress before allocating a generic JSON value.
+        let Ok(mut value) = ncp_core::bounded_json::parse_value(json.as_bytes()) else {
             return std::ptr::null_mut();
         };
+        // Canonical kind-aware checks follow (required fields + scientific-boundary
+        // value pins) — the typed round-trip alone would silently default a
+        // missing required field and round-trip a tampered discriminator clean.
         match value.as_object_mut() {
             Some(m) => match m.get("kind") {
                 Some(serde_json::Value::String(k)) if k == kind => {}
@@ -806,12 +916,267 @@ mod tests {
         CString::new(s).unwrap()
     }
 
-    // Canonical wire-0.8 stream/session identity for decode + action-buffer frames.
+    // Canonical wire-1.0 stream/session identity for decode + action-buffer frames.
     const TEST_EPOCH: &str = "00000000-0000-4000-8000-000000000001";
     const TEST_GEN: &str = "00000000-0000-4000-8000-0000000000a2";
 
+    fn authority() -> CString {
+        cstr(
+            r#"{"session_epoch":"00000000-0000-4000-8000-0000000000a2","term":1,"lease_id":"20000000-0000-4000-8000-000000000001","issuer_principal_id":"commander-principal-1","holder_principal_id":"commander-principal-1","holder_entity_id":"controller-1","issued_at_utc_ms":1000,"expires_at_utc_ms":2000}"#,
+        )
+    }
+
+    #[derive(Clone, Copy)]
+    enum HostileJson {
+        DuplicateKey,
+        Oversized,
+        OverDepth,
+    }
+
+    struct HostileDocuments {
+        object: String,
+        rates: String,
+        sensor: String,
+        command: String,
+        authority: String,
+        request: String,
+        error: String,
+    }
+
+    fn hostile_documents(hostile: HostileJson) -> HostileDocuments {
+        let (member, rates) = match hostile {
+            HostileJson::DuplicateKey => (
+                r#""padding":0,"padding":1"#.to_string(),
+                r#"{"p":150.0,"p":151.0}"#.to_string(),
+            ),
+            HostileJson::Oversized => {
+                let padding = "x".repeat(ncp_core::bounded_json::MAX_FRAME_BYTES + 1);
+                (
+                    format!(r#""padding":"{padding}""#),
+                    format!(r#"{{"p":150.0,"{padding}":0.0}}"#),
+                )
+            }
+            HostileJson::OverDepth => {
+                let arrays = "[".repeat(ncp_core::bounded_json::MAX_NESTING_DEPTH + 1);
+                let closes = "]".repeat(ncp_core::bounded_json::MAX_NESTING_DEPTH + 1);
+                let member = format!(r#""padding":{arrays}0{closes}"#);
+                (member.clone(), format!(r#"{{"p":150.0,{member}}}"#))
+            }
+        };
+        HostileDocuments {
+            object: format!("{{{member}}}"),
+            rates,
+            sensor: format!(
+                r#"{{"kind":"sensor_frame","ncp_version":"1.0","session_id":"s","stream":{{"epoch":"{TEST_EPOCH}","seq":1}},"session":{{"generation":"{TEST_GEN}"}},"t":0.0,"channels":{{"pose":{{"data":[0.5]}}}},{member}}}"#
+            ),
+            command: format!(
+                r#"{{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{{"epoch":"{TEST_EPOCH}","seq":1}},"session":{{"generation":"{TEST_GEN}"}},"mode":"hold","ttl_ms":200.0,"channels":{{}},{member}}}"#
+            ),
+            authority: format!(
+                r#"{{"session_epoch":"{TEST_GEN}","term":1,"lease_id":"20000000-0000-4000-8000-000000000001","issuer_principal_id":"commander-principal-1","holder_principal_id":"commander-principal-1","holder_entity_id":"controller-1","issued_at_utc_ms":1000,"expires_at_utc_ms":2000,{member}}}"#
+            ),
+            request: format!(r#"{{"kind":"step_request","operation":{{}},{member}}}"#),
+            error: format!(
+                r#"{{"kind":"error","ncp_version":"1.0","code":"NCP-WIRE-001","error":"rejected",{member}}}"#
+            ),
+        }
+    }
+
+    unsafe fn assert_every_json_ingress_rejects(hostile: HostileJson) {
+        let documents = hostile_documents(hostile);
+        let expected_code = match hostile {
+            HostileJson::DuplicateKey => ncp_core::bounded_json::JsonLimitCode::DuplicateKey,
+            HostileJson::Oversized => ncp_core::bounded_json::JsonLimitCode::FrameBytes,
+            HostileJson::OverDepth => ncp_core::bounded_json::JsonLimitCode::NestingDepth,
+        };
+        for (label, json) in [
+            ("object", documents.object.as_str()),
+            ("rates", documents.rates.as_str()),
+            ("sensor", documents.sensor.as_str()),
+            ("command", documents.command.as_str()),
+            ("authority", documents.authority.as_str()),
+            ("request", documents.request.as_str()),
+            ("error", documents.error.as_str()),
+        ] {
+            let Err(error) = preflight_json(json) else {
+                panic!("{label} hostile document unexpectedly preflighted");
+            };
+            assert_eq!(error.code, expected_code, "{label} hostile document");
+        }
+        let object = cstr(&documents.object);
+        let rates = cstr(&documents.rates);
+        let sensor = cstr(&documents.sensor);
+        let command = cstr(&documents.command);
+        let hostile_authority = cstr(&documents.authority);
+        let request = cstr(&documents.request);
+        let error = cstr(&documents.error);
+
+        let valid_codec = cstr(
+            r#"{"encoder":[{"channel":"pose","population":"p","value_range":[-1,1]}],"decoder":[{"population":"p","command_channel":"velocity_setpoint","value_range":[-1,1]}]}"#,
+        );
+        let valid_rates = cstr(r#"{"p":150.0}"#);
+        let valid_sensor = cstr(&format!(
+            r#"{{"kind":"sensor_frame","ncp_version":"1.0","session_id":"s","stream":{{"epoch":"{TEST_EPOCH}","seq":1}},"session":{{"generation":"{TEST_GEN}"}},"t":0.0,"channels":{{"pose":{{"data":[0.5]}}}}}}"#
+        ));
+        let valid_command = cstr(&format!(
+            r#"{{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{{"epoch":"{TEST_EPOCH}","seq":1}},"session":{{"generation":"{TEST_GEN}"}},"mode":"hold","ttl_ms":200.0,"channels":{{}}}}"#
+        ));
+        let valid_limits = cstr("{}");
+        let epoch = cstr(TEST_EPOCH);
+        let generation = cstr(TEST_GEN);
+        let session_id = cstr("s");
+        let hold = cstr("hold");
+        let active = cstr("active");
+        let error_kind = cstr("error");
+        let mut accepted = Vec::new();
+
+        macro_rules! reject_owned_string {
+            ($label:literal, $call:expr) => {{
+                let output = $call;
+                if !output.is_null() {
+                    let value = take(output).unwrap_or_else(|| "<invalid UTF-8>".to_string());
+                    accepted.push(format!("{} returned {value}", $label));
+                }
+            }};
+        }
+
+        reject_owned_string!("request_digest", ncp_request_digest(request.as_ptr()));
+        reject_owned_string!(
+            "encode_rates.codec",
+            ncp_encode_rates(object.as_ptr(), std::ptr::null())
+        );
+        reject_owned_string!(
+            "encode_rates.sensor",
+            ncp_encode_rates(valid_codec.as_ptr(), sensor.as_ptr())
+        );
+        reject_owned_string!(
+            "decode_command.codec",
+            ncp_decode_command(
+                object.as_ptr(),
+                valid_rates.as_ptr(),
+                0.0,
+                epoch.as_ptr(),
+                1,
+                generation.as_ptr(),
+                session_id.as_ptr(),
+                std::ptr::null(),
+                hold.as_ptr(),
+                std::ptr::null(),
+            )
+        );
+        reject_owned_string!(
+            "decode_command.rates",
+            ncp_decode_command(
+                valid_codec.as_ptr(),
+                rates.as_ptr(),
+                0.0,
+                epoch.as_ptr(),
+                1,
+                generation.as_ptr(),
+                session_id.as_ptr(),
+                std::ptr::null(),
+                hold.as_ptr(),
+                std::ptr::null(),
+            )
+        );
+        reject_owned_string!(
+            "decode_command.authority",
+            ncp_decode_command(
+                valid_codec.as_ptr(),
+                valid_rates.as_ptr(),
+                0.0,
+                epoch.as_ptr(),
+                1,
+                generation.as_ptr(),
+                session_id.as_ptr(),
+                std::ptr::null(),
+                active.as_ptr(),
+                hostile_authority.as_ptr(),
+            )
+        );
+        reject_owned_string!(
+            "govern.limits",
+            ncp_govern(
+                object.as_ptr(),
+                valid_command.as_ptr(),
+                1.0,
+                valid_sensor.as_ptr(),
+                1.0,
+            )
+        );
+        reject_owned_string!(
+            "govern.command",
+            ncp_govern(
+                valid_limits.as_ptr(),
+                command.as_ptr(),
+                1.0,
+                valid_sensor.as_ptr(),
+                1.0,
+            )
+        );
+        reject_owned_string!(
+            "govern.sensor",
+            ncp_govern(
+                valid_limits.as_ptr(),
+                valid_command.as_ptr(),
+                1.0,
+                sensor.as_ptr(),
+                1.0,
+            )
+        );
+
+        let hostile_governor = ncp_governor_new(object.as_ptr());
+        if !hostile_governor.is_null() {
+            ncp_governor_free(hostile_governor);
+            accepted.push("governor_new.limits returned a handle".to_string());
+        }
+        let governor = ncp_governor_new(valid_limits.as_ptr());
+        if governor.is_null() {
+            panic!("valid governor setup unexpectedly failed");
+        }
+        reject_owned_string!(
+            "governor_govern.command",
+            ncp_governor_govern(governor, command.as_ptr(), 1.0, valid_sensor.as_ptr(), 1.0,)
+        );
+        reject_owned_string!(
+            "governor_govern.sensor",
+            ncp_governor_govern(governor, valid_command.as_ptr(), 1.0, sensor.as_ptr(), 1.0,)
+        );
+        ncp_governor_free(governor);
+
+        let buffer = ncp_action_buffer_new();
+        if buffer.is_null() {
+            panic!("valid action-buffer setup unexpectedly failed");
+        }
+        if ncp_action_buffer_on_command(buffer, 1.0, command.as_ptr()) != -1 {
+            accepted.push("action_buffer_on_command.command returned success".to_string());
+        }
+        ncp_action_buffer_free(buffer);
+
+        reject_owned_string!(
+            "validate",
+            ncp_validate(error_kind.as_ptr(), error.as_ptr())
+        );
+        assert!(
+            accepted.is_empty(),
+            "bounded-JSON ingress accepted hostile documents: {accepted:?}"
+        );
+    }
+
     #[test]
     fn contract_hash_and_status() {
+        assert_eq!(
+            unsafe { take(ncp_package_version()) }.as_deref(),
+            Some(env!("CARGO_PKG_VERSION"))
+        );
+        assert_eq!(
+            unsafe { take(ncp_normative_contract_digest()) }.as_deref(),
+            Some(ncp_core::NORMATIVE_CONTRACT_DIGEST)
+        );
+        assert_eq!(
+            unsafe { take(ncp_build_identity()) }.as_deref(),
+            Some(ncp_core::BUILD_IDENTITY)
+        );
         // The C ABI exposes the same CONTRACT_HASH as the Rust core (cross-language anchor).
         let h = unsafe { take(ncp_contract_hash()) }.unwrap();
         assert_eq!(h, ncp_core::CONTRACT_HASH);
@@ -869,13 +1234,14 @@ mod tests {
                 sid.as_ptr(),
                 invalid,
                 std::ptr::null(),
+                std::ptr::null(),
             )
         }
         .is_null());
 
         let limits = cstr(r#"{"command_timeout_ms":500.0}"#);
         let command = cstr(
-            r#"{"kind":"command_frame","ncp_version":"0.7","seq":1,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[1.0]}}}"#,
+            r#"{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"mode":"hold","ttl_ms":200.0,"channels":{}}"#,
         );
         assert!(
             unsafe { ncp_govern(limits.as_ptr(), command.as_ptr(), 1.0, invalid, 1.0,) }.is_null()
@@ -886,10 +1252,93 @@ mod tests {
     fn validate_accepts_typed_error_frame() {
         let kind = cstr("error");
         let body = cstr(&format!(
-            r#"{{"kind":"error","ncp_version":"{}","error":"rejected","request_kind":"open_session"}}"#,
+            r#"{{"kind":"error","ncp_version":"{}","code":"NCP-WIRE-001","error":"rejected","request_kind":"open_session"}}"#,
             ncp_core::NCP_VERSION
         ));
         assert!(unsafe { take(ncp_validate(kind.as_ptr(), body.as_ptr())) }.is_some());
+    }
+
+    #[test]
+    fn validate_rejects_missing_or_unknown_error_code() {
+        let kind = cstr("error");
+        let missing = cstr(&format!(
+            r#"{{"kind":"error","ncp_version":"{}","error":"rejected"}}"#,
+            ncp_core::NCP_VERSION
+        ));
+        assert!(unsafe { ncp_validate(kind.as_ptr(), missing.as_ptr()) }.is_null());
+
+        let unknown = cstr(&format!(
+            r#"{{"kind":"error","ncp_version":"{}","code":"NCP-NOT-REGISTERED","error":"rejected"}}"#,
+            ncp_core::NCP_VERSION
+        ));
+        assert!(unsafe { ncp_validate(kind.as_ptr(), unknown.as_ptr()) }.is_null());
+    }
+
+    #[test]
+    fn validate_rejects_over_budget_and_duplicate_top_level_json() {
+        let kind = cstr("error");
+
+        // This is otherwise valid, semantically small ErrorFrame JSON. The large
+        // unknown array would be ignored by the typed round-trip, so only a true
+        // pre-deserialization ingress budget prevents the allocation.
+        let mut oversized = format!(
+            r#"{{"kind":"error","ncp_version":"{}","code":"NCP-WIRE-001","error":"rejected","padding":["#,
+            ncp_core::NCP_VERSION
+        );
+        while oversized.len() <= ncp_core::bounded_json::MAX_FRAME_BYTES {
+            oversized.push_str(r#""padding","#);
+        }
+        oversized.push_str(r#""tail"]}"#);
+        assert!(oversized.len() > ncp_core::bounded_json::MAX_FRAME_BYTES);
+        let oversized = cstr(&oversized);
+        assert!(unsafe { ncp_validate(kind.as_ptr(), oversized.as_ptr()) }.is_null());
+
+        // serde_json::Value normally keeps only the last duplicate. The universal
+        // scanner must reject the ambiguity before that lossy deserialization.
+        let duplicate = cstr(&format!(
+            r#"{{"kind":"error","ncp_version":"{}","code":"NCP-WIRE-001","error":"first","error":"second"}}"#,
+            ncp_core::NCP_VERSION
+        ));
+        assert!(unsafe { ncp_validate(kind.as_ptr(), duplicate.as_ptr()) }.is_null());
+    }
+
+    #[test]
+    fn validate_rejects_over_depth_and_node_budget_json() {
+        let kind = cstr("error");
+
+        let nested = format!(
+            r#"{{"kind":"error","ncp_version":"{}","code":"NCP-WIRE-001","error":"rejected","padding":{}0{}}}"#,
+            ncp_core::NCP_VERSION,
+            "[".repeat(ncp_core::bounded_json::MAX_NESTING_DEPTH),
+            "]".repeat(ncp_core::bounded_json::MAX_NESTING_DEPTH)
+        );
+        let nested = cstr(&nested);
+        assert!(unsafe { ncp_validate(kind.as_ptr(), nested.as_ptr()) }.is_null());
+
+        let nodes = format!(
+            r#"{{"kind":"error","ncp_version":"{}","code":"NCP-WIRE-001","error":"rejected","padding":[{}]}}"#,
+            ncp_core::NCP_VERSION,
+            std::iter::repeat_n("{}", ncp_core::bounded_json::MAX_OBJECTS)
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        let nodes = cstr(&nodes);
+        assert!(unsafe { ncp_validate(kind.as_ptr(), nodes.as_ptr()) }.is_null());
+    }
+
+    #[test]
+    fn every_json_ingress_rejects_duplicate_object_keys() {
+        unsafe { assert_every_json_ingress_rejects(HostileJson::DuplicateKey) };
+    }
+
+    #[test]
+    fn every_json_ingress_rejects_oversized_documents() {
+        unsafe { assert_every_json_ingress_rejects(HostileJson::Oversized) };
+    }
+
+    #[test]
+    fn every_json_ingress_rejects_over_depth_documents() {
+        unsafe { assert_every_json_ingress_rejects(HostileJson::OverDepth) };
     }
 
     #[test]
@@ -929,6 +1378,7 @@ mod tests {
                     sid.as_ptr(),
                     fid.as_ptr(),
                     m.as_ptr(),
+                    std::ptr::null(),
                 ))
             }
             .expect("valid mode must decode");
@@ -954,6 +1404,7 @@ mod tests {
                 sid.as_ptr(),
                 std::ptr::null(),
                 std::ptr::null(),
+                std::ptr::null(),
             ))
         }
         .expect("defaults must decode");
@@ -967,7 +1418,7 @@ mod tests {
             r#"{"encoder":[{"channel":"pose","population":"p","value_range":[-1,1]}],"decoder":[{"population":"p","command_channel":"velocity_setpoint","value_range":[-1,1]}]}"#,
         );
         let valid_sensor = cstr(
-            r#"{"kind":"sensor_frame","ncp_version":"0.8","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"channels":{"pose":{"data":[0.5]}}}"#,
+            r#"{"kind":"sensor_frame","ncp_version":"1.0","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"channels":{"pose":{"data":[0.5]}}}"#,
         );
         assert!(unsafe { take(ncp_encode_rates(codec.as_ptr(), valid_sensor.as_ptr())) }.is_some());
 
@@ -977,6 +1428,7 @@ mod tests {
 
         let rates = cstr(r#"{"p":150.0}"#);
         let active = cstr("active");
+        let authority = authority();
         let (ep, gen, sid) = (cstr(TEST_EPOCH), cstr(TEST_GEN), cstr("s"));
         assert!(unsafe {
             take(ncp_decode_command(
@@ -989,6 +1441,7 @@ mod tests {
                 sid.as_ptr(),
                 std::ptr::null(),
                 active.as_ptr(),
+                authority.as_ptr(),
             ))
         }
         .is_some());
@@ -1004,6 +1457,7 @@ mod tests {
                 sid.as_ptr(),
                 std::ptr::null(),
                 active.as_ptr(),
+                authority.as_ptr(),
             )
         }
         .is_null());
@@ -1018,6 +1472,7 @@ mod tests {
                 sid.as_ptr(),
                 std::ptr::null(),
                 active.as_ptr(),
+                authority.as_ptr(),
             )
         }
         .is_null());
@@ -1027,7 +1482,7 @@ mod tests {
     fn malformed_sensor_is_rejected_instead_of_treated_as_fresh() {
         let limits = cstr(r#"{"command_timeout_ms":500.0}"#);
         let command = cstr(
-            r#"{"kind":"command_frame","ncp_version":"0.7","seq":1,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[1.0]}}}"#,
+            r#"{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":1},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[1.0]}},"authority":{"session_epoch":"00000000-0000-4000-8000-0000000000a2","term":1,"lease_id":"20000000-0000-4000-8000-000000000001","issuer_principal_id":"commander-principal-1","holder_principal_id":"commander-principal-1","holder_entity_id":"controller-1","issued_at_utc_ms":1000,"expires_at_utc_ms":2000}}"#,
         );
         let malformed = cstr(r#"{"kind":"sensor_frame","channels":{"pose":{"data":"bad"}}}"#);
 
@@ -1057,21 +1512,23 @@ mod tests {
     #[test]
     fn validate_does_not_fabricate_a_missing_kind() {
         let kind = cstr("command_frame");
-        let body = cstr(r#"{"ncp_version":"0.7","seq":1}"#);
+        let body = cstr(r#"{"ncp_version":"1.0","seq":1}"#);
         let out = unsafe { ncp_validate(kind.as_ptr(), body.as_ptr()) };
-        assert!(out.is_null(), "wire-0.7 kind must be present in the body");
+        assert!(out.is_null(), "wire-1.0 kind must be present in the body");
     }
 
     #[test]
-    fn validate_preserves_additive_enum_strings() {
-        let kind = cstr("open_session");
+    fn validate_preserves_fail_safe_additive_mode() {
+        let kind = cstr("command_frame");
         let body = cstr(&format!(
-            r#"{{"kind":"open_session","ncp_version":"{}","session_id":"s","network":{{"kind":"future_network_kind","ref":"model"}}}}"#,
-            ncp_core::NCP_VERSION
+            r#"{{"kind":"command_frame","ncp_version":"{}","stream":{{"epoch":"{}","seq":1}},"session":{{"generation":"{}"}},"session_id":"s","mode":"future_safe_mode"}}"#,
+            ncp_core::NCP_VERSION,
+            TEST_EPOCH,
+            TEST_GEN,
         ));
         let out = unsafe { take(ncp_validate(kind.as_ptr(), body.as_ptr())) }
-            .expect("additive enum value should validate");
-        assert!(out.contains("\"kind\":\"future_network_kind\""), "{out}");
+            .expect("an additive non-authorizing mode should validate");
+        assert!(out.contains("\"mode\":\"future_safe_mode\""), "{out}");
     }
 
     #[test]
@@ -1091,6 +1548,7 @@ mod tests {
                 sid.as_ptr(),
                 std::ptr::null(),
                 bad.as_ptr(),
+                std::ptr::null(),
             )
         };
         assert!(out.is_null(), "unknown mode must return NULL");
@@ -1101,7 +1559,7 @@ mod tests {
         let buffer = ncp_action_buffer_new();
         assert!(!buffer.is_null());
         let command = cstr(
-            r#"{"kind":"command_frame","ncp_version":"0.8","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":10},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[0.1]}},"horizon":[{"velocity_setpoint":{"data":[0.2]}},{"velocity_setpoint":{"data":[0.3]}}],"horizon_dt_ms":50.0}"#,
+            r#"{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":10},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[0.1]}},"horizon":[{"velocity_setpoint":{"data":[0.2]}},{"velocity_setpoint":{"data":[0.3]}}],"horizon_dt_ms":50.0,"authority":{"session_epoch":"00000000-0000-4000-8000-0000000000a2","term":1,"lease_id":"20000000-0000-4000-8000-000000000001","issuer_principal_id":"commander-principal-1","holder_principal_id":"commander-principal-1","holder_entity_id":"controller-1","issued_at_utc_ms":1000,"expires_at_utc_ms":2000}}"#,
         );
         assert_eq!(
             unsafe { ncp_action_buffer_on_command(buffer, 1.0, command.as_ptr()) },
@@ -1117,7 +1575,7 @@ mod tests {
         );
 
         let duplicate = cstr(
-            r#"{"kind":"command_frame","ncp_version":"0.8","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":10},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[9.0]}}}"#,
+            r#"{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{"epoch":"00000000-0000-4000-8000-000000000001","seq":10},"session":{"generation":"00000000-0000-4000-8000-0000000000a2"},"t":0.0,"mode":"active","ttl_ms":200.0,"channels":{"velocity_setpoint":{"data":[9.0]}},"authority":{"session_epoch":"00000000-0000-4000-8000-0000000000a2","term":1,"lease_id":"20000000-0000-4000-8000-000000000001","issuer_principal_id":"commander-principal-1","holder_principal_id":"commander-principal-1","holder_entity_id":"controller-1","issued_at_utc_ms":1000,"expires_at_utc_ms":2000}}"#,
         );
         assert_eq!(
             unsafe { ncp_action_buffer_on_command(buffer, 2.0, duplicate.as_ptr()) },
@@ -1132,8 +1590,9 @@ mod tests {
     }
 
     #[test]
-    fn action_buffer_latches_even_an_unstamped_estop() {
+    fn local_action_buffer_reset_retires_generation_context() {
         let buffer = ncp_action_buffer_new();
+        assert_eq!(unsafe { ncp_action_buffer_is_retired(buffer) }, 0);
         let estop = cstr(r#"{"mode":"estop"}"#);
         assert_eq!(
             unsafe { ncp_action_buffer_on_command(buffer, 0.0, estop.as_ptr()) },
@@ -1146,6 +1605,7 @@ mod tests {
         );
         unsafe { ncp_action_buffer_reset(buffer) };
         assert_eq!(unsafe { ncp_action_buffer_is_estopped(buffer) }, 0);
+        assert_eq!(unsafe { ncp_action_buffer_is_retired(buffer) }, 1);
         unsafe { ncp_action_buffer_free(buffer) };
     }
 

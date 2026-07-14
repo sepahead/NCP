@@ -1,216 +1,191 @@
-# Security Policy
+# NCP security
 
-## Known limitation: the default/open transport is unauthenticated
+> **Candidate status:** these are the requirements for unreleased
+> `1.0.0-rc.1`. Local configuration and validator tests exist, but the stable
+> Zenoh adapter cannot yet expose a transport-authenticated remote principal for
+> payload-identity binding. Its production-secure open path fails closed. Live
+> mTLS, ACL, certificate rotation/revocation, packet/process capture, and
+> independent-host certification are therefore **NOT RUN**, and the candidate is
+> release-blocked.
 
-NCP does not authenticate a frame at the message layer. The default quiet Zenoh
-configuration disables multicast discovery but does **not** enable TLS or an ACL;
-any participant that can reach that bus can publish action/command messages. A
-complete opt-in mTLS router template, strict client template, and default-deny ACL
-now ship under `deploy/`, but they protect a deployment only when operators actually
-configure and use them.
+Report vulnerabilities privately through the repository's GitHub security advisory
+flow. Do not include credentials, private keys, sensitive plant data, or exploit
+details in a public issue.
 
-**Deploy NCP only on a trusted, closed realm** (an isolated, access-controlled
-Zenoh network). Do not expose the action/command plane on an open or shared
-realm.
+## Threat boundary
 
-**The realm is addressing, not authentication.** A "realm" is just the leading
-segment of the Zenoh key-expression (`{realm}/session/*/…`, built in
-`ncp-core/src/keys.rs`) — a namespace prefix that keeps multiple NCP deployments
-from colliding on a shared bus. It is *not* a security boundary: the realm string
-is never checked against any credential, so knowing or guessing it grants no
-rights and withholding it confers no protection. What actually gates access is the
-reachability of the underlying Zenoh network plus the ACL/mTLS below — never the
-key prefix. "Closed realm" above therefore means *a closed Zenoh network* (network
-isolation, plus the ACL/mTLS that follow), not a secret realm name. Treat the
-realm as routing metadata, never as a credential.
+NCP assumes a network attacker may read, inject, replay, reorder, delay, duplicate,
+or drop traffic; a credentialed peer may claim the wrong entity/role/plane; a prior
+authority holder may reconnect or replay; and malformed JSON may attempt resource
+exhaustion. Local simulation or plant processes may crash or restart.
 
-### Local fail-safe
+NCP does not defend a fully compromised body host, certify physical safety, define a
+universal safe action, or turn `mode`/`ttl_ms` into authentication. The body remains
+final actuator authority and needs independent safety controls.
 
-As a defense-in-depth fail-safe, action bodies enforce `mode`, `ttl_ms`, and
-(since wire 0.6) **seq discipline** locally at the receiver: a stale,
-out-of-mode, version-less/incompatible, or unstamped (`seq < 1`) command is
-rejected regardless of who sent it, and a duplicate/replayed `seq` never
-refreshes the liveness deadline (the pre-0.6 "`seq == 0` always accepted"
-escape hatch is removed). This is a local safety governor, **not** a substitute
-for network-level authentication: seq discipline defends against transport
-artifacts and buggy peers, not adversaries — an injecting attacker can forge
-fresh, well-stamped frames, and alternating replays of different captured
-frames across expiry windows are indistinguishable from a legitimate restart on
-an unauthenticated wire. Adversarial integrity is mTLS's job (below).
+## Baseline profiles
 
-> **`contract_hash` is not a security control.** The handshake's `contract_hash`
-> (`ncp_core::CONTRACT_HASH`) is an FNV-1a digest that *detects accidental contract
-> drift* between peers — it is **advisory** (a mismatch is logged, not rejected; see
-> `VERSIONING.md`) and is **not** a cryptographic MAC. It provides no integrity or
-> authenticity guarantee against an adversary; that is the transport's job (mTLS +
-> the ACL below). Do not rely on it as an authentication or anti-tampering gate.
+The only registered profiles are defined in
+[`contract/security-profiles.v1.json`](contract/security-profiles.v1.json).
 
-## Threat model & hardening path
+### `dev-loopback-insecure`
 
-The headline risk is a **confused-deputy / world-writable command surface**: on an
-open realm, any participant that can reach `…/command` can drive an actuator, and
-the local `mode`/`ttl_ms` governor answers "is this command currently valid?" but
-not "may this sender command at all?". The fix is authentication + per-plane
-authorization, modelled on the established robotics-control-bus mechanisms:
+This profile permits only loopback TCP or an absolute Unix-domain socket. It has no
+transport authentication and must expose an unmistakable insecure status. A
+non-loopback bind, downgrade flag, TLS fragments, hidden discovery/listeners, or a
+claim that this profile is production-safe fails startup.
 
-- **Transport auth/ACL** — enable Zenoh access-control + TLS and a per-plane ACL so
-  a perception-only client cannot publish to the action plane (cf. **DDS-Security**
-  authentication / access-control / cryptographic plugins).
-- **Verified controller identity** — bind every action frame to a *proven*
-  `controller_id` (mTLS client certs for a closed realm; DID/verifiable-credentials
-  for an open realm), and consider per-message signing (cf. **MAVLink 2 message
-  signing**) so a replayed or forged command is rejectable.
+### `production-secure`
 
-**The perception (sensor) plane is an equal attack surface.** Because the
-controller computes commands *from* `SensorFrame`s, a participant that can PUBLISH
-spoofed sensor data steers the actuator and can defeat the geofence — a
-**false-data-injection (FDI)** attack — without ever touching `…/command`. There is
-no local-governor equivalent here: sensor-side FDI can be made *perfectly
-undetectable* to model-/residual-based monitors (the brain perceives "normal"
-operation while the body is driven off trajectory — see Ueda & Kwon,
-[arXiv:2408.10177](https://arxiv.org/abs/2408.10177), and Choi & Jang, WISA 2022,
-[doi:10.1007/978-3-031-25659-2_14](https://doi.org/10.1007/978-3-031-25659-2_14)),
-so a software safety governor is **not** a substitute. The remedy is the same as
-for the command plane — **publisher access control**: under DDS-Security / ROS 2
-SROS2, *publish* permission is access-controlled per topic independently of
-subscribe, on default-deny governance (cf. the **DDS-Security** access-control model
-and the SROS2 master governance that enables write access control on every topic).
-NCP's ACL template therefore restricts `…/sensor/**` PUT to the `robot` (body)
-subject, symmetric to `…/command/**` being restricted to `commander`; both
-PUT-authority invariants are mechanically enforced by
-[`scripts/check_acl_template.py`](scripts/check_acl_template.py).
+This profile requires all of the following, with no fail-soft fallback:
 
-This is tracked as ROADMAP **P0** (authenticate the action plane) and
-[#7](https://github.com/sepahead/NCP/issues/7). A per-plane Zenoh ACL template
-(default-deny; only the authenticated `commander` subject may publish commands, the
-robot publishes only its sensors, observers are read-only) is provided at
-[`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5) — pair it
-with mutual TLS so each subject's identity is proven. Until this ships in a
-deployment, the closed-realm guidance above stands.
+- mutual TLS on every remote connection;
+- validation of certificate chain, peer identity, hostname/service identity, and
+  validity interval;
+- protected private-key material outside repository/image content;
+- one default-deny authority manifest for realm, certificate principal, NCP entity,
+  principal role, and allowed planes;
+- explicit action publishers; wildcard action grants are forbidden;
+- certificate revocation and rotation procedures;
+- profile ID and exact SHA-256 security-state digest in negotiation and audit;
+- no plaintext, discovery, listener, or insecure-profile downgrade on failure.
 
-## Enabling transport authentication (TLS + ACL)
+Partial configuration is invalid. A router or peer must not start a production NCP
+surface until the complete precommitted profile validates.
 
-The ACL only binds authorization to identity if that identity is **proven** by
-mutual TLS — without mTLS the `cert_common_names` are spoofable and the ACL is
-meaningless. To stand up an authenticated realm:
+The digest algorithm is portable and closed, not `sha256(json.dumps(...))` or a
+language-specific struct serialization. The normative
+[`security-state-digest`](contract/security-state-digest.v1.json) projection uses
+the shared [typed canonical encoding](contract/canonical-digest.v1.json), sorts
+principals and planes semantically, inserts the documented false authority-flag
+defaults, and covers the exact bind, authority, TLS-path, downgrade, and status
+state. Unknown members, duplicate identities/planes, malformed Unicode,
+noncanonical endpoints, and projection-limit violations reject before hashing.
+Certificate and key file bytes are deliberately outside the digest; installed
+certificate validity and key protection remain runtime checks.
 
-1. **Issue certificates.** Create a CA, then per-subject client certs whose exact
-   Common Names appear in the ACL `subjects` lists. `cert_common_names` does **not**
-   glob: a literal `robot-*` matches only that literal string, so enumerate every
-   issued leaf CN. Keep the CA key offline and rotate leaf certs per policy.
-2. **Render and start the router.** The template is pinned to the neutral `ncp`
-   realm. Render an exact deployment realm, then replace the placeholder router
-   certificate paths before starting Zenoh:
+The current `ncp-zenoh` callback surface supplies the key and payload but not the
+verified remote certificate principal. It therefore cannot compare that principal
+with `IdentityClaim` through the authority manifest. `ZenohBus::open_secure`
+performs a TLS-client **configuration preflight** and then fails closed before
+opening. That preflight does not validate the authority manifest, deployed router
+ACL, negotiated security-state digest, callback-visible peer principal, rotation,
+or revocation. All of those checks and their negative tests are prerequisites to
+lifting the fail-closed gate. The templates do not make generic `open`,
+`with_config`, or `from_session` calls `production-secure`.
 
-   ```bash
-   python3 scripts/render_acl_template.py \
-     --realm engram/ncp --output router-secure.json5
-   zenohd --config router-secure.json5
-   ```
+## Identity and authorization
 
-   The router uses a TLS-only listener plus `root_ca_certificate`,
-   `listen_certificate`, `listen_private_key`, and **`enable_mtls: true`**.
-3. **Configure each peer as a client.** Copy
-   [`deploy/zenoh-client-secure.json5`](deploy/zenoh-client-secure.json5) per
-   identity and replace the router DNS name, CA, `connect_certificate`, and
-   `connect_private_key`. Keep `mode: "client"`, listeners empty, multicast/gossip
-   disabled, TLS-only connect endpoints, and `verify_name_on_connect: true`.
-   `ZenohBus::open_secure` validates these properties before opening. Do not pass
-   the router config to this client API.
-4. **Verify the authority invariants.** With the realm up, confirm an `observer`/`robot`
-   identity is *rejected* when it `put`s on `…/session/*/command/**` (only `commander`
-   succeeds), AND that an `observer`/`commander` identity is *rejected* when it `put`s
-   on `…/session/*/sensor/**` (only `robot` succeeds) — both control planes (action
-   and perception) are then authenticated, not world-writable. Also verify only the
-   commander publishes observations and queries/serves lifecycle RPC, while observers
-   can subscribe to sensor, command, and observation traffic but cannot write.
+`IdentityClaim` is payload metadata, not proof. The transport adapter obtains the
+verified certificate identity and calls the authority manifest to authenticate the
+claimed principal/entity on the actual plane. A match on principal alone is
+insufficient. Unknown roles/planes and identity segments containing wildcards,
+separators, whitespace, control characters, or excessive length fail closed.
 
-Schema field names follow the Zenoh 1.x access-control config; validate against
-your Zenoh version (authoritative: the zenoh.io configuration docs) before relying
-on it. Live mTLS deployment validation is the remaining P0 item on
-[#7](https://github.com/sepahead/NCP/issues/7).
+That binding is a missing implementation prerequisite, not merely missing test
+evidence. A TLS connection or router key ACL without callback-visible verified peer
+identity cannot satisfy it.
 
-### P0 closure checklist (requires delivery evidence)
+Every NCP-aware data-plane boundary binds both routing identity and incarnation: the
+payload `session_id` must exactly equal the session encoded in the actual Zenoh key,
+and `session.generation` must equal the current server-issued generation retained
+from `SessionOpened`, before publication, callback delivery, or latch mutation. The
+rule covers perception, action, observation, named channels, and ESTOP. Every remote
+ESTOP needs a complete kind/version/own-stream/session envelope; only its authority
+lease may be absent after authenticated actor/plane and exact live-session admission.
+Inbound messages are never repaired or assigned a generation. This isolation check
+does not establish that an ESTOP reached the intended plant, that the plant executed
+a safe action, or that physical motion stopped; those require independent body-local
+safety and delivery evidence.
 
-Run [`scripts/verify_acl_deployment.py`](scripts/verify_acl_deployment.py) against a
-*live* mTLS+ACL realm to close P0. A local `put()` success is not proof that the
-router delivered a sample, so the verifier uses an authenticated observer and a
-unique nonce for every trial. Its 3×3 role/plane matrix requires delivery for:
+Action authority additionally requires a live session generation and matching
+bounded lease. Lifecycle mutations require the same lease plus idempotency context;
+receipts bind results to the authenticated responder. Operator reset/override rights
+are separate manifest bits and may only belong to an enrolled operator.
 
-- commander → command;
-- robot → sensor; and
-- commander → observation.
+Lease renewal authenticates two actors, not just lease bytes: the supplied issuer
+and current holder must match the active immutable lease, the issuer must be an
+enrolled commander or an operator with explicit override authority, and the holder
+must remain the enrolled commander. The receiver's current monotonic deadline must
+be strictly unexpired. A late renewal fails closed to HOLD and cannot revive the
+term; a newer acquisition is required.
 
-The other six writes (including every observer write) must remain unobserved for a
-bounded rejection window, and each denial is accepted only after a successful
-same-plane baseline. A final quarantine catches late forbidden delivery. The tool
-also proves all authenticated router links and separately requires a no-certificate
-client to establish no router connection. It refuses plaintext endpoints,
-listeners, discovery, missing/paired-wrong credentials, or disabled hostname
-verification before the live run. See `scripts/README.md` for the exact invocation;
-`--self-test` exercises its offline negative truth table and `--dry-run` validates
-the deployment inputs.
+There is no stable wire-1.0 reset RPC. An authorized body-local or out-of-band ESTOP
+reset is successful only as a session-generation cut: retire the current generation,
+authority and lease, and all associated stream state, then remain non-actuating until
+a fresh `SessionOpened` creates a new generation, fresh streams are established, and
+a new matching authority lease is acquired. A local governor, authority-machine,
+or buffer reset helper alone neither authenticates a reset nor restores remote
+authority. A frame from the retired pre-reset generation, including ESTOP, is
+rejected by exact route/session binding before latch or control processing.
+The old authority machine and action buffer are retired audit state and reject every
+later open, acquire, renew, reconnect, or command operation; implementations create
+fresh objects only after a new generation is issued.
 
-A fully successful live run is suitable P0 evidence; no such run is committed in
-this repository yet, so the "closed realm only" guidance remains. The template is
-independently CI-guarded for mTLS/default-deny, exact identities, RPC authority,
-command/sensor/observation PUT authority, and complete observer read access by
-[`scripts/check_acl_template.py`](scripts/check_acl_template.py).
+Revocation blocks new authentication immediately, transitions affected active
+authority to fail-safe behavior, and does not clear ESTOP. Reconnect must prove the
+same epoch, term, lease, principal, and entity within the local monotonic deadline.
 
-## Residual risks after mTLS + ACL (hardening backlog)
+## Configuration artifacts
 
-Enabling mutual TLS and the per-plane ACL closes the world-writable command and
-perception **PUT** surface (the P0 invariants above). It does **not** make NCP
-fully hardened. An adversarial review catalogued the items in
-[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) **with per-finding status** —
-the three high-severity findings (bulk-decode OOM budget, unbounded/non-finite
-`ttl_ms`, empty-position geofence bypass) and the wire-0.6 pair (`seq == 0`
-escape hatch, unenforced data-plane `ncp_version`) are **resolved with
-regression tests**; the still-open security-relevant one is summarised below.
+[`deploy/profiles/`](deploy/profiles/) contains profile templates and
+[`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5) contains the
+reference per-plane Zenoh ACL structure. Templates are not credentials and are not
+deployment evidence. Render them from the same realm/entity manifest, provision real
+certificates securely, and validate with:
 
-### Per-verb RPC addressing — RESOLVED in wire 0.7
+```bash
+python3 scripts/validate_security_profile.py --self-test
+python3 scripts/check_acl_template.py
+python3 scripts/verify_acl_deployment.py --self-test
+```
 
-Lifecycle requests now use distinct exact keys:
-`{realm}/rpc/open_session`, `{realm}/rpc/step_request`,
-`{realm}/rpc/run_request`, and `{realm}/rpc/close_session`; the server declares
-`{realm}/rpc/*`. The shipped default-deny ACL grants lifecycle RPC query and
-serve/reply authority only to the authenticated `commander`. This closes the old
-single-key ambiguity and allows a deployment to split permissions further by verb
-without inspecting the JSON body. The structural ACL guard rejects an unsplit RPC
-key or non-commander RPC authority.
+Those commands prove deterministic configuration rules only. Release certification
+cannot begin until an adapter provides the required authenticated-principal binding.
+It must then start installed peers and a real router, exercise correct and incorrect
+CA, expired/not-yet-valid certificates, wrong entity/plane, unauthorized action,
+downgrade, rotation, and revocation, and retain packet/process/ACL evidence. The
+matrix must also inject missing/cross-session IDs and missing/stale generations on
+every data plane (including named channels and complete ESTOP envelopes), prove
+rejection before delivery or latch mutation, and prove a complete same-live-session
+ESTOP reaches the intended plant-safe-action path. This external production-secure
+campaign is **NOT RUN**; none of that live evidence exists yet.
 
-### Bulk/observation decode memory-amplification DoS — RESOLVED
+## Resource and audit controls
 
-`BulkBlock::decode` (`ncp-core/src/bulk.rs`) previously sized each column's
-allocation from attacker-controlled directory fields with no cumulative budget —
-an audited ~64,000× memory-amplification / OOM DoS reachable by any peer that
-could publish on the observation plane. **Fixed** (commit `0672168`, with a
-regression test): a running `alloc_budget` bounded by the input length rejects
-any block whose summed declared `data_len` exceeds `bytes.len()`. The fix is
-wire-compatible (every conforming block lays its columns out disjointly), so
-hostile/amplifying blocks are rejected while conforming traffic is unaffected.
-Publisher access control on the observation plane (the ACL above) remains the
-first line; the budget makes the decoder safe even without it.
+Apply [`contract/limits.v1.json`](contract/limits.v1.json) before generic JSON
+allocation. Bound transport tasks and queues by plane; never hide an observation
+flood or retry storm behind unbounded work.
 
-### Local safety-governor fail-OPEN edge cases — RESOLVED
+One Zenoh command publisher uses one epoch and position allocator for Active, HOLD,
+and ESTOP. An attempted put consumes the position even when delivery is ambiguous.
+After an ambiguous fail-safe attempt, the bounded dispatcher rejects Active until a
+new logical fail-safe with a new position succeeds; it never spins on or reissues
+the ambiguous position.
 
-The audit found inputs that made the receiver-side fail-safe fail *open*: an
-unbounded/non-finite (`+Inf`) `ttl_ms` disabled the `CommandWatchdog` deadline
-backstop, and an empty position channel read as the origin and bypassed the
-geofence. **Both fixed** (commit `0672168`, with regression tests): the enforced
-ttl is clamped to a finite ceiling (`MAX_TTL_MS`, non-finite → immediately
-stale), and empty position data fails closed to HOLD like an absent channel.
-Later hardening extended the same fail-closed treatment to non-finite/negative
-`SafetyLimits`, backward/non-finite clocks, inbound-ESTOP latching, and the
-wire-0.6 seq discipline (see `KNOWN_LIMITATIONS.md` for the full resolved
-ledger).
+Exercise duplicate, replayed, reordered, and delayed frames both within one live
+session and across retired session/stream epochs. A duplicate or stale frame must
+not refresh a lease, watchdog, TTL, authority, stream high-water mark, or active
+output. ESTOP retains its documented same-session fail-safe priority, but it does
+not bypass routing identity. These local rules have deterministic tests; the
+multi-process fault/replay campaign remains **NOT RUN**.
 
-## Supported versions
+Audit events follow [`contract/observability.v1.json`](contract/observability.v1.json).
+Do not log secrets or raw channel payloads by default, and do not put session,
+principal, entity, or operation IDs into metric labels. The local SHA-256 audit chain
+detects mutation but is not a signature; production evidence requires an independent
+external anchor.
 
-The protocol is pre-1.0. Security fixes target the latest released version.
+## Release decision
 
-## Reporting a vulnerability
+Passing local tests does not make `production-secure` available or certified. The
+implementation prerequisite and external pre-release gate are tracked in
+[`RELEASE_READINESS.md`](RELEASE_READINESS.md), under the canonical policy in
+[`contract/release-gates.v1.json`](contract/release-gates.v1.json). Until both pass
+against one immutable installed-artifact set, do not expose this candidate as a
+production control surface.
 
-Please report suspected vulnerabilities privately to the maintainer rather than
-opening a public issue. Include a description, reproduction steps, and the
-affected version. You can expect an acknowledgement and a plan for remediation.
+The current fail-closed unit test checks the exact missing-principal-binding error
+before the transport opener is reached in source order. It is a reason-code and
+control-flow regression, not packet/process proof of zero network side effects; the
+latter belongs to the external certification matrix and remains **NOT RUN**.

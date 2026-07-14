@@ -23,10 +23,16 @@ require_tool python3
 require_tool c++
 require_tool bun
 require_tool npm
+require_tool buf
 
 step "format + whitespace integrity"
 cargo fmt --all -- --check
 git diff --check
+
+step "bounded pure-Python line ingress"
+python3 -m unittest -v e2e.test_bounded_json
+python3 -m py_compile \
+    e2e/bounded_json.py e2e/nest_five_networks.py e2e/test_bounded_json.py
 
 step "workspace clippy (warnings denied; Python links in its dedicated gate)"
 cargo clippy --workspace --exclude ncp-python --all-targets --locked -- -D warnings
@@ -37,6 +43,7 @@ cargo test --workspace --exclude ncp-python --locked
 
 step "ncp-core TypeScript generation feature"
 cargo test -p ncp-core --features ts --locked
+node ncp-ts/scripts/sync-bindings.mjs
 
 step "ncp-python type check"
 cargo check -p ncp-python --locked
@@ -70,11 +77,26 @@ bun run check:behavior
 bun run check:ws
 bun run check:package
 
-step "proto, schema, JSON/binary corpus, and frozen wire baseline"
+step "proto, schema, JSON/binary corpus, and released/candidate wire baselines"
+python3 scripts/check_markdown_links.py --self-test
+python3 scripts/check_markdown_links.py
 python3 scripts/check_proto_schema_parity.py
 python3 scripts/check_conformance_vectors.py
+python3 scripts/generate_conformance_manifest.py
+python3 scripts/generate_contract_manifest.py --self-test
+python3 scripts/generate_contract_manifest.py
+python3 scripts/check_request_digests.py
+python3 scripts/check_profile_digests.py
+python3 scripts/check_released_baselines.py --self-test
+python3 scripts/check_released_baselines.py
+python3 scripts/check_buf_breaking.py --self-test
+python3 scripts/check_buf_breaking.py
+python3 scripts/check_wire_baseline.py --self-test
 python3 scripts/check_wire_baseline.py
+python3 scripts/check_wire_baseline.py --verify-current-cut
 python3 scripts/check_schema_defaults.py
+python3 scripts/check_release_gates.py --self-test
+python3 scripts/check_release_gates.py
 scripts/test_consumer_pins.sh
 cargo run -q -p ncp-core --features schema --bin gen-schemas -- \
     "$tmp_dir/schemas-fresh"
@@ -83,8 +105,11 @@ diff -ru -x README.md "$tmp_dir/schemas-fresh" schemas
 step "ACL authority model + verifier proof logic"
 python3 scripts/check_acl_template.py
 python3 scripts/verify_acl_deployment.py --self-test
+python3 scripts/validate_security_profile.py --self-test
+cargo run --quiet -p ncp-core --bin validate-plant-profile -- deploy/plant-profiles/*.json
 
 step "version metadata coherence"
+scripts/check-version-coherence.sh --self-test
 scripts/check-version-coherence.sh
 
 step "Rust crate archive self-containment"
@@ -99,7 +124,6 @@ else
 fi
 
 step "protobuf lint + build"
-require_tool buf
 buf lint
 buf build
 

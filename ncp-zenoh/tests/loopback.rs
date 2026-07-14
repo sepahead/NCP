@@ -7,7 +7,8 @@
 use ncp_core::keys::Keys;
 use ncp_core::ControlTransport;
 use ncp_core::{
-    ChannelValue, CommandFrame, Map, NeuroControlLoop, ReflexController, SafetyLimits, SensorFrame,
+    AuthorityLease, ChannelValue, CommandFrame, Map, NeuroControlLoop, ReflexController,
+    SafetyLimits, SensorFrame,
 };
 use ncp_zenoh::{ZenohBus, ZenohConfig, ZenohControlTransport};
 use std::sync::{Arc, Mutex};
@@ -24,16 +25,32 @@ fn loopback_cfg() -> ZenohConfig {
     c
 }
 
+fn authority() -> AuthorityLease {
+    AuthorityLease {
+        session_epoch: "00000000-0000-4000-8000-0000000000a2".into(),
+        term: 1,
+        lease_id: "20000000-0000-4000-8000-000000000001".into(),
+        issuer_principal_id: "controller-principal-1".into(),
+        holder_principal_id: "controller-principal-1".into(),
+        holder_entity_id: "controller-1".into(),
+        issued_at_utc_ms: 1_700_000_000_000,
+        expires_at_utc_ms: 1_700_000_060_000,
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn zenoh_closed_loop_roundtrip() {
     let bus = ZenohBus::with_config(loopback_cfg(), Keys::default())
         .await
         .unwrap();
+    let live_session = ncp_core::SessionRef {
+        generation: "00000000-0000-4000-8000-0000000000a2".into(),
+    };
 
     // The "plant" subscribes to the action plane.
     let last_cmd: Arc<Mutex<Option<CommandFrame>>> = Arc::new(Mutex::new(None));
     let sink = last_cmd.clone();
-    bus.subscribe_commands("uav1", move |_k, bytes| {
+    bus.subscribe_commands("uav1", &live_session, move |_k, bytes| {
         if let Ok(c) = serde_json::from_slice::<CommandFrame>(&bytes) {
             *sink.lock().unwrap() = Some(c);
         }
@@ -43,7 +60,7 @@ async fn zenoh_closed_loop_roundtrip() {
 
     // Controller: ZenohControlTransport (subscribe sensor / publish command) + a
     // reflex loop. Fixed clock so the safety governor sees the sensor as fresh.
-    let transport = ZenohControlTransport::new(bus.clone(), "uav1")
+    let transport = ZenohControlTransport::new(bus.clone(), "uav1", live_session.clone())
         .await
         .unwrap();
     let mut control = NeuroControlLoop::new(
@@ -55,14 +72,20 @@ async fn zenoh_closed_loop_roundtrip() {
             command_timeout_ms: 5000.0,
             ..Default::default()
         },
+        "uav1",
+        live_session.clone(),
     )
+    .expect("loopback session binding is canonical")
+    .with_authority(authority())
     .with_clock(Box::new(|| 0.0));
     // Let the subscription declarations settle.
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // The plant streams a sensor frame (+1 m x position error) and the controller
     // ticks; both planes use DROP QoS, so we run the loop until the round trip
-    // converges rather than relying on a single sample landing (bounded retry).
+    // converges rather than relying on a single sample landing. Each attempt is a
+    // fresh sensor sample with a strictly increasing stream position; replaying
+    // one position as a transport retry is intentionally rejected.
     let mut channels = Map::new();
     channels.insert(
         "pose_position".into(),
@@ -72,25 +95,23 @@ async fn zenoh_closed_loop_roundtrip() {
         "pose_velocity".into(),
         ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
     );
-    let sensor = SensorFrame {
+    let mut sensor = SensorFrame {
         stream: ncp_core::StreamPosition {
             epoch: "00000000-0000-4000-8000-000000000001".into(),
             seq: 7,
         },
-        session: ncp_core::SessionRef {
-            generation: "00000000-0000-4000-8000-0000000000a2".into(),
-        },
+        session: live_session.clone(),
         session_id: "uav1".into(),
         t: 0.0,
         channels,
         ..Default::default()
     };
-    let bytes = serde_json::to_vec(&sensor).unwrap();
-
     let mut received: Option<CommandFrame> = None;
     let start = std::time::Instant::now();
     while start.elapsed() < Duration::from_secs(10) {
-        bus.put_sensor("uav1", &bytes).await.unwrap();
+        let bytes = serde_json::to_vec(&sensor).unwrap();
+        bus.put_sensor("uav1", &live_session, &bytes).await.unwrap();
+        sensor.stream.seq += 1;
         tokio::time::sleep(Duration::from_millis(100)).await;
         if control.transport.latest_sensor().is_some() {
             control.tick(); // publishes a CommandFrame on the action plane

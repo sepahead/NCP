@@ -4,12 +4,12 @@ import type { NetworkRefKind } from "./NetworkRefKind";
 /**
  * What to simulate.
  */
-export type NetworkRef = { kind: NetworkRefKind, 
+export type NetworkRef = { kind: NetworkRefKind,
 /**
  * builtin model name, or a `compiled_module_id` (kind=handle). `ref` is a
  * Rust keyword, so the field is `ref_` and renamed on the wire.
  */
-ref: string, 
+ref: string,
 /**
  * kind=handle: which registered model to create if the handle has >1.
  */

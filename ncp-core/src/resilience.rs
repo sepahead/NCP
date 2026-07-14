@@ -30,21 +30,15 @@ pub struct ActionBuffer {
     estop: bool,
     /// Highest accepted command `seq`, for monotonic-forward acceptance (drop
     /// stale/duplicate/reordered frames). Wire 0.6: `seq >= 1` is mandatory —
-    /// `seq < 1` is never accepted (no escape hatch); a non-advancing seq is
-    /// accepted only once the stream has EXPIRED (restart re-anchor, mirroring
-    /// [`CommandWatchdog::on_command`]).
+    /// `seq < 1` is never accepted (no escape hatch), and expiry never resets the
+    /// high-water mark.
     last_seq: i64,
-    /// Wire 0.8 (§7 receiver state machine): the accepted stream's active epoch.
-    /// Acceptance keys on `(epoch, seq)`, not seq alone — a frame from a FOREIGN
-    /// epoch must never advance the LIVE stream (a hostile/glitched peer cannot
-    /// hijack the actuator with a fresh high seq under a new random epoch). A new
-    /// epoch is adopted ONLY as a restart, once the prior stream has EXPIRED.
+    /// The declaration-bound stream epoch. Once established, a foreign epoch is
+    /// rejected even after expiry; a new declaration uses a fresh ActionBuffer.
     active_epoch: Option<String>,
-    /// Bounded tombstone ring of retired epochs: a retired epoch never revives,
-    /// even with a huge seq (§7 rule 5). Bounded so a hostile epoch-churn peer
-    /// cannot grow it without limit; epoch changes are per-restart (rare) so the
-    /// cap far exceeds any real single-publisher session.
-    retired_epochs: std::collections::VecDeque<String>,
+    /// An ESTOP reset retires the complete session-bound admission context. The
+    /// old buffer can be inspected but never accepts another frame.
+    retired: bool,
 }
 
 impl ActionBuffer {
@@ -52,23 +46,25 @@ impl ActionBuffer {
         Self::default()
     }
 
-    /// Ingest a command accepted at local time `now_s`. A stale/duplicate/reordered
-    /// Active command (`seq <=` the last accepted) is DROPPED while the stream is
-    /// live — a replayed older horizon must not overwrite a newer one or rewind
-    /// the replay clock (`recv_s`) / refresh the deadline. Every non-Active mode
-    /// clears buffered actuation before validation/replay checks; an ESTOP also
-    /// latches. A fail-safe is never dropped, even when stale or malformed.
+    /// Ingest a command accepted into this local session/declaration context at
+    /// time `now_s`. A remote caller must first enforce authenticated actor/plane,
+    /// exact route/session-generation, and typed wire admission; this buffer is not
+    /// a network ingress gate. Within that admitted context, a stale, duplicate, or
+    /// reordered Active command (`seq <=` the high-water mark) is dropped forever —
+    /// expiry never reopens replay. Every non-Active mode clears buffered actuation
+    /// before local replay checks; ESTOP also latches.
     ///
     /// Wire 0.6: `seq < 1` (unstamped/negative, including the `0` serde default)
     /// is NEVER accepted — the pre-0.6 "`seq == 0` always advances" escape hatch
     /// let a default-constructed/hostile frame bypass replay rejection and refresh
-    /// the deadline. A *strictly-lower* `seq >= 1` is accepted only once the
-    /// stream has EXPIRED (`should_hold` true — the plant is already safely
-    /// holding): that re-anchors a legitimately restarted controller's fresh epoch
-    /// without a wire epoch field. An *equal* `seq` never re-anchors (a
-    /// frozen/replayed frame must not duty-cycle liveness across expiry windows).
-    /// Mirrors [`CommandWatchdog::on_command`].
+    /// the deadline. One buffer is declaration-bound to its first epoch. A restart,
+    /// lower sequence, or foreign epoch requires a fresh session/declaration and
+    /// buffer; neither timeout nor HOLD authorizes an in-place re-anchor. Mirrors
+    /// [`CommandWatchdog::on_command`].
     pub fn on_command(&mut self, now_s: f64, command: CommandFrame) {
+        if self.retired {
+            return;
+        }
         // Fail-safe priority: a HOLD/INIT/future non-actuating mode immediately
         // clears the buffered setpoint even if its envelope is malformed or its
         // seq is stale/duplicate. Dropping it would leave the previous Active
@@ -85,32 +81,18 @@ impl ActionBuffer {
         if !(1..=JSON_SAFE_INTEGER_MAX).contains(&command.stream.seq) {
             return; // unstamped/invalid stream.seq: never buffered (ESTOP latched above)
         }
-        // Wire 0.8 (§7): epoch-keyed acceptance. A FOREIGN epoch must not advance
-        // the LIVE stream — a hostile/glitched peer cannot hijack the actuator with
-        // a fresh high seq under a new random epoch. A RETIRED epoch never revives.
-        // A new epoch is adopted only as a restart, once the prior stream has
-        // EXPIRED (we are already safely HOLDing); same-epoch frames fall through to
-        // the seq discipline below.
+        // One ActionBuffer belongs to one authorized stream declaration. Expiry is
+        // not permission to adopt a foreign epoch; a restart constructs a fresh
+        // session/declaration/buffer context.
         match &self.active_epoch {
             None => self.active_epoch = Some(command.stream.epoch.clone()),
             Some(active) if *active != command.stream.epoch => {
-                if self.retired_epochs.contains(&command.stream.epoch)
-                    || !self.watchdog.should_hold(now_s)
-                {
-                    return; // retired epoch, or a foreign epoch while the stream is LIVE
-                }
-                let retired = active.clone();
-                self.retire_epoch(retired);
-                self.active_epoch = Some(command.stream.epoch.clone());
-                self.last_seq = 0; // re-anchor the seq discipline for the new epoch
-                self.watchdog.reanchor();
+                return;
             }
             Some(_) => {} // same epoch: fall through to the seq discipline
         }
-        if command.stream.seq <= self.last_seq
-            && (command.stream.seq == self.last_seq || !self.watchdog.should_hold(now_s))
-        {
-            return; // duplicate (always), or stale/reordered while LIVE (ESTOP latched above)
+        if command.stream.seq <= self.last_seq {
+            return; // duplicate/stale/reordered, including after expiry
         }
         self.last_seq = command.stream.seq;
         if command.mode != Mode::Active {
@@ -124,34 +106,22 @@ impl ActionBuffer {
         self.latest = Some(command);
     }
 
-    /// Retire `epoch` into the bounded tombstone ring so it can never revive (§7
-    /// rule 5). Bounded (`RETIRED_EPOCH_CAP`) so a hostile epoch-churn peer cannot
-    /// grow it without limit; a real single-publisher session retires one epoch per
-    /// restart, far below the cap.
-    fn retire_epoch(&mut self, epoch: String) {
-        const RETIRED_EPOCH_CAP: usize = 256;
-        if self.retired_epochs.contains(&epoch) {
-            return;
-        }
-        if self.retired_epochs.len() >= RETIRED_EPOCH_CAP {
-            self.retired_epochs.pop_front();
-        }
-        self.retired_epochs.push_back(epoch);
-    }
-
-    /// Clear a latched ESTOP (supervisor authority) and discard every pre-ESTOP
-    /// command/deadline. Reset never resumes an old still-live setpoint; a fresh,
-    /// fully validated Active command must establish the new stream epoch.
+    /// Clear this local ESTOP latch and permanently retire the buffer's session and
+    /// stream admission context. The deployment must complete the generation cut
+    /// and construct a fresh ActionBuffer for the new SessionOpened generation.
     pub fn reset(&mut self) {
         self.estop = false;
         self.latest = None;
         self.recv_s = 0.0;
         self.watchdog = CommandWatchdog::new();
         self.last_seq = 0;
-        // A supervisor reset is a fresh start: forget the active epoch and its
-        // tombstones so the next validated command re-establishes stream identity.
         self.active_epoch = None;
-        self.retired_epochs.clear();
+        self.retired = true;
+    }
+
+    /// True once ESTOP reset retired this session-bound buffer.
+    pub fn is_retired(&self) -> bool {
+        self.retired
     }
 
     /// True while ESTOP is latched.
@@ -199,8 +169,13 @@ impl ActionBuffer {
     }
 }
 
-/// Cap a horizon length to the deadline: `N <= ttl_ms / horizon_dt_ms`, so the
-/// replay can never outlive `ttl_ms` (the load-bearing PPC safety invariant).
+/// Cap the number of future horizon steps to the strict watchdog deadline.
+///
+/// Horizon entry `i` (zero based) is scheduled at `(i + 1) * horizon_dt_ms`, while
+/// [`CommandWatchdog`] expires inclusively at `elapsed >= ttl_ms`.  A setpoint at
+/// exactly the TTL boundary is therefore not executable.  The exact bound is
+/// `ceil(ttl_ms / horizon_dt_ms) - 1`, not `floor(ttl_ms / horizon_dt_ms)` (the two
+/// differ when TTL is an integer multiple of the cadence).
 pub fn max_horizon_len(ttl_ms: f64, horizon_dt_ms: f64) -> usize {
     // A non-finite ttl/dt (or dt <= 0) has no bounded horizon: `Inf / dt` floors to
     // `Inf`, which `as usize` saturates to `usize::MAX` — a garbage/`+Inf` ttl would
@@ -209,7 +184,8 @@ pub fn max_horizon_len(ttl_ms: f64, horizon_dt_ms: f64) -> usize {
     if !ttl_ms.is_finite() || !horizon_dt_ms.is_finite() || horizon_dt_ms <= 0.0 {
         return 0;
     }
-    let steps = (ttl_ms.clamp(0.0, MAX_TTL_MS) / horizon_dt_ms).floor();
+    let ratio = ttl_ms.clamp(0.0, MAX_TTL_MS) / horizon_dt_ms;
+    let steps = (ratio.ceil() - 1.0).max(0.0);
     if !steps.is_finite() {
         return 0;
     }
@@ -241,8 +217,8 @@ pub struct LinkMonitor {
     /// in-epoch arrival, so `LinkStatus.observed_stream` names *which incarnation*
     /// the reported high-water/loss belongs to. `None` before any valid frame (the
     /// pre-first-frame burst case) — `observed_stream` is then absent, tracking
-    /// `last_arrival_seq`. The caller resets the monitor on an epoch transition, so
-    /// within one monitor life every accepted frame shares this epoch.
+    /// `last_arrival_seq`. One monitor instance belongs to one declared epoch; a
+    /// fresh receiver declaration constructs or explicitly resets the monitor.
     observed_epoch: Option<String>,
 }
 
@@ -286,13 +262,12 @@ impl LinkMonitor {
         Self::new(session_id, 0.05, 5.0)
     }
 
-    /// Reset the monitor for a NEW stream epoch (a restarted publisher whose `seq`
-    /// legitimately regressed — see `CommandWatchdog::on_command`'s re-anchor
-    /// rule). Without this, a seq regression reads as one giant "duplicate" run:
-    /// `expected` stays at the old high-water mark and every new-epoch frame is a
-    /// metrics no-op until seq catches up. Clears counters and the CUSUM/burst
-    /// state; a burst-driven ESTOP stays latched in the `SafetyGovernor` — that
-    /// latch, not this detector, is the persistent fail-safe.
+    /// Reset the monitor only while constructing/adopting a NEW authenticated
+    /// receiver declaration. This is not an in-place payload-driven epoch switch:
+    /// the enclosing route/session fence must already have retired the old monitor.
+    /// Clears counters and CUSUM/burst state; a burst-driven ESTOP stays latched in
+    /// the `SafetyGovernor` — that latch, not this detector, is the persistent
+    /// fail-safe.
     pub fn reset(&mut self) {
         let session_id = std::mem::take(&mut self.session_id);
         *self = Self::new(session_id, self.ref_loss, self.threshold);
@@ -306,9 +281,10 @@ impl LinkMonitor {
     }
 
     /// Record an arrived message from stream `epoch` with sequence `seq`. The caller
-    /// runs the monitor on a single accepted scope + active epoch and resets it on an
-    /// epoch transition (§7/§8), so `epoch` names the incarnation the loss metrics
-    /// belong to — recorded (for `LinkStatus.observed_stream`) only on a VALID seq.
+    /// runs the monitor on one already-admitted declaration and creates/resets it
+    /// only when adopting a fresh declaration, so `epoch` names the incarnation the
+    /// loss metrics belong to — recorded for `LinkStatus.observed_stream` only on a
+    /// valid sequence.
     pub fn on_seq(&mut self, epoch: &str, seq: i64) {
         // LinkStatus is shared as JSON with JS peers. A precision-unsafe or
         // negative seq is not a usable sample; trip the burst fail-safe and keep
@@ -559,7 +535,7 @@ mod tests {
     }
 
     #[test]
-    fn action_buffer_restart_reanchors_only_lower_seq_after_expiry() {
+    fn action_buffer_lower_sequence_never_reanchors_after_expiry() {
         let mut buf = ActionBuffer::new();
         let cmd = |seq: i64, v: f64| CommandFrame {
             stream: stream(seq),
@@ -571,25 +547,16 @@ mod tests {
             ..Default::default()
         };
         buf.on_command(1.0, cmd(1000, 0.4));
-        // Expired (t=2.0 >> ttl). A restarted controller's seq=1 re-anchors...
+        // Expiry never resets this declaration's sequence high-water.
         assert!(buf.should_hold(1.5), "expired");
         buf.on_command(2.0, cmd(1, 0.7));
-        assert_eq!(
-            buf.active(2.05).expect("restart epoch is live")["velocity_setpoint"].data[0],
-            0.7,
-            "a strictly-lower seq re-anchors after expiry (restart recovery)"
-        );
-        // ...but an EXACT duplicate of the last frame never does, even expired —
-        // a frozen/replayed frame must not duty-cycle liveness across expiry.
-        assert!(buf.should_hold(3.0), "new epoch expired");
-        buf.on_command(3.0, cmd(1, 0.7));
         assert!(
-            buf.should_hold(3.05),
-            "an equal-seq replay must NOT re-anchor after expiry"
+            buf.should_hold(2.05),
+            "a lower sequence remains rejected after expiry"
         );
-        // And while LIVE, lower seqs are still replay-rejected.
-        buf.on_command(4.0, cmd(50, 0.2));
-        buf.on_command(4.01, cmd(49, 0.9));
+        // A strictly newer position in the same declared stream is still accepted.
+        buf.on_command(4.0, cmd(1001, 0.2));
+        buf.on_command(4.01, cmd(1000, 0.9));
         assert_eq!(
             buf.active(4.05).unwrap()["velocity_setpoint"].data[0],
             0.2,
@@ -598,11 +565,7 @@ mod tests {
     }
 
     #[test]
-    fn action_buffer_epoch_keying_rejects_hijack_and_retired_replay() {
-        // Wire 0.8 (§7): acceptance keys on (epoch, seq). A FOREIGN epoch cannot
-        // advance a LIVE stream (a fresh high seq under a new random epoch must not
-        // hijack the actuator); a new epoch is adopted only as a restart after the
-        // prior stream expires; and a RETIRED epoch never revives.
+    fn action_buffer_epoch_is_declaration_bound_even_after_expiry() {
         use crate::messages::StreamPosition;
         let ep_a = "aaaaaaaa-0000-4000-8000-000000000001";
         let ep_b = "bbbbbbbb-0000-4000-8000-000000000002";
@@ -628,20 +591,20 @@ mod tests {
             0.4,
             "a foreign epoch cannot advance a LIVE stream (no hijack)"
         );
-        // Once epoch A expires, epoch B is adopted as a restart (from seq 1).
+        // Expiry still does not authorize the foreign epoch.
         assert!(buf.should_hold(1.5), "epoch A expired");
         buf.on_command(1.5, cmd(ep_b, 1, 0.7));
-        assert_eq!(
-            buf.active(1.55).unwrap()["velocity_setpoint"].data[0],
-            0.7,
-            "a new epoch after expiry re-anchors (restart)"
-        );
-        // Epoch A is now RETIRED: it never revives, even expired with a huge seq.
-        assert!(buf.should_hold(2.0), "epoch B expired");
-        buf.on_command(2.0, cmd(ep_a, 100_000, 0.2));
         assert!(
-            buf.should_hold(2.05),
-            "a retired epoch never revives, even expired with a huge seq"
+            buf.should_hold(1.55),
+            "a new epoch requires a fresh authorized declaration/buffer"
+        );
+        // The rejected foreign epoch did not replace or tombstone the declaration:
+        // a strictly newer position in the original epoch can resume it.
+        buf.on_command(2.0, cmd(ep_a, 100_000, 0.2));
+        assert_eq!(
+            buf.active(2.05).unwrap()["velocity_setpoint"].data[0],
+            0.2,
+            "the original declared epoch remains authoritative after expiry"
         );
     }
 
@@ -749,18 +712,25 @@ mod tests {
             "ESTOP latches — a later Active does not revive the actuator"
         );
 
-        // Supervisor reset clears the latch AND the pre-ESTOP command. It must
-        // not revive the last setpoint without a fresh command.
+        // Supervisor reset clears this local latch, retires the old generation's
+        // buffer, and cannot accept another command in-place.
         buf.reset();
+        assert!(buf.is_retired());
         assert!(
             buf.should_hold(0.04),
             "reset requires a fresh post-ESTOP command"
         );
         buf.on_command(0.05, cmd(6, Mode::Active, 0.9));
         assert!(
-            buf.active(0.05).is_some(),
-            "after reset, Active applies again"
+            buf.active(0.05).is_none(),
+            "retired buffer cannot reactivate the pre-reset generation"
         );
+
+        // The deployment constructs a new session-bound buffer only after a fresh
+        // SessionOpened generation and stream declaration.
+        let mut fresh = ActionBuffer::new();
+        fresh.on_command(0.06, cmd(1, Mode::Active, 0.9));
+        assert!(fresh.active(0.06).is_some());
     }
 
     #[test]
@@ -971,9 +941,9 @@ mod tests {
 
     #[test]
     fn max_horizon_len_bounds_nonfinite_ttl() {
-        // A finite ttl/dt gives the exact floor; a non-finite ttl/dt (or dt<=0) must
+        // A finite ttl/dt gives the strict executable bound; a non-finite ttl/dt (or dt<=0) must
         // return 0 (no replay), never usize::MAX from an `Inf as usize` saturation.
-        assert_eq!(max_horizon_len(200.0, 50.0), 4);
+        assert_eq!(max_horizon_len(200.0, 50.0), 3);
         assert_eq!(max_horizon_len(f64::INFINITY, 50.0), 0);
         assert_eq!(max_horizon_len(f64::NAN, 50.0), 0);
         assert_eq!(max_horizon_len(200.0, f64::INFINITY), 0);
@@ -1031,25 +1001,17 @@ mod tests {
     }
 
     #[test]
-    fn horizon_bound_over_advertises_by_one_at_integer_ttl_f04() {
-        // KNOWN DEFECT F-04 (deep protocol review, 2026-07-11) — tracked in
-        // KNOWN_LIMITATIONS.md. `max_horizon_len` (and the `CommandFrame` validator)
-        // admit `N = floor(ttl_ms / dt)` steps, but `CommandWatchdog` expires
-        // *inclusively* (`elapsed >= ttl` HOLDs), so a step scheduled at exactly
-        // `t = N*dt = ttl` is never actuated on. The correct executable bound is
-        // `ceil(ttl_ms / dt) - 1`; the two agree EXCEPT when `ttl_ms` is an exact
-        // multiple of `dt`, where the advertised horizon is one tick longer than
-        // deliverable. Fail-safe (the watchdog wins) but it over-states the
-        // advertised ride-through. Fix rides the integer-us duration change in
-        // wire-0.8 (tightening validation rejects previously-accepted frames).
+    fn horizon_bound_matches_strict_watchdog_deadline_f04() {
+        // F-04 regression: the advertised and executable bounds are identical,
+        // including at an exact TTL/cadence multiple where the watchdog rejects the
+        // setpoint scheduled exactly on the inclusive expiry boundary.
         let executable = |ttl: f64, dt: f64| (ttl / dt).ceil() as usize - 1;
 
-        // Integer ttl/dt: the advertised bound over-counts by exactly one.
-        assert_eq!(max_horizon_len(100.0, 100.0), 1); // advertised
-        assert_eq!(executable(100.0, 100.0), 0); //       ...but 0 executable
-        assert_eq!(max_horizon_len(200.0, 100.0), 2);
+        assert_eq!(max_horizon_len(100.0, 100.0), 0);
+        assert_eq!(max_horizon_len(100.0, 100.0), executable(100.0, 100.0));
+        assert_eq!(max_horizon_len(200.0, 100.0), 1);
         assert_eq!(executable(200.0, 100.0), 1);
-        assert_eq!(max_horizon_len(200.0, 50.0), 4);
+        assert_eq!(max_horizon_len(200.0, 50.0), 3);
         assert_eq!(executable(200.0, 50.0), 3);
 
         // Non-integer ttl/dt: floor already equals ceil-1, so no discrepancy.

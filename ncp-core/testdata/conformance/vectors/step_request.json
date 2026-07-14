@@ -1,10 +1,10 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "step_request",
   "session_id": "vec-open-1",
   "advance_ms": 10.0,
   "stimulus": {
-    "ncp_version": "0.8",
+    "ncp_version": "1.0",
     "kind": "stimulus_frame",
     "session_id": "vec-open-1",
     "t": 0.0,
@@ -22,5 +22,23 @@
   },
   "session": {
     "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  },
+  "operation": {
+    "operation_id": "10000000-0000-4000-8000-000000000001",
+    "request_digest": "cf0d5f7440ea8ed8c5c8326182905ba66ceecca92ffccd592d56f9b9a42fe9df",
+    "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+    "expected_state_version": 1,
+    "deadline_utc_ms": 1700000030000,
+    "retry": false
+  },
+  "authority": {
+    "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+    "term": 1,
+    "lease_id": "20000000-0000-4000-8000-000000000001",
+    "issuer_principal_id": "controller-principal-1",
+    "holder_principal_id": "controller-principal-1",
+    "holder_entity_id": "pid-controller-1",
+    "issued_at_utc_ms": 1700000000000,
+    "expires_at_utc_ms": 1700000030000
   }
 }

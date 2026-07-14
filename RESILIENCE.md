@@ -1,5 +1,10 @@
 # NCP over a degraded link — resilience design (poor connection *and* jamming)
 
+> **Candidate boundary:** the deterministic primitives and corpus cases inform the
+> unreleased NCP `1.0.0-rc.1` candidate. Combined live delay/loss/duplication/
+> reordering/partition/restart/flood/soak certification is **NOT RUN**, so this
+> document is not a resilience or anti-jamming certification.
+
 Researched against June-2026 SOTA (streaming/erasure codes, the information theory
 of networked control, Age-of-Information / semantic communication, anti-jamming +
 predictive control) and then **adversarially pruned**. The honest result is small:
@@ -42,8 +47,9 @@ non-duplicate command is accepted. Catch-up alone never revives a stale command.
 
 ### Layer 0 — feasibility, honestly
 One constant is genuinely actionable (see the correction note just below): the **Sinopoli critical arrival probability**
-`p_c = 1 − 1/|λ_max|²` (Kalman with intermittent observations) — the perception
-floor; DROP-conflate is correct while measured arrival `p̂ > p_c`. The **data-rate
+`p_c = 1 − 1/|λ_max|²` (Kalman with intermittent observations)—the perception
+floor; Zenoh DROP plus the adapter's replace-latest receive slot is appropriate while
+measured arrival `p̂ > p_c`. The **data-rate
 theorem** `R_min = Σ log₂|λᵢ|` matters only as a *goodput-collapse sentinel*: at
 20–50 Hz × tens of bytes NCP is rate-rich by ~3 orders of magnitude, so `R_min`
 *sizes nothing* — it only tells you when the link has effectively died and you must
@@ -89,18 +95,19 @@ by both `floor(min(ttl_ms, MAX_TTL_MS) / horizon_dt_ms)` and
 `t + i·horizon_dt_ms`, and once the buffer drains or any entry is past `ttl_ms`,
 **HOLD fires**. The whole safety argument rests on this cap.
 
-No RS / RLNC / RaptorQ / streaming-FEC module: for a 3–12-float setpoint, PPC's
-overlapping horizons plus optional **whole-frame duplication** (adaptive, cheap) is
-the complete application-layer redundancy story. Coding theory says nothing better
-exists for K≈1–3 symbols.
+NCP currently ships no RS / RLNC / RaptorQ / streaming-FEC module. For its typical
+3–12-float setpoint, PPC horizons are the measured default; whole-frame duplication,
+independent paths, or small systematic protection may still be better for a specific
+plant/link and require a deployment-level latency/failure trade study.
 
 ### Layer 2 — perception plane under low bandwidth: PID-informed Value-of-Information
 This is where **Partial Information Decomposition** earns its place (see the PID
 section below): drop **redundant** channels, keep **unique** ones, bundle
 **synergistic** ones — a principled "what to send when you can't send everything,"
 designed offline (via an information-theoretic analysis client) and applied online as static channel priorities.
-Conflation stays as the wire backstop; a `max_silence_ms` heartbeat distinguishes
-"no change" from "link dead."
+Zenoh DROP remains the wire congestion behavior, while the typed adapter's bounded
+replace-latest slot preserves freshness after receipt; a `max_silence_ms` heartbeat
+distinguishes "no change" from "link dead."
 
 ### Layer 3 — detection & fail-safe
 A lightweight detector in `ncp-core` over the **`seq`-gap** stream (already on both
@@ -117,14 +124,20 @@ velocity path over the full TTL/horizon window, preserving safe inward motion bu
 HOLDing/truncating before a geofence crossing; a stale/missing sensor (or non-finite
 clock, velocity, or position, bad timeout, absent geofence channel) drops to
 **non-latching** `HOLD` that self-clears on fresh in-bounds data; an actual geofence
-breach or sustained link burst **latches** `ESTOP` (cleared only by a supervisor
-`reset()`); a limit referencing an
-undeclared channel is a `config_fail_closed` HOLD that `reset()` does **not** clear:
+breach or sustained link burst **latches** `ESTOP`. `SafetyGovernor::reset()` is a
+body-local primitive, not a stable wire RPC or an authority transition; a limit
+referencing an undeclared channel is a `config_fail_closed` HOLD that the primitive
+does **not** clear. A successful deployment-level reset is an out-of-band
+session-generation cut: it retires the generation, authority and lease, and stream
+state, and the body remains non-actuating until a fresh `SessionOpened`, new
+generation, new streams, and a new matching authority lease. The diagram below
+describes only the governor's local state; its reset edge does not authorize
+actuation:
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/fsm-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/fsm-light.svg">
-  <img alt="NCP plant-side safety governor finite state machine. Four states: ACTIVE (nominal — clamps speed and truncates the predictive horizon near the geofence), HOLD (non-latching — self-clears on fresh in-bounds data), ESTOP (latched and de-energized — exits only via a supervisor reset(); the emphasized vermillion glowing state with corner lock-ticks), and CONFIG-FAIL-CLOSED (a limit cites an undeclared channel; permanent for the session, safety_ok=false, reset() does not clear it). Transitions: INIT to ACTIVE; ACTIVE self-loops on a fresh sensor; ACTIVE to HOLD on a stale or missing sensor, non-finite clock, velocity, or position, bad timeout, or absent geofence channel; HOLD back to ACTIVE on fresh in-bounds data; ACTIVE and HOLD both latch to ESTOP on an actual geofence breach or link-loss burst (the heaviest strokes); ESTOP self-loops while latched with every CommandFrame zeroed, returning to ACTIVE only after a supervisor reset() with the plant in bounds; ACTIVE enters CONFIG-FAIL-CLOSED when a limit references an undeclared channel, then self-loops. Invariant: HOLD, ESTOP, and CONFIG-FAIL-CLOSED all emit a ZEROED command frame — fail-safe to zero, not latch-last." src="docs/diagrams/fsm-light.svg" width="820">
+  <img alt="NCP plant-side safety-governor primitive finite state machine. Four local states: ACTIVE clamps speed and truncates the predictive horizon near the geofence; HOLD is non-latching and self-clears on fresh in-bounds data; ESTOP is latched and de-energized; CONFIG-FAIL-CLOSED is permanent for the session. A supervisor may clear the local ESTOP primitive only when plant preconditions hold, but this does not authorize NCP actuation: the deployment retires that session generation and remains non-actuating until a fresh SessionOpened, new streams, and new authority. HOLD, ESTOP, and CONFIG-FAIL-CLOSED emit the plant profile's declared safe action rather than assuming a universal zero." src="docs/diagrams/fsm-light.svg" width="820">
 </picture>
 
 **The hard PHY boundary, stated plainly:** no application-layer scheme — not PPC,
@@ -187,8 +200,8 @@ whole-frame duplication as an adaptive lever.
 
 **Do not build (overkill / redundant / unimplementable on current code):** RS /
 CRLNC / streaming-FEC modules and RaptorQ (overkill for K≈1–3 symbols, redundant
-with PPC); event-triggered/send-on-delta sampling (fights the existing DROP+conflate
-+ rate-codec design); layered/scalable coding (no maps/trajectories on the bus);
+with PPC); event-triggered/send-on-delta sampling (fights the existing Zenoh DROP,
+adapter-side replace-latest, and rate-codec design); layered/scalable coding (no maps/trajectories on the bus);
 deep-RL / game-theoretic anti-jam (its levers are PHY, not NCP); an autonomous-RTL
 mode rung (needs MAVROS SET_MODE wiring that doesn't exist); using `H`/anytime as
 redundancy-sizing formulas (rigor-theater for this payload); a client's own
@@ -201,7 +214,7 @@ important thing NCP can do is detect goodput collapse and fail safe honestly.
 
 ## Minimal first implementation (corrected order)
 
-> **Status (wire 0.8).** Steps 0–2 now ship as tested `ncp-core` primitives,
+> **Candidate implementation status (wire 1.0).** Steps 0–2 exist as tested `ncp-core` primitives,
 > re-exported from the crate root: `CommandWatchdog` (the `ttl_ms` deadline
 > backstop), `ActionBuffer` + `max_horizon_len` (PPC horizon replay, capped at
 > `N ≤ ttl_ms / horizon_dt_ms` and `N ≤ 65_536`), and `LinkMonitor` (seq-gap loss + CUSUM burst →
@@ -263,11 +276,17 @@ returns `None` and the plant HOLDs. Ride-through is therefore *at most*
 `N · horizon_dt_ms` and not one tick more — a property you can state, bound, and
 test, which is the whole point of putting it in the contract.
 
-Fail-safe delivery outranks replay discipline: every non-`Active` mode clears
-buffered actuation before envelope and sequence checks, and `ESTOP` also latches.
-Thus even a duplicate or malformed HOLD cannot be discarded while an older
-Active horizon continues. Only a complete accepted `Active` frame can add or
-refresh actuation authority.
+Remote actor/plane and exact route/session-generation admission always comes first;
+the local `ActionBuffer` is not a network ingress bypass. Within that already
+admitted context, fail-safe handling outranks replay discipline: every non-`Active`
+mode clears buffered actuation before local replay checks, and `ESTOP` also latches.
+Only a complete accepted `Active` frame can add or refresh actuation authority.
+
+The stable Zenoh publisher also treats delivery ambiguity explicitly. Its one
+transport-owned allocator covers Active, HOLD, and ESTOP. Once a put is attempted,
+that position is consumed. If a fail-safe attempt is ambiguous, Active stays blocked
+until the caller submits a new logical fail-safe at a new position and it succeeds;
+the dispatcher never busy-retries the ambiguous bytes at the old position.
 
 ### Why the ttl watchdog is the backstop everything else rests on
 First principle: every layer above assumes a deadline beneath it. PPC is only safe
@@ -280,14 +299,15 @@ replayed/stale frames cannot keep the plant "fresh" forever; and it treats a
 **non-finite clock as expired** — failing *closed* on a bad clock rather than
 letting `NaN` comparisons read as "not expired."
 
-Since **wire 0.6** the `seq` rule is normative, not merely advisory: a
-`command_frame`/`sensor_frame` **MUST** carry `seq >= 1` (strictly increasing per
-stream), so an unstamped (`seq < 1`) frame is **rejected**, never actuated on — the
-old "`seq == 0` always-accept" escape hatch is gone. A restarted stream re-anchors to a
-new epoch only on a strictly-**lower** `seq`, and only once the previous stream has
-already expired; an **equal** `seq` never re-anchors, so a frozen or replayed frame
-cannot forge liveness. An inbound ESTOP latches regardless of `seq` — a fail-safe is
-never dropped.
+Since **wire 0.6** a positive sequence has been normative; wire 0.8 made it the
+typed `stream.seq`. Every data/status publisher starts at 1 and strictly advances
+within one declaration-bound epoch, so an unstamped (`stream.seq < 1`) frame is
+rejected. Timeout, HOLD, or expiry never reopens a lower sequence and a foreign
+epoch never rebinds the current receiver. Publisher restart requires fresh
+authenticated route/session declaration state. ESTOP priority applies only after
+the complete envelope and exact current session generation pass ingress binding.
+A reset retires the entire generation and its buffer/authority objects; every old-
+generation frame, including ESTOP, is rejected before latch or control processing.
 
 > **Bounded deadline (fixed).** `CommandWatchdog` maps non-finite TTL to immediate
 > expiry and clamps enforcement to `MAX_TTL_MS`; `max_horizon_len` returns zero for

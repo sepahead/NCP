@@ -1,5 +1,6 @@
 <!--
-Thanks for contributing to NCP! NCP is pre-1.0 and experimental — the wire format may still change.
+Thanks for contributing to NCP! Repository HEAD is the unreleased, release-blocked
+1.0.0-rc.1 candidate; v0.8.0 remains the latest immutable release.
 Please fill out the checklist below. Remove sections that genuinely don't apply, but don't skip them silently.
 -->
 
@@ -10,12 +11,12 @@ Please fill out the checklist below. Remove sections that genuinely don't apply,
 ## Checklist
 
 - [ ] Tests added or updated for the change
-- [ ] `cargo test` passes locally
-- [ ] `cargo fmt --all -- --check` is clean
-- [ ] `cargo clippy --all-targets --all-features -- -D warnings` is clean
-- [ ] Conformance test suite passes
+- [ ] `scripts/check.sh` passes locally, or each intentionally unavailable gate is recorded as `NOT RUN`
+- [ ] The mandatory exact-set corpus has no applicable skips or unknown vectors
+- [ ] Generated schemas, bindings, manifests, full contract digest, and candidate baseline are current
 - [ ] Docs updated where behavior or public API changed
 - [ ] No vendor-specific or project-specific names introduced (NCP is project-agnostic)
+- [ ] No local pass is described as production, security, safety, consumer, or release certification
 
 ## Wire change?
 
@@ -23,9 +24,9 @@ Please fill out the checklist below. Remove sections that genuinely don't apply,
 
 If it **does** change the wire format, all of the following are required:
 
-- [ ] `ncp_version` bumped appropriately
-- [ ] Spec (`NEURO_CYBERNETIC_PROTOCOL.md`), `schemas/`, and/or `proto/` updated to match
-- [ ] Conformance tests updated to cover the new/changed wire behavior
+- [ ] Compatibility impact and migration behavior are explicit; no silent 0.8 coercion was added
+- [ ] Spec, registries, proto, schemas, canonical vectors, behavior corpus, and digest were regenerated coherently
+- [ ] The frozen candidate baseline was deliberately refreshed and exact-verified when required
 
 ## Notes for reviewers
 

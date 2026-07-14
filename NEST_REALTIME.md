@@ -1,6 +1,13 @@
 # Can NCP read NEST in real time, without stopping the simulation (like MUSIC)?
 
-**Short answer: yes.** NCP exchanges data with a *running* NEST kernel without
+> **Evidence boundary:** this note documents the stepwise NEST architecture and
+> historical measurements. It does not certify the unreleased NCP
+> `1.0.0-rc.1` artifacts, a hard-real-time deadline, secure live transport, or
+> current Engram interoperability. Engram's native-1.0 migration is in progress,
+> but the release-bound performance/live-simulator campaign is **NOT RUN**.
+
+**Architectural answer: yes.** A compatible backend can exchange data with a
+*running* NEST kernel without
 tearing it down or rebuilding the network — using NEST's own
 `Prepare()` → `Run(chunk)` → `Cleanup()` stepwise model with a persistent kernel.
 That is the same **boundary-exchange** model MUSIC uses; the difference from MUSIC
@@ -30,10 +37,12 @@ The reference `step()` reads each recorder's events and slices `[last:]`, return
 **only the events since the previous step** — a streaming delta per chunk. The
 reference control loop goes further and reads `n_events` counts, computing rate from
 the **count delta** (O(1), no event array). Either way you get new data each tick
-from the live kernel. For high-volume raw spike/`V_m` streaming, the observation
-plane can carry the deltas as a packed little-endian column block (`ncp-core::bulk`,
-proto `BulkObservation`) instead of `repeated double` — parse-free and ~2× smaller;
-an additive, observation-plane-only option (see [`PERFORMANCE.md`](PERFORMANCE.md), #6).
+from the live kernel. The stable 1.0 observation plane carries those deltas only in
+canonical-JSON `ObservationFrame`s. `ncp-core::BulkBlock` is a bounded packed
+little-endian local/offline codec (~2× smaller in the measured fixture), not a
+transport frame; proto `BulkObservation` is excluded from stable 1.0. A future
+negotiated envelope would be a separate contract change (see
+[`PERFORMANCE.md`](PERFORMANCE.md), #6).
 
 ### 4. Runtime input injection — can you stimulate mid-simulation?
 Yes — the generator is updated **before** the `Run` chunk, so a controller drives
@@ -238,22 +247,21 @@ clients (§8 above). That is a transport trade, not a recalibration tax — and,
 counter-intuitively, **not even a closed-loop-latency loss for NCP** (see the latency
 note in §8). There is **no per-chunk `calibrate()` that NCP pays and MUSIC escapes.**
 
-### 3. Chunking does not change the science — synapse timing is chunk-invariant
+### 3. Chunk boundaries preserve synapse delivery timing under the stated conditions
 
-Stopping to read between `Run(chunk)` calls cannot shift a spike or a delay. NEST holds
-in-flight spikes in per-target **ring buffers** keyed by delivery time: a spike emitted
-at `t` on a synapse of delay `d` is delivered at `t + d` regardless of whether a `Run()`
-returned control at some boundary in between. Chunk boundaries are bookkeeping points for
-*the host*, not events in *the model's* time. Heterogeneous delays, STDP, structural
-plasticity — all evolve from the persistent kernel state and are blind to where you chose
-to pause.
+NEST holds in-flight spikes in per-target **ring buffers** keyed by delivery time: a
+spike emitted at `t` on a synapse of delay `d` is delivered at `t + d` even when a
+`Run()` returns control at an intervening boundary. Chunk boundaries therefore do not
+directly retime an already scheduled synaptic event. Bit-identical whole-run behavior
+still depends on the chunk schedule satisfying NEST's `min_delay` and RNG constraints,
+and on stimuli being scheduled reproducibly; the caveats below are part of this claim.
 
 `bench_chunk_overhead.py` enforces this: with a fixed RNG seed it **asserts bit-identical
 total spike counts** between monolithic and chunked-efficient (`--strict` exits non-zero
-on any divergence). Same seed, same science, whatever the chunk size. "Different synapse
-timing" is therefore not a correctness hazard of chunking — it is handled by the kernel,
-not by the host loop. (The companion test below extends this to assert identical *spike
-times* and *STDP weights*, not just counts.)
+on any divergence) for the measured, aligned configurations. That regression supports
+those configurations; it does not prove identity for an arbitrary chunk size. The
+companion test below extends the checked result to spike times and STDP weights under
+the same preconditions.
 
 ### 4. The one real constraint is `min_delay` — and it is shared with MUSIC
 
@@ -446,16 +454,19 @@ Efficiency = speedup(T) / T relative to the same-N T=1 baseline.
    brain needs MPI scale-out, lower indegree, or accepting sub-real-time.
 3. **Accept non-real-time for offline.** If the science needs 50k+ neurons and the
    loop need not be live, `rt < 1` is fine — just do not advertise the session as
-   real time (the roadmap's open-session budget check makes this honest, not silent).
+   real time. No open-session budget admission check is implemented; the integration
+   must measure its own artifact/hardware combination and label it honestly.
 4. **Shrink the chunk for latency, not for throughput.** `chunk_ms` trades latency
-   against per-`Run()` overhead; it does not change the real-time factor.
+   against per-`Run()` overhead and can therefore change the achieved real-time
+   factor even when the modeled-time result remains invariant under the conditions
+   above.
 
 ### Caveats
 
 * Numbers are specific to **NEST 3.8.0 (OpenMP-only, single MPI rank, 16 cores)**,
   this connectivity (~500 recurrent syn/neuron via fixed indegree), and this firing
-  regime (~13 Hz async-irregular). CLAUDE.md pins NESTML 8.2.0 → NEST 3.9 as the
-  target; numbers may shift slightly on 3.9.
+  regime (~13 Hz async-irregular). This document uses NEST 3.9 as its verification
+  target; repository agent notes do not pin NESTML/NEST. Numbers may shift on 3.9.
 * The ~17k–20k live ceiling at T=16 is interpolated (no sample between 10k and 50k).
 * `fire_hz` is reported from the first-rep event count, not the min-wall rep
   (harmless — the rate is N/T-invariant by design).

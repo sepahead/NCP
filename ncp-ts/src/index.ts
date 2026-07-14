@@ -10,6 +10,11 @@
 
 // Canonical, generated message types + enums (the JSON projection of proto/ncp.proto).
 export type * from './generated/index.js'
+export {
+  NCP_BUILD_IDENTITY,
+  NCP_NORMATIVE_CONTRACT_DIGEST,
+  NCP_PACKAGE_VERSION,
+} from './contract-identity.js'
 
 // Client orchestration, JSON-wire helpers, and the WebSocket transport.
 export {
@@ -25,6 +30,8 @@ export {
   JSON_SAFE_INTEGER_MAX,
   JSON_SAFE_INTEGER_MIN,
   MAX_HORIZON_STEPS,
+  MAX_CHANNELS,
+  NCP_ERROR_CODES,
 } from './client.js'
 export type {
   Send,
@@ -39,11 +46,29 @@ export type {
   SessionClosedReply,
   ObservationFrameReply,
   ObservationData,
+  ClientNegotiation,
+  MutationInput,
+  NcpErrorCode,
 } from './client.js'
 export { WebSocketNeuroSim } from './ws.js'
+export {
+  BoundedJsonError,
+  JSON_LIMITS,
+  parseBoundedJson,
+  preflightJson,
+} from './bounded-json.js'
+export type { JsonLimitCode } from './bounded-json.js'
+export {
+  canonicalRequestProjection,
+  requestDigest,
+  verifyRequestDigest,
+  RequestDigestError,
+  REQUEST_DIGEST_DOMAIN_V1,
+  MAX_REQUEST_PROJECTION_BYTES,
+} from './request-digest.js'
 
 // Plant-side safety + resilience (the ncp-core safety.rs / resilience.rs port,
-// behaviour-pinned to the shared corpus) + the wire-0.6 data-plane ingress gate.
+// behaviour-pinned to the shared corpus) + the wire-1.0 data-plane ingress gate.
 export {
   ActionBuffer,
   CommandWatchdog,

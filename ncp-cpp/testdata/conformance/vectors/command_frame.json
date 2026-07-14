@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "command_frame",
   "t": 1.0,
   "frame_id": "world",
@@ -28,5 +28,15 @@
   "session": {
     "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
   },
-  "session_id": "vec-open-1"
+  "session_id": "vec-open-1",
+  "authority": {
+    "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+    "term": 1,
+    "lease_id": "20000000-0000-4000-8000-000000000001",
+    "issuer_principal_id": "controller-principal-1",
+    "holder_principal_id": "controller-principal-1",
+    "holder_entity_id": "pid-controller-1",
+    "issued_at_utc_ms": 1700000000000,
+    "expires_at_utc_ms": 1700000030000
+  }
 }

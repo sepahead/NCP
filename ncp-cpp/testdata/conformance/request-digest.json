@@ -1,0 +1,99 @@
+{
+  "schema": "ncp.request-digest.conformance.v1",
+  "wire_version": "1.0",
+  "normative_contract": "contract/request-digest.v1.json",
+  "base_request": {
+    "kind": "step_request",
+    "ncp_version": "1.0",
+    "session_id": "s",
+    "session": {"generation": "00000000-0000-4000-8000-0000000000a2"},
+    "operation": {
+      "operation_id": "00000000-0000-4000-8000-0000000000c1",
+      "request_digest": "",
+      "session_epoch": "00000000-0000-4000-8000-0000000000a2",
+      "expected_state_version": 7,
+      "deadline_utc_ms": 62000,
+      "retry": false
+    },
+    "authority": {
+      "session_epoch": "00000000-0000-4000-8000-0000000000a2",
+      "term": 1,
+      "lease_id": "00000000-0000-4000-8000-0000000000b1",
+      "issuer_principal_id": "caller-one",
+      "holder_principal_id": "caller-one",
+      "holder_entity_id": "caller-one-entity",
+      "issued_at_utc_ms": 1000,
+      "expires_at_utc_ms": 61000
+    },
+    "advance_ms": 10.0,
+    "stimulus": {
+      "kind": "stimulus_frame",
+      "ncp_version": "1.0",
+      "session_id": "s",
+      "session": {"generation": "00000000-0000-4000-8000-0000000000a2"},
+      "values": {"µ-drive": {"data": [1.0, -0.0], "unit": "µA"}}
+    }
+  },
+  "cases": [
+    {
+      "id": "step-base",
+      "patch": [],
+      "expected_digest": "853a3a0767aa756da8d699a039b6178e3584883cb4a6e78ccaefb4925e434832"
+    },
+    {
+      "id": "negative-zero-integer-token-equivalent",
+      "patch": [
+        {"op": "set", "path": ["stimulus", "values", "µ-drive", "data"], "value": [1.0, -0]}
+      ],
+      "expected_digest": "853a3a0767aa756da8d699a039b6178e3584883cb4a6e78ccaefb4925e434832"
+    },
+    {
+      "id": "renewed-authority-retry-same-digest",
+      "patch": [
+        {"op": "set", "path": ["operation", "retry"], "value": true},
+        {"op": "set", "path": ["operation", "request_digest"], "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+        {"op": "set", "path": ["authority", "issued_at_utc_ms"], "value": 2000},
+        {"op": "set", "path": ["authority", "expires_at_utc_ms"], "value": 62000}
+      ],
+      "expected_digest": "853a3a0767aa756da8d699a039b6178e3584883cb4a6e78ccaefb4925e434832",
+      "authorization_expectation": "renewed lease must independently equal the active AuthorityMachine lease"
+    },
+    {
+      "id": "changed-payload-changes-digest",
+      "patch": [{"op": "set", "path": ["advance_ms"], "value": 11.0}],
+      "expected_digest": "9fcc92547febbdd67cb91dbc4994fbfa3a1c483e68171cf262324dea637b2d3c"
+    },
+    {
+      "id": "changed-deadline-changes-digest",
+      "patch": [{"op": "set", "path": ["operation", "deadline_utc_ms"], "value": 62001}],
+      "expected_digest": "1636c1041efdaed4ec65dedb8ade2d7197f6acf74f5f71af9cf8487d3c704c0b"
+    },
+    {
+      "id": "cross-principal-authority-excluded-not-replayable",
+      "patch": [
+        {"op": "set", "path": ["authority", "term"], "value": 2},
+        {"op": "set", "path": ["authority", "lease_id"], "value": "00000000-0000-4000-8000-0000000000b2"},
+        {"op": "set", "path": ["authority", "issuer_principal_id"], "value": "caller-two"},
+        {"op": "set", "path": ["authority", "holder_principal_id"], "value": "caller-two"},
+        {"op": "set", "path": ["authority", "holder_entity_id"], "value": "caller-two-entity"}
+      ],
+      "expected_digest": "853a3a0767aa756da8d699a039b6178e3584883cb4a6e78ccaefb4925e434832",
+      "authorization_expectation": "different authenticated principal uses a distinct cache key and receives outcome_unknown, never another principal's replay"
+    },
+    {
+      "id": "expired-authority-excluded-but-rejected",
+      "patch": [{"op": "set", "path": ["authority", "expires_at_utc_ms"], "value": 1000}],
+      "expected_digest": "853a3a0767aa756da8d699a039b6178e3584883cb4a6e78ccaefb4925e434832",
+      "authorization_expectation": "reject NCP-LEASE-002 before idempotency-cache lookup"
+    },
+    {
+      "id": "close-request",
+      "patch": [
+        {"op": "set", "path": ["kind"], "value": "close_session"},
+        {"op": "remove", "path": ["advance_ms"]},
+        {"op": "remove", "path": ["stimulus"]}
+      ],
+      "expected_digest": "158ad73b9520e6239d54252debda53e6365688a9facefff2181613e313a438ee"
+    }
+  ]
+}

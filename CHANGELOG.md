@@ -7,6 +7,127 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 1.0.0-rc.1 candidate (breaking; not released)
+
+- Changed the wire to `1.0` and compact protobuf-structure hash to
+  `163acc57d8a62b66`; added a generated complete normative SHA-256 manifest.
+- Added closed identity/role/plane claims, named security profiles and digests,
+  session-bound authority leases, idempotent mutation contexts, authenticated
+  responder receipts, plant profiles, stable capability negotiation, and explicit
+  channel requirements.
+- Added one universal bounded-JSON policy, four-plane queue semantics, audit/event
+  registries, a mandatory self-describing exact-set corpus, and an independent
+  TypeScript validator/client.
+- Corrected the plane registry to expose named sensor/command routes but only one
+  exact observation route, and made action overflow explicitly retain the highest
+  fail-safe severity (`ESTOP` over HOLD/non-active over Active) with equal-severity
+  latest-wins replacement.
+- Split the machine release policy into required pre-release gates and non-blocking
+  post-publication validations, adding the missing performance/resource profile and
+  structural regression checks for both phases.
+- Upgraded the candidate Markdown gate to verify same-file and cross-file
+  GitHub-style heading anchors, duplicate-heading suffixes, explicit HTML anchors,
+  and non-ignored untracked candidate documents.
+- Reconciled current documentation with Engram's explicit in-progress native-1.0
+  migration without treating it as installed/live certification, and time-bounded
+  the earlier dirty-worktree receipts that migration and later normative edits
+  superseded.
+- Qualified NEST recorder-drain complexity and chunk/RNG invariance, separated Zenoh
+  wire DROP from adapter-side replacement, and made clear that physical-chip output
+  needs a future provenance discriminator rather than a false simulation label.
+- Made `ErrorFrame.code` required and closed over the error registry. Missing or
+  unknown codes fail validation; generic malformed-message RPC failures use
+  `NCP-WIRE-001`, contained implementation failures use `NCP-INTERNAL-001`, and
+  diagnostics no longer substitute for machine-readable classification.
+- Added package, wire, compact-proto, complete-contract, and non-certifying build
+  identity introspection across Rust, TypeScript, Python, C/C++, and the gateway.
+  The checked-in RC reports `unreleased-worktree`; it is not a source revision.
+- Froze the wire-1.0 JSON candidate baseline at `conformance/baseline/v1.0.0` and
+  added exact/current and additive-compatibility verification. This is an audit
+  snapshot only; it is not a tag or release claim.
+- Added a read-only released-baseline registry and gate that binds the annotated
+  tag object, peeled commit, fixed path, and exact Git subtree for every frozen
+  `v0.5.0`–`v0.8.0` baseline. Missing, extra, changed, symlinked, or moved content
+  and missing, moved, or lightweight tags fail; this is an integrity check, not a
+  new release, signature, or artifact-certification claim.
+- Replaced the stale Buf comparison to `v0.7.0` with a registry-derived same-major
+  gate. The initial `ncp.v1` candidate explicitly has no released v1 baseline and
+  is never compared with intentionally incompatible `ncp.v0`; after a v1 release is
+  registered, later v1 work compares with the latest verified annotated release's
+  peeled commit. Deterministic hostile tests reject malformed, moved, reordered,
+  mismatched, or symlinked registry/tag/proto inputs.
+- The complete local `scripts/check.sh` matrix passed for the current dirty
+  candidate snapshot on 2026-07-14, including five clean Rust package archives,
+  an installed abi3 wheel, root/nested npm tarballs, the C++ demo, real local TCP
+  Zenoh tests, bounded pure-Python JSONL ingress, dependency policy, and Buf. The
+  run was a dirty, uncommitted worktree and is therefore time-bound preflight, not
+  immutable release evidence; external pre-release gates remain not run and
+  release-blocking.
+- Closed every operational enum except `Mode`; unknown modes retain their exact
+  string for relay but never authorize actuation and govern as HOLD. Unknown model,
+  channel, stimulus, observation, simulation, role, or requirement values now fail
+  at their semantic use sites across Rust, TypeScript, schemas, and hostile corpus
+  cases.
+- Bounded reply admission before owned allocation in local and Zenoh Rust RPC paths,
+  the browser WebSocket client, gateway bridge, and the dependency-free PyNEST E2E
+  client. Oversized transport diagnostics are prefix-bounded and preserve the
+  stable `NCP-LIMIT-001` classification.
+- Removed the Engram-specific default WebSocket URL from the TypeScript package;
+  callers must supply a deployment endpoint. Binary browser replies are rejected
+  without conversion, and outer UTF-8 byte counting no longer creates a duplicate
+  `TextEncoder` allocation.
+- Advanced the locked transitive `spin` 0.9.8/0.10.0 releases immediately after
+  upstream yanked those lines to the non-yanked compatible replacements
+  0.9.9/0.10.1; no advisory waiver or source fork was introduced.
+- Closed the final Zenoh queue-policy drift: control admission now uses the
+  normative 128-request ceiling, and typed observation subscriptions use an
+  explicit 64-frame drop-oldest queue with a cumulative low-cardinality counter.
+- Bound typed Zenoh perception and action payloads to the exact `session_id`
+  encoded in their publish/subscribe key, including same-session enforcement for
+  ESTOP, and added cross-session publish and raw-bypass subscriber regressions.
+- Made authority renewal issuer- and holder-authenticated and legal only while the
+  existing receiver-local monotonic deadline is strictly unexpired. Expired renewal
+  fails to HOLD and requires a newer acquisition; serialized lease possession alone
+  no longer renews authority.
+- Made ESTOP reset a real generation retirement in the reference state: the old
+  `AuthorityMachine` closes permanently and the old `ActionBuffer` retires. Neither
+  can reopen, reacquire, renew, reconnect, or reactivate; fresh `SessionOpened`
+  state is required. Python adds `ActionBuffer.is_retired()`, and the C ABI adds
+  `ncp_action_buffer_is_retired`.
+- Removed all expiry-based stream re-anchoring. Watchdogs, action buffers, and the
+  reference loop bind one declaration to one epoch/high-water forever; lower/equal
+  positions and foreign epochs remain rejected after expiry, and restart requires a
+  fresh declaration.
+- Required positive own-stream positions for `ControlStatus` and `LinkStatus`, made
+  the reference loop publish 1..2^53−1 without repeating the maximum, and enforced
+  `LinkStatus.observed_stream`/`last_arrival_seq` joint presence and high-water
+  coherence in Rust and TypeScript.
+- Changed `ControlTransport::send_command` to return `CommandSendOutcome` so the loop
+  distinguishes accepted slots, prepublication replacement, and rejection without
+  falsely advancing its caller-side position.
+- Reworked `ZenohControlTransport` around one transport-owned action epoch/sequence
+  allocator shared by Active, HOLD, and ESTOP. An attempted put consumes its
+  position. Ambiguous fail-safe delivery latches Active rejection until a newly
+  submitted fail-safe at a new position succeeds; exact-byte/position busy retry is
+  forbidden, and `fail_safe_delivery_pending()` exposes the state.
+- Routed C/C++ `ncp_validate` through the canonical bounded-JSON preflight before
+  generic deserialization, including oversized, depth/node-budget, and duplicate
+  top-level-key regressions.
+- Corrected the secure-adapter boundary: TLS/ACL config validation cannot bind an
+  `IdentityClaim` when the current Zenoh callback surface exposes no authenticated
+  peer principal. `ZenohBus::open_secure` now fails closed before transport open;
+  configuration fixtures and local tests are not production-security evidence.
+- Added an explicit authenticated terminating 0.8→1.0 translation API. Ambiguous or
+  context-free legacy inputs fail closed; `ncp-gateway` remains a same-wire native
+  lifecycle edge and is not the migration translator.
+- Excluded bare `NCPB`, `BulkObservation`, protobuf runtime transport, gRPC,
+  delegation, and transparent proxying from stable 1.0.
+- Kept the candidate release-blocked pending live security, two independent
+  installed non-Rust peers, fault/soak, fuzz/sanitizer, performance, supply-chain,
+  clean-room, and all six consumer-certification pre-release gates. Publication
+  follows those gates; install and emergency-revocation validation follow
+  publication.
+
 ## [0.8.0] - 2026-07-12
 
 ### Wire 0.8 (breaking)
@@ -111,8 +232,10 @@ coordinated consumer pins establish it as the latest immutable release.
   unsigned ASCII-decimal `u64` components, with no sign, whitespace, patch, or
   overflow. TypeScript uses `BigInt` so it does not impose an accidental 2^53
   parser limit that Rust/Python/C++ lack.
-- Extensible enums preserve unknown non-empty wire strings losslessly. Only exact
-  `mode="active"` grants actuation; unknown modes fail closed. Rust also rejects
+- Rust preserves unknown non-empty enum strings for diagnostics and lossless relay,
+  but all wire enums except `Mode` are closed at semantic ingress. `Mode` alone is
+  same-major extensible: only exact `mode="active"` grants actuation, and every
+  unknown/additive mode is governed as HOLD. Rust also rejects
   programmatic `Mode::Unknown("active")` collisions before validation or
   serialization, so an in-memory non-authority cannot canonicalize into authority.
 - `kind`, nested stimulus identity, complete successful-session provenance, and
@@ -1167,7 +1290,8 @@ version guard, so peers must speak `0.2`.
   `ci.yml`, `release.yml`, README badge), unblocking the fmt/clippy/test gate and
   the dependabot dependency PRs.
 
-[Unreleased]: https://github.com/sepahead/NCP/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/sepahead/NCP/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/sepahead/NCP/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/sepahead/NCP/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/sepahead/NCP/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sepahead/NCP/compare/v0.5.3...v0.6.0

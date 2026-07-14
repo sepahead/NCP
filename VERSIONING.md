@@ -1,193 +1,88 @@
-# NCP Versioning & Compatibility Policy
+# NCP versioning and compatibility
 
-The wire contract carries a string `ncp_version` on every message. This document
-is the **published versioning/breaking-change policy** — one of the artifacts a
-protocol needs to become a standard (cf. MCP's date-based policy, OMG DDS's
-interop program).
+> **Candidate status:** repository HEAD is the unreleased `1.0.0-rc.1` package
+> candidate, wire `1.0`, compact proto hash `163acc57d8a62b66`. The latest immutable
+> release remains `v0.8.0`; no `v1.0.0` tag or 1.0 publication exists.
 
-## Scheme: SemVer of the wire contract
+NCP has four separate identities:
 
-NCP versions the SDK with [SemVer](https://semver.org) and carries a shorter
-`MAJOR.MINOR` compatibility ID on the wire. They are related but not identical:
+- package SemVer identifies a source/artifact release (`1.0.0-rc.1` at HEAD);
+- `ncp_version` identifies wire compatibility (`1.0` at HEAD);
+- the complete SHA-256 digest in
+  [`contract/manifest.v1.json`](contract/manifest.v1.json) identifies the exact
+  normative contract. The 16-hex `CONTRACT_HASH` is only an advisory digest of the
+  canonical protobuf structure;
+- package builds expose a build/source identity. The checked-in RC uses
+  `unreleased-worktree`, which is deliberately non-certifying. An immutable release
+  builder must inject an exact source identity and bind it to artifact provenance.
+  A raw Rust `NCP_BUILD_IDENTITY` environment value is only a compiler input and is
+  not release validation. The fail-closed npm builder accepts one exact lowercase
+  40-hex `HEAD`, verifies the Rust seam, and injects TypeScript only in an archived
+  staging tree; normal regeneration cannot create a certifying package.
 
-- **MAJOR** — a backwards-incompatible wire change (removed/renamed field,
-  changed type, removed enum value, changed semantics).
-- **MINOR (SDK)** — a backwards-compatible addition (new optional field, new
-  enum value, new message). Existing peers keep interoperating, so the wire
-  compatibility ID does not change.
-- **PATCH** — clarifications/docs with no wire effect.
+## Compatibility rule
 
-**Wire version vs crate/package version.** The latest immutable release is
-`v0.8.0` and its `ncp_version` wire string is `0.8`. The Rust crates and the `@sepahead/ncp`
-package carry their own SemVer (see `Cargo.toml` / `package.json` for the current
-SDK version — the manifests are the single source of truth) for the SDK. They usually move
-together, but a PATCH that touches only code/docs/build artifacts leaves the wire
-string unchanged. Pin **`tag = "v0.8.0"`** for the latest release.
+Wire versions contain one or two canonical ASCII-decimal `u64` components and no
+suffix. Zero is exactly `0`; a nonzero component has no leading zero. Signs,
+whitespace, Unicode digits, values above `18446744073709551615`, patch components,
+and trailing junk fail closed. `1` means `1.0`. A stable 1.x peer accepts another
+well-formed version with major `1`; minor releases on a published 1.x line must
+therefore be additive-compatible.
 
-**Wire 0.8 is an incompatible identity-and-correlation release.** It deletes the
-overloaded top-level `seq` (number **and** name `reserved` on every data-plane
-frame) and replaces it with a typed `stream: StreamPosition {epoch, seq}` — each
-frame's own ordered stream identity and the single loss/`LinkMonitor`/`ActionBuffer`
-read — plus a `source: StreamPosition` correlation reference (the driving frame;
-`source` **absence** replaces the old observation `seq == 0` sentinel) and an
-optional `source_t`. Every post-open session-scoped frame carries the inseparable
-identity pair `(session_id, session.generation)`: `session_id` is now required on
-the control plane too (transport-agnosticism — the gRPC `Control` stream has no
-Zenoh key to recover it from), and a server-issued `SessionRef{generation}` fences
-stale incarnations, validated atomically before any side effect with no
-key/generation repair. Receivers key stream state by `epoch` and never let a
-foreign epoch displace the active stream. The contract hash is `d1b50a2d8a265276`.
+Before 1.0, minor was breaking. Wire 0.8 therefore accepts only 0.8 and cannot
+interoperate natively with 1.x. The migration boundary is the labelled terminating
+gateway described in [`INTEGRATING.md`](INTEGRATING.md), never version coercion.
 
-**Additive evolution is NON-breaking (since v0.4).** Adding an *optional* field or a
-new message type does **not** bump the minor — protobuf/serde ignore unknown fields,
-so a peer on an older minor keeps working. The minor bumps **only** for genuinely
-incompatible changes (removing/renaming a field, changing a type, removing an enum
-value, changing semantics). This corrects the earlier over-aggressive rule that forced
-fleet re-pins (`v0.2.5/6/7/8`, and `0.2→0.3` for the merely-additive `contract_hash`
-field). Two layers do the work: **`ncp_version`** is the hard *compatibility* gate
-(`check_version`, exact `(major, minor)` pre-1.0), and **`CONTRACT_HASH`** is an
-*advisory* identity signal (see §"Contract hash") that flags "same wire version, newer
-contract revision" without breaking anyone.
+Within a published 1.x line:
 
-**Pre-1.0 caveat:** while `0.x`, an *incompatible* minor bump is breaking and the
-version guard fails closed on a minor difference (`check_version`). Pin an exact
-released version (`tag = "v0.8.0"` today). `0.x` is explicitly unstable.
+- optional fields and values in enums explicitly documented as open may be added
+  only where every older path remains safe. At wire 1.0 only `Mode` is open, and
+  every unknown/additive mode is non-authorizing and governed as HOLD;
+- stable fields, message kinds, enum values, semantics, limits, or requirements
+  may not be removed or weakened;
+- a field may not change type or become required;
+- security/authority defaults may never become permissive;
+- experimental/excluded features do not become stable by use.
 
-The current released wire is **`0.8`** (`ncp_version = "0.8"`). Earlier wires: `0.7`
-was the **acceptance-and-shape cut** (mandatory `kind`, JSON `int64` bounded to
-±(2^53−1), lossless unknown enums, explicit scientific-boundary assertions,
-versioned `ErrorFrame`s, enforceable nested stimulus identity, and the complete
-reserved bulk-observation metadata envelope — contract hash `f05e328cad20959d`);
-`0.6` was the **enforcement cut**: mandatory `ncp_version`, stamped closed-loop `seq`,
-normative observation-plane seq stamping, and removal of the `seq == 0` escape
-hatch — a semantic break with unchanged serialization. `0.5`
-was the **stable-wire cut** (the three bare proto `string mode` fields were
-promoted to enums — a real `string`→enum wire change that recomputed
-`CONTRACT_HASH` to `24e8e6e31e1dec8a`); `0.4` was the **decoupling +
-robustness** release (the proto `package` was renamed `engram.ncp.v0 → ncp.v0`
-— naming-only, hash-neutral; the contract handshake became advisory; the
-additive-is-non-breaking policy above was adopted); `0.3` added the
-`contract_hash` handshake field; `0.2` the neuron-family wire (#10) and bulk
-column codec (#6).
+A breaking change requires wire/package major 2 and a new frozen baseline. Package
+patch releases may fix implementations without changing normative wire semantics.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/versioning-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/versioning-light.svg">
-  <img alt="NCP version-compatibility handshake. The wire breaks from 0.7 to 0.8: the overloaded top-level seq is replaced by a typed stream identity (epoch + seq) and a source correlation reference, and a fenced session generation is required on every post-open frame, changing the contract hash to d1b50a2d8a265276. check_version requires an exact major.minor match and fails closed: 0.7 is rejected, while 0.8 opens the session. A same-version contract-hash difference remains advisory." src="docs/diagrams/versioning-light.svg" width="820">
-</picture>
+## Candidate freeze and release
 
-## Enforcement: `buf breaking`
+`conformance/baseline/v1.0.0/` is a candidate audit snapshot of the JSON projection,
+not proof of release. `scripts/check_wire_baseline.py` enforces additive compatibility
+and its `--verify-current-cut` mode proves the current wire minor's pre-tag snapshot
+matches the current schema and canonical vectors without a hard-coded release path.
 
-Breaking changes are caught mechanically, language-agnostically, by Buf's tiered
-rules (configured in `buf.yaml`):
+Released baselines are a separate historical-integrity boundary. The machine
+registry at `conformance/baseline/released-baselines.v1.json` binds each of
+`v0.5.0` through `v0.8.0` to its exact annotated-tag object, directly named commit,
+fixed baseline path, and subtree object. `scripts/check_released_baselines.py`
+read-only compares every checked-out file's Git mode and blob ID with that tag tree;
+missing, extra, changed, symlinked, or moved baseline content and missing, moved, or
+lightweight tags fail. This proves local identity with the registered Git objects;
+it does not verify tag signatures, certify artifacts, or release the 1.0
+candidate.
 
-- **`WIRE` / `WIRE_JSON`** — binary and JSON wire compatibility (the contract).
-- **`FILE` / `PACKAGE`** — source/codegen-level stability.
+The protobuf breaking gate uses that same verified registry. It reads the exact
+`package ncp.vMAJOR` from HEAD and from every registered release commit, then compares
+with the greatest registered same-major release using its peeled commit OID. There is
+no released `ncp.v1` baseline yet, so the initial 1.0 candidate explicitly reports
+"no same-major released baseline" and runs no Buf comparison. Comparing it with
+`v0.8.0`/`ncp.v0` would reject the intentional major break and is forbidden. After an
+annotated v1 release is registered, every later v1 candidate must pass Buf
+`WIRE`/`WIRE_JSON` compatibility against the latest registered v1 release. Malformed,
+missing, reordered, or moved registry/tag/proto inputs fail closed.
 
-CI runs `buf lint`; `buf breaking` is anchored to the latest immutable tag,
-`v0.7.0`. The release's JSON projection is frozen under
-`conformance/baseline/v0.7.0/`.
-A change that trips `WIRE`/`WIRE_JSON` **must** bump MAJOR (or MINOR while `0.x`).
-(The 0.7 cut includes additive proto shape plus incompatible JSON/behavioral
-acceptance rules; Buf covers the former while the frozen schema and behavior
-corpora cover the latter.)
+The release sequence is:
 
-## Per-session version + contract handshake
+1. freeze the normative sources and candidate JSON baseline;
+2. compute the full normative digest and build all packages from one source;
+3. pass zero-skip local and external gates, including consumers;
+4. produce signed SBOM, provenance, checksums, and independent reproduction;
+5. only then create the annotated immutable `v1.0.0` tag and publish artifacts.
 
-At session setup the client sends its `ncp_version` **and** `contract_hash` in
-`OpenSession`; the reference server (engram's `SessionService.handle`) and the Zenoh
-client (`ncp-zenoh::ZenohNcpClient::open`) call `negotiate(peer_version, peer_hash)`.
-The two checks are **separated by concern** (since v0.4):
-
-1. **`ncp_version` is the hard *compatibility* gate.** An incompatible version
-   (`check_version` — exact `(major, minor)` pre-1.0) is rejected, never coerced: the
-   server replies with a versioned `ErrorFrame` and the session does not open.
-   Components are unsigned ASCII-decimal `u64` values; signs, whitespace, overflow,
-   and patch components are rejected identically by every SDK. "Can we speak the
-   same wire at all?"
-2. **`contract_hash` is an *advisory* identity signal.** `negotiate` returns a
-   `ContractStatus` (`Match` / `NotAdvertised` / `Mismatch`); a `Mismatch` is **logged,
-   not rejected**. "Are we on the exact same contract revision?" A mismatch within a
-   compatible version is expected (e.g. one peer added an optional field — non-breaking
-   per the additive policy) and must not break the flow. A `verify_contract` strict
-   opt-in remains for deployments that *mandate* an exact revision (safety-certified
-   configs).
-
-Separating the two means additive evolution and naming-only proto changes never break
-any version-compatible commander↔plant flow, while drift is still surfaced for
-operators.
-## Where the version gate runs — enforced end to end since wire 0.6
-
-The gate runs at **both** layers since wire 0.6:
-
-1. **Session establishment** — `check_version` inside `negotiate` at
-   `OpenSession` (the reference server's `SessionService.handle`; the Zenoh
-   client `ncp-zenoh::ZenohNcpClient::open`), plus per-reply validation in the
-   typed RPC client.
-2. **Per frame on the data plane** — `required_fields()` lists `ncp_version` for
-   **every** `kind` (injected into every JSON Schema's `required` array with a
-   `const` pin), `validate()` rejects an absent OR incompatible version, an
-   absent version deserializes to a detectable `""` (never fabricated as the
-   receiver's own), and the hot-path typed ingress
-   (`ncp_core::decode_validated` / `WireFrame::validate_wire`, used by the Zenoh
-   subscriber and publish gates) drops a version-less/incompatible/unstamped
-   frame with a diagnostic. `diagnose_version` now also flags the absent-version
-   case so a receiver can log *why* a frame was dropped.
-
-The per-frame cost is one string comparison on an already-deserialized frame
-(no extra parse — `validate_wire` works on the typed value), so the original
-microseconds-budget argument no longer trades safety for speed. A transport that
-delivers frames from a mismatched peer straight onto the data plane (bypassing
-the `OpenSession` handshake) is now rejected at ingress rather than silently
-accepted. Transport-level peer authentication (mTLS) remains the *adversarial*
-integrity layer — the version gate is compatibility, not authentication (see
-`SECURITY.md`).
-
-## Contract hash (the wire-identity digest)
-
-`ncp_version` says *which version* a peer speaks; `CONTRACT_HASH` says *which exact
-contract* — it is the FNV-1a digest of the **wire-semantically canonicalized**
-`proto/ncp.proto`. `canonical_proto` reduces the proto to its wire-relevant content:
-it strips cosmetic comments (respecting string literals), preserves the structured
-`// wire string "…"` annotations that define NCP's JSON enum mapping and the
-`// wire key "…"` annotations that define lifecycle RPC addressing, preserves
-`syntax` and imports, normalizes line-edge whitespace, and drops naming/codegen-only
-`package` / top-level `option` declarations. So a purely *naming* change — e.g. the v0.4 rename
-`package engram.ncp.v0 → ncp.v0` that decoupled the protocol's identity from a
-consumer — leaves the wire identical and is **hash-neutral**; a real wire change
-(add/remove/retype a field, change an enum value/JSON wire string, change a lifecycle
-wire key, change proto
-syntax) flips the hash. It is **not** a
-cryptographic MAC: adversarial integrity is the transport's job (mTLS); the hash
-*detects* accidental drift, and per the handshake above a mismatch is advisory.
-
-**Why it is a hardcoded constant** (`ncp_core::CONTRACT_HASH`, exposed by Python/C
-and mirrored by TypeScript) rather than computed at runtime:
-
-- **The proto is not on disk at runtime.** `contract_hash_of_proto` reads the
-  `.proto` via `CARGO_MANIFEST_DIR`, which only exists in the source tree at
-  build/test time. A shipped binary / wheel / C ABI has no proto to hash, so the
-  advertised value must be embedded.
-- **It is a contract *identity*, not a derived quantity.** A pinned constant makes
-  "which wire do I claim to speak" explicit, greppable, and reviewable, and makes a
-  bump a deliberate, visible diff.
-- **It is the shared cross-language anchor.** Rust recomputes it from the normative
-  proto; Python and C expose the Rust-core constant, TypeScript mirrors it, and the
-  shared corpus pins every peer. A skew fails CI instead of silently creating two
-  contract identities.
-- **Drift cannot ship.** `contract_hash_matches_proto` asserts the Rust constant
-  equals the computed value, while the peer/corpus checks assert every binding
-  advertises that same constant.
-
-The considered-and-rejected alternative is to drop the constant and compute it once
-at startup from a compile-time-embedded proto
-(`LazyLock::new(|| contract_hash_of_proto(include_str!(".../ncp.proto").as_bytes()))`).
-That removes the forgot-to-bump error class but loses `const`-usability, the
-greppable value, and the deliberate-bump property — and still needs a per-language
-anchor for cross-language parity. The constant-plus-CI-guard form is intentional.
-
-## Deprecation
-
-A field/enum value being retired is first marked deprecated in `proto/ncp.proto`
-(a comment + `[deprecated = true]`) for one MINOR cycle before removal in the next
-MAJOR, so consumers get a compile-time / lint warning before the break.
+Until step 5, use the candidate only for development. Do not pin `main`, an RC
+version, or a candidate source revision as though it were the stable 1.0 release.
+Legacy deployments that require the released contract must retain the immutable
+`v0.8.0` pin and its limitations.

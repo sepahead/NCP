@@ -1,70 +1,64 @@
-# NCP Governance
+# NCP governance
 
-NCP aims to be a **reusable, language-agnostic standard** (cf. MCP, OMG DDS,
-MUSIC) — a wire contract many independent peers implement, not one project's
-internal API. A standard needs a governance model and a path to a neutral home;
-this document is that model. It is deliberately lightweight while the protocol is
-pre-1.0.
+NCP aims to be a reusable, project-agnostic protocol with independently
+interoperable implementations. Repository HEAD is an unreleased, release-blocked
+`1.0.0-rc.1` candidate; it is not yet an adopted or neutral standard.
 
-## Current model (pre-1.0): maintainer stewardship
+## Current stewardship
 
-- The canonical repository is **[sepahead/NCP](https://github.com/sepahead/NCP)**.
-  The maintainer is the steward of the wire contract and the final decision-maker
-  on changes during `0.x`.
-- The **normative artifact** is `proto/ncp.proto` (the wire IDL). Everything else
-  — JSON Schemas, the Rust/Python/TS/C bindings, prose docs — is generated from or
-  conformance-checked against it. A change is "to the standard" only if it changes
-  the normative artifact or the [versioning policy](VERSIONING.md).
-- Changes land by pull request. Substantive wire changes should reference an issue
-  describing the motivation and the affected peers.
+The canonical repository is `sepahead/NCP`, maintained by Sepehr Mahmoudian. Changes
+land through review and must follow [`CONTRIBUTING.md`](CONTRIBUTING.md). The
+maintainer may reject a change that weakens interoperability, security, boundedness,
+scientific honesty, plant authority, or evidence quality even when it is convenient
+for one consumer.
 
-## How interoperability is enforced (not by trust)
+No consumer owns protocol semantics. Engram, crebain, producer, galadriel, haldir,
+and prisoma migrate through the shared contract and conformance process; core does
+not add project-specific fields/classes/topics.
 
-Governance of a wire protocol is mostly mechanical. Three CI gates make
-divergence a build failure rather than a disagreement:
+## Normative authority
 
-1. **Proto ↔ JSON-Schema parity** (`scripts/check_proto_schema_parity.py`) — the
-   IDL and the JSON projection cannot drift in field-set or enum wire-strings.
-2. **Conformance corpus** (`conformance/vectors/` + `scripts/check_conformance_vectors.py`)
-   — golden JSON *and* binary message instances every peer, in any language, runs
-   to prove it reads/writes the wire identically. New message types and codecs
-   (e.g. the bulk column block, #6) add a vector here.
-3. **`buf breaking`** (`buf.yaml`) — `WIRE`/`WIRE_JSON` compatibility is checked
-   against the last released tag, so an accidental breaking change is caught
-   language-agnostically before release.
+[`contract/manifest.v1.json`](contract/manifest.v1.json) lists and digests the exact
+normative sources and precedence. Implementations and examples are informative. A
+conflict is a release-blocking defect and cannot be settled by selecting the more
+permissive artifact.
 
-A peer is "NCP-conformant" if it passes the corpus; that is the membership test,
-independent of who maintains it.
+Stable 1.x evolution is additive. Breaking changes require a new major and migration
+plan. Security, limits, capability status, and plant/scientific boundaries are part
+of the contract, not optional deployment commentary.
 
-## Decision process
+## Mechanical accountability
 
-- **Additive changes** (new optional field, enum value, message, codec) — pre-1.0
-  these are a MINOR bump (treated as breaking by the version guard; see
-  [VERSIONING.md](VERSIONING.md)). They land by PR with a conformance vector.
-- **Breaking changes** — a MAJOR bump (or MINOR while `0.x`); must be justified in
-  an issue, pass `buf breaking` review, and follow the deprecation window in
-  VERSIONING.md.
-- **Disputes** — during `0.x`, resolved by the maintainer; the bias is toward the
-  smallest change that keeps existing peers interoperating.
+Governance depends on reproducible gates rather than trust:
 
-## Path to a neutral home
+- proto/schema/generated/canonical-vector parity and a frozen JSON baseline;
+- exact mandatory corpus coverage in every applicable implementation;
+- complete normative and corpus digests;
+- installed-package introspection and reproducible artifacts;
+- live secure/fault/fuzz/performance campaigns;
+- independent clean-room reproduction and downstream acceptance.
 
-The intent is for NCP to outgrow single-maintainer stewardship as adoption grows.
-The migration path, in order of increasing neutrality:
+Skipped, missing, unsigned, stale, or source-tree-only evidence does not pass a
+release gate. External-model review cannot vote or certify a gate.
 
-1. **Now** — maintainer-stewarded in `sepahead/NCP`, with the mechanical interop
-   gates above doing the heavy lifting.
-2. **Multi-implementer** — once ≥2 independent peers ship against the corpus, add
-   named maintainers from those implementations and require their review for wire
-   changes.
-3. **Neutral org** — move the spec + conformance corpus to a vendor-neutral
-   organization (a dedicated GitHub org, or a foundation/SDO such as the OMG-style
-   model DDS uses) with a published change-control process. The conformance corpus
-   and `buf breaking` baseline travel with the spec, so the interop contract is
-   unaffected by the move.
+## Release authority
 
-Proposals to advance this path are welcome as issues.
+An immutable release tag and package publication require every required
+`pre_release_gates` entry in
+[`contract/release-gates.v1.json`](contract/release-gates.v1.json) to pass against
+one artifact set, including all six consumers. A candidate version bump or local
+test run is insufficient. Release artifacts, reports, signatures, SBOM/provenance,
+compatibility matrix, support term, and emergency revocation procedure must be
+publicly reviewable. The registry's `post_release_validations` run against the
+published artifacts and cannot be prerequisites for their own initial publication.
 
-## Code of Conduct
+The candidate currently fails that threshold; external gates are **NOT RUN**. See
+[`RELEASE_READINESS.md`](RELEASE_READINESS.md).
 
-Participation is governed by the [Contributor Covenant](CODE_OF_CONDUCT.md).
+## Path to broader governance
+
+After at least two independent implementations and multiple independent adopters
+demonstrate sustained interoperability, the project should formalize a technical
+steering process, conflict-of-interest rules, security response team, release
+signers, and a neutral organizational home. Neutrality is earned by participation
+and reproducible evidence, not declared by naming this repository a standard.

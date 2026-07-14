@@ -1,3 +1,4 @@
+import type { ResponderReceipt } from "./ResponderReceipt.js";
 import type { SessionRef } from "./SessionRef.js";
 export type SessionClosed = {
     ncp_version: string;
@@ -8,5 +9,6 @@ export type SessionClosed = {
      * (0.8) the incarnation this close concerns; a delayed reply must attribute to it.
      */
     session: SessionRef;
+    receipt: ResponderReceipt;
 };
 //# sourceMappingURL=SessionClosed.d.ts.map

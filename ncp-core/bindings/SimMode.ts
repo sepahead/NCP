@@ -3,4 +3,4 @@
 /**
  * Stream vs batch simulation.
  */
-export type SimMode = "stream" | "batch" | (string & {});
+export type SimMode = "stream" | "batch";

@@ -35,17 +35,62 @@ import {
   SafetyGovernor,
   assertWireFrame,
   maxHorizonLen,
+  parseBoundedJson,
+  BoundedJsonError,
+  JSON_LIMITS,
+  requestDigest,
+  NCP_ERROR_CODES,
 } from '../dist/index.js'
 
 // Wire 0.8: valid canonical UUIDv4 identity for the hand-written fixtures.
 const EP = '00000000-0000-4000-8000-000000000001'
 const GEN = '00000000-0000-4000-8000-0000000000a2'
+const OP = '00000000-0000-4000-8000-0000000000c1'
+const DIGEST = 'a'.repeat(64)
+const AUTHORITY = {
+  session_epoch: GEN,
+  term: 1,
+  lease_id: '00000000-0000-4000-8000-0000000000b1',
+  issuer_principal_id: 'authority',
+  holder_principal_id: 'controller',
+  holder_entity_id: 'controller',
+  issued_at_utc_ms: 1_000,
+  expires_at_utc_ms: 61_000,
+}
+const MUTATION = {
+  operation: {
+    operation_id: OP,
+    session_epoch: GEN,
+    expected_state_version: 0,
+    deadline_utc_ms: 62_000,
+    retry: false,
+  },
+  authority: AUTHORITY,
+}
+const NEGOTIATION = {
+  identity: {
+    principal_id: 'commander-principal',
+    entity_id: 'controller',
+    role: 'commander',
+    plane: 'control',
+  },
+  security_profile: 'dev-loopback-insecure',
+  security_state_digest: 'b'.repeat(64),
+  gateway_permitted: false,
+}
 
 const here = dirname(fileURLToPath(import.meta.url)) // ncp-ts/scripts
 const corpusPath = join(here, '..', '..', 'conformance', 'behavior', 'vectors.json')
 const corpus = JSON.parse(readFileSync(corpusPath, 'utf8'))
+const manifestPath = join(here, '..', '..', 'conformance', 'manifest.v1.json')
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+const requestDigestPath = join(here, '..', '..', 'conformance', 'request-digest', 'v1.json')
+const requestDigestVectors = JSON.parse(readFileSync(requestDigestPath, 'utf8'))
+const errorRegistryPath = join(here, '..', '..', 'contract', 'errors.v1.json')
+const errorRegistry = JSON.parse(readFileSync(errorRegistryPath, 'utf8'))
 
 const failures = []
+const executedIds = new Set()
 const check = (cond, msg) => {
   if (!cond) failures.push(msg)
 }
@@ -58,6 +103,12 @@ check(
 check(
   corpus.contract_hash === NCP_CONTRACT_HASH,
   `corpus contract_hash ${corpus.contract_hash} != ncp-ts ${NCP_CONTRACT_HASH}`,
+)
+check(manifest.wire_version === NCP_VERSION, 'conformance manifest wire version mismatch')
+check(manifest.contract_hash === NCP_CONTRACT_HASH, 'conformance manifest contract hash mismatch')
+check(
+  JSON.stringify(errorRegistry.codes.map(({ code }) => code)) === JSON.stringify(NCP_ERROR_CODES),
+  'TypeScript error-code registry differs from contract/errors.v1.json',
 )
 
 // Functions ncp-ts implements vs deliberately out-of-scope for the thin client.
@@ -80,6 +131,34 @@ for (const fn of Object.keys(corpus.cases)) {
 
 let covered = 0
 
+const applyDigestCase = (base, vector) => {
+  const request = structuredClone(base)
+  for (const patch of vector.patch) {
+    let parent = request
+    for (const segment of patch.path.slice(0, -1)) parent = parent[segment]
+    const leaf = patch.path.at(-1)
+    if (patch.op === 'set') parent[leaf] = structuredClone(patch.value)
+    else if (patch.op === 'remove') delete parent[leaf]
+    else throw new Error(`unknown request-digest patch op ${JSON.stringify(patch.op)}`)
+  }
+  return request
+}
+
+for (const vector of requestDigestVectors.cases) {
+  let got
+  try {
+    got = requestDigest(applyDigestCase(requestDigestVectors.base_request, vector))
+  } catch (error) {
+    failures.push(`request-digest[${vector.id}]: raised ${error}`)
+  }
+  check(
+    got === vector.expected_digest,
+    `request-digest[${vector.id}]: got ${got}, expected ${vector.expected_digest}`,
+  )
+  executedIds.add(`request-digest/${vector.id}`)
+  covered++
+}
+
 // Canonical wire-shape fixtures — every shipped JSON message kind must pass the
 // actual TypeScript ingress gate, not merely overlap with behavior examples.
 const vectorsDir = join(here, '..', '..', 'conformance', 'vectors')
@@ -95,6 +174,7 @@ for (const filename of readdirSync(vectorsDir).filter((name) => name.endsWith('.
   } catch (error) {
     failures.push(`golden[${filename}]: canonical ${JSON.stringify(kind)} rejected: ${error}`)
   }
+  executedIds.add(`wire/${kind}/canonical`)
   goldenCovered++
 }
 
@@ -137,6 +217,7 @@ for (const c of corpus.cases.check_version) {
       !threw && got === expect.compatible,
       `check_version[${name}]: want compatible=${expect.compatible}, got ${threw ? '<threw>' : got}`,
     )
+  executedIds.add(`behavior/check_version/${name}`)
   covered++
 }
 
@@ -150,6 +231,7 @@ for (const c of corpus.cases.contract_status) {
     (advisory !== null) === (expect.status === 'mismatch'),
     `contract_status[${name}]: advisory=${JSON.stringify(advisory)} vs expected ${expect.status}`,
   )
+  executedIds.add(`behavior/contract_status/${name}`)
   covered++
 }
 
@@ -183,6 +265,7 @@ for (const c of corpus.cases.validate) {
   check(threw === !expect.valid, `validate[${name}]: throw=${threw} vs expected valid=${expect.valid}`)
   if (boundary) boundaryCovered++
   if (dataPlane) dataPlaneCovered++
+  executedIds.add(`behavior/validate/${name}`)
   covered++
 }
 
@@ -214,6 +297,7 @@ for (const c of corpus.cases.govern) {
       `govern[${name}]: |v| ${mag} != ${expect.velocity_setpoint_magnitude}`,
     )
   }
+  executedIds.add(`behavior/govern/${name}`)
   covered++
 }
 
@@ -248,10 +332,11 @@ for (const c of corpus.cases.action_buffer) {
       check(false, `action_buffer[${c.name}][${index}]: unknown op ${operation.op}`)
     }
   }
+  executedIds.add(`behavior/action_buffer/${c.name}`)
   covered++
 }
 
-// ── Safety self-checks: the wire-0.6 seq/ttl/latch semantics of the TS port ──
+// ── Safety self-checks: the wire-1.0 stream/ttl/latch semantics of the TS port ──
 // (mirrors the ncp-core unit tests; no test framework in ncp-ts, so asserted here)
 {
   // CommandWatchdog: ttl expiry, duplicate no-refresh, unstamped never refreshes.
@@ -265,23 +350,27 @@ for (const c of corpus.cases.action_buffer) {
   wd.onCommand(2.05, 200, 0) // unstamped
   wd.onCommand(2.05, 200, -3) // negative
   check(wd.shouldHold(2.3), 'watchdog: duplicates/unstamped must not extend the deadline')
-  // Restart re-anchor: strictly-lower seq only, only after expiry; equal never.
+  // Expiry never reopens a lower/equal sequence; restart needs fresh state.
   const wd2 = new CommandWatchdog()
   wd2.onCommand(1.0, 200, 1000)
   wd2.onCommand(1.05, 200, 1)
   check(wd2.shouldHold(1.35), 'watchdog: low seq on a LIVE stream must not refresh')
-  wd2.onCommand(1.5, 200, 1) // expired -> re-anchor
-  check(!wd2.shouldHold(1.6), 'watchdog: post-expiry restart re-anchors')
-  wd2.onCommand(2.0, 200, 1) // equal seq, expired -> NEVER re-anchors
+  wd2.onCommand(1.5, 200, 1)
+  check(wd2.shouldHold(1.6), 'watchdog: post-expiry lower seq remains rejected')
+  wd2.onCommand(2.0, 200, 1000)
   check(wd2.shouldHold(2.05), 'watchdog: equal-seq replay never re-anchors')
+  const freshWd = new CommandWatchdog()
+  freshWd.onCommand(2.0, 200, 1)
+  check(!freshWd.shouldHold(2.05), 'watchdog: a fresh declaration accepts its first seq')
 
-  // ActionBuffer: unstamped rejected, ESTOP latches regardless, horizon replay.
+  // Local ActionBuffer: unstamped Active rejected; admitted ESTOP latches; horizon replay.
   const ab = new ActionBuffer()
   ab.onCommand(1.0, {
     kind: 'command_frame',
     ncp_version: NCP_VERSION,
     mode: 'active',
     stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
+    authority: AUTHORITY,
     ttl_ms: 200,
     channels: { velocity_setpoint: { data: [9] } },
   })
@@ -291,6 +380,7 @@ for (const c of corpus.cases.action_buffer) {
     ncp_version: NCP_VERSION,
     mode: 'active',
     stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
+    authority: AUTHORITY,
     ttl_ms: 200,
     channels: { velocity_setpoint: { data: [-0.1] } },
     horizon: [
@@ -305,12 +395,13 @@ for (const c of corpus.cases.action_buffer) {
   check(ab.shouldHold(1.3), 'buffer: past ttl -> HOLD')
   ab.onCommand(2.0, { mode: 'estop', stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's', channels: {} }) // unstamped ESTOP still latches
   check(ab.isEstopped(), 'buffer: an unstamped ESTOP still latches')
-  ab.onCommand(2.1, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', stream: { epoch: EP, seq: 2 }, session: { generation: GEN }, session_id: 's', ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
+  ab.onCommand(2.1, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', stream: { epoch: EP, seq: 2 }, session: { generation: GEN }, session_id: 's', authority: AUTHORITY, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
   check(ab.shouldHold(2.1), 'buffer: latched ESTOP suppresses later Active')
   ab.reset()
   check(ab.shouldHold(2.1), 'buffer: reset discards every pre-ESTOP command')
-  ab.onCommand(2.2, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', stream: { epoch: EP, seq: 3 }, session: { generation: GEN }, session_id: 's', ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
-  check(!ab.shouldHold(2.2), 'buffer: reset restores actuation')
+  check(ab.isRetired(), 'buffer: reset retires the old generation context')
+  ab.onCommand(2.2, { kind: 'command_frame', ncp_version: NCP_VERSION, mode: 'active', stream: { epoch: EP, seq: 3 }, session: { generation: GEN }, session_id: 's', authority: AUTHORITY, ttl_ms: 200, channels: { velocity_setpoint: { data: [1] } } })
+  check(ab.shouldHold(2.2), 'buffer: retired context cannot restore actuation')
 
   const aliasBuffer = new ActionBuffer()
   const callerOwned = {
@@ -318,6 +409,7 @@ for (const c of corpus.cases.action_buffer) {
     ncp_version: NCP_VERSION,
     mode: 'active',
     stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
+    authority: AUTHORITY,
     ttl_ms: 200,
     channels: { velocity_setpoint: { data: [0.25] } },
   }
@@ -330,10 +422,55 @@ for (const c of corpus.cases.action_buffer) {
   )
 
   // maxHorizonLen bounds.
-  check(maxHorizonLen(200, 50) === 4, 'maxHorizonLen: exact floor')
+  check(maxHorizonLen(200, 50) === 3, 'maxHorizonLen: strict integer TTL boundary')
+  check(maxHorizonLen(250, 100) === 2, 'maxHorizonLen: non-integer TTL boundary')
+  check(maxHorizonLen(100, 100) === 0, 'maxHorizonLen: first future step at expiry is excluded')
   check(maxHorizonLen(Infinity, 50) === 0, 'maxHorizonLen: non-finite ttl -> 0')
   check(maxHorizonLen(200, 0) === 0, 'maxHorizonLen: dt<=0 -> 0')
   check(maxHorizonLen(60_000, 0.5) === 65_536, 'maxHorizonLen: resource ceiling')
+
+  // Universal raw-JSON boundary: duplicate decoded keys and lone surrogates are
+  // rejected before JSON.parse can collapse/accept them.
+  try {
+    parseBoundedJson('{"a":1,"\\u0061":2}')
+    check(false, 'bounded JSON: duplicate decoded key accepted')
+  } catch (error) {
+    check(
+      error instanceof BoundedJsonError && error.code === 'NCP-LIMIT-007',
+      `bounded JSON: duplicate key wrong error ${String(error)}`,
+    )
+  }
+  try {
+    parseBoundedJson('"\\ud800"')
+    check(false, 'bounded JSON: lone surrogate accepted')
+  } catch (error) {
+    check(
+      error instanceof BoundedJsonError && error.code === 'NCP-LIMIT-008',
+      `bounded JSON: lone surrogate wrong error ${String(error)}`,
+    )
+  }
+  // The outer byte gate must not duplicate an oversized WebSocket string into a
+  // full TextEncoder buffer before rejecting it. A throwing encoder proves the
+  // admission decision is made by the allocation-free bounded counter.
+  const originalTextEncoder = globalThis.TextEncoder
+  globalThis.TextEncoder = class RejectingTextEncoder {
+    encode() {
+      throw new Error('outer frame gate allocated a TextEncoder buffer')
+    }
+  }
+  try {
+    try {
+      parseBoundedJson(' '.repeat(JSON_LIMITS.maxFrameBytes + 1))
+      check(false, 'bounded JSON: oversized frame accepted')
+    } catch (error) {
+      check(
+        error instanceof BoundedJsonError && error.code === 'NCP-LIMIT-001',
+        `bounded JSON: oversized frame allocated or returned wrong error ${String(error)}`,
+      )
+    }
+  } finally {
+    globalThis.TextEncoder = originalTextEncoder
+  }
 
   // SafetyGovernor capability negotiation: canonical channels win regardless of
   // declaration order, and enabled limits require vec3/width-3/SI-unit specs.
@@ -361,6 +498,7 @@ for (const c of corpus.cases.action_buffer) {
       ncp_version: NCP_VERSION,
       stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
       mode: 'active',
+      authority: AUTHORITY,
       ttl_ms: 200,
       channels: { velocity_setpoint: { data: [2, 0, 0], unit: 'm/s' } },
     },
@@ -430,6 +568,7 @@ for (const c of corpus.cases.action_buffer) {
       ncp_version: NCP_VERSION,
       stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
       mode: 'active',
+      authority: AUTHORITY,
       ttl_ms: 200,
       channels: { velocity_setpoint: { data: [1, 0, 0], unit: 'm/s' } },
     },
@@ -565,55 +704,110 @@ for (const c of corpus.cases.action_buffer) {
       return String(error)
     }
   }
+  const opened = {
+    kind: 'session_opened',
+    ncp_version: NCP_VERSION,
+    session_id: 's',
+    ok: true,
+    state_version: 0,
+    backend: 'test',
+    resolved: {},
+    provenance: {
+      network_ref: 'builtin:test',
+      backend: 'test',
+      calibrated_posterior: false,
+      is_simulation_output: true,
+      advisory_only: true,
+    },
+    error: null,
+    contract_hash: NCP_CONTRACT_HASH,
+    session: { generation: GEN },
+    identity: {
+      principal_id: 'body-principal',
+      entity_id: 'simulator',
+      role: 'body',
+      plane: 'control',
+    },
+    security_profile: NEGOTIATION.security_profile,
+    security_state_digest: NEGOTIATION.security_state_digest,
+    gateway_permitted: false,
+    gateway: null,
+  }
+  const invoke = async (reply, call) => {
+    const client = new NeuroSimClient(
+      async (request) =>
+        request.kind === 'open_session'
+          ? opened
+          : typeof reply === 'function'
+            ? reply(request)
+            : reply,
+      NEGOTIATION,
+    )
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    return call(client)
+  }
+  const receipt = (requestDigestValue) => ({
+    operation_id: OP,
+    request_digest: requestDigestValue,
+    result_digest: 'c'.repeat(64),
+    outcome: 'succeeded',
+    state_version: 1,
+    committed_at_utc_ms: 61_500,
+    responder_principal_id: 'body-principal',
+    responder_entity_id: 'simulator',
+  })
   check(
     await rejectsAsync(
-      new NeuroSimClient(async () => ({
+      invoke({
         kind: 'command_frame',
         ncp_version: NCP_VERSION,
         stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
-        session_id: 's',
-      })).close('s'),
+      }, (client) => client.close('s', MUTATION)),
     ),
     'client: wrong reply kind rejected',
   )
   check(
     await rejectsAsync(
-      new NeuroSimClient(async () => ({
+      invoke({
         kind: 'observation_frame',
         ncp_version: NCP_VERSION,
         session_id: 'other',
-        stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
         records: {},
         is_simulation_output: true,
         calibrated_posterior: false,
-      })).step('s'),
+      }, (client) => client.step('s', MUTATION)),
     ),
     'client: cross-session reply rejected',
   )
   check(
     await rejectsAsync(
-      new NeuroSimClient(async () => ({
+      invoke({
         kind: 'observation_frame',
         ncp_version: NCP_VERSION,
         session_id: 's',
-        stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
         records: {},
         is_simulation_output: true,
         calibrated_posterior: true,
-      })).step('s'),
+      }, (client) => client.step('s', MUTATION)),
     ),
     'client: dishonest scientific boundary rejected',
   )
   check(
     (
       await rejectionMessage(
-        new NeuroSimClient(async () => ({
+        invoke({
           kind: 'error',
           ncp_version: NCP_VERSION,
+          code: 'NCP-WIRE-001',
           error: 'misrouted',
           session_id: 's',
+          session: { generation: GEN },
           request_kind: 'close_session',
-        })).step('s'),
+        }, (client) => client.step('s', MUTATION)),
       )
     ).includes('request_kind mismatch'),
     'client: a typed error is bound to the originating request kind',
@@ -621,17 +815,68 @@ for (const c of corpus.cases.action_buffer) {
   check(
     (
       await rejectionMessage(
-        new NeuroSimClient(async () => ({
+        invoke({
           kind: 'error',
           ncp_version: NCP_VERSION,
+          code: 'NCP-WIRE-001',
           error: 'cross-session',
           session_id: 'other',
+          session: { generation: GEN },
           request_kind: 'step_request',
-        })).step('s'),
+        }, (client) => client.step('s', MUTATION)),
       )
     ).includes('session mismatch'),
     'client: a typed error is bound to the originating session',
   )
+  check(
+    !await rejectsAsync(
+      invoke((request) => ({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: receipt(request.operation.request_digest),
+      }), (client) => client.step('s', MUTATION)),
+    ),
+    'client: a correlated responder receipt completes a mutation',
+  )
+  check(
+    await rejectsAsync(
+      invoke((request) => ({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: { ...receipt(request.operation.request_digest), request_digest: 'd'.repeat(64) },
+      }), (client) => client.step('s', MUTATION)),
+    ),
+    'client: a responder receipt with the wrong request digest is rejected',
+  )
+}
+
+const requiredTypeScriptIds = new Set(
+  manifest.vectors
+    .filter(
+      (vector) =>
+        vector.required === true &&
+        vector.stability === 'stable-1.0' &&
+        vector.applicability?.implementations?.includes('typescript'),
+    )
+    .map((vector) => vector.id),
+)
+for (const id of requiredTypeScriptIds) {
+  check(executedIds.has(id), `manifest: required TypeScript vector ${id} was skipped`)
+}
+for (const id of executedIds) {
+  check(requiredTypeScriptIds.has(id), `manifest: unrecognized extra TypeScript vector ${id}`)
 }
 
 if (failures.length) {

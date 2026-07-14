@@ -10,7 +10,7 @@
 //! {realm}/rpc/{request_kind}                   control-plane RPC   (exact query key; server declares {realm}/rpc/*)
 //! {realm}/session/{id}/sensor[/{name}]         perception plane    (pub/sub, best-effort DROP)
 //! {realm}/session/{id}/command[/{name}]         action plane        (pub/sub, best-effort DROP + express; ttl_ms is plant-side, safety-gated)
-//! {realm}/session/{id}/observation              neural/diagnostic   (commander publishes; observer subscribes read-only)
+//! {realm}/session/{id}/observation              neural/diagnostic   (body publishes; observer subscribes read-only)
 //! ```
 
 /// Default realm (key-expression prefix) — a **neutral, project-agnostic** fallback.

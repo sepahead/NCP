@@ -27,13 +27,16 @@ static std::string take(char *p) {
 }
 
 int main() {
+  std::cout << "PACKAGE_VERSION = " << take(ncp_package_version()) << "\n";
   std::cout << "NCP_VERSION   = " << take(ncp_version()) << "\n";
+  std::cout << "CONTRACT_SHA  = " << take(ncp_normative_contract_digest()) << "\n";
+  std::cout << "BUILD_IDENTITY = " << take(ncp_build_identity()) << "\n";
   std::cout << "DEFAULT_REALM = " << take(ncp_default_realm()) << "\n";
   std::cout << "command key   = "
             << take(ncp_key_command("ncp", "uav3")) << "\n";
-  std::cout << "check 0.8     = " << ncp_check_version("0.8", false) << "\n";
-  std::cout << "check 0.7     = " << ncp_check_version("0.7", false) << "\n";
   std::cout << "check 1.0     = " << ncp_check_version("1.0", false) << "\n";
+  std::cout << "check 1.2     = " << ncp_check_version("1.2", false) << "\n";
+  std::cout << "check 0.8     = " << ncp_check_version("0.8", false) << "\n";
 
   const char *codec =
       "{\"encoder\":[],\"decoder\":[{\"population\":\"vel_x\",\"readout\":\"rate\","
@@ -44,14 +47,19 @@ int main() {
                    codec, "{\"vel_x\":200.0}", 0.0,
                    /*epoch=*/"00000000-0000-4000-8000-000000000001", 7,
                    /*session_generation=*/"00000000-0000-4000-8000-0000000000a2",
-                   /*session_id=*/"uav1", /*frame_id=*/nullptr, /*mode=*/nullptr))
+                   /*session_id=*/"uav1", /*frame_id=*/nullptr, /*mode=*/nullptr,
+                   /*authority_json=*/nullptr))
             << "\n";
 
   // Every message must carry its own kind and a compatible ncp_version.
   std::string ok = take(ncp_validate(
       "open_session",
-      "{\"kind\":\"open_session\",\"ncp_version\":\"0.8\",\"session_id\":\"s1\","
-      "\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"}}"));
+      "{\"kind\":\"open_session\",\"ncp_version\":\"1.0\",\"session_id\":\"s1\","
+      "\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"},"
+      "\"identity\":{\"principal_id\":\"commander-principal-1\",\"entity_id\":\"controller-1\",\"role\":\"commander\",\"plane\":\"control\"},"
+      "\"security_profile\":\"dev-loopback-insecure\","
+      "\"security_state_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\","
+      "\"gateway_permitted\":false}"));
   bool valid = ok.find("\"kind\":\"open_session\"") != std::string::npos;
   std::cout << "validate ok   = " << (valid ? "true" : "false") << "\n";
   // ...and a version-less message is rejected (fail-closed, never coerced).
@@ -66,24 +74,28 @@ int main() {
   // one-shot ncp_govern cannot latch by construction).
   NcpGovernor *gov = ncp_governor_new(
       "{\"geofence_radius_m\":5.0,\"command_timeout_ms\":500.0}");
-  // Wire 0.8: every data-plane frame carries its own stream position (epoch + seq)
-  // and live session (generation + session_id). epoch/generation are canonical v4s.
+  // Wire 1.0: every data-plane frame carries its own stream position and live
+  // session; Active additionally carries a matching bounded authority lease.
   const char *active_cmd =
-      "{\"kind\":\"command_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "{\"kind\":\"command_frame\",\"ncp_version\":\"1.0\",\"session_id\":\"uav1\","
       "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":1},"
       "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},"
       "\"t\":0.0,\"mode\":\"active\",\"ttl_ms\":200.0,"
-      "\"channels\":{\"velocity_setpoint\":{\"data\":[1.0,0.0,0.0],\"unit\":\"m/s\"}}}";
+      "\"channels\":{\"velocity_setpoint\":{\"data\":[1.0,0.0,0.0],\"unit\":\"m/s\"}},"
+      "\"authority\":{\"session_epoch\":\"00000000-0000-4000-8000-0000000000a2\",\"term\":1,"
+      "\"lease_id\":\"20000000-0000-4000-8000-000000000001\","
+      "\"issuer_principal_id\":\"commander-principal-1\",\"holder_principal_id\":\"commander-principal-1\","
+      "\"holder_entity_id\":\"controller-1\",\"issued_at_utc_ms\":1000,\"expires_at_utc_ms\":2000}}";
   std::string breached = take(ncp_governor_govern(
       gov, active_cmd, 1.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"1.0\",\"session_id\":\"uav1\","
       "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":1},"
       "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
       "\"channels\":{\"pose_position\":{\"data\":[10.0,0.0,0.0],\"unit\":\"m\"}}}",
       1.0));
   std::string still = take(ncp_governor_govern(
       gov, active_cmd, 2.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"1.0\",\"session_id\":\"uav1\","
       "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":2},"
       "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
       "\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0],\"unit\":\"m\"}}}",
@@ -94,7 +106,7 @@ int main() {
   ncp_governor_reset(gov);
   std::string resumed = take(ncp_governor_govern(
       gov, active_cmd, 3.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"0.8\",\"session_id\":\"uav1\","
+      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"1.0\",\"session_id\":\"uav1\","
       "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":3},"
       "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
       "\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0],\"unit\":\"m\"}}}",
@@ -118,9 +130,9 @@ int main() {
             << "\n";
 
   // Exit nonzero if anything basic is wrong, so the smoke test can assert.
-  bool pass = take(ncp_version()) == "0.8" && ncp_check_version("0.8", false) == 1 &&
-              ncp_check_version("0.7", false) == 0 &&
-              ncp_check_version("1.0", false) == 0 && valid &&
+  bool pass = take(ncp_version()) == "1.0" && ncp_check_version("1.0", false) == 1 &&
+              ncp_check_version("1.2", false) == 1 &&
+              ncp_check_version("0.8", false) == 0 && valid &&
               versionless_rejected && latched && reset_ok && buffer_ingested &&
               buffer_active && buffer_expired;
   std::cout << (pass ? "C++ NCP demo: OK" : "C++ NCP demo: FAILED") << "\n";

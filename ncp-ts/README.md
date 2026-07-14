@@ -1,93 +1,109 @@
-# `@sepahead/ncp` — NCP TypeScript types + client
+# `@sepahead/ncp`
 
-The **canonical TypeScript peer** of the Neuro-Cybernetic Protocol. It bundles:
+This is the TypeScript package for the unreleased, release-blocked NCP
+`1.0.0-rc.1` candidate. Generated wire types come from the Rust reference, while
+bounded JSON parsing, semantic validation, reply correlation, and plant-side safety
+decisions are implemented independently in TypeScript.
 
-- **Generated message types** (`src/generated/*.ts`) — the ts-rs output of the Rust
-  `ncp-core` reference types, which conform to the normative `proto/ncp.proto` wire
-  contract (proto-native), so a TS peer is wire-identical to the Rust and Python
-  peers. Do **not** edit these by hand.
-- **A transport-agnostic client** (`src/client.ts`) — `NeuroSimClient`
-  (`open`/`step`/`run`/`close`) built _on top of_ the generated types, reusing their
-  field types for request inputs and reply shapes. Request envelopes are object
-  literals, so keep them in sync with the generated request types.
-- **A WebSocket transport** (`src/ws.ts`) — `WebSocketNeuroSim`, FIFO-correlated.
-  Any other bus (e.g. native Zenoh) can implement the same `Send` interface.
+The package exports wire `NCP_VERSION = "1.0"` and compact proto hash
+`NCP_CONTRACT_HASH = "163acc57d8a62b66"`, plus `NCP_PACKAGE_VERSION`,
+`NCP_NORMATIVE_CONTRACT_DIGEST`, and `NCP_BUILD_IDENTITY`. Checked-in RC source and
+ordinary builds honestly use `unreleased-worktree`; it is not a source commit or
+release identity.
 
-## Use
+`NeuroSimClient` requires precommitted negotiation state. The stable production
+profile additionally requires a transport adapter to bind that state to the
+authenticated peer; the loopback development profile below is intentionally
+unauthenticated:
 
 ```ts
 import { NeuroSimClient, WebSocketNeuroSim } from '@sepahead/ncp'
-import type { ObservationFrameReply, SensorFrame } from '@sepahead/ncp'
+import type { ClientNegotiation, MutationInput } from '@sepahead/ncp'
 
-const transport = new WebSocketNeuroSim('ws://127.0.0.1:28471/api/neurocontrol/ws')
-const ncp = new NeuroSimClient(transport.send)
+// Supply the lowercase SHA-256 emitted for the exact validated deployment profile;
+// never substitute a zero or invented placeholder digest.
+declare const validatedSecurityStateDigest: string
 
-await ncp.open(
-  'feat-1',
-  { kind: 'builtin', ref: 'iaf_psc_alpha', population_sizes: { feat: 1 } },
-  [{ port: 'spk', target: 'feat', observable: 'spikes' }],
-  [{ port: 'drive', target: 'feat', kind: 'current_pA' }],
-)
-const obs: ObservationFrameReply = await ncp.step('feat-1', { drive: { data: [500.0], unit: 'pA' } }, 50.0)
-await ncp.close('feat-1')
+// WebSocket is experimental, so the deployment supplies its explicit endpoint.
+const ws = new WebSocketNeuroSim('wss://control.example/ncp')
+const negotiation: ClientNegotiation = {
+  identity: {
+    principal_id: 'commander-1',
+    entity_id: 'controller-1',
+    role: 'commander',
+    plane: 'control',
+  },
+  security_profile: 'dev-loopback-insecure',
+  security_state_digest: validatedSecurityStateDigest,
+  gateway_permitted: false,
+}
+const client = new NeuroSimClient(ws.send, negotiation)
 ```
 
-## `bigint` vs `number`
+The insecure profile shown above is valid only on loopback/UDS and is not a
+production example. `open()` verifies the returned session generation, responder
+identity/security state, compact-hash advisory, and scientific boundary.
+`step()`, `run()`, and `close()` require a `MutationInput` carrying a canonical
+operation context and matching authority lease; their replies require correlated
+authenticated receipts. The client computes and seals `request-digest-v1` over the
+complete request. A caller-supplied digest is accepted only when it already matches;
+placeholders and payload/digest divergence fail before transport.
 
-ts-rs emits Rust `i64` fields as `bigint` for precision. `JSON.stringify` cannot
-serialize a `bigint` and `JSON.parse` yields `number`, so the JSON wire uses
-`number`. The exported `Wire<T>` maps `bigint → number` recursively; the client's
-request inputs and reply types (`ObservationFrameReply`, …) are already `Wire`-d, so
-you work in plain `number` while the generated types stay wire-identical to the contract.
+`WebSocketNeuroSim` is an experimental FIFO-correlated binding. It uses the bounded
+parser, rejects binary and malformed replies, and settles all pending requests on
+close/error. Its UTF-8 byte gate counts without allocating a second full reply
+buffer; the browser WebSocket API itself delivers a complete message, so the server
+and deployment proxy must also enforce the normative frame ceiling before browser
+allocation. WebSocket is not a stable 1.0 transport; the stable binding is Zenoh. A
+deployment endpoint cannot answer this client natively until its full negotiation,
+lifecycle, authority, digest, and receipt contract passes retained integration
+evidence.
 
-## Regenerating after a Rust type change
+The package also exports `parseBoundedJson`, `assertNcpMessage`,
+`NCP_ERROR_CODES`/`NcpErrorCode`, `SafetyGovernor`, `CommandWatchdog`,
+`ActionBuffer`, and shared safety constants. `assertNcpMessage` rejects an
+`ErrorFrame` whose required `code` is absent or outside the registry. Active commands
+require a valid authority lease. `CommandWatchdog` and `ActionBuffer` never accept a
+lower sequence after expiry or switch epochs in place. `ActionBuffer.reset()` is a
+local primitive for an already-authorized generation cut: it clears the latch and
+permanently retires that buffer, so a fresh session generation needs a fresh object;
+the method does not authenticate an operator or restore remote authority.
+`assertNcpMessage` also requires positive status-stream positions and coherent
+`LinkStatus` observation high-water fields. These controls are not physical safety
+certification.
+
+Regenerate and verify with:
 
 ```bash
-npm run regen   # cargo test -p ncp-core --features ts → sync → tsc build
+bun install --frozen-lockfile
+bun run regen
+bun run check:behavior
+bun run check:ws
+bun run check:package
 ```
 
-`ncp-ts/dist` is committed so the package is consumable directly as a git
-dependency (`"@sepahead/ncp": "github:sepahead/NCP#<tag>"`) without a build step on
-the consumer side. Rebuild and commit `dist` whenever the types or client change.
+`dist/` is committed and must reproduce exactly from `src/` plus generated types.
+This candidate has independent decision code but has not completed the required
+independent installed live-peer security/fault certification.
 
-## Plant-side safety port (wire 0.6)
+Release packaging is a separate, fail-closed path. Ordinary `regen` has no identity
+injection input: it consumes the checked-in `unreleased-worktree` sentinel and
+ignores `NCP_BUILD_IDENTITY` for TypeScript. Package/version checks fail if source,
+runtime, or declarations stop carrying that sentinel. From a checkout whose exact
+`HEAD` is the intended source commit, run:
 
-Since wire 0.6 the TS peer ships the plant-side safety surface (`src/safety.ts`), so a
-TypeScript body can enforce the action-plane contract locally instead of delegating every
-decision to a Rust peer:
+```bash
+revision="$(git rev-parse --verify 'HEAD^{commit}')"
+node ncp-ts/scripts/build-release.mjs \
+  --source-revision "$revision" \
+  --output /new/path/ncp-npm-artifacts
+```
 
-- **`SafetyGovernor`** — the latching action-plane governor (speed clamp,
-  direction-aware TTL/horizon geofence projection, breach → latched ESTOP,
-  stale-sensor HOLD); an **inbound ESTOP latches** until supervisor `reset()`.
-- **`CommandWatchdog`** — the `ttl_ms` deadline backstop; it refreshes only on a
-  strictly-advancing `seq` and HOLDs at the exact deadline. A clock rewind keeps
-  authority revoked through catch-up until a fresh command arrives.
-- **`ActionBuffer`** + **`maxHorizonLen`** — packetized-predictive-control horizon
-  replay, capped at `N ≤ ttl_ms / horizon_dt_ms` and `N ≤ 65,536`, with enforced TTL
-  itself capped at 60 s, so a replay is temporally and spatially bounded. Every
-  non-Active mode clears buffered actuation before replay/envelope rejection;
-  ESTOP additionally latches.
-- **`assertWireFrame`** — the one-call ingress gate (kind + `ncp_version` + `seq` bound)
-  a TS subscriber runs before trusting a frame.
-
-The client also **hard-gates every reply's `ncp_version`**: wire 0.6 makes `ncp_version`
-mandatory on every message, so a wire-incompatible reply is rejected and a mismatched-minor
-peer fails closed rather than being silently mis-decoded. The peer replays the **full
-`govern` corpus** plus seq/ttl/latch self-checks in `scripts/check-behavior.mjs`.
-
-## Coverage
-
-This package exports **wire types + client orchestration**: the generated message
-types (`src/generated/*.ts`), the `NeuroSimClient` (`open`/`step`/`run`/`close`),
-the WebSocket transport, the cross-language decision functions
-(`checkVersion`, `contractStatus`, `assertScientificBoundary`), and — since wire 0.6 —
-the plant-side safety port (see above). This is the surface a TS peer needs to be
-wire-identical to the Rust/Python/C++ peers.
-
-The following `ncp-core` modules remain **not** exported in TypeScript (they are
-Rust-core-only): the rate codec (`CodecSpec`, `encode`/`decode`), the bulk column codec
-(`ncp-core::bulk`), the in-process bus, the control-loop runner (`NeuroControlLoop`), and
-`LinkMonitor`. The action-plane safety port (`SafetyGovernor`, `CommandWatchdog`,
-`ActionBuffer`, `maxHorizonLen`, `assertWireFrame`) **is** now exported (see above); a TS
-consumer builds requests via the client, enforces the action plane locally with the safety
-port, and delegates codec/bus decisions to the Rust peer on the other end of the wire.
+The revision must be exactly 40 lowercase hexadecimal characters, must equal
+`HEAD`, and the running builder must match that commit. The builder packages a
+`git archive` rather than mutable worktree bytes, injects the same revision through
+the Rust compile-time identity probe and staged TypeScript build, installs and
+checks both the repository-root and nested `ncp-ts` tarballs, then atomically emits
+them with `npm-release-build-receipt.json` and their SHA-256 digests. The output path
+must not already exist. This command does not tag, sign, publish, or certify a
+release.

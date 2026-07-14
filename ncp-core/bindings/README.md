@@ -1,28 +1,21 @@
-# NCP TypeScript types (generated)
+# Generated TypeScript message types
 
-These `*.ts` files are the **NCP message types for TypeScript**, currently
-**generated from the Rust `ncp-core` types** via [ts-rs](https://github.com/Aleph-Alpha/ts-rs).
-The normative wire contract is `proto/ncp.proto` (proto-native); `ncp-core` is its
-reference implementation, so these types are wire-identical to the Rust, Python and
-proto peers. (Migration target: generate directly from `proto/ncp.proto` via buf —
-see `buf.gen.yaml`.)
-
-Do **not** edit by hand. Regenerate after changing the Rust types:
+These files are generated from the Rust reference types for the unreleased NCP
+`1.0.0-rc.1` candidate. They are checked against the normative proto, JSON Schemas,
+and corpus; they are not an additional source of truth and must not be edited by
+hand.
 
 ```bash
-cargo test -p ncp-core --features ts     # rewrites this directory
+cargo test -p ncp-core --features ts
+node ncp-ts/scripts/sync-bindings.mjs
 ```
 
-Use them from a TS project (transport stays TS/Tauri/WebSocket — Zenoh is native,
-so these are types only):
+The sync step normalizes generator whitespace and copies the exact output into
+`ncp-ts/src/generated/`; the TypeScript build then reproduces `ncp-ts/dist/`.
+Rust `i64` values are represented as `bigint` in generated type declarations, while
+the runtime JSON client uses the recursive `Wire<T>` projection and rejects values
+outside the IEEE-754 safe-integer range.
 
-```ts
-import type { SensorFrame, CommandFrame, ObservationFrame } from "./bindings";
-```
-
-Notes:
-- enum values match the wire exactly (`Observable = "spikes" | "V_m" | "rate" | "weight"`);
-- `NetworkRef.ref_` is emitted as `ref` (the wire name);
-- Rust `i64` fields (`seq`, ids, `population_sizes`) are emitted as `bigint` by
-  ts-rs for precision-safety; NCP uses small integers, so a consumer may treat
-  them as `number` when parsing JSON.
+Import the public surface from `@sepahead/ncp`, not directly from this directory.
+The package also supplies independent semantic validation and bounded parsing; these
+generated declarations alone do not authenticate or validate a message.

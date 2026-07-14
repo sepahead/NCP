@@ -13,12 +13,67 @@
 
 use ncp_core::keys::Keys;
 use ncp_core::{
-    CloseSession, NetworkRef, NetworkRefKind, OpenSession, RunRequest, StepRequest, CONTRACT_HASH,
-    NCP_VERSION,
+    AuthorityLease, CloseSession, IdentityClaim, NetworkRef, NetworkRefKind, OpenSession,
+    OperationContext, Plane as NcpPlane, PrincipalRole, RunRequest, SessionRef, StepRequest,
+    CONTRACT_HASH, NCP_VERSION,
 };
 use ncp_zenoh::{ZenohBus, ZenohConfig, ZenohNcpClient};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::time::Duration;
+
+const GENERATION: &str = "293279f3-d459-4bfd-aeeb-604799e96925";
+const SECURITY_DIGEST: &str = "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab";
+
+fn session() -> SessionRef {
+    SessionRef {
+        generation: GENERATION.into(),
+    }
+}
+
+fn commander_identity() -> IdentityClaim {
+    IdentityClaim {
+        principal_id: "controller-principal-1".into(),
+        entity_id: "controller-1".into(),
+        role: PrincipalRole::Commander,
+        plane: NcpPlane::Control,
+    }
+}
+
+fn authority() -> AuthorityLease {
+    AuthorityLease {
+        session_epoch: GENERATION.into(),
+        term: 1,
+        lease_id: "20000000-0000-4000-8000-000000000001".into(),
+        issuer_principal_id: "controller-principal-1".into(),
+        holder_principal_id: "controller-principal-1".into(),
+        holder_entity_id: "controller-1".into(),
+        issued_at_utc_ms: 1_700_000_000_000,
+        expires_at_utc_ms: 1_700_000_060_000,
+    }
+}
+
+fn operation(id: &str, expected_state_version: u64) -> OperationContext {
+    OperationContext {
+        operation_id: id.into(),
+        request_digest: String::new(),
+        session_epoch: GENERATION.into(),
+        expected_state_version,
+        deadline_utc_ms: 1_700_000_030_000,
+        retry: false,
+    }
+}
+
+fn seal<T>(request: T) -> T
+where
+    T: Serialize + DeserializeOwned,
+{
+    let mut value = serde_json::to_value(request).expect("serialize mutation request");
+    let digest = ncp_core::request_digest(&value).expect("compute request-digest-v1");
+    value["operation"]["request_digest"] = Value::String(digest);
+    serde_json::from_value(value).expect("deserialize sealed mutation request")
+}
 
 fn free_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0")
@@ -60,12 +115,32 @@ fn mock_handler(req: Vec<u8>) -> Vec<u8> {
     let v: Value = serde_json::from_slice(&req).unwrap_or_else(|_| json!({}));
     let sid = v.get("session_id").and_then(Value::as_str).unwrap_or("s");
     let kind = v.get("kind").and_then(Value::as_str).unwrap_or("");
+    let receipt = || {
+        let operation = &v["operation"];
+        json!({
+            "operation_id": operation["operation_id"],
+            "request_digest": operation["request_digest"],
+            "result_digest": "82bfecaa6d47a3ec4cc56b948f511e641d186d19545b9a0c697b825ecaff5241",
+            "outcome": "succeeded",
+            "state_version": operation["expected_state_version"].as_u64().unwrap_or(0) + 1,
+            "committed_at_utc_ms": 1_700_000_001_000_i64,
+            "responder_principal_id": "body-principal-1",
+            "responder_entity_id": "simulator-1"
+        })
+    };
     let reply = match kind {
         "open_session" => json!({
             "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": sid, "ok": true,
+            "state_version": 1,
             "backend": "mock", "contract_hash": CONTRACT_HASH,
             "provenance": {"network_ref": "x", "backend": "mock", "calibrated_posterior": false,
                            "is_simulation_output": true, "advisory_only": true},
+            "session": {"generation": GENERATION},
+            "identity": {"principal_id": "body-principal-1", "entity_id": "simulator-1",
+                         "role": "body", "plane": "control"},
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": SECURITY_DIGEST,
+            "gateway_permitted": false,
         }),
         "step_request" | "run_request" => json!({
             "kind": "observation_frame", "ncp_version": NCP_VERSION, "session_id": sid,
@@ -73,18 +148,21 @@ fn mock_handler(req: Vec<u8>) -> Vec<u8> {
             // (seq >= 1) and the live session; the pull/RPC-reply form is
             // distinguished by `source` ABSENCE, not by a seq-0 sentinel.
             "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
-            "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
+            "session": {"generation": GENERATION},
             "calibrated_posterior": false, "is_simulation_output": true,
             "records": {"vm": {"port": "vm", "target": "pop", "observable": "V_m",
                                "times": [1.0], "values": [-65.0], "unit": "mV"}},
+            "receipt": receipt(),
         }),
         "close_session" => json!({
             "kind": "session_closed", "ncp_version": NCP_VERSION, "session_id": sid, "ok": true,
-            "session": {"generation": "293279f3-d459-4bfd-aeeb-604799e96925"},
+            "session": {"generation": GENERATION},
+            "receipt": receipt(),
         }),
         other => {
-            json!({"kind": "error", "ncp_version": NCP_VERSION, "session_id": sid,
-                   "request_kind": other, "error": format!("unknown kind {other}")})
+            json!({"kind": "error", "ncp_version": NCP_VERSION,
+                   "code": "NCP-WIRE-001", "request_kind": other,
+                   "error": format!("unknown kind {other}")})
         }
     };
     serde_json::to_vec(&reply).unwrap()
@@ -112,6 +190,10 @@ async fn ncp_rpc_over_real_zenoh_tcp_link() {
             ref_: "iaf_psc_alpha".into(),
             ..Default::default()
         },
+        identity: commander_identity(),
+        security_profile: "dev-loopback-insecure".into(),
+        security_state_digest: SECURITY_DIGEST.into(),
+        gateway_permitted: false,
         ..Default::default()
     };
 
@@ -142,11 +224,14 @@ async fn ncp_rpc_over_real_zenoh_tcp_link() {
 
     // step — observation_frame with the boundary discriminators + the recorded port.
     let obs = client
-        .step(&StepRequest {
+        .step(&seal(StepRequest {
             session_id: "uav1".into(),
             advance_ms: Some(10.0),
+            session: session(),
+            operation: operation("10000000-0000-4000-8000-000000000001", 1),
+            authority: authority(),
             ..Default::default()
-        })
+        }))
         .await
         .expect("step over zenoh");
     assert!(
@@ -160,21 +245,27 @@ async fn ncp_rpc_over_real_zenoh_tcp_link() {
 
     // run — batch advance.
     let run = client
-        .run(&RunRequest {
+        .run(&seal(RunRequest {
             session_id: "uav1".into(),
             duration_ms: 50.0,
+            session: session(),
+            operation: operation("10000000-0000-4000-8000-000000000002", 2),
+            authority: authority(),
             ..Default::default()
-        })
+        }))
         .await
         .expect("run over zenoh");
     assert!(run.is_simulation_output, "run observation_frame boundary");
 
     // close.
     let closed = client
-        .close(&CloseSession {
+        .close(&seal(CloseSession {
             session_id: "uav1".into(),
+            session: session(),
+            operation: operation("10000000-0000-4000-8000-000000000003", 3),
+            authority: authority(),
             ..Default::default()
-        })
+        }))
         .await
         .expect("close over zenoh");
     assert!(closed.ok, "session must close");
@@ -190,6 +281,13 @@ fn stale_version_handler(req: Vec<u8>) -> Vec<u8> {
         "backend": "mock", "contract_hash": CONTRACT_HASH,
         "provenance": {"network_ref": "x", "backend": "mock", "calibrated_posterior": false,
                        "is_simulation_output": true, "advisory_only": true},
+        "state_version": 1,
+        "session": {"generation": GENERATION},
+        "identity": {"principal_id": "body-principal-1", "entity_id": "simulator-1",
+                     "role": "body", "plane": "control"},
+        "security_profile": "dev-loopback-insecure",
+        "security_state_digest": SECURITY_DIGEST,
+        "gateway_permitted": false,
     });
     serde_json::to_vec(&reply).unwrap()
 }
@@ -220,6 +318,10 @@ async fn mixed_version_open_is_rejected_over_the_wire() {
             ref_: "iaf_psc_alpha".into(),
             ..Default::default()
         },
+        identity: commander_identity(),
+        security_profile: "dev-loopback-insecure".into(),
+        security_state_digest: SECURITY_DIGEST.into(),
+        gateway_permitted: false,
         ..Default::default()
     };
 

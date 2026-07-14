@@ -1,0 +1,48 @@
+{
+  "schema": "ncp.resource-limits.v1",
+  "wire_version": "1.0",
+  "json": {
+    "max_frame_bytes": 1048576,
+    "max_nesting_depth": 32,
+    "max_objects": 4096,
+    "max_arrays": 4096,
+    "max_total_members": 16384,
+    "max_total_array_items": 262144,
+    "max_object_members": 4096,
+    "max_array_items": 65536,
+    "max_key_bytes": 128,
+    "max_string_bytes": 65536,
+    "max_total_string_bytes": 1048576,
+    "max_channels": 4096,
+    "max_metadata_entries": 256,
+    "safe_integer_min": -9007199254740991,
+    "safe_integer_max": 9007199254740991,
+    "max_finite_number_magnitude": 1e300,
+    "duplicate_keys": "reject",
+    "invalid_unicode": "reject",
+    "non_finite_numbers": "reject"
+  },
+  "bulk": {
+    "status": "offline-experimental",
+    "max_encoded_bytes": 67108864,
+    "max_decompressed_bytes": 67108864,
+    "max_columns": 4096,
+    "bare_transport_frame": "reject"
+  },
+  "request_digest": {
+    "max_projection_bytes": 2097152,
+    "max_nesting_depth": 32
+  },
+  "queues": {
+    "control": {"capacity": 128, "overflow": "reject"},
+    "perception": {"capacity": 1, "overflow": "replace-latest"},
+    "action": {
+      "capacity": 1,
+      "overflow": "prefer-higher-fail-safe-severity-estop-non-active-active-else-replace-latest",
+      "publisher_stream": "one-transport-owned-epoch-and-sequence-allocator-across-all-modes",
+      "attempted_position": "consumed-even-when-delivery-ambiguous",
+      "ambiguous_fail_safe": "reject-active-until-new-position-fail-safe-publishes"
+    },
+    "observation": {"capacity": 64, "overflow": "drop-oldest-and-count"}
+  }
+}

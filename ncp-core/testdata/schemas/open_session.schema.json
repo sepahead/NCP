@@ -46,14 +46,57 @@
     },
     "EntityRole": {
       "description": "Hierarchical entity role for addressing sensors/actuators.",
-      "minLength": 1,
-      "type": "string",
-      "x-ncp-known-values": [
-        "system",
-        "actor",
-        "sensor",
-        "actuator"
+      "oneOf": [
+        {
+          "enum": [
+            "system",
+            "actor",
+            "sensor",
+            "actuator"
+          ],
+          "type": "string"
+        }
       ]
+    },
+    "GatewayAttribution": {
+      "description": "Visible attribution for a deliberately translated legacy payload. Native\npeers omit it; its presence never upgrades the legacy source's security or\nscientific/safety evidence.",
+      "properties": {
+        "gateway_id": {
+          "type": "string"
+        },
+        "source_wire": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "gateway_id",
+        "source_wire"
+      ],
+      "type": "object"
+    },
+    "IdentityClaim": {
+      "description": "Payload claim that an authenticated transport adapter binds to its verified\npeer identity. The claim never authenticates itself.",
+      "properties": {
+        "entity_id": {
+          "type": "string"
+        },
+        "plane": {
+          "$ref": "#/$defs/Plane"
+        },
+        "principal_id": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/PrincipalRole"
+        }
+      },
+      "required": [
+        "entity_id",
+        "plane",
+        "principal_id",
+        "role"
+      ],
+      "type": "object"
     },
     "NetworkRef": {
       "description": "What to simulate.",
@@ -100,26 +143,58 @@
     },
     "NetworkRefKind": {
       "description": "What kind of network reference `NetworkRef.ref` is.",
-      "minLength": 1,
-      "type": "string",
-      "x-ncp-known-values": [
-        "handle",
-        "builtin",
-        "model_id",
-        "spec"
+      "oneOf": [
+        {
+          "enum": [
+            "handle",
+            "builtin",
+            "model_id",
+            "spec"
+          ],
+          "type": "string"
+        }
       ]
     },
     "Observable": {
       "description": "What to record off a population/neuron/synapse.",
-      "minLength": 1,
-      "type": "string",
-      "x-ncp-known-values": [
-        "spikes",
-        "V_m",
-        "rate",
-        "weight",
-        "binary_state"
+      "oneOf": [
+        {
+          "enum": [
+            "spikes",
+            "V_m",
+            "rate",
+            "weight"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "binary_state",
+          "description": "Binary / multi-state neurons: discrete state via spin_detector, not V_m. (#10)",
+          "type": "string"
+        }
       ]
+    },
+    "Plane": {
+      "description": "Transport plane named by an authenticated principal claim. Security enums are\nclosed: an unknown plane never inherits authority from a known one.",
+      "enum": [
+        "unknown",
+        "control",
+        "perception",
+        "action",
+        "observation"
+      ],
+      "type": "string"
+    },
+    "PrincipalRole": {
+      "description": "Principal role enrolled by a deployment authority manifest. This is distinct\nfrom the older controller/plant handshake role because observers and operators\nhave security authority without pretending to be a controller or body.",
+      "enum": [
+        "unknown",
+        "commander",
+        "body",
+        "observer",
+        "operator"
+      ],
+      "type": "string"
     },
     "RecordSpec": {
       "properties": {
@@ -216,23 +291,33 @@
     },
     "SimMode": {
       "description": "Stream vs batch simulation.",
-      "minLength": 1,
-      "type": "string",
-      "x-ncp-known-values": [
-        "stream",
-        "batch"
+      "oneOf": [
+        {
+          "enum": [
+            "stream",
+            "batch"
+          ],
+          "type": "string"
+        }
       ]
     },
     "StimulusKind": {
       "description": "How a stimulus drives a target.",
-      "minLength": 1,
-      "type": "string",
-      "x-ncp-known-values": [
-        "current_pA",
-        "rate_hz",
-        "spike_times",
-        "weight_set",
-        "rate_inject"
+      "oneOf": [
+        {
+          "enum": [
+            "current_pA",
+            "rate_hz",
+            "spike_times",
+            "weight_set"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "rate_inject",
+          "description": "Continuous-rate injection for rate-based neurons (rate connections /\nstep_rate_generator); rate models cannot receive spikes. (#10)",
+          "type": "string"
+        }
       ]
     },
     "StimulusSpec": {
@@ -298,19 +383,39 @@
       "type": "array"
     },
     "contract_hash": {
-      "default": "d1b50a2d8a265276",
+      "default": "163acc57d8a62b66",
       "description": "Caller's [`CONTRACT_HASH`], carried in the handshake as an **advisory**\nidentity signal (see [`ContractStatus`]): a mismatch is logged, not rejected —\n`ncp_version` is the hard compatibility gate. Defaults to our own hash so\nevery session advertises it; `None` (serialized `null`) = not advertised.",
       "type": [
         "string",
         "null"
       ]
     },
+    "gateway": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GatewayAttribution"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Present only when this payload was emitted by a terminating gateway."
+    },
+    "gateway_permitted": {
+      "description": "Explicit opt-in to a labelled 0.8→1.0 gateway. `false` is native-only.",
+      "type": "boolean"
+    },
+    "identity": {
+      "$ref": "#/$defs/IdentityClaim",
+      "description": "Authenticated caller claim; the transport adapter binds it to the peer\ncertificate before opening any session state."
+    },
     "kind": {
       "const": "open_session",
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.8",
+      "pattern": "^1(?:\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\s\\S])",
       "type": "string"
     },
     "network": {
@@ -321,6 +426,12 @@
       "default": {
         "targets": []
       }
+    },
+    "security_profile": {
+      "type": "string"
+    },
+    "security_state_digest": {
+      "type": "string"
     },
     "session_id": {
       "type": "string"
@@ -343,9 +454,13 @@
     }
   },
   "required": [
+    "gateway_permitted",
+    "identity",
     "kind",
     "ncp_version",
     "network",
+    "security_profile",
+    "security_state_digest",
     "session_id"
   ],
   "title": "OpenSession",

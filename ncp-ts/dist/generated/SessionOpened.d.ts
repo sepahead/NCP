@@ -1,3 +1,5 @@
+import type { GatewayAttribution } from "./GatewayAttribution.js";
+import type { IdentityClaim } from "./IdentityClaim.js";
 import type { SessionRef } from "./SessionRef.js";
 import type { SimProvenance } from "./SimProvenance.js";
 /**
@@ -26,5 +28,18 @@ export type SessionOpened = {
      * `session.generation` on every subsequent session-scoped frame.
      */
     session: SessionRef | null;
+    /**
+     * Authoritative state version after processing the open request. A successful
+     * client uses this as the first mutation's `expected_state_version`.
+     */
+    state_version: bigint;
+    /**
+     * Authenticated responder claim bound by the transport adapter.
+     */
+    identity: IdentityClaim;
+    security_profile: string;
+    security_state_digest: string;
+    gateway_permitted: boolean;
+    gateway: GatewayAttribution | null;
 };
 //# sourceMappingURL=SessionOpened.d.ts.map

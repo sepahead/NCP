@@ -26,10 +26,34 @@ import json
 import math
 import os
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 CORPUS = REPO / "conformance" / "behavior" / "vectors.json"
+MANIFEST = REPO / "conformance" / "manifest.v1.json"
+WIRE_VECTORS = REPO / "conformance" / "vectors"
+REQUEST_DIGEST_VECTORS = REPO / "conformance" / "request-digest" / "v1.json"
+
+
+def _parse_int_preserve_negative_zero(token: str) -> int | float:
+    return -0.0 if token == "-0" else int(token, 10)
+
+
+def _apply_digest_case(base: dict, case: dict) -> dict:
+    request = deepcopy(base)
+    for patch in case["patch"]:
+        parent = request
+        for segment in patch["path"][:-1]:
+            parent = parent[segment]
+        leaf = patch["path"][-1]
+        if patch["op"] == "set":
+            parent[leaf] = patch["value"]
+        elif patch["op"] == "remove":
+            del parent[leaf]
+        else:
+            raise AssertionError(f"unknown request-digest patch op {patch['op']!r}")
+    return request
 
 
 def _velocity_magnitude(frame: dict) -> float:
@@ -61,8 +85,13 @@ def main() -> int:
         return 0
 
     corpus = json.loads(CORPUS.read_text())
+    manifest = json.loads(MANIFEST.read_text())
+    request_digest_vectors = json.loads(
+        REQUEST_DIGEST_VECTORS.read_text(), parse_int=_parse_int_preserve_negative_zero
+    )
     cases = corpus["cases"]
     failures: list[str] = []
+    executed: set[str] = set()
 
     def check(cond: bool, msg: str) -> None:
         if not cond:
@@ -95,12 +124,14 @@ def main() -> int:
                 f"check_version[{name}]: want compatible={exp['compatible']}, "
                 f"got {'<raised>' if raised else got!r}",
             )
+        executed.add(f"behavior/check_version/{name}")
 
     # ── contract_status ──────────────────────────────────────────────────────
     for c in cases["contract_status"]:
         name, inp, exp = c["name"], c["input"], c["expect"]
         got = ncp.contract_status(inp["peer_hash"])
         check(got == exp["status"], f"contract_status[{name}]: want {exp['status']!r}, got {got!r}")
+        executed.add(f"behavior/contract_status/{name}")
 
     # ── validate ─────────────────────────────────────────────────────────────
     for c in cases["validate"]:
@@ -111,6 +142,21 @@ def main() -> int:
         except ValueError:
             ok = False
         check(ok == exp["valid"], f"validate[{name}]: want valid={exp['valid']}, got {ok}")
+        executed.add(f"behavior/validate/{name}")
+
+    # ── request-digest-v1 ───────────────────────────────────────────────────
+    for case in request_digest_vectors["cases"]:
+        request = _apply_digest_case(request_digest_vectors["base_request"], case)
+        try:
+            got = ncp.request_digest(json.dumps(request, ensure_ascii=False))
+        except ValueError as error:
+            failures.append(f"request-digest[{case['id']}]: raised {error}")
+            got = None
+        check(
+            got == case["expected_digest"],
+            f"request-digest[{case['id']}]: want {case['expected_digest']}, got {got}",
+        )
+        executed.add(f"request-digest/{case['id']}")
 
     # ── govern ───────────────────────────────────────────────────────────────
     for c in cases["govern"]:
@@ -132,6 +178,7 @@ def main() -> int:
                 abs(mag - exp["velocity_setpoint_magnitude"]) < 1e-9,
                 f"govern[{name}]: |velocity| want {exp['velocity_setpoint_magnitude']}, got {mag}",
             )
+        executed.add(f"behavior/govern/{name}")
 
     # ── action_buffer ────────────────────────────────────────────────────────
     for c in cases["action_buffer"]:
@@ -167,14 +214,39 @@ def main() -> int:
                 )
             else:
                 failures.append(f"action_buffer[{name}] operation {index}: unknown op {op!r}")
+        executed.add(f"behavior/action_buffer/{name}")
 
-    total = sum(len(v) for v in cases.values())
+    for path in sorted(WIRE_VECTORS.glob("*.json")):
+        message = json.loads(path.read_text())
+        kind = message.get("kind")
+        try:
+            ncp.validate(kind, json.dumps(message))
+        except ValueError as error:
+            failures.append(f"wire[{path.name}]: canonical vector rejected: {error}")
+        executed.add(f"wire/{kind}/canonical")
+
+    required = {
+        vector["id"]
+        for vector in manifest["vectors"]
+        if vector.get("required") is True
+        and vector.get("stability") == "stable-1.0"
+        and "python-ffi" in vector["applicability"]["implementations"]
+    }
+    for vector_id in sorted(required - executed):
+        failures.append(f"manifest: required Python vector {vector_id} was skipped")
+    for vector_id in sorted(executed - required):
+        failures.append(f"manifest: unrecognized extra Python vector {vector_id}")
+
+    total = sum(len(v) for v in cases.values()) + len(request_digest_vectors["cases"])
     if failures:
         print(f"FAIL check_behavior_vectors: {len(failures)}/{total} behavioral vectors diverged:")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print(f"OK check_behavior_vectors: {total} behavioral vectors match the ncp binding")
+    print(
+        f"OK check_behavior_vectors: {total} behavioral + 14 canonical wire vectors "
+        "match the ncp binding with zero manifest skips"
+    )
     return 0
 
 

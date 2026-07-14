@@ -1,0 +1,179 @@
+{
+  "schema": "ncp.normative-contract-manifest.v1",
+  "candidate": "1.0.0-rc.1",
+  "status": "candidate-unreleased-release-blocked",
+  "wire_version": "1.0",
+  "wire_proto_contract_hash_fnv1a64": "163acc57d8a62b66",
+  "contract_digest_algorithm": "sha256(domain || repeated(u64be(path_bytes) || path_utf8 || u64be(content_bytes) || exact_content))",
+  "contract_digest_domain_hex": "6e63702e6e6f726d61746976652d636f6e74726163742e763100",
+  "contract_digest_sha256": "10b81f8dfec289dc553c320430ab3fefea0f0bb2002b6e85415383119445555b",
+  "normative_precedence": [
+    "contract/*.v1.json except contract/manifest.v1.json (derived digest manifest)",
+    "proto/ncp.proto",
+    "schemas/index.json and schemas/*.schema.json",
+    "NEURO_CYBERNETIC_PROTOCOL.md",
+    "conformance/manifest.v1.json"
+  ],
+  "conflict_policy": "Earlier entries take precedence; any conflict is a release-blocking contract defect and implementations must fail closed.",
+  "normative_sources": [
+    {
+      "path": "NEURO_CYBERNETIC_PROTOCOL.md",
+      "bytes": 23899,
+      "sha256": "b65bdd1e7e755c1b9ed345cc769d7ad194dcd948c0ace97697343d051d3cf023"
+    },
+    {
+      "path": "conformance/manifest.v1.json",
+      "bytes": 237088,
+      "sha256": "8ebc6eeb7351aa2e93bec7e6ab5af0805c1ef30fce430a0947c9ab3f0ab3ad04"
+    },
+    {
+      "path": "contract/canonical-digest.v1.json",
+      "bytes": 1562,
+      "sha256": "ae6f599a2e0246f19535783696c6b6705ac7280710c06040da6fe7a272152b0e"
+    },
+    {
+      "path": "contract/capabilities.v1.json",
+      "bytes": 829,
+      "sha256": "a9a8d347c4d1599947d80d78b217d2242e7191f7bf3d5fff6772b8a8b360c8dd"
+    },
+    {
+      "path": "contract/errors.v1.json",
+      "bytes": 3667,
+      "sha256": "8a99dd9a2575e84be14d873a61ba811722a3eed5f7cf51a01aaeca0b02914a4d"
+    },
+    {
+      "path": "contract/limits.v1.json",
+      "bytes": 1593,
+      "sha256": "a5f8e5f151cc2efb4e6aff442aecd8f6d3355a74e01798feb9b153115777ceb6"
+    },
+    {
+      "path": "contract/observability.v1.json",
+      "bytes": 1215,
+      "sha256": "c98ac983b58262cb5084627f1707b24f58770b47adbd88a091a16be10dc0f0c8"
+    },
+    {
+      "path": "contract/planes.v1.json",
+      "bytes": 738,
+      "sha256": "71b991765299d247910abd55ba245fbacc1047d8366cac1a56eb8b174f7ae5a8"
+    },
+    {
+      "path": "contract/plant-profile.v1.json",
+      "bytes": 2929,
+      "sha256": "ce0b17386c20f61a0c12673df285e7b15771cb39f2ad80f4b6d4d85980cff22c"
+    },
+    {
+      "path": "contract/release-gates.v1.json",
+      "bytes": 1627,
+      "sha256": "ec40b7efd1391ddc84d798619cbbe49ae3dc7e52066cbe4ffceedb8e2fadb04c"
+    },
+    {
+      "path": "contract/request-digest.v1.json",
+      "bytes": 2552,
+      "sha256": "fb321303ce3adfe755371e14c2c866ad9ed5e417b66f7fe1605f38ef2d5f2281"
+    },
+    {
+      "path": "contract/security-profiles.v1.json",
+      "bytes": 638,
+      "sha256": "3365448abd25380e59d21c6b3b8a871c1cc8d495e7554ab16ee8f8b3302846f1"
+    },
+    {
+      "path": "contract/security-state-digest.v1.json",
+      "bytes": 1967,
+      "sha256": "d667da9b094e4a594021849ded31bcc97f86a1f8426adb738cc22ba11287a5ef"
+    },
+    {
+      "path": "contract/surface.v1.json",
+      "bytes": 2522,
+      "sha256": "74a3fd62ec2454bfedadccfeec9ca2ed9164e044116ccf6776cd1858316323d6"
+    },
+    {
+      "path": "proto/ncp.proto",
+      "bytes": 35549,
+      "sha256": "9c127c8e795105da73dddfe47b671bf1f4ee895958ea5f35eda8b37cc503d510"
+    },
+    {
+      "path": "schemas/capabilities.schema.json",
+      "bytes": 7364,
+      "sha256": "853dc4435a47d58ea60445097fa7663a1a69776bb251f8b62df5394437d135ae"
+    },
+    {
+      "path": "schemas/close_session.schema.json",
+      "bytes": 4096,
+      "sha256": "caf3eec510ba91d569f4eb22811046522c27cb89580ae4e45213000462603c2f"
+    },
+    {
+      "path": "schemas/command_frame.schema.json",
+      "bytes": 7883,
+      "sha256": "17b762808a2946d21d82e7d356e1c909a0d620ec184d640ea0323094785ec560"
+    },
+    {
+      "path": "schemas/control_status.schema.json",
+      "bytes": 4060,
+      "sha256": "42c51d2e8cb55b4a0f1fd1270a8be000878b249f2365e182be89e8456876e384"
+    },
+    {
+      "path": "schemas/error.schema.json",
+      "bytes": 5169,
+      "sha256": "c58ffc29c0c7154cd3d4dd794564180ab462a53c708950895f1259e6b7c539f8"
+    },
+    {
+      "path": "schemas/index.json",
+      "bytes": 466,
+      "sha256": "ed570bbe3a1a05827ea2b7787af39a880f2455e855961a7f364e27433c716b27"
+    },
+    {
+      "path": "schemas/link_status.schema.json",
+      "bytes": 4618,
+      "sha256": "7c5f5d74038e63bae1bf0a7a38004150325d36ae2d04947f58c03b0986cf1fee"
+    },
+    {
+      "path": "schemas/observation_frame.schema.json",
+      "bytes": 8182,
+      "sha256": "42436e571f327b9c491fafc7e4ad15eb01169cd7181a9c2b41e89c9d745e5736"
+    },
+    {
+      "path": "schemas/open_session.schema.json",
+      "bytes": 12367,
+      "sha256": "b4cd88642318e168a5cde811c5b505f5dabf1b7c9214959de5d86c89eb448bf1"
+    },
+    {
+      "path": "schemas/run_request.schema.json",
+      "bytes": 6533,
+      "sha256": "f9b5706c8bb03c8ec5e5e35facf59c661dccf3bb7ac21f82ca8d53461a26dcf7"
+    },
+    {
+      "path": "schemas/sensor_frame.schema.json",
+      "bytes": 4483,
+      "sha256": "a9f3f769d7e250b0ec27965db53313bd504177eccc2a6c91b02afeaa7ca7fdb7"
+    },
+    {
+      "path": "schemas/session_closed.schema.json",
+      "bytes": 3217,
+      "sha256": "e91cf61a80eda77e739f334e999ae5bba3f218728101645dcbe8e00c2007eeda"
+    },
+    {
+      "path": "schemas/session_opened.schema.json",
+      "bytes": 6987,
+      "sha256": "655084eb8852a406c4baabe0d926da61f50af50ef44ba42fdb4f5ff73f215129"
+    },
+    {
+      "path": "schemas/step_request.schema.json",
+      "bytes": 6561,
+      "sha256": "12848b5926efc9ba1081aaeb59ca45c116babd84b87b92b56f807f11ff438392"
+    },
+    {
+      "path": "schemas/stimulus_frame.schema.json",
+      "bytes": 2563,
+      "sha256": "9ddf38bdc50cf7401bfb8a0aa3d12d6fad41e004f38c458ae59d472c8db93253"
+    }
+  ],
+  "informative_implementations": [
+    "ncp-core",
+    "ncp-zenoh",
+    "ncp-python",
+    "ncp-cpp",
+    "ncp-ts",
+    "ncp-gateway"
+  ],
+  "generated_by": "scripts/generate_contract_manifest.py"
+}

@@ -1,70 +1,106 @@
-# Release readiness — NCP wire contract
+# NCP 1.0 release-readiness ledger
 
-Status of NCP's wire-0.8 **`v0.8.0` release**: can the `v0.8.x` line evolve
-additively without breaking peers, and is the live medium + contract proven? This is
-an honest, adversarially-reviewed assessment, not a green-badge claim.
+**Verdict: BLOCKED — do not tag or publish.** Repository HEAD is the unreleased
+`1.0.0-rc.1` candidate (wire `1.0`, compact proto hash
+`163acc57d8a62b66`). A version string and local test pass are not a release.
 
-**Verdict (wire `0.8`, latest release `v0.8.0`; checklist re-audited from the `v0.5.0`
-foundation):** the implementation
-closes acceptance, provenance, enum, error-frame, integer-precision, and hostile-bulk
-gaps found after the `0.6` enforcement cut, and wire `0.8` then deletes the overloaded
-top-level `seq` for typed stream/source identity and a fenced session generation
-(closing the F-01 false-loss / foreign-epoch-hijack gaps). `0.5` was the deliberate stable-wire cut
-, `0.6` made `ncp_version` plus closed-loop `seq` normative, and `0.7` was the
-acceptance-and-shape cut; the
-control-plane contract is proven end-to-end across a real process + language boundary,
-over a real transport, with the safety authority and the version gate exercised on the
-wire. NCP remains pre-1.0 (`0.x`, minor-is-breaking) by policy, with the residual
-caveats called out at the end. The 0.8 JSON baseline is frozen, the release gates
-pass, consumers are coordinated, and `v0.8.0` is the latest immutable tag.
+The canonical machine policy is
+[`contract/release-gates.v1.json`](contract/release-gates.v1.json). Every required
+pre-release gate must refer to the same immutable source, normative digest, package
+hashes, and environment manifest. `NOT RUN`, skipped, stale, source-tree-only, or
+unsigned evidence is a failure for initial release.
 
-## Where it stands
+## Candidate evidence
 
-The control-plane contract flows end-to-end across a real process + language boundary,
-over a real transport, **without NEST or `zenoh-python`** (the backend is separable
-from the wire — engram's `MockBackend` emits real `Observation` frames):
+| Gate | Candidate state | Release meaning |
+|---|---|---|
+| Released baseline and historical mirror boundary | read-only gate binds the annotated tag object, peeled commit, fixed path, and exact subtree for every `v0.5.0`–`v0.8.0` baseline; Buf explicitly reports that initial package `ncp.v1` has no released same-major comparison target and does not compare the intentional major break with `ncp.v0` | establishes immutable local migration/history input only; it is not tag-signature, artifact, or consumer evidence; later v1 candidates must compare with the latest registered v1 release |
+| Stable/excluded surface and registries | implemented; generated digest gate present | not a release by itself |
+| Proto/schema/canonical-vector parity | complete current-worktree matrix passes | dirty worktree is not immutable release evidence |
+| Mandatory self-describing corpus | current manifest has 268 required vectors (261 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; complete local replay passes | signed external conformance reports remain required |
+| Universal bounded JSON | implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader are gated before generic decoding | live/fuzz duration still required |
+| Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
+| Plant profile, safety governor, action buffer, ESTOP | implemented with deterministic tests | non-certifying; each consumer needs a safety case |
+| Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
+| Candidate package builds/install smoke | complete dirty-worktree gate passed for the current 2026-07-14 snapshot | immutable multi-OS install matrix still required |
+| Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
-- ✅ Two **independent Zenoh sessions** over a real tcp link drive `open→step→run→close`
-  through the typed `ZenohNcpClient` + the version/advisory-contract handshake
-  (`ncp-zenoh/tests/cross_session_rpc.rs`, readiness-polled).
-- ✅ A **Rust** client drives the **real Python** engram server over localhost TCP
-  (`e2e/run_cross_language_e2e.py` + `ncp-core/examples/ncp_tcp_client.rs`).
-- ✅ engram's **real** `SessionService` serves the lifecycle across a process boundary
-  (`engram/.../test_e2e_cross_process.py`, ubuntu smoke, NEST-free), with
-  forward/backward-compat and malformed/unknown-frame robustness.
-- ✅ All four peers decide identically on the contract functions (the behavioral corpus).
-- ✅ The scientific-boundary discriminators hold on every reply over every medium.
+The complete `scripts/check.sh` gate passed for the then-current candidate bytes on
+2026-07-14. The lock uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The run
+covered the full local package, binding, bounded-ingress, corpus, archive,
+dependency-policy, and protobuf matrix. It still used a dirty, uncommitted worktree
+and therefore has no immutable source revision, signatures, multi-platform
+environment set, or independent reproduction. It is time-bound local preflight
+evidence, not a release receipt. The generated normative identity and candidate
+baseline match the checked worktree snapshot.
+Per-task receipts and their exact residual acceptance gaps are indexed in
+[`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md).
 
-## The release checklist
+## Required implementation prerequisite
 
-| # | Item | Severity | Status |
-|---|---|---|---|
-| 1 | **Safety governor over the wire** | release-blocking | ✅ `ncp-zenoh/tests/safety_governor_over_wire.rs`: a plant runs `SafetyGovernor::govern` on each `CommandFrame` received over a real Zenoh link; corpus-driven HOLD/ESTOP/clamp verdicts, and the **ESTOP latch survives the wire** (a breach latches; a subsequent clean frame is still ESTOP). |
-| 2 | **Lossless additive enum handling** | release-blocking | ✅ Rust preserves unknown strings in `Unknown(String)`; JSON Schemas and TypeScript accept non-empty future strings while documenting known values; `Mode` grants authority only to exact `active`. The behavior corpus exercises the rule. |
-| 3 | **Frozen JSON-wire baseline gate** | release-blocking | ✅ `conformance/baseline/v0.8.0/` freezes the released JSON projection; the recursive manifest protects additive compatibility and `--verify-exact` proves the audit snapshot is byte-identical at tag time. |
-| 4 | **Wire-version single source + mixed-version e2e** | should-fix | ✅ Each peer + the corpus are cross-checked for `NCP_VERSION`/`CONTRACT_HASH` (`behavior_conformance.rs`, `check-version-coherence.sh`); an incompatible prior-minor peer is fail-closed against the current wire, with the same-version happy path retained. |
-| 5 | **new→old reply tolerance + nested unknown field** | should-fix | ✅ Reply-side + nested-message forward-compat tested (Rust + engram Pydantic); a pin asserts no wire model sets `extra='forbid'`. |
+The stable Zenoh callback API used by `ncp-zenoh` does not expose a
+transport-authenticated remote principal to the subscriber/queryable handler. The
+adapter therefore cannot bind the payload `IdentityClaim` to verified transport
+identity through the default-deny authority manifest. `ZenohBus::open_secure`
+intentionally fails before opening a session. A callback-visible authenticated
+principal (or a different adapter with equivalent verified binding) must be
+implemented and locally negative-tested before the live security gate can start.
 
-**Consciously deferred (nice-to-have, not blocking):** TS + C++ *live-transport* clients
-in `e2e/run_cross_language_e2e.py` (cross-language decisions are already proven by the
-4-peer behavioral corpus, and live transport by the Rust↔Python e2e), and a
-cross-process bulk-codec round-trip (the bulk decoder's hostile-input fail-closed —
-bad magic, lying length, allocation-bomb row count — is already comprehensively tested
-in-process in `bulk.rs`, and the codec is byte-pinned + conformance-checked). These are
-documented here rather than left silent.
+## Required external pre-release gates
 
-## Residual caveats (disclosed limitations, by policy — not open blockers)
+The following are **NOT RUN** and independently block release:
 
-- **Pre-1.0 (`0.x`).** The wire may still change; minor-is-breaking, the version guard
-  fails closed. Pin the latest immutable release, `tag = "v0.8.0"`.
-- **Single reference implementation.** `proto/ncp.proto` is normative; `ncp-core` (Rust)
-  is the reference and the other peers are bindings/mirrors verified by parity + the
-  shared behavioral corpus. Python/C reuse the reference core and independent
-  non-Rust live-transport clients are still deferred.
-- **The default/open transport is unauthenticated.** The `mode`/`ttl_ms` governor is
-  defense-in-depth, not network security. Run the shipped mTLS router + strict client
-  profile or deploy on a trusted isolated network (`SECURITY.md`, `ROADMAP.md` P0).
+- after the implementation prerequisite above, live `production-secure` mTLS,
+  default-deny ACL, wrong-principal/entity/plane, certificate validity, rotation,
+  revocation, and downgrade campaign;
+- two independently implemented, installed, non-Rust live transport peers without
+  Rust decision FFI;
+- delay/loss/duplication/reordering/partition/router restart/peer restart/slow
+  consumer/observation flood combinations and duration soak/leak evidence;
+- duration fuzzing and sanitizers across JSON decoders, state machines, FFI, and
+  independent peers;
+- release-bound latency/throughput/memory/queue profiles on supported platforms;
+- clean installs and full applicable conformance for crates, wheel/sdist, npm, and
+  C/C++ artifacts built from one immutable source;
+- reproducible artifact comparison, checksums, vulnerability report, license
+  notices, signed SBOM/provenance, and signature verification;
+- independent clean-room build and core-conformance reproduction;
+- native installed-artifact certification for Engram, crebain,
+  crebain-galadriel-producer, galadriel, haldir, and prisoma.
 
-**Bottom line:** the live cross-process loop is real and tested, and the forward-compat
-and safety properties are proven on the wire. The frozen JSON baseline and completed
-release gates make `v0.8.0` the latest immutable wire-0.8 release.
+## Required post-release validations
+
+The following run only after the tag and artifacts are published. They are required
+operational validations, but cannot block their own initial publication:
+
+- install the published artifacts in clean environments and rerun the package smoke;
+- exercise the documented emergency-revocation procedure against the published
+  release.
+
+A failure invokes the release remediation or revocation procedure and must remain
+visible in the release dossier; it does not rewrite the failed validation as a
+pre-publication pass.
+
+## Consumer state
+
+Engram has an explicit local native-1.0 migration in progress, but its installed-
+artifact and live-transport certification are **NOT RUN**. The other five inventoried
+consumers remain on wire 0.8. None of the six is 1.0-certified. The frozen Engram
+wire-0.8 inventory remains historical migration input, not a description of its
+mutable migration worktree. `ncp-gateway` is a same-wire 1.0 Rust/Python edge and
+cannot make an unmigrated 0.8 Python backend compatible. The separate migration
+translator is a labelled terminating gateway and is ineligible for native 1.0
+certification.
+
+## Release authorization
+
+A `v1.0.0` tag is permitted only after all required pre-release rows are passed,
+every report contains the exact normative and corpus digests with no applicable
+skip, all packages self-identify consistently, all required consumers accept the
+handoff, and the signed release dossier is independently reproduced. The required
+post-release validations begin after publication. Until the pre-release threshold:
+
+- do not create or move a release tag;
+- do not publish crates/npm/wheels/binaries as stable 1.0;
+- do not call `1.0.0-rc.1` production-ready or certified;
+- do not backfill missing evidence with model review or inference.

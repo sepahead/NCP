@@ -116,9 +116,31 @@ try {
     socket.error()
     await rejectsPromptly(send, /NCP WebSocket error/)
   }
+
+  // Canonical NCP uses WebSocket text frames. Binary frames are rejected without
+  // conversion/copy; an oversized ArrayBuffer retains the exact frame-limit code.
+  {
+    const transport = new WebSocketNeuroSim('ws://binary-reply')
+    const socket = latestSocket()
+    assert.equal(socket.binaryType, 'arraybuffer')
+    socket.open()
+    const send = transport.send({ request: 'binary-reply' })
+    await Promise.resolve()
+    socket.reply(new ArrayBuffer(8))
+    await rejectsPromptly(send, /binary WebSocket replies are not canonical/)
+  }
+  {
+    const transport = new WebSocketNeuroSim('ws://oversized-binary-reply')
+    const socket = latestSocket()
+    socket.open()
+    const send = transport.send({ request: 'oversized-binary-reply' })
+    await Promise.resolve()
+    socket.reply(new ArrayBuffer(1_048_577))
+    await rejectsPromptly(send, /NCP-LIMIT-001/)
+  }
 } finally {
   if (originalWebSocket === undefined) delete globalThis.WebSocket
   else globalThis.WebSocket = originalWebSocket
 }
 
-console.log('WebSocket transport smoke: 5 scenarios passed')
+console.log('WebSocket transport smoke: 7 scenarios passed')

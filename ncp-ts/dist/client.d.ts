@@ -13,12 +13,12 @@
  * for a WebSocket implementation; a Zenoh/native transport can implement the same
  * `Send`).
  */
-import type { ChannelValue, ErrorFrame as GeneratedErrorFrame, NetworkRef, Observation, ObservationFrame, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated/index.js';
+import type { AuthorityLease, ChannelValue, ErrorFrame as GeneratedErrorFrame, GatewayAttribution, IdentityClaim, NetworkRef, Observation, ObservationFrame, OperationContext, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated/index.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
  * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
  * correlation-only `source`, adds `session` (generation) + `session_id` on every
  * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
-export declare const NCP_VERSION = "0.8";
+export declare const NCP_VERSION = "1.0";
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
@@ -26,11 +26,17 @@ export declare const NCP_VERSION = "0.8";
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export declare const NCP_CONTRACT_HASH = "d1b50a2d8a265276";
+export declare const NCP_CONTRACT_HASH = "163acc57d8a62b66";
 /** Exact integer range shared by every JSON implementation (binary64 included). */
 export declare const JSON_SAFE_INTEGER_MAX = 9007199254740991;
 export declare const JSON_SAFE_INTEGER_MIN: number;
 export declare const MAX_HORIZON_STEPS = 65536;
+export declare const MAX_CHANNELS = 4096;
+/** Closed stable wire-1.0 error-code registry. Keep this in exact parity with
+ * `contract/errors.v1.json`; the shared mandatory corpus exercises rejection of
+ * missing and unknown values in every implementation. */
+export declare const NCP_ERROR_CODES: readonly ["NCP-AUTH-001", "NCP-AUTH-002", "NCP-AUTH-003", "NCP-AUTH-004", "NCP-AUTH-005", "NCP-AUTH-006", "NCP-LEASE-001", "NCP-LEASE-002", "NCP-LEASE-003", "NCP-LEASE-004", "NCP-OP-001", "NCP-OP-002", "NCP-OP-003", "NCP-OP-004", "NCP-OP-005", "NCP-OP-006", "NCP-LIMIT-001", "NCP-LIMIT-002", "NCP-LIMIT-003", "NCP-LIMIT-004", "NCP-LIMIT-005", "NCP-LIMIT-006", "NCP-LIMIT-007", "NCP-LIMIT-008", "NCP-LIMIT-009", "NCP-PROFILE-001", "NCP-PROFILE-002", "NCP-PLANT-001", "NCP-PLANT-002", "NCP-PLANT-003", "NCP-STATE-001", "NCP-STATE-002", "NCP-STATE-003", "NCP-VERSION-001", "NCP-FEATURE-001", "NCP-AUDIT-001", "NCP-AUDIT-002", "NCP-GATEWAY-001", "NCP-GATEWAY-002", "NCP-WIRE-001", "NCP-INTERNAL-001"];
+export type NcpErrorCode = (typeof NCP_ERROR_CODES)[number];
 /** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
  *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
  *  string = an advisory message describing the mismatch (for logging/telemetry). */
@@ -86,7 +92,9 @@ export type SessionOpenedReply = Wire<SessionOpened>;
 export type SessionClosedReply = Wire<SessionClosed>;
 export type ObservationFrameReply = Wire<ObservationFrame>;
 export type ObservationData = Wire<Observation>;
-export type ErrorFrame = Wire<GeneratedErrorFrame>;
+export type ErrorFrame = Omit<Wire<GeneratedErrorFrame>, 'code'> & {
+    code: NcpErrorCode;
+};
 /**
  * Construction views. The canonical message types are maximally strict (ts-rs
  * marks every Rust field required), but the JSON Schemas default most fields, so
@@ -99,21 +107,39 @@ export type NetworkInput = Pick<Wire<NetworkRef>, 'kind' | 'ref'> & Partial<Wire
 export type RecordInput = Pick<Wire<RecordTarget>, 'port' | 'target' | 'observable'> & Partial<Wire<RecordTarget>>;
 export type StimulusInput = Pick<Wire<StimulusTarget>, 'port' | 'target' | 'kind'> & Partial<Wire<StimulusTarget>>;
 export type SimInput = Partial<Wire<SimConfig>>;
+/** Authenticated transport context supplied by the caller. Payload claims never
+ * authenticate themselves; the transport adapter must bind this claim to its
+ * verified peer identity before it sends an NCP message. */
+export type ClientNegotiation = {
+    identity: Wire<IdentityClaim>;
+    security_profile: 'dev-loopback-insecure' | 'production-secure';
+    security_state_digest: string;
+    gateway_permitted: boolean;
+    gateway?: Wire<GatewayAttribution> | null;
+};
+/** Exactly-once and authority context required for every lifecycle mutation. */
+export type MutationInput = {
+    operation: Omit<Wire<OperationContext>, 'request_digest'> & {
+        request_digest?: string;
+    };
+    authority: Wire<AuthorityLease>;
+};
 /** Any transport: serialize `message`, deliver it to the NCP session service, and
  *  resolve with the reply payload (already parsed from the wire). */
 export type Send = (message: Record<string, unknown>) => Promise<unknown>;
 export declare class NeuroSimClient {
     private readonly send;
-    /** Wire 0.8: session_id -> the server-issued generation, learned at open(). */
+    private readonly negotiation;
+    /** session_id -> the server-issued generation, learned at open(). */
     private readonly generations;
-    constructor(send: Send);
+    constructor(send: Send, negotiation: ClientNegotiation);
     /** Open a session: declare what to record and what to stimulate. */
     open(sessionId: string, network: NetworkInput, record: RecordInput[], stimulus: StimulusInput[], sim?: SimInput): Promise<SessionOpenedReply>;
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
-    step(sessionId: string, stimulus?: Record<string, ChannelInput>, advanceMs?: number): Promise<ObservationFrameReply>;
+    step(sessionId: string, mutation: MutationInput, stimulus?: Record<string, ChannelInput>, advanceMs?: number): Promise<ObservationFrameReply>;
     /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */
-    run(sessionId: string, durationMs: number, stimulus?: Record<string, ChannelInput>): Promise<ObservationFrameReply>;
+    run(sessionId: string, durationMs: number, mutation: MutationInput, stimulus?: Record<string, ChannelInput>): Promise<ObservationFrameReply>;
     /** Close the session. */
-    close(sessionId: string): Promise<SessionClosedReply>;
+    close(sessionId: string, mutation: MutationInput): Promise<SessionClosedReply>;
 }
 //# sourceMappingURL=client.d.ts.map

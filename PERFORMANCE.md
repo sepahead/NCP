@@ -1,5 +1,10 @@
 # Does NCP bottleneck NEST? — performance review
 
+> **Evidence boundary:** measurements in this document are historical developer
+> benchmarks, not release-bound certification of the unreleased NCP
+> `1.0.0-rc.1` artifacts. The final installed-package, platform, secure-transport,
+> fault-load, memory, and queue profile is **NOT RUN**.
+
 **Short answer: no, not inherently — once one real bottleneck (now fixed) is out
 of the way.** NEST only advances simulation time *during* `nest.Run(chunk)`;
 between chunks NCP does its work (read recorders, serialize, transport, inject
@@ -31,10 +36,12 @@ Fixed (in the reference NEST backend's `step`):
 - **`SPIKES` / `V_m`**: fetch the events, return the `[last:]` tail, then
   **best-effort drain** the recorder (`set(n_events=0)`) so the next read is
   **O(new)**; if the NEST build doesn't support clearing, fall back to index
-  tracking (correct, but the array keeps growing — prefer `RATE` for long loops).
+  tracking (correct output, but fetching the growing array remains O(history) per
+  step—prefer `RATE` for long loops).
 
-Result: per-step readback is **O(1)** for rate and **O(new events)** for spikes/V_m
-— bounded, independent of run length.
+Result: per-step readback is **O(1)** for rate. Spikes/V_m are **O(new events)** and
+independent of run length only on a build where recorder drain succeeds; the
+index-tracking fallback remains O(history).
 
 ## Per-tick cost model (after the fix)
 
@@ -42,9 +49,9 @@ Result: per-step readback is **O(1)** for rate and **O(new events)** for spikes/
 |---|---|---|
 | stimulus inject (`generator.set`) | O(#stimulus ports), µs | a few `set()` calls |
 | **`nest.Run(chunk)`** | **dominant; model-size dependent** | the science; NCP doesn't touch it |
-| readback | **O(1)** rate / **O(new)** spikes-V_m | was O(history) — fixed |
+| readback | **O(1)** rate / **O(new)** spikes-V_m with supported drain; otherwise O(history) | drain capability is deployment-dependent |
 | encode/decode (codec) | negligible | linear rate map |
-| serialize | rates: tens of bytes; raw spikes: O(events) | **prefer rate for the loop**; raw spikes are the analysis path. JSON frame ser/de is **~0.2–0.5 µs** (measured — see [NCP's own per-tick overhead](#measured-ncps-own-per-tick-overhead-rust-release)) |
+| serialize | rates: hundreds of bytes; raw spikes: O(events) | **prefer rate for the loop**; raw spikes are the analysis path. Current canonical JSON frame serialization is **~0.5–0.6 µs** and deserialization **~1.0 µs** on the reference machine (measured — see [NCP's own per-tick overhead](#measured-ncps-own-per-tick-overhead-rust-release)) |
 | transport | in-proc ~µs · Zenoh SHM ~tens µs · Zenoh/loopback ~0.1 ms · WS+JSON ~0.2–1 ms | far below a 20–50 Hz (20–50 ms) budget |
 
 For a UAV outer-loop (20–50 Hz) with rate-coded I/O, `T_ncp` is sub-millisecond
@@ -62,32 +69,35 @@ defeat dead-code elimination.
 
 | hot-path op (per tick)                | cost   | frame size |
 |---------------------------------------|--------|------------|
-| `CommandFrame` serialize (serde_json) | 248 ns | 215 B      |
-| `CommandFrame` deserialize            | 446 ns | 215 B      |
-| `SensorFrame` serialize               | 223 ns | 195 B      |
-| `SensorFrame` deserialize             | 474 ns | 195 B      |
-| `SafetyGovernor::govern`              | 140 ns | —          |
-| `ReflexController::step`              | 134 ns | —          |
+| `CommandFrame` serialize (serde_json) | ~0.56 µs | 403 B   |
+| `CommandFrame` deserialize            | ~1.00 µs | 403 B   |
+| `SensorFrame` serialize               | ~0.52 µs | 337 B   |
+| `SensorFrame` deserialize             | ~0.96 µs | 337 B   |
+| `SafetyGovernor::govern`              | ~0.81 µs | —       |
+| `ReflexController::step`              | ~0.48 µs | —       |
 
 A full closed-loop tick — deserialize the inbound `SensorFrame`, step the reflex
 controller, run the safety governor, serialize the outbound `CommandFrame` — sums
-to **≈1 µs** of CPU (474 + 134 + 140 + 248 ≈ 996 ns). Frames are **≈200 bytes** on
-the JSON action/perception planes. Transport then adds the per-hop term from the
+to **≈2.8 µs** of CPU (0.96 + 0.48 + 0.81 + 0.56 µs). The measured canonical
+frames are **337 B** (perception) and **403 B** (action). Transport then adds the per-hop term from the
 cost model: **≈0.1 ms** on a Zenoh loopback hop, **tens of µs** over shared memory,
 ~µs in-process.
 
 > **Reproduce:** `cargo run -p ncp-core --release --example overhead`
 > (`--release` is load-bearing — a debug build is 10–50× slower and not
-> representative of shipped overhead). This is the repo's first committed Rust
-> overhead bench; the three NEST-side Python benchmarks are documented under
+> representative of shipped overhead). The rounded values above are from two
+> July 14, 2026 runs on the reference machine; individual nanosecond timings are
+> load-sensitive, while serialized sizes are deterministic. This is a developer
+> microbenchmark, not cross-platform release evidence. The three NEST-side Python benchmarks are documented under
 > [Benchmark methodology & reproducibility](#benchmark-methodology--reproducibility).
 
 This also confirms why **JSON is the right runtime default** (see
-[`RATIONALE.md`](RATIONALE.md)). At ≈1 µs/tick the serializer is nowhere near the
+[`RATIONALE.md`](RATIONALE.md)). At ≈2.8 µs/tick the measured protocol path is nowhere near the
 bottleneck, and JSON stays human-readable on the wire and trivially debuggable.
 The protobuf schema in [`proto/ncp.proto`](proto/ncp.proto) (+ `gen/rust`) is the
-**contract / conformance source-of-truth**, *not* the shipped runtime encoding —
-the `prost` bindings are not compiled into the runtime path. Binary protobuf would
+normative field-number/message-shape IDL within the repository's documented
+contract-registry precedence, *not* the shipped runtime encoding or the sole
+contract source. The `prost` bindings are not compiled into the runtime path. Binary protobuf would
 be worth negotiating only as an opt-in for a kHz / bandwidth-constrained consumer.
 The bounded local/offline `BulkBlock` codec is also measured as more compact than
 JSON for the same numeric array (≈2× smaller with `f32`/`i32` columns). It is not a
@@ -97,14 +107,14 @@ representation.
 ### Is NCP unnecessary overhead?
 
 **No — and it is now quantified.** A control loop runs at 20–1000 Hz, i.e. a
-**50 ms → 1 ms** budget per tick. NCP's own per-tick CPU cost is **≈1 µs**, so the
+**50 ms → 1 ms** budget per tick. NCP's own measured per-tick CPU cost is **≈2.8 µs**, so the
 NCP tax is a vanishing fraction of that budget:
 
-| control rate | period | NCP CPU tax (≈1 µs) |
+| control rate | period | NCP CPU tax (≈2.8 µs) |
 |--------------|--------|---------------------|
-| 20 Hz        | 50 ms  | ≈0.002 %            |
-| 100 Hz       | 10 ms  | ≈0.01 %             |
-| 1000 Hz      | 1 ms   | ≈0.1 %              |
+| 20 Hz        | 50 ms  | ≈0.006 %            |
+| 100 Hz       | 10 ms  | ≈0.028 %            |
+| 1000 Hz      | 1 ms   | ≈0.28 %             |
 
 Transport is a separate, deployment-dependent term: a Zenoh loopback hop
 (≈0.1 ms) is comfortable up to a few hundred Hz; at kHz rates co-locate the
@@ -113,14 +123,14 @@ in a neuro-cybernetic loop is the **simulation / in-sim compute** (`nest.Run`, t
 NEST kernel) and — for a networked fleet — the **transport hop**, not NCP's
 serialize-and-check.
 
-What that ≈1 µs buys is the entire point: a stable cross-language **contract**
-(one wire shape shared by Engram, crebain, and prisoma), per-tick **safety
-gating** (`SafetyGovernor`: speed / geofence / timeout / health), and a generic
-**hub-interop** surface so Engram can drive a UAV or a robot through the same
-three planes. Deleting NCP would not reclaim a meaningful slice of the loop
-budget — it would only delete the contract and the safety gate. So NCP is **not**
-unnecessary overhead: it is a sub-microsecond tax for the safety and interop that
-make a multi-consumer fleet possible.
+What that measured ≈2.8 µs path is intended to buy is a stable cross-language
+**contract**, per-tick **safety gating** (`SafetyGovernor`: speed / geofence /
+timeout / health), and a generic four-plane **hub-interop** surface. Engram's
+native-1.0 migration is in progress while crebain and prisoma remain wire 0.8, so
+the multi-consumer shape is a design and certification target, not current
+interoperability evidence. In the measured microbenchmark, deleting the NCP checks
+would not reclaim a meaningful slice of the loop budget; release-bound platform and
+consumer measurements remain required.
 
 ### Top safe optimization: zero-copy publish (ZBytes/SHM)
 
@@ -129,7 +139,7 @@ is in [`ncp-zenoh`](ncp-zenoh): `ZenohBus::put` copies the payload on **every**
 publish.
 
 ```rust
-// ncp-zenoh/src/lib.rs:441
+// ncp-zenoh/src/lib.rs — ZenohBus::put
 self.session.put(key, payload.to_vec())   // clones an already-owned Vec<u8>
 ```
 
@@ -141,8 +151,9 @@ Moving the owned buffer into Zenoh `ZBytes` — e.g. a
 **no change to the wire bytes**. It is also the prerequisite for true SHM
 **zero-copy** delivery on the action plane: a `to_vec()` into a fresh heap `Vec`
 cannot be handed to the shared-memory path without a copy, so this single change
-unblocks the zero-copy fast path the QoS layer is already set up for. At ≈200 B /
-frame the copy is cheap in absolute terms, but it is pure waste on the
+unblocks the zero-copy fast path the QoS layer is already set up for. At 337–403 B
+for the measured canonical sensor/command frames the copy is cheap in absolute
+terms, but it is pure waste on the
 latency-critical action loop and trivially removable. JSON stays the debuggable
 default; this is an encoding-neutral transport win.
 
@@ -224,11 +235,12 @@ below.
 
 ### Per-chunk readback overhead — already ~free
 
-The earlier readback fix (above) made per-step readback **O(1)** for rate and
-**O(new events)** for spikes/V_m. The real-time sweep recorded from a 1000-neuron
-readout subset (an NCP `RecordSpec`) and saw recording overhead stay negligible —
-the measured numbers are raw integrate + spike-delivery throughput, not dominated
-by readback. The control-observable path is not the bottleneck; `T_run` is.
+The earlier readback fix (above) made per-step readback **O(1)** for rate and, when
+recorder drain is supported, **O(new events)** for spikes/V_m. The real-time sweep
+recorded from a 1000-neuron readout subset (an NCP `RecordSpec`) and saw recording
+overhead stay negligible in that measured environment—the numbers are raw integrate
++ spike-delivery throughput, not dominated by readback. This does not bound an
+O(history) fallback on a different NEST build.
 
 ### Scaling: the binding constraint is the real-time factor
 
@@ -339,8 +351,9 @@ the command, the environment, and the known caveats.
 ### Shared environment, protocol & caveats
 
 * **Hardware / OS:** 16 physical cores, 128 GB RAM (the reference machine).
-* **Simulator:** **NEST 3.8.0**, OpenMP-only, single MPI rank. CLAUDE.md pins the
-  project target at NESTML 8.2.0 → **NEST 3.9**; the absolute hardware-specific
+* **Simulator:** **NEST 3.8.0**, OpenMP-only, single MPI rank. The verification
+  target discussed in this document is **NEST 3.9**; repository agent notes do not
+  pin a NESTML/NEST dependency. The absolute hardware-specific
   *timings* may shift slightly on 3.9, but the load-bearing **GIL verdict does not**:
   `nest.Run()`/`Simulate()` holds the CPython GIL identically on 3.8.0, **3.9, and
   3.10** — source-confirmed (no `with nogil` around `pEngine.execute` in
@@ -483,7 +496,8 @@ the command, the environment, and the known caveats.
 ## What to measure on your hardware
 
 1. `T_run` for your network at your `chunk_ms` — this sets the feasible rate.
-2. Readback cost (now O(1)/O(new)) and end-to-end tick time.
+2. Readback cost (O(1) for rate; O(new) only after proving recorder drain, otherwise
+   O(history)) and end-to-end tick time.
 3. **p99 jitter**, not mean — the thing a control loop actually cares about.
 4. Then pick `chunk_ms` for your latency/throughput point (as you would a MUSIC tick).
 

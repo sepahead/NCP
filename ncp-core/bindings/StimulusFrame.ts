@@ -6,7 +6,7 @@ import type { SessionRef } from "./SessionRef";
  * The values to inject this step (keyed by stimulus port). `t` is
  * producer-local monotonic seconds and is never compared across peers.
  */
-export type StimulusFrame = { ncp_version: string, kind: string, session_id: string, t: number, values: { [key in string]: ChannelValue }, 
+export type StimulusFrame = { ncp_version: string, kind: string, session_id: string, t: number, values: { [key in string]: ChannelValue },
 /**
  * (0.8) The session incarnation; nested in Step/Run it MUST equal the outer.
  */

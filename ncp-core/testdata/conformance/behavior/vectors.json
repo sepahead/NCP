@@ -1,13 +1,13 @@
 {
   "description": "Behavioral conformance corpus: language-neutral {function, input, expect} decision vectors that pin every independent NCP implementation to the SAME runtime decisions as the ncp-core reference. Complements conformance/vectors/*.json (which pins wire/serde shape) by pinning behavior: check_version accept/reject, contract_status advisory match/mismatch/absent, validate required-field + scientific-boundary, and the safety-governor HOLD/ESTOP/clamp/watchdog outcomes. Every vector here is asserted against ncp-core by ncp-core/tests/behavior_conformance.rs (so the corpus can never claim an outcome the reference does not produce) and replayed through the Python binding by scripts/check_behavior_vectors.py.",
-  "ncp_version": "0.8",
-  "contract_hash": "d1b50a2d8a265276",
+  "ncp_version": "1.0",
+  "contract_hash": "163acc57d8a62b66",
   "cases": {
     "check_version": [
       {
         "name": "self_compatible",
         "input": {
-          "version": "0.8",
+          "version": "1.0",
           "strict": false
         },
         "expect": {
@@ -17,7 +17,7 @@
       {
         "name": "self_compatible_strict",
         "input": {
-          "version": "0.8",
+          "version": "1.0",
           "strict": true
         },
         "expect": {
@@ -25,9 +25,39 @@
         }
       },
       {
-        "name": "minor_missing_is_zero",
+        "name": "stable_same_major_minor_addition_compatible",
         "input": {
-          "version": "0",
+          "version": "1.9",
+          "strict": true
+        },
+        "expect": {
+          "compatible": true
+        }
+      },
+      {
+        "name": "stable_u64_max_minor_compatible",
+        "input": {
+          "version": "1.18446744073709551615",
+          "strict": true
+        },
+        "expect": {
+          "compatible": true
+        }
+      },
+      {
+        "name": "stable_missing_minor_is_zero",
+        "input": {
+          "version": "1",
+          "strict": false
+        },
+        "expect": {
+          "compatible": true
+        }
+      },
+      {
+        "name": "released_0_8_requires_gateway",
+        "input": {
+          "version": "0.8",
           "strict": false
         },
         "expect": {
@@ -35,17 +65,7 @@
         }
       },
       {
-        "name": "pre1_minor_is_breaking",
-        "input": {
-          "version": "0.7",
-          "strict": false
-        },
-        "expect": {
-          "compatible": false
-        }
-      },
-      {
-        "name": "pre1_prev_wire_incompatible",
+        "name": "older_pre1_wire_incompatible",
         "input": {
           "version": "0.6",
           "strict": false
@@ -55,9 +75,9 @@
         }
       },
       {
-        "name": "major_bump_incompatible",
+        "name": "next_major_incompatible",
         "input": {
-          "version": "1.0",
+          "version": "2.0",
           "strict": false
         },
         "expect": {
@@ -67,7 +87,7 @@
       {
         "name": "strict_mismatch_raises",
         "input": {
-          "version": "0.7",
+          "version": "0.8",
           "strict": true
         },
         "expect": {
@@ -77,7 +97,7 @@
       {
         "name": "patch_component_rejected",
         "input": {
-          "version": "0.8.0",
+          "version": "1.0.0",
           "strict": false
         },
         "expect": {
@@ -87,7 +107,7 @@
       {
         "name": "garbage_minor_rejected",
         "input": {
-          "version": "0.GARBAGE",
+          "version": "1.GARBAGE",
           "strict": false
         },
         "expect": {
@@ -97,7 +117,47 @@
       {
         "name": "leading_plus_rejected",
         "input": {
-          "version": "+0.8",
+          "version": "+1.0",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "leading_zero_major_rejected",
+        "input": {
+          "version": "01.0",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "leading_zero_minor_rejected",
+        "input": {
+          "version": "1.00",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "unicode_digit_rejected",
+        "input": {
+          "version": "1.١",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "trailing_line_feed_rejected",
+        "input": {
+          "version": "1.0\n",
           "strict": false
         },
         "expect": {
@@ -125,6 +185,26 @@
         }
       },
       {
+        "name": "u64_minor_overflow_rejected",
+        "input": {
+          "version": "1.18446744073709551616",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
+        "name": "empty_minor_rejected",
+        "input": {
+          "version": "1.",
+          "strict": false
+        },
+        "expect": {
+          "error": true
+        }
+      },
+      {
         "name": "empty_rejected",
         "input": {
           "version": "",
@@ -139,7 +219,7 @@
       {
         "name": "match",
         "input": {
-          "peer_hash": "d1b50a2d8a265276"
+          "peer_hash": "163acc57d8a62b66"
         },
         "expect": {
           "status": "match"
@@ -171,12 +251,21 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
               "ref": "iaf_psc_alpha"
-            }
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
           }
         },
         "expect": {
@@ -189,7 +278,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s"
           }
         },
@@ -220,7 +309,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s﻿spoof",
             "network": {
               "kind": "builtin",
@@ -233,21 +322,40 @@
         }
       },
       {
-        "name": "open_session_additive_enum_preserved",
+        "name": "open_session_unknown_entity_role_rejected",
         "input": {
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
-              "kind": "future_network_kind",
+              "kind": "builtin",
               "ref": "model"
-            }
+            },
+            "bindings": [
+              {
+                "port": "future_sensor",
+                "direction": "record",
+                "entity": {
+                  "path": "swarm/1",
+                  "role": "swarm"
+                }
+              }
+            ],
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
           }
         },
         "expect": {
-          "valid": true
+          "valid": false
         }
       },
       {
@@ -256,7 +364,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -277,7 +385,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -285,11 +393,56 @@
             },
             "sim": {
               "seed": 1.0
-            }
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
           }
         },
         "expect": {
           "valid": true
+        }
+      },
+      {
+        "name": "open_session_unknown_record_observable_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "model"
+            },
+            "record": {
+              "targets": [
+                {
+                  "port": "out",
+                  "target": "pop",
+                  "observable": "lfp_v5"
+                }
+              ]
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
         }
       },
       {
@@ -298,7 +451,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -324,7 +477,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -350,7 +503,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -374,7 +527,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -393,7 +546,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -412,7 +565,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -431,7 +584,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -450,7 +603,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -469,7 +622,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -488,7 +641,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -509,7 +662,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -530,7 +683,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -553,7 +706,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -576,7 +729,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "network": {
               "kind": "builtin",
@@ -597,7 +750,7 @@
           "kind": "open_session",
           "message": {
             "kind": "open_session",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s\u0001x",
             "network": {
               "kind": "builtin",
@@ -615,7 +768,7 @@
           "kind": "step_request",
           "message": {
             "kind": "step_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             }
@@ -634,11 +787,11 @@
           "kind": "step_request",
           "message": {
             "kind": "step_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "stimulus": {
               "kind": "stimulus_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "session_id": "s",
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
@@ -646,6 +799,24 @@
             },
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "7f3ead78eab2487bdf0db3b98b0b69d22d448c5a3f55a510b092c2889389abfb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
             }
           },
           "session": {
@@ -662,7 +833,7 @@
           "kind": "step_request",
           "message": {
             "kind": "step_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "stimulus": {
               "kind": "stimulus_frame",
@@ -689,11 +860,11 @@
           "kind": "step_request",
           "message": {
             "kind": "step_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "stimulus": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "session_id": "s",
               "stream": {
                 "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
@@ -721,11 +892,11 @@
           "kind": "step_request",
           "message": {
             "kind": "step_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "stimulus": {
               "kind": "stimulus_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "session_id": "other",
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
@@ -749,7 +920,7 @@
           "kind": "run_request",
           "message": {
             "kind": "run_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
@@ -769,12 +940,12 @@
           "kind": "run_request",
           "message": {
             "kind": "run_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "duration_ms": 1,
             "stimulus": {
               "kind": "stimulus_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "session_id": "s",
               "values": {
                 "drive": []
@@ -801,11 +972,11 @@
           "kind": "step_request",
           "message": {
             "kind": "step_request",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "stimulus": {
               "kind": "stimulus_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "session_id": "s",
               "values": {
                 "drive": []
@@ -832,7 +1003,7 @@
           "kind": "stimulus_frame",
           "message": {
             "kind": "stimulus_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "values": {
               "drive": []
@@ -855,7 +1026,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 1
@@ -875,7 +1046,7 @@
         "input": {
           "kind": "command_frame",
           "message": {
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 1
@@ -937,7 +1108,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 0
@@ -958,7 +1129,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 9007199254740992
@@ -979,7 +1150,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 1.0
@@ -1000,7 +1171,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 1.5
@@ -1021,7 +1192,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "frame_id": "world\nspoof",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
@@ -1043,7 +1214,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "channels": {
               "badchannel": {
                 "data": [
@@ -1071,7 +1242,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "channels": {},
             "stream": {
@@ -1081,7 +1252,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           }
         },
         "expect": {
@@ -1094,7 +1275,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "ttl_ms": 200,
             "channels": {},
@@ -1105,7 +1286,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           }
         },
         "expect": {
@@ -1118,7 +1309,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "ttl_ms": 200,
             "stream": {
@@ -1128,7 +1319,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           }
         },
         "expect": {
@@ -1141,7 +1342,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "ttl_ms": 200,
             "channels": {
@@ -1156,7 +1357,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           }
         },
         "expect": {
@@ -1169,7 +1380,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "ttl_ms": 200,
             "channels": {
@@ -1195,7 +1406,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           }
         },
         "expect": {
@@ -1208,7 +1429,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "ttl_ms": 200,
             "channels": {
@@ -1263,7 +1484,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           }
         },
         "expect": {
@@ -1276,7 +1507,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "active",
             "ttl_ms": 200,
             "channels": {
@@ -1303,7 +1534,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
           }
         },
         "expect": {
@@ -1316,7 +1557,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "mode": "",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
@@ -1338,7 +1579,7 @@
           "kind": "sensor_frame",
           "message": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 1
@@ -1359,7 +1600,7 @@
           "kind": "sensor_frame",
           "message": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "channels": {
               "pose": {
                 "data": "not-an-array"
@@ -1385,7 +1626,7 @@
           "kind": "sensor_frame",
           "message": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "channels": {
               "pose_error": []
             },
@@ -1409,7 +1650,7 @@
           "kind": "command_frame",
           "message": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "channels": {
               "velocity_setpoint": []
             },
@@ -1433,7 +1674,7 @@
           "kind": "sensor_frame",
           "message": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "frame_id": null,
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
@@ -1455,7 +1696,7 @@
           "kind": "sensor_frame",
           "message": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
               "seq": 0
@@ -1489,7 +1730,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {},
             "calibrated_posterior": false,
@@ -1513,7 +1754,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {
               "gex": {
@@ -1550,7 +1791,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {},
             "calibrated_posterior": false,
@@ -1574,7 +1815,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {},
             "stream": {
@@ -1596,7 +1837,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {
               "spk": {
@@ -1633,7 +1874,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {
               "vm": {
@@ -1664,7 +1905,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {
               "vmspoof": {
@@ -1691,12 +1932,42 @@
         }
       },
       {
+        "name": "observation_frame_unknown_observable_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "records": {
+              "lfp": {
+                "port": "lfp",
+                "target": "pop",
+                "observable": "lfp_v5"
+              }
+            },
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "observation_frame_record_missing_observable_rejected",
         "input": {
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {
               "vm": {
@@ -1725,7 +1996,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "records": {
               "vm": []
@@ -1751,7 +2022,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
@@ -1772,7 +2043,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "calibrated_posterior": true,
             "is_simulation_output": true,
@@ -1795,7 +2066,7 @@
           "kind": "observation_frame",
           "message": {
             "kind": "observation_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "calibrated_posterior": false,
             "is_simulation_output": false,
@@ -1818,7 +2089,44 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "ok": true,
+            "state_version": 1,
+            "backend": "y",
+            "provenance": {
+              "network_ref": "x",
+              "backend": "y",
+              "calibrated_posterior": false,
+              "is_simulation_output": true,
+              "advisory_only": true
+            },
+            "error": null,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "identity": {
+              "principal_id": "body-principal-1",
+              "entity_id": "simulator-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "session_opened_missing_state_version_rejected",
+        "input": {
+          "kind": "session_opened",
+          "message": {
+            "kind": "session_opened",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
             "backend": "y",
@@ -1828,11 +2136,24 @@
               "calibrated_posterior": false,
               "is_simulation_output": true,
               "advisory_only": true
-            }
+            },
+            "error": null,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "identity": {
+              "principal_id": "body-principal-1",
+              "entity_id": "simulator-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
           }
         },
         "expect": {
-          "valid": true
+          "valid": false
         }
       },
       {
@@ -1841,9 +2162,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
+            "state_version": 1,
             "backend": "y",
             "provenance": {
               "network_ref": "x",
@@ -1851,7 +2173,20 @@
               "calibrated_posterior": true,
               "is_simulation_output": true,
               "advisory_only": true
-            }
+            },
+            "error": null,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "identity": {
+              "principal_id": "body-principal-1",
+              "entity_id": "simulator-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
           }
         },
         "expect": {
@@ -1864,9 +2199,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
+            "state_version": 1,
             "backend": "y",
             "provenance": {
               "calibrated_posterior": false,
@@ -1885,9 +2221,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
+            "state_version": 1,
             "backend": "y",
             "provenance": {
               "network_ref": "x",
@@ -1908,9 +2245,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
+            "state_version": 1,
             "backend": "a",
             "provenance": {
               "network_ref": "x",
@@ -1931,9 +2269,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
+            "state_version": 1,
             "backend": "y",
             "error": "contradiction",
             "provenance": {
@@ -1955,9 +2294,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": false,
+            "state_version": 0,
             "backend": "y",
             "error": "failed",
             "provenance": {
@@ -1979,9 +2319,10 @@
           "kind": "session_opened",
           "message": {
             "kind": "session_opened",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": true,
+            "state_version": 1,
             "backend": "y",
             "provenance": {
               "network_ref": "x",
@@ -2003,7 +2344,7 @@
           "kind": "session_closed",
           "message": {
             "kind": "session_closed",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "ok": false,
             "session": {
@@ -2024,7 +2365,7 @@
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2032,7 +2373,24 @@
             "command_channels": [],
             "safety": {
               "command_timeout_ms": 500
-            }
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
           }
         },
         "expect": {
@@ -2045,7 +2403,7 @@
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2064,7 +2422,7 @@
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2089,12 +2447,12 @@
         }
       },
       {
-        "name": "capabilities_optional_channel_type_rejected",
+        "name": "capabilities_legacy_optional_boolean_rejected",
         "input": {
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2102,7 +2460,34 @@
               {
                 "name": "pose",
                 "kind": "vec3",
-                "optional": "yes"
+                "optional": false
+              }
+            ],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_unknown_requirement_fails_closed",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [
+              {
+                "name": "pose",
+                "kind": "vec3",
+                "requirement": "unknown"
               }
             ],
             "command_channels": [],
@@ -2121,7 +2506,7 @@
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2144,7 +2529,7 @@
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2167,7 +2552,7 @@
           "kind": "capabilities",
           "message": {
             "kind": "capabilities",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "controller_id": "controller-1",
             "role": "controller",
             "control_rate_hz": 50,
@@ -2186,7 +2571,32 @@
           "kind": "control_status",
           "message": {
             "kind": "control_status",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
+            "t": 0,
+            "mode": "hold",
+            "loop_latency_ms": 0,
+            "safety_ok": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "control_status_unstamped_seq_rejected",
+        "input": {
+          "kind": "control_status",
+          "message": {
+            "kind": "control_status",
+            "ncp_version": "1.0",
             "t": 0,
             "mode": "hold",
             "loop_latency_ms": 0,
@@ -2202,7 +2612,7 @@
           }
         },
         "expect": {
-          "valid": true
+          "valid": false
         }
       },
       {
@@ -2211,14 +2621,14 @@
           "kind": "control_status",
           "message": {
             "kind": "control_status",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0,
             "mode": "hold",
             "loop_latency_ms": -1,
             "safety_ok": true,
             "stream": {
               "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
-              "seq": 0
+              "seq": 1
             },
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
@@ -2236,7 +2646,7 @@
           "kind": "link_status",
           "message": {
             "kind": "link_status",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "t": 0,
             "received": 0,
@@ -2264,12 +2674,68 @@
         }
       },
       {
+        "name": "link_status_unstamped_seq_rejected",
+        "input": {
+          "kind": "link_status",
+          "message": {
+            "kind": "link_status",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "t": 0,
+            "received": 0,
+            "lost": 0,
+            "loss_rate": 0,
+            "burst": false,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 0
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "link_status_observation_presence_mismatch_rejected",
+        "input": {
+          "kind": "link_status",
+          "message": {
+            "kind": "link_status",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "t": 0,
+            "received": 1,
+            "lost": 0,
+            "loss_rate": 0,
+            "burst": false,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "observed_stream": {
+              "epoch": "04db05f6-0d62-4e43-96e8-f239190a63b1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "link_status_invalid_loss_rejected",
         "input": {
           "kind": "link_status",
           "message": {
             "kind": "link_status",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "session_id": "s",
             "t": 0,
             "received": 0,
@@ -2302,8 +2768,8 @@
           "kind": "error",
           "message": {
             "kind": "error",
-            "ncp_version": "0.8",
-            "session_id": "s",
+            "ncp_version": "1.0",
+            "code": "NCP-WIRE-001",
             "error": "bad request"
           }
         },
@@ -2312,12 +2778,1391 @@
         }
       },
       {
+        "name": "error_frame_later_minor_ok",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.9",
+            "code": "NCP-WIRE-001",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "error_frame_u64_max_minor_ok",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.18446744073709551615",
+            "code": "NCP-WIRE-001",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "error_frame_noncanonical_version_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.00",
+            "code": "NCP-WIRE-001",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_frame_missing_code_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_frame_unknown_code_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-NOT-REGISTERED",
+            "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "error_frame_unversioned_rejected",
         "input": {
           "kind": "error",
           "message": {
             "kind": "error",
+            "code": "NCP-WIRE-001",
             "error": "bad request"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_missing_identity_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_spoofed_body_role_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_wrong_identity_plane_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "action"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_unknown_identity_role_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "unknown",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_unregistered_security_profile_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "development",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_malformed_security_digest_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "ABC",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_unpermitted_gateway_attribution_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false,
+            "gateway": {
+              "gateway_id": "gateway-1",
+              "source_wire": "0.8"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_gateway_attribution_ok",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": true,
+            "gateway": {
+              "gateway_id": "gateway-1",
+              "source_wire": "0.8"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "open_session_gateway_wrong_source_wire_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": true,
+            "gateway": {
+              "gateway_id": "gateway-1",
+              "source_wire": "0.7"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_missing_operation_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_missing_authority_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "7f3ead78eab2487bdf0db3b98b0b69d22d448c5a3f55a510b092c2889389abfb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_stale_operation_epoch_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "4d7bc1dbfbc9ad313b7e32ef1b74e7e22d9b53ee69c969d9bd13d66a4af65e66",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96926",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_malformed_request_digest_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "bad",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_nonpositive_deadline_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "6a529206f5daadc775c9d58d4938c50bfe402383d895fd46fc5dbe04fde05384",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 0,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_stale_authority_epoch_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "7f3ead78eab2487bdf0db3b98b0b69d22d448c5a3f55a510b092c2889389abfb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96926",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_zero_authority_term_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "7f3ead78eab2487bdf0db3b98b0b69d22d448c5a3f55a510b092c2889389abfb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 0,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_overlong_authority_lease_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "7f3ead78eab2487bdf0db3b98b0b69d22d448c5a3f55a510b092c2889389abfb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000060001
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "step_request_inverted_authority_lease_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "7f3ead78eab2487bdf0db3b98b0b69d22d448c5a3f55a510b092c2889389abfb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000000000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_missing_authority_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "1.0",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0
+                ]
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              }
+            ],
+            "horizon_dt_ms": 20,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "command_frame_active_stale_authority_epoch_rejected",
+        "input": {
+          "kind": "command_frame",
+          "message": {
+            "kind": "command_frame",
+            "ncp_version": "1.0",
+            "mode": "active",
+            "ttl_ms": 200,
+            "channels": {
+              "velocity_setpoint": {
+                "data": [
+                  0
+                ]
+              }
+            },
+            "horizon": [
+              {
+                "velocity_setpoint": {
+                  "data": [
+                    0
+                  ]
+                }
+              }
+            ],
+            "horizon_dt_ms": 20,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96926",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_closed_receipt_ok",
+        "input": {
+          "kind": "session_closed",
+          "message": {
+            "kind": "session_closed",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "ok": true,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "succeeded",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "session_closed_missing_receipt_rejected",
+        "input": {
+          "kind": "session_closed",
+          "message": {
+            "kind": "session_closed",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "ok": true,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_closed_unknown_outcome_rejected",
+        "input": {
+          "kind": "session_closed",
+          "message": {
+            "kind": "session_closed",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "ok": true,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "outcome_unknown",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "session_closed_malformed_result_digest_rejected",
+        "input": {
+          "kind": "session_closed",
+          "message": {
+            "kind": "session_closed",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "ok": true,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "BAD",
+              "outcome": "succeeded",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_session_id_without_generation_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-WIRE-001",
+            "error": "bad",
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_generation_without_session_id_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-WIRE-001",
+            "error": "bad",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_unknown_receipt_outcome_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-WIRE-001",
+            "error": "bad",
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "unknown",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_unknown_role_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "coordinator",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_identity_role_mismatch_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_identity_entity_mismatch_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "other-controller",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_missing_core_stable_capability_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_unknown_stable_capability_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1",
+              "ncp.core.future.v9"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_duplicate_stable_capability_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1",
+              "ncp.core.lifecycle.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_plant_missing_profile_digest_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "plant-1",
+            "role": "plant",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "plant-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_plant_profile_digest_ok",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "plant-1",
+            "role": "plant",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "plant-1",
+              "role": "body",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e"
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "capabilities_unknown_required_channel_kind_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [
+              {
+                "name": "future_tensor",
+                "kind": "tensor",
+                "requirement": "required"
+              }
+            ],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_unknown_optional_channel_kind_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [
+              {
+                "name": "future_tensor",
+                "kind": "tensor",
+                "requirement": "optional"
+              }
+            ],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "capabilities_unpermitted_gateway_attribution_rejected",
+        "input": {
+          "kind": "capabilities",
+          "message": {
+            "kind": "capabilities",
+            "ncp_version": "1.0",
+            "controller_id": "controller-1",
+            "role": "controller",
+            "control_rate_hz": 50,
+            "sensor_channels": [],
+            "command_channels": [],
+            "safety": {
+              "command_timeout_ms": 500
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "stable_capabilities": [
+              "ncp.core.canonical-json.v1",
+              "ncp.core.lifecycle.v1",
+              "ncp.core.authority-lease.v1",
+              "ncp.core.idempotent-mutation.v1",
+              "ncp.core.plant-profile.v1"
+            ],
+            "gateway_permitted": false,
+            "plant_profile_digest": null,
+            "gateway": {
+              "gateway_id": "gateway-1",
+              "source_wire": "0.8"
+            }
           }
         },
         "expect": {
@@ -2334,7 +4179,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2354,11 +4199,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2394,7 +4249,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {},
@@ -2405,11 +4260,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2464,11 +4329,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2504,7 +4379,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2524,11 +4399,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2564,7 +4449,7 @@
           },
           "command": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2588,7 +4473,7 @@
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2624,7 +4509,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2644,7 +4529,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
@@ -2683,7 +4578,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2703,7 +4598,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": null,
           "now_s": 1.0,
@@ -2759,7 +4664,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2779,11 +4684,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2819,7 +4734,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2839,11 +4754,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {},
             "stream": {
@@ -2871,7 +4796,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -2891,11 +4816,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -2931,7 +4866,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "hold",
             "channels": {
@@ -2955,7 +4890,7 @@
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {},
             "stream": {
@@ -2983,7 +4918,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "estop",
             "channels": {
@@ -3007,7 +4942,7 @@
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3043,7 +4978,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "init",
             "channels": {
@@ -3067,7 +5002,7 @@
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3103,7 +5038,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "channels": {
               "velocity_setpoint": {
@@ -3126,7 +5061,7 @@
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3162,7 +5097,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3182,11 +5117,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3222,7 +5167,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3242,7 +5187,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": null,
           "now_s": 12.0,
@@ -3261,7 +5216,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3281,7 +5236,17 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
@@ -3311,7 +5276,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3331,11 +5296,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3371,7 +5346,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3391,11 +5366,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3432,7 +5417,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3452,11 +5437,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3494,7 +5489,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "hold",
             "channels": {
@@ -3518,7 +5513,7 @@
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3556,7 +5551,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3576,11 +5571,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {},
             "stream": {
@@ -3609,7 +5614,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3629,11 +5634,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3671,7 +5686,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3691,11 +5706,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3731,7 +5756,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3751,11 +5776,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3793,7 +5828,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3813,11 +5848,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3855,7 +5900,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -3888,11 +5933,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -3930,7 +5985,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "frame_id": "body",
             "ttl_ms": 200.0,
             "mode": "active",
@@ -3951,11 +6006,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "frame_id": "world",
             "channels": {
@@ -3994,7 +6059,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -4014,11 +6079,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -4055,7 +6130,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -4075,11 +6150,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -4116,7 +6201,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -4136,11 +6221,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {},
             "stream": {
@@ -4169,7 +6264,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -4187,11 +6282,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {},
             "stream": {
@@ -4220,7 +6325,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -4238,11 +6343,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {
               "pose_position": {
@@ -4279,7 +6394,7 @@
           },
           "command": {
             "kind": "command_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "ttl_ms": 200.0,
             "mode": "active",
             "channels": {
@@ -4312,11 +6427,21 @@
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
             },
-            "session_id": "s"
+            "session_id": "s",
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "00000000-0000-4000-8000-0000000000b1",
+              "issuer_principal_id": "authority",
+              "holder_principal_id": "controller",
+              "holder_entity_id": "controller",
+              "issued_at_utc_ms": 1000,
+              "expires_at_utc_ms": 61000
+            }
           },
           "sensor": {
             "kind": "sensor_frame",
-            "ncp_version": "0.8",
+            "ncp_version": "1.0",
             "t": 0.0,
             "channels": {},
             "stream": {
@@ -4346,7 +6471,7 @@
             "now_s": 1.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4380,7 +6505,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4436,7 +6571,7 @@
             "now_s": 0.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4453,7 +6588,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4461,7 +6606,7 @@
             "now_s": 0.05,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4478,7 +6623,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4486,7 +6641,7 @@
             "now_s": 0.05,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4503,7 +6658,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4533,7 +6698,7 @@
             "now_s": 0.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 1000.0,
               "channels": {
@@ -4550,7 +6715,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4567,7 +6742,7 @@
             "now_s": 0.1,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "hold",
               "ttl_ms": 1000.0,
               "channels": {
@@ -4605,7 +6780,7 @@
             "now_s": 0.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4622,7 +6797,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4646,7 +6831,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4669,14 +6864,14 @@
         ]
       },
       {
-        "name": "estop_latches_and_reset_requires_fresh_command",
+        "name": "estop_reset_retires_generation_context",
         "operations": [
           {
             "op": "command",
             "now_s": 0.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4693,7 +6888,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4743,7 +6948,7 @@
             "now_s": 0.03,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -4760,29 +6965,38 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
             "op": "active",
             "now_s": 0.04,
             "expect": {
-              "active": true,
-              "value": 0.7,
+              "active": false,
               "estopped": false
             }
           }
         ]
       },
       {
-        "name": "lower_sequence_reanchors_only_after_expiry",
+        "name": "lower_sequence_remains_rejected_after_expiry",
         "operations": [
           {
             "op": "command",
             "now_s": 0.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 100.0,
               "channels": {
@@ -4799,7 +7013,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4807,7 +7031,7 @@
             "now_s": 0.05,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 100.0,
               "channels": {
@@ -4824,7 +7048,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4849,7 +7083,7 @@
             "now_s": 0.11,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 100.0,
               "channels": {
@@ -4866,15 +7100,24 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
             "op": "active",
             "now_s": 0.12,
             "expect": {
-              "active": true,
-              "value": 0.8,
+              "active": false,
               "estopped": false
             }
           }
@@ -4888,7 +7131,7 @@
             "now_s": 0.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 1000.0,
               "channels": {
@@ -4905,7 +7148,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4935,7 +7188,7 @@
             "now_s": 2.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 2000.0,
               "channels": {
@@ -4952,7 +7205,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -4985,7 +7248,7 @@
             "now_s": 2.5,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 2000.0,
               "channels": {
@@ -5002,7 +7265,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -5024,7 +7297,7 @@
             "now_s": 1.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -5041,7 +7314,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -5058,7 +7341,7 @@
             "now_s": 1.06,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -5075,7 +7358,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -5100,7 +7393,7 @@
             "now_s": 1.5,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -5117,15 +7410,24 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
             "op": "active",
             "now_s": 1.55,
             "expect": {
-              "active": true,
-              "value": 0.7,
+              "active": false,
               "estopped": false
             }
           },
@@ -5142,7 +7444,7 @@
             "now_s": 2.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -5159,14 +7461,25 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
             "op": "active",
             "now_s": 2.05,
             "expect": {
-              "active": false,
+              "active": true,
+              "value": 0.2,
               "estopped": false
             }
           }
@@ -5180,7 +7493,7 @@
             "now_s": 1.0,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -5201,7 +7514,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {
@@ -5218,7 +7541,7 @@
             "now_s": 1.06,
             "command": {
               "kind": "command_frame",
-              "ncp_version": "0.8",
+              "ncp_version": "1.0",
               "mode": "active",
               "ttl_ms": 200.0,
               "channels": {
@@ -5239,7 +7562,17 @@
               "session": {
                 "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
               },
-              "session_id": "s"
+              "session_id": "s",
+              "authority": {
+                "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+                "term": 1,
+                "lease_id": "00000000-0000-4000-8000-0000000000b1",
+                "issuer_principal_id": "authority",
+                "holder_principal_id": "controller",
+                "holder_entity_id": "controller",
+                "issued_at_utc_ms": 1000,
+                "expires_at_utc_ms": 61000
+              }
             }
           },
           {

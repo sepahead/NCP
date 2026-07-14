@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "session_opened",
   "session_id": "vec-open-1",
   "ok": true,
@@ -17,8 +17,18 @@
     "note": null
   },
   "error": null,
-  "contract_hash": "d1b50a2d8a265276",
+  "contract_hash": "163acc57d8a62b66",
   "session": {
     "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
-  }
+  },
+  "state_version": 1,
+  "identity": {
+    "principal_id": "body-principal-1",
+    "entity_id": "simulator-1",
+    "role": "body",
+    "plane": "control"
+  },
+  "security_profile": "dev-loopback-insecure",
+  "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+  "gateway_permitted": false
 }

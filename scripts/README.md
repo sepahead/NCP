@@ -1,102 +1,84 @@
-# scripts
+# NCP maintenance scripts
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+These tools maintain the unreleased, release-blocked NCP `1.0.0-rc.1` candidate.
+They do not publish, sign, tag, or convert a local pass into external certification.
 
-Maintenance and ops scripts for the **NCP** workspace — the local conformance gate,
-the cross-consumer pin tooling, and the NEST/transport micro-benchmarks. NCP is a
-polyglot SDK around **one** normative wire contract with peers in Rust, Python, C/C++,
-and TypeScript; these scripts keep that contract checkable and its consumers in sync.
+## Contract and conformance
 
-These are operator tools, not part of the published SDK. Run them from anywhere — each
-resolves the repo root from its own location.
-
-## Index
-
-| Script | What it does |
+| Script | Purpose |
 |---|---|
-| `check.sh` | Complete local release gate: format/clippy, locked Rust workspace tests, real C++ ABI demo, an isolated maturin-built Python wheel with required behavior/smoke tests, reproducible TS source/dist, schema/corpus/baseline guards, ACL self-tests, version coherence, `cargo-deny`, and `buf`. Requires `cargo`, `python3`, `c++`, `bun`, `cargo-deny`, and `buf`. |
-| `sync_rust_package_testdata.py [--write]` | Checks (or refreshes) crate-local package-test snapshots and dual-license files against their canonical repository-root copies. Missing, stale, symlinked, and unexpected managed files fail. |
-| `check_rust_packages.py [--offline]` | Packages all five publishable Rust crates, asserts every archive contains both licenses and all required testdata, tests core/Zenoh/C-ABI from extraction, and type-checks Python/gateway from extraction using temporary local patches for unpublished exact NCP dependencies. |
-| `repin-ncp.sh <tag> [base-dir]` | Re-pin every **discovered** NCP consumer to a single tag and refresh lockfiles. Consumers self-register via a `.ncp-consumer` descriptor in their own repo — this script names none of them. Edits files only — no commit/push/stage. |
-| `check-consumer-pins.sh [expected-tag] [base-dir]` | Read-only pin-consistency guard: **discovers** consumers (any sibling with a `.ncp-consumer` descriptor) and verifies tag pins, immutable Cargo revisions/versions, and declared Python runtime wire constants. Revision descriptors carry a consumer-declared release label; this offline check does not independently prove its tag-to-commit mapping. No writes, builds, or git/network calls. See [`INTEGRATING.md`](../INTEGRATING.md) §"Registering a consumer". |
-| `check_proto_schema_parity.py` | Wire-conformance guard: `proto/ncp.proto` vs `schemas/*.schema.json` (field-set + enum wire-string parity). |
-| `check_conformance_vectors.py` | Validates the golden message vectors in `conformance/vectors/*.json` against the JSON Schemas. |
-| `check_wire_baseline.py` | Enforces additive-only JSON-wire compatibility with the frozen baseline. For a new release line, `--freeze DIR` captures the snapshot and `--verify-exact DIR` proves schemas/vectors are byte-identical immediately before tagging. |
-| `check_acl_template.py` | Offline structural guard for the complete secure-router template: mTLS/default-deny, exact key shapes, command/observation PUT = commander, sensor PUT = robot, lifecycle RPC = commander, and observer read-only coverage on all data planes. Runs negative self-tests on every invocation. |
-| `render_acl_template.py` | Safely renders every ACL key from the neutral `ncp` realm to one validated exact deployment realm; writes atomically with owner-only permissions. |
-| `verify_acl_deployment.py` | Live mTLS/ACL proof using observer-received nonce acknowledgments. Allowed writes must arrive, denied writes must remain absent after a same-plane allowed baseline, and a no-client-cert connection must fail. Also has offline self-test and dry-run modes. |
-| `bench_realtime.py` | Real-time-factor sweep for a Brunel-style NEST network served over NCP. |
-| `bench_overlap.py` | Whether in-process Python threading can overlap NCP transport I/O with `nest.Run()` (GIL test). |
-| `bench_gil_overlap.py` | Whether a native (non-GIL-holding) thread overlaps transport with `nest.Run()`. |
-| `bench_chunk_overhead.py` | Cost of chunked vs monolithic NEST simulation under NCP's stepwise control model. |
+| `check.sh` | complete local Rust/Python/C++/TypeScript/proto/schema/profile/package gate |
+| `generate_contract_manifest.py [--write]` | exact normative source list and complete SHA-256 digest |
+| `generate_conformance_manifest.py [--write]` | mandatory vector inventory, clauses, applicability, source hashes, corpus digest |
+| `check_proto_schema_parity.py` | protobuf ↔ JSON Schema fields/types/enums |
+| `check_conformance_vectors.py` | canonical JSON and excluded offline binary fixtures |
+| `check_behavior_vectors.py` | installed Python-wheel replay with exact manifest coverage |
+| `python3 -m unittest -v e2e.test_bounded_json` | dependency-free hostile ingress checks for the PyNEST JSONL client before generic decoding |
+| `check_profile_digests.py` | independent Python replay of portable security-state and plant-profile digest vectors |
+| `check_released_baselines.py [--self-test]` | read-only exact path/mode/blob verification of every registered released baseline against its bound annotated tag object, peeled commit, and subtree |
+| `check_buf_breaking.py [--self-test]` | select the latest verified same-major annotated release for Buf, or explicitly report that an initial major has no released baseline |
+| `check_wire_baseline.py` | additive compatibility, freeze, and exact candidate snapshot verification |
+| `check_schema_defaults.py` | reject optimistic or type-invalid generated defaults |
+| `check_release_gates.py [--self-test]` | validate distinct pre-release gates and non-blocking post-publication checks |
+| `sync_rust_package_testdata.py [--write]` | exact crate-local corpus/proto/schema copies |
+| `check_markdown_links.py [--self-test]` | current indexed and non-ignored untracked Markdown target/anchor integrity; byte-frozen baseline Markdown is verified against its tag instead |
 
-## Run
+## Security, plant, and packages
 
-```bash
-scripts/check.sh                         # full local gate (mirrors CI)
-python3 scripts/sync_rust_package_testdata.py
-python3 scripts/check_rust_packages.py --offline
-scripts/check-consumer-pins.sh v0.8.0    # verify all consumers pin the latest release
-scripts/repin-ncp.sh v0.8.0              # re-pin all consumers to that immutable tag
-python3 scripts/check_proto_schema_parity.py
-python3 scripts/check_acl_template.py
-python3 scripts/verify_acl_deployment.py --self-test
-```
+| Script | Purpose |
+|---|---|
+| `validate_security_profile.py` | fail-closed named-profile/authority rules and portable security-state digest implementation |
+| `check_acl_template.py` | offline Zenoh ACL structure and negative mutations |
+| `verify_acl_deployment.py` | router mTLS/ACL nonce-delivery probe; it cannot prove NCP payload-to-peer identity binding, and `--self-test` is logic only |
+| `render_acl_template.py` | atomically render a validated exact realm |
+| `check_rust_packages.py --offline` | package/extract/build/test publishable Rust crates without workspace leakage |
+| `check-version-coherence.sh` | package/wire/compact-hash metadata coherence |
+| `../ncp-ts/scripts/build-release.mjs --source-revision REV --output DIR` | archive one exact 40-hex `HEAD`, inject and verify the shared Rust/TypeScript build identity, and emit smoke-tested root+nested npm tarballs plus a hash receipt; never publishes |
 
-The `bench_*.py` scripts require a working PyNEST install; see `PERFORMANCE.md`.
+## Consumer tooling
 
-## Secure Zenoh deployment tools
+`check-consumer-pins.sh` and `repin-ncp.sh` discover `.ncp-consumer` descriptors.
+They are pin-management tools, not compatibility certification. Engram's explicit
+native-1.0 migration is in progress and intentionally makes a v0.8 pin check fail
+until its descriptor/runtime/pin move coherently; the other five known consumers
+remain on immutable `v0.8.0`. Never repin a consumer to movable `main`, and never
+call an RC pin a completed installed-artifact certification.
 
-Render the router config when a deployment uses a realm other than the neutral
-`ncp`. Unsafe/wildcard realms are rejected, existing output is preserved unless
-`--force` is explicit, and the completed file atomically replaces the destination:
-
-```bash
-scripts/render_acl_template.py \
-  --realm engram/ncp \
-  --output /etc/ncp/zenoh-router.json5
-python3 scripts/check_acl_template.py
-```
-
-The structural guard is offline and stdlib-only. It checks the shipped template
-and mutates copies to prove the guard rejects widened keys, missing or misbound
-PUT authorities, incomplete observer reads, duplicate certificate CNs, bad ACL
-tokens, disabled mTLS, and unsafe realm rendering.
-
-After starting the rendered router, use the live verifier with three distinct
-mTLS identities whose certificate CNs map to the `commander`, `robot`, and
-`observer` subjects. It requires `eclipse-zenoh` (the imported module is
-`zenoh`). A put call returning success is deliberately not treated as evidence.
-The verifier subscribes as the observer, sends a fresh nonce per trial on a
-randomized `acl-verify-*` session, and waits for end-to-end delivery:
+Use `mirror_rev <pin-file> <release-label> <40-hex-revision>` for a vendored mirror
+that must bind immutable source bytes instead of a tag string. The read-only checker
+requires the exact revision in the pin file and reports the consumer-declared label;
+it does not prove that the label exists upstream. For a coordinated tagged re-pin,
+`repin-ncp.sh` resolves the local tag, substitutes both `{TAG}` and `{REV}` in the
+consumer's `repin_cmd`, refreshes descriptor metadata, and then runs the checker.
+The consumer command remains responsible for synchronizing its own mirror.
 
 ```bash
-python3 -m pip install eclipse-zenoh
-python3 scripts/verify_acl_deployment.py \
-  --endpoint tls/router.example:7447 \
-  --realm engram/ncp \
-  --ca /etc/ncp/certs/ca.pem \
-  --commander-cert /etc/ncp/certs/commander.pem \
-  --commander-key /etc/ncp/certs/commander-key.pem \
-  --robot-cert /etc/ncp/certs/robot.pem \
-  --robot-key /etc/ncp/certs/robot-key.pem \
-  --observer-cert /etc/ncp/certs/observer.pem \
-  --observer-key /etc/ncp/certs/observer-key.pem
+scripts/check-consumer-pins.sh v0.8.0
+scripts/test_consumer_pins.sh
 ```
 
-Use `--dry-run` with the same arguments to validate credential paths, TLS-only
-client configuration, disabled discovery/listeners, hostname verification, and
-the probe plan without opening a network session. Increase `--timeout` or
-`--settle` on a high-latency router. A denied check without a successful allowed
-delivery on that same plane is reported as inconclusive/failing, never as proof.
-The CLI-only verifier was removed because `z_put` cannot prove delivery or tell
-an ACL drop from a disconnected client.
+## Benchmarks
 
-## See also
+The `bench_*.py` and plotting scripts are informative developer measurements. Most
+require PyNEST or platform-specific dependencies. Historical results do not satisfy
+the candidate's release-bound performance and resource gate; a final campaign must
+record source/artifact/config/toolchain/environment digests.
 
-- The normative wire contract: [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md)
-- Repository overview: [repo README](../README.md)
+## Complete local run
 
-## License
+```bash
+scripts/check.sh
+```
 
-Licensed under either of [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE) at your option.
+Required tools are Cargo/Rust 1.88+, Python 3, a C++17 compiler, Bun/npm, Buf, and
+`cargo-deny`. Any missing required tool is a failed local gate. External security,
+independent-peer, fault/soak, fuzz/sanitizer, signature/SBOM, clean-room, publication,
+and consumer gates remain **NOT RUN** until separately evidenced.
+
+The released-baseline check requires the complete local objects and annotated refs
+for `v0.5.0` through `v0.8.0`. It is read-only in normal mode. Its registry binds
+Git identities; it neither verifies tag signatures nor makes a new release claim.
+The Buf gate consumes only those verified rows. The initial `ncp.v1` candidate has
+no released v1 row and is intentionally not compared with `ncp.v0`; after a v1
+release is registered, later v1 work compares with the greatest registered v1 tag's
+peeled commit.

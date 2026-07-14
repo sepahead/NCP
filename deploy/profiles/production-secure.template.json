@@ -1,0 +1,44 @@
+{
+  "profile": "production-secure",
+  "bind": {"kind": "tcp", "host": "0.0.0.0", "port": 7447},
+  "authority": {
+    "realm": "ncp",
+    "default_deny": true,
+    "principals": [
+      {
+        "principal_id": "commander-1",
+        "certificate_identity": "urn:ncp:commander-1",
+        "entity_id": "brain-1",
+        "role": "commander",
+        "planes": ["control", "action"],
+        "may_reset_estop": false,
+        "may_override": false
+      },
+      {
+        "principal_id": "body-1",
+        "certificate_identity": "urn:ncp:body-1",
+        "entity_id": "plant-1",
+        "role": "body",
+        "planes": ["control", "perception", "observation"],
+        "may_reset_estop": false,
+        "may_override": false
+      },
+      {
+        "principal_id": "operator-1",
+        "certificate_identity": "urn:ncp:operator-1",
+        "entity_id": "operator-console-1",
+        "role": "operator",
+        "planes": ["control", "action"],
+        "may_reset_estop": true,
+        "may_override": true
+      }
+    ]
+  },
+  "tls": {
+    "ca_cert": "/run/ncp/tls/ca.pem",
+    "peer_cert": "/run/ncp/tls/peer.pem",
+    "private_key": "/run/ncp/tls/peer.key"
+  },
+  "allow_downgrade": false,
+  "insecure_status": false
+}

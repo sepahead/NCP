@@ -1,5 +1,12 @@
 # Single neuron, populations, custom parameters, and plasticity over NCP
 
+> **Candidate boundary:** this is an informative model/integration note. It does not
+> claim that the unreleased NCP `1.0.0-rc.1` candidate reproduces a paper, provides
+> a calibrated posterior, validates learning, or has been exercised against the
+> in-progress Engram native-1.0 migration. Any backend must pass native 1.0
+> conformance and retained integration evidence before these flows count as
+> candidate evidence.
+
 NCP records and stimulates at the granularity of **a single neuron, a synapse, or
 a whole population**, with **custom neuron parameters**, and supports closing a
 **learning loop** — short- and long-term synaptic plasticity driven by feedback

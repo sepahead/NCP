@@ -1,0 +1,46 @@
+{
+  "schema": "ncp.observability-registry.v1",
+  "wire_version": "1.0",
+  "status": "candidate-unreleased",
+  "audit_events": [
+    "lifecycle_transition",
+    "authority_acquired",
+    "authority_transferred",
+    "authority_expired",
+    "operator_override",
+    "estop_latched",
+    "estop_reset",
+    "certificate_policy_changed",
+    "policy_denied",
+    "gateway_used",
+    "idempotency_replay",
+    "queue_drop"
+  ],
+  "metrics": {
+    "low_cardinality_only": true,
+    "names": [
+      "ncp_sessions",
+      "ncp_policy_denials_total",
+      "ncp_stale_frames_total",
+      "ncp_sequence_violations_total",
+      "ncp_ttl_expiry_total",
+      "ncp_mode_changes_total",
+      "ncp_estop_total",
+      "ncp_queue_drops_total",
+      "ncp_disconnect_total",
+      "ncp_reconnect_total",
+      "ncp_idempotency_replays_total"
+    ]
+  },
+  "redaction": {
+    "private_keys": "forbidden",
+    "credentials_or_tokens": "forbidden",
+    "raw_channel_payloads": "forbidden-by-default",
+    "identifiers_in_metric_labels": "forbidden"
+  },
+  "integrity": {
+    "local_sha256_chain": "required",
+    "independent_external_anchor": "required-for-production-certification",
+    "local_chain_is_a_signature": false
+  }
+}

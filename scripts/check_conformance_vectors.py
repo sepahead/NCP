@@ -2,9 +2,10 @@
 """Conformance corpus validator — golden message vectors vs the JSON Schemas.
 
 Every file in `conformance/vectors/*.json` is a canonical NCP message instance.
-This validates each against the schema for its `kind` (field-set + required +
-enum membership, recursively resolving local `$ref`/`$defs`), so any peer can run
-the same corpus to prove wire conformance. Dependency-free (stdlib only).
+This validates each against the schema for its `kind` (field-set, required,
+enum/const/pattern constraints, recursively resolving local `$ref`/`$defs`), so
+any peer can run the same corpus to prove wire conformance. Dependency-free
+(stdlib only).
 
 This complements:
   - ncp-core/tests/conformance.rs   (Rust serde  <-> schema, type-driven)
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import struct
 import sys
 from pathlib import Path
@@ -278,6 +280,14 @@ def validate(inst, schema: dict, root: dict, path: str, errs: list) -> None:
             errs.append(f"{path}: string length {len(inst)} < minLength {schema['minLength']}")
         if "maxLength" in schema and len(inst) > schema["maxLength"]:
             errs.append(f"{path}: string length {len(inst)} > maxLength {schema['maxLength']}")
+        if "pattern" in schema:
+            try:
+                matches = re.search(schema["pattern"], inst) is not None
+            except (re.error, TypeError) as error:
+                errs.append(f"{path}: invalid schema pattern {schema['pattern']!r}: {error}")
+            else:
+                if not matches:
+                    errs.append(f"{path}: string {inst!r} does not match pattern {schema['pattern']!r}")
     if isinstance(inst, list):
         if "minItems" in schema and len(inst) < schema["minItems"]:
             errs.append(f"{path}: array length {len(inst)} < minItems {schema['minItems']}")
@@ -337,6 +347,10 @@ def self_test_validator() -> list[str]:
     expect_invalid(1.5, {"type": "integer"}, "fractional float is not an integer")
     expect_invalid(True, {"type": "integer"}, "boolean is not an integer")
     expect_invalid("", {"type": "string", "minLength": 1}, "minLength")
+    exact_version = {"type": "string", "pattern": r"^1(?:\.[0-9]+)?(?![\s\S])"}
+    expect_valid("1.9", exact_version, "pattern")
+    expect_invalid("2.0", exact_version, "pattern")
+    expect_invalid("1.9\n", exact_version, "pattern absolute end")
     expect_invalid(
         {"known": 1, "extra": 2},
         {"type": "object", "properties": {"known": {"type": "integer"}}, "additionalProperties": False},
@@ -352,6 +366,112 @@ def self_test_validator() -> list[str]:
     return failures
 
 
+def _version_fields(node, path: str = "$"):
+    """Yield every top-level or nested `properties.ncp_version` schema."""
+    if isinstance(node, dict):
+        properties = node.get("properties")
+        if isinstance(properties, dict) and "ncp_version" in properties:
+            yield f"{path}.properties.ncp_version", properties["ncp_version"]
+        for key, value in node.items():
+            yield from _version_fields(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _version_fields(value, f"{path}[{index}]")
+
+
+def check_wire_version_schemas(by_kind: dict) -> list[str]:
+    """Prove every message-version schema accepts exactly the stable-major boundary cases."""
+    failures: list[str] = []
+    u64_max = (1 << 64) - 1
+    accepted_minor_values = set(range(1_025))
+    for exponent in range(1, 21):
+        power = 10**exponent
+        accepted_minor_values.update(
+            value for value in (power - 1, power, power + 1) if 0 <= value <= u64_max
+        )
+    maximum_text = str(u64_max)
+    for width in range(1, len(maximum_text) + 1):
+        prefix_boundary = int(maximum_text[:width]) * 10 ** (len(maximum_text) - width)
+        accepted_minor_values.update(
+            value
+            for value in (prefix_boundary - 1, prefix_boundary, prefix_boundary + 1)
+            if 0 <= value <= u64_max
+        )
+
+    accepted = {
+        "1",
+        "1.0",
+        "1.9",
+        "1.9999999999999999999",
+        "1.10000000000000000000",
+        "1.18446744073709551614",
+        "1.18446744073709551615",
+        *(f"1.{value}" for value in accepted_minor_values),
+    }
+    rejected = {
+        "",
+        "0.8",
+        "2",
+        "2.0",
+        "01",
+        "01.0",
+        "1.00",
+        "1.01",
+        "1.",
+        "1.0.0",
+        "+1.0",
+        "1.+0",
+        "1.١",
+        "1.0\n",
+        "1.0\r",
+        "1.0 ",
+        "1.0\u0000",
+        "1.18446744073709551616",
+        "1.99999999999999999999",
+        *(f"1.{u64_max + delta}" for delta in range(1, 1_025)),
+    }
+    patterns: set[str] = set()
+    occurrences = 0
+
+    for kind, schema in sorted(by_kind.items()):
+        fields = list(_version_fields(schema))
+        if not fields:
+            failures.append(f"{kind}: schema has no ncp_version field")
+            continue
+        for path, field in fields:
+            occurrences += 1
+            label = f"{kind}:{path}"
+            if not isinstance(field, dict) or field.get("type") != "string":
+                failures.append(f"{label}: ncp_version must be a string schema")
+                continue
+            if "const" in field:
+                failures.append(f"{label}: exact 1.0 const rejects compatible later minors")
+            pattern = field.get("pattern")
+            if not isinstance(pattern, str):
+                failures.append(f"{label}: missing exact stable-major pattern")
+                continue
+            patterns.add(pattern)
+            for version in sorted(accepted):
+                errors: list[str] = []
+                validate(version, field, schema, label, errors)
+                if errors:
+                    failures.append(f"{label}: compatible version {version!r} rejected: {errors}")
+            for version in sorted(rejected):
+                errors = []
+                validate(version, field, schema, label, errors)
+                if not errors:
+                    failures.append(f"{label}: incompatible/malformed version {version!r} accepted")
+
+    if len(patterns) != 1:
+        failures.append(f"ncp_version schemas expose {len(patterns)} distinct patterns (want 1)")
+    if not failures:
+        print(
+            f"  ✓ version-schema compatibility: {occurrences} top-level/nested field(s) "
+            "accept canonical 1.x through u64::MAX and reject malformed/incompatible forms"
+        )
+    return failures
+
+
 def main() -> int:
     self_failures = self_test_validator()
     self_failures.extend(self_test_bulk_decoder())
@@ -360,6 +480,11 @@ def main() -> int:
             print(f"  ✗ validator self-test: {failure}")
         return 1
     by_kind = load_schemas()
+    version_failures = check_wire_version_schemas(by_kind)
+    if version_failures:
+        for failure in version_failures:
+            print(f"  ✗ version-schema compatibility: {failure}")
+        return 1
     vectors = sorted(VECTOR_DIR.glob("*.json"))
     if not vectors:
         print(f"no vectors in {VECTOR_DIR}")

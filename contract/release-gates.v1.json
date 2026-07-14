@@ -1,0 +1,24 @@
+{
+  "schema": "ncp.release-gates.v1",
+  "candidate": "1.0.0-rc.1",
+  "release_allowed": false,
+  "pre_release_gates": [
+    {"id": "normative-contract", "required": true, "local": true},
+    {"id": "zero-skip-conformance", "required": true, "local": true},
+    {"id": "live-mtls-acl-rotation-revocation", "required": true, "local": false},
+    {"id": "two-independent-non-rust-live-peers", "required": true, "local": false},
+    {"id": "fault-backpressure-restart-soak", "required": true, "local": false},
+    {"id": "fuzz-sanitizer-duration", "required": true, "local": false},
+    {"id": "performance-resource-profile", "required": true, "local": false},
+    {"id": "installed-package-matrix", "required": true, "local": false},
+    {"id": "consumer-certification", "required": true, "local": false},
+    {"id": "independent-clean-room-reproduction", "required": true, "local": false},
+    {"id": "signed-sbom-provenance", "required": true, "local": false}
+  ],
+  "post_release_validations": [
+    {"id": "post-publication-install-smoke", "required": true, "local": false, "blocks_initial_release": false},
+    {"id": "post-publication-emergency-revocation-exercise", "required": true, "local": false, "blocks_initial_release": false}
+  ],
+  "pre_release_policy": "Every required pre-release gate must be passed by evidence bound to one source and artifact set; not-run and skipped are failures for initial release.",
+  "post_release_policy": "Required post-release validations run only after publication and do not block the initial tag or publication; failure invokes the documented remediation or revocation procedure."
+}

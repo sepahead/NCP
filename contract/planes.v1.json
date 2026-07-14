@@ -1,0 +1,13 @@
+{
+  "schema": "ncp.plane-registry.v1",
+  "wire_version": "1.0",
+  "key_grammar": "{realm}/rpc/{request_kind} | {realm}/session/{session_id}/{sensor|command}[/{channel}] | {realm}/session/{session_id}/observation",
+  "planes": [
+    {"id": "control", "publisher_roles": ["commander", "body"], "qos": "reliable-request-reply"},
+    {"id": "perception", "publisher_roles": ["body"], "qos": "best-effort-replace-latest"},
+    {"id": "action", "publisher_roles": ["commander", "operator"], "qos": "express-replace-latest-fail-safe-severity-estop-non-active-active"},
+    {"id": "observation", "publisher_roles": ["body"], "qos": "read-only-subscriber-drop-oldest"}
+  ],
+  "wildcard_action_publisher": "forbidden",
+  "delegation": "excluded"
+}

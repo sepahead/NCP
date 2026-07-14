@@ -1,7 +1,7 @@
 {
   "name": "@sepahead/ncp",
-  "version": "0.8.0",
-  "description": "Canonical NCP (Neuro-Cybernetic Protocol) TypeScript types + transport-agnostic client. Wire-identical to the normative proto/ncp.proto contract (proto-native) and the Rust and Python peers.",
+  "version": "1.0.0-rc.1",
+  "description": "NCP (Neuro-Cybernetic Protocol) canonical-JSON TypeScript types and transport-agnostic client, conforming to the repository's normative registries, field-shape IDL, schemas, specification, and mandatory corpus.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "repository": { "type": "git", "url": "git+https://github.com/sepahead/NCP.git" },
@@ -20,7 +20,8 @@
     "build": "tsc -p tsconfig.json",
     "check:behavior": "node scripts/check-behavior.mjs",
     "check:ws": "node scripts/check-ws.mjs",
-    "check:package": "node scripts/check-package.mjs",
+    "check:package": "node scripts/check-package.mjs && node scripts/build-release.mjs --self-test",
+    "build:npm-release": "node scripts/build-release.mjs",
     "regen": "cargo test -p ncp-core --features ts && node scripts/sync-bindings.mjs && tsc -p tsconfig.json",
     "clean": "rm -rf dist"
   },

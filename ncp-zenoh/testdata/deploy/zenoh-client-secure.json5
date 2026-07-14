@@ -2,10 +2,11 @@
 //
 // Copy this file per identity, replace the router DNS name and certificate paths,
 // and ensure the leaf certificate's exact Common Name appears under the matching
-// subject in zenoh-access-control.json5. `ZenohBus::open_secure` validates these
-// fail-closed properties before opening: client mode, TLS-only explicit endpoints,
-// no listeners/discovery, a CA + client certificate/private key, and hostname
-// verification enabled.
+// subject in zenoh-access-control.json5. This is a configuration-preflight fixture:
+// `ZenohBus::open_secure` validates client mode, TLS-only explicit endpoints, no
+// listeners/discovery, a CA + client certificate/private key, and hostname
+// verification, then fails closed because the current callback API cannot expose
+// the authenticated peer principal needed to bind IdentityClaim.
 {
   mode: "client",
   connect: {

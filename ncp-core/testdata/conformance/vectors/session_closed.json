@@ -1,9 +1,19 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "session_closed",
   "session_id": "vec-open-1",
   "ok": true,
   "session": {
     "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+  },
+  "receipt": {
+    "operation_id": "10000000-0000-4000-8000-000000000003",
+    "request_digest": "64942aa9644979798b559f3aaeacd53a9fff597afb8782cde70f48568f5dfb8d",
+    "result_digest": "82bfecaa6d47a3ec4cc56b948f511e641d186d19545b9a0c697b825ecaff5241",
+    "outcome": "succeeded",
+    "state_version": 4,
+    "committed_at_utc_ms": 1700000001000,
+    "responder_principal_id": "body-principal-1",
+    "responder_entity_id": "simulator-1"
   }
 }

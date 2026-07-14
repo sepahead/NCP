@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "capabilities",
   "controller_id": "pid-controller-1",
   "role": "controller",
@@ -10,7 +10,7 @@
       "kind": "vec3",
       "unit": "m",
       "size": 3,
-      "optional": false,
+      "requirement": "required",
       "description": "position error in world frame"
     }
   ],
@@ -20,7 +20,7 @@
       "kind": "vec3",
       "unit": "m/s",
       "size": 3,
-      "optional": false
+      "requirement": "required"
     }
   ],
   "codec_id": null,
@@ -29,5 +29,22 @@
     "max_tilt_rad": 0.5,
     "geofence_radius_m": 10.0,
     "command_timeout_ms": 200.0
-  }
+  },
+  "identity": {
+    "principal_id": "controller-principal-1",
+    "entity_id": "pid-controller-1",
+    "role": "commander",
+    "plane": "control"
+  },
+  "security_profile": "dev-loopback-insecure",
+  "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+  "stable_capabilities": [
+    "ncp.core.canonical-json.v1",
+    "ncp.core.lifecycle.v1",
+    "ncp.core.authority-lease.v1",
+    "ncp.core.idempotent-mutation.v1",
+    "ncp.core.plant-profile.v1"
+  ],
+  "gateway_permitted": false,
+  "plant_profile_digest": null
 }

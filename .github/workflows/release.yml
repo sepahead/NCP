@@ -22,6 +22,10 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
+          # Release identity and immutable-baseline checks inspect annotated tag
+          # objects, peeled commits, and historical trees. A shallow checkout
+          # cannot prove those boundaries.
+          fetch-depth: 0
 
       # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.88.0").
       - name: Install Rust toolchain
@@ -32,18 +36,20 @@ jobs:
       - name: Cache cargo build artifacts
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
-      # Guard: the pushed tag (vX.Y.Z) MUST equal the workspace version in
-      # Cargo.toml. A mistagged release (tag ahead of or behind the manifest) fails
-      # HERE, before any packaging — never publishing a version-mismatched crate.
-      - name: Tag matches workspace version
+      # Use the same strict parser and annotated-tag identity checks as the main
+      # release gate. This binds every version-bearing manifest, the tag object,
+      # its peeled commit, and the checked-out HEAD before archive construction.
+      - name: Verify release identity and immutable contract gates
         run: |
-          tag="${GITHUB_REF#refs/tags/v}"
-          ver="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/version = "(.*)"/\1/')"
-          echo "tag=v$tag  manifest=$ver"
-          if [ "$tag" != "$ver" ]; then
-            echo "::error::release tag v$tag does not match workspace version $ver"
-            exit 1
-          fi
+          scripts/check-version-coherence.sh "${GITHUB_REF_NAME}"
+          python3 -m unittest -v e2e.test_bounded_json
+          python3 scripts/check_released_baselines.py
+          python3 scripts/check_wire_baseline.py
+          python3 scripts/check_wire_baseline.py --verify-current-cut
+          python3 scripts/check_buf_breaking.py
+          python3 scripts/generate_conformance_manifest.py
+          python3 scripts/generate_contract_manifest.py
+          python3 scripts/check_release_gates.py
 
       # Build all five archives and inspect their exact contents. Core, Zenoh,
       # and the C ABI are cargo-tested from extraction; Python and gateway are

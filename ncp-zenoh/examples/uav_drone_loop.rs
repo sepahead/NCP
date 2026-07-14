@@ -1,9 +1,9 @@
 //! UAV "drone-in-the-loop" driven entirely by NCP CommandFrames over Zenoh.
 //!
-//! This exercises the **action plane** end-to-end, true to wire v0.5:
-//!   controller  --CommandFrame{velocity_setpoint, mode, ttl_ms, seq}-->  plant
+//! This exercises the **action plane** end-to-end with the wire-1.0 envelope:
+//!   controller  --CommandFrame{session, stream, velocity_setpoint, mode, ttl_ms}-->  plant
 //! on the exact key CREBAIN's bridge subscribes to
-//! (`engram/ncp/session/<id>/command`, realm overridable via NCP_REALM).
+//! (`ncp/session/<id>/command`, realm overridable via NCP_REALM).
 //!
 //! The plant is a minimal quad model: it integrates the commanded velocity into a
 //! position, and it ENFORCES the protocol's two safety gates locally: `mode` in
@@ -48,7 +48,7 @@ fn vel(cmd: &CommandFrame) -> [f64; 3] {
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() {
-    let realm = std::env::var("NCP_REALM").unwrap_or_else(|_| "engram/ncp".to_string());
+    let realm = std::env::var("NCP_REALM").unwrap_or_else(|_| "ncp".to_string());
     let session = "uav1";
     let traj_path =
         std::env::var("NCP_TRAJ_OUT").unwrap_or_else(|_| "ncp_drone_trajectory.jsonl".to_string());
@@ -62,12 +62,15 @@ async fn main() {
     let bus = ZenohBus::with_config(cfg, Keys::new(realm.clone()))
         .await
         .expect("open zenoh bus");
+    let live_session = ncp_core::SessionRef {
+        generation: "00000000-0000-4000-8000-0000000000a2".into(),
+    };
     println!("NCP UAV loop  realm={realm}  key=ncp/session/{session}/command  -> {traj_path}");
 
     // ---- PLANT: subscribe to the action plane -------------------------------
     let latest: Arc<Mutex<Option<LatestCmd>>> = Arc::new(Mutex::new(None));
     let sink = latest.clone();
-    bus.subscribe_commands(session, move |_k, bytes| {
+    bus.subscribe_commands(session, &live_session, move |_k, bytes| {
         if let Ok(frame) = serde_json::from_slice::<CommandFrame>(&bytes) {
             *sink.lock().unwrap() = Some(LatestCmd {
                 frame,
@@ -186,9 +189,7 @@ async fn main() {
                     epoch: "00000000-0000-4000-8000-000000000001".into(),
                     seq,
                 },
-                session: ncp_core::SessionRef {
-                    generation: "00000000-0000-4000-8000-0000000000a2".into(),
-                },
+                session: live_session.clone(),
                 session_id: "uav1".into(),
                 t: t * 1000.0,
                 ttl_ms: 250.0, // ~5 missed frames at 20 Hz
@@ -197,7 +198,9 @@ async fn main() {
                 ..Default::default()
             };
             let payload = serde_json::to_vec(&cmd).unwrap();
-            bus.publish_command(session, &payload).await.unwrap();
+            bus.publish_command(session, &live_session, &payload)
+                .await
+                .unwrap();
             tokio::time::sleep(period).await;
         }
     }

@@ -16,7 +16,7 @@
 //!
 //! ```python
 //! import ncp
-//! ncp.NCP_VERSION                      # "0.8"
+//! ncp.NCP_VERSION                      # "1.0"
 //! k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 //! k.command("uav3")                    # "ncp/session/uav3/command"
 //! ncp.decode_command(codec_json, '{"vel_x":200.0}', seq=7, t=0.0)  # CommandFrame JSON
@@ -24,14 +24,20 @@
 //! ```
 
 use ncp_core::{
-    valid_id_segment, ActionBuffer as CoreActionBuffer, ChannelValue, CodecSpec, CommandFrame,
-    Keys as CoreKeys, Map, Mode, SafetyGovernor, SafetyLimits, SensorFrame, WireFrame,
+    valid_id_segment, ActionBuffer as CoreActionBuffer, AuthorityLease, ChannelValue, CodecSpec,
+    CommandFrame, Keys as CoreKeys, Map, Mode, SafetyGovernor, SafetyLimits, SensorFrame,
+    WireFrame,
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 fn val<E: std::fmt::Display>(e: E) -> PyErr {
     PyValueError::new_err(e.to_string())
+}
+
+fn parse_bounded<T: serde::de::DeserializeOwned>(json: &str) -> PyResult<T> {
+    let value = ncp_core::bounded_json::parse_value(json.as_bytes()).map_err(val)?;
+    serde_json::from_value(value).map_err(val)
 }
 
 fn validate_key_segment(value: &str, label: &str) -> PyResult<()> {
@@ -123,17 +129,22 @@ fn contract_status(peer_hash: Option<&str>) -> &'static str {
     }
 }
 
+/// Compute the normative request-digest-v1 SHA-256 for a step/run/close JSON
+/// request. The embedded digest and retry bit may be absent or placeholders;
+/// authority renewal and retry metadata are outside the semantic projection.
+#[pyfunction]
+fn request_digest(request_json: &str) -> PyResult<String> {
+    let request = ncp_core::bounded_json::parse_value(request_json.as_bytes()).map_err(val)?;
+    ncp_core::request_digest(&request).map_err(val)
+}
+
 /// Rate-encode a complete wire-valid `SensorFrame` JSON to
 /// `{population: rate_hz}` JSON, via the checked Rust codec. `sensor_json` may be
 /// `"null"` for the intentional no-sensor case.
 #[pyfunction]
 fn encode_rates(codec_json: &str, sensor_json: &str) -> PyResult<String> {
-    let codec: CodecSpec = serde_json::from_str(codec_json).map_err(val)?;
-    let sensor: Option<SensorFrame> = if sensor_json.trim() == "null" {
-        None
-    } else {
-        Some(serde_json::from_str(sensor_json).map_err(val)?)
-    };
+    let codec: CodecSpec = parse_bounded(codec_json)?;
+    let sensor: Option<SensorFrame> = parse_bounded(sensor_json)?;
     let rates = codec.encode_checked(sensor.as_ref()).map_err(val)?;
     serde_json::to_string(&rates).map_err(val)
 }
@@ -142,7 +153,7 @@ fn encode_rates(codec_json: &str, sensor_json: &str) -> PyResult<String> {
 /// via the checked Rust codec. The caller owns the monotonically increasing seq;
 /// the binding never fabricates one.
 #[pyfunction]
-#[pyo3(signature = (codec_json, rates_json, seq, t = 0.0, frame_id = "world", mode = "hold", epoch = "", session_generation = "", session_id = ""))]
+#[pyo3(signature = (codec_json, rates_json, seq, t = 0.0, frame_id = "world", mode = "hold", epoch = "", session_generation = "", session_id = "", authority_json = None))]
 #[allow(clippy::too_many_arguments)]
 fn decode_command(
     codec_json: &str,
@@ -154,12 +165,13 @@ fn decode_command(
     epoch: &str,
     session_generation: &str,
     session_id: &str,
+    authority_json: Option<&str>,
 ) -> PyResult<String> {
-    let codec: CodecSpec = serde_json::from_str(codec_json).map_err(val)?;
-    let rates: Map<f64> = serde_json::from_str(rates_json).map_err(val)?;
+    let codec: CodecSpec = parse_bounded(codec_json)?;
+    let rates: Map<f64> = parse_bounded(rates_json)?;
     let mode = parse_mode(mode)?;
-    // Wire 0.8: the caller owns the command stream identity (epoch + seq) and the
-    // session incarnation; the binding never fabricates them.
+    // Wire 1.0: the caller owns stream/session identity and, for Active mode, the
+    // authority lease. The binding never fabricates any of them.
     let stream = ncp_core::StreamPosition {
         epoch: epoch.to_string(),
         seq,
@@ -167,8 +179,14 @@ fn decode_command(
     let session = ncp_core::SessionRef {
         generation: session_generation.to_string(),
     };
+    let authority = match authority_json {
+        Some(value) => parse_bounded::<Option<AuthorityLease>>(value)?,
+        None => None,
+    };
     let cmd = codec
-        .decode_checked(&rates, t, stream, frame_id, mode, session, session_id)
+        .decode_checked_with_authority(
+            &rates, t, stream, frame_id, mode, session, session_id, authority,
+        )
         .map_err(val)?;
     serde_json::to_string(&cmd).map_err(val)
 }
@@ -186,8 +204,7 @@ fn parse_mode(s: &str) -> PyResult<Mode> {
 fn parse_sensor(sensor_json: Option<&str>) -> PyResult<Option<SensorFrame>> {
     match sensor_json {
         None => Ok(None),
-        Some(s) if s.trim() == "null" => Ok(None),
-        Some(s) => Ok(Some(serde_json::from_str(s).map_err(val)?)),
+        Some(value) => parse_bounded(value),
     }
 }
 
@@ -208,7 +225,7 @@ fn govern(
     sensor_json: Option<&str>,
     last_sensor_s: Option<f64>,
 ) -> PyResult<String> {
-    let limits: SafetyLimits = serde_json::from_str(limits_json).map_err(val)?;
+    let limits: SafetyLimits = parse_bounded(limits_json)?;
     let mut gov = SafetyGovernor::new(limits);
     govern_with(&mut gov, command_json, now_s, sensor_json, last_sensor_s)
 }
@@ -220,7 +237,7 @@ fn govern_with(
     sensor_json: Option<&str>,
     last_sensor_s: Option<f64>,
 ) -> PyResult<String> {
-    let mut command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
+    let mut command: CommandFrame = parse_bounded(command_json)?;
     // An explicit ESTOP always latches. Every other invalid action envelope is
     // converted to HOLD so a binding caller cannot accidentally actuate after
     // bypassing `validate()`.
@@ -255,7 +272,7 @@ struct Governor {
 impl Governor {
     #[new]
     fn new(limits_json: &str) -> PyResult<Self> {
-        let limits: SafetyLimits = serde_json::from_str(limits_json).map_err(val)?;
+        let limits: SafetyLimits = parse_bounded(limits_json)?;
         Ok(Self {
             inner: SafetyGovernor::new(limits),
         })
@@ -280,8 +297,9 @@ impl Governor {
         )
     }
 
-    /// Clear a latched ESTOP (supervisor authority). A config-level fail-closed
-    /// state is NOT cleared (it is an unrecoverable misconfiguration).
+    /// Clear the governor's local ESTOP after external supervisor/interlock
+    /// authorization. This method does not authenticate or restore session
+    /// authority. A config-level fail-closed state is not cleared.
     fn reset(&mut self) {
         self.inner.reset()
     }
@@ -320,11 +338,14 @@ impl ActionBuffer {
         }
     }
 
-    /// Ingest one CommandFrame JSON at the plant's local arrival time. Malformed
-    /// JSON raises ValueError; parseable invalid/replayed frames are fail-closed
-    /// and ignored by the core, while an explicit ESTOP always latches.
+    /// Ingest one CommandFrame JSON at the plant's local arrival time. This is a
+    /// body-local buffer API, not a remote ingress gate: callers must first bind
+    /// authenticated actor/plane and the exact live route/session generation.
+    /// Over-budget or malformed JSON raises ValueError; parseable invalid/replayed
+    /// frames are fail-closed and ignored by the core, while a locally admitted
+    /// ESTOP latches.
     fn on_command(&mut self, now_s: f64, command_json: &str) -> PyResult<()> {
-        let command: CommandFrame = serde_json::from_str(command_json).map_err(val)?;
+        let command: CommandFrame = parse_bounded(command_json)?;
         self.inner.on_command(now_s, command);
         Ok(())
     }
@@ -344,7 +365,9 @@ impl ActionBuffer {
         self.inner.should_hold(now_s)
     }
 
-    /// Clear the action buffer's latched ESTOP (supervisor authority).
+    /// Clear the local latch and permanently retire this generation-bound buffer.
+    /// This method does not authenticate a supervisor or restore remote authority;
+    /// a successful generation cut constructs a fresh ActionBuffer.
     fn reset(&mut self) {
         self.inner.reset()
     }
@@ -353,14 +376,19 @@ impl ActionBuffer {
     fn is_estopped(&self) -> bool {
         self.inner.is_estopped()
     }
+
+    /// True after reset permanently retired this generation-bound buffer.
+    fn is_retired(&self) -> bool {
+        self.inner.is_retired()
+    }
 }
 
-/// Validate an NCP message JSON of a given `kind` by parsing it through the Rust
-/// type and re-serializing — raises `ValueError` on a message the Rust type
-/// rejects, else returns its canonical JSON. This checks structural/serde
-/// conformance to the wire schema and the reference semantic/range gates. A
-/// structurally valid frame can still be rejected downstream by stateful safety
-/// policy (for example a stale or replayed command).
+/// Validate an NCP message JSON of a given `kind` through the universal bounded
+/// JSON ingress, the canonical semantic validator, and its Rust wire type.
+/// Raises `ValueError` on a resource-limit, syntax, schema, or semantic failure;
+/// otherwise returns canonical JSON. A structurally valid frame can still be
+/// rejected downstream by stateful safety policy (for example a stale or
+/// replayed command).
 #[pyfunction]
 fn validate(kind: &str, json: &str) -> PyResult<String> {
     use ncp_core::*;
@@ -371,7 +399,7 @@ fn validate(kind: &str, json: &str) -> PyResult<String> {
     // tampered discriminator would round-trip clean. (Previously this binding
     // skipped ncp_core::validate entirely, so the Python wire check was weaker
     // than the Rust reference.)
-    let mut value: serde_json::Value = serde_json::from_str(json).map_err(val)?;
+    let mut value = ncp_core::bounded_json::parse_value(json.as_bytes()).map_err(val)?;
     match value.as_object_mut() {
         Some(m) => match m.get("kind") {
             Some(serde_json::Value::String(k)) if k == kind => {}
@@ -424,19 +452,35 @@ fn validate(kind: &str, json: &str) -> PyResult<String> {
 #[pyfunction]
 #[pyo3(signature = (data, unit = None))]
 fn channel_value(data: Vec<f64>, unit: Option<String>) -> PyResult<String> {
-    serde_json::to_string(&ChannelValue { data, unit }).map_err(val)
+    if data.iter().any(|value| {
+        !value.is_finite() || value.abs() > ncp_core::bounded_json::MAX_FINITE_NUMBER_MAGNITUDE
+    }) {
+        return Err(PyValueError::new_err(
+            "NCP-LIMIT-006: channel data exceeds the finite numeric budget",
+        ));
+    }
+    let encoded = serde_json::to_string(&ChannelValue { data, unit }).map_err(val)?;
+    ncp_core::bounded_json::preflight(encoded.as_bytes()).map_err(val)?;
+    Ok(encoded)
 }
 
 #[pymodule]
 fn ncp(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("PACKAGE_VERSION", env!("CARGO_PKG_VERSION"))?;
     m.add("NCP_VERSION", ncp_core::NCP_VERSION)?;
     m.add("CONTRACT_HASH", ncp_core::CONTRACT_HASH)?;
+    m.add(
+        "NORMATIVE_CONTRACT_DIGEST",
+        ncp_core::NORMATIVE_CONTRACT_DIGEST,
+    )?;
+    m.add("BUILD_IDENTITY", ncp_core::BUILD_IDENTITY)?;
     m.add("DEFAULT_REALM", ncp_core::DEFAULT_REALM)?;
     m.add_class::<Keys>()?;
     m.add_class::<Governor>()?;
     m.add_class::<ActionBuffer>()?;
     m.add_function(wrap_pyfunction!(check_version, m)?)?;
     m.add_function(wrap_pyfunction!(contract_status, m)?)?;
+    m.add_function(wrap_pyfunction!(request_digest, m)?)?;
     m.add_function(wrap_pyfunction!(encode_rates, m)?)?;
     m.add_function(wrap_pyfunction!(decode_command, m)?)?;
     m.add_function(wrap_pyfunction!(govern, m)?)?;

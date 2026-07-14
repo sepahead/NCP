@@ -1,0 +1,724 @@
+{
+  "contract_hash": "163acc57d8a62b66",
+  "definitions": {
+    "AuthorityLease": {
+      "fields": {
+        "expires_at_utc_ms": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "holder_entity_id": "{\"type\": \"string\"}",
+        "holder_principal_id": "{\"type\": \"string\"}",
+        "issued_at_utc_ms": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "issuer_principal_id": "{\"type\": \"string\"}",
+        "lease_id": "{\"type\": \"string\"}",
+        "session_epoch": "{\"type\": \"string\"}",
+        "term": "{\"format\": \"uint64\", \"maximum\": 9007199254740991, \"minimum\": 0, \"type\": \"integer\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "expires_at_utc_ms",
+        "holder_entity_id",
+        "holder_principal_id",
+        "issued_at_utc_ms",
+        "issuer_principal_id",
+        "lease_id",
+        "session_epoch",
+        "term"
+      ]
+    },
+    "ChannelSpec": {
+      "fields": {
+        "description": "{\"type\": [\"string\", \"null\"]}",
+        "kind": "{\"$ref\": \"#/$defs/ChannelKind\"}",
+        "name": "{\"type\": \"string\"}",
+        "requirement": "{\"$ref\": \"#/$defs/ChannelRequirement\"}",
+        "size": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}",
+        "unit": "{\"type\": [\"string\", \"null\"]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "name",
+        "requirement"
+      ]
+    },
+    "ChannelValue": {
+      "fields": {
+        "data": "{\"items\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"array\"}",
+        "unit": "{\"type\": [\"string\", \"null\"]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": []
+    },
+    "EntityBinding": {
+      "fields": {
+        "direction": "{\"type\": \"string\"}",
+        "entity": "{\"$ref\": \"#/$defs/EntityRef\"}",
+        "port": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "direction",
+        "entity",
+        "port"
+      ]
+    },
+    "EntityRef": {
+      "fields": {
+        "meta": "{\"additionalProperties\": {\"type\": \"string\"}, \"type\": \"object\"}",
+        "path": "{\"type\": \"string\"}",
+        "role": "{\"$ref\": \"#/$defs/EntityRole\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "path",
+        "role"
+      ]
+    },
+    "GatewayAttribution": {
+      "fields": {
+        "gateway_id": "{\"type\": \"string\"}",
+        "source_wire": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "gateway_id",
+        "source_wire"
+      ]
+    },
+    "IdentityClaim": {
+      "fields": {
+        "entity_id": "{\"type\": \"string\"}",
+        "plane": "{\"$ref\": \"#/$defs/Plane\"}",
+        "principal_id": "{\"type\": \"string\"}",
+        "role": "{\"$ref\": \"#/$defs/PrincipalRole\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "entity_id",
+        "plane",
+        "principal_id",
+        "role"
+      ]
+    },
+    "NetworkRef": {
+      "fields": {
+        "kind": "{\"$ref\": \"#/$defs/NetworkRefKind\"}",
+        "model_name": "{\"type\": [\"string\", \"null\"]}",
+        "params": "{\"additionalProperties\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"object\"}",
+        "population_sizes": "{\"additionalProperties\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"object\"}",
+        "ref": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "ref"
+      ]
+    },
+    "Observation": {
+      "fields": {
+        "observable": "{\"$ref\": \"#/$defs/Observable\"}",
+        "port": "{\"type\": \"string\"}",
+        "recordable": "{\"type\": [\"string\", \"null\"]}",
+        "senders": "{\"items\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"array\"}",
+        "target": "{\"type\": \"string\"}",
+        "times": "{\"items\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"array\"}",
+        "unit": "{\"type\": [\"string\", \"null\"]}",
+        "values": "{\"items\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"array\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "observable",
+        "port",
+        "target"
+      ]
+    },
+    "OperationContext": {
+      "fields": {
+        "deadline_utc_ms": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "expected_state_version": "{\"format\": \"uint64\", \"maximum\": 9007199254740991, \"minimum\": 0, \"type\": \"integer\"}",
+        "operation_id": "{\"type\": \"string\"}",
+        "request_digest": "{\"type\": \"string\"}",
+        "retry": "{\"type\": \"boolean\"}",
+        "session_epoch": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "deadline_utc_ms",
+        "expected_state_version",
+        "operation_id",
+        "request_digest",
+        "retry",
+        "session_epoch"
+      ]
+    },
+    "RecordSpec": {
+      "fields": {
+        "targets": "{\"items\": {\"$ref\": \"#/$defs/RecordTarget\"}, \"type\": \"array\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": []
+    },
+    "RecordTarget": {
+      "fields": {
+        "cadence_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "ids": "{\"items\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"array\"}",
+        "observable": "{\"$ref\": \"#/$defs/Observable\"}",
+        "port": "{\"type\": \"string\"}",
+        "recordables": "{\"items\": {\"type\": \"string\"}, \"type\": \"array\"}",
+        "target": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "observable",
+        "port",
+        "target"
+      ]
+    },
+    "ResponderReceipt": {
+      "fields": {
+        "committed_at_utc_ms": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "operation_id": "{\"type\": \"string\"}",
+        "outcome": "{\"$ref\": \"#/$defs/OperationOutcome\"}",
+        "request_digest": "{\"type\": \"string\"}",
+        "responder_entity_id": "{\"type\": \"string\"}",
+        "responder_principal_id": "{\"type\": \"string\"}",
+        "result_digest": "{\"type\": \"string\"}",
+        "state_version": "{\"format\": \"uint64\", \"maximum\": 9007199254740991, \"minimum\": 0, \"type\": \"integer\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "committed_at_utc_ms",
+        "operation_id",
+        "outcome",
+        "request_digest",
+        "responder_entity_id",
+        "responder_principal_id",
+        "result_digest",
+        "state_version"
+      ]
+    },
+    "SafetyLimits": {
+      "fields": {
+        "command_timeout_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "geofence_radius_m": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "max_speed_mps": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "max_tilt_rad": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "command_timeout_ms"
+      ]
+    },
+    "SessionRef": {
+      "fields": {
+        "generation": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": []
+    },
+    "SimConfig": {
+      "fields": {
+        "chunk_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "dt_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "duration_ms": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "mode": "{\"$ref\": \"#/$defs/SimMode\"}",
+        "seed": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": []
+    },
+    "SimProvenance": {
+      "fields": {
+        "advisory_only": "{\"type\": \"boolean\"}",
+        "backend": "{\"type\": \"string\"}",
+        "calibrated_posterior": "{\"const\": false, \"type\": \"boolean\"}",
+        "is_simulation_output": "{\"const\": true, \"type\": \"boolean\"}",
+        "network_ref": "{\"type\": \"string\"}",
+        "note": "{\"type\": [\"string\", \"null\"]}",
+        "seed": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "advisory_only",
+        "backend",
+        "calibrated_posterior",
+        "is_simulation_output",
+        "network_ref"
+      ]
+    },
+    "StimulusFrame": {
+      "fields": {
+        "kind": "{\"const\": \"stimulus_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "values": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    },
+    "StimulusSpec": {
+      "fields": {
+        "targets": "{\"items\": {\"$ref\": \"#/$defs/StimulusTarget\"}, \"type\": \"array\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": []
+    },
+    "StimulusTarget": {
+      "fields": {
+        "ids": "{\"items\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"array\"}",
+        "kind": "{\"$ref\": \"#/$defs/StimulusKind\"}",
+        "params": "{\"additionalProperties\": {\"format\": \"double\", \"type\": \"number\"}, \"type\": \"object\"}",
+        "port": "{\"type\": \"string\"}",
+        "target": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "port",
+        "target"
+      ]
+    },
+    "StreamPosition": {
+      "fields": {
+        "epoch": "{\"type\": \"string\"}",
+        "seq": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": []
+    }
+  },
+  "enums": {
+    "ChannelKind": [
+      "array",
+      "quat",
+      "scalar",
+      "vec3"
+    ],
+    "ChannelRequirement": [
+      "optional",
+      "required",
+      "unknown"
+    ],
+    "EntityRole": [
+      "actor",
+      "actuator",
+      "sensor",
+      "system"
+    ],
+    "Mode": [
+      "active",
+      "estop",
+      "hold",
+      "init"
+    ],
+    "NetworkRefKind": [
+      "builtin",
+      "handle",
+      "model_id",
+      "spec"
+    ],
+    "Observable": [
+      "V_m",
+      "binary_state",
+      "rate",
+      "spikes",
+      "weight"
+    ],
+    "OperationOutcome": [
+      "cancelled",
+      "outcome_unknown",
+      "rejected",
+      "succeeded",
+      "unknown"
+    ],
+    "Plane": [
+      "action",
+      "control",
+      "observation",
+      "perception",
+      "unknown"
+    ],
+    "PrincipalRole": [
+      "body",
+      "commander",
+      "observer",
+      "operator",
+      "unknown"
+    ],
+    "Role": [
+      "controller",
+      "observer",
+      "operator",
+      "plant"
+    ],
+    "SimMode": [
+      "batch",
+      "stream"
+    ],
+    "StimulusKind": [
+      "current_pA",
+      "rate_hz",
+      "rate_inject",
+      "spike_times",
+      "weight_set"
+    ]
+  },
+  "kinds": {
+    "capabilities": {
+      "fields": {
+        "codec_id": "{\"type\": [\"string\", \"null\"]}",
+        "command_channels": "{\"items\": {\"$ref\": \"#/$defs/ChannelSpec\"}, \"type\": \"array\"}",
+        "control_rate_hz": "{\"format\": \"double\", \"type\": \"number\"}",
+        "controller_id": "{\"type\": \"string\"}",
+        "gateway": "{\"anyOf\": [{\"$ref\": \"#/$defs/GatewayAttribution\"}, {\"type\": \"null\"}]}",
+        "gateway_permitted": "{\"type\": \"boolean\"}",
+        "identity": "{\"$ref\": \"#/$defs/IdentityClaim\"}",
+        "kind": "{\"const\": \"capabilities\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "plant_profile_digest": "{\"type\": [\"string\", \"null\"]}",
+        "role": "{\"$ref\": \"#/$defs/Role\"}",
+        "safety": "{\"$ref\": \"#/$defs/SafetyLimits\"}",
+        "security_profile": "{\"type\": \"string\"}",
+        "security_state_digest": "{\"type\": \"string\"}",
+        "sensor_channels": "{\"items\": {\"$ref\": \"#/$defs/ChannelSpec\"}, \"type\": \"array\"}",
+        "stable_capabilities": "{\"items\": {\"type\": \"string\"}, \"type\": \"array\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "command_channels",
+        "control_rate_hz",
+        "controller_id",
+        "gateway_permitted",
+        "identity",
+        "kind",
+        "ncp_version",
+        "role",
+        "safety",
+        "security_profile",
+        "security_state_digest",
+        "sensor_channels",
+        "stable_capabilities"
+      ]
+    },
+    "close_session": {
+      "fields": {
+        "authority": "{\"$ref\": \"#/$defs/AuthorityLease\"}",
+        "kind": "{\"const\": \"close_session\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "operation": "{\"$ref\": \"#/$defs/OperationContext\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "authority",
+        "kind",
+        "ncp_version",
+        "operation",
+        "session",
+        "session_id"
+      ]
+    },
+    "command_frame": {
+      "fields": {
+        "authority": "{\"anyOf\": [{\"$ref\": \"#/$defs/AuthorityLease\"}, {\"type\": \"null\"}]}",
+        "channels": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}",
+        "frame_id": "{\"type\": \"string\"}",
+        "horizon": "{\"items\": {\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}, \"maxItems\": 65536, \"type\": \"array\"}",
+        "horizon_dt_ms": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "kind": "{\"const\": \"command_frame\", \"type\": \"string\"}",
+        "mode": "{\"$ref\": \"#/$defs/Mode\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "source": "{\"anyOf\": [{\"$ref\": \"#/$defs/StreamPosition\"}, {\"type\": \"null\"}]}",
+        "source_t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "ttl_ms": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id",
+        "stream"
+      ]
+    },
+    "control_status": {
+      "fields": {
+        "kind": "{\"const\": \"control_status\", \"type\": \"string\"}",
+        "loop_latency_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "mode": "{\"$ref\": \"#/$defs/Mode\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "note": "{\"type\": [\"string\", \"null\"]}",
+        "safety_ok": "{\"type\": \"boolean\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "sim_time_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "loop_latency_ms",
+        "mode",
+        "ncp_version",
+        "safety_ok",
+        "session",
+        "session_id",
+        "stream",
+        "t"
+      ]
+    },
+    "error": {
+      "fields": {
+        "code": "{\"enum\": [\"NCP-AUTH-001\", \"NCP-AUTH-002\", \"NCP-AUTH-003\", \"NCP-AUTH-004\", \"NCP-AUTH-005\", \"NCP-AUTH-006\", \"NCP-LEASE-001\", \"NCP-LEASE-002\", \"NCP-LEASE-003\", \"NCP-LEASE-004\", \"NCP-OP-001\", \"NCP-OP-002\", \"NCP-OP-003\", \"NCP-OP-004\", \"NCP-OP-005\", \"NCP-OP-006\", \"NCP-LIMIT-001\", \"NCP-LIMIT-002\", \"NCP-LIMIT-003\", \"NCP-LIMIT-004\", \"NCP-LIMIT-005\", \"NCP-LIMIT-006\", \"NCP-LIMIT-007\", \"NCP-LIMIT-008\", \"NCP-LIMIT-009\", \"NCP-PROFILE-001\", \"NCP-PROFILE-002\", \"NCP-PLANT-001\", \"NCP-PLANT-002\", \"NCP-PLANT-003\", \"NCP-STATE-001\", \"NCP-STATE-002\", \"NCP-STATE-003\", \"NCP-VERSION-001\", \"NCP-FEATURE-001\", \"NCP-AUDIT-001\", \"NCP-AUDIT-002\", \"NCP-GATEWAY-001\", \"NCP-GATEWAY-002\", \"NCP-WIRE-001\", \"NCP-INTERNAL-001\"], \"type\": \"string\"}",
+        "error": "{\"type\": \"string\"}",
+        "kind": "{\"const\": \"error\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "receipt": "{\"anyOf\": [{\"$ref\": \"#/$defs/ResponderReceipt\"}, {\"type\": \"null\"}]}",
+        "request_kind": "{\"type\": [\"string\", \"null\"]}",
+        "session": "{\"anyOf\": [{\"$ref\": \"#/$defs/SessionRef\"}, {\"type\": \"null\"}]}",
+        "session_id": "{\"type\": [\"string\", \"null\"]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "code",
+        "error",
+        "kind",
+        "ncp_version"
+      ]
+    },
+    "link_status": {
+      "fields": {
+        "burst": "{\"type\": \"boolean\"}",
+        "kind": "{\"const\": \"link_status\", \"type\": \"string\"}",
+        "last_arrival_seq": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": [\"integer\", \"null\"]}",
+        "loss_rate": "{\"format\": \"double\", \"type\": \"number\"}",
+        "lost": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "observed_stream": "{\"anyOf\": [{\"$ref\": \"#/$defs/StreamPosition\"}, {\"type\": \"null\"}]}",
+        "received": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "burst",
+        "kind",
+        "loss_rate",
+        "lost",
+        "ncp_version",
+        "received",
+        "session",
+        "session_id",
+        "stream",
+        "t"
+      ]
+    },
+    "observation_frame": {
+      "fields": {
+        "calibrated_posterior": "{\"const\": false, \"type\": \"boolean\"}",
+        "is_simulation_output": "{\"const\": true, \"type\": \"boolean\"}",
+        "kind": "{\"const\": \"observation_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "receipt": "{\"anyOf\": [{\"$ref\": \"#/$defs/ResponderReceipt\"}, {\"type\": \"null\"}]}",
+        "records": "{\"additionalProperties\": {\"$ref\": \"#/$defs/Observation\"}, \"type\": \"object\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "sim_time_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "source": "{\"anyOf\": [{\"$ref\": \"#/$defs/StreamPosition\"}, {\"type\": \"null\"}]}",
+        "source_t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "calibrated_posterior",
+        "is_simulation_output",
+        "kind",
+        "ncp_version",
+        "records",
+        "session",
+        "session_id",
+        "stream"
+      ]
+    },
+    "open_session": {
+      "fields": {
+        "bindings": "{\"items\": {\"$ref\": \"#/$defs/EntityBinding\"}, \"type\": \"array\"}",
+        "contract_hash": "{\"type\": [\"string\", \"null\"]}",
+        "gateway": "{\"anyOf\": [{\"$ref\": \"#/$defs/GatewayAttribution\"}, {\"type\": \"null\"}]}",
+        "gateway_permitted": "{\"type\": \"boolean\"}",
+        "identity": "{\"$ref\": \"#/$defs/IdentityClaim\"}",
+        "kind": "{\"const\": \"open_session\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "network": "{\"$ref\": \"#/$defs/NetworkRef\"}",
+        "record": "{\"$ref\": \"#/$defs/RecordSpec\"}",
+        "security_profile": "{\"type\": \"string\"}",
+        "security_state_digest": "{\"type\": \"string\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "sim": "{\"$ref\": \"#/$defs/SimConfig\"}",
+        "stimulus": "{\"$ref\": \"#/$defs/StimulusSpec\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "gateway_permitted",
+        "identity",
+        "kind",
+        "ncp_version",
+        "network",
+        "security_profile",
+        "security_state_digest",
+        "session_id"
+      ]
+    },
+    "run_request": {
+      "fields": {
+        "authority": "{\"$ref\": \"#/$defs/AuthorityLease\"}",
+        "duration_ms": "{\"format\": \"double\", \"type\": \"number\"}",
+        "kind": "{\"const\": \"run_request\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "operation": "{\"$ref\": \"#/$defs/OperationContext\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stimulus": "{\"anyOf\": [{\"$ref\": \"#/$defs/StimulusFrame\"}, {\"type\": \"null\"}]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "authority",
+        "duration_ms",
+        "kind",
+        "ncp_version",
+        "operation",
+        "session",
+        "session_id"
+      ]
+    },
+    "sensor_frame": {
+      "fields": {
+        "channels": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}",
+        "frame_id": "{\"type\": \"string\"}",
+        "kind": "{\"const\": \"sensor_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stream": "{\"$ref\": \"#/$defs/StreamPosition\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id",
+        "stream"
+      ]
+    },
+    "session_closed": {
+      "fields": {
+        "kind": "{\"const\": \"session_closed\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "ok": "{\"type\": \"boolean\"}",
+        "receipt": "{\"$ref\": \"#/$defs/ResponderReceipt\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "ncp_version",
+        "ok",
+        "receipt",
+        "session",
+        "session_id"
+      ]
+    },
+    "session_opened": {
+      "fields": {
+        "backend": "{\"type\": \"string\"}",
+        "contract_hash": "{\"type\": [\"string\", \"null\"]}",
+        "error": "{\"type\": [\"string\", \"null\"]}",
+        "gateway": "{\"anyOf\": [{\"$ref\": \"#/$defs/GatewayAttribution\"}, {\"type\": \"null\"}]}",
+        "gateway_permitted": "{\"type\": \"boolean\"}",
+        "identity": "{\"$ref\": \"#/$defs/IdentityClaim\"}",
+        "kind": "{\"const\": \"session_opened\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "ok": "{\"type\": \"boolean\"}",
+        "provenance": "{\"anyOf\": [{\"$ref\": \"#/$defs/SimProvenance\"}, {\"type\": \"null\"}]}",
+        "resolved": "{\"additionalProperties\": {\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}, \"type\": \"object\"}",
+        "security_profile": "{\"type\": \"string\"}",
+        "security_state_digest": "{\"type\": \"string\"}",
+        "session": "{\"anyOf\": [{\"$ref\": \"#/$defs/SessionRef\"}, {\"type\": \"null\"}]}",
+        "session_id": "{\"type\": \"string\"}",
+        "state_version": "{\"format\": \"uint64\", \"maximum\": 9007199254740991, \"minimum\": 0, \"type\": \"integer\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "backend",
+        "gateway_permitted",
+        "identity",
+        "kind",
+        "ncp_version",
+        "ok",
+        "security_profile",
+        "security_state_digest",
+        "session_id",
+        "state_version"
+      ]
+    },
+    "step_request": {
+      "fields": {
+        "advance_ms": "{\"format\": \"double\", \"type\": [\"number\", \"null\"]}",
+        "authority": "{\"$ref\": \"#/$defs/AuthorityLease\"}",
+        "kind": "{\"const\": \"step_request\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "operation": "{\"$ref\": \"#/$defs/OperationContext\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "stimulus": "{\"anyOf\": [{\"$ref\": \"#/$defs/StimulusFrame\"}, {\"type\": \"null\"}]}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "authority",
+        "kind",
+        "ncp_version",
+        "operation",
+        "session",
+        "session_id"
+      ]
+    },
+    "stimulus_frame": {
+      "fields": {
+        "kind": "{\"const\": \"stimulus_frame\", \"type\": \"string\"}",
+        "ncp_version": "{\"pattern\": \"^1(?:\\\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\\\s\\\\S])\", \"type\": \"string\"}",
+        "session": "{\"$ref\": \"#/$defs/SessionRef\"}",
+        "session_id": "{\"type\": \"string\"}",
+        "t": "{\"format\": \"double\", \"type\": \"number\"}",
+        "values": "{\"additionalProperties\": {\"$ref\": \"#/$defs/ChannelValue\"}, \"type\": \"object\"}"
+      },
+      "object": "{\"type\": \"object\"}",
+      "required": [
+        "kind",
+        "ncp_version",
+        "session",
+        "session_id"
+      ]
+    }
+  },
+  "ncp_version": "1.0",
+  "open_enums": [
+    "Mode"
+  ]
+}

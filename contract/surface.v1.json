@@ -1,0 +1,75 @@
+{
+  "schema": "ncp.contract-surface.v1",
+  "candidate": "1.0.0-rc.1",
+  "wire_version": "1.0",
+  "status": "candidate-blocked",
+  "normative_precedence": [
+    "contract/*.v1.json except contract/manifest.v1.json (derived digest manifest)",
+    "proto/ncp.proto",
+    "schemas/index.json and schemas/*.schema.json",
+    "NEURO_CYBERNETIC_PROTOCOL.md",
+    "conformance/manifest.v1.json"
+  ],
+  "messages": {
+    "stable-1.0": [
+      "capabilities",
+      "close_session",
+      "command_frame",
+      "control_status",
+      "error",
+      "link_status",
+      "observation_frame",
+      "open_session",
+      "run_request",
+      "sensor_frame",
+      "session_closed",
+      "session_opened",
+      "step_request",
+      "stimulus_frame"
+    ],
+    "experimental": [],
+    "excluded": ["bulk_observation"]
+  },
+  "encodings": {
+    "stable-1.0": ["canonical-json"],
+    "experimental": [],
+    "excluded": ["bare-ncpb", "protobuf-runtime-wire"]
+  },
+  "transports": {
+    "stable-1.0": ["zenoh"],
+    "experimental": ["websocket-json"],
+    "excluded": ["grpc", "transparent-proxy", "delegation"]
+  },
+  "planes": ["control", "perception", "action", "observation"],
+  "stateful_acceptance": {
+    "authority_renewal": "authenticate-exact-current-issuer-and-holder-before-strict-monotonic-expiry; late-renewal-hold-and-newer-acquisition",
+    "estop_reset": "authorized-session-generation-cut; retire-old-authority-and-buffer-objects; fresh-open-required",
+    "stream_declaration": "one-epoch-and-permanent-high-water-per-declaration; expiry-never-reanchors; fresh-declaration-on-restart",
+    "status_stream": "positive-seq-only; no-max-reuse; link-observed-position-and-last-arrival-coherent"
+  },
+  "extensions": {
+    "unknown_json_fields": "ignore-only-after-envelope-budget-validation",
+    "unknown_enum_values": "preserve-for-diagnostics-or-relay; reject-all-closed-enum-values; only-Mode-is-open-and-every-unknown-or-additive-Mode-is-non-authorizing-HOLD",
+    "unknown_capabilities": "reject-negotiation",
+    "experimental_as_stable": "reject-negotiation"
+  },
+  "packages": {
+    "candidate": [
+      "ncp-core",
+      "ncp-zenoh",
+      "ncp-gateway",
+      "ncp-python",
+      "ncp-cpp",
+      "@sepahead/ncp"
+    ],
+    "excluded_from_independence_claim": ["ncp-python", "ncp-cpp"]
+  },
+  "non_claims": [
+    "physical-safety-certification",
+    "universal-zero-safe-action",
+    "paper-reproduction",
+    "calibrated-posterior",
+    "real-time-certification",
+    "independent-host-certification"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "ncp.capability-registry.v1",
+  "wire_version": "1.0",
+  "capabilities": [
+    {"id": "ncp.core.canonical-json.v1", "status": "stable-1.0"},
+    {"id": "ncp.core.lifecycle.v1", "status": "stable-1.0"},
+    {"id": "ncp.core.authority-lease.v1", "status": "stable-1.0"},
+    {"id": "ncp.core.idempotent-mutation.v1", "status": "stable-1.0"},
+    {"id": "ncp.core.plant-profile.v1", "status": "stable-1.0"},
+    {"id": "ncp.transport.zenoh.v1", "status": "stable-1.0"},
+    {"id": "ncp.transport.websocket-json.v1", "status": "experimental"},
+    {"id": "ncp.bulk.ncpb.v1", "status": "experimental-offline-only"}
+  ],
+  "negotiation": {
+    "unknown": "reject",
+    "experimental_requested_as_stable": "reject",
+    "excluded": "reject",
+    "stable_minimum_support": "all-stable-capabilities-for-declared-role"
+  }
+}

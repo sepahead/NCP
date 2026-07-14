@@ -1,5 +1,10 @@
 # Benchmark data audit trail
 
+> These files and fallback constants are historical developer evidence. They are not
+> bound to the unreleased NCP `1.0.0-rc.1` artifact set and do not satisfy the
+> release performance/resource gate. A certification run must retain raw data,
+> source/package/config/toolchain/environment digests, and uncertainty.
+
 This directory holds machine-generated JSON results from the NCP benchmark
 scripts. `scripts/plot_perf.py` reads them (when present) to generate the
 performance figures in `docs/plots/`, creating a provenance chain:

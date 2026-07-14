@@ -1,0 +1,63 @@
+{
+  "schema": "ncp.migration-vectors.v1",
+  "status": "candidate-unreleased",
+  "direction": "0.8-to-1.0",
+  "gateway_visible": true,
+  "reverse_direction": "excluded",
+  "cases": [
+    {
+      "id": "MIG-CHANNEL-001",
+      "legacy_optional": false,
+      "expected_requirement": "required",
+      "expected": "translated"
+    },
+    {
+      "id": "MIG-CHANNEL-002",
+      "legacy_optional": true,
+      "expected_requirement": "optional",
+      "expected": "translated"
+    },
+    {
+      "id": "MIG-CHANNEL-003",
+      "legacy_optional": null,
+      "expected_error": "NCP-GATEWAY-002",
+      "expected": "rejected"
+    },
+    {
+      "id": "MIG-CHANNEL-004",
+      "legacy_optional": "yes",
+      "expected_error": "NCP-GATEWAY-002",
+      "expected": "rejected"
+    },
+    {
+      "id": "MIG-CHANNEL-005",
+      "legacy_channel": {"name": "pose", "kind": "vec3"},
+      "expected_error": "NCP-GATEWAY-002",
+      "expected": "rejected"
+    },
+    {
+      "id": "MIG-CHANNEL-006",
+      "legacy_channel": {
+        "name": "pose",
+        "kind": "vec3",
+        "optional": false,
+        "requirement": "required"
+      },
+      "expected_error": "NCP-GATEWAY-002",
+      "expected": "rejected"
+    },
+    {
+      "id": "MIG-CHANNEL-007",
+      "legacy_optional": false,
+      "gateway_context": {"terminates_native_1_0": false},
+      "expected_error": "NCP-GATEWAY-002",
+      "expected": "rejected"
+    }
+  ],
+  "nonclaims": {
+    "security_upgraded": false,
+    "authority_upgraded": false,
+    "plant_safety_certified": false,
+    "scientific_evidence_upgraded": false
+  }
+}

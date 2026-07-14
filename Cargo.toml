@@ -1,10 +1,11 @@
 # Neuro-Cybernetic Protocol (NCP) — Rust reference SDK (workspace).
 #
 # NCP is a versioned, transport-agnostic, project-agnostic standard for letting a
-# NEST-based simulation serves external robot / UAV / simulation systems
-# (perception, action, both, or neither). This Rust workspace is the **normative
-# reference implementation** — the protocol is meant to become a reusable standard
-# (cf. MCP/ACP), and Rust is the canonical, high-performance implementation.
+# NEST-based simulations serve external robot / UAV / simulation systems
+# (perception, action, both, or neither). This Rust workspace is the informative
+# reference implementation; the normative precedence is contract registries, proto
+# field shapes, generated schemas, prose, then the mandatory corpus. The protocol is
+# intended as a reusable standard (cf. MCP/ACP), not a Rust-only contract.
 #
 # This workspace is self-contained and **extractable**: it has no path/parent
 # dependency on the surrounding engram repo and can be lifted into its own
@@ -13,19 +14,19 @@
 # (+ `ncp-zenoh`) as a normal dependency.
 #
 # Crates:
-#   ncp-core    — pure protocol: wire types (serde), version guard, key scheme,
-#                 rate codec, safety governor, in-process bus. serde-only.
+#   ncp-core    — protocol reference: canonical-JSON validation, lifecycle and
+#                 authority state, key grammar, codecs, safety, in-process bus.
 #   ncp-zenoh   — the recommended decoupled transport: Zenoh queryable (RPC) +
 #                 pub/sub (perception/action/observation data planes), QoS.
-#   ncp-gateway — the commander's Rust edge (e.g. an Engram host): runs the Zenoh bus and bridges RPC to the
-#                 Python SessionService over a localhost socket (NEST stays Python).
+#   ncp-gateway — project-agnostic Zenoh lifecycle edge that bridges validated
+#                 canonical JSON to a loopback newline-delimited SessionService.
 
 [workspace]
 resolver = "2"
 members = ["ncp-core", "ncp-zenoh", "ncp-gateway", "ncp-python", "ncp-cpp"]
 
 [workspace.package]
-version = "0.8.0"
+version = "1.0.0-rc.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["Sepehr Mahmoudian"]
@@ -34,7 +35,9 @@ homepage = "https://github.com/sepahead/NCP"
 rust-version = "1.88.0"
 
 [workspace.dependencies]
-ncp-core = { path = "ncp-core", version = "0.8.0" }
-ncp-zenoh = { path = "ncp-zenoh", version = "0.8.0" }
+ncp-core = { path = "ncp-core", version = "1.0.0-rc.1" }
+ncp-zenoh = { path = "ncp-zenoh", version = "1.0.0-rc.1" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10"
+getrandom = "0.3.4"

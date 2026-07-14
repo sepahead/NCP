@@ -1,0 +1,34 @@
+{
+  "schema": "ncp.released-baseline-registry.v1",
+  "git_object_format": "sha1",
+  "releases": [
+    {
+      "tag": "v0.5.0",
+      "tag_object": "607b0f97f0fd7c11cb02164c0871288676065618",
+      "peeled_commit": "2c7380753363c500a3eacd90e0b99e1dfe243e8e",
+      "baseline_path": "conformance/baseline/v0.5.0",
+      "baseline_tree": "d36cdcf5f5402f1791e01fe95c9f8175feab9831"
+    },
+    {
+      "tag": "v0.6.0",
+      "tag_object": "43b9e73a843228dd8cd6ce43265cc9e6fbf7add9",
+      "peeled_commit": "02f3d7be7db39feb3eb59253c6fb5b7260cbf1e7",
+      "baseline_path": "conformance/baseline/v0.6.0",
+      "baseline_tree": "34b8f2c042bbe1883df6ffab09987855f93071e1"
+    },
+    {
+      "tag": "v0.7.0",
+      "tag_object": "8fadd3ff910b02190e23fa6a3af9c521cb154c76",
+      "peeled_commit": "702665e7d791891d4f49aa6655f980e4556fffd4",
+      "baseline_path": "conformance/baseline/v0.7.0",
+      "baseline_tree": "f360099c9a75d4b4d738a1fc31a3e64089d7009c"
+    },
+    {
+      "tag": "v0.8.0",
+      "tag_object": "54008b16ea0c195a4ccc9691cb533dd1153bf7f0",
+      "peeled_commit": "2f5bd586d4bb20c90362bb6f5698b7f64057ba4e",
+      "baseline_path": "conformance/baseline/v0.8.0",
+      "baseline_tree": "85b5aa0cdc26095d735d8f2777a1ffb77b50e3ff"
+    }
+  ]
+}

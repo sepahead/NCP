@@ -6,6 +6,9 @@
 // `commander` subject may PUBLISH commands; the robot publishes only its sensors
 // and reads commands; observers may only READ. The three planes get distinct
 // per-subject permissions, so a perception-only client can never command.
+// This protects router key access only. It cannot bind payload IdentityClaim to the
+// verified remote principal; the current ncp-zenoh adapter lacks that callback data
+// and fails closed for production-secure startup.
 //
 // TEMPLATE — `commander`/`robot`/`observer` are ROLES, not project names. Replace
 // the certificate paths/CNs, and render a non-default realm with:

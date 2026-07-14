@@ -104,7 +104,10 @@ fn main() {
             command_timeout_ms: 1000.0,
             ..Default::default()
         },
+        "uav1",
+        ex_session(),
     )
+    .expect("example session binding is canonical")
     .with_clock(Box::new(move || ck.load(Ordering::Relaxed) as f64 / 1000.0));
 
     let dt = 0.05_f64; // 20 Hz

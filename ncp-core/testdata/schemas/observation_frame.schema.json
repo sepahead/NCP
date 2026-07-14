@@ -2,14 +2,21 @@
   "$defs": {
     "Observable": {
       "description": "What to record off a population/neuron/synapse.",
-      "minLength": 1,
-      "type": "string",
-      "x-ncp-known-values": [
-        "spikes",
-        "V_m",
-        "rate",
-        "weight",
-        "binary_state"
+      "oneOf": [
+        {
+          "enum": [
+            "spikes",
+            "V_m",
+            "rate",
+            "weight"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "binary_state",
+          "description": "Binary / multi-state neurons: discrete state via spin_detector, not V_m. (#10)",
+          "type": "string"
+        }
       ]
     },
     "Observation": {
@@ -73,6 +80,63 @@
       ],
       "type": "object"
     },
+    "OperationOutcome": {
+      "description": "Terminal state of one idempotent lifecycle operation.",
+      "enum": [
+        "unknown",
+        "succeeded",
+        "rejected",
+        "cancelled",
+        "outcome_unknown"
+      ],
+      "type": "string"
+    },
+    "ResponderReceipt": {
+      "description": "Authenticated responder receipt returned by a state-mutating lifecycle RPC.",
+      "properties": {
+        "committed_at_utc_ms": {
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/OperationOutcome"
+        },
+        "request_digest": {
+          "type": "string"
+        },
+        "responder_entity_id": {
+          "type": "string"
+        },
+        "responder_principal_id": {
+          "type": "string"
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "state_version": {
+          "format": "uint64",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "committed_at_utc_ms",
+        "operation_id",
+        "outcome",
+        "request_digest",
+        "responder_entity_id",
+        "responder_principal_id",
+        "result_digest",
+        "state_version"
+      ],
+      "type": "object"
+    },
     "SessionRef": {
       "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
       "properties": {
@@ -102,7 +166,7 @@
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "The returned neural data, keyed by a unique record-series name. The nested\n`Observation.port` identifies the negotiated record port; distinct\n`recordable` series from one port therefore remain representable. `t` is\nproducer-local monotonic seconds (the plane form echoes `SensorFrame.t`);\n`sim_time_ms` is authoritative simulation time.",
+  "description": "The returned neural data, keyed by a unique record-series name. The nested\n`Observation.port` identifies the negotiated record port; distinct\n`recordable` series from one port therefore remain representable. `t` is\nthis observation publisher's local monotonic creation time; a driving\nsensor's position/time travels separately in `source`/`source_t`.\n`sim_time_ms` is authoritative simulation time.",
   "properties": {
     "calibrated_posterior": {
       "const": false,
@@ -117,8 +181,20 @@
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.8",
+      "pattern": "^1(?:\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\s\\S])",
       "type": "string"
+    },
+    "receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResponderReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Present on step/run RPC replies; absent on ordinary observation-plane\npublication. Clients require it before claiming a mutating RPC completed."
     },
     "records": {
       "additionalProperties": {

@@ -1,3 +1,4 @@
+import type { AuthorityLease } from "./AuthorityLease.js";
 import type { ChannelValue } from "./ChannelValue.js";
 import type { Mode } from "./Mode.js";
 import type { SessionRef } from "./SessionRef.js";
@@ -6,13 +7,11 @@ import type { StreamPosition } from "./StreamPosition.js";
  * Controller → plant: the proposed actuation, with `mode`/`ttl_ms` safety
  * metadata.
  *
- * Wire 0.6 (normative): `seq` MUST echo the originating `SensorFrame.seq`
- * (`>= 1`, strictly increasing per stream) — the split-plane V↔A join depends
- * on it, and the plant's anti-replay/anti-stale layers (`ActionBuffer` /
- * `CommandWatchdog`) reject `seq < 1` outright: the pre-0.6 "`seq == 0` always
- * accepted" escape hatch is REMOVED (it let a default-constructed or all-zeros
- * frame refresh liveness and bypass replay rejection on the action plane). `t`
- * echoes the driving `SensorFrame.t` in producer-local monotonic seconds.
+ * `stream`/`t` belong to the command publisher and advance independently of the
+ * sensor stream. A closed-loop command carries the driving sensor position/time
+ * in `source`/`source_t`; consumers correlate on `source`, never by equating the
+ * two publishers' `stream.seq` or clocks. `ActionBuffer` and
+ * `CommandWatchdog` apply replay/freshness discipline to the command's own stream.
  */
 export type CommandFrame = {
     ncp_version: string;
@@ -57,5 +56,10 @@ export type CommandFrame = {
      * Logical session id (transport-neutral); MUST equal the routing key's session.
      */
     session_id: string;
+    /**
+     * Required for Active/HOLD authority-bearing commands. Authenticated ESTOP
+     * may omit it so a stale lease cannot suppress the fail-safe latch.
+     */
+    authority: AuthorityLease | null;
 };
 //# sourceMappingURL=CommandFrame.d.ts.map

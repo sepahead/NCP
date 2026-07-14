@@ -1,0 +1,1 @@
+{"version":3,"file":"IdentityClaim.d.ts","sourceRoot":"","sources":["../../src/generated/IdentityClaim.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,YAAY,CAAC;AACxC,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,oBAAoB,CAAC;AAExD;;;GAGG;AACH,MAAM,MAAM,aAAa,GAAG;IAAE,YAAY,EAAE,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAC;IAAC,IAAI,EAAE,aAAa,CAAC;IAAC,KAAK,EAAE,KAAK,CAAC;CAAE,CAAC"}

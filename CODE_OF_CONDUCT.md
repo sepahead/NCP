@@ -1,5 +1,8 @@
 # Code of Conduct
 
+This policy applies equally to discussion of the released `v0.8.0` line and the
+unreleased, release-blocked NCP 1.0 candidate.
+
 The NCP project adopts the **Contributor Covenant, version 2.1** as its Code of
 Conduct. The full text is published at:
 

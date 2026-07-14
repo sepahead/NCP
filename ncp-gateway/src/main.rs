@@ -16,11 +16,75 @@
 
 use ncp_core::keys::Keys;
 use ncp_zenoh::{ZenohBus, NCP_ZENOH_CONFIG_ENV};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::time::Duration;
 
 const DEFAULT_BRIDGE_ADDR: &str = "127.0.0.1:28474";
+
+fn read_bridge_reply(reader: &mut impl BufRead) -> std::io::Result<Vec<u8>> {
+    let maximum_line_bytes = ncp_core::bounded_json::MAX_FRAME_BYTES + 2;
+    let mut limited = reader.take(maximum_line_bytes as u64);
+    let mut line = Vec::new();
+    if limited.read_until(b'\n', &mut line)? == 0 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "Python bridge closed without a reply",
+        ));
+    }
+    if line.last() != Some(&b'\n') {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Python bridge reply is not newline terminated within the NCP frame budget",
+        ));
+    }
+    line.pop();
+    if line.last() == Some(&b'\r') {
+        line.pop();
+    }
+    if line.len() > ncp_core::bounded_json::MAX_FRAME_BYTES {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Python bridge reply exceeds the NCP frame byte limit",
+        ));
+    }
+    ncp_core::bounded_json::preflight(&line).map_err(|error| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("Python bridge reply fails bounded JSON preflight: {error}"),
+        )
+    })?;
+    Ok(line)
+}
+
+fn handle_identity_argument() -> bool {
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    match arguments.as_slice() {
+        [] => false,
+        [argument] if argument == "--version" => {
+            println!("ncp-gateway {}", env!("CARGO_PKG_VERSION"));
+            true
+        }
+        [argument] if argument == "--identity-json" => {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "package": "ncp-gateway",
+                    "package_version": env!("CARGO_PKG_VERSION"),
+                    "wire_version": ncp_core::NCP_VERSION,
+                    "compact_proto_hash": ncp_core::CONTRACT_HASH,
+                    "normative_contract_digest": ncp_core::NORMATIVE_CONTRACT_DIGEST,
+                    "build_identity": ncp_core::BUILD_IDENTITY,
+                })
+            );
+            true
+        }
+        _ => {
+            eprintln!("usage: ncp-gateway [--version|--identity-json]");
+            std::process::exit(2);
+        }
+    }
+}
 
 /// Forward one NCP request (JSON bytes) to the Python bridge and return the reply
 /// (JSON bytes). Newline-delimited JSON, one request → one reply. Blocking — the
@@ -34,15 +98,10 @@ fn forward_to_python(addr: &str, request: &[u8]) -> std::io::Result<Vec<u8>> {
     writer.write_all(b"\n")?;
     writer.flush()?;
     let mut reader = BufReader::new(stream);
-    let mut line = Vec::new();
-    reader.read_until(b'\n', &mut line)?;
-    while line.last() == Some(&b'\n') || line.last() == Some(&b'\r') {
-        line.pop();
-    }
-    Ok(line)
+    read_bridge_reply(&mut reader)
 }
 
-fn error_frame(message: &str, request: &[u8]) -> Vec<u8> {
+fn error_frame(code: ncp_core::RpcErrorCode, message: &str, request: &[u8]) -> Vec<u8> {
     let request = serde_json::from_slice::<serde_json::Value>(request).ok();
     let session_id = request
         .as_ref()
@@ -50,23 +109,32 @@ fn error_frame(message: &str, request: &[u8]) -> Vec<u8> {
         .and_then(|value| value.as_str())
         .filter(|session_id| ncp_core::valid_id_segment(session_id))
         .map(str::to_owned);
+    let session = request
+        .as_ref()
+        .and_then(|value| value.get("session"))
+        .and_then(|value| serde_json::from_value::<ncp_core::SessionRef>(value.clone()).ok())
+        .filter(|value| ncp_core::is_canonical_uuid_v4(&value.generation));
     let request_kind = request
         .as_ref()
         .and_then(ncp_core::message_kind)
         .map(str::to_owned);
-    ncp_core::rpc_error_payload(message, session_id, request_kind)
+    ncp_core::rpc_error_payload_with_session(code, message, session_id, session, request_kind)
 }
 
 #[tokio::main]
 async fn main() {
+    if handle_identity_argument() {
+        return;
+    }
     let realm = std::env::var("NCP_REALM").unwrap_or_else(|_| ncp_core::DEFAULT_REALM.to_string());
     let bridge_addr =
         std::env::var("NCP_BRIDGE_ADDR").unwrap_or_else(|_| DEFAULT_BRIDGE_ADDR.to_string());
 
-    // Honor NCP_ZENOH_CONFIG explicitly: when set, load the strict client config
-    // file (fail-closed — a missing/malformed file aborts startup). When unset, fall
-    // back to the hardened default (multicast scouting off). The realm is addressing,
-    // not a credential — enforcement comes from this config, not the realm string.
+    // Honor NCP_ZENOH_CONFIG explicitly. The current ncp-zenoh secure path validates
+    // the strict client config and then fails closed because its callbacks cannot
+    // expose a transport-authenticated peer principal for IdentityClaim binding.
+    // When unset, this remains the visibly unauthenticated development path with
+    // multicast scouting off. The realm is addressing, not a credential.
     let keys = match Keys::try_new(realm.clone()) {
         Ok(keys) => keys,
         Err(error) => {
@@ -76,16 +144,19 @@ async fn main() {
     };
     let open = match std::env::var_os(NCP_ZENOH_CONFIG_ENV) {
         Some(path) => {
-            println!("[ncp-gateway] loading Zenoh config from {NCP_ZENOH_CONFIG_ENV}={path:?}");
+            eprintln!(
+                "[ncp-gateway] requesting production-secure Zenoh config from \
+                 {NCP_ZENOH_CONFIG_ENV}={path:?}; startup will fail closed until \
+                 transport-authenticated peer identity is callback-visible"
+            );
             ZenohBus::open_secure(keys).await
         }
         None => {
             eprintln!(
                 "[ncp-gateway] {NCP_ZENOH_CONFIG_ENV} unset: opening hardened default \
                  (multicast scouting OFF, no ACL/TLS). The realm is addressing, not a \
-                 credential — run the secure router separately and set \
-                 {NCP_ZENOH_CONFIG_ENV} to a configured copy of \
-                 deploy/zenoh-client-secure.json5. See SECURITY.md."
+                 credential. production-secure is currently unavailable in \
+                 ncp-zenoh; see SECURITY.md."
             );
             ZenohBus::open_realm(keys).await
         }
@@ -111,12 +182,24 @@ async fn main() {
                 .map_err(|error| error.to_string())
                 .and_then(|value| ncp_core::validate(value).map_err(|error| error.to_string()))
             {
-                return error_frame(&format!("invalid NCP request: {error}"), &req);
+                return error_frame(
+                    ncp_core::RpcErrorCode::InvalidMessage,
+                    &format!("invalid NCP request: {error}"),
+                    &req,
+                );
             }
             tokio::task::block_in_place(|| match forward_to_python(&addr, &req) {
                 Ok(reply) if !reply.is_empty() => reply,
-                Ok(_) => error_frame("empty reply from Python bridge", &req),
-                Err(e) => error_frame(&format!("bridge unreachable at {addr}: {e}"), &req),
+                Ok(_) => error_frame(
+                    ncp_core::RpcErrorCode::ContainedInternalFailure,
+                    "empty reply from Python bridge",
+                    &req,
+                ),
+                Err(e) => error_frame(
+                    ncp_core::RpcErrorCode::ContainedInternalFailure,
+                    &format!("bridge I/O or reply failure at {addr}: {e}"),
+                    &req,
+                ),
             })
         })
         .await;
@@ -139,4 +222,62 @@ async fn main() {
     serve_task.abort();
     let _ = bus.close().await;
     println!("[ncp-gateway] stopped.");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn bridge_reply_reader_accepts_one_bounded_json_line() {
+        let mut input = Cursor::new(b"{\"kind\":\"error\"}\r\nignored");
+        let reply = read_bridge_reply(&mut input).expect("bounded line should pass");
+        assert_eq!(reply, br#"{"kind":"error"}"#);
+    }
+
+    #[test]
+    fn bridge_reply_reader_rejects_unterminated_input() {
+        let mut input = Cursor::new(br#"{"kind":"error"}"#);
+        let error = read_bridge_reply(&mut input).expect_err("missing delimiter must fail");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+    }
+
+    #[test]
+    fn bridge_reply_reader_rejects_oversized_input() {
+        let mut input = Cursor::new(vec![b'x'; ncp_core::bounded_json::MAX_FRAME_BYTES + 3]);
+        let error = read_bridge_reply(&mut input).expect_err("oversized reply must fail");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+    }
+
+    #[test]
+    fn bridge_reply_reader_rejects_duplicate_keys() {
+        let mut input = Cursor::new(b"{\"kind\":\"error\",\"kind\":\"error\"}\n");
+        let error = read_bridge_reply(&mut input).expect_err("duplicate key must fail");
+        assert!(error.to_string().contains("NCP-LIMIT-007"), "{error}");
+    }
+
+    #[test]
+    fn error_frame_classifies_and_preserves_valid_session_pair() {
+        let request = br#"{
+            "ncp_version":"1.0",
+            "kind":"step_request",
+            "session_id":"s",
+            "session":{"generation":"293279f3-d459-4bfd-aeeb-604799e96925"}
+        }"#;
+        let reply = error_frame(
+            ncp_core::RpcErrorCode::ContainedInternalFailure,
+            "bridge unavailable",
+            request,
+        );
+        let reply: serde_json::Value = serde_json::from_slice(&reply).unwrap();
+        ncp_core::validate(&reply).unwrap();
+        assert_eq!(reply["code"], "NCP-INTERNAL-001");
+        assert_eq!(reply["session_id"], "s");
+        assert_eq!(
+            reply["session"]["generation"],
+            "293279f3-d459-4bfd-aeeb-604799e96925"
+        );
+        assert!(reply["receipt"].is_null());
+    }
 }

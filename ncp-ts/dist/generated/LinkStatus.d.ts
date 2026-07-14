@@ -16,18 +16,20 @@ export type LinkStatus = {
     loss_rate: number;
     burst: boolean;
     /**
-     * Wire 0.8: the LinkStatus stream's OWN incarnation + position — validate this
-     * before trusting any reported burst/loss/high-water state.
+     * The LinkStatus stream's own incarnation + strictly positive position —
+     * validate this before trusting any reported burst/loss/high-water state.
      */
     stream: StreamPosition;
     /**
      * The MONITORED stream's epoch + forward high-water seq; absent before the first
-     * valid observed frame (presence tracks `last_arrival_seq`).
+     * valid observed frame (presence tracks `last_arrival_seq`). Its seq starts at
+     * 1 and is the forward high-water.
      */
     observed_stream: StreamPosition | null;
     /**
      * F-16: seq of the last valid in-epoch ARRIVAL (`< observed_stream.seq` under
-     * reordering; `==` it on forward arrival). Presence tracks `observed_stream`.
+     * reordering; `==` it on forward arrival). Range starts at 1, cannot exceed the
+     * observed high-water, and presence tracks `observed_stream`.
      */
     last_arrival_seq: bigint | null;
     /**

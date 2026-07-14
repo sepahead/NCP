@@ -10,7 +10,7 @@ export declare class WebSocketNeuroSim {
     private readonly ready;
     private readonly settleReady;
     private closedError;
-    constructor(url?: string);
+    constructor(url: string);
     private static messageOf;
     /** Reject and drop every queued request; new sends fail fast afterwards. */
     private failAll;

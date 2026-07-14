@@ -1,56 +1,59 @@
-# deploy
+# NCP deployment assets
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+These are candidate templates and non-certifying reference profiles for NCP
+`1.0.0-rc.1`. They contain no production credentials and are not evidence that the
+live `production-secure` gate passed.
 
-Deployment assets for the [Neuro-Cybernetic Protocol](../NEURO_CYBERNETIC_PROTOCOL.md) (NCP) —
-the one normative protocol spoken by its Rust, Python, TypeScript, and C++ peers. This directory
-holds a complete secure Zenoh router template and a strict client template, not application code.
+## Security profiles
 
-## `zenoh-access-control.json5`
+- [`profiles/dev-loopback-insecure.json`](profiles/dev-loopback-insecure.json) is
+  restricted to loopback/UDS, visibly insecure, and never valid for production.
+- [`profiles/production-secure.template.json`](profiles/production-secure.template.json)
+  requires mTLS, protected key material, default-deny authority, and no downgrade.
+  It is a template; fill exact deployment endpoints, certificate identities, paths,
+  realm, entities, roles, and planes.
+- [`zenoh-access-control.json5`](zenoh-access-control.json5) and
+  [`zenoh-client-secure.json5`](zenoh-client-secure.json5) are the reference Zenoh
+  router/peer configuration shapes. Realm strings are addresses, not credentials.
+  The current `ncp-zenoh` callbacks cannot expose the authenticated remote principal
+  required to bind `IdentityClaim`; `ZenohBus::open_secure` therefore fails closed.
+  These files are preflight fixtures, not an available production adapter.
 
-A complete TLS-only, mTLS-required, **default-DENY** Zenoh router template that closes the open-realm
-action plane: only the authenticated `commander` subject may PUBLISH commands, the `robot`
-publishes only sensors and reads commands, and `observer` taps are READ-ONLY. The three
-planes (sensor / observation / command) get distinct per-subject permissions, so a
-perception-only client can never command.
-
-It is a **template** — render the exact realm safely, then replace certificate paths,
-exact `cert_common_names`, and interfaces for your deployment:
+Validate deterministic configuration rules with:
 
 ```bash
-python3 scripts/render_acl_template.py \
-  --realm engram/ncp --output router-secure.json5
-zenohd --config router-secure.json5
+python3 scripts/check_acl_template.py
+python3 scripts/verify_acl_deployment.py --self-test
+python3 scripts/validate_security_profile.py --self-test
 ```
 
-Zenoh does not interpolate `NCP_REALM` inside ACL key expressions; using the default
-`ncp/...` policy with peers on another realm fails closed and rejects legitimate traffic.
+The self-tests do not open a certified live deployment. Before a release campaign,
+the transport must implement and negative-test callback-visible authenticated-peer
+binding. The later campaign must use real installed peers/certificates and retain
+mTLS, correct/incorrect identity, wrong-plane, validity, rotation, revocation,
+unauthorized-action, and downgrade evidence.
 
-## `zenoh-client-secure.json5`
+## Plant profiles
 
-A strict client template for `ZenohBus::open_secure` and `ncp-gateway`. Copy it per
-identity, replace the TLS router endpoint and CA/client certificate/private-key paths,
-and ensure the leaf certificate's exact CN appears in the router's subject list.
-`NCP_ZENOH_CONFIG` on a peer points to this **client** file, never the router file.
+[`plant-profiles/`](plant-profiles/) contains reference simulation, UAV, mobile-base,
+and arm profiles. Each is `reference-non-certifying`, content-addressed, and states
+that the body is final authority, protocol ESTOP is not physical certification, and
+a consumer safety case is required. Their closed shape and typed digest projection
+are defined by [`../contract/plant-profile.v1.json`](../contract/plant-profile.v1.json)
+and [`../contract/canonical-digest.v1.json`](../contract/canonical-digest.v1.json);
+JSON text formatting is never the digest input.
 
-For a long `step_request` or `run_request`, the query deadline must cover the
-requested simulation duration plus backend/bridge overhead. Use
-`ZenohBus::request_with_timeout` or `ZenohNcpClient::{step,run}_with_timeout`, or
-set Zenoh's `queries_default_timeout` consistently. The gateway's backend socket
-timeout is 30 seconds; leaving a shorter query timeout makes a healthy late reply
-look like a dead server.
+```bash
+cargo run --quiet -p ncp-core --bin validate-plant-profile -- \
+  deploy/plant-profiles/*.json
+python3 scripts/check_profile_digests.py
+```
 
-## Open-realm caveat
+Do not deploy a reference profile unchanged unless it exactly matches the real
+plant, units, arities, ranges, executor, and safe actions and the owner has completed
+its hazard analysis. Zero is not universally safe; neutral, shutdown, and bounded
+hold-last are plant-owned decisions.
 
-On an open realm the **realm string is addressing, not a credential** — anyone who can reach
-the bus can spoof a subject. This ACL only binds authorization to identity once that identity
-is **proven by mutual TLS**: `cert_common_names` are matched by exact string equality, and
-without mTLS they are trivially spoofable and the ACL is meaningless. ACL/mTLS is **opt-in**;
-see [`SECURITY.md`](../SECURITY.md) for the threat model and the TLS + ACL enablement steps.
-The template is shape-checked by `scripts/check_acl_template.py`.
-
-See the [repository README](../README.md) for the full NCP picture and crate map.
-
-## License
-
-Licensed under either of [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE) at your option.
+See [`../SECURITY.md`](../SECURITY.md),
+[`../NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md), and
+[`../RELEASE_READINESS.md`](../RELEASE_READINESS.md).

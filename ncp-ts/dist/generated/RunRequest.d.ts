@@ -1,3 +1,5 @@
+import type { AuthorityLease } from "./AuthorityLease.js";
+import type { OperationContext } from "./OperationContext.js";
 import type { SessionRef } from "./SessionRef.js";
 import type { StimulusFrame } from "./StimulusFrame.js";
 /**
@@ -13,5 +15,7 @@ export type RunRequest = {
      * (0.8) REQUIRED: targets an open incarnation; `(session_id, generation)` live pair.
      */
     session: SessionRef;
+    operation: OperationContext;
+    authority: AuthorityLease;
 };
 //# sourceMappingURL=RunRequest.d.ts.map

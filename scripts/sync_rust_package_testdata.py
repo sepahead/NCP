@@ -57,6 +57,40 @@ def fixture_pairs() -> list[tuple[Path, Path]]:
     pairs.extend(
         (
             (
+                ROOT / "conformance/request-digest/v1.json",
+                ROOT / "ncp-core/testdata/conformance/request-digest.json",
+            ),
+            (
+                ROOT / "conformance/request-digest/v1.json",
+                ROOT / "ncp-cpp/testdata/conformance/request-digest.json",
+            ),
+            (
+                ROOT / "conformance/security-state-digest/v1.json",
+                ROOT / "ncp-core/testdata/conformance/security-state-digest.json",
+            ),
+            (
+                ROOT / "conformance/plant-profile/v1.json",
+                ROOT / "ncp-core/testdata/conformance/plant-profile.json",
+            ),
+            (
+                ROOT / "conformance/manifest.v1.json",
+                ROOT / "ncp-core/testdata/conformance/manifest.v1.json",
+            ),
+            (
+                ROOT / "conformance/manifest.v1.json",
+                ROOT / "ncp-zenoh/testdata/conformance/manifest.v1.json",
+            ),
+            (
+                ROOT / "conformance/manifest.v1.json",
+                ROOT / "ncp-cpp/testdata/conformance/manifest.v1.json",
+            ),
+            (
+                ROOT
+                / "conformance/migration/v0.8-to-v1.0/channel-requirement.json",
+                ROOT
+                / "ncp-core/testdata/conformance/migration/channel-requirement.json",
+            ),
+            (
                 ROOT / "conformance/behavior/vectors.json",
                 ROOT / "ncp-core/testdata/conformance/behavior/vectors.json",
             ),
@@ -71,6 +105,22 @@ def fixture_pairs() -> list[tuple[Path, Path]]:
             (
                 ROOT / "proto/ncp.proto",
                 ROOT / "ncp-core/testdata/proto/ncp.proto",
+            ),
+            (
+                ROOT / "contract/errors.v1.json",
+                ROOT / "ncp-core/testdata/contract/errors.v1.json",
+            ),
+            (
+                ROOT / "contract/canonical-digest.v1.json",
+                ROOT / "ncp-core/testdata/contract/canonical-digest.v1.json",
+            ),
+            (
+                ROOT / "contract/security-state-digest.v1.json",
+                ROOT / "ncp-core/testdata/contract/security-state-digest.v1.json",
+            ),
+            (
+                ROOT / "contract/plant-profile.v1.json",
+                ROOT / "ncp-core/testdata/contract/plant-profile.v1.json",
             ),
             (
                 ROOT / "deploy/zenoh-access-control.json5",

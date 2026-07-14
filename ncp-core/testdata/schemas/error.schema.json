@@ -1,5 +1,62 @@
 {
   "$defs": {
+    "OperationOutcome": {
+      "description": "Terminal state of one idempotent lifecycle operation.",
+      "enum": [
+        "unknown",
+        "succeeded",
+        "rejected",
+        "cancelled",
+        "outcome_unknown"
+      ],
+      "type": "string"
+    },
+    "ResponderReceipt": {
+      "description": "Authenticated responder receipt returned by a state-mutating lifecycle RPC.",
+      "properties": {
+        "committed_at_utc_ms": {
+          "format": "int64",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/OperationOutcome"
+        },
+        "request_digest": {
+          "type": "string"
+        },
+        "responder_entity_id": {
+          "type": "string"
+        },
+        "responder_principal_id": {
+          "type": "string"
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "state_version": {
+          "format": "uint64",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "committed_at_utc_ms",
+        "operation_id",
+        "outcome",
+        "request_digest",
+        "responder_entity_id",
+        "responder_principal_id",
+        "result_digest",
+        "state_version"
+      ],
+      "type": "object"
+    },
     "SessionRef": {
       "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
       "properties": {
@@ -12,8 +69,54 @@
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "A typed, versioned failure reply. Error payloads are wire messages too: leaving\nthem unversioned lets a stale or misrouted peer bypass the same identity checks\napplied to successful replies.",
+  "description": "A typed, versioned failure reply. Error payloads are wire messages too: leaving\nthem unversioned lets a stale or misrouted peer bypass the same identity checks\napplied to successful replies.\n\n`code` is a closed contract value from `contract/errors.v1.json`; the\nhuman-readable `error` string is diagnostic and never substitutes for it.",
   "properties": {
+    "code": {
+      "enum": [
+        "NCP-AUTH-001",
+        "NCP-AUTH-002",
+        "NCP-AUTH-003",
+        "NCP-AUTH-004",
+        "NCP-AUTH-005",
+        "NCP-AUTH-006",
+        "NCP-LEASE-001",
+        "NCP-LEASE-002",
+        "NCP-LEASE-003",
+        "NCP-LEASE-004",
+        "NCP-OP-001",
+        "NCP-OP-002",
+        "NCP-OP-003",
+        "NCP-OP-004",
+        "NCP-OP-005",
+        "NCP-OP-006",
+        "NCP-LIMIT-001",
+        "NCP-LIMIT-002",
+        "NCP-LIMIT-003",
+        "NCP-LIMIT-004",
+        "NCP-LIMIT-005",
+        "NCP-LIMIT-006",
+        "NCP-LIMIT-007",
+        "NCP-LIMIT-008",
+        "NCP-LIMIT-009",
+        "NCP-PROFILE-001",
+        "NCP-PROFILE-002",
+        "NCP-PLANT-001",
+        "NCP-PLANT-002",
+        "NCP-PLANT-003",
+        "NCP-STATE-001",
+        "NCP-STATE-002",
+        "NCP-STATE-003",
+        "NCP-VERSION-001",
+        "NCP-FEATURE-001",
+        "NCP-AUDIT-001",
+        "NCP-AUDIT-002",
+        "NCP-GATEWAY-001",
+        "NCP-GATEWAY-002",
+        "NCP-WIRE-001",
+        "NCP-INTERNAL-001"
+      ],
+      "type": "string"
+    },
     "error": {
       "type": "string"
     },
@@ -22,11 +125,21 @@
       "type": "string"
     },
     "ncp_version": {
-      "const": "0.8",
+      "pattern": "^1(?:\\.(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615))?(?![\\s\\S])",
       "type": "string"
     },
+    "receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResponderReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional terminal receipt. Pre-authentication/shape failures have no\nresponder receipt; a committed rejection or cancellation does."
+    },
     "request_kind": {
-      "default": null,
       "type": [
         "string",
         "null"
@@ -41,11 +154,9 @@
           "type": "null"
         }
       ],
-      "default": null,
       "description": "(0.8) Optional correlation copied from the rejected request; presence does NOT\nassert the generation is active. Present iff `session_id` is (copy both or neither)."
     },
     "session_id": {
-      "default": null,
       "type": [
         "string",
         "null"
@@ -53,6 +164,7 @@
     }
   },
   "required": [
+    "code",
     "error",
     "kind",
     "ncp_version"

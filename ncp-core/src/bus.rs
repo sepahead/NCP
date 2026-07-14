@@ -5,11 +5,102 @@
 //! `ncp-core` ships a synchronous `Bus` trait plus an in-process `LocalBus`
 //! (deterministic, dependency-free — for tests and co-process use) and the
 //! generic `NcpBusClient` / `NcpBusServer` that carry NCP over any `Bus`. The
-//! Zenoh binding lives in the `ncp-zenoh` crate. Mirrors `backend/neurocontrol/
-//! bus.py`.
+//! Zenoh binding lives in the `ncp-zenoh` crate. Raw [`Bus`] payloads are
+//! deliberately untrusted bytes: only the exact typed `NcpBus*` boundaries add
+//! bounded decoding, live-session binding, and per-lifetime stream monotonicity.
+//! Mirrors `backend/neurocontrol/bus.py`.
+
+use std::sync::{Arc, Mutex};
 
 use crate::keys::Keys;
-use std::sync::{Arc, Mutex};
+
+const MAX_RPC_DIAGNOSTIC_BYTES: usize = 1_024;
+
+struct BoundedDiagnostic {
+    output: String,
+    truncated: bool,
+}
+
+impl BoundedDiagnostic {
+    fn new() -> Self {
+        Self {
+            output: String::with_capacity(MAX_RPC_DIAGNOSTIC_BYTES),
+            truncated: false,
+        }
+    }
+
+    fn finish(mut self) -> String {
+        if self.truncated {
+            self.output.push_str("...");
+        }
+        self.output
+    }
+}
+
+impl std::fmt::Write for BoundedDiagnostic {
+    fn write_str(&mut self, value: &str) -> std::fmt::Result {
+        if self.truncated {
+            return Ok(());
+        }
+        let remaining = MAX_RPC_DIAGNOSTIC_BYTES
+            .saturating_sub(3)
+            .saturating_sub(self.output.len());
+        if value.len() <= remaining {
+            self.output.push_str(value);
+            return Ok(());
+        }
+        let mut end = remaining.min(value.len());
+        while !value.is_char_boundary(end) {
+            end -= 1;
+        }
+        self.output.push_str(&value[..end]);
+        self.truncated = true;
+        Ok(())
+    }
+}
+
+fn bounded_diagnostic(arguments: std::fmt::Arguments<'_>) -> String {
+    let mut writer = BoundedDiagnostic::new();
+    let _ = std::fmt::write(&mut writer, arguments);
+    writer.finish()
+}
+
+fn check_reply_frame_size(reply: &[u8]) -> Result<(), BusError> {
+    if reply.len() > crate::bounded_json::MAX_FRAME_BYTES {
+        return Err(BusError(format!(
+            "NCP-LIMIT-001: RPC reply frame byte limit exceeded ({} > {})",
+            reply.len(),
+            crate::bounded_json::MAX_FRAME_BYTES
+        )));
+    }
+    Ok(())
+}
+
+fn bounded_rpc_error_payload(
+    code: crate::RpcErrorCode,
+    error: impl std::fmt::Display,
+    session_id: Option<String>,
+    session: Option<crate::SessionRef>,
+    request_kind: Option<String>,
+) -> Vec<u8> {
+    let reply = crate::rpc_error_payload_with_session(
+        code,
+        bounded_diagnostic(format_args!("{error}")),
+        session_id,
+        session,
+        request_kind,
+    );
+    if reply.len() <= crate::bounded_json::MAX_FRAME_BYTES {
+        return reply;
+    }
+    crate::rpc_error_payload_with_session(
+        crate::RpcErrorCode::JsonLimit(crate::bounded_json::JsonLimitCode::FrameBytes),
+        "generated RPC error reply exceeded the frame byte limit",
+        None,
+        None,
+        None,
+    )
+}
 
 fn check_bus_keys(keys: &Keys) -> Result<(), BusError> {
     keys.validate()
@@ -18,6 +109,44 @@ fn check_bus_keys(keys: &Keys) -> Result<(), BusError> {
 
 fn key_error(error: crate::InvalidKeySegment) -> BusError {
     BusError(error.to_string())
+}
+
+fn check_live_session(session: &crate::SessionRef) -> Result<(), BusError> {
+    if crate::is_canonical_uuid_v4(&session.generation) {
+        Ok(())
+    } else {
+        Err(BusError(
+            "expected live session generation must be a canonical lowercase UUIDv4".into(),
+        ))
+    }
+}
+
+fn accept_publisher_stream(
+    fence: &Mutex<crate::StreamMonotonicityFence>,
+    route: &str,
+    kind: &str,
+    session: &crate::SessionRef,
+    stream: &crate::StreamPosition,
+) -> Result<(), BusError> {
+    let mut fence = fence.lock().map_err(|_| {
+        BusError("typed publisher stream fence is poisoned; refusing publish".into())
+    })?;
+    fence
+        .accept(route, kind, session, stream)
+        .map_err(|error| BusError(format!("typed publisher stream rejected: {error}")))
+}
+
+fn accept_subscriber_stream(
+    fence: &Mutex<crate::StreamMonotonicityFence>,
+    route: &str,
+    kind: &str,
+    session: &crate::SessionRef,
+    stream: &crate::StreamPosition,
+) -> bool {
+    let Ok(mut fence) = fence.lock() else {
+        return false;
+    };
+    fence.accept(route, kind, session, stream).is_ok()
 }
 
 /// Answers an RPC: request bytes → reply bytes.
@@ -41,11 +170,21 @@ pub fn key_matches(pattern: &str, key: &str) -> bool {
     pp.iter().zip(kp.iter()).all(|(p, k)| *p == "*" || p == k)
 }
 
-/// A data-centric bus: queryable RPC + pub/sub streaming.
+/// A raw data-centric byte bus: queryable RPC + pub/sub streaming.
+///
+/// This trait performs no NCP decoding, route/session binding, authentication, or
+/// replay fencing. Treat every callback payload as untrusted; NCP peers should use
+/// [`NcpBusClient`] and [`NcpBusServer`] or apply equivalent explicit gates.
 pub trait Bus: Send + Sync {
     /// Register an RPC responder on `key`.
     fn declare_queryable(&self, key: &str, handler: QueryHandler);
     /// Query `key` and return the first reply payload.
+    ///
+    /// Implementations backed by a byte stream MUST stop reading/copying once
+    /// [`crate::bounded_json::MAX_FRAME_BYTES`] is exceeded and return
+    /// `NCP-LIMIT-001`; they must not first assemble an unbounded reply `Vec`.
+    /// `LocalBus` checks the application-owned handler result before it escapes
+    /// the co-process boundary. [`NcpBusClient`] repeats the check defensively.
     fn query(&self, key: &str, payload: &[u8]) -> Result<Vec<u8>, BusError>;
     /// Subscribe to samples on `key` (may contain `*`/`**`).
     fn declare_subscriber(&self, key: &str, callback: SubCallback);
@@ -65,8 +204,9 @@ impl std::fmt::Display for BusError {
 }
 impl std::error::Error for BusError {}
 
-/// In-process bus: models queryable RPC + pub/sub so the decoupled binding is
-/// testable and usable same-process (co-process SITL).
+/// In-process raw byte bus: models queryable RPC + pub/sub so the decoupled
+/// binding is testable and usable same-process (co-process SITL). It intentionally
+/// does not make an arbitrary raw publication an accepted NCP frame.
 #[derive(Clone, Default)]
 pub struct LocalBus {
     queryables: Arc<Mutex<Vec<(String, QueryHandler)>>>,
@@ -94,11 +234,13 @@ impl Bus for LocalBus {
                 .find(|(pat, _)| key_matches(pat, key))
                 .map(|(_, h)| h.clone())
         };
-        match handler {
+        let reply = match handler {
             Some(h) => std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| h(payload)))
-                .map_err(|_| BusError(format!("queryable for {key:?} panicked"))),
-            None => Err(BusError(format!("no queryable answers {key:?}"))),
-        }
+                .map_err(|_| BusError(format!("queryable for {key:?} panicked")))?,
+            None => return Err(BusError(format!("no queryable answers {key:?}"))),
+        };
+        check_reply_frame_size(&reply)?;
+        Ok(reply)
     }
 
     fn declare_subscriber(&self, key: &str, callback: SubCallback) {
@@ -136,19 +278,24 @@ impl Bus for LocalBus {
 pub struct NcpBusClient<B: Bus> {
     pub bus: B,
     pub keys: Keys,
+    typed_publisher_streams: Mutex<crate::StreamMonotonicityFence>,
 }
 
 impl<B: Bus> NcpBusClient<B> {
     pub fn new(bus: B, keys: Keys) -> Self {
-        Self { bus, keys }
+        Self {
+            bus,
+            keys,
+            typed_publisher_streams: Mutex::new(crate::StreamMonotonicityFence::default()),
+        }
     }
 
     /// Send an NCP RPC message (already-serialized JSON bytes) and return the
     /// reply JSON bytes.
     pub fn request(&self, message: &[u8]) -> Result<Vec<u8>, BusError> {
         check_bus_keys(&self.keys)?;
-        let value: serde_json::Value = serde_json::from_slice(message)
-            .map_err(|error| BusError(format!("invalid NCP RPC JSON: {error}")))?;
+        let value = crate::bounded_json::parse_value(message)
+            .map_err(|error| BusError(format!("invalid or over-budget NCP RPC JSON: {error}")))?;
         crate::validate(&value)
             .map_err(|error| BusError(format!("invalid NCP RPC request: {error}")))?;
         let kind = crate::message_kind(&value)
@@ -162,68 +309,130 @@ impl<B: Bus> NcpBusClient<B> {
             .and_then(serde_json::Value::as_str)
             .expect("validated lifecycle request carries session_id");
         let reply = self.bus.query(&key, message)?;
+        check_reply_frame_size(&reply)?;
         let validated = crate::validate_rpc_reply_for(kind, session_id, &reply)
-            .map_err(|error| BusError(error.to_string()))?;
+            .map_err(|error| BusError(bounded_diagnostic(format_args!("{error}"))))?;
         if crate::message_kind(&validated) == Some("error") {
-            return Err(BusError(format!(
-                "NCP error: {}",
+            return Err(BusError(bounded_diagnostic(format_args!(
+                "NCP error {}: {}",
+                validated
+                    .get("code")
+                    .and_then(serde_json::Value::as_str)
+                    .expect("validated ErrorFrame carries code"),
                 validated
                     .get("error")
                     .and_then(serde_json::Value::as_str)
                     .expect("validated ErrorFrame carries error")
-            )));
+            ))));
         }
         Ok(reply)
     }
 
-    /// Subscribe to the observation stream for a session; `callback` gets raw
-    /// JSON payloads.
+    /// Subscribe to the observation stream for one exact live session incarnation;
+    /// `callback` receives only payloads matching both id and generation.
     pub fn subscribe_observations(
         &self,
         session_id: &str,
+        session: &crate::SessionRef,
         callback: SubCallback,
     ) -> Result<(), BusError> {
         check_bus_keys(&self.keys)?;
+        check_live_session(session)?;
         let key = self.keys.try_observation(session_id).map_err(key_error)?;
-        let expected_session = session_id.to_owned();
+        let expected_route = key.clone();
+        let expected_session_id = session_id.to_owned();
+        let expected_session = session.clone();
+        let stream_fence = Arc::new(Mutex::new(crate::StreamMonotonicityFence::default()));
         self.bus.declare_subscriber(
             &key,
             Arc::new(move |key, payload| {
-                if crate::validate_observation_plane_payload_for(&expected_session, payload).is_ok()
-                {
-                    callback(key, payload);
+                if key != expected_route {
+                    return;
                 }
+                let Ok(frame) = crate::decode_observation_plane_payload_for(
+                    &expected_session_id,
+                    &expected_session,
+                    payload,
+                ) else {
+                    return;
+                };
+                if !accept_subscriber_stream(
+                    &stream_fence,
+                    &expected_route,
+                    "observation_frame",
+                    &expected_session,
+                    &frame.stream,
+                ) {
+                    return;
+                }
+                callback(key, payload);
             }),
         );
         Ok(())
     }
 
-    /// Subscribe to the command (action) plane — what a plant does to receive
-    /// `CommandFrame`s.
+    /// Subscribe to the command (action) plane for one exact live session. Even
+    /// ESTOP is fenced before callback/latch mutation.
     pub fn subscribe_commands(
         &self,
         session_id: &str,
+        session: &crate::SessionRef,
         callback: SubCallback,
     ) -> Result<(), BusError> {
         check_bus_keys(&self.keys)?;
+        check_live_session(session)?;
         let key = self.keys.try_command(session_id).map_err(key_error)?;
+        let expected_route = key.clone();
+        let expected_session_id = session_id.to_owned();
+        let expected_session = session.clone();
+        let stream_fence = Arc::new(Mutex::new(crate::StreamMonotonicityFence::default()));
         self.bus.declare_subscriber(
             &key,
             Arc::new(move |key, payload| {
-                if crate::validate_command_plane_payload(payload).is_ok() {
-                    callback(key, payload);
+                if key != expected_route {
+                    return;
                 }
+                let Ok(frame) = crate::decode_command_plane_payload_for(
+                    &expected_session_id,
+                    &expected_session,
+                    payload,
+                ) else {
+                    return;
+                };
+                if !accept_subscriber_stream(
+                    &stream_fence,
+                    &expected_route,
+                    "command_frame",
+                    &expected_session,
+                    &frame.stream,
+                ) {
+                    return;
+                }
+                callback(key, payload);
             }),
         );
         Ok(())
     }
 
-    /// Publish a `SensorFrame` (perception plane) — what a plant does each tick.
-    pub fn put_sensor(&self, session_id: &str, payload: &[u8]) -> Result<(), BusError> {
+    /// Publish a `SensorFrame` for one exact live session incarnation.
+    pub fn put_sensor(
+        &self,
+        session_id: &str,
+        session: &crate::SessionRef,
+        payload: &[u8],
+    ) -> Result<(), BusError> {
         check_bus_keys(&self.keys)?;
+        check_live_session(session)?;
         let key = self.keys.try_sensor(session_id).map_err(key_error)?;
-        crate::validate_sensor_plane_payload(payload)
+        let frame = crate::decode_sensor_plane_payload_for(session_id, session, payload)
             .map_err(|error| BusError(format!("refusing sensor publish: {error}")))?;
+        accept_publisher_stream(
+            &self.typed_publisher_streams,
+            &key,
+            "sensor_frame",
+            session,
+            &frame.stream,
+        )?;
         self.bus.put(&key, payload)
     }
 }
@@ -234,11 +443,16 @@ impl<B: Bus> NcpBusClient<B> {
 pub struct NcpBusServer<B: Bus> {
     pub bus: B,
     pub keys: Keys,
+    typed_publisher_streams: Mutex<crate::StreamMonotonicityFence>,
 }
 
 impl<B: Bus> NcpBusServer<B> {
     pub fn new(bus: B, keys: Keys) -> Self {
-        Self { bus, keys }
+        Self {
+            bus,
+            keys,
+            typed_publisher_streams: Mutex::new(crate::StreamMonotonicityFence::default()),
+        }
     }
 
     /// Register the RPC queryable. `handler` maps request JSON bytes → reply
@@ -255,39 +469,60 @@ impl<B: Bus> NcpBusServer<B> {
             self.bus.declare_queryable(
                 &key,
                 Arc::new(move |payload| {
-                    let parsed = serde_json::from_slice::<serde_json::Value>(payload).ok();
+                    let parsed = crate::bounded_json::parse_value(payload).ok();
                     let session_id = parsed
                         .as_ref()
                         .and_then(|value| value.get("session_id"))
                         .and_then(serde_json::Value::as_str)
                         .filter(|value| crate::valid_id_segment(value))
                         .map(str::to_owned);
-                    let Ok((_request, session)) =
-                        crate::validate_rpc_request_for(&expected_kind, payload)
-                    else {
-                        return crate::rpc_error_payload(
-                            format!("invalid {expected_kind} request"),
-                            session_id,
-                            Some(expected_kind.clone()),
-                        );
-                    };
+                    let parsed_session = parsed
+                        .as_ref()
+                        .and_then(|value| value.get("session"))
+                        .and_then(|value| {
+                            serde_json::from_value::<crate::SessionRef>(value.clone()).ok()
+                        })
+                        .filter(|value| crate::is_canonical_uuid_v4(&value.generation));
+                    let (request, session) =
+                        match crate::validate_rpc_request_for(&expected_kind, payload) {
+                            Ok(request) => request,
+                            Err(error) => {
+                                return bounded_rpc_error_payload(
+                                    error.rpc_error_code(),
+                                    format_args!("invalid {expected_kind} request: {error}"),
+                                    session_id,
+                                    parsed_session,
+                                    Some(expected_kind.clone()),
+                                );
+                            }
+                        };
+                    let request_session = request
+                        .get("session")
+                        .and_then(|value| {
+                            serde_json::from_value::<crate::SessionRef>(value.clone()).ok()
+                        })
+                        .filter(|value| crate::is_canonical_uuid_v4(&value.generation));
                     let reply = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         handler(payload)
                     })) {
                         Ok(reply) => reply,
                         Err(_) => {
-                            return crate::rpc_error_payload(
+                            return bounded_rpc_error_payload(
+                                crate::RpcErrorCode::ContainedInternalFailure,
                                 "RPC handler panicked",
                                 Some(session),
+                                request_session,
                                 Some(expected_kind.clone()),
                             )
                         }
                     };
                     match crate::validate_rpc_reply_for(&expected_kind, &session, &reply) {
                         Ok(_) => reply,
-                        Err(error) => crate::rpc_error_payload(
-                            error.to_string(),
+                        Err(error) => bounded_rpc_error_payload(
+                            crate::RpcErrorCode::ContainedInternalFailure,
+                            error,
                             Some(session),
+                            request_session,
                             Some(expected_kind.clone()),
                         ),
                     }
@@ -297,38 +532,87 @@ impl<B: Bus> NcpBusServer<B> {
         Ok(())
     }
 
-    /// Publish an observation frame (JSON bytes) on a session's observation key.
-    pub fn publish_observation(&self, session_id: &str, payload: &[u8]) -> Result<(), BusError> {
+    /// Publish an observation frame on one exact live session's observation key.
+    pub fn publish_observation(
+        &self,
+        session_id: &str,
+        session: &crate::SessionRef,
+        payload: &[u8],
+    ) -> Result<(), BusError> {
         check_bus_keys(&self.keys)?;
+        check_live_session(session)?;
         let key = self.keys.try_observation(session_id).map_err(key_error)?;
-        crate::validate_observation_plane_payload_for(session_id, payload)
+        let frame = crate::decode_observation_plane_payload_for(session_id, session, payload)
             .map_err(|error| BusError(format!("refusing observation publish: {error}")))?;
+        accept_publisher_stream(
+            &self.typed_publisher_streams,
+            &key,
+            "observation_frame",
+            session,
+            &frame.stream,
+        )?;
         self.bus.put(&key, payload)
     }
 
-    /// Publish a command frame (JSON bytes) on a session's action plane.
-    pub fn publish_command(&self, session_id: &str, payload: &[u8]) -> Result<(), BusError> {
+    /// Publish a complete command frame on one exact live session's action plane.
+    pub fn publish_command(
+        &self,
+        session_id: &str,
+        session: &crate::SessionRef,
+        payload: &[u8],
+    ) -> Result<(), BusError> {
         check_bus_keys(&self.keys)?;
+        check_live_session(session)?;
         let key = self.keys.try_command(session_id).map_err(key_error)?;
-        crate::validate_command_plane_payload(payload)
+        let frame = crate::decode_command_plane_payload_for(session_id, session, payload)
             .map_err(|error| BusError(format!("refusing command publish: {error}")))?;
+        accept_publisher_stream(
+            &self.typed_publisher_streams,
+            &key,
+            "command_frame",
+            session,
+            &frame.stream,
+        )?;
         self.bus.put(&key, payload)
     }
 
-    /// Subscribe to the sensor (perception) plane for a session.
+    /// Subscribe to the sensor plane for one exact live session incarnation.
     pub fn subscribe_sensors(
         &self,
         session_id: &str,
+        session: &crate::SessionRef,
         callback: SubCallback,
     ) -> Result<(), BusError> {
         check_bus_keys(&self.keys)?;
+        check_live_session(session)?;
         let key = self.keys.try_sensor(session_id).map_err(key_error)?;
+        let expected_route = key.clone();
+        let expected_session_id = session_id.to_owned();
+        let expected_session = session.clone();
+        let stream_fence = Arc::new(Mutex::new(crate::StreamMonotonicityFence::default()));
         self.bus.declare_subscriber(
             &key,
             Arc::new(move |key, payload| {
-                if crate::validate_sensor_plane_payload(payload).is_ok() {
-                    callback(key, payload);
+                if key != expected_route {
+                    return;
                 }
+                let Ok(frame) = crate::decode_sensor_plane_payload_for(
+                    &expected_session_id,
+                    &expected_session,
+                    payload,
+                ) else {
+                    return;
+                };
+                if !accept_subscriber_stream(
+                    &stream_fence,
+                    &expected_route,
+                    "sensor_frame",
+                    &expected_session,
+                    &frame.stream,
+                ) {
+                    return;
+                }
+                callback(key, payload);
             }),
         );
         Ok(())
@@ -352,6 +636,20 @@ mod tests {
         include_bytes!("../testdata/conformance/vectors/command_frame.json");
     const OBSERVATION_FRAME: &[u8] =
         include_bytes!("../testdata/conformance/vectors/observation_frame.json");
+    const RESTARTED_STREAM_EPOCH: &str = "40000000-0000-4000-8000-000000000001";
+
+    fn live_session() -> crate::SessionRef {
+        crate::SessionRef {
+            generation: "293279f3-d459-4bfd-aeeb-604799e96925".into(),
+        }
+    }
+
+    fn sensor_frame_at(epoch: &str, seq: i64) -> Vec<u8> {
+        let mut frame: serde_json::Value = serde_json::from_slice(SENSOR_FRAME).unwrap();
+        frame["stream"]["epoch"] = epoch.into();
+        frame["stream"]["seq"] = seq.into();
+        serde_json::to_vec(&frame).unwrap()
+    }
 
     #[test]
     fn key_matching() {
@@ -462,6 +760,29 @@ mod tests {
     }
 
     #[test]
+    fn local_bus_query_rejects_an_oversized_reply() {
+        let bus = LocalBus::new();
+        bus.declare_queryable(
+            "ncp/rpc/hostile",
+            Arc::new(|_| vec![b'x'; crate::bounded_json::MAX_FRAME_BYTES + 1]),
+        );
+
+        let error = bus.query("ncp/rpc/hostile", b"request").unwrap_err();
+
+        assert!(error.0.contains("NCP-LIMIT-001"), "{error}");
+    }
+
+    #[test]
+    fn rpc_diagnostics_are_truncated_without_losing_utf8_boundaries() {
+        let hostile = "🧠".repeat(MAX_RPC_DIAGNOSTIC_BYTES);
+
+        let diagnostic = bounded_diagnostic(format_args!("handler reply: {hostile}"));
+
+        assert!(diagnostic.len() <= MAX_RPC_DIAGNOSTIC_BYTES);
+        assert!(diagnostic.ends_with("..."));
+    }
+
+    #[test]
     fn local_bus_contains_callback_and_queryable_panics() {
         let bus = LocalBus::new();
         bus.declare_queryable("ncp/rpc/fault", Arc::new(|_| panic!("query fault")));
@@ -515,8 +836,53 @@ mod tests {
         let error: serde_json::Value = serde_json::from_slice(&error).unwrap();
         crate::validate(&error).unwrap();
         assert_eq!(crate::message_kind(&error), Some("error"));
+        assert_eq!(error["code"], "NCP-WIRE-001");
         assert_eq!(error["request_kind"], "open_session");
         assert_eq!(error["session_id"], "vec-open-1");
+        assert_eq!(
+            error["session"]["generation"],
+            "293279f3-d459-4bfd-aeeb-604799e96925"
+        );
+    }
+
+    #[test]
+    fn ncp_bus_rpc_preserves_bounded_json_error_codes() {
+        let bus = LocalBus::new();
+        let keys = Keys::default();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let handler_calls = calls.clone();
+        NcpBusServer::new(bus.clone(), keys.clone())
+            .serve_rpc(Arc::new(move |_| {
+                handler_calls.fetch_add(1, Ordering::Relaxed);
+                SESSION_OPENED.to_vec()
+            }))
+            .unwrap();
+        let selector = keys.rpc_for_kind("open_session").unwrap();
+
+        let assert_code = |payload: &[u8], expected: &str| {
+            let reply = bus.query(&selector, payload).unwrap();
+            let reply: serde_json::Value = serde_json::from_slice(&reply).unwrap();
+            crate::validate(&reply).unwrap();
+            assert_eq!(reply["code"], expected);
+            assert!(reply["session_id"].is_null());
+            assert!(reply["session"].is_null());
+        };
+
+        assert_code(
+            br#"{"kind":"open_session","kind":"open_session"}"#,
+            "NCP-LIMIT-007",
+        );
+        let too_deep = format!(
+            "{}0{}",
+            "[".repeat(crate::bounded_json::MAX_NESTING_DEPTH + 1),
+            "]".repeat(crate::bounded_json::MAX_NESTING_DEPTH + 1)
+        );
+        assert_code(too_deep.as_bytes(), "NCP-LIMIT-002");
+        let too_large = vec![b' '; crate::bounded_json::MAX_FRAME_BYTES + 1];
+        assert_code(&too_large, "NCP-LIMIT-001");
+        assert_code(br#"{"#, "NCP-LIMIT-009");
+        assert_code(br#"{}"#, "NCP-WIRE-001");
+        assert_eq!(calls.load(Ordering::Relaxed), 0);
     }
 
     #[test]
@@ -529,6 +895,7 @@ mod tests {
         let client = NcpBusClient::new(wrong_reply_bus, Keys::default());
         let error = client.request(OPEN_SESSION).unwrap_err();
         assert!(error.0.contains("reply kind mismatch"), "{error}");
+        assert!(error.0.contains("NCP-INTERNAL-001"), "{error}");
 
         let panic_bus = LocalBus::new();
         let server = NcpBusServer::new(panic_bus.clone(), Keys::default());
@@ -538,6 +905,25 @@ mod tests {
         let client = NcpBusClient::new(panic_bus, Keys::default());
         let error = client.request(OPEN_SESSION).unwrap_err();
         assert!(error.0.contains("handler panicked"), "{error}");
+        assert!(error.0.contains("NCP-INTERNAL-001"), "{error}");
+    }
+
+    #[test]
+    fn ncp_bus_rpc_contains_an_oversized_handler_reply() {
+        let bus = LocalBus::new();
+        let server = NcpBusServer::new(bus.clone(), Keys::default());
+        server
+            .serve_rpc(Arc::new(|_| {
+                vec![b'x'; crate::bounded_json::MAX_FRAME_BYTES + 1]
+            }))
+            .unwrap();
+        let client = NcpBusClient::new(bus, Keys::default());
+
+        let error = client.request(OPEN_SESSION).unwrap_err();
+
+        assert!(error.0.contains("NCP-INTERNAL-001"), "{error}");
+        assert!(error.0.contains("NCP-LIMIT-001"), "{error}");
+        assert!(error.0.len() <= MAX_RPC_DIAGNOSTIC_BYTES);
     }
 
     #[test]
@@ -549,11 +935,13 @@ mod tests {
         let sensors = Arc::new(AtomicUsize::new(0));
         let commands = Arc::new(AtomicUsize::new(0));
         let observations = Arc::new(AtomicUsize::new(0));
+        let live_session = live_session();
 
         let seen = sensors.clone();
         server
             .subscribe_sensors(
                 "vec-open-1",
+                &live_session,
                 Arc::new(move |_, _| {
                     seen.fetch_add(1, Ordering::Relaxed);
                 }),
@@ -563,6 +951,7 @@ mod tests {
         client
             .subscribe_commands(
                 "vec-open-1",
+                &live_session,
                 Arc::new(move |_, _| {
                     seen.fetch_add(1, Ordering::Relaxed);
                 }),
@@ -572,43 +961,109 @@ mod tests {
         client
             .subscribe_observations(
                 "vec-open-1",
+                &live_session,
                 Arc::new(move |_, _| {
                     seen.fetch_add(1, Ordering::Relaxed);
                 }),
             )
             .unwrap();
 
-        client.put_sensor("vec-open-1", SENSOR_FRAME).unwrap();
-        server.publish_command("vec-open-1", COMMAND_FRAME).unwrap();
+        client
+            .put_sensor("vec-open-1", &live_session, SENSOR_FRAME)
+            .unwrap();
         server
-            .publish_observation("vec-open-1", OBSERVATION_FRAME)
+            .publish_command("vec-open-1", &live_session, COMMAND_FRAME)
+            .unwrap();
+        server
+            .publish_observation("vec-open-1", &live_session, OBSERVATION_FRAME)
             .unwrap();
         assert_eq!(sensors.load(Ordering::Relaxed), 1);
         assert_eq!(commands.load(Ordering::Relaxed), 1);
         assert_eq!(observations.load(Ordering::Relaxed), 1);
 
-        assert!(client.put_sensor("bad/*", SENSOR_FRAME).is_err());
+        assert!(client
+            .put_sensor("vec-open-1", &live_session, SENSOR_FRAME)
+            .is_err());
         assert!(server
-            .publish_command("vec-open-1", br#"{"mode":"active"}"#)
+            .publish_command("vec-open-1", &live_session, COMMAND_FRAME)
+            .is_err());
+        assert!(server
+            .publish_observation("vec-open-1", &live_session, OBSERVATION_FRAME)
+            .is_err());
+
+        // Raw bytes can bypass publisher gates, but every exact typed subscriber
+        // independently drops the duplicate before invoking application code.
+        server
+            .bus
+            .put(&server.keys.sensor("vec-open-1"), SENSOR_FRAME)
+            .unwrap();
+        server
+            .bus
+            .put(&server.keys.command("vec-open-1"), COMMAND_FRAME)
+            .unwrap();
+        server
+            .bus
+            .put(&server.keys.observation("vec-open-1"), OBSERVATION_FRAME)
+            .unwrap();
+        assert_eq!(
+            (
+                sensors.load(Ordering::Relaxed),
+                commands.load(Ordering::Relaxed),
+                observations.load(Ordering::Relaxed),
+            ),
+            (1, 1, 1),
+        );
+
+        assert!(client
+            .put_sensor("bad/*", &live_session, SENSOR_FRAME)
+            .is_err());
+        assert!(server
+            .publish_command("vec-open-1", &live_session, br#"{"mode":"active"}"#)
             .is_err());
         let mut unstamped: serde_json::Value = serde_json::from_slice(OBSERVATION_FRAME).unwrap();
         unstamped["stream"]["seq"] = 0.into();
         assert!(server
-            .publish_observation("vec-open-1", &serde_json::to_vec(&unstamped).unwrap())
+            .publish_observation(
+                "vec-open-1",
+                &live_session,
+                &serde_json::to_vec(&unstamped).unwrap(),
+            )
             .is_err());
         let mut wrong_session: serde_json::Value =
             serde_json::from_slice(OBSERVATION_FRAME).unwrap();
         wrong_session["session_id"] = "other-session".into();
-        let wrong_session = serde_json::to_vec(&wrong_session).unwrap();
+        let wrong_observation = serde_json::to_vec(&wrong_session).unwrap();
         assert!(server
-            .publish_observation("vec-open-1", &wrong_session)
+            .publish_observation("vec-open-1", &live_session, &wrong_observation)
+            .is_err());
+
+        let mut wrong_session: serde_json::Value = serde_json::from_slice(SENSOR_FRAME).unwrap();
+        wrong_session["session_id"] = "other-session".into();
+        let wrong_sensor = serde_json::to_vec(&wrong_session).unwrap();
+        assert!(client
+            .put_sensor("vec-open-1", &live_session, &wrong_sensor)
+            .is_err());
+
+        let mut wrong_session: serde_json::Value = serde_json::from_slice(COMMAND_FRAME).unwrap();
+        wrong_session["session_id"] = "other-session".into();
+        let wrong_command = serde_json::to_vec(&wrong_session).unwrap();
+        assert!(server
+            .publish_command("vec-open-1", &live_session, &wrong_command)
             .is_err());
 
         // The NCP-aware subscriber boundary also rejects a raw-bus bypass. The
         // generic LocalBus remains intentionally raw for tests/non-NCP traffic.
         server
             .bus
-            .put(&server.keys.observation("vec-open-1"), &wrong_session)
+            .put(&server.keys.observation("vec-open-1"), &wrong_observation)
+            .unwrap();
+        server
+            .bus
+            .put(&server.keys.sensor("vec-open-1"), &wrong_sensor)
+            .unwrap();
+        server
+            .bus
+            .put(&server.keys.command("vec-open-1"), &wrong_command)
             .unwrap();
         server
             .bus
@@ -622,11 +1077,160 @@ mod tests {
         assert_eq!(commands.load(Ordering::Relaxed), 1);
         assert_eq!(observations.load(Ordering::Relaxed), 1);
 
-        // ESTOP bypasses the normal wire envelope gate by design: even a stale
-        // or partially decoded peer must retain a way to command no actuation.
+        // ESTOP may omit authority, but it never bypasses the complete envelope or
+        // exact live-session binding gate.
+        assert!(server
+            .publish_command("vec-open-1", &live_session, br#"{"mode":"estop"}"#)
+            .is_err());
+        let mut estop: serde_json::Value = serde_json::from_slice(COMMAND_FRAME).unwrap();
+        estop["mode"] = "estop".into();
+        estop["stream"]["seq"] = 8.into();
+        estop.as_object_mut().unwrap().remove("authority");
+        let estop = serde_json::to_vec(&estop).unwrap();
         server
-            .publish_command("vec-open-1", br#"{"mode":"estop"}"#)
+            .publish_command("vec-open-1", &live_session, &estop)
             .unwrap();
         assert_eq!(commands.load(Ordering::Relaxed), 2);
+
+        let mut stale: serde_json::Value = serde_json::from_slice(&estop).unwrap();
+        stale["session"]["generation"] = "10000000-0000-4000-8000-000000000003".into();
+        let stale = serde_json::to_vec(&stale).unwrap();
+        assert!(server
+            .publish_command("vec-open-1", &live_session, &stale)
+            .is_err());
+        server
+            .bus
+            .put(&server.keys.command("vec-open-1"), &stale)
+            .unwrap();
+        let mut missing_generation: serde_json::Value = serde_json::from_slice(&estop).unwrap();
+        missing_generation
+            .as_object_mut()
+            .unwrap()
+            .remove("session");
+        server
+            .bus
+            .put(
+                &server.keys.command("vec-open-1"),
+                &serde_json::to_vec(&missing_generation).unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            commands.load(Ordering::Relaxed),
+            2,
+            "raw-bypass stale-generation ESTOP must not reach the callback/latch"
+        );
+    }
+
+    #[test]
+    fn typed_sensor_publisher_rejects_reorder_duplicate_and_foreign_epoch() {
+        let bus = LocalBus::new();
+        let keys = Keys::default();
+        let publisher = NcpBusClient::new(bus, keys);
+        let live = live_session();
+        let epoch = serde_json::from_slice::<serde_json::Value>(SENSOR_FRAME).unwrap()["stream"]
+            ["epoch"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        publisher
+            .put_sensor("vec-open-1", &live, &sensor_frame_at(&epoch, 2))
+            .unwrap();
+        let reordered = publisher
+            .put_sensor("vec-open-1", &live, &sensor_frame_at(&epoch, 1))
+            .unwrap_err();
+        let duplicate = publisher
+            .put_sensor("vec-open-1", &live, &sensor_frame_at(&epoch, 2))
+            .unwrap_err();
+        let foreign = publisher
+            .put_sensor(
+                "vec-open-1",
+                &live,
+                &sensor_frame_at(RESTARTED_STREAM_EPOCH, 3),
+            )
+            .unwrap_err();
+
+        assert!(reordered.0.contains("not strictly greater"), "{reordered}");
+        assert!(duplicate.0.contains("not strictly greater"), "{duplicate}");
+        assert!(foreign.0.contains("foreign epoch"), "{foreign}");
+    }
+
+    #[test]
+    fn fresh_typed_sensor_publisher_accepts_restarted_epoch() {
+        let bus = LocalBus::new();
+        let keys = Keys::default();
+        let retired = NcpBusClient::new(bus.clone(), keys.clone());
+        let live = live_session();
+        let first_epoch = serde_json::from_slice::<serde_json::Value>(SENSOR_FRAME).unwrap()
+            ["stream"]["epoch"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        retired
+            .put_sensor("vec-open-1", &live, &sensor_frame_at(&first_epoch, 2))
+            .unwrap();
+        let fresh = NcpBusClient::new(bus, keys);
+
+        assert!(fresh
+            .put_sensor(
+                "vec-open-1",
+                &live,
+                &sensor_frame_at(RESTARTED_STREAM_EPOCH, 1),
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn typed_sensor_subscriber_fences_stream_until_redeclaration() {
+        let bus = LocalBus::new();
+        let keys = Keys::default();
+        let server = NcpBusServer::new(bus.clone(), keys.clone());
+        let live = live_session();
+        let first_epoch = serde_json::from_slice::<serde_json::Value>(SENSOR_FRAME).unwrap()
+            ["stream"]["epoch"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let original_seen = Arc::new(AtomicUsize::new(0));
+        let seen = original_seen.clone();
+        server
+            .subscribe_sensors(
+                "vec-open-1",
+                &live,
+                Arc::new(move |_, _| {
+                    seen.fetch_add(1, Ordering::Relaxed);
+                }),
+            )
+            .unwrap();
+        let route = keys.sensor("vec-open-1");
+
+        bus.put(&route, &sensor_frame_at(&first_epoch, 2)).unwrap();
+        bus.put(&route, &sensor_frame_at(&first_epoch, 1)).unwrap();
+        bus.put(&route, &sensor_frame_at(&first_epoch, 2)).unwrap();
+        bus.put(&route, &sensor_frame_at(RESTARTED_STREAM_EPOCH, 3))
+            .unwrap();
+
+        let restarted_seen = Arc::new(AtomicUsize::new(0));
+        let seen = restarted_seen.clone();
+        server
+            .subscribe_sensors(
+                "vec-open-1",
+                &live,
+                Arc::new(move |_, _| {
+                    seen.fetch_add(1, Ordering::Relaxed);
+                }),
+            )
+            .unwrap();
+        bus.put(&route, &sensor_frame_at(RESTARTED_STREAM_EPOCH, 3))
+            .unwrap();
+
+        assert_eq!(
+            (
+                original_seen.load(Ordering::Relaxed),
+                restarted_seen.load(Ordering::Relaxed),
+            ),
+            (1, 1),
+            "the original declaration rejects replay/restart while the fresh declaration accepts its first epoch"
+        );
     }
 }

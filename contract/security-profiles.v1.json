@@ -1,0 +1,23 @@
+{
+  "schema": "ncp.security-profile-registry.v1",
+  "wire_version": "1.0",
+  "profiles": [
+    {
+      "id": "dev-loopback-insecure",
+      "transport_security": "none",
+      "allowed_bindings": ["loopback", "unix-domain-socket"],
+      "insecure_status_required": true,
+      "production": false
+    },
+    {
+      "id": "production-secure",
+      "transport_security": "mutual-tls",
+      "peer_identity_validation": "required",
+      "acl": "default-deny-principal-entity-plane",
+      "protected_private_key": "required",
+      "certificate_validity": "required",
+      "downgrade": "forbidden",
+      "production": true
+    }
+  ]
+}

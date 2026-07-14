@@ -1,24 +1,34 @@
 # NCP for neuromorphic hardware — and for sim-before-deploy
 
-NCP's backend is a `SimulationBackend` trait (`backends.py`): NEST today, but the
-**wire contract knows nothing about NEST**. It speaks neural record/stimulus
+> **Candidate boundary:** this is an informative integration design for unreleased
+> NCP `1.0.0-rc.1`, not evidence that any neuromorphic adapter, hardware target,
+> real-time path, or physical safety case has been certified. Remaining wire-0.8
+> clients require the breaking 1.0 migration.
+
+Engram's integration layer, not NCP core, defines a `SimulationBackend` trait in
+`backends.py`: NEST today, while the **wire contract knows nothing about NEST**. It
+speaks neural record/stimulus
 (`V_m`/`spikes`/`rate`, `current_pA`/`rate_hz`/`spike_times`) against named
-populations, advanced in `Run`-style chunks. That is exactly the surface a
-**neuromorphic chip** also exposes — so NCP is most useful as the **stable
-interface across the simulation → hardware transition**.
+populations, advanced in `Run`-style chunks. A **neuromorphic chip** can expose a
+similar application surface, but current wire 1.0 requires every observation to be
+raw simulation output with `is_simulation_output=true` and explicitly excludes
+experimental recordings. Physical-device output cannot be relabelled as simulation
+output. The shared vocabulary is therefore design input for a future provenance-
+aware extension, not evidence that a chip is an interchangeable native-1.0 backend.
 
 ## Where NCP helps
 
 ### 1. One interface, swap the substrate (the headline use)
 A robot/UAV client and an analysis/observer client are written against
-NCP, not against NEST. Replace the backend — NEST → a neuromorphic chip — behind
-the *same* `OpenSession`/`StepRequest`/`ObservationFrame` wire, and **no client
-changes**. The brain's substrate becomes a deployment choice, not an API. This is
-the single biggest reason to put NCP between the SNN and everything else *before*
-you ever touch silicon.
+NCP, not against NEST. A future contract can preserve most record/stimulus and
+lifecycle semantics across simulation and hardware, but it must add a closed,
+fail-closed provenance discriminator before physical-chip observations are legal.
+Device capabilities, plant profile, timing, and safety evidence also require
+renegotiation and testing. The useful goal is a stable application abstraction—not
+an untrue claim that current wire 1.0 already makes the substrate interchangeable.
 
-Concrete backend adapters (each a `SimulationBackend`, mirroring `NestBackend`'s
-`Prepare`/`Run(chunk)`/`Cleanup` + record/stimulus mapping):
+Candidate future backend adapters could mirror `NestBackend`'s
+`Prepare`/`Run(chunk)`/`Cleanup` plus record/stimulus mapping:
 - **Intel Loihi 2 via Lava** — Lava `Process` graphs with `run(RunSteps/RunContinuous)`
   map onto NCP `open`/`step`/`run`; inject via Lava input ports (≈ NCP stimulus),
   read via output ports / probes (≈ NCP record). Real-time / faster-than-real-time.
@@ -31,50 +41,51 @@ Concrete backend adapters (each a `SimulationBackend`, mirroring `NestBackend`'s
 - **Akida / other event-based accelerators** — same record/stimulus mapping where
   a spiking I/O API exists.
 
-These are *adapters behind the existing trait*; they need **no protocol change**.
+These sketches need a provenance-aware protocol revision plus new conformance and
+device evidence; implementing only the existing trait is insufficient.
 
 ### 2. Sim-before-deploy workflow
-The standard neuromorphic path is develop+validate in simulation, then deploy to
-chip. NCP makes each stage the same wire:
+The standard neuromorphic path is develop and validate in simulation, then deploy to
+chip. NCP can keep much of the application workflow stable, but current wire 1.0
+ends at the simulation boundary:
 1. **Develop** the closed loop (sensor → SNN → command) against the **NEST**
    backend over NCP — fast iteration, full observability, the `NeuroControlLoop`.
-2. **Validate** with the streaming control plane + the resilience layer
-   (`ActionBuffer`, `LinkMonitor`) already in place — the robot link behaves the
-   same whether the brain is sim or chip.
-3. **Deploy** by switching the backend to the chip adapter. The client, the codec,
-   the safety governor, and the analysis tap are unchanged.
+2. **Validate** the streaming control plane and resilience layer
+   (`ActionBuffer`, `LinkMonitor`) while retaining simulation provenance.
+3. **Deploy** only through a future provenance-aware chip binding. Application
+   channel mappings may remain stable, but the wire identity, evidence, device
+   timing, and safety case must be renegotiated and retested.
 
 ### 3. Differential (sim-vs-hardware) testing — for free
-Because NCP records observations against a declared surface, you can replay the
-**same stimulus trace** into the NEST backend and the chip backend and diff the
-`ObservationFrame`s. That is a clean A/B for **sim-to-hardware fidelity** (does the
-chip's spiking match the simulator within tolerance?), using nothing but the
-record/stimulus contract. The scientific boundary makes this honest: every frame
-is `is_simulation_output=true` / `calibrated_posterior=false`, so neither sim nor
-chip output is mistaken for a validated claim — and on analog hardware
-(BrainScaleS device mismatch, trial-to-trial variability) that disclaimer matters
-even more than in sim.
+The same declared channel surface can drive an offline or future-protocol A/B: replay
+one stimulus trace into NEST and a chip, then compare simulation observations with
+separately labelled device observations. Current `ObservationFrame`s cannot carry
+the chip half honestly: setting `is_simulation_output=true` would mislabel physical
+output, while setting it false violates wire 1.0. Any fidelity comparison therefore
+needs an out-of-band device record today or a future provenance-aware frame. It is a
+comparison, not validation that either substrate reproduces a paper.
 
 ### 4. Hardware-in-the-loop (HIL)
-A chip becomes an NCP backend; the robot or a physics sim is the NCP client. The
-resilience layer (`RESILIENCE.md`) is now load-bearing: chip↔host and host↔robot
-are real, lossy links, and the `ActionBuffer`/`ttl_ms`/HOLD fail-safe + the
-`LinkMonitor` apply unchanged. NCP turns "SNN on a chip driving a real robot" into
-the same protocol you debugged in sim.
+Under a future device-provenance extension, a chip can serve a robot or physics-sim
+client. The resilience layer (`RESILIENCE.md`) would then be load-bearing because
+chip↔host and host↔robot are real, lossy links. Current action-buffer, TTL, HOLD, and
+link-monitor concepts remain useful, but their simulation tests do not certify the
+future hardware path or make it native wire 1.0.
 
 ### 5. An information-theoretic analysis client as a sim-to-hardware fidelity metric
 An analysis/observer client (e.g. one computing Partial Information Decomposition /
-PID) can tap NCP over the `(V,L,D,A)` observation stream. Run it against the NEST
-backend *and* the chip backend and you
-get an **information-theoretic** comparison: does the chip preserve the same
+PID) can consume a future provenance-aware `(V,L,D,A)` observation stream. Run the
+same analysis against separately labelled NEST and chip records to get an
+**information-theoretic** comparison: does the chip preserve the same
 unique/redundant/synergistic information flow {sensors → action} as the simulator,
 or does device noise/quantization destroy a synergistic channel? That is a far
 sharper "did porting to hardware change the computation?" test than trace RMSE.
 
 ## Honest limits
 - These backend adapters are **not yet implemented** — `NestBackend` is the only
-  live one. The point here is that NCP's contract *admits* them with no wire
-  change; building a `LavaBackend` / `SpiNNakerBackend` is scoped follow-up work.
+  live one. Current NCP 1.0 does not admit physical-device observations without
+  mislabelling them; a `LavaBackend` / `SpiNNakerBackend` therefore requires a
+  separately specified provenance extension, not only adapter code.
 - Chips constrain models (fixed neuron types, fan-in, weight precision); a model
   that runs in NEST may need adaptation for silicon. NCP doesn't hide that — it
   makes the *interface* constant, not the model.

@@ -1,66 +1,54 @@
-# ncp (Python) — PyO3 bindings for the NCP Rust core
+# `ncp` Python binding
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+`ncp-python` is the PyO3 interface to the Rust reference implementation for the
+unreleased, release-blocked NCP `1.0.0-rc.1` candidate. It is wire/decision binding
+evidence, not an independent non-Rust implementation.
 
-PyO3 bindings (the importable `ncp` module) for the [`ncp-core`](../ncp-core) Rust
-reference implementation of the Neuro-Cybernetic Protocol.
-
-In the polyglot NCP SDK there is **one normative protocol** with peers in Rust,
-Python, TypeScript, and C++. This crate is the **Python peer**: so Python projects
-use the canonical Rust implementation rather than reimplementing the wire, the
-version guard, the key scheme, the rate codec, the action-plane safety governor, and
-message validation all come from `ncp-core`. Any Python peer can compute keys,
-encode/decode, and validate frames through this module and be guaranteed
-wire-identical to the Rust and TS peers.
-
-This is a [maturin](https://github.com/PyO3/maturin) extension module, built as an
-`abi3` wheel — not via plain `cargo`. The `extension-module` feature is **off by
-default** so `cargo build`/`check`/`test --workspace` works on Linux/Windows;
-maturin enables it explicitly.
-
-## Build
+Build it through maturin, not plain Cargo:
 
 ```bash
 maturin develop -m ncp-python/Cargo.toml --features extension-module
 ```
 
-## Use
-
 ```python
 import ncp
 
-ncp.NCP_VERSION                      # "0.8"
-k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
-k.command("uav3")                    # "ncp/session/uav3/command"
-ncp.decode_command(codec_json, '{"vel_x":200.0}', seq=7, t=0.0)  # CommandFrame JSON
+assert ncp.PACKAGE_VERSION == "1.0.0-rc.1"
+assert ncp.NCP_VERSION == "1.0"
+assert ncp.CONTRACT_HASH == "163acc57d8a62b66"
+assert len(ncp.NORMATIVE_CONTRACT_DIGEST) == 64
+assert ncp.BUILD_IDENTITY == "unreleased-worktree"  # RC default, not a source commit
+keys = ncp.Keys("ncp")
+assert keys.command("body-1") == "ncp/session/body-1/command"
 ```
 
-The module also exposes `check_version`, `encode_rates`, `govern` (the one-shot safety
-governor), `validate` (kind-aware wire validation), and `channel_value`. For **latching**
-safety — where an inbound ESTOP must survive across calls — use the persistent
-**`ncp.Governor`** class (`govern` / `reset` / `is_estopped` / `note_link` / `safety_ok`):
-the one-shot `govern` wrapper is stateless by construction and so cannot latch (it stays
-for stateless/corpus use), whereas an `ncp.Governor` instance holds the ESTOP latch across
-ticks.
+The module exposes version/hash checks, canonical keys, message validation, rate
+codec helpers, the persistent latching `Governor`, and `ActionBuffer`. A live body
+needs both the governor and buffer: the first applies sensor/geofence/speed policy,
+while the second applies TTL, monotonic stream sequence, bounded predictive replay,
+and its own ESTOP latch.
 
-A live actuator also needs **`ncp.ActionBuffer`**. Governor enforces sensor freshness,
-geofence, and speed policy; ActionBuffer independently enforces command `ttl_ms`,
-monotonic seq/replay rejection, bounded predictive-horizon replay, and its own ESTOP
-latch. Governor alone is not a command-arrival watchdog:
+`ActionBuffer` is declaration-bound: a lower/equal sequence remains rejected after
+TTL expiry, and a foreign epoch requires a fresh object. `reset()` is a body-local
+primitive for an already-authorized session-generation cut. It clears the latch and
+permanently retires that object (`is_retired() == True`); it does not authenticate a
+supervisor or restore authority. Construct a new buffer only for the fresh
+`SessionOpened` generation.
 
-```python
-buffer = ncp.ActionBuffer()
-buffer.on_command(now_s, command_json)
-channels_json = buffer.active(now_s)  # None means HOLD / no actuation
-```
+Every binding entry point that accepts JSON applies the same universal byte,
+depth/node, string/number, Unicode, and duplicate-key preflight before typed decode;
+call `validate` for complete message-shape and semantic validation. An active wire-1.0
+`CommandFrame` additionally needs the matching authority lease. The binding does not
+authenticate payload claims by itself; the transport/deployment adapter must bind the
+verified principal to entity, role, and plane and enforce exact live
+route/session-generation admission before calling the local buffer. Its local
+fail-safe priority is not a malformed remote-ESTOP bypass.
 
-`decode_command` requires a caller-owned, strictly increasing wire-safe `seq`; it does
-not manufacture a sequence counter for the application.
+The complete normative digest is in
+[`../contract/manifest.v1.json`](../contract/manifest.v1.json). This RC wheel is not
+published or independently live-certified. See
+[`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md) and
+[`RELEASE_READINESS.md`](../RELEASE_READINESS.md).
 
-See the normative spec [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md)
-and the [repository README](../README.md) for the full protocol, the message kinds,
-and the other language peers.
-
-## License
-
-Licensed under either of [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE) at your option.
+Licensed under either [MIT](../LICENSE-MIT) or
+[Apache-2.0](../LICENSE-APACHE).

@@ -1,0 +1,50 @@
+{
+  "schema": "ncp.request-digest.v1",
+  "wire_version": "1.0",
+  "hash": "sha256",
+  "output": "64-lowercase-hex",
+  "domain_utf8_with_terminal_nul": "ncp.request-digest.v1\u0000",
+  "accepted_kinds": ["step_request", "run_request", "close_session"],
+  "projection": {
+    "covered": "complete request including unknown extension members unless explicitly excluded",
+    "excluded_exact_paths": [
+      "/authority",
+      "/operation/request_digest",
+      "/operation/retry"
+    ],
+    "rationale": {
+      "/authority": "renewable authenticated authorization envelope, checked independently",
+      "/operation/request_digest": "self-reference",
+      "/operation/retry": "attempt metadata that changes on an identical retry"
+    },
+    "object_order": "ascending lexicographic order of decoded UTF-8 key bytes",
+    "number_semantics": "finite IEEE-754 binary64 bits, network byte order; integer and exactly equivalent binary64 spellings are identical; negative zero is preserved, including lexical -0 and -0.0 as the same negative-zero value",
+    "string_semantics": "decoded valid Unicode encoded as UTF-8",
+    "unknown_members": "covered"
+  },
+  "encoding": {
+    "byte_order": "network-big-endian",
+    "lengths": "unsigned-u64",
+    "tags": {
+      "null": "00",
+      "false": "01",
+      "true": "02",
+      "number_followed_by_8_binary64_bytes": "03",
+      "string_followed_by_u64_byte_length_and_utf8": "04",
+      "array_followed_by_u64_count_and_values": "05",
+      "object_followed_by_u64_count_and_string-key-value-pairs": "06"
+    },
+    "stream": "domain bytes followed by one encoded projected root object",
+    "max_projection_bytes": 2097152,
+    "max_nesting_depth": 32
+  },
+  "verification": {
+    "ingress": "mandatory-after-bounded-json-and-structural-validation",
+    "mismatch_error": "NCP-OP-001",
+    "retry_invariant": "same mutation with retry=true and/or a renewed valid authority lease has the same digest",
+    "content_conflict": "same operation key with any covered-content change is rejected",
+    "authority_precondition": "before cache lookup, bind the cryptographically authenticated caller to the supplied holder and require the supplied lease to equal the current unexpired AuthorityMachine lease",
+    "cross_principal_rule": "authenticated principal is part of the cache key; transfer never replays another principal's result and an unprovable retry returns outcome_unknown",
+    "downgrade_rule": "expired, stale, weaker, mismatched-holder, or non-current authority rejects before cache lookup"
+  }
+}

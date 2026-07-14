@@ -22,6 +22,9 @@ It is intentionally a lightweight stdlib-only parse (no json5 dep): it strips `/
 comments, quotes bare keys, and drops trailing commas, which is sufficient for this
 template. zenohd remains the authority on the live config; this only catches the
 mechanical drift class the review found.
+
+This guard proves router configuration only. It cannot expose an authenticated
+remote principal to an NCP callback or bind that principal to ``IdentityClaim``.
 """
 from __future__ import annotations
 
@@ -453,7 +456,8 @@ def main() -> int:
     print(
         f"OK: {ACL_PATH.name} — {n_rules} rules, tokens valid, "
         "command/observation PUT restricted to commander, sensor PUT to robot, "
-        "observer read coverage complete, TLS transport compiled"
+        "observer read coverage complete, TLS transport compiled; router-config "
+        "preflight only (NCP peer/IdentityClaim binding unavailable)"
     )
     return 0
 

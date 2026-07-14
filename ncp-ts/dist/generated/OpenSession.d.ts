@@ -1,4 +1,6 @@
 import type { EntityBinding } from "./EntityBinding.js";
+import type { GatewayAttribution } from "./GatewayAttribution.js";
+import type { IdentityClaim } from "./IdentityClaim.js";
 import type { NetworkRef } from "./NetworkRef.js";
 import type { RecordSpec } from "./RecordSpec.js";
 import type { SimConfig } from "./SimConfig.js";
@@ -22,5 +24,20 @@ export type OpenSession = {
      * every session advertises it; `None` (serialized `null`) = not advertised.
      */
     contract_hash: string | null;
+    /**
+     * Authenticated caller claim; the transport adapter binds it to the peer
+     * certificate before opening any session state.
+     */
+    identity: IdentityClaim;
+    security_profile: string;
+    security_state_digest: string;
+    /**
+     * Explicit opt-in to a labelled 0.8→1.0 gateway. `false` is native-only.
+     */
+    gateway_permitted: boolean;
+    /**
+     * Present only when this payload was emitted by a terminating gateway.
+     */
+    gateway: GatewayAttribution | null;
 };
 //# sourceMappingURL=OpenSession.d.ts.map

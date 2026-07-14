@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "control_status",
   "t": 1.0,
   "mode": "active",

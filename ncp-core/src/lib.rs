@@ -1,25 +1,56 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+pub mod audit;
+pub mod authority;
+pub mod bounded_json;
 pub mod bulk;
 pub mod bus;
+mod canonical_digest;
 pub mod codec;
+pub mod contract_identity;
+pub mod idempotency;
 pub mod keys;
 pub mod messages;
+pub mod migration;
+pub mod plant;
+pub mod request_digest;
 pub mod resilience;
 pub mod safety;
+pub mod security;
+pub mod stream_fence;
 pub mod transport;
 
+pub use audit::{AuditChain, AuditEvent, AuditEventDraft, AuditEventType};
+pub use authority::{AuthorityLease, AuthorityMachine, AuthoritySnapshot, LifecycleState};
 pub use bulk::{observation_from_bulk, BulkBlock, BulkError, Column, BULK_MAGIC, BULK_VERSION};
 pub use bus::{Bus, BusError, LocalBus, NcpBusClient, NcpBusServer, QueryHandler, SubCallback};
 pub use codec::{
     default_uav_velocity_codec, CodecError, CodecSpec, DecoderChannelMap, EncoderChannelMap,
     MAX_CODEC_COMPONENTS,
 };
+pub use contract_identity::{BUILD_IDENTITY, NORMATIVE_CONTRACT_DIGEST, PACKAGE_VERSION};
+pub use idempotency::{
+    IdempotencyCache, OperationContext, OperationDecision, OperationOutcome, ResponderBinding,
+    ResponderReceipt,
+};
 pub use keys::{valid_id_segment, InvalidKeySegment, InvalidRealm, Keys, DEFAULT_REALM};
 pub use messages::*;
+pub use migration::{
+    translate_capabilities_0_8_to_1_0, translate_capabilities_0_8_to_1_0_with_context,
+    GatewayContext, MigrationError, MigrationReceipt,
+};
+pub use plant::{PlantCommand, PlantProfile, PlantProfileError, SafeActionKind};
+pub use request_digest::{
+    canonical_request_projection, request_digest, verify_request_digest, RequestDigestError,
+    MAX_REQUEST_PROJECTION_BYTES, REQUEST_DIGEST_DOMAIN_V1,
+};
 pub use resilience::{max_horizon_len, ActionBuffer, LinkMonitor};
 pub use safety::{CommandWatchdog, SafetyGovernor};
+pub use stream_fence::{
+    StreamFenceError, StreamMonotonicityFence, MAX_STREAM_FENCE_ENTRIES,
+    MAX_STREAM_FENCE_KIND_BYTES, MAX_STREAM_FENCE_ROUTE_BYTES,
+};
 pub use transport::{
     ControlTransport, Controller, InProcessTransport, NeuroControlLoop, ReflexController,
 };
@@ -28,6 +59,45 @@ pub use transport::{
 mod wire_tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, EPOCH, GEN, SID};
+
+    fn operation() -> serde_json::Value {
+        serde_json::json!({
+            "operation_id": "10000000-0000-4000-8000-000000000001",
+            "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+            "session_epoch": GEN,
+            "expected_state_version": 1,
+            "deadline_utc_ms": 1_700_000_030_000_i64,
+            "retry": false
+        })
+    }
+
+    fn authority() -> serde_json::Value {
+        serde_json::json!({
+            "session_epoch": GEN,
+            "term": 1,
+            "lease_id": "20000000-0000-4000-8000-000000000001",
+            "issuer_principal_id": "controller-1",
+            "holder_principal_id": "controller-1",
+            "holder_entity_id": "body-1",
+            "issued_at_utc_ms": 1_700_000_000_000_i64,
+            "expires_at_utc_ms": 1_700_000_030_000_i64
+        })
+    }
+
+    fn seal_mutation(mut request: serde_json::Value) -> serde_json::Value {
+        let digest = request_digest(&request).expect("test mutation is digestible");
+        request["operation"]["request_digest"] = serde_json::Value::String(digest);
+        request
+    }
+
+    fn body_identity() -> serde_json::Value {
+        serde_json::json!({
+            "principal_id": "body-1",
+            "entity_id": "simulator-1",
+            "role": "body",
+            "plane": "control"
+        })
+    }
 
     /// The `kind` discriminator and enum string values must match the Python
     /// reference exactly so peers interoperate.
@@ -97,17 +167,18 @@ mod wire_tests {
 
     #[test]
     fn version_guard() {
-        // Wire is pre-1.0 (0.8), so the minor is breaking: an exact (major,
-        // minor) match is required and a same-major/different-minor is rejected.
-        assert!(check_version("0.8", true).unwrap()); // exact match ok
-        assert!(check_version("0.5", true).is_err()); // old 0.5 wire is now a breaking minor diff -> Err under strict
-        assert!(check_version("0.4", true).is_err()); // old 0.4 wire is now a breaking minor diff -> Err under strict
-        assert!(check_version("0.1", true).is_err()); // old 0.1 wire is now a breaking minor diff -> Err under strict
+        // Stable wire 1.x is major-compatible. Every 0.x wire is a deliberate
+        // incompatible boundary and requires the labelled fail-closed gateway.
+        assert!(check_version("1.0", true).unwrap());
+        assert!(check_version("1.9", true).unwrap());
+        assert!(check_version("0.8", true).is_err());
+        assert!(check_version("0.5", true).is_err());
+        assert!(check_version("0.4", true).is_err());
+        assert!(check_version("0.1", true).is_err());
         assert!(!check_version("0.1", false).unwrap()); // ...and Ok(false) when lenient
-        assert!(check_version("0.9", true).is_err()); // any other 0.x minor diff is breaking
+        assert!(check_version("0.9", true).is_err());
         assert!(!check_version("0.9", false).unwrap()); // ...and Ok(false) when lenient
-        assert!(!check_version("1.0", false).unwrap()); // different major incompatible
-        assert!(check_version("1.0", true).is_err());
+        assert!(check_version("2.0", true).is_err());
         assert!(check_version("bogus", false).is_err());
     }
 
@@ -207,7 +278,10 @@ mod wire_tests {
         assert_eq!(typed.session_id, "");
 
         // A complete step_request passes.
-        let good = serde_json::json!({"kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1", "session": {"generation": GEN}});
+        let good = seal_mutation(serde_json::json!({
+            "kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1",
+            "session": {"generation": GEN}, "operation": operation(), "authority": authority()
+        }));
         assert!(validate(&good).is_ok());
 
         // Wire 0.6: a version-less control message is rejected too — every kind
@@ -226,10 +300,11 @@ mod wire_tests {
         );
 
         // Forward-compatible: unknown extra fields are still accepted.
-        let fwd = serde_json::json!({
+        let fwd = seal_mutation(serde_json::json!({
             "kind": "step_request", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "session": {"generation": GEN}, "future": 7
-        });
+            "session": {"generation": GEN}, "operation": operation(), "authority": authority(),
+            "future": 7
+        }));
         assert!(validate(&fwd).is_ok());
     }
 
@@ -274,9 +349,12 @@ mod wire_tests {
         // session_opened: the pin reaches into the nested provenance object...
         let bad_prov = serde_json::json!({
             "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "ok": true,
+            "ok": true, "state_version": 1, "backend": "b", "session": {"generation": GEN}, "error": null,
             "provenance": {"network_ref": "n", "backend": "b", "calibrated_posterior": false,
-                           "is_simulation_output": false, "advisory_only": true}
+                           "is_simulation_output": false, "advisory_only": true},
+            "identity": body_identity(), "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
         });
         assert!(
             validate(&bad_prov).is_err(),
@@ -285,7 +363,10 @@ mod wire_tests {
         // ...and a null provenance (the nullable wire form) is simply skipped.
         let null_prov = serde_json::json!({
             "kind": "session_opened", "ncp_version": NCP_VERSION, "session_id": "s1",
-            "ok": false, "backend": "unknown", "error": "backend unavailable", "provenance": null
+            "ok": false, "state_version": 0, "backend": "unknown", "error": "backend unavailable", "provenance": null,
+            "identity": body_identity(), "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
         });
         assert!(validate(&null_prov).is_ok());
     }

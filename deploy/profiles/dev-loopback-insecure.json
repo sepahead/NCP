@@ -1,0 +1,22 @@
+{
+  "profile": "dev-loopback-insecure",
+  "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+  "authority": {
+    "realm": "ncp",
+    "default_deny": true,
+    "principals": [
+      {
+        "principal_id": "local-commander",
+        "certificate_identity": "local-development-only",
+        "entity_id": "local-brain",
+        "role": "commander",
+        "planes": ["control", "action"],
+        "may_reset_estop": false,
+        "may_override": false
+      }
+    ]
+  },
+  "tls": null,
+  "allow_downgrade": false,
+  "insecure_status": true
+}

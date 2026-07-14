@@ -15,7 +15,9 @@ export type ControlStatus = {
     safety_ok: boolean;
     note: string | null;
     /**
-     * Wire 0.8: this status stream's own incarnation + position.
+     * This status stream's own incarnation + strictly positive position. A
+     * publisher never repeats the JSON-safe maximum; it becomes silent until a
+     * fresh declaration mints another epoch.
      */
     stream: StreamPosition;
     /**

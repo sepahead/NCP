@@ -1,5 +1,5 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "sensor_frame",
   "t": 1.0,
   "frame_id": "world",

@@ -5,6 +5,7 @@
  */
 
 import type { Send } from './client.js'
+import { BoundedJsonError, JSON_LIMITS, parseBoundedJson } from './bounded-json.js'
 
 interface PendingRequest {
   resolve: (reply: unknown) => void
@@ -18,8 +19,12 @@ export class WebSocketNeuroSim {
   private readonly settleReady: () => void
   private closedError: Error | null = null
 
-  constructor(url = 'ws://127.0.0.1:28471/api/neurocontrol/ws') {
+  constructor(url: string) {
     this.ws = new WebSocket(url)
+    // Canonical NCP is a JSON text protocol. Selecting ArrayBuffer for any
+    // unexpected binary frame lets us inspect its byteLength without a copy and
+    // reject it explicitly; a Blob would otherwise hide its size behind async I/O.
+    this.ws.binaryType = 'arraybuffer'
 
     let settleReady!: () => void
     this.ready = new Promise<void>((resolve) => {
@@ -34,7 +39,17 @@ export class WebSocketNeuroSim {
       try {
         // Parse inside the handler so one malformed frame rejects exactly the
         // request it was dequeued for, keeping FIFO correlation in sync.
-        pending.resolve(JSON.parse(event.data as string))
+        if (typeof event.data !== 'string') {
+          if (event.data instanceof ArrayBuffer && event.data.byteLength > JSON_LIMITS.maxFrameBytes) {
+            throw new BoundedJsonError(
+              'NCP-LIMIT-001',
+              JSON_LIMITS.maxFrameBytes,
+              'binary WebSocket reply exceeds the JSON frame byte limit',
+            )
+          }
+          throw new Error('binary WebSocket replies are not canonical NCP JSON text')
+        }
+        pending.resolve(parseBoundedJson(event.data))
       } catch (error) {
         pending.reject(
           new Error(`NCP reply was not valid JSON: ${WebSocketNeuroSim.messageOf(error)}`),

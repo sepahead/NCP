@@ -1,10 +1,9 @@
 //! The **safety governor over a real Zenoh transport** (RELEASE_READINESS blocker #1).
 //!
 //! `cross_session_rpc.rs` proves the control-plane *lifecycle* crosses two
-//! independent Zenoh sessions. This proves the **action plane's safety authority**
-//! does too: that `SafetyGovernor::govern` — the HOLD / latched-ESTOP / speed-clamp
-//! gate that is the only thing standing between a controller and an actuator —
-//! produces the same verdict when its `CommandFrame` and `SensorFrame` travel over
+//! independent Zenoh sessions. This test proves a narrower transport property:
+//! `SafetyGovernor::govern` produces the same HOLD / latched-ESTOP / speed-clamp
+//! verdict when its `CommandFrame` and `SensorFrame` travel over
 //! the wire as it does in-process, and (the property a unit test cannot show) that
 //! an **ESTOP latch survives the transport**: once a geofence breach trips it, a
 //! subsequent perfectly-safe frame is *still* ESTOP across the link.
@@ -22,6 +21,8 @@
 //! plant reads its own `SafetyLimits`, not the wire), so they are set in-process;
 //! the `CommandFrame`, the `SensorFrame`, and the governed result all cross the
 //! real Zenoh transport — which is exactly what this test exists to prove.
+//! It does not establish authenticated action authority or a physical stop; the
+//! production-secure peer-identity/ACL campaign remains NOT RUN.
 //!
 //! Expectations are driven from `conformance/behavior/vectors.json` (the same
 //! `govern` cases the in-process `behavior_conformance.rs` checks) so the wire test
@@ -30,7 +31,9 @@
 //! action/perception planes can never be mistaken for the current case's verdict.
 
 use ncp_core::keys::Keys;
-use ncp_core::{CommandFrame, Mode, SafetyGovernor, SafetyLimits, SensorFrame, WireFrame};
+use ncp_core::{
+    AuthorityLease, CommandFrame, Mode, SafetyGovernor, SafetyLimits, SensorFrame, WireFrame,
+};
 use ncp_zenoh::{ZenohBus, ZenohConfig};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -39,7 +42,27 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const SID: &str = "uav-gov";
+const GENERATION: &str = "293279f3-d459-4bfd-aeeb-604799e96925";
 static SEQ: AtomicI64 = AtomicI64::new(1);
+
+fn live_session() -> ncp_core::SessionRef {
+    ncp_core::SessionRef {
+        generation: GENERATION.into(),
+    }
+}
+
+fn authority() -> AuthorityLease {
+    AuthorityLease {
+        session_epoch: GENERATION.into(),
+        term: 1,
+        lease_id: "20000000-0000-4000-8000-000000000001".into(),
+        issuer_principal_id: "controller-principal-1".into(),
+        holder_principal_id: "controller-principal-1".into(),
+        holder_entity_id: "controller-1".into(),
+        issued_at_utc_ms: 1_700_000_000_000,
+        expires_at_utc_ms: 1_700_000_060_000,
+    }
+}
 
 fn free_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0")
@@ -121,10 +144,11 @@ struct PlantState {
 /// run the governor against the latest sensor and publish the governed command on
 /// the reliable observation plane for read-back.
 async fn spawn_plant(server: &ZenohBus, state: Arc<Mutex<PlantState>>) {
+    let live_session = live_session();
     {
         let st = state.clone();
         server
-            .subscribe_sensors(SID, move |_k, bytes| {
+            .subscribe_sensors(SID, &live_session, move |_k, bytes| {
                 if let Ok(sf) = serde_json::from_slice::<SensorFrame>(&bytes) {
                     st.lock().unwrap().latest_sensor = Some(sf);
                 }
@@ -136,7 +160,7 @@ async fn spawn_plant(server: &ZenohBus, state: Arc<Mutex<PlantState>>) {
     let pub_bus = server.clone();
     let handle = tokio::runtime::Handle::current();
     server
-        .subscribe_commands(SID, move |_k, bytes| {
+        .subscribe_commands(SID, &live_session, move |_k, bytes| {
             let Ok(command) = serde_json::from_slice::<CommandFrame>(&bytes) else {
                 return;
             };
@@ -157,7 +181,7 @@ async fn spawn_plant(server: &ZenohBus, state: Arc<Mutex<PlantState>>) {
                 // Test-rig read-back of the governed COMMAND on the reliable
                 // observation key: use the raw `put` escape hatch deliberately —
                 // `publish_observation` (correctly) refuses non-observation kinds
-                // under the wire-0.6 plane gates.
+                // under the wire-1.0 candidate plane gates.
                 let key = bus.keys().observation(SID);
                 let _ = bus.put(&key, &out, ncp_zenoh::Plane::Control).await;
             });
@@ -178,6 +202,7 @@ async fn govern_over_wire(
     mut command: CommandFrame,
     mut sensor: SensorFrame,
 ) -> Value {
+    let live_session = live_session();
     let seq = SEQ.fetch_add(1, Ordering::Relaxed);
     command.stream.seq = seq;
     sensor.stream.seq = seq;
@@ -191,7 +216,10 @@ async fn govern_over_wire(
     // regardless of cross-key delivery ordering.
     let mut sensor_ready = false;
     for _ in 0..100 {
-        client.put_sensor(SID, &sbytes).await.expect("put sensor");
+        client
+            .put_sensor(SID, &live_session, &sbytes)
+            .await
+            .expect("put sensor");
         tokio::time::sleep(Duration::from_millis(50)).await;
         if state
             .lock()
@@ -212,7 +240,7 @@ async fn govern_over_wire(
     // Publish the command and wait for the governed read-back with the same seq.
     for _ in 0..100 {
         client
-            .publish_command(SID, &cbytes)
+            .publish_command(SID, &live_session, &cbytes)
             .await
             .expect("publish command");
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -275,10 +303,23 @@ async fn safety_governor_decisions_survive_the_wire() {
         let input = &case["input"];
         let limits: SafetyLimits = serde_json::from_value(input["limits"].clone())
             .unwrap_or_else(|e| panic!("govern[{name}]: bad limits: {e}"));
-        let command: CommandFrame = serde_json::from_value(input["command"].clone())
+        let mut command: CommandFrame = serde_json::from_value(input["command"].clone())
             .unwrap_or_else(|e| panic!("govern[{name}]: bad command: {e}"));
-        let sensor: Option<SensorFrame> = serde_json::from_value(input["sensor"].clone())
+        // The shared govern corpus uses its neutral in-process session. This live
+        // transport harness routes every case through one dedicated session and
+        // must stamp the payload to exactly the same session as the Zenoh key.
+        command.session_id = SID.into();
+        if command.mode == Mode::Active && command.authority.is_none() {
+            // The govern corpus scores safety policy independently of transport
+            // authentication. This live action-plane test supplies the host's
+            // active authenticated lease; payload data never mints it.
+            command.authority = Some(authority());
+        }
+        let mut sensor: Option<SensorFrame> = serde_json::from_value(input["sensor"].clone())
             .unwrap_or_else(|e| panic!("govern[{name}]: bad sensor: {e}"));
+        if let Some(sensor) = &mut sensor {
+            sensor.session_id = SID.into();
+        }
         let now_s = input["now_s"].as_f64().expect("now_s");
         let last_sensor_s = input["last_sensor_s"].as_f64(); // None when null
 
@@ -287,25 +328,31 @@ async fn safety_governor_decisions_survive_the_wire() {
             .as_ref()
             .is_some_and(|frame| frame.validate_wire().is_ok());
         if !command_valid || !sensor_valid {
-            if !command_valid && command.mode != Mode::Estop {
-                let bytes = serde_json::to_vec(&command).unwrap();
-                assert!(
-                    client.publish_command(SID, &bytes).await.is_err(),
-                    "govern[{name}]: invalid non-ESTOP command must be rejected by the publisher"
-                );
+            if !command_valid {
+                if let Ok(bytes) = serde_json::to_vec(&command) {
+                    assert!(
+                        client
+                            .publish_command(SID, &live_session(), &bytes)
+                            .await
+                            .is_err(),
+                        "govern[{name}]: every invalid command, including ESTOP, must be rejected by the remote publisher"
+                    );
+                }
                 rejected_at_ingress += 1;
             }
             if let Some(sensor) = sensor.as_ref().filter(|_| !sensor_valid) {
                 let bytes = serde_json::to_vec(sensor).unwrap();
                 assert!(
-                    client.put_sensor(SID, &bytes).await.is_err(),
+                    client
+                        .put_sensor(SID, &live_session(), &bytes)
+                        .await
+                        .is_err(),
                     "govern[{name}]: invalid sensor must be rejected by the publisher"
                 );
                 rejected_at_ingress += 1;
             }
-            // A deliberately malformed ESTOP is allowed by policy and is covered
-            // by the pure publish-gate + cross-language corpus tests; publishing
-            // it here would race the next case's fresh-governor reset.
+            // Malformed remote ESTOP is rejected like every incomplete wire
+            // envelope; only a complete, live-session-bound ESTOP may omit lease.
             continue;
         }
         {
@@ -358,7 +405,7 @@ async fn safety_governor_decisions_survive_the_wire() {
     // Wire 0.8: the publisher gates require a complete stream/session identity, so
     // these hand-built latch-test frames carry it (the per-exchange seq is stamped
     // by `govern_over_wire`). epoch/generation are canonical UUIDv4s.
-    let active_cmd: CommandFrame = serde_json::from_value(json!({
+    let mut active_cmd: CommandFrame = serde_json::from_value(json!({
         "kind": "command_frame", "ncp_version": ncp_core::NCP_VERSION,
         "session_id": SID,
         "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
@@ -367,6 +414,7 @@ async fn safety_governor_decisions_survive_the_wire() {
         "channels": {"velocity_setpoint": {"data": [2.0, 0.0, 0.0], "unit": "m/s"}}
     }))
     .unwrap();
+    active_cmd.authority = Some(authority());
     let breach: SensorFrame = serde_json::from_value(json!({
         "kind": "sensor_frame", "ncp_version": ncp_core::NCP_VERSION,
         "session_id": SID,

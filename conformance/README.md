@@ -1,75 +1,67 @@
-# conformance
+# NCP conformance corpus
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+The generated [`manifest.v1.json`](manifest.v1.json) makes the unreleased NCP
+1.0 candidate corpus mandatory and self-describing. It currently requires 268
+vectors: 261 stable vectors (209 behavior, 8 request-digest, 12 security-state
+digest, 18 plant-profile, and 14 canonical JSON messages) plus 7 0.8-to-1.0
+migration vectors.
 
-Golden **conformance vectors** — canonical JSON wire messages every language peer
-must round-trip, plus one bounded local/offline bulk-codec fixture. This directory
-is the cross-language interop contract: a divergence in any binding's JSON handling
-or runtime decisions fails CI here, not in a downstream integration.
+The manifest records every vector ID, normative clause, source/pointer, state model,
+resource budget, applicable role/implementation/transport, exact source hash,
+corpus SHA-256 digest, and report requirements. Required skips, missing IDs,
+duplicate IDs, partial reports, and unknown extras fail. Regenerate only through:
 
-NCP is one normative protocol (`proto/ncp.proto`) with peers in Rust, Python,
-TypeScript, and C++. `conformance/vectors/` holds one canonical JSON instance per
-message `kind`, so every peer can prove it agrees on the same wire shape. The binary
-fixture separately pins `BulkBlock`'s local codec; it is not a transported
-`BulkObservation` envelope and does not imply binary support in every SDK.
-
-The corpus has two complementary axes. `vectors/` pins the **JSON wire shape** (and
-the separate local bulk-codec fixture). `behavior/` pins **runtime behavior** — do the peers
-make the same *decisions* (version accept/reject, advisory contract status, validation,
-the safety-governor HOLD/ESTOP/clamp outcomes). A peer can serialize the right bytes and
-still mis-decide; the two axes together close that gap.
-
-## What's here
-
-```text
-vectors/*.json        one canonical instance per message kind (open_session, capabilities, …)
-vectors/*.bin         local/offline packed bulk-codec fixture; not a transported frame
-behavior/vectors.json language-neutral {function, input, expect} decision vectors
+```bash
+python3 scripts/generate_conformance_manifest.py --write
+python3 scripts/generate_conformance_manifest.py
 ```
 
-## How the peers consume it (wire shape — `vectors/`)
+Directory roles:
 
-- **Python** — `scripts/check_conformance_vectors.py` validates every `*.json` against
-  the schema for its `kind` (field-set + required + enum, resolving local `$ref`/`$defs`)
-  and decodes each `*.bin` against its expected columns. Stdlib-only; also gates corpus
-  coverage (every schema `kind` must have a vector).
-- **C++** — `ncp-cpp/tests/corpus.rs` drives every `*.json` through the C ABI
-  `ncp_validate` and asserts accept/reject parity.
-- **Rust** — `ncp-core/tests/conformance.rs` guards serde `<->` JSON Schema field-set
-  parity type-side; the Rust bulk encoder is byte-pinned to the committed `*.bin`
-  (`bulk::tests::matches_committed_golden_vector`).
-- **TypeScript** — `ncp-ts/scripts/check-behavior.mjs` drives every JSON fixture
-  through the shipped `assertNcpMessage` ingress gate (and the specialized
-  data-plane gate where applicable).
+```text
+behavior/vectors.json                         semantic decisions and state sequences
+security-state-digest/v1.json                 portable validated-security projection
+plant-profile/v1.json                         closed profile/digest positive and negative cases
+vectors/*.json                                one canonical stable message per kind
+migration/v0.8-to-v1.0/channel-requirement.json
+                                               explicit gateway positive/negative cases
+vectors/bulk_observation.bin                  excluded offline BulkBlock fixture
+baseline/released-baselines.v1.json           annotated-tag/commit/tree identity registry
+baseline/v0.5.0 ... baseline/v0.8.0           immutable released snapshots
+baseline/v1.0.0                               frozen candidate JSON audit snapshot
+```
 
-## How the peers consume it (behavior — `behavior/vectors.json`)
+Rust is the reference behavior. TypeScript implements the stable semantic validator
+and safety decisions independently. The deployment-profile checker independently
+replays the portable security-state and plant-profile digest vectors in Python.
+Python and C/C++ package bindings otherwise replay through Rust FFI and are binding
+evidence, not independent implementations. Each harness must execute its exact
+manifest-applicable set rather than choosing a convenient subset.
 
-All four SDK peers replay the SAME corpus, so a divergence in any one peer's decision
-logic fails CI here:
+The binary fixture is explicitly excluded from stable transport conformance: bare
+`NCPB` and `BulkObservation` are not stable 1.0 messages.
 
-- **Rust** — `ncp-core/tests/behavior_conformance.rs` drives every vector through the
-  real `ncp_core` functions and asserts the declared outcome, so the corpus can never
-  claim a decision the reference does not make. Gates in CI via `cargo test`.
-- **C++** — `ncp-cpp/tests/behavior_corpus.rs` drives the full corpus through the C ABI
-  (`ncp_check_version` / `ncp_contract_status` / `ncp_validate` / `ncp_govern`). Gates
-  in CI via `cargo test`.
-- **Python** — `scripts/check_behavior_vectors.py` replays the identical corpus through
-  the `ncp` PyO3 binding. The dedicated CI job builds/imports the maturin wheel and runs
-  with `NCP_REQUIRE_BINDING=1`, so a missing binding cannot skip as pass.
-- **TypeScript** — `ncp-ts/scripts/check-behavior.mjs` now replays the **full `govern`
-  corpus** (via the new `safety.ts` port — `SafetyGovernor`/`CommandWatchdog`/`ActionBuffer`)
-  alongside `checkVersion`, `contractStatus`, full `validate` parity through
-  `assertNcpMessage`, the scientific-boundary discriminators, and seq/ttl/latch ingress checks.
-  Gates in the `ts-dist` CI job.
+Run focused gates with:
 
-Run the whole matrix with `scripts/check.sh` (it invokes `check_conformance_vectors.py`
-for the wire vectors and `check_behavior_vectors.py` for the behavioral corpus).
+```bash
+python3 scripts/check_conformance_vectors.py
+python3 scripts/check_profile_digests.py
+python3 scripts/check_released_baselines.py
+python3 scripts/check_buf_breaking.py
+python3 scripts/check_behavior_vectors.py   # requires an installed candidate wheel
+bun run check:behavior
+cargo test -p ncp-core --all-features
+```
 
-## See also
+A local zero-skip pass is necessary but not sufficient for release. Signed reports
+must also identify the installed implementation version, full normative digest,
+corpus digest, source revision, and exact executed IDs. Live transport/security/
+fault evidence remains separate and is currently **NOT RUN**.
 
-- [`NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md) — the normative spec.
-- [repository README](../README.md) — the polyglot SDK and full check matrix.
+The released-baseline registry is also the only source for Buf comparison targets.
+The initial `ncp.v1` candidate reports that no released same-major baseline exists;
+it is not compared with incompatible `ncp.v0`. Once a v1 annotated release is added
+to the registry, later v1 work compares with the latest registered v1 peeled commit.
 
-## License
-
-Licensed under either of [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE) at your option.
+See [`../NEURO_CYBERNETIC_PROTOCOL.md`](../NEURO_CYBERNETIC_PROTOCOL.md) and
+[`../RELEASE_READINESS.md`](../RELEASE_READINESS.md).

@@ -1,6 +1,6 @@
 [package]
 name = "ncp-gateway"
-description = "Engram's Rust NCP edge: runs the Zenoh bus (queryable RPC + observation pub/sub) and bridges to the Python SessionService over a localhost socket. NEST stays Python."
+description = "Project-agnostic NCP Zenoh lifecycle edge that forwards validated canonical JSON to a loopback newline-delimited SessionService."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -19,6 +19,7 @@ use ncp_core::{
     SafetyGovernor, SafetyLimits, SensorFrame, CONTRACT_HASH, NCP_VERSION,
 };
 use serde_json::Value;
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 /// Load the crate-local corpus snapshot. The package-surface gate byte-compares
@@ -33,6 +34,69 @@ fn load_corpus() -> Value {
         .unwrap_or_else(|e| panic!("failed to read behavior corpus {}: {e}", path.display()));
     serde_json::from_str(&text)
         .unwrap_or_else(|e| panic!("behavior corpus {} is not valid JSON: {e}", path.display()))
+}
+
+fn load_manifest() -> Value {
+    let path = PathBuf::from(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/testdata/conformance/manifest.v1.json"
+    ));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "failed to read conformance manifest {}: {e}",
+            path.display()
+        )
+    });
+    serde_json::from_str(&text).unwrap_or_else(|e| {
+        panic!(
+            "conformance manifest {} is not valid JSON: {e}",
+            path.display()
+        )
+    })
+}
+
+fn load_request_digest_corpus() -> Value {
+    let path = PathBuf::from(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/testdata/conformance/request-digest.json"
+    ));
+    serde_json::from_slice(&std::fs::read(&path).expect("request-digest vectors readable"))
+        .expect("request-digest vectors are JSON")
+}
+
+fn load_profile_corpus(name: &str) -> Value {
+    let path =
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/testdata/conformance")).join(name);
+    serde_json::from_slice(&std::fs::read(&path).expect("profile vectors readable"))
+        .expect("profile vectors are JSON")
+}
+
+fn apply_digest_case(base: &Value, case: &Value) -> Value {
+    let mut request = base.clone();
+    for patch in case["patch"].as_array().expect("digest patch array") {
+        let path = patch["path"].as_array().expect("digest patch path");
+        assert!(!path.is_empty(), "digest patch path must not be empty");
+        let mut parent = &mut request;
+        for segment in &path[..path.len() - 1] {
+            parent = parent
+                .as_object_mut()
+                .expect("digest patch parent object")
+                .get_mut(segment.as_str().expect("digest patch string segment"))
+                .expect("digest patch intermediate member");
+        }
+        let leaf = path.last().unwrap().as_str().expect("digest patch leaf");
+        let object = parent.as_object_mut().expect("digest patch leaf parent");
+        match patch["op"].as_str().expect("digest patch op") {
+            "set" => {
+                object.insert(leaf.to_owned(), patch["value"].clone());
+            }
+            "remove" => {
+                object.remove(leaf).expect("digest patch removal target");
+            }
+            operation => panic!("unknown digest patch operation {operation:?}"),
+        }
+    }
+    request
 }
 
 fn cases<'a>(corpus: &'a Value, function: &str) -> &'a Vec<Value> {
@@ -96,6 +160,20 @@ fn contract_status_corpus() {
             tag,
             case["expect"]["status"].as_str().unwrap(),
             "contract_status[{name}]: peer={peer:?}"
+        );
+    }
+}
+
+#[test]
+fn request_digest_corpus() {
+    let corpus = load_request_digest_corpus();
+    for case in corpus["cases"].as_array().expect("request-digest cases") {
+        let request = apply_digest_case(&corpus["base_request"], case);
+        assert_eq!(
+            ncp_core::request_digest(&request).expect("request digest computes"),
+            case["expected_digest"].as_str().unwrap(),
+            "request-digest case {}",
+            case["id"].as_str().unwrap()
         );
     }
 }
@@ -231,5 +309,111 @@ fn wire_pins_match_corpus_single_source() {
         CONTRACT_HASH,
         corpus["contract_hash"].as_str().unwrap(),
         "ncp-core CONTRACT_HASH must equal the behavior corpus contract_hash"
+    );
+}
+
+#[test]
+fn mandatory_manifest_matches_every_applicable_rust_vector() {
+    let corpus = load_corpus();
+    let manifest = load_manifest();
+    let mut executed = BTreeSet::new();
+
+    for (family, cases) in corpus["cases"].as_object().expect("behavior cases object") {
+        for case in cases.as_array().expect("behavior family array") {
+            executed.insert(format!(
+                "behavior/{family}/{}",
+                case["name"].as_str().expect("behavior case name")
+            ));
+        }
+    }
+
+    let request_digest = load_request_digest_corpus();
+    for case in request_digest["cases"]
+        .as_array()
+        .expect("request-digest cases")
+    {
+        executed.insert(format!(
+            "request-digest/{}",
+            case["id"].as_str().expect("request-digest case id")
+        ));
+    }
+
+    for (prefix, filename) in [
+        ("security-state-digest", "security-state-digest.json"),
+        ("plant-profile", "plant-profile.json"),
+    ] {
+        let corpus = load_profile_corpus(filename);
+        for family in ["valid_cases", "invalid_cases"] {
+            for case in corpus[family].as_array().expect("profile digest cases") {
+                executed.insert(format!(
+                    "{prefix}/{}",
+                    case["id"].as_str().expect("profile digest case id")
+                ));
+            }
+        }
+    }
+
+    let vectors = PathBuf::from(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/testdata/conformance/vectors"
+    ));
+    for entry in std::fs::read_dir(&vectors).expect("canonical vector directory") {
+        let path = entry.expect("canonical vector entry").path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+        let value: Value = serde_json::from_slice(&std::fs::read(&path).expect("vector bytes"))
+            .unwrap_or_else(|error| panic!("invalid vector {}: {error}", path.display()));
+        validate(&value).unwrap_or_else(|error| {
+            panic!(
+                "canonical vector {} failed validation: {error}",
+                path.display()
+            )
+        });
+        executed.insert(format!(
+            "wire/{}/canonical",
+            value["kind"].as_str().expect("canonical vector kind")
+        ));
+    }
+
+    let migration_path = PathBuf::from(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/testdata/conformance/migration/channel-requirement.json"
+    ));
+    let migration: Value =
+        serde_json::from_slice(&std::fs::read(&migration_path).expect("migration vector bytes"))
+            .expect("migration vectors are JSON");
+    for case in migration["cases"].as_array().expect("migration cases") {
+        executed.insert(format!(
+            "migration/{}",
+            case["id"].as_str().expect("migration vector id")
+        ));
+    }
+
+    let required = manifest["vectors"]
+        .as_array()
+        .expect("manifest vectors")
+        .iter()
+        .filter(|vector| vector["required"].as_bool() == Some(true))
+        .filter(|vector| {
+            vector["applicability"]["implementations"]
+                .as_array()
+                .is_some_and(|implementations| {
+                    implementations
+                        .iter()
+                        .any(|implementation| implementation.as_str() == Some("rust"))
+                })
+        })
+        .map(|vector| {
+            vector["id"]
+                .as_str()
+                .expect("manifest vector id")
+                .to_owned()
+        })
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(
+        executed, required,
+        "required Rust conformance set must be exact: no skip, missing, or extra vector"
     );
 }

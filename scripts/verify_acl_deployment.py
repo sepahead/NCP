@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove a live NCP Zenoh router's mTLS and per-plane ACL enforcement.
+"""Probe a live Zenoh router's mTLS and per-plane key ACL enforcement.
 
 The return value of ``session.put`` is not ACL evidence: a local Zenoh session can
 accept a put even when the router drops it. This verifier therefore establishes an
@@ -17,6 +17,11 @@ cannot collide with a live actuator session.
 
 The Zenoh CLI fallback was intentionally removed: ``z_put`` alone cannot prove
 end-to-end delivery or distinguish ACL denial from a broken route.
+
+This is a router-only prerequisite, not the NCP ``production-secure`` gate. The
+current ``ncp-zenoh`` callback surface does not expose the authenticated remote
+principal needed to bind a payload ``IdentityClaim``; ``ZenohBus.open_secure``
+fails closed until that implementation gap is resolved.
 """
 from __future__ import annotations
 
@@ -98,7 +103,7 @@ def client_config_spec(
     ca: str,
     identity: IdentityFiles | None,
 ) -> dict[str, object]:
-    """Build the strict client shape expected by ``ZenohBus.open_secure``."""
+    """Build the strict TLS client shape used by this router-only probe."""
     tls: dict[str, object] = {
         "root_ca_certificate": ca,
         "verify_name_on_connect": True,
@@ -121,7 +126,7 @@ def client_config_spec(
 def validate_client_config_spec(
     config: dict[str, object], *, require_identity: bool
 ) -> list[str]:
-    """Offline mirror of NCP's fail-closed secure-client assumptions."""
+    """Validate the TLS client config prerequisite, not NCP identity binding."""
     errors: list[str] = []
     if config.get("mode") != "client":
         errors.append('mode must be "client"')
@@ -494,7 +499,7 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
         for session in sessions.values():
             _close(session)
 
-    print("NCP ACL deployment verification (nonce delivery proof)")
+    print("Zenoh router ACL prerequisite (nonce delivery proof)")
     print(f"  endpoint: {args.endpoint}")
     print(f"  realm:    {args.realm}")
     print(f"  session:  {session_id} (randomized probe namespace)")
@@ -504,8 +509,10 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
     print()
     if all(result.passed for result in results):
         print(
-            "RESULT: ALL INVARIANTS HOLD — allowed deliveries were observed, denied "
-            "deliveries were absent, and no-cert mTLS failed."
+            "RESULT: ROUTER-ONLY PRECHECK PASSED — allowed deliveries were observed, "
+            "denied deliveries were absent, and no-cert mTLS failed. NCP "
+            "production-secure remains blocked until transport-authenticated peer "
+            "identity is bound to IdentityClaim."
         )
         return 0
     failed = sum(not result.passed for result in results)

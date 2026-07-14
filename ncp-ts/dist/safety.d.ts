@@ -7,17 +7,16 @@
  * Ships so a TS plant (e.g. a browser/Tauri dev bridge) enforces the SAME
  * fail-safe semantics as every other peer instead of hand-rolling them:
  *
- * - {@link CommandWatchdog} — the `ttl_ms` deadline backstop with wire-0.6 seq
- *   discipline (`seq >= 1`, strictly increasing; duplicates never refresh; a
- *   strictly-lower seq re-anchors a restarted stream only after expiry).
+ * - {@link CommandWatchdog} — the `ttl_ms` deadline backstop with wire-1.0 stream
+ *   discipline (`stream.seq >= 1`, strictly increasing; expiry never reopens replay).
  * - {@link ActionBuffer} — packetized-predictive-control replay: latest command
  *   + horizon, ttl-bounded, latched ESTOP, `active`-mode allowlist.
  * - {@link SafetyGovernor} — HOLD on stale sensor, latched ESTOP on geofence
  *   breach / inbound ESTOP / link collapse, magnitude speed clamp (tick 0 and
  *   every horizon step), config fail-closed on unenforceable limits.
  * - {@link maxHorizonLen} — bound a horizon to its deadline.
- * - {@link assertWireFrame} — the wire-0.6 data-plane ingress gate (compatible
- *   `ncp_version`, stamped `seq`), mirroring `ncp_core::decode_validated`.
+ * - {@link assertWireFrame} — the wire-1.0 data-plane ingress gate (compatible
+ *   `ncp_version`, stamped `stream.seq`), mirroring `ncp_core::decode_validated`.
  *
  * All numeric behaviour is IEEE-754 double math, identical to the Rust `f64`
  * reference. `seq` is a JSON-wire `number` here (see `Wire<T>` in `client.ts`).
@@ -75,10 +74,9 @@ export declare const MAX_TTL_MS = 60000;
 export declare const LINK_LOSS_ESTOP_FACTOR = 20;
 /**
  * Plant-side deadline backstop enforcing `CommandFrame.ttl_ms` — mirrors
- * `ncp_core::CommandWatchdog` exactly, including the wire-0.6 seq discipline:
- * `seq < 1` (unstamped) NEVER refreshes liveness; a duplicate never refreshes; a
- * strictly-lower `seq` re-anchors a restarted stream only once the stream is
- * already expired (the plant is safely holding).
+ * `ncp_core::CommandWatchdog` exactly, including wire-1.0 stream discipline:
+ * `seq < 1` (unstamped) NEVER refreshes liveness, and a non-advancing sequence
+ * never refreshes even after expiry. Publisher restart needs a fresh declaration.
  */
 export declare class CommandWatchdog {
     private lastRecvS;
@@ -87,26 +85,24 @@ export declare class CommandWatchdog {
     private clockHighWaterS;
     private clockFaulted;
     private observeClock;
-    /** Re-anchor the seq discipline for a NEW stream epoch: clear the high-water so
-     *  the next command (a restarted publisher counts from 1) is accepted as fresh.
-     *  An epoch-aware receiver (`ActionBuffer`) calls this only after it authorizes an
-     *  epoch transition; the ttl deadline is refreshed by the `onCommand` that follows. */
-    reanchor(): void;
     /** Record an accepted command at local time `nowS` with its `ttl_ms` and `seq`. */
     onCommand(nowS: number, ttlMs: number, seq: number): void;
     /** True if the plant must fail safe to HOLD (no command, expired, bad clock). */
     shouldHold(nowS: number): boolean;
 }
-/** Cap a horizon length to its deadline (`N <= ttl_ms / horizon_dt_ms`); a
- *  non-finite ttl/dt (or dt <= 0) returns 0 — mirrors `resilience.rs`. */
+/** Cap future horizon entries to the strict watchdog deadline. Entry `i` is due
+ *  at `(i + 1) * horizonDtMs`, while expiry is inclusive (`elapsed >= ttlMs`), so
+ *  an entry exactly on the TTL boundary is not executable. A non-finite ttl/dt
+ *  (or dt <= 0) returns 0 — mirrors `resilience.rs`. */
 export declare function maxHorizonLen(ttlMs: number, horizonDtMs: number): number;
 /**
  * Plant-side packetized-predictive-control buffer — mirrors
  * `ncp_core::ActionBuffer`: holds the latest command + horizon, replays through
  * dropouts, fails safe once expired or drained; every non-Active mode clears
- * buffered actuation before replay checks, and ESTOP latches regardless of
- * ordering or stamping (a fail-safe is never dropped); wire-0.6 seq discipline
- * as in {@link CommandWatchdog}.
+ * buffered actuation before local replay checks, and ESTOP latches regardless of
+ * local ordering. This is not a network ingress gate: bind authenticated actor/
+ * plane and the exact current route/session generation before calling it. Sequence
+ * discipline then matches {@link CommandWatchdog}.
  */
 export declare class ActionBuffer {
     private latest;
@@ -115,13 +111,12 @@ export declare class ActionBuffer {
     private estop;
     private lastSeq;
     private activeEpoch;
-    private retiredEpochs;
-    private static readonly RETIRED_EPOCH_CAP;
-    private retireEpoch;
+    private retired;
     onCommand(nowS: number, command: CommandLike): void;
-    /** Clear a latched ESTOP and discard all pre-ESTOP command state. A fresh
-     * validated Active command is required before actuation resumes. */
+    /** Clear this local ESTOP latch and permanently retire the old session/stream
+     * context. Construct a fresh ActionBuffer after the required generation cut. */
     reset(): void;
+    isRetired(): boolean;
     isEstopped(): boolean;
     /** The setpoint channels to apply at `nowS`, or `null` to fail safe (HOLD). */
     active(nowS: number): WireChannels | null;
@@ -152,7 +147,8 @@ export declare class SafetyGovernor {
         sensor_channels: Capabilities['sensor_channels'];
         safety: SafetyLimits;
     }): SafetyGovernor;
-    /** Clear a latched ESTOP (supervisor authority; config fail-closed is NOT cleared). */
+    /** Clear the local latch after external supervisor/interlock authorization. This
+     * does not authenticate or restore session authority; config failure stays set. */
     reset(): void;
     isEstopped(): boolean;
     /** Latch ESTOP when the link monitor reports a sustained loss burst (a jam). */
@@ -175,12 +171,12 @@ export declare class SafetyGovernor {
     private validSafetyVector;
 }
 /**
- * Wire-0.6 data-plane ingress gate — the TS mirror of
+ * Wire-1.0 data-plane ingress gate — the TS mirror of
  * `ncp_core::decode_validated`: the frame must carry the expected `kind`, a
  * COMPATIBLE `ncp_version` (absent/incompatible throws {@link NcpVersionError} —
- * never coerced to ours), and a stamped `seq` within the kind's wire bound
- * (`sensor_frame`/`command_frame` >= 1; `observation_frame` >= 0, where 0 is the
- * pull/RPC-reply form). Call this on every frame read off a data plane and DROP
+ * never coerced to ours), and a stamped `stream.seq >= 1` for every kind. The
+ * observation pull/RPC form uses `source` absence, never sequence zero. Call this
+ * on every frame read off a data plane and DROP
  * frames that throw (log them; never actuate on them).
  */
 export declare function assertWireFrame(frame: Record<string, unknown>, expectedKind: 'sensor_frame' | 'command_frame' | 'observation_frame'): void;

@@ -1,0 +1,214 @@
+{
+  "schema": "ncp.security-state-digest.conformance.v1",
+  "wire_version": "1.0",
+  "normative_contract": "contract/security-state-digest.v1.json",
+  "valid_cases": [
+    {
+      "id": "two-principal-base",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {
+          "realm": "ncp",
+          "default_deny": true,
+          "principals": [
+            {
+              "principal_id": "commander-1",
+              "certificate_identity": "urn:ncp:commander-1",
+              "entity_id": "brain-1",
+              "role": "commander",
+              "planes": ["action", "control"],
+              "may_reset_estop": false,
+              "may_override": false
+            },
+            {
+              "principal_id": "observer-1",
+              "certificate_identity": "urn:ncp:observer-1",
+              "entity_id": "observer-body",
+              "role": "observer",
+              "planes": ["observation"],
+              "may_reset_estop": false,
+              "may_override": false
+            }
+          ]
+        },
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expected_digest": "6b7566692ce67a507d139b938ba344af2fa4cde4e7e2d5ce4702ac7884d537eb"
+    },
+    {
+      "id": "principal-plane-order-and-omitted-defaults-invariant",
+      "input": {
+        "insecure_status": true,
+        "allow_downgrade": false,
+        "tls": null,
+        "authority": {
+          "principals": [
+            {
+              "planes": ["observation"],
+              "role": "observer",
+              "entity_id": "observer-body",
+              "certificate_identity": "urn:ncp:observer-1",
+              "principal_id": "observer-1"
+            },
+            {
+              "planes": ["control", "action"],
+              "role": "commander",
+              "entity_id": "brain-1",
+              "certificate_identity": "urn:ncp:commander-1",
+              "principal_id": "commander-1"
+            }
+          ],
+          "default_deny": true,
+          "realm": "ncp"
+        },
+        "bind": {"port": 7447, "host": "127.0.0.1", "kind": "tcp"},
+        "profile": "dev-loopback-insecure"
+      },
+      "expected_digest": "6b7566692ce67a507d139b938ba344af2fa4cde4e7e2d5ce4702ac7884d537eb"
+    },
+    {
+      "id": "covered-entity-mutation",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {
+          "realm": "ncp",
+          "default_deny": true,
+          "principals": [
+            {
+              "principal_id": "commander-1",
+              "certificate_identity": "urn:ncp:commander-1",
+              "entity_id": "brain-2",
+              "role": "commander",
+              "planes": ["action", "control"]
+            },
+            {
+              "principal_id": "observer-1",
+              "certificate_identity": "urn:ncp:observer-1",
+              "entity_id": "observer-body",
+              "role": "observer",
+              "planes": ["observation"]
+            }
+          ]
+        },
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expected_digest": "e8945c73cdda843d868c2a8532a66b0703fd9596fa305516b7bd6d8096d1bfc8"
+    }
+  ],
+  "invalid_cases": [
+    {
+      "id": "unknown-root-member-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-1", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true,
+        "unbound_extension": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "duplicate-plane-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-1", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control", "control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "commander-override-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "commander-1", "certificate_identity": "urn:ncp:commander-1", "entity_id": "body-1", "role": "commander", "planes": ["control"], "may_override": true}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "non-loopback-dev-bind-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "0.0.0.0", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-1", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "omitted-downgrade-flag-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-1", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "control-character-id-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-\u007f", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "scoped-ipv6-loopback-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "::1%lo0", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-1", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "mapped-ipv4-loopback-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "::ffff:127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-1", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "bom-principal-id-rejected",
+      "input": {
+        "profile": "dev-loopback-insecure",
+        "bind": {"kind": "tcp", "host": "127.0.0.1", "port": 7447},
+        "authority": {"realm": "ncp", "default_deny": true, "principals": [{"principal_id": "operator-\ufeff", "certificate_identity": "urn:ncp:operator-1", "entity_id": "body-1", "role": "operator", "planes": ["control"]}]},
+        "tls": null,
+        "allow_downgrade": false,
+        "insecure_status": true
+      },
+      "expect": "reject"
+    }
+  ]
+}

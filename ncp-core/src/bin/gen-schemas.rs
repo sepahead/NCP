@@ -18,24 +18,61 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
-const FORWARD_ENUMS: &[&str] = &[
-    "Observable",
-    "StimulusKind",
-    "NetworkRefKind",
-    "SimMode",
-    "Mode",
-    "EntityRole",
-    "ChannelKind",
-    "Role",
-];
+// The only path-semantically safe same-major additive enum. Every unknown Mode
+// is non-authorizing and governed as HOLD. Other forward-string enums retain
+// unknown values in Rust for diagnostics/relays, but their JSON-Schema projection
+// remains closed because at least one path requires interpretation.
+const OPEN_ENUMS: &[&str] = &["Mode"];
 
 const NESTED_REQUIRED: &[(&str, &[&str])] = &[
-    ("ChannelSpec", &["kind", "name"]),
+    (
+        "AuthorityLease",
+        &[
+            "expires_at_utc_ms",
+            "holder_entity_id",
+            "holder_principal_id",
+            "issued_at_utc_ms",
+            "issuer_principal_id",
+            "lease_id",
+            "session_epoch",
+            "term",
+        ],
+    ),
+    ("ChannelSpec", &["kind", "name", "requirement"]),
     ("EntityBinding", &["direction", "entity", "port"]),
     ("EntityRef", &["path", "role"]),
+    ("GatewayAttribution", &["gateway_id", "source_wire"]),
     ("NetworkRef", &["kind", "ref"]),
     ("Observation", &["observable", "port", "target"]),
+    (
+        "IdentityClaim",
+        &["entity_id", "plane", "principal_id", "role"],
+    ),
+    (
+        "OperationContext",
+        &[
+            "deadline_utc_ms",
+            "expected_state_version",
+            "operation_id",
+            "request_digest",
+            "retry",
+            "session_epoch",
+        ],
+    ),
     ("RecordTarget", &["observable", "port", "target"]),
+    (
+        "ResponderReceipt",
+        &[
+            "committed_at_utc_ms",
+            "operation_id",
+            "outcome",
+            "request_digest",
+            "responder_entity_id",
+            "responder_principal_id",
+            "result_digest",
+            "state_version",
+        ],
+    ),
     ("SafetyLimits", &["command_timeout_ms"]),
     (
         "SimProvenance",
@@ -70,6 +107,64 @@ fn kind_for_title(title: &str) -> Option<&'static str> {
     })
 }
 
+/// JSON-Schema regular expression for one canonical unsigned decimal `u64`.
+///
+/// The shorter branches cover zero and every 1--19 digit value. The generated
+/// 20-digit branches compare lexicographically with `u64::MAX`, which is valid
+/// because both operands have equal width. This keeps the published string
+/// schema exactly aligned with the Rust/TypeScript parser instead of accepting
+/// an arbitrary-length digit string and relying on a later semantic check.
+fn canonical_u64_pattern() -> String {
+    let maximum = u64::MAX.to_string();
+    let mut branches = vec![
+        "0".to_owned(),
+        format!("[1-9][0-9]{{0,{}}}", maximum.len() - 2),
+    ];
+
+    for (index, byte) in maximum.bytes().enumerate().skip(1) {
+        let digit = byte - b'0';
+        if digit == 0 {
+            continue;
+        }
+        let prefix = &maximum[..index];
+        let lower_digit = if digit == 1 {
+            "0".to_owned()
+        } else {
+            format!("[0-{}]", digit - 1)
+        };
+        let suffix_len = maximum.len() - index - 1;
+        let suffix = if suffix_len == 0 {
+            String::new()
+        } else {
+            format!("[0-9]{{{suffix_len}}}")
+        };
+        branches.push(format!("{prefix}{lower_digit}{suffix}"));
+    }
+    branches.push(maximum);
+    format!("(?:{})", branches.join("|"))
+}
+
+/// Exact compatible stable-line grammar for every message `ncp_version`.
+///
+/// Wire versions are canonical unsigned decimal `u64` components with no
+/// leading zeroes. The candidate is stable major 1, so the schema accepts the
+/// shorthand `1` and every additive-compatible `1.<minor>` while rejecting a
+/// different major even when that version is otherwise well formed.
+fn compatible_ncp_version_pattern() -> String {
+    let major = ncp_core::NCP_VERSION
+        .split_once('.')
+        .map_or(ncp_core::NCP_VERSION, |(major, _)| major);
+    assert!(
+        major != "0" && major.bytes().all(|byte| byte.is_ascii_digit()) && !major.starts_with('0'),
+        "NCP_VERSION major is not a canonical stable unsigned decimal"
+    );
+    // JSON Schema uses ECMA-262 regex semantics, while the dependency-free
+    // conformance gate evaluates this portable subset with Python `re` (whose
+    // `$` also matches before a final newline). `(?![\s\S])` is an absolute-end
+    // assertion in both engines, so their decisions cannot diverge there.
+    format!(r"^{major}(?:\.{})?(?![\s\S])", canonical_u64_pattern())
+}
+
 fn pin_message_contract(schema: &mut Value, kind: &str) {
     let Some(obj) = schema.as_object_mut() else {
         return;
@@ -82,7 +177,24 @@ fn pin_message_contract(schema: &mut Value, kind: &str) {
             .get_mut("ncp_version")
             .and_then(Value::as_object_mut)
         {
-            field.insert("const".into(), Value::String(ncp_core::NCP_VERSION.into()));
+            field.remove("const");
+            field.insert(
+                "pattern".into(),
+                Value::String(compatible_ncp_version_pattern()),
+            );
+        }
+        if kind == "error" {
+            if let Some(field) = properties.get_mut("code").and_then(Value::as_object_mut) {
+                field.insert(
+                    "enum".into(),
+                    Value::Array(
+                        ncp_core::REGISTERED_ERROR_CODES
+                            .iter()
+                            .map(|code| Value::String((*code).into()))
+                            .collect(),
+                    ),
+                );
+            }
         }
     }
     if let Some(required) = ncp_core::required_fields(kind) {
@@ -122,7 +234,7 @@ fn make_forward_enums_open(schema: &mut Value) {
     let Some(defs) = schema.get_mut("$defs").and_then(Value::as_object_mut) else {
         return;
     };
-    for name in FORWARD_ENUMS {
+    for name in OPEN_ENUMS {
         let Some(node) = defs.get_mut(*name) else {
             continue;
         };
@@ -148,11 +260,16 @@ fn enforce_projection_invariants(schema: &mut Value) {
             }
         }
         Value::Object(obj) => {
-            if obj.get("format").and_then(Value::as_str) == Some("int64") {
-                obj.insert(
-                    "minimum".into(),
-                    Value::from(ncp_core::JSON_SAFE_INTEGER_MIN),
-                );
+            if matches!(
+                obj.get("format").and_then(Value::as_str),
+                Some("int64" | "uint64")
+            ) {
+                let minimum = if obj.get("format").and_then(Value::as_str) == Some("uint64") {
+                    0
+                } else {
+                    ncp_core::JSON_SAFE_INTEGER_MIN
+                };
+                obj.insert("minimum".into(), Value::from(minimum));
                 obj.insert(
                     "maximum".into(),
                     Value::from(ncp_core::JSON_SAFE_INTEGER_MAX),

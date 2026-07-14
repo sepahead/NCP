@@ -8,22 +8,24 @@ import type { StreamPosition } from "./StreamPosition.js";
  * point the only sound response is to fail safe, not add redundancy. `t` is
  * producer-local monotonic seconds and is never compared across peers.
  */
-export type LinkStatus = { ncp_version: string, kind: string, session_id: string, t: number, received: bigint, lost: bigint, loss_rate: number, burst: boolean, 
+export type LinkStatus = { ncp_version: string, kind: string, session_id: string, t: number, received: bigint, lost: bigint, loss_rate: number, burst: boolean,
 /**
- * Wire 0.8: the LinkStatus stream's OWN incarnation + position — validate this
- * before trusting any reported burst/loss/high-water state.
+ * The LinkStatus stream's own incarnation + strictly positive position —
+ * validate this before trusting any reported burst/loss/high-water state.
  */
-stream: StreamPosition, 
+stream: StreamPosition,
 /**
  * The MONITORED stream's epoch + forward high-water seq; absent before the first
- * valid observed frame (presence tracks `last_arrival_seq`).
+ * valid observed frame (presence tracks `last_arrival_seq`). Its seq starts at
+ * 1 and is the forward high-water.
  */
-observed_stream: StreamPosition | null, 
+observed_stream: StreamPosition | null,
 /**
  * F-16: seq of the last valid in-epoch ARRIVAL (`< observed_stream.seq` under
- * reordering; `==` it on forward arrival). Presence tracks `observed_stream`.
+ * reordering; `==` it on forward arrival). Range starts at 1, cannot exceed the
+ * observed high-water, and presence tracks `observed_stream`.
  */
-last_arrival_seq: bigint | null, 
+last_arrival_seq: bigint | null,
 /**
  * The live session incarnation.
  */

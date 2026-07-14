@@ -1,7 +1,7 @@
 {
-  "ncp_version": "0.8",
+  "ncp_version": "1.0",
   "kind": "error",
+  "code": "NCP-WIRE-001",
   "error": "invalid request",
-  "session_id": "session-01",
   "request_kind": "open_session"
 }

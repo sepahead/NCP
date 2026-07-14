@@ -13,11 +13,12 @@
  * for a WebSocket implementation; a Zenoh/native transport can implement the same
  * `Send`).
  */
+import { requestDigest, verifyRequestDigest } from './request-digest.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
  * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
  * correlation-only `source`, adds `session` (generation) + `session_id` on every
  * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
-export const NCP_VERSION = '0.8';
+export const NCP_VERSION = '1.0';
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
  * proto). Pinned, cross-language-anchored to the Rust/Python peers and verified
@@ -25,11 +26,59 @@ export const NCP_VERSION = '0.8';
  * server's reply as an **advisory** signal (see `contractStatus`): a mismatch is
  * surfaced, not thrown — `ncp_version` is the hard compatibility gate.
  */
-export const NCP_CONTRACT_HASH = 'd1b50a2d8a265276';
+export const NCP_CONTRACT_HASH = '163acc57d8a62b66';
 /** Exact integer range shared by every JSON implementation (binary64 included). */
 export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991;
 export const JSON_SAFE_INTEGER_MIN = -JSON_SAFE_INTEGER_MAX;
 export const MAX_HORIZON_STEPS = 65_536;
+export const MAX_CHANNELS = 4_096;
+/** Closed stable wire-1.0 error-code registry. Keep this in exact parity with
+ * `contract/errors.v1.json`; the shared mandatory corpus exercises rejection of
+ * missing and unknown values in every implementation. */
+export const NCP_ERROR_CODES = [
+    'NCP-AUTH-001',
+    'NCP-AUTH-002',
+    'NCP-AUTH-003',
+    'NCP-AUTH-004',
+    'NCP-AUTH-005',
+    'NCP-AUTH-006',
+    'NCP-LEASE-001',
+    'NCP-LEASE-002',
+    'NCP-LEASE-003',
+    'NCP-LEASE-004',
+    'NCP-OP-001',
+    'NCP-OP-002',
+    'NCP-OP-003',
+    'NCP-OP-004',
+    'NCP-OP-005',
+    'NCP-OP-006',
+    'NCP-LIMIT-001',
+    'NCP-LIMIT-002',
+    'NCP-LIMIT-003',
+    'NCP-LIMIT-004',
+    'NCP-LIMIT-005',
+    'NCP-LIMIT-006',
+    'NCP-LIMIT-007',
+    'NCP-LIMIT-008',
+    'NCP-LIMIT-009',
+    'NCP-PROFILE-001',
+    'NCP-PROFILE-002',
+    'NCP-PLANT-001',
+    'NCP-PLANT-002',
+    'NCP-PLANT-003',
+    'NCP-STATE-001',
+    'NCP-STATE-002',
+    'NCP-STATE-003',
+    'NCP-VERSION-001',
+    'NCP-FEATURE-001',
+    'NCP-AUDIT-001',
+    'NCP-AUDIT-002',
+    'NCP-GATEWAY-001',
+    'NCP-GATEWAY-002',
+    'NCP-WIRE-001',
+    'NCP-INTERNAL-001',
+];
+const REGISTERED_ERROR_CODES = new Set(NCP_ERROR_CODES);
 /** Advisory comparison of a peer-advertised contract hash to ours. Mirrors
  *  `ncp_core::contract_status` — never throws; `null` = match or not advertised, a
  *  string = an advisory message describing the mismatch (for logging/telemetry). */
@@ -45,10 +94,11 @@ export function contractStatus(peerHash) {
 export class NcpVersionError extends Error {
 }
 /** Parse a wire version into `[major, minor]`, mirroring `ncp_core::check_version`'s
- *  parser: 1 or 2 dot-separated base-10 components, no trailing junk, no third
- *  component (semver patch is not part of the wire id). A missing minor ("1") is
- *  minor 0; anything else throws — never silently coerced to 0 (that would turn the
- *  fail-closed guard fail-open the moment our own minor is 0). */
+ *  parser: 1 or 2 canonical ASCII-decimal u64 components with no leading zeroes,
+ *  trailing junk, or third component (semver patch is not part of the wire id). A
+ *  missing minor ("1") is minor 0; anything else throws — never silently coerced
+ *  to 0 (that would turn the fail-closed guard fail-open the moment our own minor
+ *  is 0). */
 function parseMajorMinor(version) {
     const fail = () => {
         throw new NcpVersionError(`unparseable ncp_version ${JSON.stringify(version)}`);
@@ -57,10 +107,15 @@ function parseMajorMinor(version) {
     if (parts.length < 1 || parts.length > 2)
         fail();
     const part = (s) => {
-        // Language-neutral grammar: ASCII decimal digits only, bounded by u64::MAX.
+        // Language-neutral grammar: canonical ASCII decimal (no leading zeroes),
+        // bounded by u64::MAX.
         // BigInt preserves the full Rust range instead of imposing JS's 2^53 limit.
-        if (s === undefined || s.length > 20 || !/^[0-9]+$/.test(s))
+        if (s === undefined ||
+            s.length > 20 ||
+            !/^[0-9]+$/.test(s) ||
+            (s.length > 1 && s.startsWith('0'))) {
             return fail();
+        }
         const value = BigInt(s);
         if (value > 18446744073709551615n)
             return fail();
@@ -125,13 +180,18 @@ const REQUIRED = {
         'command_channels',
         'control_rate_hz',
         'controller_id',
+        'gateway_permitted',
+        'identity',
         'kind',
         'ncp_version',
         'role',
         'safety',
+        'security_profile',
+        'security_state_digest',
         'sensor_channels',
+        'stable_capabilities',
     ],
-    close_session: ['kind', 'ncp_version', 'session', 'session_id'],
+    close_session: ['authority', 'kind', 'ncp_version', 'operation', 'session', 'session_id'],
     command_frame: ['kind', 'ncp_version', 'session', 'session_id', 'stream'],
     control_status: [
         'kind',
@@ -144,7 +204,7 @@ const REQUIRED = {
         'stream',
         't',
     ],
-    error: ['error', 'kind', 'ncp_version'],
+    error: ['code', 'error', 'kind', 'ncp_version'],
     link_status: [
         'burst',
         'kind',
@@ -167,12 +227,40 @@ const REQUIRED = {
         'session_id',
         'stream',
     ],
-    open_session: ['kind', 'ncp_version', 'network', 'session_id'],
-    run_request: ['duration_ms', 'kind', 'ncp_version', 'session', 'session_id'],
+    open_session: [
+        'gateway_permitted',
+        'identity',
+        'kind',
+        'ncp_version',
+        'network',
+        'security_profile',
+        'security_state_digest',
+        'session_id',
+    ],
+    run_request: [
+        'authority',
+        'duration_ms',
+        'kind',
+        'ncp_version',
+        'operation',
+        'session',
+        'session_id',
+    ],
     sensor_frame: ['kind', 'ncp_version', 'session', 'session_id', 'stream'],
-    session_closed: ['kind', 'ncp_version', 'ok', 'session', 'session_id'],
-    session_opened: ['backend', 'kind', 'ncp_version', 'ok', 'session_id'],
-    step_request: ['kind', 'ncp_version', 'session', 'session_id'],
+    session_closed: ['kind', 'ncp_version', 'ok', 'receipt', 'session', 'session_id'],
+    session_opened: [
+        'backend',
+        'gateway_permitted',
+        'identity',
+        'kind',
+        'ncp_version',
+        'ok',
+        'security_profile',
+        'security_state_digest',
+        'session_id',
+        'state_version',
+    ],
+    step_request: ['authority', 'kind', 'ncp_version', 'operation', 'session', 'session_id'],
     stimulus_frame: ['kind', 'ncp_version', 'session', 'session_id'],
 };
 function isRecord(value) {
@@ -189,6 +277,156 @@ function requireUuidV4(value, path) {
     if (typeof value !== 'string' || !UUID_V4.test(value)) {
         throw new Error(`${path} must be a canonical lowercase UUIDv4`);
     }
+}
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+const MAX_AUTHORITY_LEASE_MS = 60_000;
+const CORE_STABLE_CAPABILITIES = [
+    'ncp.core.canonical-json.v1',
+    'ncp.core.lifecycle.v1',
+    'ncp.core.authority-lease.v1',
+    'ncp.core.idempotent-mutation.v1',
+    'ncp.core.plant-profile.v1',
+];
+const KNOWN_STABLE_CAPABILITIES = new Set([
+    ...CORE_STABLE_CAPABILITIES,
+    'ncp.transport.zenoh.v1',
+]);
+const KNOWN_NETWORK_REF_KINDS = new Set(['handle', 'builtin', 'model_id', 'spec']);
+const KNOWN_SIM_MODES = new Set(['stream', 'batch']);
+const KNOWN_OBSERVABLES = new Set(['spikes', 'V_m', 'rate', 'weight', 'binary_state']);
+const KNOWN_STIMULUS_KINDS = new Set([
+    'current_pA',
+    'rate_hz',
+    'spike_times',
+    'weight_set',
+    'rate_inject',
+]);
+const KNOWN_CHANNEL_KINDS = new Set(['scalar', 'vec3', 'quat', 'array']);
+function requireBoundedId(value, path) {
+    const identity = requireNonemptyString(value, path);
+    if (new TextEncoder().encode(identity).length > 128 ||
+        /[/*$#?\s\u0000-\u001f\u007f-\u009f]/u.test(identity)) {
+        throw new Error(`${path} must be a bounded canonical identity segment`);
+    }
+    return identity;
+}
+function requireSha256(value, path) {
+    if (typeof value !== 'string' || !SHA256_HEX.test(value)) {
+        throw new Error(`${path} must be 64 lowercase hexadecimal characters`);
+    }
+    return value;
+}
+function requireIdentityClaim(value, path, expectedPlane, expectedRole) {
+    const claim = requireRecord(value, path);
+    requireBoundedId(claim.principal_id, `${path}.principal_id`);
+    requireBoundedId(claim.entity_id, `${path}.entity_id`);
+    const role = requireNonemptyString(claim.role, `${path}.role`);
+    if (!['commander', 'body', 'observer', 'operator'].includes(role)) {
+        throw new Error(`${path}.role is unknown and cannot authorize this message`);
+    }
+    if (expectedRole !== undefined && role !== expectedRole) {
+        throw new Error(`${path}.role ${JSON.stringify(role)} does not match the envelope role`);
+    }
+    const plane = requireNonemptyString(claim.plane, `${path}.plane`);
+    if (!['control', 'perception', 'action', 'observation'].includes(plane)) {
+        throw new Error(`${path}.plane is unknown and cannot authorize this message`);
+    }
+    if (expectedPlane !== undefined && plane !== expectedPlane) {
+        throw new Error(`${path}.plane ${JSON.stringify(plane)} does not match the message plane`);
+    }
+    return claim;
+}
+function requireSecurityNegotiation(message, path) {
+    const profile = requireNonemptyString(message.security_profile, `${path}.security_profile`);
+    if (profile !== 'dev-loopback-insecure' && profile !== 'production-secure') {
+        throw new Error(`${path}.security_profile is not a registered NCP 1.0 profile`);
+    }
+    requireSha256(message.security_state_digest, `${path}.security_state_digest`);
+}
+function requireGatewayAttribution(message, path) {
+    if (typeof message.gateway_permitted !== 'boolean') {
+        throw new Error(`${path}.gateway_permitted must be a boolean`);
+    }
+    if (message.gateway === undefined || message.gateway === null)
+        return;
+    if (message.gateway_permitted !== true) {
+        throw new Error(`${path}.gateway attribution is forbidden when gateway_permitted=false`);
+    }
+    const gateway = requireRecord(message.gateway, `${path}.gateway`);
+    requireBoundedId(gateway.gateway_id, `${path}.gateway.gateway_id`);
+    if (gateway.source_wire !== '0.8') {
+        throw new Error(`${path}.gateway.source_wire must identify legacy wire 0.8`);
+    }
+}
+function requireSessionEpoch(message, path) {
+    const session = requireRecord(message.session, `${path}.session`);
+    requireUuidV4(session.generation, `${path}.session.generation`);
+    return session.generation;
+}
+function requireAuthorityLease(value, path, expectedEpoch) {
+    const lease = requireRecord(value, path);
+    requireUuidV4(lease.session_epoch, `${path}.session_epoch`);
+    requireUuidV4(lease.lease_id, `${path}.lease_id`);
+    if (lease.session_epoch !== expectedEpoch) {
+        throw new Error(`${path}.session_epoch does not match the message session generation`);
+    }
+    assertSafeInteger(lease.term, `${path}.term`);
+    if (lease.term <= 0)
+        throw new Error(`${path}.term must be > 0`);
+    for (const field of [
+        'issuer_principal_id',
+        'holder_principal_id',
+        'holder_entity_id',
+    ]) {
+        requireBoundedId(lease[field], `${path}.${field}`);
+    }
+    assertSafeInteger(lease.issued_at_utc_ms, `${path}.issued_at_utc_ms`);
+    assertSafeInteger(lease.expires_at_utc_ms, `${path}.expires_at_utc_ms`);
+    const issued = lease.issued_at_utc_ms;
+    const expires = lease.expires_at_utc_ms;
+    if (issued < 0 || expires <= issued || expires - issued > MAX_AUTHORITY_LEASE_MS) {
+        throw new Error(`${path} must have a positive bounded UTC lease interval`);
+    }
+    return lease;
+}
+function requireOperationContext(value, path, expectedEpoch) {
+    const operation = requireRecord(value, path);
+    requireUuidV4(operation.operation_id, `${path}.operation_id`);
+    requireUuidV4(operation.session_epoch, `${path}.session_epoch`);
+    if (operation.session_epoch !== expectedEpoch) {
+        throw new Error(`${path}.session_epoch does not match the message session generation`);
+    }
+    requireSha256(operation.request_digest, `${path}.request_digest`);
+    assertSafeInteger(operation.expected_state_version, `${path}.expected_state_version`);
+    if (operation.expected_state_version < 0) {
+        throw new Error(`${path}.expected_state_version must be non-negative`);
+    }
+    assertSafeInteger(operation.deadline_utc_ms, `${path}.deadline_utc_ms`);
+    if (operation.deadline_utc_ms <= 0) {
+        throw new Error(`${path}.deadline_utc_ms must be positive`);
+    }
+    if (typeof operation.retry !== 'boolean')
+        throw new Error(`${path}.retry must be a boolean`);
+    return operation;
+}
+function requireResponderReceipt(value, path) {
+    const receipt = requireRecord(value, path);
+    requireUuidV4(receipt.operation_id, `${path}.operation_id`);
+    requireSha256(receipt.request_digest, `${path}.request_digest`);
+    requireSha256(receipt.result_digest, `${path}.result_digest`);
+    if (!['succeeded', 'rejected', 'cancelled'].includes(String(receipt.outcome))) {
+        throw new Error(`${path}.outcome must be a known terminal outcome`);
+    }
+    assertSafeInteger(receipt.state_version, `${path}.state_version`);
+    if (receipt.state_version < 0)
+        throw new Error(`${path}.state_version must be non-negative`);
+    assertSafeInteger(receipt.committed_at_utc_ms, `${path}.committed_at_utc_ms`);
+    if (receipt.committed_at_utc_ms <= 0) {
+        throw new Error(`${path}.committed_at_utc_ms must be positive`);
+    }
+    requireBoundedId(receipt.responder_principal_id, `${path}.responder_principal_id`);
+    requireBoundedId(receipt.responder_entity_id, `${path}.responder_entity_id`);
+    return receipt;
 }
 /** Wire 0.8: a transport-neutral session_id (1..=64 bytes, safe key segment). */
 function requireSessionId(value, path) {
@@ -233,12 +471,6 @@ function assertOptionalString(value, path) {
         return;
     if (typeof value !== 'string')
         throw new Error(`${path} must be a string or null`);
-}
-function assertOptionalBoolean(value, path) {
-    if (value === undefined)
-        return;
-    if (typeof value !== 'boolean')
-        throw new Error(`${path} must be a boolean`);
 }
 function assertStringArray(value, path) {
     if (value === undefined)
@@ -345,13 +577,46 @@ export function assertNcpMessage(value, expectedKind) {
         throw new NcpVersionError(`${kind}: ncp_version must be a string`);
     }
     checkVersion(message.ncp_version, true);
-    if (['open_session', 'session_opened', 'step_request', 'run_request', 'stimulus_frame', 'observation_frame', 'close_session', 'session_closed', 'link_status'].includes(kind)) {
+    if ([
+        'open_session',
+        'session_opened',
+        'step_request',
+        'run_request',
+        'stimulus_frame',
+        'observation_frame',
+        'close_session',
+        'session_closed',
+        'sensor_frame',
+        'command_frame',
+        'control_status',
+        'link_status',
+    ].includes(kind)) {
         assertSessionId(message, kind);
     }
+    const sessionEpoch = [
+        'step_request',
+        'run_request',
+        'stimulus_frame',
+        'observation_frame',
+        'close_session',
+        'session_closed',
+        'sensor_frame',
+        'command_frame',
+        'control_status',
+        'link_status',
+    ].includes(kind)
+        ? requireSessionEpoch(message, kind)
+        : undefined;
     switch (kind) {
         case 'open_session': {
+            requireIdentityClaim(message.identity, 'open_session.identity', 'control', 'commander');
+            requireSecurityNegotiation(message, 'open_session');
+            requireGatewayAttribution(message, 'open_session');
             const network = requireRecord(message.network, 'open_session.network');
-            requireNonemptyString(network.kind, 'open_session.network.kind');
+            const networkKind = requireNonemptyString(network.kind, 'open_session.network.kind');
+            if (!KNOWN_NETWORK_REF_KINDS.has(networkKind)) {
+                throw new Error('open_session.network.kind is unknown and cannot select model-loading behavior');
+            }
             requireNonemptyString(network.ref, 'open_session.network.ref');
             assertOptionalString(network.model_name, 'open_session.network.model_name');
             assertSafeIntegerMap(network.population_sizes, 'open_session.network.population_sizes');
@@ -377,8 +642,12 @@ export function assertNcpMessage(value, expectedKind) {
                         throw new Error(`open_session.sim.${field} must be ${allowZero ? '>=' : '>'} 0`);
                     }
                 }
-                if (sim.mode !== undefined)
-                    requireNonemptyString(sim.mode, 'open_session.sim.mode');
+                if (sim.mode !== undefined) {
+                    const simMode = requireNonemptyString(sim.mode, 'open_session.sim.mode');
+                    if (!KNOWN_SIM_MODES.has(simMode)) {
+                        throw new Error('open_session.sim.mode must be stream or batch');
+                    }
+                }
             }
             const record = message.record === undefined ? undefined : requireRecord(message.record, 'open_session.record');
             const recordTargets = record?.targets;
@@ -389,7 +658,10 @@ export function assertNcpMessage(value, expectedKind) {
                     const target = requireRecord(raw, `open_session.record.targets[${index}]`);
                     requireNonemptyString(target.port, `open_session.record.targets[${index}].port`);
                     requireNonemptyString(target.target, `open_session.record.targets[${index}].target`);
-                    requireNonemptyString(target.observable, `open_session.record.targets[${index}].observable`);
+                    const observable = requireNonemptyString(target.observable, `open_session.record.targets[${index}].observable`);
+                    if (!KNOWN_OBSERVABLES.has(observable)) {
+                        throw new Error(`open_session.record.targets[${index}].observable is unknown and cannot configure recording`);
+                    }
                     assertSafeIntegerArray(target.ids, `open_session.record.targets[${index}].ids`);
                     assertStringArray(target.recordables, `open_session.record.targets[${index}].recordables`);
                     if (target.cadence_ms !== undefined) {
@@ -410,7 +682,10 @@ export function assertNcpMessage(value, expectedKind) {
                     const target = requireRecord(raw, `open_session.stimulus.targets[${index}]`);
                     requireNonemptyString(target.port, `open_session.stimulus.targets[${index}].port`);
                     requireNonemptyString(target.target, `open_session.stimulus.targets[${index}].target`);
-                    requireNonemptyString(target.kind, `open_session.stimulus.targets[${index}].kind`);
+                    const stimulusKind = requireNonemptyString(target.kind, `open_session.stimulus.targets[${index}].kind`);
+                    if (!KNOWN_STIMULUS_KINDS.has(stimulusKind)) {
+                        throw new Error(`open_session.stimulus.targets[${index}].kind is unknown and cannot select stimulus behavior`);
+                    }
                     assertSafeIntegerArray(target.ids, `open_session.stimulus.targets[${index}].ids`);
                     if (target.params !== undefined) {
                         for (const [name, value] of Object.entries(requireRecord(target.params, `open_session.stimulus.targets[${index}].params`))) {
@@ -431,7 +706,10 @@ export function assertNcpMessage(value, expectedKind) {
                     }
                     const entity = requireRecord(binding.entity, `open_session.bindings[${index}].entity`);
                     requireNonemptyString(entity.path, `open_session.bindings[${index}].entity.path`);
-                    requireNonemptyString(entity.role, `open_session.bindings[${index}].entity.role`);
+                    const entityRole = requireNonemptyString(entity.role, `open_session.bindings[${index}].entity.role`);
+                    if (!['system', 'actor', 'sensor', 'actuator'].includes(entityRole)) {
+                        throw new Error(`open_session.bindings[${index}].entity.role is unknown and cannot select binding semantics`);
+                    }
                     assertStringMap(entity.meta, `open_session.bindings[${index}].entity.meta`);
                 });
             }
@@ -439,11 +717,19 @@ export function assertNcpMessage(value, expectedKind) {
             break;
         }
         case 'session_opened': {
+            requireIdentityClaim(message.identity, 'session_opened.identity', 'control', 'body');
+            requireSecurityNegotiation(message, 'session_opened');
+            requireGatewayAttribution(message, 'session_opened');
             const backend = requireNonemptyString(message.backend, 'session_opened.backend');
+            assertSafeInteger(message.state_version, 'session_opened.state_version');
+            if (message.state_version < 0) {
+                throw new Error('session_opened.state_version must be non-negative');
+            }
             if (typeof message.ok !== 'boolean')
                 throw new Error('session_opened.ok must be a boolean');
             assertSafeIntegerMap(message.resolved, 'session_opened.resolved');
             if (message.ok) {
+                requireSessionEpoch(message, 'session_opened');
                 const provenance = requireRecord(message.provenance, 'session_opened.provenance');
                 requireNonemptyString(provenance.network_ref, 'session_opened.provenance.network_ref');
                 const provenanceBackend = requireNonemptyString(provenance.backend, 'session_opened.provenance.backend');
@@ -466,6 +752,9 @@ export function assertNcpMessage(value, expectedKind) {
                 if (message.provenance !== undefined && message.provenance !== null) {
                     throw new Error('session_opened.provenance must be null when ok=false');
                 }
+                if (message.session !== undefined && message.session !== null) {
+                    throw new Error('session_opened.session must be null when ok=false');
+                }
             }
             assertOptionalString(message.contract_hash, 'session_opened.contract_hash');
             break;
@@ -473,17 +762,35 @@ export function assertNcpMessage(value, expectedKind) {
         case 'session_closed':
             if (message.ok !== true)
                 throw new Error('session_closed.ok must be true; failures use ErrorFrame');
+            requireResponderReceipt(message.receipt, 'session_closed.receipt');
             break;
         case 'error':
+            if (typeof message.code !== 'string' ||
+                !REGISTERED_ERROR_CODES.has(message.code)) {
+                throw new Error('error.code must be registered in contract/errors.v1.json');
+            }
             requireNonemptyString(message.error, 'error.error');
             if (message.request_kind !== undefined && message.request_kind !== null) {
                 requireNonemptyString(message.request_kind, 'error.request_kind');
             }
-            if (message.session_id !== undefined && message.session_id !== null) {
-                assertSessionId(message, 'error');
+            {
+                const hasSessionId = message.session_id !== undefined && message.session_id !== null;
+                const hasSession = message.session !== undefined && message.session !== null;
+                if (hasSessionId)
+                    assertSessionId(message, 'error');
+                if (hasSessionId !== hasSession) {
+                    throw new Error('error.session_id and error.session must be present or null together');
+                }
+                if (hasSession)
+                    requireSessionEpoch(message, 'error');
+            }
+            if (message.receipt !== undefined && message.receipt !== null) {
+                requireResponderReceipt(message.receipt, 'error.receipt');
             }
             break;
         case 'run_request': {
+            requireOperationContext(message.operation, 'run_request.operation', sessionEpoch);
+            requireAuthorityLease(message.authority, 'run_request.authority', sessionEpoch);
             const duration = assertFiniteNumber(message.duration_ms, 'run_request.duration_ms');
             if (duration <= 0)
                 throw new Error('run_request.duration_ms must be > 0');
@@ -493,9 +800,12 @@ export function assertNcpMessage(value, expectedKind) {
                     throw new Error('run_request.stimulus session_id does not match outer request');
                 }
             }
+            verifyRequestDigest(message);
             break;
         }
-        case 'step_request':
+        case 'step_request': {
+            requireOperationContext(message.operation, 'step_request.operation', sessionEpoch);
+            requireAuthorityLease(message.authority, 'step_request.authority', sessionEpoch);
             if (message.advance_ms !== undefined && message.advance_ms !== null && assertFiniteNumber(message.advance_ms, 'step_request.advance_ms') < 0) {
                 throw new Error('step_request.advance_ms must be >= 0');
             }
@@ -505,6 +815,13 @@ export function assertNcpMessage(value, expectedKind) {
                     throw new Error('step_request.stimulus session_id does not match outer request');
                 }
             }
+            verifyRequestDigest(message);
+            break;
+        }
+        case 'close_session':
+            requireOperationContext(message.operation, 'close_session.operation', sessionEpoch);
+            requireAuthorityLease(message.authority, 'close_session.authority', sessionEpoch);
+            verifyRequestDigest(message);
             break;
         case 'stimulus_frame':
             if (message.t !== undefined)
@@ -539,10 +856,14 @@ export function assertNcpMessage(value, expectedKind) {
                     assertFiniteNumber(message.ttl_ms, 'command_frame.ttl_ms');
                 }
                 if (message.mode === 'active') {
+                    requireAuthorityLease(message.authority, 'command_frame.authority', sessionEpoch);
                     const ttl = assertFiniteNumber(message.ttl_ms, 'command_frame.ttl_ms');
                     if (ttl <= 0)
                         throw new Error('command_frame Active ttl_ms must be > 0');
                     assertChannelMap(message.channels, 'command_frame.channels', true);
+                }
+                else if (message.authority !== undefined && message.authority !== null) {
+                    requireAuthorityLease(message.authority, 'command_frame.authority', sessionEpoch);
                 }
                 if (message.horizon !== undefined) {
                     if (!Array.isArray(message.horizon))
@@ -557,8 +878,8 @@ export function assertNcpMessage(value, expectedKind) {
                             throw new Error('command_frame predictive horizon requires horizon_dt_ms > 0');
                         const ttl = message.ttl_ms;
                         if (message.horizon.length > MAX_HORIZON_STEPS ||
-                            message.horizon.length > Math.floor(ttl / dt)) {
-                            throw new Error(`command_frame.horizon must satisfy N <= ttl_ms / horizon_dt_ms and N <= ${MAX_HORIZON_STEPS}`);
+                            message.horizon.length > Math.max(Math.ceil(ttl / dt) - 1, 0)) {
+                            throw new Error(`command_frame.horizon future steps must occur strictly before ttl_ms and N <= ${MAX_HORIZON_STEPS}`);
                         }
                     }
                 }
@@ -567,6 +888,9 @@ export function assertNcpMessage(value, expectedKind) {
                 }
             }
             if (kind === 'observation_frame') {
+                if (message.receipt !== undefined && message.receipt !== null) {
+                    requireResponderReceipt(message.receipt, 'observation_frame.receipt');
+                }
                 if (message.sim_time_ms !== undefined) {
                     assertFiniteNumber(message.sim_time_ms, 'observation_frame.sim_time_ms');
                 }
@@ -579,7 +903,10 @@ export function assertNcpMessage(value, expectedKind) {
                     const record = requireRecord(raw, `observation_frame.records[${JSON.stringify(recordKey)}]`);
                     requireNonemptyString(record.port, `observation_frame.records[${JSON.stringify(recordKey)}].port`);
                     requireNonemptyString(record.target, `observation_frame.records[${JSON.stringify(recordKey)}].target`);
-                    requireNonemptyString(record.observable, `observation_frame.records[${JSON.stringify(recordKey)}].observable`);
+                    const observable = requireNonemptyString(record.observable, `observation_frame.records[${JSON.stringify(recordKey)}].observable`);
+                    if (!KNOWN_OBSERVABLES.has(observable)) {
+                        throw new Error(`observation_frame.records[${JSON.stringify(recordKey)}].observable is unknown`);
+                    }
                     assertFiniteNumberArray(record.times, `observation_frame.records[${JSON.stringify(recordKey)}].times`);
                     assertFiniteNumberArray(record.values, `observation_frame.records[${JSON.stringify(recordKey)}].values`);
                     assertSafeIntegerArray(record.senders, `observation_frame.records[${JSON.stringify(recordKey)}].senders`);
@@ -598,6 +925,7 @@ export function assertNcpMessage(value, expectedKind) {
             break;
         }
         case 'control_status': {
+            requireStreamPosition(message.stream, 'control_status.stream', 1);
             assertFiniteNumber(message.t, 'control_status.t');
             if (message.sim_time_ms !== undefined) {
                 assertFiniteNumber(message.sim_time_ms, 'control_status.sim_time_ms');
@@ -612,13 +940,26 @@ export function assertNcpMessage(value, expectedKind) {
             break;
         }
         case 'link_status': {
+            requireStreamPosition(message.stream, 'link_status.stream', 1);
             for (const field of ['received', 'lost']) {
                 assertSafeInteger(message[field], `link_status.${field}`);
             }
-            if (message.last_arrival_seq !== undefined && message.last_arrival_seq !== null) {
+            const hasObservedStream = message.observed_stream !== undefined && message.observed_stream !== null;
+            const hasLastArrival = message.last_arrival_seq !== undefined && message.last_arrival_seq !== null;
+            if (hasObservedStream !== hasLastArrival) {
+                throw new Error('link_status.observed_stream and last_arrival_seq must be present together');
+            }
+            if (hasObservedStream) {
+                requireStreamPosition(message.observed_stream, 'link_status.observed_stream', 1);
+            }
+            if (hasLastArrival) {
                 assertSafeInteger(message.last_arrival_seq, 'link_status.last_arrival_seq');
-                if (message.last_arrival_seq < 0) {
-                    throw new Error('link_status.last_arrival_seq must be >= 0');
+                if (message.last_arrival_seq < 1) {
+                    throw new Error('link_status.last_arrival_seq must be >= 1');
+                }
+                const observed = message.observed_stream;
+                if (message.last_arrival_seq > observed.seq) {
+                    throw new Error('link_status.last_arrival_seq cannot exceed observed_stream.seq');
                 }
             }
             if (message.received < 0 || message.lost < 0) {
@@ -633,19 +974,65 @@ export function assertNcpMessage(value, expectedKind) {
             break;
         }
         case 'capabilities': {
-            requireNonemptyString(message.controller_id, 'capabilities.controller_id');
-            requireNonemptyString(message.role, 'capabilities.role');
+            const controllerId = requireBoundedId(message.controller_id, 'capabilities.controller_id');
+            const role = requireNonemptyString(message.role, 'capabilities.role');
+            const principalRole = {
+                controller: 'commander',
+                plant: 'body',
+                observer: 'observer',
+                operator: 'operator',
+            }[role];
+            if (principalRole === undefined) {
+                throw new Error('capabilities.role is unknown and cannot negotiate authority');
+            }
+            const identity = requireIdentityClaim(message.identity, 'capabilities.identity', 'control', principalRole);
+            if (identity.entity_id !== controllerId) {
+                throw new Error('capabilities.controller_id must equal capabilities.identity.entity_id');
+            }
+            requireSecurityNegotiation(message, 'capabilities');
+            requireGatewayAttribution(message, 'capabilities');
+            if (!Array.isArray(message.stable_capabilities)) {
+                throw new Error('capabilities.stable_capabilities must be an array');
+            }
+            if (message.stable_capabilities.length > 64) {
+                throw new Error('capabilities.stable_capabilities exceeds the 64-entry limit');
+            }
+            const stableCapabilities = new Set();
+            message.stable_capabilities.forEach((raw, index) => {
+                const capability = requireNonemptyString(raw, `capabilities.stable_capabilities[${index}]`);
+                if (!KNOWN_STABLE_CAPABILITIES.has(capability)) {
+                    throw new Error(`capabilities.stable_capabilities contains unknown or non-stable capability ${JSON.stringify(capability)}`);
+                }
+                if (stableCapabilities.has(capability)) {
+                    throw new Error(`capabilities.stable_capabilities contains duplicate ${JSON.stringify(capability)}`);
+                }
+                stableCapabilities.add(capability);
+            });
+            for (const capability of CORE_STABLE_CAPABILITIES) {
+                if (!stableCapabilities.has(capability)) {
+                    throw new Error(`capabilities.stable_capabilities omits required core capability ${JSON.stringify(capability)}`);
+                }
+            }
+            if (message.plant_profile_digest !== undefined && message.plant_profile_digest !== null) {
+                requireSha256(message.plant_profile_digest, 'capabilities.plant_profile_digest');
+            }
+            if (role === 'plant' &&
+                (message.plant_profile_digest === undefined || message.plant_profile_digest === null)) {
+                throw new Error('plant capabilities require a content-addressed plant_profile_digest');
+            }
             const rate = assertFiniteNumber(message.control_rate_hz, 'capabilities.control_rate_hz');
             if (rate <= 0)
                 throw new Error('capabilities.control_rate_hz must be > 0');
             for (const field of ['sensor_channels', 'command_channels']) {
                 if (!Array.isArray(message[field]))
                     throw new Error(`capabilities.${field} must be an array`);
+                if (message[field].length > MAX_CHANNELS)
+                    throw new Error(`capabilities.${field} exceeds the ${MAX_CHANNELS}-channel limit`);
                 const names = new Set();
                 message[field].forEach((raw, index) => {
                     const channel = requireRecord(raw, `capabilities.${field}[${index}]`);
                     const name = requireNonemptyString(channel.name, `capabilities.${field}[${index}].name`);
-                    requireNonemptyString(channel.kind, `capabilities.${field}[${index}].kind`);
+                    const channelKind = requireNonemptyString(channel.kind, `capabilities.${field}[${index}].kind`);
                     if (names.has(name))
                         throw new Error(`capabilities.${field} contains duplicate channel ${JSON.stringify(name)}`);
                     names.add(name);
@@ -655,7 +1042,13 @@ export function assertNcpMessage(value, expectedKind) {
                             throw new Error(`capabilities.${field}[${index}].size must be > 0`);
                     }
                     assertOptionalString(channel.unit, `capabilities.${field}[${index}].unit`);
-                    assertOptionalBoolean(channel.optional, `capabilities.${field}[${index}].optional`);
+                    const requirement = requireNonemptyString(channel.requirement, `capabilities.${field}[${index}].requirement`);
+                    if (requirement !== 'required' && requirement !== 'optional') {
+                        throw new Error(`capabilities.${field}[${index}].requirement must explicitly be required or optional`);
+                    }
+                    if (!KNOWN_CHANNEL_KINDS.has(channelKind)) {
+                        throw new Error(`capabilities.${field}[${index}].kind is unknown and cannot negotiate channel semantics`);
+                    }
                     assertOptionalString(channel.description, `capabilities.${field}[${index}].description`);
                 });
             }
@@ -675,7 +1068,17 @@ export function assertNcpMessage(value, expectedKind) {
         }
     }
 }
-function unwrap(reply, requestKind, expectedKind, expectedSessionId) {
+function sealMutationRequest(request) {
+    const supplied = request.operation.request_digest;
+    request.operation.request_digest = '';
+    const digest = requestDigest(request);
+    if (supplied !== undefined && supplied !== '' && supplied !== digest) {
+        throw new Error('NCP mutation operation.request_digest does not match the constructed request');
+    }
+    request.operation.request_digest = digest;
+    return request;
+}
+function unwrap(reply, requestKind, expectedKind, expectedSessionId, expectedGeneration, expectedOperation) {
     assertNcpMessage(reply);
     if (reply.kind === 'error') {
         const error = reply;
@@ -685,7 +1088,15 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId) {
         if (error.session_id != null && error.session_id !== expectedSessionId) {
             throw new Error(`NCP error session mismatch: expected ${JSON.stringify(expectedSessionId)}, got ${JSON.stringify(error.session_id)}`);
         }
-        throw new Error(`NCP error: ${error.error}`);
+        if (expectedGeneration !== undefined &&
+            error.session != null &&
+            error.session.generation !== expectedGeneration) {
+            throw new Error(`NCP error generation mismatch: expected ${JSON.stringify(expectedGeneration)}, got ${JSON.stringify(error.session.generation)}`);
+        }
+        if (expectedOperation !== undefined && error.receipt != null) {
+            assertReceiptCorrelation(error.receipt, expectedOperation, 'error.receipt');
+        }
+        throw new Error(`NCP error ${error.code}: ${error.error}`);
     }
     const kind = reply.kind;
     if (kind !== expectedKind) {
@@ -704,6 +1115,20 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId) {
     if (sessionId !== expectedSessionId) {
         throw new Error(`NCP reply session mismatch: expected ${JSON.stringify(expectedSessionId)}, got ${JSON.stringify(sessionId)}`);
     }
+    if (expectedGeneration !== undefined) {
+        const generation = reply.session?.generation;
+        if (generation !== expectedGeneration) {
+            throw new Error(`NCP reply generation mismatch: expected ${JSON.stringify(expectedGeneration)}, got ${JSON.stringify(generation)}`);
+        }
+    }
+    if (expectedOperation !== undefined) {
+        const receipt = reply.receipt;
+        assertReceiptCorrelation(receipt, expectedOperation, `${expectedKind}.receipt`);
+        if (expectedKind === 'observation_frame' &&
+            reply.source != null) {
+            throw new Error('NCP step/run RPC observation reply must omit observation-plane source');
+        }
+    }
     if (expectedKind === 'observation_frame') {
         const streamPos = reply.stream;
         const seq = streamPos?.seq;
@@ -716,12 +1141,23 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId) {
     }
     return reply;
 }
+function assertReceiptCorrelation(receipt, operation, path) {
+    const validated = requireResponderReceipt(receipt, path);
+    if (validated.operation_id !== operation.operation_id) {
+        throw new Error(`${path}.operation_id does not match the request operation`);
+    }
+    if (validated.request_digest !== operation.request_digest) {
+        throw new Error(`${path}.request_digest does not match the request operation`);
+    }
+}
 export class NeuroSimClient {
     send;
-    /** Wire 0.8: session_id -> the server-issued generation, learned at open(). */
+    negotiation;
+    /** session_id -> the server-issued generation, learned at open(). */
     generations = new Map();
-    constructor(send) {
+    constructor(send, negotiation) {
         this.send = send;
+        this.negotiation = negotiation;
     }
     /** Open a session: declare what to record and what to stimulate. */
     async open(sessionId, network, record, stimulus, sim = {}) {
@@ -741,69 +1177,91 @@ export class NeuroSimClient {
             sim,
             bindings: [],
             contract_hash: NCP_CONTRACT_HASH,
+            identity: this.negotiation.identity,
+            security_profile: this.negotiation.security_profile,
+            security_state_digest: this.negotiation.security_state_digest,
+            gateway_permitted: this.negotiation.gateway_permitted,
+            gateway: this.negotiation.gateway ?? null,
         };
         assertNcpMessage(request, 'open_session');
         const reply = await this.send(request);
         const opened = unwrap(reply, 'open_session', 'session_opened', sessionId);
+        if (!opened.ok || opened.session == null) {
+            throw new Error(`NCP session open failed: ${opened.error ?? 'peer supplied no reason'}`);
+        }
+        if (opened.security_profile !== this.negotiation.security_profile ||
+            opened.security_state_digest !== this.negotiation.security_state_digest ||
+            opened.gateway_permitted !== this.negotiation.gateway_permitted) {
+            throw new Error('NCP session security negotiation does not match the precommitted request');
+        }
         // Advisory contract-hash check (the reply half): log a mismatch, do not throw —
         // the version is the hard gate (mirrors the NCP session-service contract).
         const advisory = contractStatus(opened.contract_hash);
         if (advisory)
             console.warn(`[ncp] ${advisory}`);
-        this.generations.set(sessionId, opened.session?.generation ?? '');
+        this.generations.set(sessionId, opened.session.generation);
         return opened;
     }
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
-    async step(sessionId, stimulus = {}, advanceMs) {
-        const request = {
+    async step(sessionId, mutation, stimulus = {}, advanceMs) {
+        const generation = this.generations.get(sessionId) ?? '';
+        const request = sealMutationRequest({
             kind: 'step_request',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
-            session: { generation: this.generations.get(sessionId) ?? '' },
+            session: { generation },
+            operation: { ...mutation.operation },
+            authority: mutation.authority,
             advance_ms: advanceMs ?? null,
             stimulus: {
                 kind: 'stimulus_frame',
                 ncp_version: NCP_VERSION,
                 session_id: sessionId,
-                session: { generation: this.generations.get(sessionId) ?? '' },
+                session: { generation },
                 values: stimulus,
             },
-        };
+        });
         assertNcpMessage(request, 'step_request');
         const reply = await this.send(request);
-        return unwrap(reply, 'step_request', 'observation_frame', sessionId);
+        return unwrap(reply, 'step_request', 'observation_frame', sessionId, generation, request.operation);
     }
     /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */
-    async run(sessionId, durationMs, stimulus = {}) {
-        const request = {
+    async run(sessionId, durationMs, mutation, stimulus = {}) {
+        const generation = this.generations.get(sessionId) ?? '';
+        const request = sealMutationRequest({
             kind: 'run_request',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
-            session: { generation: this.generations.get(sessionId) ?? '' },
+            session: { generation },
+            operation: { ...mutation.operation },
+            authority: mutation.authority,
             duration_ms: durationMs,
             stimulus: {
                 kind: 'stimulus_frame',
                 ncp_version: NCP_VERSION,
                 session_id: sessionId,
-                session: { generation: this.generations.get(sessionId) ?? '' },
+                session: { generation },
                 values: stimulus,
             },
-        };
+        });
         assertNcpMessage(request, 'run_request');
         const reply = await this.send(request);
-        return unwrap(reply, 'run_request', 'observation_frame', sessionId);
+        return unwrap(reply, 'run_request', 'observation_frame', sessionId, generation, request.operation);
     }
     /** Close the session. */
-    async close(sessionId) {
-        const request = {
+    async close(sessionId, mutation) {
+        const generation = this.generations.get(sessionId) ?? '';
+        const request = sealMutationRequest({
             kind: 'close_session',
             ncp_version: NCP_VERSION,
             session_id: sessionId,
-            session: { generation: this.generations.get(sessionId) ?? '' },
-        };
+            session: { generation },
+            operation: { ...mutation.operation },
+            authority: mutation.authority,
+        });
         assertNcpMessage(request, 'close_session');
         const reply = await this.send(request);
-        return unwrap(reply, 'close_session', 'session_closed', sessionId);
+        return unwrap(reply, 'close_session', 'session_closed', sessionId, generation, request.operation);
     }
 }
 //# sourceMappingURL=client.js.map

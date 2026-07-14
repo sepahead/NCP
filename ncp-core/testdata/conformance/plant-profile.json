@@ -1,0 +1,262 @@
+{
+  "schema": "ncp.plant-profile.conformance.v1",
+  "wire_version": "1.0",
+  "normative_contract": "contract/plant-profile.v1.json",
+  "valid_cases": [
+    {
+      "id": "simulation-base",
+      "input": {
+        "schema": "ncp.plant-profile.v1",
+        "status": "reference-non-certifying",
+        "profile_id": "simulation-scalar",
+        "revision": 1,
+        "plant_class": "simulation",
+        "body_entity_id": "body",
+        "command_channels": [
+          {"name": "drive", "unit": "dimensionless", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded simulated input"}
+        ],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true,
+        "protocol_estop_is_physical_certification": false,
+        "consumer_safety_case_required": true,
+        "profile_digest_sha256": ""
+      },
+      "expected_digest": "36ab62b0877f12e24c17c728540db7b0da5346844183defe754efbab5e13f24e"
+    },
+    {
+      "id": "equivalent-integer-number-spelling",
+      "input": {
+        "schema": "ncp.plant-profile.v1",
+        "status": "reference-non-certifying",
+        "profile_id": "simulation-scalar",
+        "revision": 1,
+        "plant_class": "simulation",
+        "body_entity_id": "body",
+        "command_channels": [
+          {"name": "drive", "unit": "dimensionless", "arity": 1, "min": -1, "max": 1, "actuator_semantics": "bounded simulated input"}
+        ],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true,
+        "protocol_estop_is_physical_certification": false,
+        "consumer_safety_case_required": true,
+        "profile_digest_sha256": ""
+      },
+      "expected_digest": "36ab62b0877f12e24c17c728540db7b0da5346844183defe754efbab5e13f24e"
+    },
+    {
+      "id": "negative-zero-is-distinct",
+      "input": {
+        "schema": "ncp.plant-profile.v1",
+        "status": "reference-non-certifying",
+        "profile_id": "simulation-scalar",
+        "revision": 1,
+        "plant_class": "simulation",
+        "body_entity_id": "body",
+        "command_channels": [
+          {"name": "drive", "unit": "dimensionless", "arity": 1, "min": -1, "max": 1, "actuator_semantics": "bounded simulated input"}
+        ],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [-0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [-0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true,
+        "protocol_estop_is_physical_certification": false,
+        "consumer_safety_case_required": true,
+        "profile_digest_sha256": ""
+      },
+      "expected_digest": "e0abda42a49701cfeb4e830920202c0fa8fe4cb6e4e7afe928e8268f41d3352c"
+    },
+    {
+      "id": "negative-zero-integer-token-equivalent",
+      "input": {
+        "schema": "ncp.plant-profile.v1",
+        "status": "reference-non-certifying",
+        "profile_id": "simulation-scalar",
+        "revision": 1,
+        "plant_class": "simulation",
+        "body_entity_id": "body",
+        "command_channels": [
+          {"name": "drive", "unit": "dimensionless", "arity": 1, "min": -1, "max": 1, "actuator_semantics": "bounded simulated input"}
+        ],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [-0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [-0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true,
+        "protocol_estop_is_physical_certification": false,
+        "consumer_safety_case_required": true,
+        "profile_digest_sha256": ""
+      },
+      "expected_digest": "e0abda42a49701cfeb4e830920202c0fa8fe4cb6e4e7afe928e8268f41d3352c"
+    },
+    {
+      "id": "unicode-and-two-sorted-channels",
+      "input": {
+        "schema": "ncp.plant-profile.v1",
+        "status": "deployment-specific",
+        "profile_id": "unicode-simulation",
+        "revision": 2,
+        "plant_class": "other",
+        "body_entity_id": "body-unicode",
+        "command_channels": [
+          {"name": "alpha", "unit": "µA", "arity": 1, "min": -2.0, "max": 2.0, "actuator_semantics": "bounded α input"},
+          {"name": "beta", "unit": "m/s", "arity": 2, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded β input"}
+        ],
+        "hold_action": {"kind": "neutral", "channel_values": {"beta": [0.0, 0.0], "alpha": [0.0]}, "hold_max_ms": null, "body_local_executor": "body-unicode"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"alpha": [0.0], "beta": [0.0, 0.0]}, "hold_max_ms": null, "body_local_executor": "body-unicode"},
+        "body_is_final_authority": true,
+        "protocol_estop_is_physical_certification": false,
+        "consumer_safety_case_required": true,
+        "profile_digest_sha256": ""
+      },
+      "expected_digest": "44b5fcfe6e82c47e21831e3023176f5f30df985797c515bfcdc5364502577818"
+    }
+  ],
+  "invalid_cases": [
+    {
+      "id": "unknown-member-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000", "unknown": true
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "stale-digest-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "unsorted-channels-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [
+          {"name": "zeta", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"},
+          {"name": "alpha", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}
+        ],
+        "hold_action": {"kind": "neutral", "channel_values": {"zeta": [0.0], "alpha": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"zeta": [0.0], "alpha": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "estop-hold-last-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "hold_last", "channel_values": {}, "hold_max_ms": 10, "body_local_executor": "body"},
+        "estop_action": {"kind": "hold_last", "channel_values": {}, "hold_max_ms": 10, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "unsafe-revision-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 9007199254740992, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "omitted-safe-action-values-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "hold_last", "hold_max_ms": 10, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "non-string-digest-rejected-before-computation",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": 7
+      },
+      "expect": "reject",
+      "digest_expect": "reject"
+    },
+    {
+      "id": "body-final-authority-false-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": false, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "physical-certification-claim-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": true, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "consumer-safety-case-false-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": false, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "nested-channel-member-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded", "unbound_extension": true}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "bom-channel-id-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive\ufeff", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive\ufeff": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive\ufeff": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    },
+    {
+      "id": "bom-executor-id-rejected",
+      "input": {
+        "schema": "ncp.plant-profile.v1", "status": "reference-non-certifying", "profile_id": "p", "revision": 1, "plant_class": "simulation", "body_entity_id": "body",
+        "command_channels": [{"name": "drive", "unit": "x", "arity": 1, "min": -1.0, "max": 1.0, "actuator_semantics": "bounded"}],
+        "hold_action": {"kind": "neutral", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body\ufeff"},
+        "estop_action": {"kind": "shutdown", "channel_values": {"drive": [0.0]}, "hold_max_ms": null, "body_local_executor": "body"},
+        "body_is_final_authority": true, "protocol_estop_is_physical_certification": false, "consumer_safety_case_required": true, "profile_digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expect": "reject"
+    }
+  ]
+}

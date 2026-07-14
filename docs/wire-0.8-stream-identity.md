@@ -1,9 +1,9 @@
-# Wire 0.8 — stream identity, source correlation, session fencing (design freeze)
+# Wire 0.8 — stream identity, source correlation, session fencing (historical freeze)
 
-> **Status:** design, targeting the **untagged** wire-`0.8` line. The proto is cut
-> (`proto/ncp.proto`); Rust/TS/C/Python, schemas, vectors, and the conformance corpus
-> are implemented and reviewed against this record **before** any `v0.8.0` tag exists
-> (`AGENTS.md` runbook: everything green before the tag, never tag-then-fix).
+> **Historical status:** this is the pre-release design record that produced the
+> immutable `v0.8.0` tag. Its future-tense statements are preserved as history and
+> are not instructions for repository HEAD. The current unreleased candidate is
+> wire 1.0; see [`../docs/1.0-scope.md`](1.0-scope.md).
 >
 > **Provenance:** closes **F-01** and lays the identity/fencing envelope for **F-02**
 > (2026-07-11 deep review, `KNOWN_LIMITATIONS.md`), per the maintainer's normative
