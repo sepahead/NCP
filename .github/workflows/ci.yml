@@ -319,6 +319,6 @@ jobs:
       # yanked advisories, a default-deny license allowlist, banned/wildcard deps,
       # and source restrictions. Config + documented advisory ignores: deny.toml.
       - name: cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@bb137d7af7e4fb67e5f82a49c4fce4fad40782fe # v2
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
           command: check
