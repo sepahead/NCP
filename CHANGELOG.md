@@ -20,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   false, the requested `0.9` line requires a separately reviewed normative
   rebaseline, and no DOI or Zenodo archive is assigned.
 - Corrected the Zenoh ACL to an exact default-deny source/destination flow matrix,
-  centralized pre-copy `ZBytes` frame admission, added a single-fault missing-
-  authority CloseSession vector, pinned Buf remote generator versions/revisions,
-  and regenerated current-wire diagrams. These are local candidate improvements;
-  live security and other external acceptance gates remain **NOT RUN**.
+  concrete one-session action/data routes, and four protocol-closed RPC verbs;
+  removed unused DELETE authority and added broad-selector, wildcard-publisher,
+  and negative RPC-role probes. Also centralized pre-copy `ZBytes` frame admission,
+  added a single-fault missing-authority CloseSession vector, pinned Buf remote
+  generator versions/revisions, and regenerated current-wire diagrams. These are
+  local candidate improvements; live security and other external acceptance gates
+  remain **NOT RUN**.
 - Added closed identity/role/plane claims, named security profiles and digests,
   session-bound authority leases, idempotent mutation contexts, authenticated
   responder receipts, plant profiles, stable capability negotiation, and explicit

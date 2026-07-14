@@ -132,8 +132,11 @@ monotonic deadline.
 [`deploy/profiles/`](deploy/profiles/) contains profile templates and
 [`deploy/zenoh-access-control.json5`](deploy/zenoh-access-control.json5) contains the
 reference per-plane Zenoh ACL structure. Templates are not credentials and are not
-deployment evidence. Render them from the same realm/entity manifest, provision real
-certificates securely, and validate with:
+deployment evidence. Its action PUT rule is deliberately concrete for one
+`NCP_SESSION_ID` sentinel because Zenoh can publish wildcard key expressions. Render
+that sentinel to an exact quarantined session; enumerate every additional session
+and named action channel as a concrete rule rather than adding a wildcard action
+grant. Provision real certificates securely, and validate with:
 
 ```bash
 python3 scripts/validate_security_profile.py --self-test

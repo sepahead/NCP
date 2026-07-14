@@ -42,3 +42,11 @@ Claude CLI exited with status 1 before producing advice, so no advisor finding
 was accepted. The owner-local failure receipt has SHA-256
 `d67d1dfdeb59f23a94ae8ed31bbdcb0c3f33977fe0c1369d851cce7aa80ed382`;
 it is review bookkeeping, not protocol evidence or a release gate.
+
+After exact-session ACL hardening, a second narrow invocation supplied only
+`scripts/check_acl_template.py`, `scripts/render_acl_template.py`, and
+`scripts/verify_acl_deployment.py`. It used the same exact-model, zero-tool,
+zero-MCP, no-fallback policy and again exited with status 1 before advice. No
+finding was accepted. The owner-local failure receipt has SHA-256
+`cbf6578a94dcfd7e8e7c7e5457217a2bd6c48caccee8717dd6c9833f2e87ebcf`;
+it is likewise development-review bookkeeping only.

@@ -8,11 +8,12 @@ This guard runs in CI without a Zenoh runtime and fails closed on:
 
   1. an invalid `messages` token (e.g. the `get` that zenohd rejects — the real
      token for the querier/get side is `query`), and
-  2. any mismatch in the exact subject/message/flow/plane matrix. Zenoh applies
+  2. any mismatch in the exact subject/message/flow/key-expression matrix. Zenoh applies
      ingress policy to a source client link and egress policy to each destination
      client link, so safe publication and functional delivery are separate grants;
-  3. a violation of PUT authority: only `commander` may send command ingress,
-     while only `body` may send sensor or exact-observation ingress;
+  3. a violation of PUT authority: only `commander` may send command ingress for
+     one explicitly rendered session, while only `body` may send its exact sensor
+     or observation routes; wildcard action publishers and DELETE are absent;
   4. a violation of lifecycle-RPC direction: only `commander` may send query
      ingress and only `body` may send queryable declarations/replies ingress; and
   5. loss of the observer's read-only subscription and delivery coverage.
@@ -36,7 +37,7 @@ import re
 import sys
 from pathlib import Path
 
-from render_acl_template import render, valid_realm
+from render_acl_template import render, valid_realm, valid_segment
 
 # Valid Zenoh 1.x access-control `messages` tokens. `get` is deliberately ABSENT:
 # the get/querier side is `query`. Keep this in sync with zenoh's AclMessage.
@@ -55,73 +56,121 @@ PLANE_COMMAND = "command"
 PLANE_SENSOR = "sensor"
 PLANE_OBSERVATION = "observation"
 PLANE_RPC = "rpc"
+SESSION_SENTINEL = "NCP_SESSION_ID"
+RPC_KINDS = (
+    "open_session",
+    "step_request",
+    "run_request",
+    "close_session",
+)
 
 
-def _matrix(
-    subject: str, flow: str, messages: set[str], planes: set[str]
-) -> set[tuple[str, str, str, str]]:
+def _rpc_keys() -> frozenset[str]:
+    return frozenset(f"rpc/{kind}" for kind in RPC_KINDS)
+
+
+def _rule(
+    subject: str, flow: str, messages: set[str], keys: set[str]
+) -> dict[str, object]:
     return {
-        (subject, flow, message, plane)
-        for message in messages
-        for plane in planes
+        "subject": subject,
+        "flows": frozenset({flow}),
+        "messages": frozenset(messages),
+        "keys": frozenset(keys),
     }
 
 
-# Exact effective allow matrix for this minimal profile. Ingress grants what an
-# authenticated remote may send to the router; egress grants what the router may
-# deliver to that remote. Egress PUT/DELETE is read delivery, never publish power.
-EXPECTED_MATRIX = set().union(
-    _matrix("commander", "ingress", {"put", "delete"}, {PLANE_COMMAND}),
-    _matrix(
-        "commander", "egress", {"declare_subscriber"}, {PLANE_COMMAND}
+# Every allow rule is frozen, including its normalized key expressions. Data and
+# RPC delivery permissions cannot be inferred safely from a plane-only summary:
+# declaration wildcards are needed for broad read-only subscribers/queryables,
+# while PUT/query/reply authority must remain concrete and protocol-closed.
+EXPECTED_RULES = {
+    "commander-command-ingress": _rule(
+        "commander", "ingress", {"put"}, {"session/{session}/command"}
     ),
-    _matrix(
+    "commander-command-matching-egress": _rule(
+        "commander",
+        "egress",
+        {"declare_subscriber"},
+        {
+            "session/{session}/command",
+            "session/{session}/**",
+            "session/**",
+        },
+    ),
+    "commander-body-subscription-ingress": _rule(
         "commander",
         "ingress",
         {"declare_subscriber"},
-        {PLANE_SENSOR, PLANE_OBSERVATION},
+        {"session/{session}/sensor/**", "session/{session}/observation"},
     ),
-    _matrix(
+    "commander-body-data-egress": _rule(
         "commander",
         "egress",
-        {"put", "delete"},
-        {PLANE_SENSOR, PLANE_OBSERVATION},
+        {"put"},
+        {"session/{session}/sensor", "session/{session}/observation"},
     ),
-    _matrix("commander", "ingress", {"query"}, {PLANE_RPC}),
-    _matrix(
-        "commander", "egress", {"declare_queryable", "reply"}, {PLANE_RPC}
+    "commander-rpc-query-ingress": _rule(
+        "commander", "ingress", {"query"}, set(_rpc_keys())
     ),
-    _matrix(
+    "commander-rpc-discovery-egress": _rule(
+        "commander", "egress", {"declare_queryable"}, {"rpc/*"}
+    ),
+    "commander-rpc-reply-egress": _rule(
+        "commander", "egress", {"reply"}, set(_rpc_keys())
+    ),
+    "body-data-ingress": _rule(
         "body",
         "ingress",
-        {"put", "delete"},
-        {PLANE_SENSOR, PLANE_OBSERVATION},
+        {"put"},
+        {"session/{session}/sensor", "session/{session}/observation"},
     ),
-    _matrix(
+    "body-data-matching-egress": _rule(
         "body",
         "egress",
         {"declare_subscriber"},
-        {PLANE_SENSOR, PLANE_OBSERVATION},
+        {
+            "session/{session}/sensor/**",
+            "session/{session}/observation",
+            "session/{session}/**",
+            "session/**",
+        },
     ),
-    _matrix("body", "ingress", {"declare_subscriber"}, {PLANE_COMMAND}),
-    _matrix("body", "egress", {"put", "delete"}, {PLANE_COMMAND}),
-    _matrix(
-        "body", "ingress", {"declare_queryable", "reply"}, {PLANE_RPC}
+    "body-command-subscription-ingress": _rule(
+        "body",
+        "ingress",
+        {"declare_subscriber"},
+        {"session/{session}/command"},
     ),
-    _matrix("body", "egress", {"query"}, {PLANE_RPC}),
-    _matrix(
+    "body-command-data-egress": _rule(
+        "body", "egress", {"put"}, {"session/{session}/command"}
+    ),
+    "body-rpc-queryable-ingress": _rule(
+        "body", "ingress", {"declare_queryable"}, {"rpc/*"}
+    ),
+    "body-rpc-reply-ingress": _rule(
+        "body", "ingress", {"reply"}, set(_rpc_keys())
+    ),
+    "body-rpc-query-egress": _rule(
+        "body", "egress", {"query"}, set(_rpc_keys())
+    ),
+    "observer-subscription-ingress": _rule(
         "observer",
         "ingress",
         {"declare_subscriber"},
-        {PLANE_SENSOR, PLANE_COMMAND, PLANE_OBSERVATION},
+        {"session/{session}/**", "session/**"},
     ),
-    _matrix(
+    "observer-data-egress": _rule(
         "observer",
         "egress",
-        {"put", "delete"},
-        {PLANE_SENSOR, PLANE_COMMAND, PLANE_OBSERVATION},
+        {"put"},
+        {
+            "session/{session}/sensor",
+            "session/{session}/command",
+            "session/{session}/observation",
+        },
     ),
-)
+}
 
 ACL_PATH = Path(__file__).resolve().parent.parent / "deploy" / "zenoh-access-control.json5"
 ZENOH_MANIFEST = Path(__file__).resolve().parent.parent / "ncp-zenoh" / "Cargo.toml"
@@ -156,26 +205,9 @@ def _endpoint_strings(value) -> list[str]:
     return []
 
 
-def _classify_key(key: object) -> tuple[str, str] | None:
-    """Return ``(realm, plane)`` only for an audited exact template shape.
-
-    Rejecting broader expressions is load-bearing: a rule on ``session/**`` would
-    intersect every data plane but evade substring-only authority checks.
-    """
-    if not isinstance(key, str) or not key:
-        return None
-    if "/session/" in key:
-        realm, suffix = key.split("/session/", 1)
-        plane = {
-            "*/command/**": PLANE_COMMAND,
-            "*/sensor/**": PLANE_SENSOR,
-            "*/observation": PLANE_OBSERVATION,
-        }.get(suffix)
-        return (realm, plane) if plane is not None else None
-    if "/rpc/" in key:
-        realm, suffix = key.split("/rpc/", 1)
-        return (realm, PLANE_RPC) if suffix == "*" else None
-    return None
+def _expand_key(normalized: str, realm: str, session_id: str) -> str:
+    """Expand one frozen rule key under the command rule's exact anchor."""
+    return f"{realm}/{normalized.replace('{session}', session_id)}"
 
 
 def check(cfg: dict) -> list[str]:
@@ -221,6 +253,12 @@ def check(cfg: dict) -> list[str]:
     if None in subject_ids or len(set(subject_ids)) != len(subject_ids):
         errors.append("ACL subject ids must be present and unique")
     known_rules, known_subjects = set(rule_ids), set(subject_ids)
+    if known_rules != set(EXPECTED_RULES):
+        errors.append(
+            "minimal ACL rule ids must equal exactly the audited set; "
+            f"missing={sorted(set(EXPECTED_RULES) - known_rules)}, "
+            f"extra={sorted(known_rules - set(EXPECTED_RULES))}"
+        )
     expected_subjects = {"commander", "body", "observer"}
     if known_subjects != expected_subjects:
         errors.append(
@@ -248,19 +286,54 @@ def check(cfg: dict) -> list[str]:
             else:
                 cn_subject[cn] = subject_id
 
+    if len(policies) != 3:
+        errors.append("minimal ACL must contain exactly one policy per canonical subject")
     rule_subjects: dict[str, set[str]] = {rid: set() for rid in known_rules}
+    policy_subjects: list[str] = []
     for policy in policies:
         p_rules = set(policy.get("rules", []))
         p_subjects = set(policy.get("subjects", []))
+        if len(p_subjects) == 1:
+            policy_subjects.extend(p_subjects)
+        else:
+            errors.append("each minimal ACL policy must bind exactly one subject")
         for missing in p_rules - known_rules:
             errors.append(f"policy references unknown rule {missing!r}")
         for missing in p_subjects - known_subjects:
             errors.append(f"policy references unknown subject {missing!r}")
         for rid in p_rules & known_rules:
             rule_subjects[rid].update(p_subjects)
+    if set(policy_subjects) != {"commander", "body", "observer"} or len(
+        policy_subjects
+    ) != 3:
+        errors.append("minimal ACL must bind commander, body, and observer exactly once")
 
-    effective_matrix: set[tuple[str, str, str, str]] = set()
-    realms: set[str] = set()
+    command_rule = next(
+        (rule for rule in rules if rule.get("id") == "commander-command-ingress"),
+        None,
+    )
+    command_keys = command_rule.get("key_exprs", []) if command_rule else []
+    command_anchor = (
+        re.fullmatch(r"(.+)/session/([^/]+)/command", command_keys[0])
+        if isinstance(command_keys, list)
+        and len(command_keys) == 1
+        and isinstance(command_keys[0], str)
+        else None
+    )
+    if command_anchor is None:
+        errors.append(
+            "commander command PUT must provide one exact realm/session anchor"
+        )
+        anchor_realm, anchor_session = "", ""
+    else:
+        anchor_realm, anchor_session = command_anchor.groups()
+        if not valid_realm(anchor_realm):
+            errors.append(f"command anchor has invalid exact realm {anchor_realm!r}")
+        if not valid_segment(anchor_session):
+            errors.append(
+                f"command anchor has invalid/wildcard session {anchor_session!r}"
+            )
+
     for rule in rules:
         rid = rule.get("id", "<unnamed>")
         message_list = rule.get("messages", [])
@@ -289,43 +362,27 @@ def check(cfg: dict) -> list[str]:
                     f"rule {rid!r}: invalid messages token {token!r} "
                     f"(zenohd would reject the config; did you mean 'query'?)"
                 )
-        planes: set[str] = set()
-        for key in keys:
-            classified = _classify_key(key)
-            if classified is None:
-                errors.append(
-                    f"rule {rid!r} has an unaudited or overly broad NCP key {key!r}"
-                )
-                continue
-            realm, plane = classified
-            realms.add(realm)
-            planes.add(plane)
         subjects = rule_subjects.get(rid, set())
         if not subjects:
             errors.append(f"rule {rid!r} is not bound to an authenticated subject")
-        effective_matrix.update(
-            (subject, flow, message, plane)
-            for subject in subjects
-            for flow in flows
-            for message in messages
-            for plane in planes
-        )
-
-    if len(realms) != 1 or not realms or not valid_realm(next(iter(realms), "")):
-        errors.append(f"all ACL keys must share one valid exact realm, got {sorted(realms)}")
-
-    missing_matrix = EXPECTED_MATRIX - effective_matrix
-    extra_matrix = effective_matrix - EXPECTED_MATRIX
-    if missing_matrix:
-        errors.append(
-            "ACL effective matrix is missing: "
-            + ", ".join("/".join(item) for item in sorted(missing_matrix))
-        )
-    if extra_matrix:
-        errors.append(
-            "ACL effective matrix grants unexpected authority/delivery: "
-            + ", ".join("/".join(item) for item in sorted(extra_matrix))
-        )
+        actual_without_keys = {
+            "subject": next(iter(subjects)) if len(subjects) == 1 else None,
+            "flows": frozenset(flows),
+            "messages": frozenset(messages),
+        }
+        expected = EXPECTED_RULES.get(rid)
+        if expected is not None:
+            expected_keys = frozenset(
+                _expand_key(key, anchor_realm, anchor_session)
+                for key in expected["keys"]  # type: ignore[union-attr]
+            )
+            actual = {**actual_without_keys, "keys": frozenset(keys)}
+            anchored_expected = {**expected, "keys": expected_keys}
+            if actual != anchored_expected:
+                errors.append(
+                    f"rule {rid!r} differs from the audited exact anchor/flow/message/key set: "
+                    f"expected={anchored_expected!r}, actual={actual!r}"
+                )
 
     return errors
 
@@ -370,7 +427,9 @@ def _selftest() -> list[str]:
         for rule in no_observation_authority["access_control"]["rules"]
         if rule["id"] == "body-data-ingress"
     )
-    publisher_rule["key_exprs"].remove("ncp/session/*/observation")
+    publisher_rule["key_exprs"].remove(
+        "ncp/session/NCP_SESSION_ID/observation"
+    )
     cases.append(("missing observation-put authority", no_observation_authority))
 
     broad_observation = copy.deepcopy(base)
@@ -379,8 +438,24 @@ def _selftest() -> list[str]:
         for rule in broad_observation["access_control"]["rules"]
         if rule["id"] == "body-data-ingress"
     )
-    publisher_rule["key_exprs"][-1] = "ncp/session/**"
+    publisher_rule["key_exprs"][-1] = "ncp/session/*/observation"
     cases.append(("an over-broad session write expression", broad_observation))
+
+    wildcard_command = copy.deepcopy(base)
+    next(
+        rule
+        for rule in wildcard_command["access_control"]["rules"]
+        if rule["id"] == "commander-command-ingress"
+    )["key_exprs"][0] = "ncp/session/*/command/**"
+    cases.append(("a wildcard action-publisher grant", wildcard_command))
+
+    delete_authority = copy.deepcopy(base)
+    next(
+        rule
+        for rule in delete_authority["access_control"]["rules"]
+        if rule["id"] == "commander-command-ingress"
+    )["messages"].append("delete")
+    cases.append(("unneeded action DELETE authority", delete_authority))
 
     invalid_token = copy.deepcopy(base)
     invalid_token["access_control"]["rules"][0]["messages"].append("get")
@@ -398,7 +473,7 @@ def _selftest() -> list[str]:
 
     commander_serves_rpc = copy.deepcopy(base)
     commander_serves_rpc["access_control"]["policies"].append(
-        {"rules": ["body-rpc-serve-ingress"], "subjects": ["commander"]}
+        {"rules": ["body-rpc-queryable-ingress"], "subjects": ["commander"]}
     )
     cases.append(("commander lifecycle-RPC serve/reply authority", commander_serves_rpc))
 
@@ -414,7 +489,7 @@ def _selftest() -> list[str]:
     next(
         rule
         for rule in no_rpc_queryable["access_control"]["rules"]
-        if rule["id"] == "body-rpc-serve-ingress"
+        if rule["id"] == "body-rpc-queryable-ingress"
     )["messages"].remove("declare_queryable")
     cases.append(("missing lifecycle-RPC queryable authority", no_rpc_queryable))
 
@@ -422,7 +497,7 @@ def _selftest() -> list[str]:
     next(
         rule
         for rule in no_rpc_reply["access_control"]["rules"]
-        if rule["id"] == "body-rpc-serve-ingress"
+        if rule["id"] == "body-rpc-reply-ingress"
     )["messages"].remove("reply")
     cases.append(("missing lifecycle-RPC reply authority", no_rpc_reply))
 
@@ -450,31 +525,41 @@ def _selftest() -> list[str]:
     )["messages"].append("declare_querier")
     cases.append(("unsupported declare_querier token", unsupported_token))
 
-    missing_observer_sensor = copy.deepcopy(base)
-    observer_rule = next(
+    broad_rpc_query = copy.deepcopy(base)
+    next(
         rule
-        for rule in missing_observer_sensor["access_control"]["rules"]
-        if rule["id"] == "observer-subscription-ingress"
-    )
-    observer_rule["key_exprs"].remove("ncp/session/*/sensor/**")
-    cases.append(("observer without sensor-plane read coverage", missing_observer_sensor))
+        for rule in broad_rpc_query["access_control"]["rules"]
+        if rule["id"] == "commander-rpc-query-ingress"
+    )["key_exprs"] = ["ncp/rpc/*"]
+    cases.append(("a non-protocol-closed RPC query grant", broad_rpc_query))
 
-    missing_observer_command = copy.deepcopy(base)
+    missing_observer_session = copy.deepcopy(base)
     observer_rule = next(
         rule
-        for rule in missing_observer_command["access_control"]["rules"]
+        for rule in missing_observer_session["access_control"]["rules"]
         if rule["id"] == "observer-subscription-ingress"
     )
-    observer_rule["key_exprs"].remove("ncp/session/*/command/**")
-    cases.append(("observer without command-plane read coverage", missing_observer_command))
+    observer_rule["key_exprs"].remove("ncp/session/NCP_SESSION_ID/**")
+    cases.append(("observer without session-glob declaration", missing_observer_session))
+
+    missing_observer_fleet = copy.deepcopy(base)
+    observer_rule = next(
+        rule
+        for rule in missing_observer_fleet["access_control"]["rules"]
+        if rule["id"] == "observer-subscription-ingress"
+    )
+    observer_rule["key_exprs"].remove("ncp/session/**")
+    cases.append(("observer without fleet-glob declaration", missing_observer_fleet))
 
     missing_observer_observation = copy.deepcopy(base)
     observer_rule = next(
         rule
         for rule in missing_observer_observation["access_control"]["rules"]
-        if rule["id"] == "observer-subscription-ingress"
+        if rule["id"] == "observer-data-egress"
     )
-    observer_rule["key_exprs"].remove("ncp/session/*/observation")
+    observer_rule["key_exprs"].remove(
+        "ncp/session/NCP_SESSION_ID/observation"
+    )
     cases.append(
         ("observer without observation-plane read coverage", missing_observer_observation)
     )
@@ -503,26 +588,74 @@ def _selftest() -> list[str]:
 
     # Realm rendering is part of deployment correctness, and malformed realm input
     # must never widen a key expression.
-    rendered = render(base_text, "engram/ncp")
+    rendered = render(base_text, "engram/ncp", "acl-verify")
     rendered_cfg = load_json5(rendered)
     if check(rendered_cfg):
         failures.append("a valid multi-segment rendered realm was rejected")
+    for reserved_segment_realm in (
+        "tenant/session/ncp",
+        "tenant/rpc/ncp",
+        "tenant/session",
+        "tenant/rpc",
+    ):
+        reserved_cfg = load_json5(
+            render(base_text, reserved_segment_realm, "acl-verify")
+        )
+        if check(reserved_cfg):
+            failures.append(
+                "a valid realm containing an ordinary route-word segment was rejected: "
+                f"{reserved_segment_realm!r}"
+            )
     mixed_template = base_text.replace(
-        '"ncp/session/*/observation"', '"other/session/*/observation"', 1
+        '"ncp/session/NCP_SESSION_ID/observation"',
+        '"other/session/NCP_SESSION_ID/observation"',
+        1,
     )
     try:
-        render(mixed_template, "engram/ncp")
+        render(mixed_template, "engram/ncp", "acl-verify")
     except ValueError:
         pass
     else:
         failures.append("a template with mixed realms was NOT rejected")
-    for bad in ["", "ncp/**", "/ncp", "ncp/", "ncp//fleet", "ncp\ncommand"]:
+    for bad in [
+        "",
+        "ncp/**",
+        "/ncp",
+        "ncp/",
+        "ncp//fleet",
+        "ncp\ncommand",
+        'ncp/te"nant',
+        "ncp/te\\nant",
+    ]:
         try:
-            render(base_text, bad)
+            render(base_text, bad, "acl-verify")
         except ValueError:
             pass
         else:
             failures.append(f"unsafe rendered realm {bad!r} was NOT rejected")
+    for bad in [
+        "",
+        "*",
+        "**",
+        "session/*",
+        "session id",
+        "session\ncommand",
+        'session"id',
+        "session\\id",
+    ]:
+        try:
+            render(base_text, "engram/ncp", bad)
+        except ValueError:
+            pass
+        else:
+            failures.append(f"unsafe rendered session {bad!r} was NOT rejected")
+    for valid_realm_value in ("engram/ncp", "tenant/session/ncp", "tenant/rpc/ncp"):
+        for valid_session in ("ncp", "rpc", "session"):
+            if check(load_json5(render(base_text, valid_realm_value, valid_session))):
+                failures.append(
+                    "valid exact rendered realm/session pair was rejected: "
+                    f"{valid_realm_value!r}/{valid_session!r}"
+                )
     return failures
 
 
@@ -557,7 +690,7 @@ def main() -> int:
     n_rules = len(cfg.get("access_control", {}).get("rules", []))
     print(
         f"OK: {ACL_PATH.name} — {n_rules} rules, tokens valid, "
-        f"{len(EXPECTED_MATRIX)} exact subject/message/flow/plane grants, "
+        f"{len(EXPECTED_RULES)} exact subject/flow/message/key rules, "
         "functional source/destination directions, TLS transport compiled; "
         "router-config "
         "preflight only (NCP peer/IdentityClaim binding unavailable)"

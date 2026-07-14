@@ -10,11 +10,12 @@ trial, and judges the router only by delivery acknowledgments:
 * a denied nonce MUST remain unobserved; and
 * every denied check requires a successful allowed baseline on the same plane.
 
-It covers command PUT = commander, sensor/observation PUT = body, delivery to the
-body/commander and read-only observer destinations, commander-to-body query/reply,
-negative PUT/query authority, and a separate no-client-cert transport rejection.
-Probes use randomized ``acl-verify-*`` routes so they cannot collide with a live
-actuator session.
+It covers command PUT = commander, sensor/observation PUT = body, delivery through
+the actual sensor/session/fleet subscriber selectors, denied DELETE and wildcard
+action publication, protocol-closed commander-to-body query/reply, negative
+query/queryable roles, and a separate no-client-cert transport rejection. The
+router must be rendered for the same exact quarantined ``--session-id``; never point
+this synthetic-payload probe at an actuator-bound session.
 
 The Zenoh CLI fallback was intentionally removed: ``z_put`` alone cannot prove
 end-to-end delivery or distinguish ACL denial from a broken route.
@@ -43,6 +44,10 @@ from render_acl_template import valid_realm, valid_segment
 ROLE_COMMANDER = "commander"
 ROLE_BODY = "body"
 ROLE_OBSERVER = "observer"
+RECEIVER_OBSERVER_SESSION = "observer-session"
+RECEIVER_OBSERVER_FLEET = "observer-fleet"
+ROLE_COMMANDER_QUERYABLE = "commander-queryable"
+ROLE_BODY_QUERY = "body-query"
 PLANE_COMMAND = "command"
 PLANE_SENSOR = "sensor"
 PLANE_OBSERVATION = "observation"
@@ -60,6 +65,7 @@ class ProbeCase:
     actor: str
     plane: str
     key: str
+    operation: str
     expect_delivery: bool
     required_receivers: tuple[str, ...] = ()
 
@@ -109,13 +115,14 @@ def client_config_spec(
     tls: dict[str, object] = {
         "root_ca_certificate": ca,
         "verify_name_on_connect": True,
+        "close_link_on_expiration": True,
     }
     if identity is not None:
         tls["connect_certificate"] = identity.certificate
         tls["connect_private_key"] = identity.private_key
     return {
         "mode": "client",
-        "connect": {"endpoints": [endpoint]},
+        "connect": {"endpoints": [endpoint], "exit_on_failure": True},
         "listen": {"endpoints": []},
         "scouting": {
             "multicast": {"enabled": False},
@@ -139,6 +146,8 @@ def validate_client_config_spec(
         for endpoint in endpoints
     ):
         errors.append("connect endpoints must be non-empty and exclusively valid tls/ endpoints")
+    if _nested(config, "connect", "exit_on_failure") is not True:
+        errors.append("connect/exit_on_failure must be true")
     if _endpoint_strings(_nested(config, "listen", "endpoints")):
         errors.append("client must not expose listen endpoints")
     for path in (("scouting", "multicast", "enabled"), ("scouting", "gossip", "enabled")):
@@ -153,6 +162,8 @@ def validate_client_config_spec(
         errors.append("root_ca_certificate must be non-empty")
     if tls.get("verify_name_on_connect") is not True:
         errors.append("verify_name_on_connect must be true")
+    if tls.get("close_link_on_expiration") is not True:
+        errors.append("close_link_on_expiration must be true")
     certificate = tls.get("connect_certificate")
     private_key = tls.get("connect_private_key")
     if (certificate is None) != (private_key is None):
@@ -175,6 +186,9 @@ def _to_zenoh_config(zenoh: Any, spec: dict[str, object]) -> Any:
     config = zenoh.Config()
     _insert_config_tree(config, "mode", spec["mode"])
     _insert_config_tree(config, "connect/endpoints", _nested(spec, "connect", "endpoints"))
+    _insert_config_tree(
+        config, "connect/exit_on_failure", _nested(spec, "connect", "exit_on_failure")
+    )
     _insert_config_tree(config, "listen/endpoints", _nested(spec, "listen", "endpoints"))
     _insert_config_tree(
         config,
@@ -222,7 +236,7 @@ def _payload_bytes(sample: Any) -> bytes:
 class DeliveryRecorder:
     def __init__(self) -> None:
         self._condition = threading.Condition()
-        self._deliveries: set[tuple[str, bytes]] = set()
+        self._deliveries: set[tuple[str, str, bytes]] = set()
 
     def callback(self, sample: Any) -> None:
         try:
@@ -230,26 +244,36 @@ class DeliveryRecorder:
             if callable(key_expr):
                 key_expr = key_expr()
             key = str(key_expr)
-            payload = _payload_bytes(sample)
+            kind = getattr(sample, "kind", "put")
+            if callable(kind):
+                kind = kind()
+            kind_name = getattr(kind, "name", None)
+            kind_text = str(kind_name if kind_name is not None else kind).lower()
+            operation = "delete" if "delete" in kind_text else "put"
+            payload = b"" if operation == "delete" else _payload_bytes(sample)
         except Exception:
             return
         with self._condition:
-            self._deliveries.add((key, payload))
+            self._deliveries.add((operation, key, payload))
             self._condition.notify_all()
 
-    def wait(self, key: str, payload: bytes, timeout_s: float) -> bool:
+    def wait(
+        self, operation: str, key: str, payload: bytes, timeout_s: float
+    ) -> bool:
+        delivery = (operation, key, b"" if operation == "delete" else payload)
         deadline = time.monotonic() + timeout_s
         with self._condition:
-            while (key, payload) not in self._deliveries:
+            while delivery not in self._deliveries:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     return False
                 self._condition.wait(remaining)
             return True
 
-    def contains(self, key: str, payload: bytes) -> bool:
+    def contains(self, operation: str, key: str, payload: bytes) -> bool:
         with self._condition:
-            return (key, payload) in self._deliveries
+            delivery = (operation, key, b"" if operation == "delete" else payload)
+            return delivery in self._deliveries
 
 
 def _optional_payload_bytes(message: Any) -> bytes:
@@ -343,40 +367,64 @@ def _evaluate_delivery(
 
 
 def _probe_plan(realm: str, session_id: str) -> list[ProbeCase]:
-    command = f"{realm}/session/{session_id}/command/acl-probe"
-    sensor = f"{realm}/session/{session_id}/sensor/acl-probe"
+    command = f"{realm}/session/{session_id}/command"
+    sensor = f"{realm}/session/{session_id}/sensor"
     observation = f"{realm}/session/{session_id}/observation"
+    command_receivers = (
+        ROLE_BODY,
+        RECEIVER_OBSERVER_SESSION,
+        RECEIVER_OBSERVER_FLEET,
+    )
+    body_data_receivers = (
+        ROLE_COMMANDER,
+        RECEIVER_OBSERVER_SESSION,
+        RECEIVER_OBSERVER_FLEET,
+    )
     return [
-        ProbeCase(
-            1,
-            ROLE_COMMANDER,
-            PLANE_COMMAND,
-            command,
-            True,
-            (ROLE_BODY, ROLE_OBSERVER),
-        ),
-        ProbeCase(
-            2,
-            ROLE_BODY,
-            PLANE_SENSOR,
-            sensor,
-            True,
-            (ROLE_COMMANDER, ROLE_OBSERVER),
-        ),
+        ProbeCase(1, ROLE_COMMANDER, PLANE_COMMAND, command, "put", True, command_receivers),
+        ProbeCase(2, ROLE_BODY, PLANE_SENSOR, sensor, "put", True, body_data_receivers),
         ProbeCase(
             3,
             ROLE_BODY,
             PLANE_OBSERVATION,
             observation,
+            "put",
             True,
-            (ROLE_COMMANDER, ROLE_OBSERVER),
+            body_data_receivers,
         ),
-        ProbeCase(4, ROLE_BODY, PLANE_COMMAND, command, False),
-        ProbeCase(5, ROLE_OBSERVER, PLANE_COMMAND, command, False),
-        ProbeCase(6, ROLE_COMMANDER, PLANE_SENSOR, sensor, False),
-        ProbeCase(7, ROLE_OBSERVER, PLANE_SENSOR, sensor, False),
-        ProbeCase(8, ROLE_COMMANDER, PLANE_OBSERVATION, observation, False),
-        ProbeCase(9, ROLE_OBSERVER, PLANE_OBSERVATION, observation, False),
+        ProbeCase(4, ROLE_BODY, PLANE_COMMAND, command, "put", False),
+        ProbeCase(5, ROLE_OBSERVER, PLANE_COMMAND, command, "put", False),
+        ProbeCase(6, ROLE_COMMANDER, PLANE_SENSOR, sensor, "put", False),
+        ProbeCase(7, ROLE_OBSERVER, PLANE_SENSOR, sensor, "put", False),
+        ProbeCase(8, ROLE_COMMANDER, PLANE_OBSERVATION, observation, "put", False),
+        ProbeCase(9, ROLE_OBSERVER, PLANE_OBSERVATION, observation, "put", False),
+        ProbeCase(10, ROLE_COMMANDER, PLANE_COMMAND, command, "delete", False),
+        ProbeCase(11, ROLE_BODY, PLANE_SENSOR, sensor, "delete", False),
+        ProbeCase(12, ROLE_BODY, PLANE_OBSERVATION, observation, "delete", False),
+        ProbeCase(
+            13,
+            ROLE_COMMANDER,
+            PLANE_COMMAND,
+            f"{realm}/session/*/command",
+            "put",
+            False,
+        ),
+        ProbeCase(
+            14,
+            ROLE_COMMANDER,
+            PLANE_COMMAND,
+            f"{realm}/session/{session_id}/command/*",
+            "put",
+            False,
+        ),
+        ProbeCase(
+            15,
+            ROLE_COMMANDER,
+            PLANE_COMMAND,
+            f"{realm}/session/{session_id}/command/forbidden/deep",
+            "put",
+            False,
+        ),
     ]
 
 
@@ -396,8 +444,8 @@ def _validate_live_args(args: argparse.Namespace) -> tuple[dict[str, dict[str, o
         errors.append("--endpoint is required")
     if not valid_realm(args.realm):
         errors.append(f"--realm is not a safe exact key prefix: {args.realm!r}")
-    if not valid_segment(args.session_prefix):
-        errors.append(f"--session-prefix is not a safe key segment: {args.session_prefix!r}")
+    if not isinstance(args.session_id, str) or not valid_segment(args.session_id):
+        errors.append(f"--session-id is not a safe exact key segment: {args.session_id!r}")
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         errors.append("--timeout must be finite and > 0")
     if not math.isfinite(args.settle) or args.settle < 0:
@@ -502,20 +550,30 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
         return 2
 
     run_nonce = secrets.token_hex(12)
-    session_id = f"{args.session_prefix}-{run_nonce[:12]}"
+    session_id = args.session_id
     plan = _probe_plan(args.realm, session_id)
     sessions: dict[str, Any] = {}
     subscribers: list[Any] = []
     recorders = {
         ROLE_COMMANDER: DeliveryRecorder(),
         ROLE_BODY: DeliveryRecorder(),
-        ROLE_OBSERVER: DeliveryRecorder(),
+        RECEIVER_OBSERVER_SESSION: DeliveryRecorder(),
+        RECEIVER_OBSERVER_FLEET: DeliveryRecorder(),
     }
     results: list[CheckResult] = []
-    denied_deliveries: list[tuple[int, str, bytes]] = []
+    denied_deliveries: list[tuple[int, str, str, bytes]] = []
     try:
-        for role in (ROLE_COMMANDER, ROLE_BODY, ROLE_OBSERVER):
-            session = zenoh.open(_to_zenoh_config(zenoh, specs[role]))
+        session_specs = {
+            ROLE_COMMANDER: specs[ROLE_COMMANDER],
+            ROLE_BODY: specs[ROLE_BODY],
+            ROLE_OBSERVER: specs[ROLE_OBSERVER],
+            RECEIVER_OBSERVER_SESSION: specs[ROLE_OBSERVER],
+            RECEIVER_OBSERVER_FLEET: specs[ROLE_OBSERVER],
+            ROLE_COMMANDER_QUERYABLE: specs[ROLE_COMMANDER],
+            ROLE_BODY_QUERY: specs[ROLE_BODY],
+        }
+        for role, spec in session_specs.items():
+            session = zenoh.open(_to_zenoh_config(zenoh, spec))
             sessions[role] = session
             if not _wait_for_router(session, args.timeout):
                 print(
@@ -524,18 +582,19 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                 )
                 return 1
 
-        subscription_keys: dict[str, set[str]] = {
-            ROLE_COMMANDER: set(),
-            ROLE_BODY: set(),
-            ROLE_OBSERVER: {
-                case.key for case in plan
-            },
+        subscription_keys: dict[str, tuple[str, ...]] = {
+            ROLE_COMMANDER: (
+                f"{args.realm}/session/{session_id}/sensor/**",
+                f"{args.realm}/session/{session_id}/observation",
+            ),
+            ROLE_BODY: (f"{args.realm}/session/{session_id}/command",),
+            RECEIVER_OBSERVER_SESSION: (
+                f"{args.realm}/session/{session_id}/**",
+            ),
+            RECEIVER_OBSERVER_FLEET: (f"{args.realm}/session/**",),
         }
-        for case in plan:
-            for receiver in case.required_receivers:
-                subscription_keys[receiver].add(case.key)
         for role, keys in subscription_keys.items():
-            for key in sorted(keys):
+            for key in keys:
                 subscribers.append(
                     sessions[role].declare_subscriber(key, recorders[role].callback)
                 )
@@ -547,10 +606,10 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
             payload = (
                 f"ncp-acl-proof:{run_nonce}:{case.step}:{secrets.token_hex(16)}"
             ).encode("ascii")
-            put_detail = "local put accepted"
+            operation_detail = f"local {case.operation} accepted"
             actor_connected = bool(_router_ids(sessions[case.actor]))
             required_links = set(case.required_receivers) | {
-                ROLE_OBSERVER if not case.expect_delivery else case.actor
+                RECEIVER_OBSERVER_FLEET if not case.expect_delivery else case.actor
             }
             try:
                 receivers_connected = all(
@@ -558,14 +617,21 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                 )
                 if not actor_connected or not receivers_connected:
                     raise RuntimeError("actor or required receiver lost its router link")
-                sessions[case.actor].put(case.key, payload)
+                if case.operation == "put":
+                    sessions[case.actor].put(case.key, payload)
+                elif case.operation == "delete":
+                    sessions[case.actor].delete(case.key)
+                else:  # pragma: no cover - frozen probe-plan invariant
+                    raise AssertionError(f"unsupported probe operation {case.operation!r}")
             except Exception as error:
-                put_detail = f"local put raised: {error}"
+                operation_detail = f"local {case.operation} raised: {error}"
             if case.expect_delivery:
                 observed_receivers = [
                     receiver
                     for receiver in case.required_receivers
-                    if recorders[receiver].wait(case.key, payload, args.timeout)
+                    if recorders[receiver].wait(
+                        case.operation, case.key, payload, args.timeout
+                    )
                 ]
                 observed = len(observed_receivers) == len(case.required_receivers)
                 delivery_detail = (
@@ -573,10 +639,10 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                     f"{list(case.required_receivers)}, observed={observed_receivers}"
                 )
             else:
-                observed = recorders[ROLE_OBSERVER].wait(
-                    case.key, payload, args.timeout
+                observed = recorders[RECEIVER_OBSERVER_FLEET].wait(
+                    case.operation, case.key, payload, args.timeout
                 )
-                delivery_detail = "forbidden observer delivery check"
+                delivery_detail = "forbidden separate fleet-observer delivery check"
             passed, detail = _evaluate_delivery(
                 expect_delivery=case.expect_delivery,
                 observed=observed,
@@ -594,15 +660,17 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
             if case.expect_delivery:
                 plane_baselines[case.plane] = passed
             else:
-                denied_deliveries.append((len(results), case.key, payload))
+                denied_deliveries.append(
+                    (len(results), case.operation, case.key, payload)
+                )
             results.append(
                 CheckResult(
                     case.step,
-                    f"{case.actor} PUT on {case.plane} plane",
+                    f"{case.actor} {case.operation.upper()} on {case.plane} plane",
                     "DELIVERED" if case.expect_delivery else "NOT_DELIVERED",
                     "DELIVERED" if observed else "NOT_DELIVERED",
                     passed,
-                    f"{detail}; {delivery_detail}; {put_detail}",
+                    f"{detail}; {delivery_detail}; {operation_detail}",
                 )
             )
 
@@ -610,8 +678,10 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
         # after its per-case timeout. Nonces are unique, so no legitimate traffic
         # can satisfy this check accidentally.
         time.sleep(args.timeout)
-        for result_index, key, payload in denied_deliveries:
-            if recorders[ROLE_OBSERVER].contains(key, payload):
+        for result_index, operation, key, payload in denied_deliveries:
+            if recorders[RECEIVER_OBSERVER_FLEET].contains(
+                operation, key, payload
+            ):
                 previous = results[result_index]
                 results[result_index] = CheckResult(
                     previous.step,
@@ -622,10 +692,12 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                     "forbidden nonce arrived during the final rejection quarantine",
                 )
 
-        rpc_key = f"{args.realm}/rpc/acl-probe-{run_nonce[:12]}"
+        rpc_key = f"{args.realm}/rpc/open_session"
         rpc_recorder = RpcRecorder(rpc_key)
         subscribers.append(
-            sessions[ROLE_BODY].declare_queryable(rpc_key, rpc_recorder.callback)
+            sessions[ROLE_BODY].declare_queryable(
+                f"{args.realm}/rpc/*", rpc_recorder.callback
+            )
         )
         if args.settle:
             time.sleep(args.settle)
@@ -655,28 +727,100 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
             )
         )
 
-        rpc_negative = f"ncp-acl-rpc:{run_nonce}:observer".encode("ascii")
-        negative_replies, negative_errors = _rpc_replies(
-            sessions[ROLE_OBSERVER], rpc_key, rpc_negative, args.timeout
+        observer_query = f"ncp-acl-rpc:{run_nonce}:observer-query".encode("ascii")
+        observer_replies, observer_errors = _rpc_replies(
+            sessions[ROLE_OBSERVER], rpc_key, observer_query, args.timeout
         )
         time.sleep(args.timeout)
-        negative_seen = rpc_recorder.contains(rpc_negative)
-        negative_ok = positive_ok and not negative_seen and not negative_replies
+        observer_seen = rpc_recorder.contains(observer_query)
+        observer_ok = positive_ok and not observer_seen and not observer_replies
         results.append(
             CheckResult(
                 len(plan) + 2,
                 "observer cannot issue lifecycle RPC query",
                 "QUERY_NOT_DELIVERED",
-                "QUERY_DELIVERED" if negative_seen else "QUERY_NOT_DELIVERED",
-                negative_ok,
+                "QUERY_DELIVERED" if observer_seen else "QUERY_NOT_DELIVERED",
+                observer_ok,
                 "positive RPC baseline="
-                f"{positive_ok}; replies={len(negative_replies)}; "
-                f"client_errors={negative_errors}",
+                f"{positive_ok}; replies={len(observer_replies)}; "
+                f"client_errors={observer_errors}",
             )
         )
 
+        body_query = f"ncp-acl-rpc:{run_nonce}:body-query".encode("ascii")
+        body_replies, body_errors = _rpc_replies(
+            sessions[ROLE_BODY_QUERY], rpc_key, body_query, args.timeout
+        )
+        time.sleep(args.timeout)
+        body_seen = rpc_recorder.contains(body_query)
+        body_query_ok = positive_ok and not body_seen and not body_replies
         results.append(
-            _verify_no_certificate(zenoh, specs["no-cert"], args.timeout, len(plan) + 3)
+            CheckResult(
+                len(plan) + 3,
+                "body cannot issue lifecycle RPC query",
+                "QUERY_NOT_DELIVERED",
+                "QUERY_DELIVERED" if body_seen else "QUERY_NOT_DELIVERED",
+                body_query_ok,
+                f"positive RPC baseline={positive_ok}; replies={len(body_replies)}; "
+                f"client_errors={body_errors}",
+            )
+        )
+
+        for offset, (role, description) in enumerate(
+            (
+                (ROLE_OBSERVER, "observer cannot serve or reply to lifecycle RPC"),
+                (
+                    ROLE_COMMANDER_QUERYABLE,
+                    "commander cannot serve or reply to lifecycle RPC",
+                ),
+            ),
+            start=4,
+        ):
+            unauthorized = RpcRecorder(rpc_key)
+            unauthorized_handle = None
+            declaration_detail = "local declaration accepted"
+            try:
+                unauthorized_handle = sessions[role].declare_queryable(
+                    rpc_key, unauthorized.callback
+                )
+                subscribers.append(unauthorized_handle)
+            except Exception as error:
+                declaration_detail = f"local declaration rejected: {error}"
+            if args.settle:
+                time.sleep(args.settle)
+            probe = f"ncp-acl-rpc:{run_nonce}:{role}-queryable".encode("ascii")
+            replies, query_errors = _rpc_replies(
+                sessions[ROLE_COMMANDER], rpc_key, probe, args.timeout
+            )
+            body_observed = rpc_recorder.wait_seen(probe, args.timeout)
+            unauthorized_observed = unauthorized.contains(probe)
+            expected_body_reply = RpcRecorder.reply_payload(probe)
+            queryable_ok = (
+                body_observed
+                and expected_body_reply in replies
+                and not unauthorized_observed
+                and not unauthorized.errors()
+            )
+            results.append(
+                CheckResult(
+                    len(plan) + offset,
+                    description,
+                    "UNAUTHORIZED_QUERYABLE_NOT_REACHED",
+                    "UNAUTHORIZED_QUERYABLE_REACHED"
+                    if unauthorized_observed
+                    else "UNAUTHORIZED_QUERYABLE_NOT_REACHED",
+                    queryable_ok,
+                    f"body baseline observed={body_observed}; replies={len(replies)}; "
+                    f"client_errors={query_errors}; "
+                    f"unauthorized_errors={unauthorized.errors()}; "
+                    f"{declaration_detail}",
+                )
+            )
+            if unauthorized_handle is not None:
+                _close(unauthorized_handle)
+
+        results.append(
+            _verify_no_certificate(zenoh, specs["no-cert"], args.timeout, len(plan) + 6)
         )
     except Exception as error:
         print(f"FAIL: live verification could not complete: {error}", file=sys.stderr)
@@ -690,15 +834,16 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
     print("Zenoh router ACL prerequisite (nonce delivery proof)")
     print(f"  endpoint: {args.endpoint}")
     print(f"  realm:    {args.realm}")
-    print(f"  session:  {session_id} (randomized probe namespace)")
+    print(f"  session:  {session_id} (exact pre-rendered quarantine namespace)")
     print()
     for result in results:
         print(result)
     print()
     if all(result.passed for result in results):
         print(
-            "RESULT: ROUTER-ONLY PRECHECK PASSED — destination-specific data and "
-            "RPC deliveries were observed, denied deliveries were absent, and "
+            "RESULT: ROUTER-ONLY PRECHECK PASSED — broad-selector data and "
+            "protocol-closed RPC deliveries were observed, denied PUT/DELETE/"
+            "wildcard/RPC deliveries were absent, and "
             "no-cert mTLS failed. NCP "
             "production-secure remains blocked until transport-authenticated peer "
             "identity is bound to IdentityClaim."
@@ -734,6 +879,14 @@ def _selftest() -> list[str]:
     no_name_check = json.loads(json.dumps(good))
     no_name_check["transport"]["link"]["tls"]["verify_name_on_connect"] = False  # type: ignore[index]
     mutations.append(("disabled TLS name verification", no_name_check, True))
+    no_expiration_close = json.loads(json.dumps(good))
+    no_expiration_close["transport"]["link"]["tls"][
+        "close_link_on_expiration"
+    ] = False  # type: ignore[index]
+    mutations.append(("expired TLS link retention", no_expiration_close, True))
+    no_connect_fail = json.loads(json.dumps(good))
+    no_connect_fail["connect"]["exit_on_failure"] = False  # type: ignore[index]
+    mutations.append(("connect fail-soft mode", no_connect_fail, True))
     missing_key = json.loads(json.dumps(good))
     del missing_key["transport"]["link"]["tls"]["connect_private_key"]  # type: ignore[index]
     mutations.append(("unpaired client certificate", missing_key, True))
@@ -763,23 +916,43 @@ def _selftest() -> list[str]:
             )
 
     plan = _probe_plan("engram/ncp", "acl-verify-test")
-    expected = {
-        (ROLE_COMMANDER, PLANE_COMMAND, True),
-        (ROLE_BODY, PLANE_SENSOR, True),
-        (ROLE_BODY, PLANE_OBSERVATION, True),
-        (ROLE_BODY, PLANE_COMMAND, False),
-        (ROLE_OBSERVER, PLANE_COMMAND, False),
-        (ROLE_COMMANDER, PLANE_SENSOR, False),
-        (ROLE_OBSERVER, PLANE_SENSOR, False),
-        (ROLE_COMMANDER, PLANE_OBSERVATION, False),
-        (ROLE_OBSERVER, PLANE_OBSERVATION, False),
+    expected_authority = {
+        (ROLE_COMMANDER, PLANE_COMMAND, "put", True),
+        (ROLE_BODY, PLANE_SENSOR, "put", True),
+        (ROLE_BODY, PLANE_OBSERVATION, "put", True),
+        (ROLE_BODY, PLANE_COMMAND, "put", False),
+        (ROLE_OBSERVER, PLANE_COMMAND, "put", False),
+        (ROLE_COMMANDER, PLANE_SENSOR, "put", False),
+        (ROLE_OBSERVER, PLANE_SENSOR, "put", False),
+        (ROLE_COMMANDER, PLANE_OBSERVATION, "put", False),
+        (ROLE_OBSERVER, PLANE_OBSERVATION, "put", False),
+        (ROLE_COMMANDER, PLANE_COMMAND, "delete", False),
+        (ROLE_BODY, PLANE_SENSOR, "delete", False),
+        (ROLE_BODY, PLANE_OBSERVATION, "delete", False),
     }
-    if {(case.actor, case.plane, case.expect_delivery) for case in plan} != expected:
+    actual_authority = {
+        (case.actor, case.plane, case.operation, case.expect_delivery)
+        for case in plan
+        if case.step <= 12
+    }
+    if actual_authority != expected_authority or len(plan) != 15:
         failures.append("live probe plan lost an authority or negative case")
     expected_receivers = {
-        PLANE_COMMAND: (ROLE_BODY, ROLE_OBSERVER),
-        PLANE_SENSOR: (ROLE_COMMANDER, ROLE_OBSERVER),
-        PLANE_OBSERVATION: (ROLE_COMMANDER, ROLE_OBSERVER),
+        PLANE_COMMAND: (
+            ROLE_BODY,
+            RECEIVER_OBSERVER_SESSION,
+            RECEIVER_OBSERVER_FLEET,
+        ),
+        PLANE_SENSOR: (
+            ROLE_COMMANDER,
+            RECEIVER_OBSERVER_SESSION,
+            RECEIVER_OBSERVER_FLEET,
+        ),
+        PLANE_OBSERVATION: (
+            ROLE_COMMANDER,
+            RECEIVER_OBSERVER_SESSION,
+            RECEIVER_OBSERVER_FLEET,
+        ),
     }
     for case in plan:
         wanted = expected_receivers.get(case.plane, ()) if case.expect_delivery else ()
@@ -787,8 +960,13 @@ def _selftest() -> list[str]:
             failures.append(
                 f"{case.plane} probe has wrong receivers {case.required_receivers!r}"
             )
-    if any("acl-verify-test" not in case.key for case in plan):
-        failures.append("probe plan escaped its dedicated session namespace")
+    wildcard_cases = {case.step: case.key for case in plan if case.step >= 13}
+    if wildcard_cases != {
+        13: "engram/ncp/session/*/command",
+        14: "engram/ncp/session/acl-verify-test/command/*",
+        15: "engram/ncp/session/acl-verify-test/command/forbidden/deep",
+    }:
+        failures.append("probe plan lost wildcard/deep action-route negatives")
     return failures
 
 
@@ -801,11 +979,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--endpoint", help="Zenoh TLS endpoint, e.g. tls/router.example:7447")
     parser.add_argument("--realm", default="ncp", help="exact realm key prefix")
     parser.add_argument(
-        "--session-prefix",
-        "--session",
-        dest="session_prefix",
-        default="acl-verify",
-        help="safe prefix; a random suffix is always added (legacy --session alias accepted)",
+        "--session-id",
+        dest="session_id",
+        help="required exact pre-rendered quarantined session id; no legacy prefix alias",
     )
     parser.add_argument("--commander-cert")
     parser.add_argument("--commander-key")
@@ -838,7 +1014,7 @@ def main() -> int:
             print(f"  - {error}", file=sys.stderr)
         return 2
     if args.dry_run:
-        preview_session = f"{args.session_prefix}-<random>"
+        preview_session = args.session_id
         print("OK: strict client configurations and credential paths validated")
         print(f"  endpoint: {args.endpoint}")
         print(f"  realm:    {args.realm}")
@@ -851,12 +1027,17 @@ def main() -> int:
                 else ""
             )
             print(
-                f"  {case.step}. {case.actor} -> {case.plane}{receivers}: "
+                f"  {case.step}. {case.actor} {case.operation.upper()} -> "
+                f"{case.plane}{receivers}: "
                 f"expect {verdict}"
             )
-        print("  10. commander -> body RPC -> commander reply: expect DELIVERED")
-        print("  11. observer -> RPC: expect NOT_DELIVERED")
-        print("  12. no-client-cert -> expect NO_ROUTER_CONNECTION")
+        first_rpc = len(_probe_plan(args.realm, preview_session)) + 1
+        print(f"  {first_rpc}. commander -> body RPC -> commander reply: expect DELIVERED")
+        print(f"  {first_rpc + 1}. observer -> RPC query: expect NOT_DELIVERED")
+        print(f"  {first_rpc + 2}. body -> RPC query: expect NOT_DELIVERED")
+        print(f"  {first_rpc + 3}. observer queryable/reply: expect NOT_REACHED")
+        print(f"  {first_rpc + 4}. commander queryable/reply: expect NOT_REACHED")
+        print(f"  {first_rpc + 5}. no-client-cert: expect NO_ROUTER_CONNECTION")
         return 0
     return run_live(args, specs)
 

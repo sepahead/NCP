@@ -38,6 +38,20 @@ The router prerequisite probe uses the canonical roles from
 queries; `body` publishes sensor/observation data and serves lifecycle replies;
 `observer` is read-only.
 
+The shipped ACL is deliberately a one-session template. Render its
+`NCP_SESSION_ID` sentinel to one exact, quarantined session before starting the
+router. Command PUT authority is concrete—never replace the session with `*` or
+add `command/*`/`command/**`. Zenoh allows wildcard key expressions to be
+published, so action sessions and named action channels must be enumerated as
+concrete rules by deployment tooling. The minimal template exercises only the
+aggregate `command` and `sensor` routes; it does not silently grant named channels.
+
+```bash
+python3 scripts/render_acl_template.py \
+  --realm engram/ncp --session-id acl-verify \
+  --output /secure/config/ncp-router.json5
+```
+
 This minimal profile does not enroll an `operator` transport subject. A deployment
 that needs the normative operator action role must add a distinct certificate
 subject, exact action-plane rules, and matching authority-manifest grants. It MUST
@@ -48,7 +62,7 @@ Validate a concrete credential set before the live probe with `--dry-run`:
 
 ```bash
 python3 scripts/verify_acl_deployment.py --dry-run \
-  --endpoint tls/router.example:7447 --realm engram/ncp \
+  --endpoint tls/router.example:7447 --realm engram/ncp --session-id acl-verify \
   --ca deploy/certs/ca.pem \
   --commander-cert deploy/certs/commander.pem \
   --commander-key deploy/certs/commander-key.pem \
@@ -58,9 +72,11 @@ python3 scripts/verify_acl_deployment.py --dry-run \
   --observer-key deploy/certs/observer-key.pem
 ```
 
-Removing `--dry-run` performs the nonce-delivery campaign. It remains only a
-router ACL prerequisite and cannot satisfy the production-secure identity-binding
-gate by itself.
+Removing `--dry-run` performs the nonce-delivery campaign. The exact session must
+be a non-actuating quarantine namespace rendered into the router config; the probe
+publishes synthetic payloads and must never target a plant-bound session. It remains
+only a router ACL prerequisite and cannot satisfy the production-secure
+identity-binding gate by itself.
 
 ## Plant profiles
 

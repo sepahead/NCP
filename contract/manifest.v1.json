@@ -6,7 +6,7 @@
   "wire_proto_contract_hash_fnv1a64": "163acc57d8a62b66",
   "contract_digest_algorithm": "sha256(domain || repeated(u64be(path_bytes) || path_utf8 || u64be(content_bytes) || exact_content))",
   "contract_digest_domain_hex": "6e63702e6e6f726d61746976652d636f6e74726163742e763100",
-  "contract_digest_sha256": "6ea955330bf876f4419a2dc10e6a4bf113fa827c08b89815cb25417de3937dc0",
+  "contract_digest_sha256": "5154b02c7dd35d3e29e5eda89c41140a5e70967964f7bb913a8e687e1a5977ef",
   "normative_precedence": [
     "contract/*.v1.json except contract/manifest.v1.json (derived digest manifest)",
     "proto/ncp.proto",
@@ -18,8 +18,8 @@
   "normative_sources": [
     {
       "path": "NEURO_CYBERNETIC_PROTOCOL.md",
-      "bytes": 26222,
-      "sha256": "000e09dab7c0a5f01347d109d1f1ef2c5bdaf9d9f844a2212d9e3855855f64e8"
+      "bytes": 26264,
+      "sha256": "8b9ab6a778afcd8dba380ff2874335e605ca42fae5f703388528944a52b16081"
     },
     {
       "path": "conformance/manifest.v1.json",

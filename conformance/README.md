@@ -1,8 +1,8 @@
 # NCP conformance corpus
 
 The generated [`manifest.v1.json`](manifest.v1.json) makes the unreleased NCP
-1.0 candidate corpus mandatory and self-describing. It currently requires 268
-vectors: 261 stable vectors (209 behavior, 8 request-digest, 12 security-state
+1.0 candidate corpus mandatory and self-describing. It currently requires 269
+vectors: 262 stable vectors (210 behavior, 8 request-digest, 12 security-state
 digest, 18 plant-profile, and 14 canonical JSON messages) plus 7 0.8-to-1.0
 migration vectors.
 

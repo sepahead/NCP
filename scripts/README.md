@@ -32,7 +32,7 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `validate_security_profile.py` | fail-closed named-profile/authority rules and portable security-state digest implementation |
 | `check_acl_template.py` | offline Zenoh ACL structure and negative mutations |
 | `verify_acl_deployment.py` | router mTLS/ACL nonce-delivery probe; it cannot prove NCP payload-to-peer identity binding, and `--self-test` is logic only |
-| `render_acl_template.py` | atomically render a validated exact realm |
+| `render_acl_template.py` | atomically render a validated exact realm and concrete action session |
 | `check_rust_packages.py --offline` | package/extract/build/test publishable Rust crates without workspace leakage |
 | `check-version-coherence.sh` | package/wire/compact-hash metadata coherence |
 | `../ncp-ts/scripts/build-release.mjs --source-revision REV --output DIR` | archive one exact 40-hex `HEAD`, inject and verify the shared Rust/TypeScript build identity, and emit smoke-tested root+nested npm tarballs plus a hash receipt; never publishes |

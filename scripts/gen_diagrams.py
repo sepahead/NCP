@@ -505,7 +505,7 @@ TOPOLOGY_ALT = ("NCP topology: one Commander (a NEST-brain neuromorphic controll
     "{realm}/rpc/*. PERCEPTION ({realm}/session/{id}/sensor[/{name}]) is a "
     "dashed best-effort DROP plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) "
     "is a dotted read-only tap canonically published by the Body to the Observer. This depicts the "
-    f"unreleased {CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact contract hash "
+    f"unreleased {CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash "
     f"{CONTRACT_HASH}; it is not a "
     "release or certification claim.")
 
@@ -596,7 +596,7 @@ def ecosystem(th):
 
 ECOSYSTEM_ALT = ("NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, "
     "ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepahead/ncp) depicts the unreleased "
-    f"{CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact contract hash {CONTRACT_HASH}. "
+    f"{CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash {CONTRACT_HASH}. "
     "Three example consumers "
     "appear in a left column. Engram has an explicit native-1.0 migration in progress and is not "
     "certified. crebain and prisoma are labelled immutable wire-0.8 historical migration input, not "
@@ -636,7 +636,7 @@ def versioning(th):
     s.append(T(bx + 48, by + 46, "IMMUTABLE 0.8 → 1.0", 14, 700, th["tprim"]))
     s.append(T(bx + 48, by + 61, "intentional major break", 10.5, 500, th["tsec"]))
     s.append(T(bx + 18, by + 86, "unreleased candidate 1.0", 9.5, 500, th["tmut"], mono=True))
-    s.append(T(bx + 18, by + 103, "compact hash:", 9.5, 500, th["tmut"], mono=True))
+    s.append(T(bx + 18, by + 103, "compact proto hash:", 9.5, 500, th["tmut"], mono=True))
     s.append(T(bx + 18, by + 116, CONTRACT_HASH, 9.5, 700, ctr, mono=True))
 
     # ---- N2 GATE (diamond) ----
@@ -708,7 +708,7 @@ def versioning(th):
 
 
 VERSIONING_ALT = (f"NCP version-compatibility handshake for the unreleased {CANDIDATE_VERSION} "
-    f"candidate, wire {WIRE_VERSION}, compact contract hash {CONTRACT_HASH}. The immutable wire-0.8 "
+    f"candidate, wire {WIRE_VERSION}, compact proto hash {CONTRACT_HASH}. The immutable wire-0.8 "
     "line is historical migration input "
     f"and the move to native {WIRE_VERSION} is an intentional major break. check_version is a hard fail-closed gate. "
     "A version has one or two canonical ASCII-decimal unsigned 64-bit components; 1 is the canonical "
@@ -1001,7 +1001,7 @@ SEQUENCE_ALT = ("NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (
     "is_simulation_output=true and calibrated_posterior=false on every frame. CLOSE: CLIENT sends "
     "CloseSession with session, operation, and authority; SERVER replies SessionClosed with the session "
     f"and responder receipt. This depicts the unreleased {CANDIDATE_VERSION} candidate, wire "
-    f"{WIRE_VERSION}, compact contract hash {CONTRACT_HASH}; it is not a release or certification claim.")
+    f"{WIRE_VERSION}, compact proto hash {CONTRACT_HASH}; it is not a release or certification claim.")
 
 
 DIAGRAMS = {
