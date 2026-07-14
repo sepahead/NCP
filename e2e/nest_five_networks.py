@@ -3,13 +3,14 @@
 
 This is a developer smoke runner, not release interoperability or scientific
 validation.  It requires a separately started, native-wire-1.0 service with the
-dev-loopback security profile, authority acquisition, idempotent operations, and
-authenticated responder receipts.  Engram's current wire-0.8 bridge is not such a
+dev-loopback security profile, pre-provisioned authority, idempotent operations,
+and complete terminal receipts.  Engram's current wire-0.8 bridge is not such a
 service and must not be used as an implicit compatibility fallback.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import socket
@@ -24,7 +25,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 from check_request_digests import request_digest  # noqa: E402
-from e2e.bounded_json import BoundedJsonError, parse_bounded_json_line  # noqa: E402
+from e2e.bounded_json import (  # noqa: E402
+    MAX_FRAME_BYTES,
+    SAFE_INTEGER_MAX,
+    BoundedJsonError,
+    parse_bounded_json_line,
+)
 
 
 def _wire_identity() -> tuple[str, str]:
@@ -34,11 +40,11 @@ def _wire_identity() -> tuple[str, str]:
 
 NCP, HASH = _wire_identity()
 HOST = os.environ.get("NCP_E2E_HOST", "127.0.0.1")
-PORT = int(os.environ.get("NCP_E2E_PORT", "28474"))
+PORT_TEXT = os.environ.get("NCP_E2E_PORT", "28474")
 SECURITY_PROFILE = "dev-loopback-insecure"
 SECURITY_STATE_DIGEST = os.environ.get(
     "NCP_E2E_SECURITY_STATE_DIGEST",
-    "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+    "1b8d5d1f0209b1c9c3131ab8787464f7d8ea17c4db7d9bc65084617fee44e21c",
 )
 COMMANDER_PRINCIPAL = "nest-smoke-commander"
 COMMANDER_ENTITY = "nest-smoke-controller"
@@ -51,6 +57,17 @@ NETWORKS = [
     ("hh_psc_alpha (Hodgkin-Huxley)", "hh_psc_alpha", 6, [650.0, 800.0, 1000.0]),
     ("aeif_cond_alpha (adaptive EIF)", "aeif_cond_alpha", 6, [500.0, 750.0, 1000.0]),
 ]
+REQUIRED_MODELS = (
+    "iaf_psc_alpha",
+    "iaf_psc_exp",
+    "izhikevich",
+    "hh_psc_alpha",
+    "aeif_cond_alpha",
+)
+EXPECTED_NETWORK_COUNT = len(REQUIRED_MODELS)
+PASS = 0
+FAIL = 1
+NOT_RUN = 2
 
 
 class ReplyIngressError(RuntimeError):
@@ -58,11 +75,21 @@ class ReplyIngressError(RuntimeError):
 
 
 def rpc(sock: socket.socket, reader: Any, message: dict[str, Any]) -> dict[str, Any]:
-    sock.sendall((json.dumps(message, separators=(",", ":")) + "\n").encode())
+    payload = (json.dumps(message, separators=(",", ":")) + "\n").encode()
+    if len(payload) - 1 > MAX_FRAME_BYTES:
+        raise RuntimeError("native NCP request exceeds the JSON frame byte limit")
+    try:
+        sock.sendall(payload)
+    except OSError as error:
+        # sendall may have written a prefix. Reusing the stream could concatenate
+        # the next request onto a truncated frame and destroy FIFO correlation.
+        raise ReplyIngressError(f"native NCP request send failed: {error}") from error
     try:
         reply = parse_bounded_json_line(reader)
     except BoundedJsonError as error:
         raise ReplyIngressError(f"native NCP reply failed bounded ingress: {error}") from error
+    except OSError as error:
+        raise ReplyIngressError(f"native NCP reply read failed: {error}") from error
     if not isinstance(reply, dict):
         raise RuntimeError("NCP reply is not a JSON object")
     if reply.get("ncp_version") != NCP:
@@ -79,24 +106,105 @@ def _identity() -> dict[str, Any]:
     }
 
 
-def _authority(session_epoch: str) -> dict[str, Any]:
-    issued = int(time.time() * 1000)
-    return {
-        "session_epoch": session_epoch,
-        "term": 1,
-        "lease_id": str(uuid.uuid4()),
-        "issuer_principal_id": COMMANDER_PRINCIPAL,
-        "holder_principal_id": COMMANDER_PRINCIPAL,
-        "holder_entity_id": COMMANDER_ENTITY,
-        "issued_at_utc_ms": issued,
-        "expires_at_utc_ms": issued + 60_000,
+def _canonical_uuid4(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = uuid.UUID(value)
+    except ValueError:
+        return False
+    return parsed.version == 4 and str(parsed) == value
+
+
+def _bounded_id(value: Any, maximum: int = 128) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        encoded = value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError:
+        return False
+    return 0 < len(encoded) <= maximum and not any(
+        character.isspace()
+        or ord(character) < 0x20
+        or 0x7F <= ord(character) <= 0x9F
+        or character in "/*$#?\ufeff"
+        for character in value
+    )
+
+
+def _lower_sha256(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _preprovisioned_authority(
+    opened: dict[str, Any], session_epoch: str
+) -> dict[str, Any]:
+    """Read the exact active lease from a developer-only SessionOpened extension."""
+
+    authority = opened.get("dev_smoke_authority")
+    if not isinstance(authority, dict):
+        raise RuntimeError(
+            "native smoke service omitted its pre-provisioned dev_smoke_authority lease"
+        )
+    expected_fields = {
+        "session_epoch",
+        "term",
+        "lease_id",
+        "issuer_principal_id",
+        "holder_principal_id",
+        "holder_entity_id",
+        "issued_at_utc_ms",
+        "expires_at_utc_ms",
     }
+    if set(authority) != expected_fields:
+        raise RuntimeError("dev_smoke_authority does not have the exact lease shape")
+    if not _canonical_uuid4(session_epoch):
+        raise RuntimeError("SessionOpened generation is not a canonical lowercase UUIDv4")
+    if authority.get("session_epoch") != session_epoch:
+        raise RuntimeError("dev_smoke_authority belongs to a different session generation")
+    if authority.get("holder_principal_id") != COMMANDER_PRINCIPAL or authority.get(
+        "holder_entity_id"
+    ) != COMMANDER_ENTITY:
+        raise RuntimeError("dev_smoke_authority belongs to a different holder")
+    if not _bounded_id(authority.get("issuer_principal_id")):
+        raise RuntimeError("dev_smoke_authority issuer_principal_id is invalid")
+    term = authority.get("term")
+    if not isinstance(term, int) or isinstance(term, bool) or not 1 <= term <= SAFE_INTEGER_MAX:
+        raise RuntimeError("dev_smoke_authority term is not a positive JSON-safe integer")
+    lease_id = authority.get("lease_id")
+    if not _canonical_uuid4(lease_id):
+        raise RuntimeError("dev_smoke_authority lease_id is not a canonical UUIDv4")
+    issued = authority.get("issued_at_utc_ms")
+    expires = authority.get("expires_at_utc_ms")
+    if (
+        not isinstance(issued, int)
+        or isinstance(issued, bool)
+        or not isinstance(expires, int)
+        or isinstance(expires, bool)
+        or issued <= 0
+        or issued > SAFE_INTEGER_MAX
+        or expires > SAFE_INTEGER_MAX
+        or expires <= issued
+        or expires - issued > 60_000
+        or expires <= int(time.time() * 1000)
+    ):
+        raise RuntimeError("dev_smoke_authority interval is invalid or expired")
+    return authority
 
 
 def _seal_mutation(
     request: dict[str, Any], session_epoch: str, state_version: int, authority: dict[str, Any]
 ) -> dict[str, Any]:
-    deadline = min(int(time.time() * 1000) + 30_000, int(authority["expires_at_utc_ms"]))
+    if not isinstance(state_version, int) or isinstance(state_version, bool) or not 0 <= state_version <= SAFE_INTEGER_MAX:
+        raise RuntimeError("authoritative state_version is not a non-negative JSON-safe integer")
+    now_utc_ms = int(time.time() * 1000)
+    deadline = min(now_utc_ms + 30_000, int(authority["expires_at_utc_ms"]))
+    if deadline <= now_utc_ms:
+        raise RuntimeError("authority lease expired before the mutation could be sealed")
     request["operation"] = {
         "operation_id": str(uuid.uuid4()),
         "request_digest": "",
@@ -122,13 +230,26 @@ def _receipt(reply: dict[str, Any], request: dict[str, Any], previous_state: int
     if receipt.get("outcome") != "succeeded":
         raise RuntimeError(f"mutation did not succeed: {receipt.get('outcome')!r}")
     result_digest = receipt.get("result_digest")
-    if not isinstance(result_digest, str) or len(result_digest) != 64:
+    if not _lower_sha256(result_digest):
         raise RuntimeError("responder receipt carries no lowercase SHA-256 result digest")
     next_state = receipt.get("state_version")
-    if not isinstance(next_state, int) or isinstance(next_state, bool) or next_state <= previous_state:
+    if (
+        not isinstance(next_state, int)
+        or isinstance(next_state, bool)
+        or not previous_state < next_state <= SAFE_INTEGER_MAX
+    ):
         raise RuntimeError("successful receipt did not advance authoritative state_version")
-    if not receipt.get("responder_principal_id") or not receipt.get("responder_entity_id"):
-        raise RuntimeError("responder receipt is not bound to an authenticated responder")
+    committed = receipt.get("committed_at_utc_ms")
+    if (
+        not isinstance(committed, int)
+        or isinstance(committed, bool)
+        or not 1 <= committed <= SAFE_INTEGER_MAX
+    ):
+        raise RuntimeError("responder receipt carries no positive JSON-safe commit timestamp")
+    if not _bounded_id(receipt.get("responder_principal_id")) or not _bounded_id(
+        receipt.get("responder_entity_id")
+    ):
+        raise RuntimeError("responder receipt carries invalid responder identity fields")
     return next_state
 
 
@@ -179,6 +300,10 @@ def run_one(
     provenance = opened.get("provenance")
     if opened.get("kind") != "session_opened" or opened.get("ok") is not True:
         raise RuntimeError(f"invalid session_opened reply: {opened!r}")
+    if opened.get("session_id") != session_id:
+        raise RuntimeError("session_opened belongs to a different logical session")
+    if opened.get("gateway_permitted") is not False or opened.get("gateway") is not None:
+        raise RuntimeError("native smoke service returned a gateway-attributed session")
     if not isinstance(provenance, dict) or not (
         provenance.get("calibrated_posterior") is False
         and provenance.get("is_simulation_output") is True
@@ -191,12 +316,16 @@ def run_one(
         raise RuntimeError("session_opened changed the precommitted security negotiation")
     generation = (opened.get("session") or {}).get("generation")
     state_version = opened.get("state_version")
-    if not isinstance(generation, str) or not generation:
-        raise RuntimeError("session_opened carried no server-issued generation")
-    if not isinstance(state_version, int) or isinstance(state_version, bool) or state_version < 0:
+    if not _canonical_uuid4(generation):
+        raise RuntimeError("session_opened carried no canonical server-issued generation")
+    if (
+        not isinstance(state_version, int)
+        or isinstance(state_version, bool)
+        or not 0 <= state_version <= SAFE_INTEGER_MAX
+    ):
         raise RuntimeError("session_opened carried no authoritative initial state_version")
 
-    authority = _authority(generation)
+    authority = _preprovisioned_authority(opened, generation)
     total_spikes = 0
     per_step: list[tuple[float, int, Any]] = []
     for index, current in enumerate(currents):
@@ -230,6 +359,8 @@ def run_one(
             raise RuntimeError("observation violated the scientific boundary")
         if (observation.get("session") or {}).get("generation") != generation:
             raise RuntimeError("observation belongs to a different session generation")
+        if observation.get("session_id") != session_id:
+            raise RuntimeError("observation belongs to a different logical session")
         if observation.get("source") is not None:
             raise RuntimeError("RPC observation incorrectly carried an observation-plane source")
         state_version = _receipt(observation, step, state_version)
@@ -255,6 +386,8 @@ def run_one(
         raise RuntimeError(f"invalid session_closed reply: {closed!r}")
     if (closed.get("session") or {}).get("generation") != generation:
         raise RuntimeError("session_closed belongs to a different generation")
+    if closed.get("session_id") != session_id:
+        raise RuntimeError("session_closed belongs to a different logical session")
     _receipt(closed, close, state_version)
     return {
         "label": label,
@@ -268,11 +401,53 @@ def run_one(
     }
 
 
+def _configured_endpoint() -> tuple[str, int]:
+    if not _lower_sha256(SECURITY_STATE_DIGEST):
+        raise ValueError(
+            "NCP_E2E_SECURITY_STATE_DIGEST must be 64 lowercase hexadecimal characters"
+        )
+    try:
+        address = ipaddress.ip_address(HOST)
+    except ValueError as error:
+        raise ValueError("NCP_E2E_HOST must be a numeric loopback IP address") from error
+    if not address.is_loopback:
+        raise ValueError("NCP_E2E_HOST must be loopback for dev-loopback-insecure")
+    if isinstance(address, ipaddress.IPv6Address) and address.scope_id is not None:
+        raise ValueError("NCP_E2E_HOST must not carry an IPv6 scope identifier")
+    try:
+        port = int(PORT_TEXT)
+    except ValueError as error:
+        raise ValueError("NCP_E2E_PORT must be an integer") from error
+    if not 1 <= port <= 65_535:
+        raise ValueError("NCP_E2E_PORT must be in 1..=65535")
+    return str(address), port
+
+
+def _result_status(results: list[dict[str, Any]]) -> tuple[str, int]:
+    if any(result.get("ok") is not True for result in results):
+        return "FAIL", FAIL
+    if tuple(result.get("model") for result in results) != REQUIRED_MODELS:
+        return "NOT RUN", NOT_RUN
+    return "PASS", PASS
+
+
 def main() -> int:
     started = time.time()
-    with socket.create_connection((HOST, PORT), timeout=120) as sock:
+    try:
+        endpoint = _configured_endpoint()
+    except ValueError as error:
+        print(f"LOCAL SMOKE RESULT: FAIL\nconfiguration error: {error}")
+        return FAIL
+    try:
+        sock = socket.create_connection(endpoint, timeout=120)
+    except OSError as error:
+        print(
+            "LOCAL SMOKE RESULT: NOT RUN\n"
+            f"native-1.0 SessionService unavailable at {endpoint[0]}:{endpoint[1]}: {error}"
+        )
+        return NOT_RUN
+    with sock, sock.makefile("rb") as reader:
         sock.settimeout(120)
-        reader = sock.makefile("rb")
         results = []
         for label, model, population_size, currents in NETWORKS:
             try:
@@ -304,8 +479,15 @@ def main() -> int:
         else:
             print(f"{result['label']:32}  FAILED: {str(result.get('detail'))[:120]}")
     print("-" * 86)
-    print(f"backend={results[0].get('backend') if results else '?'}  ok={passed}/{len(results)}")
-    return 0 if passed == len(results) else 1
+    status, exit_code = _result_status(results)
+    print(
+        f"backend={results[0].get('backend') if results else '?'}  "
+        f"ok={passed}/{EXPECTED_NETWORK_COUNT}  executed={len(results)}/{EXPECTED_NETWORK_COUNT}"
+    )
+    if status == "NOT RUN":
+        print("one or more required model-family scenarios were not executed")
+    print(f"LOCAL SMOKE RESULT: {status}")
+    return exit_code
 
 
 if __name__ == "__main__":

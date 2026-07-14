@@ -22,9 +22,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 # Latest stable Zenoh. Default features pull a heavy plugin chain we don't need;
 # instead enable exactly the transport links NCP uses — TCP/UDP, TLS for the
-# documented authenticated deployment, plus same-host shared-memory. Cargo feature-unification is
-# additive, so a host (e.g. a robot/UAV client, which enables zenoh's default
-# features) still gets the full set, unified to its 1.9 pin.
+# documented authenticated deployment, plus same-host shared-memory. Do not enable
+# Zenoh defaults or transport_compression: 1.9.0 is pinned to lz4_flex 0.10.0 and
+# its affected block decompression path has no compatible patched release. Cargo
+# feature unification is additive, so downstreams that enable either feature are
+# outside this candidate's reviewed dependency profile.
 zenoh = { version = "1.9", default-features = false, features = [
     "transport_tcp",
     "transport_tls",

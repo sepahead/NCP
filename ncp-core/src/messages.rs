@@ -2417,9 +2417,17 @@ fn validate_stream_identity(
     validate_session_id_str(session_id, &format!("{who}.session_id"))
 }
 
-/// Validate an optional `source` correlation reference (absent = no source; never a
-/// `seq == 0` sentinel): when present, `epoch` is a canonical UUIDv4 and `seq >= 1`.
-fn validate_source(source: &Option<StreamPosition>, who: &str) -> Result<(), ValidationError> {
+/// Validate optional source correlation metadata. Absence is represented by no
+/// source (`source_t == 0` is the conventional unset time); a present source never
+/// uses a `seq == 0` sentinel, and every in-memory source time must be finite.
+fn validate_source(
+    source: &Option<StreamPosition>,
+    source_t: f64,
+    who: &str,
+) -> Result<(), ValidationError> {
+    if !source_t.is_finite() {
+        return Err(ValidationError(format!("{who}.source_t must be finite")));
+    }
     if let Some(src) = source {
         if !is_canonical_uuid_v4(&src.epoch) {
             return Err(ValidationError(format!(
@@ -2454,7 +2462,7 @@ impl WireFrame for CommandFrame {
             &self.session_id,
             "command_frame",
         )?;
-        validate_source(&self.source, "command_frame")?;
+        validate_source(&self.source, self.source_t, "command_frame")?;
         if !self.mode.is_canonical_wire_value() {
             return Err(ValidationError(
                 "command_frame.mode has a non-canonical in-memory representation".into(),
@@ -2491,6 +2499,20 @@ impl WireFrame for CommandFrame {
         validate_channel_map_finite(&self.channels, "command_frame.channels", false)?;
         for (index, step) in self.horizon.iter().enumerate() {
             validate_channel_map_finite(step, &format!("command_frame.horizon[{index}]"), false)?;
+        }
+        if let Some(authority) = &self.authority {
+            crate::authority::validate_lease_shape(authority)
+                .map_err(|error| ValidationError(format!("command_frame.authority: {error}")))?;
+            if authority.session_epoch != self.session.generation {
+                return Err(ValidationError(
+                    "command_frame.authority.session_epoch does not match the message session generation"
+                        .into(),
+                ));
+            }
+        } else if self.mode == Mode::Active {
+            return Err(ValidationError(
+                "command_frame: Active mode requires an explicit authority lease".into(),
+            ));
         }
         if self.mode == Mode::Active {
             if !self.ttl_ms.is_finite() || self.ttl_ms <= 0.0 {
@@ -2565,7 +2587,7 @@ impl WireFrame for ObservationFrame {
             &self.session_id,
             "observation_frame",
         )?;
-        validate_source(&self.source, "observation_frame")?;
+        validate_source(&self.source, self.source_t, "observation_frame")?;
         if !self.t.is_finite() || !self.sim_time_ms.is_finite() {
             return Err(ValidationError(
                 "observation_frame.t and sim_time_ms must be finite".into(),
@@ -3328,11 +3350,26 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
                     "{kind}.stimulus: kind must be \"stimulus_frame\""
                 )));
             }
-            let outer_session = obj.get("session_id").and_then(|v| v.as_str());
-            let inner_session = stimulus.get("session_id").and_then(|v| v.as_str());
-            if inner_session != outer_session {
+            let outer_session_id = obj.get("session_id").and_then(|v| v.as_str());
+            let inner_session_id = stimulus.get("session_id").and_then(|v| v.as_str());
+            if inner_session_id != outer_session_id {
                 return Err(ValidationError(format!(
-                    "{kind}.stimulus: session_id {inner_session:?} does not match outer {outer_session:?}"
+                    "{kind}.stimulus: session_id {inner_session_id:?} does not match outer {outer_session_id:?}"
+                )));
+            }
+            let outer_generation = obj
+                .get("session")
+                .and_then(serde_json::Value::as_object)
+                .and_then(|session| session.get("generation"))
+                .and_then(serde_json::Value::as_str);
+            let inner_generation = stimulus
+                .get("session")
+                .and_then(serde_json::Value::as_object)
+                .and_then(|session| session.get("generation"))
+                .and_then(serde_json::Value::as_str);
+            if inner_generation != outer_generation {
+                return Err(ValidationError(format!(
+                    "{kind}.stimulus: session.generation {inner_generation:?} does not match outer {outer_generation:?}"
                 )));
             }
         }
@@ -3374,12 +3411,7 @@ fn validate_session_id(
     kind: &str,
 ) -> Result<(), ValidationError> {
     let session_id = required_nonempty_string(obj, "session_id", &format!("{kind}.session_id"))?;
-    if !crate::keys::valid_id_segment(session_id) {
-        return Err(ValidationError(format!(
-            "{kind}.session_id {session_id:?} is not a safe single key segment"
-        )));
-    }
-    Ok(())
+    validate_session_id_str(session_id, &format!("{kind}.session_id"))
 }
 
 fn required_session_epoch<'a>(
@@ -3878,10 +3910,10 @@ fn validate_operation_context(
     Ok(())
 }
 
-fn validate_responder_receipt(
-    value: Option<&serde_json::Value>,
+fn validate_responder_receipt<'a>(
+    value: Option<&'a serde_json::Value>,
     path: &str,
-) -> Result<(), ValidationError> {
+) -> Result<&'a str, ValidationError> {
     let receipt = required_json_object(value, path)?;
     let operation_id =
         required_nonempty_string(receipt, "operation_id", &format!("{path}.operation_id"))?;
@@ -3929,6 +3961,32 @@ fn validate_responder_receipt(
                 "{path}.{field} must be a bounded canonical identity segment"
             )));
         }
+    }
+    Ok(outcome)
+}
+
+fn validate_success_receipt(
+    value: Option<&serde_json::Value>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let outcome = validate_responder_receipt(value, path)?;
+    if outcome != "succeeded" {
+        return Err(ValidationError(format!(
+            "{path}.outcome must be succeeded on a successful RPC reply"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_error_receipt(
+    value: Option<&serde_json::Value>,
+    path: &str,
+) -> Result<(), ValidationError> {
+    let outcome = validate_responder_receipt(value, path)?;
+    if !matches!(outcome, "rejected" | "cancelled") {
+        return Err(ValidationError(format!(
+            "{path}.outcome must be rejected or cancelled on an ErrorFrame"
+        )));
     }
     Ok(())
 }
@@ -4223,7 +4281,7 @@ fn validate_semantics(
                     "session_closed.ok must be true; failures use a typed ErrorFrame".into(),
                 ));
             }
-            validate_responder_receipt(obj.get("receipt"), "session_closed.receipt")?;
+            validate_success_receipt(obj.get("receipt"), "session_closed.receipt")?;
         }
         "error" => {
             let code = required_nonempty_string(obj, "code", "error.code")?;
@@ -4244,11 +4302,7 @@ fn validate_semantics(
                 let session_id = session_id.as_str().ok_or_else(|| {
                     ValidationError("error.session_id must be a string or null".into())
                 })?;
-                if !crate::keys::valid_id_segment(session_id) {
-                    return Err(ValidationError(format!(
-                        "error.session_id {session_id:?} is not a safe single key segment"
-                    )));
-                }
+                validate_session_id_str(session_id, "error.session_id")?;
             }
             let has_session_id = obj.get("session_id").is_some_and(|value| !value.is_null());
             let has_session = obj.get("session").is_some_and(|value| !value.is_null());
@@ -4261,7 +4315,13 @@ fn validate_semantics(
                 required_session_epoch(obj, "error")?;
             }
             if let Some(receipt) = obj.get("receipt").filter(|value| !value.is_null()) {
-                validate_responder_receipt(Some(receipt), "error.receipt")?;
+                if !has_session {
+                    return Err(ValidationError(
+                        "error.receipt requires the exact session_id/session generation pair"
+                            .into(),
+                    ));
+                }
+                validate_error_receipt(Some(receipt), "error.receipt")?;
             }
         }
         "run_request" => {
@@ -4349,7 +4409,7 @@ fn validate_semantics(
         }
         "observation_frame" => {
             if let Some(receipt) = obj.get("receipt").filter(|value| !value.is_null()) {
-                validate_responder_receipt(Some(receipt), "observation_frame.receipt")?;
+                validate_success_receipt(Some(receipt), "observation_frame.receipt")?;
             }
             let records = obj
                 .get("records")
@@ -5649,6 +5709,110 @@ mod tests {
         command.channels.clear();
         command.horizon = vec![Map::new(); MAX_HORIZON_STEPS + 1];
         assert!(command.validate_wire().is_err());
+    }
+
+    #[test]
+    fn active_command_requires_a_valid_authority_lease_for_its_session() {
+        let mut command = CommandFrame {
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
+            mode: Mode::Active,
+            ttl_ms: 200.0,
+            channels: [(
+                "velocity_setpoint".into(),
+                ChannelValue {
+                    data: vec![0.0],
+                    unit: Some("m/s".into()),
+                },
+            )]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+
+        let error = command
+            .validate_wire()
+            .expect_err("typed Active commands must not mint authority implicitly");
+        assert!(error.to_string().contains("explicit authority lease"));
+
+        command.authority = Some(AuthorityLease {
+            session_epoch: GEN.into(),
+            term: 1,
+            lease_id: "20000000-0000-4000-8000-000000000001".into(),
+            issuer_principal_id: "controller-1".into(),
+            holder_principal_id: "controller-1".into(),
+            holder_entity_id: "body-1".into(),
+            issued_at_utc_ms: 1_000,
+            expires_at_utc_ms: 2_000,
+        });
+        command.validate_wire().unwrap();
+
+        command.authority.as_mut().unwrap().session_epoch = EPOCH.into();
+        let error = command
+            .validate_wire()
+            .expect_err("authority from another session generation must fail closed");
+        assert!(error.to_string().contains("does not match"));
+
+        let authority = command.authority.as_mut().unwrap();
+        authority.session_epoch = GEN.into();
+        authority.issuer_principal_id = "controller/*".into();
+        assert!(command.validate_wire().is_err());
+
+        let authority = command.authority.as_mut().unwrap();
+        authority.issuer_principal_id = "controller-1".into();
+        authority.issued_at_utc_ms = JSON_SAFE_INTEGER_MAX + 1;
+        authority.expires_at_utc_ms = JSON_SAFE_INTEGER_MAX + 2;
+        assert!(command.validate_wire().is_err());
+    }
+
+    #[test]
+    fn command_frame_rejects_non_finite_source_time() {
+        let mut command = CommandFrame {
+            stream: stream(2),
+            source: Some(stream(1)),
+            session: session(),
+            session_id: SID.into(),
+            mode: Mode::Hold,
+            ..Default::default()
+        };
+
+        for source_t in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            command.source_t = source_t;
+            let error = command
+                .validate_wire()
+                .expect_err("non-finite command source_t must fail validation");
+            assert!(
+                error
+                    .to_string()
+                    .contains("command_frame.source_t must be finite"),
+                "unexpected validation error for {source_t:?}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn observation_frame_rejects_non_finite_source_time() {
+        let mut observation = ObservationFrame {
+            stream: stream(2),
+            source: Some(stream(1)),
+            session: session(),
+            session_id: SID.into(),
+            ..Default::default()
+        };
+
+        for source_t in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            observation.source_t = source_t;
+            let error = observation
+                .validate_wire()
+                .expect_err("non-finite observation source_t must fail validation");
+            assert!(
+                error
+                    .to_string()
+                    .contains("observation_frame.source_t must be finite"),
+                "unexpected validation error for {source_t:?}: {error}"
+            );
+        }
     }
 
     #[test]

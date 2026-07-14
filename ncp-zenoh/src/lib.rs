@@ -1762,7 +1762,8 @@ impl Drop for ZenohControlTransport {
 /// What `send_command` should do with a frame (pure, unit-testable).
 ///
 /// - A locally generated **ESTOP is always selected for normalization** — the
-///   transport binds it to its immutable live session before the remote gate.
+///   transport binds it to its immutable live session before the remote gate,
+///   while preserving a bounded, wire-valid caller payload.
 /// - A wire-valid frame publishes.
 /// - An invalid **Active** frame is skipped LOUDLY — a controller trying to
 ///   actuate with an unstamped/incompatible frame is a real fault.
@@ -1791,7 +1792,7 @@ fn command_publish_decision(cmd: &ncp_core::CommandFrame) -> PublishDecision {
     }
 }
 
-/// Repair the publisher identity on a locally governed ESTOP and bind it to the
+/// Repair the publisher identity on a locally submitted ESTOP and bind it to the
 /// transport's immutable live session. Caller-provided cross-session identity is
 /// never allowed to choose the action-plane key or latch.
 fn ensure_publishable_estop_identity(
@@ -1809,9 +1810,10 @@ fn ensure_publishable_estop_identity(
     }
     frame.session_id = authoritative_session_id.to_string();
     frame.session = authoritative_session.clone();
-    // ESTOP is admitted without a lease after transport/session authentication;
-    // carrying a malformed or foreign lease would only make the normalized local
-    // fail-safe envelope invalid.
+    // The protocol admits ESTOP without a lease. This local publisher binding is
+    // not transport authentication; a production adapter must separately bind the
+    // sender to its verified transport principal. Carrying a malformed or foreign
+    // lease would only make the normalized local emergency envelope invalid.
     frame.authority = None;
 }
 
@@ -1822,19 +1824,10 @@ fn normalize_command_for_publish<'a>(
     command_stream_epoch: &str,
     provisional_seq: i64,
 ) -> std::borrow::Cow<'a, ncp_core::CommandFrame> {
-    if command.mode == ncp_core::Mode::Estop
-        && (ncp_core::WireFrame::validate_wire(command).is_err()
-            || command.session_id != authoritative_session_id
-            || command.session != *authoritative_session)
-    {
-        let mut governor = ncp_core::SafetyGovernor::default();
-        let mut safe = governor.govern(command, None, 0.0, None);
-        // An ESTOP must never be dropped: if the source frame's identity was
-        // itself garbage (empty/non-canonical stream epoch or session binding),
-        // the governed fail-safe echoes that garbage and would not serialize as a
-        // wire-valid frame. Bind the safe frame to this transport's session and
-        // stamp a local stream epoch and the server-issued live session binding so
-        // the zeroed ESTOP still goes out without inventing a generation.
+    if command.mode == ncp_core::Mode::Estop {
+        let mut safe = command.clone();
+        // Bind a local ESTOP to this transport's session and publisher identity.
+        // This clears caller authority rather than inventing or repairing it.
         ensure_publishable_estop_identity(
             &mut safe,
             authoritative_session_id,
@@ -1842,6 +1835,26 @@ fn normalize_command_for_publish<'a>(
             command_stream_epoch,
             provisional_seq,
         );
+        let bounded = serde_json::to_vec(&safe)
+            .ok()
+            .is_some_and(|payload| ncp_core::bounded_json::preflight(&payload).is_ok());
+        if ncp_core::WireFrame::validate_wire(&safe).is_err() || !bounded {
+            // A programmatic ESTOP can contain resource-invalid diagnostic data
+            // that is unsafe to echo. Retain only the emergency mode and
+            // authoritative publisher/session identity. An empty command map is
+            // deliberate: the body applies its content-addressed plant-profile
+            // ESTOP action; the transport must not manufacture a universal action.
+            safe = ncp_core::CommandFrame {
+                stream: ncp_core::StreamPosition {
+                    epoch: command_stream_epoch.to_owned(),
+                    seq: provisional_seq,
+                },
+                session: authoritative_session.clone(),
+                session_id: authoritative_session_id.to_owned(),
+                mode: ncp_core::Mode::Estop,
+                ..Default::default()
+            };
+        }
         std::borrow::Cow::Owned(safe)
     } else {
         std::borrow::Cow::Borrowed(command)
@@ -1876,7 +1889,7 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
             );
             return ncp_core::transport::CommandSendOutcome::Rejected;
         }
-        // Normalize a malformed in-memory ESTOP to a complete zeroed wire frame;
+        // Normalize a malformed in-memory ESTOP to a complete minimal wire frame;
         // enqueue_command then replaces every caller stream position with the one
         // transport-owned action stream, avoiding mixed emergency/caller epochs.
         let command = normalize_command_for_publish(
@@ -1906,17 +1919,19 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
     }
 }
 
-/// Validate an RPC reply's own `kind` discriminator before the typed decode: an
-/// error frame surfaces as `Err`, and a wrong-but-valid-JSON reply is rejected
-/// rather than silently decoding into an all-default `Resp`. Pure (no transport),
-/// so it is unit-testable.
-fn check_reply(
+/// Validate an RPC reply's own `kind` discriminator before the typed decode. Pure
+/// (no transport), so both the basic server-side shape gate and the stricter typed
+/// client correlation gate can exercise the same bounded parser.
+fn validate_reply_value(
     reply: &[u8],
     request_kind: &str,
     expect_session_id: &str,
 ) -> Result<serde_json::Value> {
-    let value = ncp_core::validate_rpc_reply_for(request_kind, expect_session_id, reply)
-        .map_err(|error| ZenohError(bounded_diagnostic(format_args!("{error}"))))?;
+    ncp_core::validate_rpc_reply_for(request_kind, expect_session_id, reply)
+        .map_err(|error| ZenohError(bounded_diagnostic(format_args!("{error}"))))
+}
+
+fn surface_error_reply(value: serde_json::Value) -> Result<serde_json::Value> {
     let kind = ncp_core::message_kind(&value).expect("validate requires string kind");
     if kind == "error" {
         return Err(ZenohError(bounded_diagnostic(format_args!(
@@ -1932,6 +1947,110 @@ fn check_reply(
         ))));
     }
     Ok(value)
+}
+
+/// Basic reply gate used where only the selector kind and logical session are
+/// available. Typed lifecycle clients use [`check_reply_for_request`] so a reply
+/// cannot claim a different generation or a different mutation receipt.
+#[cfg(test)]
+fn check_reply(
+    reply: &[u8],
+    request_kind: &str,
+    expect_session_id: &str,
+) -> Result<serde_json::Value> {
+    surface_error_reply(validate_reply_value(
+        reply,
+        request_kind,
+        expect_session_id,
+    )?)
+}
+
+fn required_correlation_string<'a>(value: &'a serde_json::Value, path: &str) -> Result<&'a str> {
+    value
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| ZenohError(format!("NCP request carries no string {path}")))
+}
+
+/// Bind one typed Zenoh lifecycle reply to the complete originating mutation.
+/// A bare pre-authentication/shape `ErrorFrame` may omit session and receipt, but
+/// every terminal receipt must be fenced by the exact request generation,
+/// operation ID, and request digest before it can affect client state.
+fn check_reply_for_request(reply: &[u8], request: &serde_json::Value) -> Result<serde_json::Value> {
+    let request_kind = required_correlation_string(&request["kind"], "kind")?;
+    let session_id = required_correlation_string(&request["session_id"], "session_id")?;
+    let value = validate_reply_value(reply, request_kind, session_id)?;
+
+    if matches!(
+        request_kind,
+        "step_request" | "run_request" | "close_session"
+    ) {
+        let expected_generation =
+            required_correlation_string(&request["session"]["generation"], "session.generation")?;
+        let expected_operation_id = required_correlation_string(
+            &request["operation"]["operation_id"],
+            "operation.operation_id",
+        )?;
+        let expected_request_digest = required_correlation_string(
+            &request["operation"]["request_digest"],
+            "operation.request_digest",
+        )?;
+        let reply_kind = ncp_core::message_kind(&value).expect("validated reply carries kind");
+        let receipt = value.get("receipt").filter(|receipt| !receipt.is_null());
+        let reply_generation = value
+            .get("session")
+            .and_then(|session| session.get("generation"))
+            .and_then(serde_json::Value::as_str);
+
+        match reply_generation {
+            Some(generation) if generation == expected_generation => {}
+            None if reply_kind == "error" && receipt.is_none() => {}
+            Some(generation) => {
+                return Err(ZenohError(format!(
+                    "NCP RPC reply session generation mismatch: expected {expected_generation:?}, got {generation:?}"
+                )))
+            }
+            None => {
+                return Err(ZenohError(
+                    "NCP terminal RPC reply carries no session generation".into(),
+                ))
+            }
+        }
+
+        if let Some(receipt) = receipt {
+            let operation_id = receipt
+                .get("operation_id")
+                .and_then(serde_json::Value::as_str)
+                .expect("validated responder receipt has operation_id");
+            if operation_id != expected_operation_id {
+                return Err(ZenohError(format!(
+                    "NCP RPC reply receipt operation_id mismatch: expected {expected_operation_id:?}, got {operation_id:?}"
+                )));
+            }
+            let request_digest = receipt
+                .get("request_digest")
+                .and_then(serde_json::Value::as_str)
+                .expect("validated responder receipt has request_digest");
+            if request_digest != expected_request_digest {
+                return Err(ZenohError(format!(
+                    "NCP RPC reply receipt request_digest mismatch: expected {expected_request_digest:?}, got {request_digest:?}"
+                )));
+            }
+        } else if reply_kind != "error" {
+            return Err(ZenohError(
+                "NCP successful mutation reply carries no responder receipt".into(),
+            ));
+        }
+    } else if value
+        .get("receipt")
+        .is_some_and(|receipt| !receipt.is_null())
+    {
+        return Err(ZenohError(
+            "NCP non-mutating RPC reply must not carry a mutation receipt".into(),
+        ));
+    }
+
+    surface_error_reply(value)
 }
 
 /// Convenience: a typed NCP client over Zenoh.
@@ -2033,10 +2152,6 @@ impl ZenohNcpClient {
         Resp: serde::de::DeserializeOwned,
     {
         let request = serde_json::to_value(msg).map_err(err("serialize request"))?;
-        let session_id = request
-            .get("session_id")
-            .and_then(|field| field.as_str())
-            .ok_or_else(|| ZenohError("NCP request carries no string session_id".into()))?;
         let request_kind = request
             .get("kind")
             .and_then(|field| field.as_str())
@@ -2053,9 +2168,9 @@ impl ZenohNcpClient {
         };
         // Reject an error frame or a wrong-`kind` reply before the typed decode,
         // so a misrouted reply cannot silently become an all-default `Resp` —
-        // then (wire 0.6) validate the reply against the wire contract for its
+        // then validate the reply against the wire-1.0 contract for its
         // kind (required fields incl. a compatible `ncp_version`).
-        let value = check_reply(&reply, request_kind, session_id)?;
+        let value = check_reply_for_request(&reply, &request)?;
         serde_json::from_value(value).map_err(err("parse reply"))
     }
 }
@@ -2313,6 +2428,86 @@ mod tests {
         )
         .is_err());
         assert!(check_reply(br#"{"kind":"error","error":"boom"}"#, "open_session", "s").is_err());
+    }
+
+    #[test]
+    fn typed_rpc_reply_correlation_rejects_stale_generation_and_wrong_receipt() {
+        const OPERATION_ID: &str = "10000000-0000-4000-8000-000000000001";
+        const REQUEST_DIGEST: &str =
+            "cf0d5f7440ea8ed8c5c8326182905ba66ceecca92ffccd592d56f9b9a42fe9df";
+        let request = serde_json::json!({
+            "kind": "step_request",
+            "session_id": "s",
+            "session": {"generation": LIVE_GENERATION},
+            "operation": {
+                "operation_id": OPERATION_ID,
+                "request_digest": REQUEST_DIGEST,
+            },
+        });
+        let reply = serde_json::json!({
+            "kind": "observation_frame",
+            "ncp_version": ncp_core::NCP_VERSION,
+            "session_id": "s",
+            "stream": {"epoch": "30000000-0000-4000-8000-000000000001", "seq": 1},
+            "session": {"generation": LIVE_GENERATION},
+            "records": {},
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "receipt": {
+                "operation_id": OPERATION_ID,
+                "request_digest": REQUEST_DIGEST,
+                "result_digest": "82bfecaa6d47a3ec4cc56b948f511e641d186d19545b9a0c697b825ecaff5241",
+                "outcome": "succeeded",
+                "state_version": 2,
+                "committed_at_utc_ms": 1_700_000_001_000_i64,
+                "responder_principal_id": "body-principal-1",
+                "responder_entity_id": "simulator-1"
+            }
+        });
+
+        assert!(check_reply_for_request(&serde_json::to_vec(&reply).unwrap(), &request).is_ok());
+
+        let mut stale_generation = reply.clone();
+        stale_generation["session"]["generation"] = "30000000-0000-4000-8000-000000000099".into();
+        let error =
+            check_reply_for_request(&serde_json::to_vec(&stale_generation).unwrap(), &request)
+                .expect_err("a stale reply generation must not complete the mutation");
+        assert!(error.0.contains("generation mismatch"), "{error}");
+
+        let mut wrong_operation = reply.clone();
+        wrong_operation["receipt"]["operation_id"] = "10000000-0000-4000-8000-000000000099".into();
+        let error =
+            check_reply_for_request(&serde_json::to_vec(&wrong_operation).unwrap(), &request)
+                .expect_err("a receipt for another operation must not complete the mutation");
+        assert!(error.0.contains("operation_id mismatch"), "{error}");
+
+        let mut wrong_digest = reply.clone();
+        wrong_digest["receipt"]["request_digest"] = "d".repeat(64).into();
+        let error = check_reply_for_request(&serde_json::to_vec(&wrong_digest).unwrap(), &request)
+            .expect_err("a receipt for other request bytes must not complete the mutation");
+        assert!(error.0.contains("request_digest mismatch"), "{error}");
+
+        let mut terminal_error = serde_json::json!({
+            "kind": "error",
+            "ncp_version": ncp_core::NCP_VERSION,
+            "code": "NCP-STATE-001",
+            "error": "rejected",
+            "session_id": "s",
+            "session": {"generation": LIVE_GENERATION},
+            "request_kind": "step_request",
+            "receipt": reply["receipt"].clone(),
+        });
+        terminal_error["receipt"]["outcome"] = "rejected".into();
+        let error =
+            check_reply_for_request(&serde_json::to_vec(&terminal_error).unwrap(), &request)
+                .expect_err("a correlated terminal rejection surfaces as the typed NCP error");
+        assert!(error.0.contains("NCP error NCP-STATE-001"), "{error}");
+
+        terminal_error["session"]["generation"] = "30000000-0000-4000-8000-000000000099".into();
+        let error =
+            check_reply_for_request(&serde_json::to_vec(&terminal_error).unwrap(), &request)
+                .expect_err("a stale terminal rejection must fail correlation first");
+        assert!(error.0.contains("generation mismatch"), "{error}");
     }
 
     #[test]
@@ -2678,6 +2873,11 @@ mod tests {
         let mut invalid_estop = ncp_core::CommandFrame {
             t: f64::NAN,
             frame_id: String::new(),
+            source: Some(ncp_core::StreamPosition {
+                epoch: "invalid-source-epoch".into(),
+                seq: 0,
+            }),
+            source_t: f64::NAN,
             mode: ncp_core::Mode::Estop,
             ..Default::default()
         };
@@ -2695,8 +2895,21 @@ mod tests {
         assert_eq!(normalized.mode, ncp_core::Mode::Estop);
         assert_eq!(normalized.session_id, "bound-session");
         assert_eq!(normalized.session, live);
+        assert_eq!(normalized.source, None);
+        assert_eq!(normalized.source_t, 0.0);
+        assert_eq!(normalized.authority, None);
+        assert!(
+            normalized.channels.is_empty(),
+            "transport fallback must leave the plant-profile action to the body"
+        );
         ncp_core::WireFrame::validate_wire(normalized.as_ref())
-            .expect("transport must normalize an in-memory ESTOP to publishable zero output");
+            .expect("transport must normalize an in-memory ESTOP to a publishable minimal frame");
+        check_command_payload_for(
+            "bound-session",
+            &live,
+            &serde_json::to_vec(normalized.as_ref()).unwrap(),
+        )
+        .expect("normalized malformed ESTOP must pass the typed publisher gate");
 
         let cross_session_estop = ncp_core::CommandFrame {
             session_id: "other-session".into(),
@@ -2708,6 +2921,12 @@ mod tests {
                 generation: "20000000-0000-4000-8000-000000000002".into(),
             },
             mode: ncp_core::Mode::Estop,
+            channels: [(
+                "deployment_stop".into(),
+                ncp_core::ChannelValue::scalar(0.25, Some("plant-unit")),
+            )]
+            .into_iter()
+            .collect(),
             ..Default::default()
         };
         let normalized = normalize_command_for_publish(
@@ -2719,12 +2938,66 @@ mod tests {
         );
         assert_eq!(normalized.session_id, "bound-session");
         assert_eq!(normalized.session, live);
+        assert_eq!(
+            normalized.channels.get("deployment_stop"),
+            cross_session_estop.channels.get("deployment_stop"),
+            "a bounded valid ESTOP payload must not be replaced by a transport action"
+        );
         check_command_payload_for(
             "bound-session",
             &live,
             &serde_json::to_vec(normalized.as_ref()).unwrap(),
         )
         .expect("typed ESTOP must reach its bound live-session publisher");
+    }
+
+    #[test]
+    fn resource_oversized_estop_collapses_to_a_canonical_payload() {
+        let live = live_session();
+        let mut command = ncp_core::CommandFrame {
+            stream: ncp_core::StreamPosition {
+                epoch: "10000000-0000-4000-8000-000000000001".into(),
+                seq: 1,
+            },
+            session: live.clone(),
+            session_id: "caller-session".into(),
+            frame_id: "diagnostic".into(),
+            mode: ncp_core::Mode::Estop,
+            ..Default::default()
+        };
+        for index in 0..4 {
+            command.channels.insert(
+                format!("bulk_{index}"),
+                ncp_core::ChannelValue {
+                    data: vec![1.0; ncp_core::bounded_json::MAX_ARRAY_ITEMS],
+                    unit: None,
+                },
+            );
+        }
+
+        let normalized = normalize_command_for_publish(
+            &command,
+            "bound-session",
+            &live,
+            "40000000-0000-4000-8000-000000000004",
+            9,
+        );
+
+        assert_eq!(normalized.mode, ncp_core::Mode::Estop);
+        assert_eq!(normalized.session_id, "bound-session");
+        assert_eq!(normalized.session, live);
+        assert_eq!(normalized.frame_id, "world");
+        assert!(
+            normalized.channels.is_empty(),
+            "transport fallback must not manufacture an actuator command"
+        );
+        let payload = serde_json::to_vec(normalized.as_ref()).unwrap();
+        ncp_core::bounded_json::preflight(&payload)
+            .expect("canonical ESTOP fallback must satisfy the ingress resource budget");
+        ncp_core::WireFrame::validate_wire(normalized.as_ref())
+            .expect("canonical ESTOP fallback must satisfy typed wire validation");
+        check_command_payload_for("bound-session", &live, &payload)
+            .expect("canonical ESTOP fallback must pass the publisher gate");
     }
 
     #[test]
@@ -2790,7 +3063,7 @@ mod tests {
     }
 
     #[test]
-    fn ambiguous_fail_safe_blocks_active_until_new_position_succeeds() {
+    fn ambiguous_estop_blocks_active_until_new_estop_position_succeeds() {
         const STREAM: &str = "40000000-0000-4000-8000-000000000004";
         let state = std::sync::Mutex::new(CommandDispatchState::default());
         let sequence = std::sync::atomic::AtomicI64::new(0);
@@ -2800,7 +3073,7 @@ mod tests {
         };
 
         assert_eq!(
-            enqueue_command(&state, command(ncp_core::Mode::Hold), STREAM, &sequence,),
+            enqueue_command(&state, command(ncp_core::Mode::Estop), STREAM, &sequence,),
             ncp_core::transport::CommandSendOutcome::Accepted
         );
         let failed = state.lock().unwrap().pending.take().unwrap();
@@ -2815,7 +3088,7 @@ mod tests {
         assert_eq!(sequence.load(std::sync::atomic::Ordering::Relaxed), 1);
 
         assert_eq!(
-            enqueue_command(&state, command(ncp_core::Mode::Hold), STREAM, &sequence,),
+            enqueue_command(&state, command(ncp_core::Mode::Estop), STREAM, &sequence,),
             ncp_core::transport::CommandSendOutcome::Accepted
         );
         let retry = state.lock().unwrap().pending.take().unwrap();
@@ -2830,6 +3103,72 @@ mod tests {
             ncp_core::transport::CommandSendOutcome::Accepted,
             "Active resumes only after a new fail-safe position succeeds"
         );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn malformed_estop_correlation_reaches_typed_zenoh_put() {
+        const COMMAND_EPOCH: &str = "40000000-0000-4000-8000-000000000004";
+        let bus = ZenohBus::with_config(isolated_test_config(), Keys::default())
+            .await
+            .unwrap();
+        let live = live_session();
+        let received = Arc::new(std::sync::Mutex::new(None::<Vec<u8>>));
+        let received_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let sink = received.clone();
+        let count = received_count.clone();
+        bus.subscribe_commands("s", &live, move |_, payload| {
+            *sink.lock().unwrap() = Some(payload);
+            count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        })
+        .await
+        .unwrap();
+        let transport = ZenohControlTransport::new(bus.clone(), "s", live.clone())
+            .await
+            .unwrap();
+        let malformed_estop = ncp_core::CommandFrame {
+            stream: ncp_core::StreamPosition {
+                epoch: COMMAND_EPOCH.into(),
+                seq: 1,
+            },
+            source: Some(ncp_core::StreamPosition {
+                epoch: "invalid-source-epoch".into(),
+                seq: 0,
+            }),
+            source_t: f64::NAN,
+            session: live.clone(),
+            session_id: "s".into(),
+            mode: ncp_core::Mode::Estop,
+            ..Default::default()
+        };
+
+        assert_eq!(
+            ncp_core::ControlTransport::send_command(&transport, &malformed_estop),
+            ncp_core::transport::CommandSendOutcome::Accepted
+        );
+        wait_for_count(&received_count, 1, "normalized malformed ESTOP typed put").await;
+        let payload = received
+            .lock()
+            .unwrap()
+            .take()
+            .expect("typed subscriber captured the ESTOP put");
+        let decoded = check_command_payload_for("s", &live, &payload)
+            .expect("the emitted ESTOP must pass the typed publisher decoder");
+        assert_eq!(
+            (
+                decoded.mode,
+                decoded.source,
+                decoded.source_t,
+                decoded.authority,
+            ),
+            (ncp_core::Mode::Estop, None, 0.0, None)
+        );
+        assert!(
+            !transport.fail_safe_delivery_pending(),
+            "a successful normalized ESTOP put must clear publication-pending state"
+        );
+
+        drop(transport);
+        bus.close().await.unwrap();
     }
 
     #[test]

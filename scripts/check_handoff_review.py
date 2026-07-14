@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the non-normative standalone-handoff task review ledger.
 
-The review ledger is supervisor-commentable evidence bookkeeping.  It is not a
+The review ledger is reviewer-commentable evidence bookkeeping.  It is not a
 normative protocol source and cannot authorize a release.  This checker binds its
 task index to the supplied handoff ledger without requiring that out-of-repository
 source file to exist in a clean checkout.
@@ -33,7 +33,7 @@ EXPECTED_TASK_INDEX_SHA256 = (
     "8106226fbd03446394531a845eefc620f4d122befe0898acf010f69d48590861"
 )
 EXPECTED_REVIEW_CONTENT_SHA256 = (
-    "567a043031be2e1e28a2c08ca48606e358ef2be01823ee8600d35dca894459e7"
+    "0fb76de9e074b7be4d5dde3733deca62835080b70d5df0be8b8468b030c08098"
 )
 EXPECTED_AUDIT_INPUTS_SHA256 = (
     "255f17b6802abe0ea5cce48edd2201594d5ea968478fc9829a0a1ae525522e68"
@@ -139,7 +139,7 @@ def _review_content_hash(value: dict[str, Any]) -> str:
     frozen = copy.deepcopy(value)
     for task in frozen.get("tasks", []):
         if isinstance(task, dict):
-            task.pop("supervisor_comment", None)
+            task.pop("reviewer_comment", None)
     canonical = json.dumps(
         frozen, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
@@ -229,7 +229,7 @@ def _validate_task(task: Any, index: int, earlier: set[str]) -> dict[str, Any]:
         "gap_summary",
         "evidence",
         "residual_risk",
-        "supervisor_comment",
+        "reviewer_comment",
     }
     if not isinstance(task, dict) or set(task) != expected_fields:
         raise ReviewError(f"{path} has an unexpected shape")
@@ -272,9 +272,9 @@ def _validate_task(task: Any, index: int, earlier: set[str]) -> dict[str, Any]:
             evidence_path, f"{path}.evidence.paths[{evidence_index}]"
         )
 
-    comment = task["supervisor_comment"]
+    comment = task["reviewer_comment"]
     if comment is not None:
-        _nonempty_string(comment, f"{path}.supervisor_comment")
+        _nonempty_string(comment, f"{path}.reviewer_comment")
 
     if state != "OPEN":
         raise ReviewError(f"{path}.state must remain OPEN in this comment-only review")
@@ -322,8 +322,8 @@ def validate(value: dict[str, Any]) -> None:
         raise ReviewError("schema must be ncp.handoff-task-review.v1")
     if value.get("normative") is not False:
         raise ReviewError("the handoff review must remain non-normative")
-    if value.get("review_status") != "OPEN_FOR_SUPERVISOR_REVIEW":
-        raise ReviewError("review_status must remain OPEN_FOR_SUPERVISOR_REVIEW")
+    if value.get("review_status") != "OPEN_FOR_REVIEWER_REVIEW":
+        raise ReviewError("review_status must remain OPEN_FOR_REVIEWER_REVIEW")
     if value.get("author") != {"name": EXPECTED_AUTHOR}:
         raise ReviewError(f"author must be {EXPECTED_AUTHOR}")
     if value.get("release_authorized") is not False:
@@ -381,14 +381,14 @@ def validate(value: dict[str, Any]) -> None:
         )
     if _review_content_hash(value) != EXPECTED_REVIEW_CONTENT_SHA256:
         raise ReviewError(
-            "review content changed outside supervisor_comment; update requires a reviewed guard change"
+            "review content changed outside reviewer_comment; update requires a reviewed guard change"
         )
 
 
 def self_test(good: dict[str, Any]) -> None:
     validate(good)
     comment_only = copy.deepcopy(good)
-    comment_only["tasks"][0]["supervisor_comment"] = "Review this evidence."
+    comment_only["tasks"][0]["reviewer_comment"] = "Review this evidence."
     validate(comment_only)
 
     bad_author = copy.deepcopy(good)
@@ -435,7 +435,7 @@ def main() -> int:
         return 1
     print(
         "OK handoff review: 120 exact source tasks remain non-normative and "
-        "supervisor-commentable; non-comment content frozen"
+        "reviewer-commentable; non-comment content frozen"
     )
     return 0
 

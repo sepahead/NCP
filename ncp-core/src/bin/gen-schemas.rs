@@ -74,6 +74,7 @@ const NESTED_REQUIRED: &[(&str, &[&str])] = &[
         ],
     ),
     ("SafetyLimits", &["command_timeout_ms"]),
+    ("SessionRef", &["generation"]),
     (
         "SimProvenance",
         &[
@@ -85,6 +86,7 @@ const NESTED_REQUIRED: &[(&str, &[&str])] = &[
         ],
     ),
     ("StimulusTarget", &["kind", "port", "target"]),
+    ("StreamPosition", &["epoch", "seq"]),
 ];
 
 fn kind_for_title(title: &str) -> Option<&'static str> {

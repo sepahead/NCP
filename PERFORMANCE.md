@@ -5,8 +5,10 @@
 > `1.0.0-rc.1` artifacts. The final installed-package, platform, secure-transport,
 > fault-load, memory, and queue profile is **NOT RUN**.
 
-**Short answer: no, not inherently — once one real bottleneck (now fixed) is out
-of the way.** NEST only advances simulation time *during* `nest.Run(chunk)`;
+**Release answer: not established.** Historical developer measurements suggest
+that protocol processing was not the dominant term in the tested configurations,
+after one reference-backend readback defect was fixed. NEST advances simulation
+time *during* `nest.Run(chunk)`;
 between chunks NCP does its work (read recorders, serialize, transport, inject
 stimulus). So the effective throughput is
 
@@ -14,25 +16,24 @@ stimulus). So the effective throughput is
 effective_rate ≈ chunk_ms / (T_run + T_ncp)
 ```
 
-NCP is a bottleneck only if its per-chunk overhead `T_ncp` is comparable to or
-larger than the integration time `T_run`. For a **rate-coded control loop** `T_ncp`
-is small and bounded; the dominant term is `T_run` — the simulation itself, which
-NCP neither can nor should change.
+NCP becomes a material throughput term when its per-chunk overhead `T_ncp` is
+comparable to or larger than the integration time `T_run`. Whether that happens is
+deployment-, workload-, transport-, and platform-specific; the candidate has no
+release-bound performance profile.
 
-## The one real bottleneck — found and fixed
+## One reference-backend readback defect — fixed
 
 The reference NEST backend's `step` previously called `device.get("events")` for
 **every** record port on **every** step and sliced `[last:]`. `get("events")`
 materialises the recorder's **entire history** each call, so per-step cost grew
-**O(total events recorded)** — linearly with run length. A 10-minute control loop
-at 50 Hz would slow to a crawl (and balloon memory) purely from re-copying spike
-history, even though each step only needs the last chunk. This *would* have
-throttled NEST as the loop fell behind real time.
+**O(total events recorded)** — linearly with retained history. That creates an
+avoidable duration-dependent cost even though each step needs only the latest
+chunk; no long-duration bound was measured.
 
 Fixed (in the reference NEST backend's `step`):
 - **`RATE`** (the common control observable): difference the **`n_events`
-  counter** — **O(1)** per step, no events array at all (the proven
-  count-delta control-loop pattern).
+  counter** — **O(1)** counter read/difference per step, without materializing the
+  events array.
 - **`SPIKES` / `V_m`**: fetch the events, return the `[last:]` tail, then
   **best-effort drain** the recorder (`set(n_events=0)`) so the next read is
   **O(new)**; if the NEST build doesn't support clearing, fall back to index
@@ -48,20 +49,20 @@ index-tracking fallback remains O(history).
 | Term | Cost | Notes |
 |---|---|---|
 | stimulus inject (`generator.set`) | O(#stimulus ports), µs | a few `set()` calls |
-| **`nest.Run(chunk)`** | **dominant; model-size dependent** | the science; NCP doesn't touch it |
+| **`nest.Run(chunk)`** | **dominant in the retained fixtures; model-size dependent** | simulator work; the candidate does not alter it |
 | readback | **O(1)** rate / **O(new)** spikes-V_m with supported drain; otherwise O(history) | drain capability is deployment-dependent |
-| encode/decode (codec) | negligible | linear rate map |
-| serialize | rates: hundreds of bytes; raw spikes: O(events) | **prefer rate for the loop**; raw spikes are the analysis path. Current canonical JSON frame serialization is **~0.5–0.6 µs** and deserialization **~1.0 µs** on the reference machine (measured — see [NCP's own per-tick overhead](#measured-ncps-own-per-tick-overhead-rust-release)) |
-| transport | in-proc ~µs · Zenoh SHM ~tens µs · Zenoh/loopback ~0.1 ms · WS+JSON ~0.2–1 ms | far below a 20–50 Hz (20–50 ms) budget |
+| encode/decode (codec) | workload-dependent | linear rate map in the measured example |
+| serialize | rates: hundreds of bytes; raw spikes: O(events) | **prefer rate for the loop**; raw spikes are the analysis path. Current canonical JSON frame serialization is **~0.5–0.6 µs** and deserialization **~1.0 µs** on the reference machine (measured — see [NCP's own per-tick overhead](#historical-local-measurement-ncps-rust-per-tick-operations)) |
+| transport | deployment-dependent | secure profile, topology, payload, load, queues, and failure behavior were not measured as one release-bound matrix |
 
-For a UAV outer-loop (20–50 Hz) with rate-coded I/O, `T_ncp` is sub-millisecond
-and **`T_run` dominates**. NCP adds no meaningful slowdown.
-## Measured: NCP's own per-tick overhead (Rust, release)
+The historical measurements below must not be generalized to a UAV, secure
+deployment, installed package, or other consumer without an exact bound profile.
 
-The sections above ask whether NCP slows *NEST*. The complementary question a
-fleet integrator asks is whether NCP itself — the contract, the codec, the safety
-gate — is heavy. It is not, and the word "negligible" in the cost model above now
-has a number behind it. [`ncp-core/examples/overhead.rs`](ncp-core/examples/overhead.rs)
+## Historical local measurement: NCP's Rust per-tick operations
+
+The sections above ask whether NCP slows *NEST*. A complementary question is what
+the contract, codec, and safety gate cost. One developer microbenchmark gives a
+local estimate only. [`ncp-core/examples/overhead.rs`](ncp-core/examples/overhead.rs)
 times the exact hot-path operations a controller runs **every tick** — JSON
 (de)serialization of the action/perception frames, the safety governor, and the
 reflex controller — on the **release** build, with warmup and `black_box` to
@@ -79,9 +80,9 @@ defeat dead-code elimination.
 A full closed-loop tick — deserialize the inbound `SensorFrame`, step the reflex
 controller, run the safety governor, serialize the outbound `CommandFrame` — sums
 to **≈2.8 µs** of CPU (0.96 + 0.48 + 0.81 + 0.56 µs). The measured canonical
-frames are **337 B** (perception) and **403 B** (action). Transport then adds the per-hop term from the
-cost model: **≈0.1 ms** on a Zenoh loopback hop, **tens of µs** over shared memory,
-~µs in-process.
+frames are **337 B** (perception) and **403 B** (action). Those CPU timings do not
+include transport, contention, allocator variance, security, queues, retries, or
+consumer work.
 
 > **Reproduce:** `cargo run -p ncp-core --release --example overhead`
 > (`--release` is load-bearing — a debug build is 10–50× slower and not
@@ -91,9 +92,9 @@ cost model: **≈0.1 ms** on a Zenoh loopback hop, **tens of µs** over shared m
 > microbenchmark, not cross-platform release evidence. The three NEST-side Python benchmarks are documented under
 > [Benchmark methodology & reproducibility](#benchmark-methodology--reproducibility).
 
-This also confirms why **JSON is the right runtime default** (see
-[`RATIONALE.md`](RATIONALE.md)). At ≈2.8 µs/tick the measured protocol path is nowhere near the
-bottleneck, and JSON stays human-readable on the wire and trivially debuggable.
+This local result supports retaining readable JSON as the candidate runtime default
+(see [`RATIONALE.md`](RATIONALE.md)); it does not prove that JSON is optimal or
+non-bottlenecking for every payload, rate, platform, or consumer.
 The protobuf schema in [`proto/ncp.proto`](proto/ncp.proto) (+ `gen/rust`) is the
 normative field-number/message-shape IDL within the repository's documented
 contract-registry precedence, *not* the shipped runtime encoding or the sole
@@ -104,11 +105,10 @@ JSON for the same numeric array (≈2× smaller with `f32`/`i32` columns). It is
 transport frame: JSON `ObservationFrame` remains the only shipped observation-plane
 representation.
 
-### Is NCP unnecessary overhead?
+### Local budget illustration
 
-**No — and it is now quantified.** A control loop runs at 20–1000 Hz, i.e. a
-**50 ms → 1 ms** budget per tick. NCP's own measured per-tick CPU cost is **≈2.8 µs**, so the
-NCP tax is a vanishing fraction of that budget:
+For illustration only, dividing the retained ≈2.8 µs local estimate by example
+20–1000 Hz periods gives:
 
 | control rate | period | NCP CPU tax (≈2.8 µs) |
 |--------------|--------|---------------------|
@@ -116,46 +116,36 @@ NCP tax is a vanishing fraction of that budget:
 | 100 Hz       | 10 ms  | ≈0.028 %            |
 | 1000 Hz      | 1 ms   | ≈0.28 %             |
 
-Transport is a separate, deployment-dependent term: a Zenoh loopback hop
-(≈0.1 ms) is comfortable up to a few hundred Hz; at kHz rates co-locate the
-controller in-process (~µs) or use SHM (tens of µs). Either way the dominant cost
-in a neuro-cybernetic loop is the **simulation / in-sim compute** (`nest.Run`, the
-NEST kernel) and — for a networked fleet — the **transport hop**, not NCP's
-serialize-and-check.
+These ratios are arithmetic projections, not measured end-to-end loop budgets.
+Transport and simulator/consumer work are separate and may dominate or may not;
+the required release-bound load/resource matrix is `NOT RUN`.
 
 What that measured ≈2.8 µs path is intended to buy is a stable cross-language
 **contract**, per-tick **safety gating** (`SafetyGovernor`: speed / geofence /
 timeout / health), and a generic four-plane **hub-interop** surface. Engram's
 native-1.0 migration is in progress while crebain and prisoma remain wire 0.8, so
 the multi-consumer shape is a design and certification target, not current
-interoperability evidence. In the measured microbenchmark, deleting the NCP checks
-would not reclaim a meaningful slice of the loop budget; release-bound platform and
-consumer measurements remain required.
+interoperability evidence. The retained microbenchmark is useful for hypothesis
+formation; release-bound platform and consumer measurements remain required.
 
-### Top safe optimization: zero-copy publish (ZBytes/SHM)
+### Candidate optimization: avoid one owned-buffer copy
 
-The highest-value **safe** (non-wire-breaking) optimization on the transport side
-is in [`ncp-zenoh`](ncp-zenoh): `ZenohBus::put` copies the payload on **every**
-publish.
+One wire-neutral optimization candidate is in [`ncp-zenoh`](ncp-zenoh): the current
+slice-based `ZenohBus::put` makes an owned copy for Zenoh.
 
 ```rust
 // ncp-zenoh/src/lib.rs — ZenohBus::put
 self.session.put(key, payload.to_vec())   // clones an already-owned Vec<u8>
 ```
 
-The caller (`send_command` / `publish_command` / RPC) already owns the serialized
-`Vec<u8>`; `payload.to_vec()` clones the whole frame a second time for nothing.
-Moving the owned buffer into Zenoh `ZBytes` — e.g. a
+Some callers already own the serialized `Vec<u8>`. Adding an owned-buffer path,
+for example
 `put_owned(key, payload: Vec<u8>, plane)`, or making `put` generic over
-`impl Into<ZBytes>` — removes one alloc+copy of the full frame per publish with
-**no change to the wire bytes**. It is also the prerequisite for true SHM
-**zero-copy** delivery on the action plane: a `to_vec()` into a fresh heap `Vec`
-cannot be handed to the shared-memory path without a copy, so this single change
-unblocks the zero-copy fast path the QoS layer is already set up for. At 337–403 B
-for the measured canonical sensor/command frames the copy is cheap in absolute
-terms, but it is pure waste on the
-latency-critical action loop and trivially removable. JSON stays the debuggable
-default; this is an encoding-neutral transport win.
+`impl Into<ZBytes>`, could remove that one allocation/copy without changing wire
+bytes. It does **not** by itself establish shared-memory zero-copy: ownership,
+buffer compatibility, Zenoh behavior, backpressure, and end-to-end measurement all
+need separate implementation and verification. No benefit is claimed until that
+path is benchmarked in the release-bound matrix.
 
 This optimization and the remaining audited risks are catalogued individually in
 [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). All original high-severity findings
@@ -163,17 +153,17 @@ This optimization and the remaining audited risks are catalogued individually in
 bypass) are fixed and regression-tested; the live ledger retains unresolved work.
 
 
-## Secondary considerations (not bottlenecks, documented)
+## Secondary implementation considerations
 
 - **Hot loop bypasses the gateway.** The streaming control plane is
   `ZenohControlTransport` pub/sub (sensor→command); it does **not** go through the
   gateway's per-request RPC. The gateway's localhost-TCP-per-request is only the
-  *rare* lifecycle RPC (open/close); it is not on the per-tick path. (Connection
-  reuse there is a possible micro-optimisation, not a bottleneck.)
+  lifecycle RPC (open/close); it is not on the per-tick streaming path. Connection
+  reuse remains an unmeasured optimization candidate.
 - **WebSocket single-thread executor.** The reference WebSocket endpoint runs
   `handle_json` on one shared worker thread — this serialises all connections'
-  NEST work, which is *correct* (one global NEST kernel) and keeps the event loop
-  free; it is not an added bottleneck (NEST is single-kernel regardless).
+  NEST work, matching the one-kernel reference-backend design and keeping the event
+  loop free. Its multi-client queueing and latency still require measurement.
 - **Raw spike streaming** at high rate produces large JSON. Use `RATE`/counts for
   the control loop; stream raw spikes only on the observation/analysis plane
   (an analysis/observer client), which is loss-tolerant.
@@ -188,44 +178,28 @@ bypass) are fixed and regression-tested; the live ledger retains unresolved work
   plane—never the hot action loop—but must first ship across every SDK. The
   canonical JSON `ObservationFrame` remains the only available wire representation.
 
-## Compared with SOTA (June 2026)
+## Cross-system comparison boundary
 
-Runtime exchange with a live simulator has *inherent* per-tick overhead in every
-scheme — MUSIC services its ports each MPI tick, NRP-core marshals DataPacks per
-step, the NEST Server does a REST round trip. NCP's chunked `Prepare`/`Run` +
-**delta readback** is the standard pattern, and after this fix its readback is the
-same **O(new)** MUSIC achieves. The one structural difference is the transport
-hop — and the common intuition about it is **backwards**: MUSIC is not a
-low-microsecond shared-memory hop. It exchanges over **buffered pairwise
-`MPI_Send`/`MPI_Recv`** ([Djurfeldt et al. 2010, PMC2846392](https://pmc.ncbi.nlm.nih.gov/articles/PMC2846392/)),
-and its *closed-loop* latency is buffering/tick-bound: ≈**70 ms at a 1 ms tick** rising
-to ≈**350 ms at a 50 ms tick** ([Weidel et al. 2016, *Front. Neuroinform.* 10:31](https://www.frontiersin.org/articles/10.3389/fninf.2016.00031/full)).
-NCP's per-exchange transport (≈0.1 ms Zenoh loopback, ≈0.2–1 ms WS+JSON) is one to two
-orders of magnitude **under** that floor, so on a single closed-loop reaction NCP is
-**not** slower than MUSIC — if anything faster. MUSIC's genuine edge is multi-simulator
-shared-clock co-simulation and bulk intra-HPC spike throughput (see
-[`NEST_REALTIME.md`](NEST_REALTIME.md)), not single-loop latency. The honest asymmetry
-that favours MUSIC is structural, not transport: NCP pays a per-chunk PyNEST/SLI
-round-trip (~0.1 ms host overhead) because Python is NEST's only binding — a soft
-`chunk_ms` floor of ≈1–2 ms in the small-network regime that MUSIC's C++/MPI tick lacks
-(it bites only below ~2 ms ticks on tiny networks). NCP competes on portability, safety,
-provenance, and observability — and cedes no closed-loop-latency crown to MUSIC.
+MUSIC, ROS/MUSIC, DDS/ROS 2, NRP, NEST Server, and NCP measurements use different
+payloads, topologies, simulators, encoding/decoding work, clocks, hardware, and
+latency definitions. For example, the ROS/MUSIC paper's reported end-to-end
+reaction latency includes a complete sensory-to-motor toolchain; it is not
+comparable to a transport-only loopback hop. Combining those values into a
+faster/slower ranking would be invalid.
 
-Nor does NCP claim a latency edge over a tuned ROS 2/DDS stack: in single-machine
-64-byte ping-pong, Cyclone DDS reaches ~8 µs (UDP multicast) versus Zenoh-p2p
-~10 µs (zenoh-pico ~5 µs) ([Liang et al. 2023, arXiv:2303.09419](https://arxiv.org/abs/2303.09419)).
-NCP chooses
-Zenoh for its **features** — per-plane QoS, shared memory, data-centric P2P
-discovery, fleet many-to-many — not raw intra-host latency. The broader measured
-lesson holds across every neuro-robotic system: inter-process **transport**, not
-in-simulator or on-chip compute, dominates loop latency (even on-chip neuromorphic
-loops are bottlenecked by per-timestep host↔board spike transfer), which is why
-NCP invests in transport QoS rather than claiming a speed record.
+The cited systems remain architectural context, not an NCP performance baseline:
+[Djurfeldt et al. 2010](https://pmc.ncbi.nlm.nih.gov/articles/PMC2846392/),
+[Weidel et al. 2016](https://www.frontiersin.org/articles/10.3389/fninf.2016.00031/full),
+and [Liang et al. 2023](https://arxiv.org/abs/2303.09419). NCP currently claims no
+state-of-the-art standing, latency crown, throughput advantage, or cross-system
+equivalence. A valid comparison requires one preregistered workload and estimand,
+the same hardware/topology/security profile, retained raw data, uncertainty, and
+independent reproduction; that campaign is `NOT RUN`.
 
-## Measured: chunk overhead, scaling, and I/O overlap (NEST 3.8.0, 16 cores)
+## Historical chunk, scaling, and overlap measurements (NEST 3.8.0, 16 cores)
 
-The cost model above predicts `T_ncp` is small and `T_run` dominates. Three
-benchmarks confirm it and bound where NCP's design choices actually matter.
+Three developer benchmarks illustrate the local cost decomposition. They neither
+confirm a general bottleneck model nor bind the release candidate.
 Reproduce with [`scripts/bench_chunk_overhead.py`](scripts/bench_chunk_overhead.py),
 [`scripts/bench_realtime.py`](scripts/bench_realtime.py), and
 [`scripts/bench_overlap.py`](scripts/bench_overlap.py); full sizing table in
@@ -244,41 +218,36 @@ O(history) fallback on a different NEST build.
 
 ### Scaling: the binding constraint is the real-time factor
 
-A Brunel-style balanced net (~500 syn/neuron, ~13 Hz async-irregular) reaches
-**>=1x real time only at N=10000 and only at >=4 threads** (T=4 1.18x, T=8 2.01x,
-T=16 2.13x). No N>=50000 config reaches real time on 16 cores (best N=50000 T=16 =
-0.35x). Since indegree is fixed, synapses and per-step compute scale ~linearly with
-N, so `rt` degrades ~linearly with N. Thread efficiency peaks in the **4–8 band**
-(super-linear, cache-driven: N=50000 T=8 efficiency ~1.12) and collapses to ~0.66
-at T=16 — 16 threads still helps absolute wall time but with diminishing returns.
-**Practical live ceiling at 16 threads / ~13 Hz / ~500 syn/neuron: ~10k–20k
-neurons.** Implication for `chunk_ms`: shrinking it buys latency, not throughput,
-and while compute-bound it makes things *worse* (per-`Run()` overhead climbs — at a
-10 ms chunk on a 50k net, ~10 ms of bio time cost ~38–65 ms of compute). If real
-time at large N is the goal, the lever is **fewer-but-larger chunks / more threads /
-a smaller net**, not a smaller chunk.
+In the retained sweep, a Brunel-style balanced net (~500 syn/neuron, ~13 Hz
+async-irregular) reached `rt >= 1` only for N=10000 at T>=4; no sampled N>=50000
+configuration reached it. The unsampled crossing between 10k and 50k must not be
+reported as a measured capacity. Ratios above 100% apparent efficiency occurred in
+some retained minima, but with at most three repetitions, no uncertainty, and no
+independent reproduction, cache effects are only one hypothesis. These values may
+guide a new campaign; they do not establish a practical live ceiling or prescribe
+thread/chunk settings for another deployment.
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/realtime_dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/plots/realtime_light.svg">
-  <img alt="Real-time factor rt = bio-s/wall-s vs OpenMP thread count (1-16) on a 16-core box, log-log. Only N=10,000 crosses the dashed rt=1.0 real-time line - 1.18x at 4 threads up to 2.13x at 16; N=50,000/100,000/200,000 stay below real-time (best 0.35x at N=50k, T=16). The ~17-20k live ceiling is interpolated. NEST 3.8.0, ~500 syn/neuron, ~13 Hz async-irregular." src="docs/plots/realtime_light.svg">
+  <img alt="Historical non-release-bound local real-time-factor sweep versus OpenMP threads. Only the sampled N=10,000 series crosses rt=1; larger sampled series remain below it. The hollow ~17–20k crossing is interpolated across an unsampled range and is not capacity evidence. NEST 3.8.0 developer run." src="docs/plots/realtime_light.svg">
 </picture>
 
-<sub>**Real-time factor vs threads** (`rt = bio-s / wall-s`, log–log). Only the 10k-neuron net clears the dashed `rt = 1.0` line (1.18× → 2.13× over 4–16 threads); larger nets stay offline (best 0.35× at N=50k, T=16). `rt` degrades ~linearly with N; the ~10–20k live ceiling is interpolated (no sample between 10k and 50k). Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
+<sub>**Historical local real-time-factor sweep** (`rt = bio-s / wall-s`, log–log). Only the sampled 10k-neuron series crosses `rt = 1`; the hollow ~17–20k marker is an interpolation across an unsampled range, not capacity evidence. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
 
-### I/O overlap: the GIL blocks *Python* threads, not *native* threads
+### Historical I/O-overlap and GIL probes
 
-Two GIL tests settle where transport must live. (1) A background spinner thread
+Two historical GIL probes suggest where transport work might run in this specific
+PyNEST configuration. (1) A background spinner thread
 retained only **~0.4–1.3% of its standalone counting rate during a real
 `nest.Run()`** — `nest.Run()` holds the Python GIL for essentially its full
-duration (`gil_released=false`). (2) So a `ThreadPoolExecutor` "overlap" loop (a
-*Python* worker) yields only **~0.92–1.10× (noise)** — no real overlap, because the
-worker can only run during NEST's brief internal GIL releases.
+duration (`gil_released=false` in that probe). (2) A `ThreadPoolExecutor` overlap
+loop produced **~0.92–1.10×**. Those observations are not a general proof about
+other NEST/Python versions or workloads.
 
-But the GIL only blocks **Python** threads. A **native OS thread** — a Rust
-`std::thread`, a PyO3 background thread, or (in the measurement) a C `pthread` via
-`ctypes` — never holds the GIL, so it runs transport *concurrently with*
-`nest.Run()`. Measured wall-clock with a `ctypes` off-GIL busy-spin transport stand-in
+The second test used a C `pthread` invoked through `ctypes`; the synthetic worker
+did not execute Python and could run while the main thread called `nest.Run()`.
+Its wall-clock result used an off-GIL busy-spin transport stand-in
 (8000-neuron net, ~8 ms compute and 10 ms transport-work per 20 ms chunk, 30 chunks;
 [`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py)):
 
@@ -291,85 +260,42 @@ But the GIL only blocks **Python** threads. A **native OS thread** — a Rust
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/overlap_dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/plots/overlap_light.svg">
-  <img alt="Left: I/O-overlap speedup vs transport-work per chunk (log x). The analytic ceiling (compute+work)/max(compute,work) falls from 1.80x at 10 ms to ~1.01x at 0.1 ms; the measured native-thread point (1.68x at 10 ms) sits below the ideal line; the sub-millisecond rate-loop regime yields only single-digit-percent gain. Right: serial 1.00x, Python-thread 1.08x (solid, measured), native-thread 1.68x (hatched - idealized off-GIL ceiling, not measured transport). NEST 3.8.0, 8000-neuron net, bench_gil_overlap.py." src="docs/plots/overlap_light.svg">
+  <img alt="Historical synthetic overlap illustration. The left panel shows an analytic ceiling versus modeled work; the right panel compares retained serial and Python-thread values with a hatched 1.68x off-GIL busy-spin stand-in. This is not measured NCP transport or release performance evidence." src="docs/plots/overlap_light.svg">
 </picture>
 
 <sub>**The I/O-overlap ceiling, read honestly.** Left: the analytic ceiling `(compute+work)/max(compute,work)` falls from 1.80× at 10 ms transport-work to ~1.01× at 0.1 ms — at a sub-ms rate-loop `T_ncp` the gain is single-digit-%. Right: the 1.68× native-thread bar is **hatched** because it is an idealized off-GIL `ctypes` ceiling, *not* a measured transport result; a naive Python-serialize thread lands at 1.08×. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
 
-**So the fix for the GIL is a native thread, not a different language.** Two ways:
-(a) **the Rust NCP gateway / a separate process** ([`ncp-gateway`](ncp-gateway) /
-[`ncp-zenoh`](ncp-zenoh)) — recommended; its OS threads run outside the GIL and it
-also isolates the loop from Python GC jitter; or (b) an **in-process PyO3 background
-thread** that owns serialization + Zenoh publish and overlaps the next `Run`. (A
-third option — releasing the GIL inside PyNEST via Cython `with nogil` — would also
-work but means patching/rebuilding NEST upstream.) Either way, transport ships chunk
-N-1 / buffers chunk N+1 while the NEST process computes chunk N.
-
-> **Read the 1.68× honestly — it is an idealized *ceiling*, not a measured transport
-> result.** The "transport work" in `bench_gil_overlap.py` is a `ctypes` busy-spin that
-> runs 100% in C and never touches the GIL — the most optimistic possible stand-in. The
-> 1.68× therefore holds **only if the real serialize is *also* off-GIL** (Rust `serde` /
-> a PyO3 worker that releases the GIL). A naive `threading.Thread` whose body is Python
-> serialization (e.g. Pydantic `model_dump`) lands at the **~1.08×** Python-thread row,
-> not 1.68× — so option (b) above **must serialize in Rust**, not Python. And the gain
-> is contingent on `T_transport ≈ T_run`: the overlap speedup falls off from its analytic
-> ceiling `(compute+work)/max(compute,work)` ≈ **1.80× at 10 ms-work** (measured 1.68×)
-> → ~1.07× at 0.6 ms → ~1.01× at 0.1 ms, so at rate-loop `T_ncp` (sub-ms) the
-> real benefit is single-digit percent, not 68%.
->
-> **What engram actually deploys:** the in-process Python NEST path
-> (`backends.py::NestSession.step` → `loop.py::NeuroControlLoop.tick`) is **strictly
-> serial** on one thread — `Run`, then read, then send, in sequence. There is no Python
-> `ZenohControlTransport` and no PyO3 background thread; the realized native-thread
-> overlap lives **only** in the separate Rust `ncp-zenoh`/`ncp-gateway` process. That is
-> **fine for the rate-coded loop** (`T_ncp` sub-ms ≪ `T_run`), and is the standing
-> ceiling **only** for high-rate raw-spike/`V_m` streaming, where serialize is O(events)
-> (~11 ms / 50k spikes) and rivals `T_run`. If that workload ships, first implement
-> and negotiate the complete cross-language `BulkObservation` transport envelope;
-> then route **only the observation plane** through the off-GIL packed codec and batch
-> generator updates into one `nest.SetStatus`; keep the control loop serial. (Do **not**
-> reach for free-threaded CPython: importing today's NEST under 3.13t/3.14t re-enables
-> the GIL process-wide and buys nothing for the OpenMP kernel.)
-
-Caveat: overlap only *helps* when transport work is comparable to per-chunk compute
-(the real-time regime). For a compute-bound heavy net it is moot (best honest case
-stayed ~55 ms period at chunk_ms=10); the lever there is the real-time factor.
-
-(Both overlap experiments are committed and reproducible —
-[`scripts/bench_gil_overlap.py`](scripts/bench_gil_overlap.py) (native-vs-Python
-thread) and [`scripts/bench_overlap.py`](scripts/bench_overlap.py) (serial-vs-threaded
-loop). Absolute periods are machine/load-dependent; the load-bearing, reproducible
-result is the native-≫-Python-thread gap, not the absolute milliseconds.)
+The 1.68× value is an idealized local ceiling, not measured NCP transport. Real
+serialization, queues, synchronization, and Zenoh behavior could erase or reverse
+the gain. Native, PyO3, and out-of-process designs therefore remain hypotheses to
+measure against the serial baseline on the exact installed stack. The committed
+scripts make that experiment repeatable in form, but the original raw receipts and
+environment image are absent and one prototype was reconstructed; neither the
+absolute values nor a native-over-Python ordering is independently reproduced.
 
 ## Benchmark methodology & reproducibility
 
-All three benchmarks are committed, parameterized scripts. A third party can
-reproduce every number below from the repo. This section documents, for each:
-what it measures, the exact network, the timing protocol, the correctness checks,
-the command, the environment, and the known caveats.
+The benchmark scripts are committed and parameterized, so a third party can attempt
+the same procedure. Exact numerical reproduction is not promised: the original raw
+result files, complete environment image, dependency lock, uncertainty analysis,
+and independent receipt are absent. This section documents the intended method and
+known caveats so a future release-bound campaign can replace the historical values.
 
 ### Shared environment, protocol & caveats
 
 * **Hardware / OS:** 16 physical cores, 128 GB RAM (the reference machine).
-* **Simulator:** **NEST 3.8.0**, OpenMP-only, single MPI rank. The verification
-  target discussed in this document is **NEST 3.9**; repository agent notes do not
-  pin a NESTML/NEST dependency. The absolute hardware-specific
-  *timings* may shift slightly on 3.9, but the load-bearing **GIL verdict does not**:
-  `nest.Run()`/`Simulate()` holds the CPython GIL identically on 3.8.0, **3.9, and
-  3.10** — source-confirmed (no `with nogil` around `pEngine.execute` in
-  `pynestkernel.pyx`, nor around `run(t)` in 3.10's `nestkernel_api.pyx`; 3.10 even
-  rewrote PyNEST from SLI to a direct C++ API and still added none). Each script
-  prints `nest.__version__` so reproductions are self-labelling; run
-  [`scripts/verify_nest_chunking.py`](scripts/verify_nest_chunking.py) to re-confirm
-  the chunking/equivalence claims on your 3.9 build.
+* **Simulator:** the retained values report **NEST 3.8.0**, OpenMP-only, single MPI
+  rank. They say nothing about later NEST/Python combinations until rerun. Each
+  script prints `nest.__version__`; run
+  [`scripts/verify_nest_chunking.py`](scripts/verify_nest_chunking.py) as a local
+  semantic probe, not as certification.
 * **Build is excluded from the timer.** Network construction (`Create`/`Connect`)
-  runs *outside* `perf_counter`; only the simulate phase is timed. (Build is itself
-  characterized in [`NEST_REALTIME.md`](NEST_REALTIME.md): ~linear in synapse count,
-  the *emerging* limiter at very large N, but never inside the reported wall.)
-* **Warmup + reps + MIN.** Every config gets ≥1 untimed warmup rep (first-touch
-  allocation, JIT/cache warm) then N timed reps; the **MIN wall** is the headline
-  (least-contended sample), with median also reported where relevant. MIN is the
-  honest "best achievable" number and is the standard for noisy micro-timing.
+  runs *outside* `perf_counter`; only the simulate phase is timed. These results
+  therefore cannot characterize startup or total experiment latency.
+* **Warmup + reps + retained minimum.** Configurations use an untimed warmup and a
+  small number of timed repetitions. The historical tables retain the minimum,
+  which is a best observed sample—not an estimate of typical, tail, or achievable
+  production performance. Future evidence must retain all samples and uncertainty.
 * **Determinism where it gates correctness.** The chunk benchmark uses
   `local_num_threads = 1` and a fixed `rng_seed` so its bit-identical equivalence
   check is meaningful. (The realtime/overlap sweeps vary threads on purpose and do
@@ -430,17 +356,16 @@ the command, the environment, and the known caveats.
   across N (`fixed_indegree`, CE=400 from E, CI=CE/4=100 from I ⇒ ~500 recurrent
   syn/neuron), inhibition-dominated (g=5), per-neuron `poisson_generator` tuned for
   an async-irregular **~13 Hz** regime. A `spike_recorder` reads back only a
-  1000-neuron readout subset (mimics an NCP `RecordSpec`; recording overhead
-  negligible). Fixed indegree ⇒ synapses and per-step compute scale ~linearly with
-  N, so `rt` degrades ~linearly with N.
+  1000-neuron readout subset (mimics an NCP `RecordSpec`). Recording overhead was
+  not isolated, and the sampled scaling must not be extrapolated beyond the grid.
 * **Timing protocol:** `local_num_threads` set **before** node creation (required
   by NEST); build outside the timer; only `nest.Simulate(T_bio)` timed; one untimed
   warmup, then up to 3 timed reps with the **MIN wall** reported;
   `rt = (T_bio_ms/1000) / min_wall_s`. Reps exceeding a 60 s skip threshold stop
   after one timed rep (large-N budget guard).
-* **Correctness check:** firing rate is reported per cell and confirmed
-  N/T-invariant (12.3–13.5 Hz across the whole grid), verifying the regime did not
-  drift across sizes/threads. The full sizing table + thread-efficiency analysis is
+* **Regime diagnostic:** the retained per-cell firing rates were 12.3–13.5 Hz
+  across the sampled grid. That narrow range is a diagnostic, not proof of model
+  correctness, statistical equivalence, or N/T invariance. The full sizing table is
   in [`NEST_REALTIME.md`](NEST_REALTIME.md).
 * **Command:**
   ```bash
@@ -448,10 +373,10 @@ the command, the environment, and the known caveats.
       --n 10000 50000 100000 200000 --threads 1 2 4 8 16 \
       --t-bio-ms 1000 --reps 3
   ```
-* **Caveats:** the ~17k–20k live ceiling at T=16 is **interpolated** (no sample
-  between 10k and 50k); `fire_hz` comes from the first-rep event count, not the
-  min-wall rep (harmless — rate is N/T-invariant); N≥200000 uses a shortened
-  `T_bio` with `rt` scaled to its own bio time.
+* **Caveats:** the ~17k–20k crossing at T=16 is an **interpolation** (no sample
+  between 10k and 50k), not a measured ceiling; `fire_hz` comes from the first-rep
+  event count, not the min-wall rep; N≥200000 uses a shortened `T_bio` with `rt`
+  scaled to its own bio time.
 
 ### 3. I/O overlap & GIL test — [`scripts/bench_overlap.py`](scripts/bench_overlap.py)
 
@@ -461,14 +386,14 @@ the command, the environment, and the known caveats.
   `fixed_indegree` CE=100 / CI=25, g=5, `poisson_generator` 20000 Hz, `Prepare()`'d
   once for chunked `Run()`. (Lighter `iaf_psc_delta` net so per-chunk compute is in
   the same ballpark as the modeled I/O, to actually exercise the overlap question.)
-* **GIL-test method (decisive):** a background **spinner thread** increments a
+* **GIL-probe method:** a background **spinner thread** increments a
   counter in a tight Python loop. First measure its *standalone* counting rate over
   0.3 s (baseline). Then start a fresh spinner and call a real `nest.Run(run_ms)`;
   measure the counter's rate *during* the Run. The **retained fraction** =
   during/baseline. A GIL that was **released** during Run would let the spinner keep
-  **>50%** of baseline; a GIL **held** for Run's full duration starves the spinner
-  to **~0%**. Measured on NEST 3.8.0: **~0.4–1.3% retained ⇒ `nest.Run()` HOLDS the
-  GIL** (`gil_released=false`).
+  substantially more activity; a held GIL would starve it. The retained NEST 3.8.0
+  observations were ~0.4–1.3%. Scheduler behavior and probe interference prevent
+  treating that threshold as a formal GIL proof.
 * **Overlap-loop method:** a chunked `Run` loop run two ways with the **same total
   work** (same chunk count, same per-chunk serialize-I/O): (a) **serial** —
   `serialize_io(); Run()` per chunk; (b) **overlapped** — a `ThreadPoolExecutor`
@@ -477,21 +402,18 @@ the command, the environment, and the known caveats.
   **real JSON round-trip** (`json.loads(json.dumps(...))` of a `CommandFrame` and a
   `SensorFrame`) **plus** a modeled transport RTT via `time.sleep(io_ms/1000)`,
   swept over several `io_ms`. Speedup = `serial_period / overlapped_period`; ~1.0×
-  means no real overlap. Measured: **0.92–1.10× across all cases (noise)** — because
-  under the held GIL the worker cannot serialize while `Run` owns the interpreter.
-  Conclusion: transport must live in a **separate process** (the Rust gateway,
-  OS threads outside the GIL), not the NEST interpreter.
+  means no observed overlap. Retained ratios were **0.92–1.10×**. The experiment
+  does not isolate all causal factors or establish a mandatory architecture.
 * **Command:**
   ```bash
   python -u scripts/bench_overlap.py \
       --n 5000 --threads 16 --chunk-ms 10 --t-bio-ms 1000 --io-ms 0.5 2 5
   ```
 * **Caveat (reproduction provenance):** the original `bench_overlap.py` prototype
-  was deleted after its first run and reconstructed. The reconstruction reproduces
-  the **qualitative verdicts** (GIL held; threaded overlap ~1.0×) but absolute
-  per-chunk-compute magnitudes differ by >2× because the exact original Poisson
-  drive was unknown. The load-bearing findings, not the absolute periods, are what
-  reproduce.
+  was deleted after its first run and reconstructed. The reconstruction produced
+  similar qualitative observations, but absolute per-chunk-compute magnitudes
+  differ by >2× because the exact original Poisson drive was unknown. That is a
+  provenance failure; the original run is not exactly reproducible.
 
 ## What to measure on your hardware
 
@@ -504,7 +426,7 @@ the command, the environment, and the known caveats.
 ## Honest remaining items
 
 - The spikes/V_m **drain is best-effort** — confirm `set(n_events=0)` clears on
-  your NEST 3.9 build; otherwise that path stays O(history) (use `RATE`).
+  the exact installed NEST build; otherwise that path stays O(history) (use `RATE`).
 - Large-population multimeter recording is intrinsically heavy regardless of NCP;
   record from a representative subset (the backend already pins V_m to one neuron).
 - Continuing adversarial audits of NCP (correctness, safety, robustness, overhead)
@@ -512,4 +434,4 @@ the command, the environment, and the known caveats.
   summary is retired; treat the per-finding ledger as the live status register. The
   top *performance* item there (the `ncp-zenoh`
   `payload.to_vec()` copy) is still open and is discussed in
-  [Top safe optimization](#top-safe-optimization-zero-copy-publish-zbytesshm) above.
+  [candidate copy-avoidance optimization](#candidate-optimization-avoid-one-owned-buffer-copy) above.

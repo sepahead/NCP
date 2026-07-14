@@ -347,7 +347,7 @@ def test_local_action_buffer_reset_retires_generation_context():
 def test_persistent_governor_latches_across_calls():
     """The Governor CLASS is the latching form — the one-shot govern() cannot
     latch by construction (fresh governor per call). A geofence breach must keep
-    every later call at ESTOP until a supervisor reset()."""
+    every later call at ESTOP until an authorized operator calls reset()."""
     gov = ncp.Governor(json.dumps({"geofence_radius_m": 5.0, "command_timeout_ms": 500.0}))
     active = json.dumps(
         {

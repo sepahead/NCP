@@ -8,7 +8,7 @@ pub const PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// SHA-256 of the complete normative source set in `contract/manifest.v1.json`.
 pub const NORMATIVE_CONTRACT_DIGEST: &str =
-    "5154b02c7dd35d3e29e5eda89c41140a5e70967964f7bb913a8e687e1a5977ef";
+    "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90";
 
 /// Build/source identity supplied by the immutable release builder. The checked-in
 /// RC default is deliberately non-certifying and must not be presented as a commit.

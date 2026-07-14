@@ -1,0 +1,172 @@
+{
+  "schema": "ncp.max-effort-handoff-audit-inputs.v2",
+  "normative": false,
+  "author": {
+    "name": "Sepehr Mahmoudian",
+    "git_email": "sepmhn@gmail.com",
+    "citation_email": "sepehr.mahmoudian@gmail.com"
+  },
+  "captured_at_utc": "2026-07-14T14:59:13Z",
+  "claim_boundary": "This record identifies a local review cut and unresolved evidence. It is not a signature, release authorization, protocol certification, consumer certification, or publication receipt.",
+  "scope": {
+    "handoff_target": "1.0.0",
+    "repository_candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "release_allowed": false,
+    "decision": "NO_GO",
+    "requested_0_9_disposition": "REQUIRES_CROSS_REPOSITORY_NORMATIVE_REBASELINE",
+    "doi": "NOT_ASSIGNED",
+    "zenodo_archive": "NOT_CREATED"
+  },
+  "handoff_package": {
+    "name": "NCP_V1_0_CURRENT_HEAD_MAX_EFFORT_HANDOFF",
+    "master_package": "SEPAHEAD_V1_0_CURRENT_HEAD_MAX_EFFORT_MASTER_HANDOFF",
+    "archive_sha256": "661c5a9bd6a62a8a973bc953fd45ba1a58d44592985c871fc6b039c9cbdd333b",
+    "declared_schema": "2.0.0",
+    "declared_target": "1.0.0",
+    "declared_frozen_commit": "0ba5ff6e963225b0635f8fec349278f1ac287df3",
+    "published_checksum_manifest_sha256": "de453c9b98d3f543c5eb3abe8b45343d0fc6be2701cf99e7d53c65585c209031",
+    "validation": "All 22 published child checksums matched exact bytes; archive entry paths, CRCs, and extracted bytes matched; JSON and YAML structure parsed without duplicate keys.",
+    "artifacts": [
+      {"path": "ADVERSARIAL_20_LENS_STANDARD.md", "sha256": "c1b951cb40a3fc1108abb243518c4df865e8e2163578b5a84a4b8fb10ab1d87e"},
+      {"path": "CLAIM_EVIDENCE_MATRIX.md", "sha256": "b1e85edeb27c3e255a966c64cb9422ceb34b9b6353913000baa8ac6abd6e10fe"},
+      {"path": "CURRENT_AUDIT_CUT.json", "sha256": "d27087951b45987f4744b8ca33e9b00b1795a1eb4063b97f458dc0c4064d9f56"},
+      {"path": "CURRENT_STATE_AND_CRITICAL_FINDINGS.md", "sha256": "d90cf2402414c3866a107ffc844c5bc21b2ab78f321d96d855025ad4deef4837"},
+      {"path": "GO_NO_GO_CHECKLIST.md", "sha256": "83eb026dac0453a13f71751bed9b8198c49d61898055ca76d9a7c2f2477937b3"},
+      {"path": "LANGUAGE_SPECIFIC_REVIEW.md", "sha256": "42e624f7769d2eb5b7924a5a86b5714c3d02dfaff7ac47dd24d46907750cc8f3"},
+      {"path": "LOCAL_CONVERGENCE_SCHEMA.json", "sha256": "61b9f7e7fe442c51d23b32da33419cfbaa36a47b86ae6adb7a06144ad9a25ec6"},
+      {"path": "MANDATORY_LINE_BY_LINE_AUDIT.md", "sha256": "777799108447f33ba07b1e33676432432d35a61e42fdc98b4076626dd47f8040"},
+      {"path": "MASTER_TASK_LEDGER.yaml", "sha256": "9a411e41f1e44324311316af20404632b085b167e70eff1914aaff02ce65e947"},
+      {"path": "NORMATIVE_ARCHITECTURE.md", "sha256": "ee85d680d8ea3c6e01561523f8cd67da6fc0b0e45b8f0475c239b39d7ead185a"},
+      {"path": "PACKAGE_VALIDATION_REPORT.md", "sha256": "9cbfd4327f7254f84523cf0c9d9a49e031385a10a2170048fe95086b8f31a31e"},
+      {"path": "README_FIRST.md", "sha256": "18c5e32f8979c3cd6218da9331485937467ceac6f874047446689e0c8fa0efc2"},
+      {"path": "RELEASE_MANIFEST_TEMPLATE.json", "sha256": "90909bde389b405bd7119cd1a7e6a4ba3c86e4f2feeacbe7d79a0c903111f634"},
+      {"path": "SUBAGENT_ASSIGNMENT_TEMPLATE.md", "sha256": "c8f887b0c70b13f201481364fd63565f191f4c134c05367509b3dc6383f1fcb2"},
+      {"path": "THREAT_MISUSE_FAILURE_MODEL.md", "sha256": "e0e6c81f801029bdb68a185a7593828b4bfe90f273685ea7f23e312e0c0f74d1"},
+      {"path": "WAVE_EXECUTION_PLAN.md", "sha256": "dfde37a26a2b554b3c0b983fab524e5f0034d877616e2185b7e1995d620c68f0"},
+      {"path": "repo_work/README.md", "sha256": "2861c226b2f11af66aa62d00d193b4c4322b052c815e3721cba6723710fa690a"},
+      {"path": "repo_work/audit_tracked_files.py", "sha256": "7cb7d510858c328cc485d9b8fa9ad849ec256e8db062303999c84049be9c5e51"},
+      {"path": "repo_work/check_frozen_head.py", "sha256": "337eb4c9a3d18ec99f804d35787874cabf02f85e8be90edb8cfd905359e5e72e"},
+      {"path": "repo_work/make_review_packets.py", "sha256": "465aefb74736beb044ff9fe2d961856ad83cae3d7d969069da23f4f817495ce7"},
+      {"path": "repo_work/scan_claim_language.py", "sha256": "25c200dfaf91aac83cca25d5cd637921d0ad6d4e336118f5ad46bc9fe6e01618"},
+      {"path": "repo_work/verify_evidence_manifest.py", "sha256": "6aed5efe80782049c7ccc20a744c4f4f64bb683eb6858198fa4c51353a01ca3d"}
+    ]
+  },
+  "source_cuts": {
+    "handoff_frozen": {
+      "commit": "0ba5ff6e963225b0635f8fec349278f1ac287df3",
+      "tree": "9a9244a44877e9946352a502a25f104157368405",
+      "authored_at": "2026-07-14T11:15:11+02:00",
+      "hosted_ci_conclusion": "failure"
+    },
+    "reviewed_current": {
+      "commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+      "tree": "b4886f2389a6b526249cf13b673de9e92a4f14f1",
+      "authored_at": "2026-07-14T16:39:12+02:00",
+      "origin_main_at_capture": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+      "worktree_was_clean_at_capture": true,
+      "status": "LOCAL_REVIEW_CUT_NOT_RELEASE_AUTHORIZATION",
+      "hosted_ci": {
+        "provider": "GitHub Actions",
+        "run_id": 29341815204,
+        "url": "https://github.com/sepahead/NCP/actions/runs/29341815204",
+        "head_sha": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+        "conclusion": "success"
+      }
+    },
+    "intervening_diff": {
+      "range": "0ba5ff6e963225b0635f8fec349278f1ac287df3..18a45bd4fdf17381351be5bd8c1da58b7835997c",
+      "changed_files": 24,
+      "insertions": 816,
+      "deletions": 364,
+      "binary_full_index_patch_sha256": "2cee3c79e92c050767985e815ae1b070885c7ec0d9a6dec9e630fcd48d94d3e4",
+      "nul_name_status_sha256": "79c0d7aec0baa8e7591bc802c6b2cb4d56c63ab57f2450bf1be935dd8ff0eb8c",
+      "reviewed_tree_ls_tree_sha256": "45279eb5f0581f733db2a98b98b9c3c90072dbd3e3cabf423bec5d7cc10e4633"
+    }
+  },
+  "reviewed_source_inventory": {
+    "source_commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+    "tracked_files": 782,
+    "tracked_bytes": 6360298,
+    "text_lines": 169759,
+    "three_lane_line_totals": [56587, 56586, 56586],
+    "three_lane_file_totals": [258, 266, 258],
+    "handoff_generated_manifest_sha256": "3db582da44602b441dca1c23aa24d6a6683a69bdcc854a7c44cb69892e76a4f9",
+    "handoff_generated_csv_sha256": "ef87693789dc19ff5cf6af11d8c19d7157fcb15403ddc4879b73b5ae873fad5e",
+    "corrected_review_manifest_sha256": "2fb6de342dcd2b0cea7ab3299b7c1bc4be79524249c343bd8fe7066bf174167f",
+    "corrected_review_csv_sha256": "ffb707b52de49d2f86fd23104431b256de0391cdf6267c38a94fcc83c520681b",
+    "internal_review_completed_at_utc": "2026-07-14T16:09:26Z",
+    "review_status": "THREE_LANE_INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS",
+    "internally_reviewed_files": 782,
+    "independently_reviewed_files": 0,
+    "limitation": "The supplied audit helper emitted only 18 of the mandated 21 columns and inspected worktree bytes. The corrected ledger binds all 782 rows to immutable Git blobs and records complete internal AI-assisted inspection, but it is not independent human review, task closure, external-gate evidence, certification, or release authorization."
+  },
+  "locked_inputs": {
+    "Cargo.lock": "9ca81eda2ab5c175df0c8baa5a3fb2d15ac9ccddd97aa2ef10bc99898ef1e472",
+    "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
+    "contract/manifest.v1.json": "94340940ac13bb7869dcd4da405c2e0d5d71b2f8e6d99b8fe0d43978c1e76c10",
+    "conformance/manifest.v1.json": "2a3fcb9546b5e82331dc7cace91c0d0fc47f5e7557dc30329c439c896a029d5a"
+  },
+  "normative_identities": {
+    "complete_contract_sha256": "5154b02c7dd35d3e29e5eda89c41140a5e70967964f7bb913a8e687e1a5977ef",
+    "mandatory_corpus_sha256": "a9a741e2b74952e6c8d8c7f589114918f673591eaccba938c997578c189cd2b0",
+    "compact_proto_fnv1a64": "163acc57d8a62b66",
+    "required_vectors": 269,
+    "stable_vectors": 262,
+    "migration_vectors": 7
+  },
+  "local_environment": {
+    "os": "macOS 26.5.1 (25F80)",
+    "architecture": "arm64",
+    "kernel": "Darwin 25.5.0",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "python": "3.14.6",
+    "node": "26.3.0",
+    "bun": "1.3.14",
+    "buf": "1.71.0",
+    "cargo_deny": "0.19.9",
+    "clang": "Apple clang 21.0.0 (clang-2100.1.1.101)",
+    "git": "2.50.1 (Apple Git-155)"
+  },
+  "handoff_defects": [
+    "The frozen 0ba5ff6 source cut predates 24 reviewed repository changes and its hosted CI failed; an explicit updated source cut is required.",
+    "The task graph is a strict T000-to-T145 dependency chain while the wave plan assigns dependent tasks to three concurrent lanes.",
+    "All 146 tasks repeat the same generic procedure, evidence list, counterfactuals, and blank twenty-lens form; task completion cannot be inferred from that template.",
+    "The handoff reports 268 required vectors, but both frozen and reviewed manifests contain 269: 262 stable and 7 migration.",
+    "The convergence schema does not require the exact T000-to-T145 set or reviewed_files equality and hard-codes stale source and target identities.",
+    "The tracked-file helper omits mandated columns, follows worktree paths, and cannot bind a dirty or symlinked input to immutable Git bytes.",
+    "The evidence verifier accepts an empty manifest and does not enforce schema, containment, unique artifacts, source identity, signatures, or provenance.",
+    "The checklist permits claim removal while the task completion rule leaves narrowed tasks open, yet the convergence schema requires 146 completed tasks.",
+    "The handoff targets package and wire 1.0, so the requested 0.9 release cannot be produced by relabeling these bytes."
+  ],
+  "known_external_gates": {
+    "policy": "Missing, skipped, and not-run evidence remains failure.",
+    "status": "NOT_RUN",
+    "ids": [
+      "live-mtls-acl-rotation-revocation",
+      "two-independent-non-rust-live-peers",
+      "fault-backpressure-restart-soak",
+      "fuzz-sanitizer-duration",
+      "performance-resource-profile",
+      "installed-package-matrix",
+      "consumer-certification",
+      "independent-clean-room-reproduction",
+      "signed-sbom-provenance"
+    ]
+  },
+  "cross_repository_boundary": {
+    "mutations_performed": false,
+    "ncp_wire_1_0_consumers_certified": 0,
+    "engram_native_1_0_status": "MIGRATION_IN_PROGRESS_NOT_CERTIFIED",
+    "other_known_consumers": "FIVE_REMAIN_ON_IMMUTABLE_WIRE_0_8",
+    "repin_disposition": "NO_REPIN_UNTIL_EXACT_CROSS_REPOSITORY_EVIDENCE"
+  },
+  "history_inventory": {
+    "annotated_tags": 24,
+    "latest_immutable_release": "v0.8.0",
+    "github_release_objects": ["v0.2.0", "v0.2.1", "v0.5.1"],
+    "destructive_cleanup_disposition": "RETAIN_IMMUTABLE_COMPATIBILITY_AND_MIGRATION_EVIDENCE"
+  }
+}

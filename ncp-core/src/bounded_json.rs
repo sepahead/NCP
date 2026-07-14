@@ -22,7 +22,31 @@ pub const MAX_ARRAY_ITEMS: usize = 65_536;
 pub const MAX_KEY_BYTES: usize = 128;
 pub const MAX_STRING_BYTES: usize = 65_536;
 pub const MAX_TOTAL_STRING_BYTES: usize = 1_048_576;
+pub const SAFE_INTEGER_MIN: i64 = -9_007_199_254_740_991;
+pub const SAFE_INTEGER_MAX: i64 = 9_007_199_254_740_991;
 pub const MAX_FINITE_NUMBER_MAGNITUDE: f64 = 1e300;
+
+const SAFE_INTEGER_MAX_DECIMAL: &[u8] = b"9007199254740991";
+
+fn json_integer_magnitude(token: &[u8]) -> Option<&[u8]> {
+    // Only canonical integer spellings take the early limit path. Malformed
+    // numeric spellings must retain their NCP-LIMIT-009 classification below.
+    let magnitude = token.strip_prefix(b"-").unwrap_or(token);
+    match magnitude.first() {
+        Some(b'0') if magnitude.len() == 1 => Some(magnitude),
+        Some(b'1'..=b'9') if magnitude[1..].iter().all(u8::is_ascii_digit) => Some(magnitude),
+        _ => None,
+    }
+}
+
+fn integer_token_exceeds_safe_range(token: &[u8]) -> bool {
+    let Some(magnitude) = json_integer_magnitude(token) else {
+        return false;
+    };
+    magnitude.len() > SAFE_INTEGER_MAX_DECIMAL.len()
+        || (magnitude.len() == SAFE_INTEGER_MAX_DECIMAL.len()
+            && magnitude > SAFE_INTEGER_MAX_DECIMAL)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JsonLimitCode {
@@ -151,7 +175,16 @@ impl<'a> Scanner<'a> {
         {
             self.position += 1;
         }
-        let number: serde_json::Number = serde_json::from_slice(&self.input[start..self.position])
+        let token = &self.input[start..self.position];
+        // Compare decimal digits before serde_json can coerce an unsafe integer
+        // through a floating-point representation.
+        if integer_token_exceeds_safe_range(token) {
+            return Err(self.error(
+                JsonLimitCode::NumericBudget,
+                "integer exceeds the exact JSON range",
+            ));
+        }
+        let number: serde_json::Number = serde_json::from_slice(token)
             .map_err(|_| self.error(JsonLimitCode::Malformed, "invalid JSON number"))?;
         let value = number
             .as_f64()
@@ -379,5 +412,38 @@ mod tests {
     fn escaped_key_identity_is_compared_after_decoding() {
         let error = preflight(br#"{"a":1,"\u0061":2}"#).unwrap_err();
         assert_eq!(error.code, JsonLimitCode::DuplicateKey);
+    }
+
+    #[test]
+    fn accepts_safe_integer_boundaries_in_unknown_extensions() {
+        let value = parse_value(
+            br#"{"future_extension":{"positive":9007199254740991,"negative":-9007199254740991}}"#,
+        )
+        .expect("exact JSON integer boundaries must remain admissible");
+
+        assert_eq!(value["future_extension"]["positive"], SAFE_INTEGER_MAX);
+        assert_eq!(value["future_extension"]["negative"], SAFE_INTEGER_MIN);
+    }
+
+    #[test]
+    fn rejects_positive_unsafe_integer_in_unknown_extension() {
+        let error = preflight(br#"{"future_extension":9007199254740992}"#)
+            .expect_err("unknown members must not bypass the universal integer budget");
+
+        assert_eq!(error.code, JsonLimitCode::NumericBudget);
+    }
+
+    #[test]
+    fn rejects_negative_unsafe_integer_in_unknown_extension() {
+        let error = preflight(br#"{"future_extension":[-9007199254740992]}"#)
+            .expect_err("negative unsafe integers must fail at the same ingress boundary");
+
+        assert_eq!(error.code, JsonLimitCode::NumericBudget);
+    }
+
+    #[test]
+    fn preserves_the_finite_non_integer_magnitude_policy() {
+        preflight(br#"{"future_extension":9007199254740992.5}"#)
+            .expect("finite non-integer numbers remain governed by the magnitude budget");
     }
 }

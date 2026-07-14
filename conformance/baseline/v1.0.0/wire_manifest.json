@@ -213,7 +213,9 @@
         "generation": "{\"type\": \"string\"}"
       },
       "object": "{\"type\": \"object\"}",
-      "required": []
+      "required": [
+        "generation"
+      ]
     },
     "SimConfig": {
       "fields": {
@@ -290,7 +292,10 @@
         "seq": "{\"format\": \"int64\", \"maximum\": 9007199254740991, \"minimum\": -9007199254740991, \"type\": \"integer\"}"
       },
       "object": "{\"type\": \"object\"}",
-      "required": []
+      "required": [
+        "epoch",
+        "seq"
+      ]
     }
   },
   "enums": {

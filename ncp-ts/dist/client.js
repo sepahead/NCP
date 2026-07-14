@@ -302,9 +302,23 @@ const KNOWN_STIMULUS_KINDS = new Set([
     'rate_inject',
 ]);
 const KNOWN_CHANNEL_KINDS = new Set(['scalar', 'vec3', 'quat', 'array']);
+function exceedsUtf8ByteLength(value, maximum) {
+    let bytes = 0;
+    for (const scalar of value) {
+        const codePoint = scalar.codePointAt(0);
+        // `for...of` combines a valid surrogate pair into one scalar. A remaining
+        // surrogate is therefore unpaired invalid Unicode and must fail closed.
+        if (codePoint >= 0xd800 && codePoint <= 0xdfff)
+            return true;
+        bytes += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+        if (bytes > maximum)
+            return true;
+    }
+    return false;
+}
 function requireBoundedId(value, path) {
     const identity = requireNonemptyString(value, path);
-    if (new TextEncoder().encode(identity).length > 128 ||
+    if (exceedsUtf8ByteLength(identity, 128) ||
         /[/*$#?\s\u0000-\u001f\u007f-\u009f]/u.test(identity)) {
         throw new Error(`${path} must be a bounded canonical identity segment`);
     }
@@ -409,13 +423,19 @@ function requireOperationContext(value, path, expectedEpoch) {
         throw new Error(`${path}.retry must be a boolean`);
     return operation;
 }
-function requireResponderReceipt(value, path) {
+function requireResponderReceipt(value, path, context = 'terminal') {
     const receipt = requireRecord(value, path);
     requireUuidV4(receipt.operation_id, `${path}.operation_id`);
     requireSha256(receipt.request_digest, `${path}.request_digest`);
     requireSha256(receipt.result_digest, `${path}.result_digest`);
     if (!['succeeded', 'rejected', 'cancelled'].includes(String(receipt.outcome))) {
         throw new Error(`${path}.outcome must be a known terminal outcome`);
+    }
+    if (context === 'success' && receipt.outcome !== 'succeeded') {
+        throw new Error(`${path}.outcome must be succeeded on a successful RPC reply`);
+    }
+    if (context === 'error' && receipt.outcome !== 'rejected' && receipt.outcome !== 'cancelled') {
+        throw new Error(`${path}.outcome must be rejected or cancelled on an ErrorFrame`);
     }
     assertSafeInteger(receipt.state_version, `${path}.state_version`);
     if (receipt.state_version < 0)
@@ -428,9 +448,9 @@ function requireResponderReceipt(value, path) {
     requireBoundedId(receipt.responder_entity_id, `${path}.responder_entity_id`);
     return receipt;
 }
-/** Wire 0.8: a transport-neutral session_id (1..=64 bytes, safe key segment). */
+/** Wire 1.0: a transport-neutral session_id (1..=64 UTF-8 bytes, safe key segment). */
 function requireSessionId(value, path) {
-    if (typeof value !== 'string' || value.length === 0 || value.length > 64) {
+    if (typeof value !== 'string' || value.length === 0 || exceedsUtf8ByteLength(value, 64)) {
         throw new Error(`${path} must be 1..=64 bytes`);
     }
     if (/[/*$#?]/u.test(value) ||
@@ -439,7 +459,7 @@ function requireSessionId(value, path) {
         throw new Error(`${path} must be a safe single key segment`);
     }
 }
-/** Wire 0.8: a `StreamPosition` — epoch (UUIDv4) + seq (>= minSeq, JSON-safe). */
+/** Wire 1.0: a `StreamPosition` — epoch (UUIDv4) + seq (>= minSeq, JSON-safe). */
 function requireStreamPosition(value, path, minSeq) {
     const pos = requireRecord(value, path);
     requireUuidV4(pos.epoch, `${path}.epoch`);
@@ -552,10 +572,7 @@ function assertChannelMap(value, path, requireData = false) {
     }
 }
 function assertSessionId(message, kind) {
-    const sessionId = requireNonemptyString(message.session_id, `${kind}.session_id`);
-    if (/[/*$#?\s\u0000-\u001f\u007f-\u009f]/u.test(sessionId)) {
-        throw new Error(`${kind}.session_id must be a safe single key segment`);
-    }
+    requireSessionId(message.session_id, `${kind}.session_id`);
 }
 /** Full TypeScript ingress gate for the shared validation contract. Unknown object
  * fields remain allowed; known fields are type/value checked exactly like the Rust
@@ -762,7 +779,7 @@ export function assertNcpMessage(value, expectedKind) {
         case 'session_closed':
             if (message.ok !== true)
                 throw new Error('session_closed.ok must be true; failures use ErrorFrame');
-            requireResponderReceipt(message.receipt, 'session_closed.receipt');
+            requireResponderReceipt(message.receipt, 'session_closed.receipt', 'success');
             break;
         case 'error':
             if (typeof message.code !== 'string' ||
@@ -785,7 +802,10 @@ export function assertNcpMessage(value, expectedKind) {
                     requireSessionEpoch(message, 'error');
             }
             if (message.receipt !== undefined && message.receipt !== null) {
-                requireResponderReceipt(message.receipt, 'error.receipt');
+                if (message.session_id === undefined || message.session_id === null) {
+                    throw new Error('error.receipt requires the exact session_id/session generation pair');
+                }
+                requireResponderReceipt(message.receipt, 'error.receipt', 'error');
             }
             break;
         case 'run_request': {
@@ -798,6 +818,10 @@ export function assertNcpMessage(value, expectedKind) {
                 assertNcpMessage(message.stimulus, 'stimulus_frame');
                 if (message.stimulus.session_id !== message.session_id) {
                     throw new Error('run_request.stimulus session_id does not match outer request');
+                }
+                if (message.stimulus.session.generation !==
+                    sessionEpoch) {
+                    throw new Error('run_request.stimulus session.generation does not match outer request');
                 }
             }
             verifyRequestDigest(message);
@@ -813,6 +837,10 @@ export function assertNcpMessage(value, expectedKind) {
                 assertNcpMessage(message.stimulus, 'stimulus_frame');
                 if (message.stimulus.session_id !== message.session_id) {
                     throw new Error('step_request.stimulus session_id does not match outer request');
+                }
+                if (message.stimulus.session.generation !==
+                    sessionEpoch) {
+                    throw new Error('step_request.stimulus session.generation does not match outer request');
                 }
             }
             verifyRequestDigest(message);
@@ -889,7 +917,7 @@ export function assertNcpMessage(value, expectedKind) {
             }
             if (kind === 'observation_frame') {
                 if (message.receipt !== undefined && message.receipt !== null) {
-                    requireResponderReceipt(message.receipt, 'observation_frame.receipt');
+                    requireResponderReceipt(message.receipt, 'observation_frame.receipt', 'success');
                 }
                 if (message.sim_time_ms !== undefined) {
                     assertFiniteNumber(message.sim_time_ms, 'observation_frame.sim_time_ms');

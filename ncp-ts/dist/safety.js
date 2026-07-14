@@ -278,7 +278,7 @@ export class SafetyGovernor {
         const velocityContractValid = compatibleSafetyVec3(caps.command_channels.find((channel) => channel.name === VELOCITY_CHANNEL), VELOCITY_UNIT);
         return new SafetyGovernor(caps.safety, POSITION_CHANNEL, VELOCITY_CHANNEL, commandChannels, sensorChannels, positionContractValid, velocityContractValid);
     }
-    /** Clear the local latch after external supervisor/interlock authorization. This
+    /** Clear the local latch after external operator/interlock authorization. This
      * does not authenticate or restore session authority; config failure stays set. */
     reset() {
         this.estop = false;
@@ -357,7 +357,7 @@ export class SafetyGovernor {
      * latches (call {@link reset} to clear).
      */
     govern(command, sensor, nowS, lastSensorS) {
-        // Latched ESTOP dominates everything until a supervisor reset.
+        // Latched ESTOP dominates everything until an authorized operator resets it.
         if (this.estop)
             return this.safeFrame(command, 'estop');
         // An INBOUND ESTOP-mode command is itself a fail-safe: LATCH and propagate

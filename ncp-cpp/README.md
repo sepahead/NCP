@@ -41,8 +41,8 @@ calls.
 TTL expiry, and a foreign epoch requires a fresh handle. The C ABI's
 `ncp_action_buffer_reset` is a body-local primitive for an already-authorized
 session-generation cut. It clears the latch and permanently retires that handle;
-`ncp_action_buffer_is_retired` reports the state. It does not authenticate a
-control-plane identity or restore authority. Allocate a new buffer only for the new
+`ncp_action_buffer_is_retired` reports the state. It does not authenticate an
+authorized operator or restore authority. Allocate a new buffer only for the new
 `SessionOpened` generation.
 
 Every JSON argument first passes the canonical universal bounded-JSON preflight

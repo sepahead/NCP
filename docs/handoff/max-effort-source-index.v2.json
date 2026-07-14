@@ -1,0 +1,1867 @@
+{
+  "schema": "ncp.max-effort-handoff-source-index.v2",
+  "normative": false,
+  "source": {
+    "file_name": "MASTER_TASK_LEDGER.yaml",
+    "handoff_schema": "2.0.0",
+    "sha256": "9a411e41f1e44324311316af20404632b085b167e70eff1914aaff02ce65e947",
+    "project": "NCP",
+    "repository": "https://github.com/sepahead/NCP",
+    "frozen_commit": "0ba5ff6e963225b0635f8fec349278f1ac287df3",
+    "release_target": "1.0.0"
+  },
+  "twenty_lenses": [
+    {
+      "id": "L01",
+      "name": "Claims and scope",
+      "question": "Can a reader infer more than the exact evidence tier supports? Separate implemented, verified, validated, deployment-qualified, field-validated, and not-claimed."
+    },
+    {
+      "id": "L02",
+      "name": "First-principles semantics",
+      "question": "Are inputs, state, transitions, outputs, invariants, units, and failure states explicit rather than implied by names?"
+    },
+    {
+      "id": "L03",
+      "name": "Mathematics and statistics",
+      "question": "Are definitions, assumptions, estimands, finite-sample behavior, multiplicity, uncertainty, calibration, and failure regions correct and explicit?"
+    },
+    {
+      "id": "L04",
+      "name": "Type and state integrity",
+      "question": "Can invalid combinations be constructed through safe APIs, deserialization, FFI, feature flags, defaults, or migration?"
+    },
+    {
+      "id": "L05",
+      "name": "Time, ordering, and replay",
+      "question": "Are clock domains, freshness, deadlines, sessions, epochs, generations, sequence numbers, duplicates, restart, and rollover unambiguous?"
+    },
+    {
+      "id": "L06",
+      "name": "Identity and provenance",
+      "question": "Can every result, command, model, dataset, scene, schema, configuration, build, and evidence artifact be traced immutably?"
+    },
+    {
+      "id": "L07",
+      "name": "Authentication and cryptography",
+      "question": "Are canonical bytes, domain separation, algorithms, identities, rotation, revocation, downgrade resistance, and failure semantics complete?"
+    },
+    {
+      "id": "L08",
+      "name": "Authority and safety",
+      "question": "Who may observe, advise, intend, authorize, publish, apply, and confirm? Can any fallback or optional component widen authority?"
+    },
+    {
+      "id": "L09",
+      "name": "Hostile inputs and parsers",
+      "question": "What happens with duplicates, unknown fields, unsafe integers, NaN/Inf, Unicode ambiguity, malformed nesting, path tricks, and contradictory metadata?"
+    },
+    {
+      "id": "L10",
+      "name": "Resource and denial-of-service bounds",
+      "question": "Are bytes, allocations, dimensions, states, queues, retries, threads, log volume, GPU/CPU work, and serialization bounded before expensive work?"
+    },
+    {
+      "id": "L11",
+      "name": "Concurrency and lifecycle",
+      "question": "Are initialization, callback ownership, races, cancellation, selected events, cleanup, crash consistency, and shutdown fully specified?"
+    },
+    {
+      "id": "L12",
+      "name": "Determinism and reproducibility",
+      "question": "Can independent clean machines reproduce code generation, builds, fixtures, simulations, proofs, benchmarks, evidence, and archives?"
+    },
+    {
+      "id": "L13",
+      "name": "API, FFI, and SemVer",
+      "question": "Is the stable surface minimal and are panic, ownership, allocation, thread safety, features, MSRV/runtime, and compatibility explicit?"
+    },
+    {
+      "id": "L14",
+      "name": "Schema, wire, and language parity",
+      "question": "Is there one normative semantic source and do all languages/encodings accept and reject the same corpus?"
+    },
+    {
+      "id": "L15",
+      "name": "Configuration and deployment",
+      "question": "Can invalid profiles start? Are paths, secrets, permissions, ACLs, certificates, environments, startup order, and rollback safe?"
+    },
+    {
+      "id": "L16",
+      "name": "Observability and forensics",
+      "question": "Can disabled, unavailable, stale, incompatible, insufficient, anomalous, denied, and internal-fault states be distinguished without leaking secrets?"
+    },
+    {
+      "id": "L17",
+      "name": "Verification and evidence quality",
+      "question": "Does each claim have the right proof: theorem, model, property, fuzz, mutation, clean-room, real-router, statistical, or physical evidence?"
+    },
+    {
+      "id": "L18",
+      "name": "Ecosystem composition",
+      "question": "Are pid-rs, NCP, Engram, Prisoma, Crebain, Galadriel, Haldir, ROS, and external authority relationships explicit and acyclic?"
+    },
+    {
+      "id": "L19",
+      "name": "Human factors and governance",
+      "question": "Are naming, docs, examples, runbooks, review roles, incident response, support, deprecation, and withdrawal usable under stress?"
+    },
+    {
+      "id": "L20",
+      "name": "Counterfactual and quirky-case review",
+      "question": "How would a malicious peer, rushed operator, odd-but-simple dataset, future maintainer, or AI-generated patch falsify the intended claim?"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T000",
+      "phase": "P0 Audit and scope",
+      "title": "Freeze exact audit inputs and produce a signed immutable input manifest",
+      "source_scope": "entire repository and external dependencies",
+      "focus": "commit, tree, submodules, tags, toolchains, packages, models/data, papers, downstream heads",
+      "dependencies": [],
+      "execution_wave": 0,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T001",
+      "phase": "P0 Audit and scope",
+      "title": "Reconcile Git tracked files, filesystem files, generated outputs, symlinks, binaries, and ignored release inputs",
+      "source_scope": "entire repository",
+      "focus": "complete source inventory",
+      "dependencies": [
+        "T000"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T002",
+      "phase": "P0 Audit and scope",
+      "title": "Complete language-classified line-by-line review packets and reviewer assignments",
+      "source_scope": "all text/code/config/docs",
+      "focus": "human review coverage",
+      "dependencies": [
+        "T001"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T003",
+      "phase": "P0 Audit and scope",
+      "title": "Create public surface inventory and claim-tier ledger",
+      "source_scope": "exports, CLI, IPC, schemas, docs, packages, GitHub metadata",
+      "focus": "truthful scope",
+      "dependencies": [
+        "T002"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T004",
+      "phase": "P0 Audit and scope",
+      "title": "Create threat, misuse, failure, and quirky-case register",
+      "source_scope": "all trust/scientific boundaries",
+      "focus": "adversarial model",
+      "dependencies": [
+        "T003"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T005",
+      "phase": "P0 Audit and scope",
+      "title": "Reproduce the unmodified baseline and archive every command/result",
+      "source_scope": "all supported profiles and platforms",
+      "focus": "baseline evidence",
+      "dependencies": [
+        "T004"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T006",
+      "phase": "P0 Audit and scope",
+      "title": "Inventory TODO/FIXME/HACK/experimental/unimplemented/dormant and permissive fallback paths",
+      "source_scope": "all tracked text files",
+      "focus": "latent incompleteness",
+      "dependencies": [
+        "T005"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T007",
+      "phase": "P0 Audit and scope",
+      "title": "Inventory dependencies, features, code generators, licenses, assets, datasets, and supply-chain trust",
+      "source_scope": "build/package/deployment surfaces",
+      "focus": "dependency governance",
+      "dependencies": [
+        "T006"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T008",
+      "phase": "P0 Audit and scope",
+      "title": "Create the requirement-to-code-to-test-to-evidence graph",
+      "source_scope": "all claims",
+      "focus": "traceability",
+      "dependencies": [
+        "T007"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T009",
+      "phase": "P0 Audit and scope",
+      "title": "Freeze stable, experimental, unsupported, and removed 1.0 capability profiles",
+      "source_scope": "public contract",
+      "focus": "scope decision",
+      "dependencies": [
+        "T008"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T010",
+      "phase": "Path group: Root protocol and release identity",
+      "title": "Read and specify Root protocol and release identity",
+      "source_scope": "README.md, AGENTS.md, NEURO_CYBERNETIC_PROTOCOL.md, VERSIONING.md, RELEASE_READINESS.md, KNOWN_LIMITATIONS.md, package/Cargo metadata",
+      "focus": "One version model, stable scope, exclusions, contract digests, packages, commands, support, and release hold.; language family=md/json/toml",
+      "dependencies": [
+        "T009"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T011",
+      "phase": "Path group: Root protocol and release identity",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Root protocol and release identity",
+      "source_scope": "README.md, AGENTS.md, NEURO_CYBERNETIC_PROTOCOL.md, VERSIONING.md, RELEASE_READINESS.md, KNOWN_LIMITATIONS.md, package/Cargo metadata",
+      "focus": "One version model, stable scope, exclusions, contract digests, packages, commands, support, and release hold.",
+      "dependencies": [
+        "T010"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T012",
+      "phase": "Path group: Root protocol and release identity",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Root protocol and release identity",
+      "source_scope": "README.md, AGENTS.md, NEURO_CYBERNETIC_PROTOCOL.md, VERSIONING.md, RELEASE_READINESS.md, KNOWN_LIMITATIONS.md, package/Cargo metadata",
+      "focus": "One version model, stable scope, exclusions, contract digests, packages, commands, support, and release hold.",
+      "dependencies": [
+        "T011"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T013",
+      "phase": "Path group: Root protocol and release identity",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Root protocol and release identity",
+      "source_scope": "README.md, AGENTS.md, NEURO_CYBERNETIC_PROTOCOL.md, VERSIONING.md, RELEASE_READINESS.md, KNOWN_LIMITATIONS.md, package/Cargo metadata",
+      "focus": "One version model, stable scope, exclusions, contract digests, packages, commands, support, and release hold.",
+      "dependencies": [
+        "T012"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T014",
+      "phase": "Path group: Root protocol and release identity",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Root protocol and release identity",
+      "source_scope": "README.md, AGENTS.md, NEURO_CYBERNETIC_PROTOCOL.md, VERSIONING.md, RELEASE_READINESS.md, KNOWN_LIMITATIONS.md, package/Cargo metadata",
+      "focus": "One version model, stable scope, exclusions, contract digests, packages, commands, support, and release hold.",
+      "dependencies": [
+        "T013"
+      ],
+      "execution_wave": 0,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T015",
+      "phase": "Path group: Normative IDL",
+      "title": "Read and specify Normative IDL",
+      "source_scope": "proto/ncp.proto, proto/README.md, buf*.yaml",
+      "focus": "Every message/field, presence/default, units, ownership, oneof/enum, reserved fields, stable/experimental split, lint, breaking baseline, and hash.; language family=proto/md/yaml",
+      "dependencies": [
+        "T014"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T016",
+      "phase": "Path group: Normative IDL",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Normative IDL",
+      "source_scope": "proto/ncp.proto, proto/README.md, buf*.yaml",
+      "focus": "Every message/field, presence/default, units, ownership, oneof/enum, reserved fields, stable/experimental split, lint, breaking baseline, and hash.",
+      "dependencies": [
+        "T015"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T017",
+      "phase": "Path group: Normative IDL",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Normative IDL",
+      "source_scope": "proto/ncp.proto, proto/README.md, buf*.yaml",
+      "focus": "Every message/field, presence/default, units, ownership, oneof/enum, reserved fields, stable/experimental split, lint, breaking baseline, and hash.",
+      "dependencies": [
+        "T016"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T018",
+      "phase": "Path group: Normative IDL",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Normative IDL",
+      "source_scope": "proto/ncp.proto, proto/README.md, buf*.yaml",
+      "focus": "Every message/field, presence/default, units, ownership, oneof/enum, reserved fields, stable/experimental split, lint, breaking baseline, and hash.",
+      "dependencies": [
+        "T017"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T019",
+      "phase": "Path group: Normative IDL",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Normative IDL",
+      "source_scope": "proto/ncp.proto, proto/README.md, buf*.yaml",
+      "focus": "Every message/field, presence/default, units, ownership, oneof/enum, reserved fields, stable/experimental split, lint, breaking baseline, and hash.",
+      "dependencies": [
+        "T018"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T020",
+      "phase": "Path group: Contract registry",
+      "title": "Read and specify Contract registry",
+      "source_scope": "contract/**",
+      "focus": "Manifest source list, canonical/full/compact digests, capabilities, errors, limits, observability, planes, plant/security/request digests, release gates, and cross-file consistency.; language family=json",
+      "dependencies": [
+        "T019"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T021",
+      "phase": "Path group: Contract registry",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Contract registry",
+      "source_scope": "contract/**",
+      "focus": "Manifest source list, canonical/full/compact digests, capabilities, errors, limits, observability, planes, plant/security/request digests, release gates, and cross-file consistency.",
+      "dependencies": [
+        "T020"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T022",
+      "phase": "Path group: Contract registry",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Contract registry",
+      "source_scope": "contract/**",
+      "focus": "Manifest source list, canonical/full/compact digests, capabilities, errors, limits, observability, planes, plant/security/request digests, release gates, and cross-file consistency.",
+      "dependencies": [
+        "T021"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T023",
+      "phase": "Path group: Contract registry",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Contract registry",
+      "source_scope": "contract/**",
+      "focus": "Manifest source list, canonical/full/compact digests, capabilities, errors, limits, observability, planes, plant/security/request digests, release gates, and cross-file consistency.",
+      "dependencies": [
+        "T022"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T024",
+      "phase": "Path group: Contract registry",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Contract registry",
+      "source_scope": "contract/**",
+      "focus": "Manifest source list, canonical/full/compact digests, capabilities, errors, limits, observability, planes, plant/security/request digests, release gates, and cross-file consistency.",
+      "dependencies": [
+        "T023"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T025",
+      "phase": "Path group: JSON Schemas",
+      "title": "Read and specify JSON Schemas",
+      "source_scope": "schemas/**",
+      "focus": "Strict Draft identity, duplicate-key precheck, unsafe integers, bytes, enums, unknown fields, non-finites, conditional constraints, generation, and proto parity.; language family=json",
+      "dependencies": [
+        "T024"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T026",
+      "phase": "Path group: JSON Schemas",
+      "title": "Prove input, state, error, time, identity, and resource invariants for JSON Schemas",
+      "source_scope": "schemas/**",
+      "focus": "Strict Draft identity, duplicate-key precheck, unsafe integers, bytes, enums, unknown fields, non-finites, conditional constraints, generation, and proto parity.",
+      "dependencies": [
+        "T025"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T027",
+      "phase": "Path group: JSON Schemas",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of JSON Schemas",
+      "source_scope": "schemas/**",
+      "focus": "Strict Draft identity, duplicate-key precheck, unsafe integers, bytes, enums, unknown fields, non-finites, conditional constraints, generation, and proto parity.",
+      "dependencies": [
+        "T026"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T028",
+      "phase": "Path group: JSON Schemas",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for JSON Schemas",
+      "source_scope": "schemas/**",
+      "focus": "Strict Draft identity, duplicate-key precheck, unsafe integers, bytes, enums, unknown fields, non-finites, conditional constraints, generation, and proto parity.",
+      "dependencies": [
+        "T027"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T029",
+      "phase": "Path group: JSON Schemas",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for JSON Schemas",
+      "source_scope": "schemas/**",
+      "focus": "Strict Draft identity, duplicate-key precheck, unsafe integers, bytes, enums, unknown fields, non-finites, conditional constraints, generation, and proto parity.",
+      "dependencies": [
+        "T028"
+      ],
+      "execution_wave": 1,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T030",
+      "phase": "Path group: Conformance manifest and vectors",
+      "title": "Read and specify Conformance manifest and vectors",
+      "source_scope": "conformance/**",
+      "focus": "All 268 required IDs, clause/source/pointer mapping, hashes, positive/negative/migration coverage, no skips/extras, report format, and generated immutability.; language family=json/data/scripts",
+      "dependencies": [
+        "T029"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T031",
+      "phase": "Path group: Conformance manifest and vectors",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Conformance manifest and vectors",
+      "source_scope": "conformance/**",
+      "focus": "All 268 required IDs, clause/source/pointer mapping, hashes, positive/negative/migration coverage, no skips/extras, report format, and generated immutability.",
+      "dependencies": [
+        "T030"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T032",
+      "phase": "Path group: Conformance manifest and vectors",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Conformance manifest and vectors",
+      "source_scope": "conformance/**",
+      "focus": "All 268 required IDs, clause/source/pointer mapping, hashes, positive/negative/migration coverage, no skips/extras, report format, and generated immutability.",
+      "dependencies": [
+        "T031"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T033",
+      "phase": "Path group: Conformance manifest and vectors",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Conformance manifest and vectors",
+      "source_scope": "conformance/**",
+      "focus": "All 268 required IDs, clause/source/pointer mapping, hashes, positive/negative/migration coverage, no skips/extras, report format, and generated immutability.",
+      "dependencies": [
+        "T032"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T034",
+      "phase": "Path group: Conformance manifest and vectors",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Conformance manifest and vectors",
+      "source_scope": "conformance/**",
+      "focus": "All 268 required IDs, clause/source/pointer mapping, hashes, positive/negative/migration coverage, no skips/extras, report format, and generated immutability.",
+      "dependencies": [
+        "T033"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T035",
+      "phase": "Path group: Canonical JSON and core validation",
+      "title": "Read and specify Canonical JSON and core validation",
+      "source_scope": "ncp-core/src/**json**, validation modules, tests",
+      "focus": "Canonical byte representation, map/set ordering, Unicode, number domains, unknown fields, duplicate keys, digests, limits, and independent vectors.; language family=rust",
+      "dependencies": [
+        "T034"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T036",
+      "phase": "Path group: Canonical JSON and core validation",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Canonical JSON and core validation",
+      "source_scope": "ncp-core/src/**json**, validation modules, tests",
+      "focus": "Canonical byte representation, map/set ordering, Unicode, number domains, unknown fields, duplicate keys, digests, limits, and independent vectors.",
+      "dependencies": [
+        "T035"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T037",
+      "phase": "Path group: Canonical JSON and core validation",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Canonical JSON and core validation",
+      "source_scope": "ncp-core/src/**json**, validation modules, tests",
+      "focus": "Canonical byte representation, map/set ordering, Unicode, number domains, unknown fields, duplicate keys, digests, limits, and independent vectors.",
+      "dependencies": [
+        "T036"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T038",
+      "phase": "Path group: Canonical JSON and core validation",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Canonical JSON and core validation",
+      "source_scope": "ncp-core/src/**json**, validation modules, tests",
+      "focus": "Canonical byte representation, map/set ordering, Unicode, number domains, unknown fields, duplicate keys, digests, limits, and independent vectors.",
+      "dependencies": [
+        "T037"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T039",
+      "phase": "Path group: Canonical JSON and core validation",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Canonical JSON and core validation",
+      "source_scope": "ncp-core/src/**json**, validation modules, tests",
+      "focus": "Canonical byte representation, map/set ordering, Unicode, number domains, unknown fields, duplicate keys, digests, limits, and independent vectors.",
+      "dependencies": [
+        "T038"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T040",
+      "phase": "Path group: Core message types and provenance",
+      "title": "Read and specify Core message types and provenance",
+      "source_scope": "ncp-core/src message/provenance/time/unit/frame modules",
+      "focus": "Typed messages, source/receipt/process times, clock domains, uncertainty, units, coordinate frames, simulation/calibration epistemic status, and immutable provenance.; language family=rust",
+      "dependencies": [
+        "T039"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T041",
+      "phase": "Path group: Core message types and provenance",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Core message types and provenance",
+      "source_scope": "ncp-core/src message/provenance/time/unit/frame modules",
+      "focus": "Typed messages, source/receipt/process times, clock domains, uncertainty, units, coordinate frames, simulation/calibration epistemic status, and immutable provenance.",
+      "dependencies": [
+        "T040"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T042",
+      "phase": "Path group: Core message types and provenance",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Core message types and provenance",
+      "source_scope": "ncp-core/src message/provenance/time/unit/frame modules",
+      "focus": "Typed messages, source/receipt/process times, clock domains, uncertainty, units, coordinate frames, simulation/calibration epistemic status, and immutable provenance.",
+      "dependencies": [
+        "T041"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T043",
+      "phase": "Path group: Core message types and provenance",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Core message types and provenance",
+      "source_scope": "ncp-core/src message/provenance/time/unit/frame modules",
+      "focus": "Typed messages, source/receipt/process times, clock domains, uncertainty, units, coordinate frames, simulation/calibration epistemic status, and immutable provenance.",
+      "dependencies": [
+        "T042"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T044",
+      "phase": "Path group: Core message types and provenance",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Core message types and provenance",
+      "source_scope": "ncp-core/src message/provenance/time/unit/frame modules",
+      "focus": "Typed messages, source/receipt/process times, clock domains, uncertainty, units, coordinate frames, simulation/calibration epistemic status, and immutable provenance.",
+      "dependencies": [
+        "T043"
+      ],
+      "execution_wave": 2,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T045",
+      "phase": "Path group: Sessions, generations, epochs, ordering",
+      "title": "Read and specify Sessions, generations, epochs, ordering",
+      "source_scope": "ncp-core/src session/stream/replay/high-water modules",
+      "focus": "Creation, fencing, restart, typed positions, contiguous/gapped streams, duplicates/reorder/late/future/replay, collision, capacity, and rollover.; language family=rust",
+      "dependencies": [
+        "T044"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T046",
+      "phase": "Path group: Sessions, generations, epochs, ordering",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Sessions, generations, epochs, ordering",
+      "source_scope": "ncp-core/src session/stream/replay/high-water modules",
+      "focus": "Creation, fencing, restart, typed positions, contiguous/gapped streams, duplicates/reorder/late/future/replay, collision, capacity, and rollover.",
+      "dependencies": [
+        "T045"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T047",
+      "phase": "Path group: Sessions, generations, epochs, ordering",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Sessions, generations, epochs, ordering",
+      "source_scope": "ncp-core/src session/stream/replay/high-water modules",
+      "focus": "Creation, fencing, restart, typed positions, contiguous/gapped streams, duplicates/reorder/late/future/replay, collision, capacity, and rollover.",
+      "dependencies": [
+        "T046"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T048",
+      "phase": "Path group: Sessions, generations, epochs, ordering",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Sessions, generations, epochs, ordering",
+      "source_scope": "ncp-core/src session/stream/replay/high-water modules",
+      "focus": "Creation, fencing, restart, typed positions, contiguous/gapped streams, duplicates/reorder/late/future/replay, collision, capacity, and rollover.",
+      "dependencies": [
+        "T047"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T049",
+      "phase": "Path group: Sessions, generations, epochs, ordering",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Sessions, generations, epochs, ordering",
+      "source_scope": "ncp-core/src session/stream/replay/high-water modules",
+      "focus": "Creation, fencing, restart, typed positions, contiguous/gapped streams, duplicates/reorder/late/future/replay, collision, capacity, and rollover.",
+      "dependencies": [
+        "T048"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T050",
+      "phase": "Path group: Authority, lease, and idempotency",
+      "title": "Read and specify Authority, lease, and idempotency",
+      "source_scope": "ncp-core/src authority/lease/idempotency/receipt modules",
+      "focus": "Issuer/holder, live authority, request digest, renewal, local monotonic deadlines, replay, crash, receipt causality, and no authentication inference.; language family=rust",
+      "dependencies": [
+        "T049"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T051",
+      "phase": "Path group: Authority, lease, and idempotency",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Authority, lease, and idempotency",
+      "source_scope": "ncp-core/src authority/lease/idempotency/receipt modules",
+      "focus": "Issuer/holder, live authority, request digest, renewal, local monotonic deadlines, replay, crash, receipt causality, and no authentication inference.",
+      "dependencies": [
+        "T050"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T052",
+      "phase": "Path group: Authority, lease, and idempotency",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Authority, lease, and idempotency",
+      "source_scope": "ncp-core/src authority/lease/idempotency/receipt modules",
+      "focus": "Issuer/holder, live authority, request digest, renewal, local monotonic deadlines, replay, crash, receipt causality, and no authentication inference.",
+      "dependencies": [
+        "T051"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T053",
+      "phase": "Path group: Authority, lease, and idempotency",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Authority, lease, and idempotency",
+      "source_scope": "ncp-core/src authority/lease/idempotency/receipt modules",
+      "focus": "Issuer/holder, live authority, request digest, renewal, local monotonic deadlines, replay, crash, receipt causality, and no authentication inference.",
+      "dependencies": [
+        "T052"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T054",
+      "phase": "Path group: Authority, lease, and idempotency",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Authority, lease, and idempotency",
+      "source_scope": "ncp-core/src authority/lease/idempotency/receipt modules",
+      "focus": "Issuer/holder, live authority, request digest, renewal, local monotonic deadlines, replay, crash, receipt causality, and no authentication inference.",
+      "dependencies": [
+        "T053"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T055",
+      "phase": "Path group: Action safety and watchdog",
+      "title": "Read and specify Action safety and watchdog",
+      "source_scope": "ncp-core/src action/safety/governor/watchdog modules",
+      "focus": "Mode state machine, HOLD/ESTOP latch/clear, TTL, geofence/constraints, command versus authorized command, non-widening, and exhaustive vectors.; language family=rust",
+      "dependencies": [
+        "T054"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T056",
+      "phase": "Path group: Action safety and watchdog",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Action safety and watchdog",
+      "source_scope": "ncp-core/src action/safety/governor/watchdog modules",
+      "focus": "Mode state machine, HOLD/ESTOP latch/clear, TTL, geofence/constraints, command versus authorized command, non-widening, and exhaustive vectors.",
+      "dependencies": [
+        "T055"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T057",
+      "phase": "Path group: Action safety and watchdog",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Action safety and watchdog",
+      "source_scope": "ncp-core/src action/safety/governor/watchdog modules",
+      "focus": "Mode state machine, HOLD/ESTOP latch/clear, TTL, geofence/constraints, command versus authorized command, non-widening, and exhaustive vectors.",
+      "dependencies": [
+        "T056"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T058",
+      "phase": "Path group: Action safety and watchdog",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Action safety and watchdog",
+      "source_scope": "ncp-core/src action/safety/governor/watchdog modules",
+      "focus": "Mode state machine, HOLD/ESTOP latch/clear, TTL, geofence/constraints, command versus authorized command, non-widening, and exhaustive vectors.",
+      "dependencies": [
+        "T057"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T059",
+      "phase": "Path group: Action safety and watchdog",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Action safety and watchdog",
+      "source_scope": "ncp-core/src action/safety/governor/watchdog modules",
+      "focus": "Mode state machine, HOLD/ESTOP latch/clear, TTL, geofence/constraints, command versus authorized command, non-widening, and exhaustive vectors.",
+      "dependencies": [
+        "T058"
+      ],
+      "execution_wave": 3,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T060",
+      "phase": "Path group: Security and plant digests",
+      "title": "Read and specify Security and plant digests",
+      "source_scope": "ncp-core security/plant profile digest modules",
+      "focus": "Canonical input set, domain separation, algorithm identity, tamper/reorder behavior, independent Python replay, and versioning.; language family=rust",
+      "dependencies": [
+        "T059"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T061",
+      "phase": "Path group: Security and plant digests",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Security and plant digests",
+      "source_scope": "ncp-core security/plant profile digest modules",
+      "focus": "Canonical input set, domain separation, algorithm identity, tamper/reorder behavior, independent Python replay, and versioning.",
+      "dependencies": [
+        "T060"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T062",
+      "phase": "Path group: Security and plant digests",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Security and plant digests",
+      "source_scope": "ncp-core security/plant profile digest modules",
+      "focus": "Canonical input set, domain separation, algorithm identity, tamper/reorder behavior, independent Python replay, and versioning.",
+      "dependencies": [
+        "T061"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T063",
+      "phase": "Path group: Security and plant digests",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Security and plant digests",
+      "source_scope": "ncp-core security/plant profile digest modules",
+      "focus": "Canonical input set, domain separation, algorithm identity, tamper/reorder behavior, independent Python replay, and versioning.",
+      "dependencies": [
+        "T062"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T064",
+      "phase": "Path group: Security and plant digests",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Security and plant digests",
+      "source_scope": "ncp-core security/plant profile digest modules",
+      "focus": "Canonical input set, domain separation, algorithm identity, tamper/reorder behavior, independent Python replay, and versioning.",
+      "dependencies": [
+        "T063"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T065",
+      "phase": "Path group: Audit chain and bounded decoding",
+      "title": "Read and specify Audit chain and bounded decoding",
+      "source_scope": "ncp-core audit/bounded decode/limits modules",
+      "focus": "Hash chain, authenticity boundary, byte limits before allocation, recursion/nesting, log redaction, error classes, and hostile corpus.; language family=rust",
+      "dependencies": [
+        "T064"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T066",
+      "phase": "Path group: Audit chain and bounded decoding",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Audit chain and bounded decoding",
+      "source_scope": "ncp-core audit/bounded decode/limits modules",
+      "focus": "Hash chain, authenticity boundary, byte limits before allocation, recursion/nesting, log redaction, error classes, and hostile corpus.",
+      "dependencies": [
+        "T065"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T067",
+      "phase": "Path group: Audit chain and bounded decoding",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Audit chain and bounded decoding",
+      "source_scope": "ncp-core audit/bounded decode/limits modules",
+      "focus": "Hash chain, authenticity boundary, byte limits before allocation, recursion/nesting, log redaction, error classes, and hostile corpus.",
+      "dependencies": [
+        "T066"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T068",
+      "phase": "Path group: Audit chain and bounded decoding",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Audit chain and bounded decoding",
+      "source_scope": "ncp-core audit/bounded decode/limits modules",
+      "focus": "Hash chain, authenticity boundary, byte limits before allocation, recursion/nesting, log redaction, error classes, and hostile corpus.",
+      "dependencies": [
+        "T067"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T069",
+      "phase": "Path group: Audit chain and bounded decoding",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Audit chain and bounded decoding",
+      "source_scope": "ncp-core audit/bounded decode/limits modules",
+      "focus": "Hash chain, authenticity boundary, byte limits before allocation, recursion/nesting, log redaction, error classes, and hostile corpus.",
+      "dependencies": [
+        "T068"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T070",
+      "phase": "Path group: C and language bindings",
+      "title": "Read and specify C and language bindings",
+      "source_scope": "ncp-core/bindings/**, ncp-core examples/testdata/tests",
+      "focus": "ABI, ownership, lengths, nulls, panic boundary, version symbols, generated headers, examples, and binding-vs-independent evidence.; language family=rust/c/h",
+      "dependencies": [
+        "T069"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T071",
+      "phase": "Path group: C and language bindings",
+      "title": "Prove input, state, error, time, identity, and resource invariants for C and language bindings",
+      "source_scope": "ncp-core/bindings/**, ncp-core examples/testdata/tests",
+      "focus": "ABI, ownership, lengths, nulls, panic boundary, version symbols, generated headers, examples, and binding-vs-independent evidence.",
+      "dependencies": [
+        "T070"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T072",
+      "phase": "Path group: C and language bindings",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of C and language bindings",
+      "source_scope": "ncp-core/bindings/**, ncp-core examples/testdata/tests",
+      "focus": "ABI, ownership, lengths, nulls, panic boundary, version symbols, generated headers, examples, and binding-vs-independent evidence.",
+      "dependencies": [
+        "T071"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T073",
+      "phase": "Path group: C and language bindings",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for C and language bindings",
+      "source_scope": "ncp-core/bindings/**, ncp-core examples/testdata/tests",
+      "focus": "ABI, ownership, lengths, nulls, panic boundary, version symbols, generated headers, examples, and binding-vs-independent evidence.",
+      "dependencies": [
+        "T072"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T074",
+      "phase": "Path group: C and language bindings",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for C and language bindings",
+      "source_scope": "ncp-core/bindings/**, ncp-core examples/testdata/tests",
+      "focus": "ABI, ownership, lengths, nulls, panic boundary, version symbols, generated headers, examples, and binding-vs-independent evidence.",
+      "dependencies": [
+        "T073"
+      ],
+      "execution_wave": 4,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T075",
+      "phase": "Path group: Zenoh adapter",
+      "title": "Read and specify Zenoh adapter",
+      "source_scope": "ncp-zenoh/**",
+      "focus": "Route grammar, planes, QoS, queue policies, preallocation, callbacks, reconnect, publisher capabilities, session lineage, resource limits, and security profile.; language family=rust",
+      "dependencies": [
+        "T074"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T076",
+      "phase": "Path group: Zenoh adapter",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Zenoh adapter",
+      "source_scope": "ncp-zenoh/**",
+      "focus": "Route grammar, planes, QoS, queue policies, preallocation, callbacks, reconnect, publisher capabilities, session lineage, resource limits, and security profile.",
+      "dependencies": [
+        "T075"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T077",
+      "phase": "Path group: Zenoh adapter",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Zenoh adapter",
+      "source_scope": "ncp-zenoh/**",
+      "focus": "Route grammar, planes, QoS, queue policies, preallocation, callbacks, reconnect, publisher capabilities, session lineage, resource limits, and security profile.",
+      "dependencies": [
+        "T076"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T078",
+      "phase": "Path group: Zenoh adapter",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Zenoh adapter",
+      "source_scope": "ncp-zenoh/**",
+      "focus": "Route grammar, planes, QoS, queue policies, preallocation, callbacks, reconnect, publisher capabilities, session lineage, resource limits, and security profile.",
+      "dependencies": [
+        "T077"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T079",
+      "phase": "Path group: Zenoh adapter",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Zenoh adapter",
+      "source_scope": "ncp-zenoh/**",
+      "focus": "Route grammar, planes, QoS, queue policies, preallocation, callbacks, reconnect, publisher capabilities, session lineage, resource limits, and security profile.",
+      "dependencies": [
+        "T078"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T080",
+      "phase": "Path group: Python package",
+      "title": "Read and specify Python package",
+      "source_scope": "ncp-python/**",
+      "focus": "PyO3 reuse, integer/bytes/string behavior, exceptions, wheels, stubs, free-threading, shutdown, package contents, and conformance reporting.; language family=rust/python/toml",
+      "dependencies": [
+        "T079"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T081",
+      "phase": "Path group: Python package",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Python package",
+      "source_scope": "ncp-python/**",
+      "focus": "PyO3 reuse, integer/bytes/string behavior, exceptions, wheels, stubs, free-threading, shutdown, package contents, and conformance reporting.",
+      "dependencies": [
+        "T080"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T082",
+      "phase": "Path group: Python package",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Python package",
+      "source_scope": "ncp-python/**",
+      "focus": "PyO3 reuse, integer/bytes/string behavior, exceptions, wheels, stubs, free-threading, shutdown, package contents, and conformance reporting.",
+      "dependencies": [
+        "T081"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T083",
+      "phase": "Path group: Python package",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Python package",
+      "source_scope": "ncp-python/**",
+      "focus": "PyO3 reuse, integer/bytes/string behavior, exceptions, wheels, stubs, free-threading, shutdown, package contents, and conformance reporting.",
+      "dependencies": [
+        "T082"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T084",
+      "phase": "Path group: Python package",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Python package",
+      "source_scope": "ncp-python/**",
+      "focus": "PyO3 reuse, integer/bytes/string behavior, exceptions, wheels, stubs, free-threading, shutdown, package contents, and conformance reporting.",
+      "dependencies": [
+        "T083"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T085",
+      "phase": "Path group: C++ package",
+      "title": "Read and specify C++ package",
+      "source_scope": "ncp-cpp/**",
+      "focus": "C ABI, RAII, ownership, alignment, errors, exceptions, thread safety, ABI/version, packages, examples, and conformance reporting.; language family=c/cpp/cmake",
+      "dependencies": [
+        "T084"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T086",
+      "phase": "Path group: C++ package",
+      "title": "Prove input, state, error, time, identity, and resource invariants for C++ package",
+      "source_scope": "ncp-cpp/**",
+      "focus": "C ABI, RAII, ownership, alignment, errors, exceptions, thread safety, ABI/version, packages, examples, and conformance reporting.",
+      "dependencies": [
+        "T085"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T087",
+      "phase": "Path group: C++ package",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of C++ package",
+      "source_scope": "ncp-cpp/**",
+      "focus": "C ABI, RAII, ownership, alignment, errors, exceptions, thread safety, ABI/version, packages, examples, and conformance reporting.",
+      "dependencies": [
+        "T086"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T088",
+      "phase": "Path group: C++ package",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for C++ package",
+      "source_scope": "ncp-cpp/**",
+      "focus": "C ABI, RAII, ownership, alignment, errors, exceptions, thread safety, ABI/version, packages, examples, and conformance reporting.",
+      "dependencies": [
+        "T087"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T089",
+      "phase": "Path group: C++ package",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for C++ package",
+      "source_scope": "ncp-cpp/**",
+      "focus": "C ABI, RAII, ownership, alignment, errors, exceptions, thread safety, ABI/version, packages, examples, and conformance reporting.",
+      "dependencies": [
+        "T088"
+      ],
+      "execution_wave": 5,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T090",
+      "phase": "Path group: TypeScript package",
+      "title": "Read and specify TypeScript package",
+      "source_scope": "ncp-ts/**",
+      "focus": "Generated types, independent stable validator/safety scope, Number/BigInt, canonical JSON, errors, packages, runtime versions, and full vector report.; language family=ts/json",
+      "dependencies": [
+        "T089"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T091",
+      "phase": "Path group: TypeScript package",
+      "title": "Prove input, state, error, time, identity, and resource invariants for TypeScript package",
+      "source_scope": "ncp-ts/**",
+      "focus": "Generated types, independent stable validator/safety scope, Number/BigInt, canonical JSON, errors, packages, runtime versions, and full vector report.",
+      "dependencies": [
+        "T090"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T092",
+      "phase": "Path group: TypeScript package",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of TypeScript package",
+      "source_scope": "ncp-ts/**",
+      "focus": "Generated types, independent stable validator/safety scope, Number/BigInt, canonical JSON, errors, packages, runtime versions, and full vector report.",
+      "dependencies": [
+        "T091"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T093",
+      "phase": "Path group: TypeScript package",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for TypeScript package",
+      "source_scope": "ncp-ts/**",
+      "focus": "Generated types, independent stable validator/safety scope, Number/BigInt, canonical JSON, errors, packages, runtime versions, and full vector report.",
+      "dependencies": [
+        "T092"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T094",
+      "phase": "Path group: TypeScript package",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for TypeScript package",
+      "source_scope": "ncp-ts/**",
+      "focus": "Generated types, independent stable validator/safety scope, Number/BigInt, canonical JSON, errors, packages, runtime versions, and full vector report.",
+      "dependencies": [
+        "T093"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T095",
+      "phase": "Path group: Gateway",
+      "title": "Read and specify Gateway",
+      "source_scope": "ncp-gateway/**",
+      "focus": "Translation identity, lossless/lossy/prohibited mapping, loop/replay prevention, route/security context, queues, backpressure, shutdown, and evidence.; language family=rust",
+      "dependencies": [
+        "T094"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T096",
+      "phase": "Path group: Gateway",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Gateway",
+      "source_scope": "ncp-gateway/**",
+      "focus": "Translation identity, lossless/lossy/prohibited mapping, loop/replay prevention, route/security context, queues, backpressure, shutdown, and evidence.",
+      "dependencies": [
+        "T095"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T097",
+      "phase": "Path group: Gateway",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Gateway",
+      "source_scope": "ncp-gateway/**",
+      "focus": "Translation identity, lossless/lossy/prohibited mapping, loop/replay prevention, route/security context, queues, backpressure, shutdown, and evidence.",
+      "dependencies": [
+        "T096"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T098",
+      "phase": "Path group: Gateway",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Gateway",
+      "source_scope": "ncp-gateway/**",
+      "focus": "Translation identity, lossless/lossy/prohibited mapping, loop/replay prevention, route/security context, queues, backpressure, shutdown, and evidence.",
+      "dependencies": [
+        "T097"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T099",
+      "phase": "Path group: Gateway",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Gateway",
+      "source_scope": "ncp-gateway/**",
+      "focus": "Translation identity, lossless/lossy/prohibited mapping, loop/replay prevention, route/security context, queues, backpressure, shutdown, and evidence.",
+      "dependencies": [
+        "T098"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T100",
+      "phase": "Path group: Secure deployment",
+      "title": "Read and specify Secure deployment",
+      "source_scope": "deploy/**",
+      "focus": "Open versus secure profiles, mTLS identities, ACL least privilege, cert lifecycle, secrets, real-router allow/deny, packet/routes, and reproducibility.; language family=yaml/json/certs/scripts",
+      "dependencies": [
+        "T099"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T101",
+      "phase": "Path group: Secure deployment",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Secure deployment",
+      "source_scope": "deploy/**",
+      "focus": "Open versus secure profiles, mTLS identities, ACL least privilege, cert lifecycle, secrets, real-router allow/deny, packet/routes, and reproducibility.",
+      "dependencies": [
+        "T100"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T102",
+      "phase": "Path group: Secure deployment",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Secure deployment",
+      "source_scope": "deploy/**",
+      "focus": "Open versus secure profiles, mTLS identities, ACL least privilege, cert lifecycle, secrets, real-router allow/deny, packet/routes, and reproducibility.",
+      "dependencies": [
+        "T101"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T103",
+      "phase": "Path group: Secure deployment",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Secure deployment",
+      "source_scope": "deploy/**",
+      "focus": "Open versus secure profiles, mTLS identities, ACL least privilege, cert lifecycle, secrets, real-router allow/deny, packet/routes, and reproducibility.",
+      "dependencies": [
+        "T102"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T104",
+      "phase": "Path group: Secure deployment",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Secure deployment",
+      "source_scope": "deploy/**",
+      "focus": "Open versus secure profiles, mTLS identities, ACL least privilege, cert lifecycle, secrets, real-router allow/deny, packet/routes, and reproducibility.",
+      "dependencies": [
+        "T103"
+      ],
+      "execution_wave": 6,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T105",
+      "phase": "Path group: End-to-end and Engram",
+      "title": "Read and specify End-to-end and Engram",
+      "source_scope": "e2e/**, docs/Engram-related material",
+      "focus": "Real processes, five-network NEST runner, bounded JSON, native 1.0 Engram profile, timing, authority, provenance, failure, and non-scientific-validation boundary.; language family=python/rust/md",
+      "dependencies": [
+        "T104"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T106",
+      "phase": "Path group: End-to-end and Engram",
+      "title": "Prove input, state, error, time, identity, and resource invariants for End-to-end and Engram",
+      "source_scope": "e2e/**, docs/Engram-related material",
+      "focus": "Real processes, five-network NEST runner, bounded JSON, native 1.0 Engram profile, timing, authority, provenance, failure, and non-scientific-validation boundary.",
+      "dependencies": [
+        "T105"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T107",
+      "phase": "Path group: End-to-end and Engram",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of End-to-end and Engram",
+      "source_scope": "e2e/**, docs/Engram-related material",
+      "focus": "Real processes, five-network NEST runner, bounded JSON, native 1.0 Engram profile, timing, authority, provenance, failure, and non-scientific-validation boundary.",
+      "dependencies": [
+        "T106"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T108",
+      "phase": "Path group: End-to-end and Engram",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for End-to-end and Engram",
+      "source_scope": "e2e/**, docs/Engram-related material",
+      "focus": "Real processes, five-network NEST runner, bounded JSON, native 1.0 Engram profile, timing, authority, provenance, failure, and non-scientific-validation boundary.",
+      "dependencies": [
+        "T107"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T109",
+      "phase": "Path group: End-to-end and Engram",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for End-to-end and Engram",
+      "source_scope": "e2e/**, docs/Engram-related material",
+      "focus": "Real processes, five-network NEST runner, bounded JSON, native 1.0 Engram profile, timing, authority, provenance, failure, and non-scientific-validation boundary.",
+      "dependencies": [
+        "T108"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T110",
+      "phase": "Path group: Generation and release scripts",
+      "title": "Read and specify Generation and release scripts",
+      "source_scope": "scripts/**, package.json, bun.lock, Cargo.lock",
+      "focus": "Pinned generators, deterministic outputs, dirty-tree refusal, hash production, package contents, migration, release, rollback, and self-tests.; language family=python/shell/js",
+      "dependencies": [
+        "T109"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T111",
+      "phase": "Path group: Generation and release scripts",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Generation and release scripts",
+      "source_scope": "scripts/**, package.json, bun.lock, Cargo.lock",
+      "focus": "Pinned generators, deterministic outputs, dirty-tree refusal, hash production, package contents, migration, release, rollback, and self-tests.",
+      "dependencies": [
+        "T110"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T112",
+      "phase": "Path group: Generation and release scripts",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Generation and release scripts",
+      "source_scope": "scripts/**, package.json, bun.lock, Cargo.lock",
+      "focus": "Pinned generators, deterministic outputs, dirty-tree refusal, hash production, package contents, migration, release, rollback, and self-tests.",
+      "dependencies": [
+        "T111"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T113",
+      "phase": "Path group: Generation and release scripts",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Generation and release scripts",
+      "source_scope": "scripts/**, package.json, bun.lock, Cargo.lock",
+      "focus": "Pinned generators, deterministic outputs, dirty-tree refusal, hash production, package contents, migration, release, rollback, and self-tests.",
+      "dependencies": [
+        "T112"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T114",
+      "phase": "Path group: Generation and release scripts",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Generation and release scripts",
+      "source_scope": "scripts/**, package.json, bun.lock, Cargo.lock",
+      "focus": "Pinned generators, deterministic outputs, dirty-tree refusal, hash production, package contents, migration, release, rollback, and self-tests.",
+      "dependencies": [
+        "T113"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T115",
+      "phase": "Path group: Workflows and supply chain",
+      "title": "Read and specify Workflows and supply chain",
+      "source_scope": ".github/**",
+      "focus": "All-language matrices, buf/schema/conformance, fuzz/mutation, real-router, permissions, artifact retention, SBOM, provenance, signing, and publication.; language family=yaml",
+      "dependencies": [
+        "T114"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T116",
+      "phase": "Path group: Workflows and supply chain",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Workflows and supply chain",
+      "source_scope": ".github/**",
+      "focus": "All-language matrices, buf/schema/conformance, fuzz/mutation, real-router, permissions, artifact retention, SBOM, provenance, signing, and publication.",
+      "dependencies": [
+        "T115"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T117",
+      "phase": "Path group: Workflows and supply chain",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Workflows and supply chain",
+      "source_scope": ".github/**",
+      "focus": "All-language matrices, buf/schema/conformance, fuzz/mutation, real-router, permissions, artifact retention, SBOM, provenance, signing, and publication.",
+      "dependencies": [
+        "T116"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T118",
+      "phase": "Path group: Workflows and supply chain",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Workflows and supply chain",
+      "source_scope": ".github/**",
+      "focus": "All-language matrices, buf/schema/conformance, fuzz/mutation, real-router, permissions, artifact retention, SBOM, provenance, signing, and publication.",
+      "dependencies": [
+        "T117"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T119",
+      "phase": "Path group: Workflows and supply chain",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Workflows and supply chain",
+      "source_scope": ".github/**",
+      "focus": "All-language matrices, buf/schema/conformance, fuzz/mutation, real-router, permissions, artifact retention, SBOM, provenance, signing, and publication.",
+      "dependencies": [
+        "T118"
+      ],
+      "execution_wave": 7,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T120",
+      "phase": "Path group: Documentation and diagrams",
+      "title": "Read and specify Documentation and diagrams",
+      "source_scope": "docs/**, assets/**",
+      "focus": "Version identity, architecture, queue/plane semantics, security honesty, performance method, migration, receipts, plots, and generated source.; language family=md/images/data",
+      "dependencies": [
+        "T119"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T121",
+      "phase": "Path group: Documentation and diagrams",
+      "title": "Prove input, state, error, time, identity, and resource invariants for Documentation and diagrams",
+      "source_scope": "docs/**, assets/**",
+      "focus": "Version identity, architecture, queue/plane semantics, security honesty, performance method, migration, receipts, plots, and generated source.",
+      "dependencies": [
+        "T120"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T122",
+      "phase": "Path group: Documentation and diagrams",
+      "title": "Adversarially review numerical/security/concurrency/compatibility behavior of Documentation and diagrams",
+      "source_scope": "docs/**, assets/**",
+      "focus": "Version identity, architecture, queue/plane semantics, security honesty, performance method, migration, receipts, plots, and generated source.",
+      "dependencies": [
+        "T121"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T123",
+      "phase": "Path group: Documentation and diagrams",
+      "title": "Build independent tests, oracles, fuzz corpus, and failure injection for Documentation and diagrams",
+      "source_scope": "docs/**, assets/**",
+      "focus": "Version identity, architecture, queue/plane semantics, security honesty, performance method, migration, receipts, plots, and generated source.",
+      "dependencies": [
+        "T122"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T124",
+      "phase": "Path group: Documentation and diagrams",
+      "title": "Reconcile public docs, migrations, evidence, and downstream consumers for Documentation and diagrams",
+      "source_scope": "docs/**, assets/**",
+      "focus": "Version identity, architecture, queue/plane semantics, security honesty, performance method, migration, receipts, plots, and generated source.",
+      "dependencies": [
+        "T123"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T125",
+      "phase": "Repository-specific closure",
+      "title": "Reconcile 0.6, 0.8, and 1.0-rc.1 wording across every public and generated surface.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Reconcile 0.6, 0.8, and 1.0-rc.1 wording across every public and generated surface.",
+      "dependencies": [
+        "T124"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T126",
+      "phase": "Repository-specific closure",
+      "title": "Regenerate the complete contract digest and compact proto hash from clean immutable inputs and independently verify both.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Regenerate the complete contract digest and compact proto hash from clean immutable inputs and independently verify both.",
+      "dependencies": [
+        "T125"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T127",
+      "phase": "Repository-specific closure",
+      "title": "Prove canonical JSON byte equality and identical accept/reject behavior across Rust, Python binding, C/C++ binding, and TypeScript for every mandatory vector.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Prove canonical JSON byte equality and identical accept/reject behavior across Rust, Python binding, C/C++ binding, and TypeScript for every mandatory vector.",
+      "dependencies": [
+        "T126"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T128",
+      "phase": "Repository-specific closure",
+      "title": "Add parser-level duplicate-key rejection before JSON Schema validation in every independent decoder.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Add parser-level duplicate-key rejection before JSON Schema validation in every independent decoder.",
+      "dependencies": [
+        "T127"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T129",
+      "phase": "Repository-specific closure",
+      "title": "Prove no stable integer passes through a lossy JavaScript Number path.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Prove no stable integer passes through a lossy JavaScript Number path.",
+      "dependencies": [
+        "T128"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T130",
+      "phase": "Repository-specific closure",
+      "title": "Complete and test session/generation/epoch/high-water restart semantics across transport, clients, gateway, and captures.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Complete and test session/generation/epoch/high-water restart semantics across transport, clients, gateway, and captures.",
+      "dependencies": [
+        "T129"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T131",
+      "phase": "Repository-specific closure",
+      "title": "Run all producer-consumer language pairs, not only each implementation against itself.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Run all producer-consumer language pairs, not only each implementation against itself.",
+      "dependencies": [
+        "T130"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T132",
+      "phase": "Repository-specific closure",
+      "title": "Run real-router secure-reference campaigns with body, commander, observer, Gate, Galadriel, Crebain, and Engram identities as applicable.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Run real-router secure-reference campaigns with body, commander, observer, Gate, Galadriel, Crebain, and Engram identities as applicable.",
+      "dependencies": [
+        "T131"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T133",
+      "phase": "Repository-specific closure",
+      "title": "Complete the native Engram 1.0 profile and retain compatible server evidence, or remove the profile from 1.0 claims.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Complete the native Engram 1.0 profile and retain compatible server evidence, or remove the profile from 1.0 claims.",
+      "dependencies": [
+        "T132"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T134",
+      "phase": "Repository-specific closure",
+      "title": "Complete BulkObservation across all stable SDKs or quarantine it outside stable wire/public packages.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Complete BulkObservation across all stable SDKs or quarantine it outside stable wire/public packages.",
+      "dependencies": [
+        "T133"
+      ],
+      "execution_wave": 8,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T135",
+      "phase": "Repository-specific closure",
+      "title": "Create a migration validator that rejects 0.8 captures when units, frames, session lineage, authority, or epistemic status cannot be reconstructed without guessing.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Create a migration validator that rejects 0.8 captures when units, frames, session lineage, authority, or epistemic status cannot be reconstructed without guessing.",
+      "dependencies": [
+        "T134"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T136",
+      "phase": "Repository-specific closure",
+      "title": "Commission independent protocol, canonicalization, TypeScript numeric, and deployment-security reviews.",
+      "source_scope": "repository-specific paths named by requirement",
+      "focus": "Commission independent protocol, canonicalization, TypeScript numeric, and deployment-security reviews.",
+      "dependencies": [
+        "T135"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T137",
+      "phase": "Final qualification",
+      "title": "Run full feature/platform/profile matrix and prove unsupported combinations fail clearly",
+      "source_scope": "all code/build profiles",
+      "focus": "matrix qualification",
+      "dependencies": [
+        "T136"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T138",
+      "phase": "Final qualification",
+      "title": "Run long-duration resource, cancellation, restart, fault, and hostile-input campaigns",
+      "source_scope": "all runtime profiles",
+      "focus": "resilience",
+      "dependencies": [
+        "T137"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T139",
+      "phase": "Final qualification",
+      "title": "Generate reproducible packages, SBOM, license report, vulnerability scan, provenance and checksums",
+      "source_scope": "release artifacts",
+      "focus": "supply chain",
+      "dependencies": [
+        "T138"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T140",
+      "phase": "Final qualification",
+      "title": "Commission independent clean-room build and critical evidence reproduction",
+      "source_scope": "clean external environment",
+      "focus": "independence",
+      "dependencies": [
+        "T139"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T141",
+      "phase": "Final qualification",
+      "title": "Reconcile every README, GitHub description, citation, package, tag, schema and support claim",
+      "source_scope": "all public metadata",
+      "focus": "truthfulness",
+      "dependencies": [
+        "T140"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T142",
+      "phase": "Final qualification",
+      "title": "Run publication, rollback, revocation, withdrawal, and post-publication rehearsals without changing candidate",
+      "source_scope": "release process",
+      "focus": "release safety",
+      "dependencies": [
+        "T141"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 2
+    },
+    {
+      "id": "T143",
+      "phase": "Final qualification",
+      "title": "Create local convergence manifest and hand off only explicit cross-repository requirements",
+      "source_scope": "release evidence",
+      "focus": "ecosystem boundary",
+      "dependencies": [
+        "T142"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 3
+    },
+    {
+      "id": "T144",
+      "phase": "Final qualification",
+      "title": "Perform final lead-only twenty-lens diff review against frozen audit cut",
+      "source_scope": "entire candidate diff",
+      "focus": "final review",
+      "dependencies": [
+        "T143"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 1
+    },
+    {
+      "id": "T145",
+      "phase": "Final qualification",
+      "title": "Issue signed GO, NARROWED_GO, or NO_GO decision with residual risks and removed claims",
+      "source_scope": "release manifest",
+      "focus": "governance",
+      "dependencies": [
+        "T144"
+      ],
+      "execution_wave": 9,
+      "subagent_lane": 2
+    }
+  ]
+}

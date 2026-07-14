@@ -46,10 +46,21 @@ jobs:
       # The PyNEST E2E client is intentionally dependency-free at ingress. Its
       # scanner must reject oversized, malformed, duplicate-key, over-nested,
       # and over-complex JSON before the generic decoder can allocate from it.
-      - name: Bounded pure-Python line ingress
+      - name: Bounded pure-Python ingress and fail-closed runner statuses
         run: |
-          python3 -m unittest -v e2e.test_bounded_json
-          python3 -m py_compile e2e/bounded_json.py e2e/nest_five_networks.py e2e/test_bounded_json.py
+          python3 -m unittest -v e2e.test_bounded_json e2e.test_runner_status
+          python3 -m py_compile e2e/bounded_json.py e2e/nest_five_networks.py \
+            e2e/run_cross_language_e2e.py e2e/test_bounded_json.py \
+            e2e/test_runner_status.py
+
+      - name: Reviewed dependency feature exposure
+        run: python3 scripts/check_dependency_exposure.py --self-test
+
+      - name: Install deterministic plot tooling
+        run: python3 -m pip install --disable-pip-version-check -r scripts/requirements-plot.txt
+
+      - name: Historical plot input and byte reproducibility
+        run: python3 scripts/plot_perf.py --self-test --check
 
       # ncp-python (PyO3) is excluded from the cargo gate: its test binary needs
       # libpython on the runtime linker path, and it is built/tested via maturin
@@ -104,14 +115,6 @@ jobs:
 
       - name: Rust-generated TS bindings must be committed
         run: git diff --exit-code -- ncp-core/bindings ncp-ts/src/generated
-
-      # Behavioral conformance: the same decision corpus the Rust reference is
-      # pinned to (ncp-core/tests/behavior_conformance.rs, run by the cargo test
-      # step above) replayed through the Python binding. In THIS job the binding is
-      # not built, so it skips with exit 0; the dedicated `ncp-python` job below
-      # runs it with NCP_REQUIRE_BINDING=1 so the binding's parity HARD-gates there.
-      - name: Behavioral vectors (Python binding)
-        run: python3 scripts/check_behavior_vectors.py
 
       # P0/#7: the per-plane ACL template must use valid Zenoh tokens and keep
       # command-plane PUT authority restricted to the `commander` subject.
@@ -206,7 +209,13 @@ jobs:
       # the expensive Rust/package/schema regeneration remains in build-test.
       - name: Release-owned machine-contract gates
         run: |
-          python3 -m unittest -v e2e.test_bounded_json
+          python3 -m unittest -v e2e.test_bounded_json e2e.test_runner_status
+          python3 scripts/check_handoff_review.py --self-test
+          python3 scripts/generate_max_effort_handoff_index.py --self-test
+          python3 scripts/check_max_effort_handoff_review.py --self-test
+          python3 scripts/generate_max_effort_review_template.py --check
+          python3 scripts/generate_file_review_ledger.py --self-test
+          python3 scripts/generate_file_review_ledger.py --check
           python3 scripts/check_markdown_links.py --self-test
           python3 scripts/check_markdown_links.py
           python3 scripts/check_proto_schema_parity.py

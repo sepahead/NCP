@@ -526,7 +526,7 @@ pub unsafe extern "C" fn ncp_govern(
         // ONE-SHOT: a fresh governor per call, so the ESTOP latch cannot persist
         // across calls. Stateless/corpus use only — a real plant MUST hold a
         // persistent handle (`ncp_governor_new` + `ncp_governor_govern`) so a
-        // latched ESTOP survives until a supervisor `ncp_governor_reset`.
+        // latched ESTOP survives until an authorized operator calls `ncp_governor_reset`.
         let mut gov = SafetyGovernor::new(limits);
         let out = gov.govern(&command, sensor.as_ref(), now_s, last);
         match serde_json::to_string(&out) {
@@ -538,7 +538,7 @@ pub unsafe extern "C" fn ncp_govern(
 
 /// Opaque persistent action-plane safety governor — the **latching** form: a
 /// geofence breach / inbound ESTOP / link collapse keeps every later
-/// [`ncp_governor_govern`] at ESTOP until a supervisor [`ncp_governor_reset`].
+/// [`ncp_governor_govern`] at ESTOP until an authorized operator calls [`ncp_governor_reset`].
 /// (The one-shot [`ncp_govern`] cannot latch by construction.) NOT thread-safe:
 /// the caller synchronizes access to one handle.
 pub struct NcpGovernor(SafetyGovernor);
@@ -611,7 +611,7 @@ pub unsafe extern "C" fn ncp_governor_govern(
     })
 }
 
-/// Clear the governor's local ESTOP after external supervisor/interlock
+/// Clear the governor's local ESTOP after external operator/interlock
 /// authorization. This does not authenticate or restore session authority.
 /// NULL is a no-op.
 /// # Safety
@@ -773,7 +773,7 @@ pub unsafe extern "C" fn ncp_action_buffer_should_hold(
 }
 
 /// Clear the local ESTOP and permanently retire this generation-bound buffer. This
-/// does not authenticate a supervisor or restore remote authority. NULL is a no-op.
+/// does not authenticate an operator or restore remote authority. NULL is a no-op.
 ///
 /// # Safety
 /// `buffer` must be NULL or a live, exclusively-held handle from

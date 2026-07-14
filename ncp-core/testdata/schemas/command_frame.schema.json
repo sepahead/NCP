@@ -85,27 +85,31 @@
       "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
       "properties": {
         "generation": {
-          "default": "",
           "type": "string"
         }
       },
+      "required": [
+        "generation"
+      ],
       "type": "object"
     },
     "StreamPosition": {
       "description": "One exact position in ONE logical stream incarnation (`proto/ncp.proto`\n`StreamPosition`). Wire 0.8 splits the old overloaded top-level `seq` into a\nframe's OWN [`stream`](SensorFrame) — the only sequence loss/`LinkMonitor`/\n`ActionBuffer` accounting reads — and a `source` referencing the frame that drove\nit (correlation only, never loss accounting).\n\n`epoch` is an opaque per-incarnation id (canonical lowercase UUIDv4), compared for\nEQUALITY ONLY — never ordered, never a timestamp. `seq` starts at 1 per epoch,\nstrictly increasing, within `1 ..= JSON_SAFE_INTEGER_MAX`. The `\"\"`/`0` default is\n\"unset\" and is not wire-legal until stamped (mirrors the retired `seq` discipline).",
       "properties": {
         "epoch": {
-          "default": "",
           "type": "string"
         },
         "seq": {
-          "default": 0,
           "format": "int64",
           "maximum": 9007199254740991,
           "minimum": -9007199254740991,
           "type": "integer"
         }
       },
+      "required": [
+        "epoch",
+        "seq"
+      ],
       "type": "object"
     }
   },

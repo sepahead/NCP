@@ -16,8 +16,43 @@ export const JSON_LIMITS = Object.freeze({
     maxKeyBytes: 128,
     maxStringBytes: 65_536,
     maxTotalStringBytes: 1_048_576,
+    safeIntegerMin: -9_007_199_254_740_991,
+    safeIntegerMax: 9_007_199_254_740_991,
     maxFiniteNumberMagnitude: 1e300,
 });
+const SAFE_INTEGER_MAX_DECIMAL = '9007199254740991';
+function jsonIntegerMagnitudeStart(token) {
+    // Only canonical integer spellings take the early limit path. Malformed
+    // numeric spellings must retain their NCP-LIMIT-009 classification below.
+    const start = token[0] === '-' ? 1 : 0;
+    const first = token.charCodeAt(start);
+    if (first === 0x30)
+        return token.length - start === 1 ? start : undefined;
+    if (first < 0x31 || first > 0x39)
+        return undefined;
+    for (let index = start + 1; index < token.length; index++) {
+        const digit = token.charCodeAt(index);
+        if (digit < 0x30 || digit > 0x39)
+            return undefined;
+    }
+    return start;
+}
+function integerTokenExceedsSafeRange(token) {
+    const magnitudeStart = jsonIntegerMagnitudeStart(token);
+    if (magnitudeStart === undefined)
+        return false;
+    const magnitudeLength = token.length - magnitudeStart;
+    if (magnitudeLength !== SAFE_INTEGER_MAX_DECIMAL.length) {
+        return magnitudeLength > SAFE_INTEGER_MAX_DECIMAL.length;
+    }
+    for (let index = 0; index < magnitudeLength; index++) {
+        const digit = token.charCodeAt(magnitudeStart + index);
+        const boundaryDigit = SAFE_INTEGER_MAX_DECIMAL.charCodeAt(index);
+        if (digit !== boundaryDigit)
+            return digit > boundaryDigit;
+    }
+    return false;
+}
 export class BoundedJsonError extends Error {
     code;
     offset;
@@ -135,6 +170,10 @@ class Scanner {
         while (/[0-9+\-.eE]/u.test(this.input[this.position] ?? ''))
             this.position++;
         const token = this.input.slice(start, this.position);
+        // Compare decimal digits before JSON.parse can round an unsafe integer.
+        if (integerTokenExceedsSafeRange(token)) {
+            this.fail('NCP-LIMIT-006', 'integer exceeds the exact JSON range');
+        }
         let value;
         try {
             value = JSON.parse(token);

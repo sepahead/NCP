@@ -1,0 +1,62 @@
+{
+  "schema": "ncp.max-effort-file-review-manifest.v2",
+  "normative": false,
+  "source_commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+  "source_tree": "b4886f2389a6b526249cf13b673de9e92a4f14f1",
+  "source_boundary": "Exact committed Git objects; worktree bytes and evidence-layer files are excluded.",
+  "columns": [
+    "path",
+    "git_blob_id",
+    "sha256",
+    "bytes",
+    "lines",
+    "language",
+    "generated",
+    "generator",
+    "public_surface",
+    "security_critical",
+    "science_critical",
+    "authority_critical",
+    "reviewer",
+    "review_status",
+    "requirements",
+    "assumptions",
+    "defects",
+    "tests",
+    "evidence",
+    "disposition",
+    "completed_at"
+  ],
+  "tracked_files": 782,
+  "internally_reviewed_files": 782,
+  "independently_reviewed_files": 0,
+  "critical_files_independently_reviewed": 0,
+  "tracked_bytes": 6360298,
+  "text_lines": 169759,
+  "review_status": "INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS",
+  "completed_at": "2026-07-14T16:09:26Z",
+  "decision": "NO_GO",
+  "reviewers": [
+    {
+      "id": "/root/cross_repo_audit",
+      "files": 258,
+      "text_lines": 56587,
+      "independent_human_reviewer": false
+    },
+    {
+      "id": "/root/handoff_audit",
+      "files": 266,
+      "text_lines": 56586,
+      "independent_human_reviewer": false
+    },
+    {
+      "id": "/root/repo_gap_audit",
+      "files": 258,
+      "text_lines": 56586,
+      "independent_human_reviewer": false
+    }
+  ],
+  "csv_sha256": "ffb707b52de49d2f86fd23104431b256de0391cdf6267c38a94fcc83c520681b",
+  "generator": "python3 scripts/generate_file_review_ledger.py --source 18a45bd4fdf17381351be5bd8c1da58b7835997c --review-status INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS --completed-at 2026-07-14T16:09:26Z",
+  "limitation": "Complete internal AI-assisted inspection and exact row coverage do not satisfy the handoff's independent critical-file review, task evidence, external gates, or release signature requirements."
+}

@@ -185,7 +185,8 @@ codes take precedence when their condition is known. `session_id` and `session`
 MUST be both present or both absent. An error MUST NOT guess a session generation;
 when a validated session-scoped request is being answered, the error retains the
 request's exact pair. Pre-authentication and shape failures have no receipt, while a
-committed rejection or cancellation may retain its authenticated terminal receipt.
+committed rejection or cancellation may retain its authenticated terminal receipt;
+such a receipt requires that exact `session_id`/generation pair.
 No error, including one with a registered code, is an authorizing success.
 
 ## Session generations and stream epochs
@@ -271,7 +272,10 @@ result carries it; a passive observation-plane publication may omit it. A client
 MUST correlate a receipt before treating an RPC as committed and MUST obtain the
 next expected state version from that receipt. A lost, absent, or uncorrelated reply
 leaves the outcome and next state explicitly unknown; a client cannot increment or
-guess either locally.
+guess either locally. A successful `SessionClosed` or step/run `ObservationFrame`
+MUST carry `outcome=succeeded`. A receipt retained by an `ErrorFrame` MUST carry
+`outcome=rejected` or `outcome=cancelled`; an error carrying a succeeded receipt and
+a success reply carrying a rejected or cancelled receipt are invalid messages.
 
 ## Data-plane envelope
 

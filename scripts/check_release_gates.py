@@ -21,6 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "contract" / "release-gates.v1.json"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 PRE_RELEASE_IDS = (
@@ -32,6 +33,7 @@ PRE_RELEASE_IDS = (
     "fuzz-sanitizer-duration",
     "performance-resource-profile",
     "installed-package-matrix",
+    "registry-namespace-ownership",
     "consumer-certification",
     "independent-clean-room-reproduction",
     "signed-sbom-provenance",
@@ -143,16 +145,55 @@ def validate(value: dict[str, Any], expected_candidate: str | None = None) -> No
             raise GatePolicyError(f"{field} must be a non-empty policy string")
 
 
+def require_release_allowed(value: dict[str, Any]) -> None:
+    """Fail closed when a tag workflow is invoked for the held candidate.
+
+    The current registry deliberately pins ``release_allowed=false``.  Moving the
+    hold is a reviewed source change that must also replace this candidate-only
+    validator with evidence-bound release authorization; a tag alone cannot do it.
+    """
+
+    if value.get("release_allowed") is not True:
+        raise GatePolicyError(
+            "release packaging is blocked: contract/release-gates.v1.json retains "
+            "release_allowed=false and required external evidence is NOT RUN"
+        )
+
+
+def validate_release_workflow_hold(text: str | None = None) -> None:
+    if text is None:
+        try:
+            text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as error:
+            raise GatePolicyError(f"cannot read release workflow: {error}") from error
+    required_step = (
+        "- name: Enforce candidate release hold\n"
+        "        run: python3 scripts/check_release_gates.py --require-release-allowed"
+    )
+    if required_step not in text:
+        raise GatePolicyError(
+            "tag-triggered release workflow must enforce --require-release-allowed "
+            "before archive construction"
+        )
+
+
 def self_test() -> None:
     good = load()
     candidate = package_version()
     validate(good, candidate)
+    validate_release_workflow_hold()
 
     missing_performance = copy.deepcopy(good)
     missing_performance["pre_release_gates"] = [
         gate
         for gate in missing_performance["pre_release_gates"]
         if gate["id"] != "performance-resource-profile"
+    ]
+    missing_registry_ownership = copy.deepcopy(good)
+    missing_registry_ownership["pre_release_gates"] = [
+        gate
+        for gate in missing_registry_ownership["pre_release_gates"]
+        if gate["id"] != "registry-namespace-ownership"
     ]
     post_blocks = copy.deepcopy(good)
     post_blocks["post_release_validations"][0]["blocks_initial_release"] = True
@@ -162,12 +203,32 @@ def self_test() -> None:
     )
     stale_candidate = copy.deepcopy(good)
     stale_candidate["candidate"] = "9.9.9"
-    for hostile in (missing_performance, post_blocks, duplicate, stale_candidate):
+    for hostile in (
+        missing_performance,
+        missing_registry_ownership,
+        post_blocks,
+        duplicate,
+        stale_candidate,
+    ):
         try:
             validate(hostile, candidate)
         except GatePolicyError:
             continue
         raise AssertionError("hostile release-gate policy passed validation")
+
+    try:
+        require_release_allowed(good)
+    except GatePolicyError:
+        pass
+    else:
+        raise AssertionError("release hold did not block tag-triggered packaging")
+
+    try:
+        validate_release_workflow_hold("name: hostile workflow\n")
+    except GatePolicyError:
+        pass
+    else:
+        raise AssertionError("release workflow without the hold passed validation")
 
 
 def main() -> int:
@@ -175,10 +236,18 @@ def main() -> int:
     parser.add_argument(
         "--self-test", action="store_true", help="also run negative policy mutations"
     )
+    parser.add_argument(
+        "--require-release-allowed",
+        action="store_true",
+        help="fail unless this exact source is explicitly authorized for tag packaging",
+    )
     args = parser.parse_args()
     try:
         policy = load()
         validate(policy)
+        validate_release_workflow_hold()
+        if args.require_release_allowed:
+            require_release_allowed(policy)
         if args.self_test:
             self_test()
     except (GatePolicyError, AssertionError) as error:

@@ -8,13 +8,14 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-# The release workflow is a packaging dry-run and needs no write authority.
+# The current candidate's release hold blocks this packaging dry-run before any
+# archive construction. The workflow needs no write authority.
 permissions:
   contents: read
 
 jobs:
   publish-dry-run:
-    name: cargo publish (dry-run)
+    name: held packaging dry-run
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -26,6 +27,14 @@ jobs:
           # objects, peeled commits, and historical trees. A shallow checkout
           # cannot prove those boundaries.
           fetch-depth: 0
+
+      # A tag is not authorization. The candidate registry deliberately retains
+      # release_allowed=false while external gates are NOT RUN, so every current
+      # v* tag attempt fails here before toolchain setup or archive construction.
+      # Unlocking publication requires a separately reviewed, evidence-bound
+      # release-policy change; merely changing a manifest version cannot bypass it.
+      - name: Enforce candidate release hold
+        run: python3 scripts/check_release_gates.py --require-release-allowed
 
       # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.88.0").
       - name: Install Rust toolchain
@@ -43,13 +52,14 @@ jobs:
         run: |
           scripts/check-version-coherence.sh "${GITHUB_REF_NAME}"
           python3 -m unittest -v e2e.test_bounded_json
+          python3 scripts/check_dependency_exposure.py --self-test
           python3 scripts/check_released_baselines.py
           python3 scripts/check_wire_baseline.py
           python3 scripts/check_wire_baseline.py --verify-current-cut
           python3 scripts/check_buf_breaking.py
           python3 scripts/generate_conformance_manifest.py
           python3 scripts/generate_contract_manifest.py
-          python3 scripts/check_release_gates.py
+          python3 scripts/check_release_gates.py --require-release-allowed
 
       # Build all five archives and inspect their exact contents. Core, Zenoh,
       # and the C ABI are cargo-tested from extraction; Python and gateway are

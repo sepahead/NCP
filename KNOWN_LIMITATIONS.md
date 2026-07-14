@@ -30,6 +30,20 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   manifests in a workspace. Stable publication, multi-platform clean installs,
   reproducibility, signatures, SBOM/provenance, vulnerability reports, and
   clean-room reproduction are not complete.
+- **Public package namespace ownership is unresolved.** As checked on 2026-07-14,
+  the intended [`ncp-core` crates.io name](https://crates.io/crates/ncp-core) and
+  [`ncp` Python distribution name](https://pypi.org/project/ncp/) belong to
+  unrelated projects. A not-found response for another name is not proof of
+  ownership. Registry access or coordinated distribution renaming must be proven
+  before publication; local archives establish packageability only.
+- **The locked Zenoh graph contains an unresolved transitive advisory.** Zenoh
+  1.9.0 requires `lz4_flex` 0.10.0, affected by `RUSTSEC-2026-0041`, and cannot
+  select a patched compatible release. NCP disables Zenoh defaults and
+  `transport_compression`, which keeps the affected block-decompression call out
+  of the resolved workspace build and is checked mechanically. The package is
+  still present, downstream feature unification can re-enable the path, and no
+  stable publication may proceed until Zenoh permits a patched dependency and the
+  waiver is removed.
 - **No known consumer has completed native 1.0 certification.** Engram has an
   explicit local native-1.0 migration in progress; crebain,
   crebain-galadriel-producer, galadriel, haldir, and prisoma remain wire 0.8.
@@ -44,6 +58,10 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   Python backend; Engram's in-progress native migration must satisfy the same
   contract, or a legacy deployment must use the separate labelled terminating
   migration gateway.
+- The reviewed `ncp-zenoh` dependency profile is exactly TCP, TLS, UDP, and shared
+  memory with Zenoh default features and transport compression disabled. A host
+  that unifies `zenoh/default` or `zenoh/transport_compression` changes the compiled
+  security surface and is outside this candidate profile.
 - The legacy translator currently specifies only explicit channel requirement
   mapping. It rejects missing/null/malformed/mixed fields and cannot invent
   identity, security, session, authority, operation, receipt, or plant context.

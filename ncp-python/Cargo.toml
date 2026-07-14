@@ -4,6 +4,7 @@ description = "Python bindings (PyO3) for the NCP Rust core — so Python projec
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 readme = "README.md"

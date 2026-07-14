@@ -2,7 +2,7 @@
 
 > **Candidate status:** repository HEAD is the unreleased `1.0.0-rc.1` package
 > candidate, wire `1.0`, compact proto hash `163acc57d8a62b66`. The latest immutable
-> release remains `v0.8.0`; no `v1.0.0` tag or 1.0 publication exists.
+> annotated source tag is `v0.8.0`; no `v1.0.0` tag or 1.0 publication exists.
 
 NCP has four separate identities:
 

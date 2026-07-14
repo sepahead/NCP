@@ -50,7 +50,8 @@ export type {
   MutationInput,
   NcpErrorCode,
 } from './client.js'
-export { WebSocketNeuroSim } from './ws.js'
+export { WebSocketNeuroSim, WEBSOCKET_TRANSPORT_DEFAULTS } from './ws.js'
+export type { WebSocketNeuroSimOptions } from './ws.js'
 export {
   BoundedJsonError,
   JSON_LIMITS,

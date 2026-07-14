@@ -4,7 +4,7 @@
 //!
 //! Config via env:
 //!   NCP_REALM        key-expression realm           (default `ncp`; set per deployment)
-//!   NCP_BRIDGE_ADDR  Python bridge_server.py addr    (default `127.0.0.1:28474`)
+//!   NCP_BRIDGE_ADDR  numeric loopback TCP address    (default `127.0.0.1:28474`)
 //!   NCP_ZENOH_CONFIG path to a strict Zenoh client config (default: quiet, no auth)
 //!
 //! Security: the realm is *addressing*, not a credential. By default this gateway
@@ -16,11 +16,92 @@
 
 use ncp_core::keys::Keys;
 use ncp_zenoh::{ZenohBus, NCP_ZENOH_CONFIG_ENV};
+use std::ffi::OsStr;
+use std::fmt;
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::TcpStream;
+use std::net::{SocketAddr, TcpStream};
+use std::str::FromStr;
 use std::time::Duration;
 
 const DEFAULT_BRIDGE_ADDR: &str = "127.0.0.1:28474";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct BridgeEndpoint(SocketAddr);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum BridgeEndpointError {
+    NonUnicode,
+    Malformed,
+    ZeroPort,
+    NonLoopback,
+}
+
+impl fmt::Display for BridgeEndpointError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NonUnicode => write!(formatter, "must be valid UTF-8"),
+            Self::Malformed => write!(
+                formatter,
+                "must be a numeric IP socket address such as 127.0.0.1:28474 or [::1]:28474; hostnames and paths are rejected"
+            ),
+            Self::ZeroPort => write!(formatter, "must use a nonzero TCP port"),
+            Self::NonLoopback => write!(formatter, "must use a loopback IP address"),
+        }
+    }
+}
+
+impl std::error::Error for BridgeEndpointError {}
+
+impl FromStr for BridgeEndpoint {
+    type Err = BridgeEndpointError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let address = value
+            .parse::<SocketAddr>()
+            .map_err(|_| BridgeEndpointError::Malformed)?;
+        if address.port() == 0 {
+            return Err(BridgeEndpointError::ZeroPort);
+        }
+        if !address.ip().is_loopback() {
+            return Err(BridgeEndpointError::NonLoopback);
+        }
+        Ok(Self(address))
+    }
+}
+
+impl fmt::Display for BridgeEndpoint {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+fn bridge_endpoint_from_env(value: Option<&OsStr>) -> Result<BridgeEndpoint, BridgeEndpointError> {
+    value
+        .unwrap_or_else(|| OsStr::new(DEFAULT_BRIDGE_ADDR))
+        .to_str()
+        .ok_or(BridgeEndpointError::NonUnicode)?
+        .parse()
+}
+
+fn realm_from_env(value: Option<&OsStr>) -> Result<String, &'static str> {
+    match value {
+        None => Ok(ncp_core::DEFAULT_REALM.to_owned()),
+        Some(value) => value
+            .to_str()
+            .map(str::to_owned)
+            .ok_or("must be valid UTF-8"),
+    }
+}
+
+fn require_loopback_peer(peer: SocketAddr) -> std::io::Result<()> {
+    if peer.ip().is_loopback() {
+        return Ok(());
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::PermissionDenied,
+        "Python bridge connection resolved to a non-loopback peer",
+    ))
+}
 
 fn read_bridge_reply(reader: &mut impl BufRead) -> std::io::Result<Vec<u8>> {
     let maximum_line_bytes = ncp_core::bounded_json::MAX_FRAME_BYTES + 2;
@@ -89,8 +170,9 @@ fn handle_identity_argument() -> bool {
 /// Forward one NCP request (JSON bytes) to the Python bridge and return the reply
 /// (JSON bytes). Newline-delimited JSON, one request → one reply. Blocking — the
 /// control-plane RPC is rare (session lifecycle), never the per-tick hot path.
-fn forward_to_python(addr: &str, request: &[u8]) -> std::io::Result<Vec<u8>> {
-    let stream = TcpStream::connect(addr)?;
+fn forward_to_python(endpoint: BridgeEndpoint, request: &[u8]) -> std::io::Result<Vec<u8>> {
+    let stream = TcpStream::connect(endpoint.0)?;
+    require_loopback_peer(stream.peer_addr()?)?;
     stream.set_read_timeout(Some(Duration::from_secs(30)))?;
     stream.set_write_timeout(Some(Duration::from_secs(30)))?;
     let mut writer = stream.try_clone()?;
@@ -126,9 +208,21 @@ async fn main() {
     if handle_identity_argument() {
         return;
     }
-    let realm = std::env::var("NCP_REALM").unwrap_or_else(|_| ncp_core::DEFAULT_REALM.to_string());
-    let bridge_addr =
-        std::env::var("NCP_BRIDGE_ADDR").unwrap_or_else(|_| DEFAULT_BRIDGE_ADDR.to_string());
+    let realm = match realm_from_env(std::env::var_os("NCP_REALM").as_deref()) {
+        Ok(realm) => realm,
+        Err(error) => {
+            eprintln!("[ncp-gateway] refusing invalid NCP_REALM: {error}");
+            std::process::exit(1);
+        }
+    };
+    let bridge_addr = std::env::var_os("NCP_BRIDGE_ADDR");
+    let bridge_endpoint = match bridge_endpoint_from_env(bridge_addr.as_deref()) {
+        Ok(endpoint) => endpoint,
+        Err(error) => {
+            eprintln!("[ncp-gateway] refusing invalid NCP_BRIDGE_ADDR: {error}");
+            std::process::exit(1);
+        }
+    };
 
     // Honor NCP_ZENOH_CONFIG explicitly. The current ncp-zenoh secure path validates
     // the strict client config and then fails closed because its callbacks cannot
@@ -153,10 +247,10 @@ async fn main() {
         }
         None => {
             eprintln!(
-                "[ncp-gateway] {NCP_ZENOH_CONFIG_ENV} unset: opening hardened default \
-                 (multicast scouting OFF, no ACL/TLS). The realm is addressing, not a \
-                 credential. production-secure is currently unavailable in \
-                 ncp-zenoh; see SECURITY.md."
+                "[ncp-gateway] INSECURE dev-loopback-insecure: {NCP_ZENOH_CONFIG_ENV} \
+                 is unset; multicast scouting is OFF but there is no ACL/TLS. The realm \
+                 is addressing, not a credential. production-secure is currently \
+                 unavailable in ncp-zenoh; see SECURITY.md."
             );
             ZenohBus::open_realm(keys).await
         }
@@ -169,7 +263,7 @@ async fn main() {
         }
     };
 
-    let addr = bridge_addr.clone();
+    let endpoint = bridge_endpoint;
     let serve = bus
         .serve_rpc(move |req: Vec<u8>| {
             // forward_to_python is blocking std::net I/O (30s timeouts). block_in_place
@@ -188,7 +282,7 @@ async fn main() {
                     &req,
                 );
             }
-            tokio::task::block_in_place(|| match forward_to_python(&addr, &req) {
+            tokio::task::block_in_place(|| match forward_to_python(endpoint, &req) {
                 Ok(reply) if !reply.is_empty() => reply,
                 Ok(_) => error_frame(
                     ncp_core::RpcErrorCode::ContainedInternalFailure,
@@ -197,7 +291,7 @@ async fn main() {
                 ),
                 Err(e) => error_frame(
                     ncp_core::RpcErrorCode::ContainedInternalFailure,
-                    &format!("bridge I/O or reply failure at {addr}: {e}"),
+                    &format!("bridge I/O or reply failure at {endpoint}: {e}"),
                     &req,
                 ),
             })
@@ -212,7 +306,7 @@ async fn main() {
     };
 
     println!(
-        "[ncp-gateway] serving NCP RPC on Zenoh keys '{realm}/rpc/*' → Python bridge {bridge_addr}"
+        "[ncp-gateway] serving NCP RPC on Zenoh keys '{realm}/rpc/*' → loopback Python bridge {bridge_endpoint}"
     );
     println!(
         "[ncp-gateway] RPC-only bridge; streaming sensor/command/observation planes connect directly between NCP peers"
@@ -228,6 +322,101 @@ async fn main() {
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn bridge_endpoint_accepts_ipv4_loopback() {
+        let endpoint = "127.0.0.1:28474"
+            .parse::<BridgeEndpoint>()
+            .expect("IPv4 loopback endpoint should pass");
+        assert_eq!(endpoint.0, "127.0.0.1:28474".parse().unwrap());
+    }
+
+    #[test]
+    fn bridge_endpoint_uses_loopback_default_when_unset() {
+        let endpoint = bridge_endpoint_from_env(None).expect("default endpoint should pass");
+        assert_eq!(endpoint.0, DEFAULT_BRIDGE_ADDR.parse().unwrap());
+    }
+
+    #[test]
+    fn bridge_endpoint_accepts_ipv6_loopback() {
+        let endpoint = "[::1]:28474"
+            .parse::<BridgeEndpoint>()
+            .expect("IPv6 loopback endpoint should pass");
+        assert_eq!(endpoint.0, "[::1]:28474".parse().unwrap());
+    }
+
+    #[test]
+    fn bridge_endpoint_rejects_non_loopback_address() {
+        let error = "192.0.2.1:28474"
+            .parse::<BridgeEndpoint>()
+            .expect_err("remote endpoint must fail");
+        assert_eq!(error, BridgeEndpointError::NonLoopback);
+    }
+
+    #[test]
+    fn bridge_endpoint_rejects_unspecified_address() {
+        let error = "0.0.0.0:28474"
+            .parse::<BridgeEndpoint>()
+            .expect_err("unspecified endpoint must fail");
+        assert_eq!(error, BridgeEndpointError::NonLoopback);
+    }
+
+    #[test]
+    fn bridge_endpoint_rejects_hostname() {
+        let error = "localhost:28474"
+            .parse::<BridgeEndpoint>()
+            .expect_err("hostnames must fail closed");
+        assert_eq!(error, BridgeEndpointError::Malformed);
+    }
+
+    #[test]
+    fn bridge_endpoint_rejects_missing_port() {
+        let error = "127.0.0.1"
+            .parse::<BridgeEndpoint>()
+            .expect_err("missing port must fail");
+        assert_eq!(error, BridgeEndpointError::Malformed);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn bridge_endpoint_rejects_non_unicode_environment_value() {
+        use std::os::unix::ffi::OsStrExt;
+
+        let error = bridge_endpoint_from_env(Some(OsStr::from_bytes(b"\xff")))
+            .expect_err("non-Unicode configuration must fail");
+        assert_eq!(error, BridgeEndpointError::NonUnicode);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn realm_rejects_non_unicode_environment_value() {
+        use std::os::unix::ffi::OsStrExt;
+
+        let error = realm_from_env(Some(OsStr::from_bytes(b"\xff")))
+            .expect_err("non-Unicode realms must fail rather than select the default realm");
+        assert_eq!(error, "must be valid UTF-8");
+    }
+
+    #[test]
+    fn bridge_endpoint_rejects_zero_port() {
+        let error = "127.0.0.1:0"
+            .parse::<BridgeEndpoint>()
+            .expect_err("port zero must fail");
+        assert_eq!(error, BridgeEndpointError::ZeroPort);
+    }
+
+    #[test]
+    fn bridge_peer_check_rejects_non_loopback_address() {
+        let peer = "198.51.100.7:28474".parse().unwrap();
+        let error = require_loopback_peer(peer).expect_err("remote peer must fail");
+        assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
+    }
+
+    #[test]
+    fn bridge_peer_check_accepts_loopback_address() {
+        let peer = "127.0.0.1:28474".parse().unwrap();
+        assert!(require_loopback_peer(peer).is_ok());
+    }
 
     #[test]
     fn bridge_reply_reader_accepts_one_bounded_json_line() {

@@ -273,6 +273,60 @@
         }
       },
       {
+        "name": "open_session_multibyte_session_id_over_64_bytes_rejected",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "ééééééééééééééééééééééééééééééééé",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "open_session_multibyte_session_id_exact_64_bytes_ok",
+        "input": {
+          "kind": "open_session",
+          "message": {
+            "kind": "open_session",
+            "ncp_version": "1.0",
+            "session_id": "éééééééééééééééééééééééééééééééé",
+            "network": {
+              "kind": "builtin",
+              "ref": "iaf_psc_alpha"
+            },
+            "identity": {
+              "principal_id": "controller-principal-1",
+              "entity_id": "controller-1",
+              "role": "commander",
+              "plane": "control"
+            },
+            "security_profile": "dev-loopback-insecure",
+            "security_state_digest": "8b65c88deecefc922a191ea646b1a2b9602f733c61d7649e778d0d7087bc15ab",
+            "gateway_permitted": false
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
         "name": "open_session_missing_network",
         "input": {
           "kind": "open_session",
@@ -915,6 +969,52 @@
         }
       },
       {
+        "name": "step_request_nested_stimulus_generation_mismatch_rejected",
+        "input": {
+          "kind": "step_request",
+          "message": {
+            "kind": "step_request",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "stimulus": {
+              "kind": "stimulus_frame",
+              "ncp_version": "1.0",
+              "session_id": "s",
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96926"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "fc8d76a873c94ba343760a99595dd16e3611247f57712d5ee36914db165e9cb7",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 1,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "run_request_missing_duration",
         "input": {
           "kind": "run_request",
@@ -924,6 +1024,62 @@
             "session_id": "s",
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          },
+          "session": {
+            "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "run_request_nested_stimulus_generation_mismatch_rejected",
+        "input": {
+          "kind": "run_request",
+          "message": {
+            "ncp_version": "1.0",
+            "kind": "run_request",
+            "session_id": "vec-open-1",
+            "duration_ms": 1000.0,
+            "stimulus": {
+              "ncp_version": "1.0",
+              "kind": "stimulus_frame",
+              "session_id": "vec-open-1",
+              "t": 0.0,
+              "values": {
+                "drive": {
+                  "data": [
+                    1.0
+                  ],
+                  "unit": "Hz"
+                }
+              },
+              "session": {
+                "generation": "293279f3-d459-4bfd-aeeb-604799e96926"
+              }
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000002",
+              "request_digest": "15f98be9b3850f7bfcd03d15192c09539e4dda66d9929249d4fde4996a0f0633",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 2,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            },
+            "authority": {
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "term": 1,
+              "lease_id": "20000000-0000-4000-8000-000000000001",
+              "issuer_principal_id": "controller-principal-1",
+              "holder_principal_id": "controller-principal-1",
+              "holder_entity_id": "pid-controller-1",
+              "issued_at_utc_ms": 1700000000000,
+              "expires_at_utc_ms": 1700000030000
             }
           },
           "session": {
@@ -1595,6 +1751,65 @@
         }
       },
       {
+        "name": "sensor_frame_missing_session_generation_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "1.0",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {},
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "sensor_frame_missing_stream_epoch_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "1.0",
+            "stream": {
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "sensor_frame_missing_stream_seq_rejected",
+        "input": {
+          "kind": "sensor_frame",
+          "message": {
+            "kind": "sensor_frame",
+            "ncp_version": "1.0",
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1"
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "session_id": "s"
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "sensor_frame_malformed_channel_rejected",
         "input": {
           "kind": "sensor_frame",
@@ -1746,6 +1961,40 @@
         },
         "expect": {
           "valid": true
+        }
+      },
+      {
+        "name": "observation_frame_cancelled_receipt_outcome_rejected",
+        "input": {
+          "kind": "observation_frame",
+          "message": {
+            "kind": "observation_frame",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "records": {},
+            "calibrated_posterior": false,
+            "is_simulation_output": true,
+            "stream": {
+              "epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1",
+              "seq": 1
+            },
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "cancelled",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
         }
       },
       {
@@ -3627,6 +3876,34 @@
         }
       },
       {
+        "name": "session_closed_rejected_receipt_outcome_rejected",
+        "input": {
+          "kind": "session_closed",
+          "message": {
+            "kind": "session_closed",
+            "ncp_version": "1.0",
+            "session_id": "s",
+            "ok": true,
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "rejected",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "session_closed_missing_receipt_rejected",
         "input": {
           "kind": "session_closed",
@@ -3727,6 +4004,122 @@
             "error": "bad",
             "session": {
               "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_receipt_without_session_pair_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-STATE-001",
+            "error": "uncorrelated rejection",
+            "request_kind": "step_request",
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "rejected",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
+        "name": "error_rejected_receipt_ok",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-STATE-001",
+            "error": "rejected",
+            "session_id": "s",
+            "request_kind": "step_request",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "rejected",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "error_cancelled_receipt_ok",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-OP-002",
+            "error": "cancelled",
+            "session_id": "s",
+            "request_kind": "run_request",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000002",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "cancelled",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
+            }
+          }
+        },
+        "expect": {
+          "valid": true
+        }
+      },
+      {
+        "name": "error_succeeded_receipt_outcome_rejected",
+        "input": {
+          "kind": "error",
+          "message": {
+            "kind": "error",
+            "ncp_version": "1.0",
+            "code": "NCP-STATE-001",
+            "error": "contradictory outcome",
+            "session_id": "s",
+            "request_kind": "step_request",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "receipt": {
+              "operation_id": "10000000-0000-4000-8000-000000000001",
+              "request_digest": "661cc70e48a4fbbe0217623e657c5a00457b2f1114a22f67ccc97ff27b05e212",
+              "result_digest": "ba26d8ac4bbd75c8d37f136d2d6160d1b11f900f69b91ca777f1c53b8d55ad7e",
+              "outcome": "succeeded",
+              "state_version": 2,
+              "committed_at_utc_ms": 1700000000100,
+              "responder_principal_id": "simulator-principal-1",
+              "responder_entity_id": "simulator-1"
             }
           }
         },

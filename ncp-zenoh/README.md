@@ -58,6 +58,14 @@ shipped ACL/TLS templates remain configuration-only, and generic `open()`,
 `with_config()`, or arbitrary config-file loading must not be represented as
 `production-secure`.
 
+The reviewed Cargo feature set is exactly TCP, TLS, UDP, and shared memory with
+Zenoh defaults and `transport_compression` disabled. Zenoh 1.9.0 otherwise reaches
+the block decompression affected by `RUSTSEC-2026-0041` through its fixed
+`lz4_flex` 0.10.0 dependency. The local gate verifies that the affected feature is
+absent, but Cargo feature unification by another dependency can re-enable it; such
+a downstream build is unsupported and not covered by this candidate review. The
+release hold remains until Zenoh permits a patched dependency.
+
 `serve_rpc` bounds concurrent handler lifetimes, contains panics, validates
 selector/request/reply/session correlation, and returns registered errors:
 `NCP-WIRE-001` for an invalid request and `NCP-INTERNAL-001` for contained handler,

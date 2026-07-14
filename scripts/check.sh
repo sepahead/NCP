@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Complete local NCP release gate. This intentionally builds and exercises every
+# Complete local NCP preflight. This intentionally builds and exercises every
 # shipped binding from the committed lockfiles; it is slower than a normal edit
-# loop because a green result is meant to carry release-level evidence.
+# loop. A green result is local evidence only and cannot satisfy external gates,
+# authorize a tag, or certify a release.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -13,7 +14,7 @@ trap cleanup EXIT
 step() { printf '\n=== %s ===\n' "$1"; }
 require_tool() {
     if ! command -v "$1" >/dev/null 2>&1; then
-        printf 'required release-gate tool is missing: %s\n' "$1" >&2
+        printf 'required local-preflight tool is missing: %s\n' "$1" >&2
         exit 1
     fi
 }
@@ -30,10 +31,12 @@ cargo fmt --all -- --check
 git diff --check
 python3 scripts/gen_diagrams.py --check
 
-step "bounded pure-Python line ingress"
-python3 -m unittest -v e2e.test_bounded_json
+step "bounded pure-Python line ingress + runner status"
+python3 -m unittest -v e2e.test_bounded_json e2e.test_runner_status
 python3 -m py_compile \
-    e2e/bounded_json.py e2e/nest_five_networks.py e2e/test_bounded_json.py
+    e2e/bounded_json.py e2e/nest_five_networks.py \
+    e2e/run_cross_language_e2e.py e2e/test_bounded_json.py \
+    e2e/test_runner_status.py
 
 step "workspace clippy (warnings denied; Python links in its dedicated gate)"
 cargo clippy --workspace --exclude ncp-python --all-targets --locked -- -D warnings
@@ -78,8 +81,14 @@ bun run check:behavior
 bun run check:ws
 bun run check:package
 
-step "proto, schema, JSON/binary corpus, and released/candidate wire baselines"
+step "handoff, proto, schema, JSON/binary corpus, and wire baselines"
 python3 scripts/check_handoff_review.py --self-test
+python3 scripts/generate_max_effort_handoff_index.py --self-test
+python3 scripts/check_max_effort_handoff_review.py --self-test
+python3 scripts/generate_max_effort_review_template.py --check
+python3 scripts/generate_file_review_ledger.py --self-test
+python3 scripts/generate_file_review_ledger.py --check
+python3 scripts/plot_perf.py --self-test --check
 python3 scripts/check_markdown_links.py --self-test
 python3 scripts/check_markdown_links.py
 python3 scripts/check_proto_schema_parity.py
@@ -119,6 +128,7 @@ step "Rust crate archive self-containment"
 python3 scripts/check_rust_packages.py --offline
 
 step "dependency, license, and source policy"
+python3 scripts/check_dependency_exposure.py --self-test
 if cargo deny --version >/dev/null 2>&1; then
     cargo deny check
 else
@@ -130,4 +140,4 @@ step "protobuf lint + build"
 buf lint
 buf build
 
-printf '\nNCP RELEASE GATE PASSED\n'
+printf '\nNCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN\n'

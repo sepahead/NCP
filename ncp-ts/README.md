@@ -50,14 +50,19 @@ complete request. A caller-supplied digest is accepted only when it already matc
 placeholders and payload/digest divergence fail before transport.
 
 `WebSocketNeuroSim` is an experimental FIFO-correlated binding. It uses the bounded
-parser, rejects binary and malformed replies, and settles all pending requests on
-close/error. Its UTF-8 byte gate counts without allocating a second full reply
-buffer; the browser WebSocket API itself delivers a complete message, so the server
-and deployment proxy must also enforce the normative frame ceiling before browser
-allocation. WebSocket is not a stable 1.0 transport; the stable binding is Zenoh. A
-deployment endpoint cannot answer this client natively until its full negotiation,
-lifecycle, authority, digest, and receipt contract passes retained integration
-evidence.
+parser, rejects binary and malformed replies, preflights outbound JSON against the
+1 MiB frame ceiling, and caps outstanding requests at the control-plane capacity of
+128. Connection, browser write-buffer drain, reply read, and overall request waits
+have finite defaults exposed by `WEBSOCKET_TRANSPORT_DEFAULTS`; smaller or otherwise
+deployment-specific positive timer-safe values may be supplied as the constructor's
+second argument. A timeout after a send closes the FIFO transport so a late reply
+cannot satisfy a later request. Its UTF-8 byte gate counts without allocating a
+second full reply buffer; the browser WebSocket API itself delivers a complete
+message, so the server and deployment proxy must also enforce the normative frame
+ceiling before browser allocation. WebSocket is not a stable 1.0 transport; the
+stable binding is Zenoh. A deployment endpoint cannot answer this client natively
+until its full negotiation, lifecycle, authority, digest, and receipt contract
+passes retained integration evidence.
 
 The package also exports `parseBoundedJson`, `assertNcpMessage`,
 `NCP_ERROR_CODES`/`NcpErrorCode`, `SafetyGovernor`, `CommandWatchdog`,

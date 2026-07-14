@@ -100,6 +100,14 @@ pub(crate) fn validate_lease_shape(lease: &AuthorityLease) -> Result<(), Authori
             ));
         }
     }
+    if !(0..=JSON_SAFE_INTEGER_MAX).contains(&lease.issued_at_utc_ms)
+        || !(0..=JSON_SAFE_INTEGER_MAX).contains(&lease.expires_at_utc_ms)
+    {
+        return Err(AuthorityError::new(
+            "NCP-LEASE-002",
+            "lease UTC timestamps must be non-negative JSON-safe integers",
+        ));
+    }
     let duration = lease
         .expires_at_utc_ms
         .checked_sub(lease.issued_at_utc_ms)

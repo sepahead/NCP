@@ -8,7 +8,8 @@
 //
 // A C++ project would wrap these in RAII (a std::unique_ptr with ncp_string_free
 // as the deleter) and a JSON library (nlohmann/json) — the point here is that the
-// behavior comes from the one canonical Rust core, wire-identical to every peer.
+// behavior comes from the Rust reference core. This binding is not an independent
+// implementation or live interoperability/security evidence.
 
 #include "ncp.h"
 #include <iostream>
@@ -58,7 +59,9 @@ int main() {
       "\"network\":{\"kind\":\"builtin\",\"ref\":\"iaf_psc_alpha\"},"
       "\"identity\":{\"principal_id\":\"commander-principal-1\",\"entity_id\":\"controller-1\",\"role\":\"commander\",\"plane\":\"control\"},"
       "\"security_profile\":\"dev-loopback-insecure\","
-      "\"security_state_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\","
+      // Exact digest of deploy/profiles/dev-loopback-insecure.json. This admits
+      // only the visibly insecure local profile; it is not a production credential.
+      "\"security_state_digest\":\"1b8d5d1f0209b1c9c3131ab8787464f7d8ea17c4db7d9bc65084617fee44e21c\","
       "\"gateway_permitted\":false}"));
   bool valid = ok.find("\"kind\":\"open_session\"") != std::string::npos;
   std::cout << "validate ok   = " << (valid ? "true" : "false") << "\n";
@@ -103,18 +106,12 @@ int main() {
   bool latched = breached.find("\"mode\":\"estop\"") != std::string::npos &&
                  still.find("\"mode\":\"estop\"") != std::string::npos &&
                  ncp_governor_is_estopped(gov) == 1;
-  ncp_governor_reset(gov);
-  std::string resumed = take(ncp_governor_govern(
-      gov, active_cmd, 3.0,
-      "{\"kind\":\"sensor_frame\",\"ncp_version\":\"1.0\",\"session_id\":\"uav1\","
-      "\"stream\":{\"epoch\":\"00000000-0000-4000-8000-000000000001\",\"seq\":3},"
-      "\"session\":{\"generation\":\"00000000-0000-4000-8000-0000000000a2\"},\"t\":0.0,"
-      "\"channels\":{\"pose_position\":{\"data\":[0.0,0.0,0.0],\"unit\":\"m\"}}}",
-      3.0));
-  bool reset_ok = resumed.find("\"mode\":\"active\"") != std::string::npos;
+  // Do not demonstrate a same-generation reset. Reset authorization is body-local
+  // and out of scope for this binding smoke; a real reset retires the generation,
+  // authority, streams, and buffers before a fresh session can actuate.
   ncp_governor_free(gov);
   std::cout << "gov latch     = " << (latched ? "latched" : "LOST?!")
-            << ", after reset = " << (reset_ok ? "active" : "STUCK?!") << "\n";
+            << ", reset intentionally NOT RUN\n";
 
   // A live actuator also needs the command-arrival buffer: it rejects replay,
   // enforces ttl_ms, and drains predictive horizons to HOLD.
@@ -133,8 +130,8 @@ int main() {
   bool pass = take(ncp_version()) == "1.0" && ncp_check_version("1.0", false) == 1 &&
               ncp_check_version("1.2", false) == 1 &&
               ncp_check_version("0.8", false) == 0 && valid &&
-              versionless_rejected && latched && reset_ok && buffer_ingested &&
-              buffer_active && buffer_expired;
+              versionless_rejected && latched && buffer_ingested && buffer_active &&
+              buffer_expired;
   std::cout << (pass ? "C++ NCP demo: OK" : "C++ NCP demo: FAILED") << "\n";
   return pass ? 0 : 1;
 }

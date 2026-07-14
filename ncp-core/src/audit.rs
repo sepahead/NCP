@@ -4,18 +4,32 @@
 //! segment. Production deployments anchor chain heads in an independent durable
 //! system; this module does not claim that an in-process hash is a signature.
 
-use crate::authority::LifecycleState;
-use crate::messages::{is_canonical_uuid_v4, JSON_SAFE_INTEGER_MAX};
-use crate::security::{AuthenticatedActor, PrincipalRole};
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+use crate::authority::LifecycleState;
+use crate::bounded_json::MAX_KEY_BYTES;
+use crate::messages::{is_canonical_uuid_v4, JSON_SAFE_INTEGER_MAX};
+use crate::security::{AuthenticatedActor, PrincipalRole};
+
+const AUDIT_EVENT_SCHEMA: &str = "ncp.audit-event.v1";
+
+/// Predecessor digest used for the first event in a newly anchored segment.
 pub const AUDIT_GENESIS_DIGEST: &str =
     "0000000000000000000000000000000000000000000000000000000000000000";
+/// Maximum number of bounded key/value attributes carried by one event.
 pub const MAX_AUDIT_ATTRIBUTES: usize = 32;
+/// Maximum UTF-8 byte length of an audit attribute key.
+pub const MAX_AUDIT_ATTRIBUTE_KEY_BYTES: usize = 64;
+/// Maximum UTF-8 byte length of an audit attribute value.
 pub const MAX_AUDIT_ATTRIBUTE_BYTES: usize = 512;
+/// Maximum UTF-8 byte length of an audit identifier.
+pub const MAX_AUDIT_IDENTIFIER_BYTES: usize = MAX_KEY_BYTES;
+/// Wire-1.0 session identifiers have a stricter bound than general identifiers.
+pub const MAX_AUDIT_SESSION_ID_BYTES: usize = 64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -35,6 +49,7 @@ pub enum AuditEventType {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AuditActor {
     pub principal_id: String,
     pub entity_id: String,
@@ -42,6 +57,7 @@ pub struct AuditActor {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AuditEventDraft {
     pub event_id: String,
     pub event_type: AuditEventType,
@@ -61,6 +77,7 @@ pub struct AuditEventDraft {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AuditEvent {
     pub schema: String,
     pub sequence: u64,
@@ -124,13 +141,27 @@ fn is_digest(value: &str) -> bool {
 }
 
 fn valid_id(value: &str, max: usize) -> bool {
-    !value.is_empty()
-        && value.len() <= max
-        && !value.chars().any(|character| {
-            character.is_control()
-                || character.is_whitespace()
-                || matches!(character, '/' | '*' | '$' | '#' | '?')
-        })
+    value.len() <= max && crate::keys::valid_id_segment(value)
+}
+
+fn valid_optional_id(value: Option<&str>) -> bool {
+    value.is_none_or(|value| valid_id(value, MAX_AUDIT_IDENTIFIER_BYTES))
+}
+
+fn valid_optional_uuid(value: Option<&str>) -> bool {
+    value.is_none_or(is_canonical_uuid_v4)
+}
+
+fn valid_utc_timestamp(value: i64) -> bool {
+    (0..=JSON_SAFE_INTEGER_MAX).contains(&value)
+}
+
+fn valid_positive_safe_integer(value: u64) -> bool {
+    (1..=JSON_SAFE_INTEGER_MAX as u64).contains(&value)
+}
+
+fn valid_optional_lifecycle_state(value: Option<LifecycleState>) -> bool {
+    !matches!(value, Some(LifecycleState::Unknown))
 }
 
 fn forbidden_attribute(key: &str) -> bool {
@@ -147,15 +178,124 @@ fn forbidden_attribute(key: &str) -> bool {
     .any(|forbidden| normalized.contains(forbidden))
 }
 
+fn valid_attributes(attributes: &BTreeMap<String, String>) -> bool {
+    attributes.len() <= MAX_AUDIT_ATTRIBUTES
+        && attributes.iter().all(|(key, value)| {
+            valid_id(key, MAX_AUDIT_ATTRIBUTE_KEY_BYTES)
+                && !forbidden_attribute(key)
+                && value.len() <= MAX_AUDIT_ATTRIBUTE_BYTES
+                && !value.chars().any(char::is_control)
+        })
+}
+
+fn valid_authenticated_actor(actor: &AuthenticatedActor) -> bool {
+    valid_id(&actor.principal_id, MAX_AUDIT_IDENTIFIER_BYTES)
+        && valid_id(&actor.entity_id, MAX_AUDIT_IDENTIFIER_BYTES)
+        && valid_id(&actor.certificate_identity, MAX_AUDIT_IDENTIFIER_BYTES)
+        && actor.role != PrincipalRole::Unknown
+}
+
+impl AuditActor {
+    fn is_valid(&self) -> bool {
+        valid_id(&self.principal_id, MAX_AUDIT_IDENTIFIER_BYTES)
+            && valid_id(&self.entity_id, MAX_AUDIT_IDENTIFIER_BYTES)
+            && self.role != PrincipalRole::Unknown
+    }
+}
+
+impl AuditEventDraft {
+    fn validate(&self, authenticated_actor: &AuthenticatedActor) -> Result<(), AuditError> {
+        if !valid_authenticated_actor(authenticated_actor)
+            || !valid_id(&self.claimed_principal_id, MAX_AUDIT_IDENTIFIER_BYTES)
+            || !valid_id(&self.claimed_entity_id, MAX_AUDIT_IDENTIFIER_BYTES)
+        {
+            return Err(AuditError::new(
+                "NCP-AUDIT-001",
+                "audit actor identifiers or role are invalid",
+            ));
+        }
+        if self.claimed_principal_id != authenticated_actor.principal_id
+            || self.claimed_entity_id != authenticated_actor.entity_id
+        {
+            return Err(AuditError::new(
+                "NCP-AUTH-002",
+                "audit actor claim does not match authenticated transport identity",
+            ));
+        }
+        if !is_canonical_uuid_v4(&self.event_id)
+            || !valid_utc_timestamp(self.occurred_at_utc_ms)
+            || !valid_optional_id(self.trace_id.as_deref())
+            || self
+                .session_id
+                .as_deref()
+                .is_some_and(|value| !valid_id(value, MAX_AUDIT_SESSION_ID_BYTES))
+            || !valid_optional_uuid(self.session_epoch.as_deref())
+            || !valid_optional_uuid(self.operation_id.as_deref())
+            || self
+                .authority_term
+                .is_some_and(|term| !valid_positive_safe_integer(term))
+            || !valid_optional_lifecycle_state(self.state_before)
+            || !valid_optional_lifecycle_state(self.state_after)
+            || !is_digest(&self.policy_digest_sha256)
+            || !valid_attributes(&self.attributes)
+        {
+            return Err(AuditError::new(
+                "NCP-AUDIT-001",
+                "audit event fields exceed semantic or resource bounds",
+            ));
+        }
+        Ok(())
+    }
+}
+
 impl AuditEvent {
+    fn validate(&self) -> Result<(), AuditError> {
+        if self.schema != AUDIT_EVENT_SCHEMA
+            || !valid_positive_safe_integer(self.sequence)
+            || !is_canonical_uuid_v4(&self.event_id)
+            || !valid_utc_timestamp(self.occurred_at_utc_ms)
+            || !valid_optional_id(self.trace_id.as_deref())
+            || self
+                .session_id
+                .as_deref()
+                .is_some_and(|value| !valid_id(value, MAX_AUDIT_SESSION_ID_BYTES))
+            || !valid_optional_uuid(self.session_epoch.as_deref())
+            || !valid_optional_uuid(self.operation_id.as_deref())
+            || self
+                .authority_term
+                .is_some_and(|term| !valid_positive_safe_integer(term))
+            || !valid_optional_lifecycle_state(self.state_before)
+            || !valid_optional_lifecycle_state(self.state_after)
+            || !self.actor.is_valid()
+            || !is_digest(&self.policy_digest_sha256)
+            || !valid_attributes(&self.attributes)
+            || !is_digest(&self.previous_digest_sha256)
+            || !is_digest(&self.event_digest_sha256)
+        {
+            return Err(AuditError::new(
+                "NCP-AUDIT-002",
+                "audit event contains invalid or unbounded persisted fields",
+            ));
+        }
+        Ok(())
+    }
+
     fn computed_digest(&self) -> Result<String, AuditError> {
         let mut value = serde_json::to_value(self).map_err(|error| {
             AuditError::new("NCP-AUDIT-001", format!("event encoding failed: {error}"))
         })?;
-        value
-            .as_object_mut()
-            .expect("AuditEvent serializes as an object")
-            .remove("event_digest_sha256");
+        let object = value.as_object_mut().ok_or_else(|| {
+            AuditError::new(
+                "NCP-AUDIT-001",
+                "audit event did not encode as a JSON object",
+            )
+        })?;
+        if object.remove("event_digest_sha256").is_none() {
+            return Err(AuditError::new(
+                "NCP-AUDIT-001",
+                "audit event digest field is absent from its projection",
+            ));
+        }
         let canonical = serde_json::to_vec(&value).map_err(|error| {
             AuditError::new(
                 "NCP-AUDIT-001",
@@ -181,10 +321,7 @@ impl AuditChain {
     }
 
     pub fn resume(next_sequence: u64, previous_digest: String) -> Result<Self, AuditError> {
-        if next_sequence == 0
-            || next_sequence > JSON_SAFE_INTEGER_MAX as u64
-            || !is_digest(&previous_digest)
-        {
+        if !valid_positive_safe_integer(next_sequence) || !is_digest(&previous_digest) {
             return Err(AuditError::new(
                 "NCP-AUDIT-002",
                 "audit resume anchor is invalid",
@@ -201,65 +338,21 @@ impl AuditChain {
         draft: AuditEventDraft,
         authenticated_actor: &AuthenticatedActor,
     ) -> Result<AuditEvent, AuditError> {
-        if self.next_sequence > JSON_SAFE_INTEGER_MAX as u64 {
+        if !valid_positive_safe_integer(self.next_sequence) || !is_digest(&self.previous_digest) {
             return Err(AuditError::new(
                 "NCP-AUDIT-001",
-                "audit sequence is exhausted; start a newly anchored segment",
+                "audit chain state is invalid or exhausted; start a newly anchored segment",
             ));
         }
-        if !is_canonical_uuid_v4(&draft.event_id)
-            || draft
-                .session_epoch
-                .as_deref()
-                .is_some_and(|value| !is_canonical_uuid_v4(value))
-            || draft
-                .operation_id
-                .as_deref()
-                .is_some_and(|value| !is_canonical_uuid_v4(value))
-            || draft
-                .authority_term
-                .is_some_and(|term| term == 0 || term > JSON_SAFE_INTEGER_MAX as u64)
-            || !is_digest(&draft.policy_digest_sha256)
-        {
-            return Err(AuditError::new(
+        let following_sequence = self.next_sequence.checked_add(1).ok_or_else(|| {
+            AuditError::new(
                 "NCP-AUDIT-001",
-                "audit identifiers, authority term, or policy digest are invalid",
-            ));
-        }
-        if draft.claimed_principal_id != authenticated_actor.principal_id
-            || draft.claimed_entity_id != authenticated_actor.entity_id
-        {
-            return Err(AuditError::new(
-                "NCP-AUTH-002",
-                "audit actor claim does not match authenticated transport identity",
-            ));
-        }
-        for value in [draft.trace_id.as_deref(), draft.session_id.as_deref()]
-            .into_iter()
-            .flatten()
-        {
-            if !valid_id(value, 128) {
-                return Err(AuditError::new(
-                    "NCP-AUDIT-001",
-                    "audit trace/session identifier is invalid",
-                ));
-            }
-        }
-        if draft.attributes.len() > MAX_AUDIT_ATTRIBUTES
-            || draft.attributes.iter().any(|(key, value)| {
-                !valid_id(key, 64)
-                    || forbidden_attribute(key)
-                    || value.len() > MAX_AUDIT_ATTRIBUTE_BYTES
-                    || value.chars().any(char::is_control)
-            })
-        {
-            return Err(AuditError::new(
-                "NCP-AUDIT-001",
-                "audit attributes are unbounded, sensitive, or invalid",
-            ));
-        }
+                "audit sequence arithmetic overflowed; start a newly anchored segment",
+            )
+        })?;
+        draft.validate(authenticated_actor)?;
         let mut event = AuditEvent {
-            schema: "ncp.audit-event.v1".into(),
+            schema: AUDIT_EVENT_SCHEMA.into(),
             sequence: self.next_sequence,
             event_id: draft.event_id,
             event_type: draft.event_type,
@@ -283,7 +376,7 @@ impl AuditChain {
         };
         event.event_digest_sha256 = event.computed_digest()?;
         self.previous_digest = event.event_digest_sha256.clone();
-        self.next_sequence += 1;
+        self.next_sequence = following_sequence;
         Ok(event)
     }
 
@@ -295,16 +388,30 @@ impl AuditChain {
             ));
         }
         let mut previous = expected_anchor;
-        let mut prior_sequence = None;
+        let mut prior_sequence: Option<u64> = None;
         for event in events {
-            if event.schema != "ncp.audit-event.v1"
-                || event.previous_digest_sha256 != previous
-                || prior_sequence.is_some_and(|sequence| event.sequence != sequence + 1)
-                || event.event_digest_sha256 != event.computed_digest()?
-            {
+            event.validate()?;
+            if event.previous_digest_sha256 != previous {
                 return Err(AuditError::new(
                     "NCP-AUDIT-002",
-                    "audit chain digest or sequence is broken",
+                    "audit chain predecessor digest is broken",
+                ));
+            }
+            if let Some(sequence) = prior_sequence {
+                let expected_sequence = sequence.checked_add(1).ok_or_else(|| {
+                    AuditError::new("NCP-AUDIT-002", "audit sequence arithmetic overflowed")
+                })?;
+                if event.sequence != expected_sequence {
+                    return Err(AuditError::new(
+                        "NCP-AUDIT-002",
+                        "audit chain sequence is broken",
+                    ));
+                }
+            }
+            if event.event_digest_sha256 != event.computed_digest()? {
+                return Err(AuditError::new(
+                    "NCP-AUDIT-002",
+                    "audit event digest does not match its canonical projection",
                 ));
             }
             previous = &event.event_digest_sha256;
@@ -351,6 +458,16 @@ mod tests {
         }
     }
 
+    fn appended_event() -> AuditEvent {
+        AuditChain::new()
+            .append(draft(EVENT1, AuditEventType::EstopReset), &actor())
+            .unwrap()
+    }
+
+    fn rehash(event: &mut AuditEvent) {
+        event.event_digest_sha256 = event.computed_digest().unwrap();
+    }
+
     #[test]
     fn canonical_chain_detects_mutation_deletion_and_reordering() {
         let actor = actor();
@@ -389,5 +506,225 @@ mod tests {
             chain.append(secret, &actor).unwrap_err().code,
             "NCP-AUDIT-001"
         );
+    }
+
+    #[test]
+    fn append_accepts_both_nonnegative_json_safe_timestamp_boundaries() {
+        let actor = actor();
+        let mut chain = AuditChain::new();
+        let mut first = draft(EVENT1, AuditEventType::EstopReset);
+        first.occurred_at_utc_ms = 0;
+        let first = chain.append(first, &actor).unwrap();
+        let mut second = draft(EVENT2, AuditEventType::OperatorOverride);
+        second.occurred_at_utc_ms = JSON_SAFE_INTEGER_MAX;
+        let second = chain.append(second, &actor).unwrap();
+
+        assert_eq!(
+            (first.occurred_at_utc_ms, second.occurred_at_utc_ms),
+            (0, JSON_SAFE_INTEGER_MAX)
+        );
+    }
+
+    #[test]
+    fn append_rejects_timestamp_above_json_safe_boundary() {
+        let mut event = draft(EVENT1, AuditEventType::EstopReset);
+        event.occurred_at_utc_ms = JSON_SAFE_INTEGER_MAX + 1;
+        let error = AuditChain::new()
+            .append(event, &actor())
+            .expect_err("unsafe UTC milliseconds must not enter the chain");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_rejects_negative_timestamp() {
+        let mut event = draft(EVENT1, AuditEventType::EstopReset);
+        event.occurred_at_utc_ms = -1;
+        let error = AuditChain::new()
+            .append(event, &actor())
+            .expect_err("negative UTC milliseconds must not enter the chain");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn draft_deserialization_rejects_non_finite_timestamp_spelling() {
+        let json = serde_json::to_string(&draft(EVENT1, AuditEventType::EstopReset))
+            .unwrap()
+            .replace(
+                "\"occurred_at_utc_ms\":1000",
+                "\"occurred_at_utc_ms\":1e400",
+            );
+
+        assert!(serde_json::from_str::<AuditEventDraft>(&json).is_err());
+    }
+
+    #[test]
+    fn append_rejects_unbounded_authenticated_actor_identifier() {
+        let mut authenticated = actor();
+        authenticated.principal_id = "p".repeat(MAX_AUDIT_IDENTIFIER_BYTES + 1);
+        let mut event = draft(EVENT1, AuditEventType::EstopReset);
+        event.claimed_principal_id = authenticated.principal_id.clone();
+        let error = AuditChain::new()
+            .append(event, &authenticated)
+            .expect_err("matching but unbounded actor claims must fail closed");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_rejects_unbounded_certificate_identifier() {
+        let mut authenticated = actor();
+        authenticated.certificate_identity = "c".repeat(MAX_AUDIT_IDENTIFIER_BYTES + 1);
+        let error = AuditChain::new()
+            .append(draft(EVENT1, AuditEventType::EstopReset), &authenticated)
+            .expect_err("the verified certificate identifier must be bounded");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_rejects_unknown_authenticated_actor_role() {
+        let mut authenticated = actor();
+        authenticated.role = PrincipalRole::Unknown;
+        let error = AuditChain::new()
+            .append(draft(EVENT1, AuditEventType::EstopReset), &authenticated)
+            .expect_err("an unknown role cannot produce an authoritative audit actor");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_rejects_unbounded_optional_identifier() {
+        let mut event = draft(EVENT1, AuditEventType::EstopReset);
+        event.trace_id = Some("t".repeat(MAX_AUDIT_IDENTIFIER_BYTES + 1));
+        let error = AuditChain::new()
+            .append(event, &actor())
+            .expect_err("trace identifiers must obey the protocol key bound");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_rejects_session_id_above_wire_limit() {
+        let mut event = draft(EVENT1, AuditEventType::EstopReset);
+        event.session_id = Some("s".repeat(MAX_AUDIT_SESSION_ID_BYTES + 1));
+        let error = AuditChain::new()
+            .append(event, &actor())
+            .expect_err("audit correlation must preserve the wire session-id bound");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_rejects_unknown_lifecycle_state_when_present() {
+        let mut event = draft(EVENT1, AuditEventType::EstopReset);
+        event.state_before = Some(LifecycleState::Unknown);
+        let error = AuditChain::new()
+            .append(event, &actor())
+            .expect_err("unknown lifecycle values must remain fail closed");
+
+        assert_eq!(error.code, "NCP-AUDIT-001");
+    }
+
+    #[test]
+    fn append_accepts_last_safe_sequence_then_remains_exhausted() {
+        let mut chain = AuditChain::resume(
+            JSON_SAFE_INTEGER_MAX as u64,
+            AUDIT_GENESIS_DIGEST.to_string(),
+        )
+        .unwrap();
+        let last = chain
+            .append(draft(EVENT1, AuditEventType::EstopReset), &actor())
+            .unwrap();
+        let error = chain
+            .append(draft(EVENT2, AuditEventType::OperatorOverride), &actor())
+            .expect_err("the sequence must not wrap or append beyond the safe boundary");
+
+        assert_eq!(
+            (last.sequence, error.code),
+            (JSON_SAFE_INTEGER_MAX as u64, "NCP-AUDIT-001")
+        );
+    }
+
+    #[test]
+    fn verify_rejects_rehashed_unsafe_timestamp() {
+        let mut event = appended_event();
+        event.occurred_at_utc_ms = JSON_SAFE_INTEGER_MAX + 1;
+        rehash(&mut event);
+
+        assert!(AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST).is_err());
+    }
+
+    #[test]
+    fn verify_rejects_rehashed_unbounded_actor() {
+        let mut event = appended_event();
+        event.actor.entity_id = "e".repeat(MAX_AUDIT_IDENTIFIER_BYTES + 1);
+        rehash(&mut event);
+
+        assert!(AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST).is_err());
+    }
+
+    #[test]
+    fn verify_rejects_rehashed_invalid_policy_digest() {
+        let mut event = appended_event();
+        event.policy_digest_sha256 = "A".repeat(64);
+        rehash(&mut event);
+
+        assert!(AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST).is_err());
+    }
+
+    #[test]
+    fn verify_rejects_rehashed_unsafe_authority_term() {
+        let mut event = appended_event();
+        event.authority_term = Some(JSON_SAFE_INTEGER_MAX as u64 + 1);
+        rehash(&mut event);
+
+        assert!(AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST).is_err());
+    }
+
+    #[test]
+    fn verify_rejects_rehashed_oversized_attribute() {
+        let mut event = appended_event();
+        event
+            .attributes
+            .insert("reason".into(), "x".repeat(MAX_AUDIT_ATTRIBUTE_BYTES + 1));
+        rehash(&mut event);
+
+        assert!(AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST).is_err());
+    }
+
+    #[test]
+    fn verify_rejects_u64_sequence_without_panicking_or_wrapping() {
+        let mut event = appended_event();
+        event.sequence = u64::MAX;
+        rehash(&mut event);
+
+        let result =
+            std::panic::catch_unwind(|| AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST));
+
+        assert!(result.is_ok_and(|verification| verification.is_err()));
+    }
+
+    #[test]
+    fn semantically_valid_local_rehash_is_not_misrepresented_as_a_signature() {
+        let mut event = appended_event();
+        event
+            .attributes
+            .insert("reason".into(), "locally-rewritten".into());
+        rehash(&mut event);
+
+        assert!(AuditChain::verify(&[event], AUDIT_GENESIS_DIGEST).is_ok());
+    }
+
+    #[test]
+    fn audit_struct_deserialization_rejects_unknown_fields() {
+        let mut value = serde_json::to_value(draft(EVENT1, AuditEventType::EstopReset)).unwrap();
+        value
+            .as_object_mut()
+            .unwrap()
+            .insert("future_extension".into(), serde_json::Value::Bool(true));
+
+        assert!(serde_json::from_value::<AuditEventDraft>(value).is_err());
     }
 }

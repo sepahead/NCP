@@ -11,6 +11,7 @@
     {"id": "fuzz-sanitizer-duration", "required": true, "local": false},
     {"id": "performance-resource-profile", "required": true, "local": false},
     {"id": "installed-package-matrix", "required": true, "local": false},
+    {"id": "registry-namespace-ownership", "required": true, "local": false},
     {"id": "consumer-certification", "required": true, "local": false},
     {"id": "independent-clean-room-reproduction", "required": true, "local": false},
     {"id": "signed-sbom-provenance", "required": true, "local": false}

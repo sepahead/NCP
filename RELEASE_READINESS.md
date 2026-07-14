@@ -17,16 +17,16 @@ unsigned evidence is a failure for initial release.
 | Released baseline and historical mirror boundary | read-only gate binds the annotated tag object, peeled commit, fixed path, and exact subtree for every `v0.5.0`–`v0.8.0` baseline; Buf explicitly reports that initial package `ncp.v1` has no released same-major comparison target and does not compare the intentional major break with `ncp.v0` | establishes immutable local migration/history input only; it is not tag-signature, artifact, or consumer evidence; later v1 candidates must compare with the latest registered v1 release |
 | Stable/excluded surface and registries | implemented; generated digest gate present | not a release by itself |
 | Proto/schema/canonical-vector parity | complete current-worktree matrix passes | dirty worktree is not immutable release evidence |
-| Mandatory self-describing corpus | current manifest has 269 required vectors (262 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; complete local replay passes | signed external conformance reports remain required |
+| Mandatory self-describing corpus | current manifest has 282 required vectors (275 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; the complete dirty-worktree preflight replay passed after the lifecycle/schema correction | signed external conformance reports remain required |
 | Universal bounded JSON | implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader are gated before generic decoding | live/fuzz duration still required |
 | Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
 | Plant profile, safety governor, action buffer, ESTOP | implemented with deterministic tests | non-certifying; each consumer needs a safety case |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
-| Candidate package builds/install smoke | complete dirty-worktree gate passed for the current 2026-07-14 snapshot | immutable multi-OS install matrix still required |
+| Candidate package builds/install smoke | packageable archives and local installs passed for the current 2026-07-14 dirty-worktree snapshot | immutable multi-OS install matrix and public-registry ownership remain required |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
-The complete `scripts/check.sh` gate passed for the then-current candidate bytes on
-2026-07-14. The lock uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The run
+The complete `scripts/check.sh` gate passed for the current dirty-worktree candidate
+bytes on 2026-07-14. The lock uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The run
 covered the full local package, binding, bounded-ingress, corpus, archive,
 dependency-policy, and protobuf matrix. It still used a dirty, uncommitted worktree
 and therefore has no immutable source revision, signatures, multi-platform
@@ -62,6 +62,8 @@ The following are **NOT RUN** and independently block release:
 - release-bound latency/throughput/memory/queue profiles on supported platforms;
 - clean installs and full applicable conformance for crates, wheel/sdist, npm, and
   C/C++ artifacts built from one immutable source;
+- verified ownership of every intended public package namespace, with unrelated
+  registry names resolved or renamed consistently before publication;
 - reproducible artifact comparison, checksums, vulnerability report, license
   notices, signed SBOM/provenance, and signature verification;
 - independent clean-room build and core-conformance reproduction;

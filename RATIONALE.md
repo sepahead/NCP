@@ -2,9 +2,9 @@
 
 > **Current-status note:** this comparative argument is informative and partly
 > historical. Repository HEAD is the unreleased, release-blocked NCP
-> `1.0.0-rc.1` candidate; the latest immutable release is `v0.8.0`. No rationale
-> substitutes for live security, independent interoperability, fault, safety, or
-> consumer evidence.
+> `1.0.0-rc.1` candidate; the latest immutable annotated source tag is `v0.8.0`.
+> No rationale substitutes for live security, independent interoperability,
+> fault, safety, or consumer evidence.
 
 > An unbiased design-rationale document, researched against the robotics-middleware,
 > agent-protocol, RL/simulation, and neuroscience-co-simulation ecosystems, and

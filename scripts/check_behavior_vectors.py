@@ -13,12 +13,11 @@ match/mismatch/absent), validate (required-field + scientific-boundary), the
 safety governor (HOLD / ESTOP / speed-clamp / watchdog), and the plant-side
 ActionBuffer (TTL / replay / horizon / ESTOP) decisions.
 
-The `ncp` module is built by maturin (`maturin develop -m ncp-python/Cargo.toml
---features extension-module`), which CI does not yet run (see ROADMAP.md — the
-cargo gate only `cargo check`s ncp-python). So when the module is absent this
-SKIPS with exit 0 and a clear message, mirroring how the repo already treats the
-unbuilt binding; where the wheel IS built (local dev, the future maturin job) it
-runs and gates. Stdlib-only otherwise.
+The `ncp` module is built by maturin. Hosted CI and `scripts/check.sh` install the
+locked wheel and set `NCP_REQUIRE_BINDING=1`, so an absent binding is a hard gate
+failure there. A bare developer invocation may still skip with a clear message
+when no wheel is installed; that convenience skip is not release evidence.
+Stdlib-only otherwise.
 """
 from __future__ import annotations
 

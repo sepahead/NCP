@@ -1,12 +1,12 @@
 {
   "schema": "ncp.handoff-task-review.v1",
   "normative": false,
-  "review_status": "OPEN_FOR_SUPERVISOR_REVIEW",
+  "review_status": "OPEN_FOR_REVIEWER_REVIEW",
   "author": {
     "name": "Sepehr Mahmoudian"
   },
   "release_authorized": false,
-  "claim_boundary": "Implementation coverage records inspected local evidence only. Every task remains OPEN until the handoff completion rule, dependencies, retained evidence, independent gates, and supervisor review are satisfied.",
+  "claim_boundary": "Implementation coverage records inspected local evidence only. Every task remains OPEN until the handoff completion rule, dependencies, retained evidence, independent gates, and reviewer review are satisfied.",
   "source_ledger": {
     "name": "NCP_V1_0_AGENT_TASK_LEDGER.yaml",
     "handoff_schema": "1.0.0",
@@ -19,7 +19,7 @@
     "repository_candidate": "1.0.0-rc.1",
     "wire_version": "1.0",
     "compact_contract_hash": "163acc57d8a62b66",
-    "worktree_note": "The initial audit used the exact source commit above. This review also covers the repository changes in the commit containing this file; coverage alone does not close a task without its complete dependencies, rerun retained evidence, and supervisor review."
+    "worktree_note": "The initial audit used the exact source commit above. This review also covers the repository changes in the commit containing this file; coverage alone does not close a task without its complete dependencies, rerun retained evidence, and reviewer review."
   },
   "implementation_coverage_scale": {
     "NONE": "No implementation evidence found for the requested behavior.",
@@ -124,7 +124,7 @@
         ]
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T001",
@@ -149,7 +149,7 @@
         ]
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T002",
@@ -174,7 +174,7 @@
         ]
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T003",
@@ -196,7 +196,7 @@
         "commands": []
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T004",
@@ -218,7 +218,7 @@
         "commands": []
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T005",
@@ -240,7 +240,7 @@
         "commands": []
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T006",
@@ -264,7 +264,7 @@
         "commands": []
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T007",
@@ -287,7 +287,7 @@
         "commands": []
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T008",
@@ -311,7 +311,7 @@
         ]
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T009",
@@ -336,7 +336,7 @@
         ]
       },
       "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T010",
@@ -361,7 +361,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T011",
@@ -385,7 +385,7 @@
         ]
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T012",
@@ -408,7 +408,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T013",
@@ -430,7 +430,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T014",
@@ -453,7 +453,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T015",
@@ -476,7 +476,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T016",
@@ -499,7 +499,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T017",
@@ -521,7 +521,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T018",
@@ -543,7 +543,7 @@
         "commands": []
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T019",
@@ -570,7 +570,7 @@
         ]
       },
       "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T020",
@@ -594,7 +594,7 @@
         "commands": []
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T021",
@@ -619,7 +619,7 @@
         ]
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T022",
@@ -642,7 +642,7 @@
         "commands": []
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T023",
@@ -666,7 +666,7 @@
         ]
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T024",
@@ -689,7 +689,7 @@
         "commands": []
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T025",
@@ -711,7 +711,7 @@
         "commands": []
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T026",
@@ -737,7 +737,7 @@
         ]
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T027",
@@ -760,7 +760,7 @@
         "commands": []
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T028",
@@ -786,7 +786,7 @@
         ]
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T029",
@@ -809,7 +809,7 @@
         "commands": []
       },
       "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T030",
@@ -831,7 +831,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T031",
@@ -854,7 +854,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T032",
@@ -877,7 +877,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T033",
@@ -900,7 +900,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T034",
@@ -922,7 +922,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T035",
@@ -944,7 +944,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T036",
@@ -967,7 +967,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T037",
@@ -990,7 +990,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T038",
@@ -1013,7 +1013,7 @@
         "commands": []
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T039",
@@ -1037,7 +1037,7 @@
         ]
       },
       "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T040",
@@ -1059,7 +1059,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T041",
@@ -1082,7 +1082,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T042",
@@ -1105,7 +1105,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T043",
@@ -1129,7 +1129,7 @@
         ]
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T044",
@@ -1153,7 +1153,7 @@
         ]
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T045",
@@ -1176,7 +1176,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T046",
@@ -1198,7 +1198,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T047",
@@ -1223,7 +1223,7 @@
         ]
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T048",
@@ -1246,7 +1246,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T049",
@@ -1269,7 +1269,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T050",
@@ -1293,7 +1293,7 @@
         ]
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T051",
@@ -1315,7 +1315,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T052",
@@ -1339,7 +1339,7 @@
         ]
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T053",
@@ -1363,7 +1363,7 @@
         ]
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T054",
@@ -1386,7 +1386,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T055",
@@ -1409,7 +1409,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T056",
@@ -1432,7 +1432,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T057",
@@ -1456,7 +1456,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T058",
@@ -1480,7 +1480,7 @@
         ]
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T059",
@@ -1504,7 +1504,7 @@
         ]
       },
       "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T060",
@@ -1528,7 +1528,7 @@
         "commands": []
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T061",
@@ -1552,7 +1552,7 @@
         ]
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T062",
@@ -1574,7 +1574,7 @@
         "commands": []
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T063",
@@ -1600,7 +1600,7 @@
         ]
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T064",
@@ -1624,7 +1624,7 @@
         "commands": []
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T065",
@@ -1649,7 +1649,7 @@
         ]
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T066",
@@ -1673,7 +1673,7 @@
         "commands": []
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T067",
@@ -1698,7 +1698,7 @@
         ]
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T068",
@@ -1722,7 +1722,7 @@
         "commands": []
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T069",
@@ -1746,7 +1746,7 @@
         "commands": []
       },
       "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T070",
@@ -1768,7 +1768,7 @@
         "commands": []
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T071",
@@ -1793,7 +1793,7 @@
         ]
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T072",
@@ -1818,7 +1818,7 @@
         ]
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T073",
@@ -1842,7 +1842,7 @@
         ]
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T074",
@@ -1867,7 +1867,7 @@
         ]
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T075",
@@ -1889,7 +1889,7 @@
         "commands": []
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T076",
@@ -1913,7 +1913,7 @@
         ]
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T077",
@@ -1935,7 +1935,7 @@
         "commands": []
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T078",
@@ -1957,7 +1957,7 @@
         "commands": []
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T079",
@@ -1980,7 +1980,7 @@
         "commands": []
       },
       "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T080",
@@ -2006,7 +2006,7 @@
         ]
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T081",
@@ -2028,7 +2028,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T082",
@@ -2054,7 +2054,7 @@
         ]
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T083",
@@ -2078,7 +2078,7 @@
         ]
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T084",
@@ -2101,7 +2101,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T085",
@@ -2124,7 +2124,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T086",
@@ -2146,7 +2146,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T087",
@@ -2170,7 +2170,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T088",
@@ -2192,7 +2192,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T089",
@@ -2214,7 +2214,7 @@
         "commands": []
       },
       "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T090",
@@ -2237,7 +2237,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T091",
@@ -2259,7 +2259,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T092",
@@ -2281,7 +2281,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T093",
@@ -2303,7 +2303,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T094",
@@ -2325,7 +2325,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T095",
@@ -2347,7 +2347,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T096",
@@ -2369,7 +2369,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T097",
@@ -2391,7 +2391,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T098",
@@ -2415,7 +2415,7 @@
         ]
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T099",
@@ -2438,7 +2438,7 @@
         "commands": []
       },
       "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T100",
@@ -2464,7 +2464,7 @@
         ]
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T101",
@@ -2486,7 +2486,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T102",
@@ -2510,7 +2510,7 @@
         ]
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T103",
@@ -2534,7 +2534,7 @@
         ]
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T104",
@@ -2557,7 +2557,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T105",
@@ -2584,7 +2584,7 @@
         ]
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T106",
@@ -2607,7 +2607,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T107",
@@ -2630,7 +2630,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T108",
@@ -2654,7 +2654,7 @@
         "commands": []
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T109",
@@ -2678,7 +2678,7 @@
         ]
       },
       "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T110",
@@ -2700,7 +2700,7 @@
         "commands": []
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T111",
@@ -2722,7 +2722,7 @@
         "commands": []
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T112",
@@ -2744,7 +2744,7 @@
         "commands": []
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T113",
@@ -2769,7 +2769,7 @@
         ]
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T114",
@@ -2792,7 +2792,7 @@
         "commands": []
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T115",
@@ -2816,7 +2816,7 @@
         ]
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T116",
@@ -2841,7 +2841,7 @@
         ]
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T117",
@@ -2863,7 +2863,7 @@
         "commands": []
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T118",
@@ -2888,7 +2888,7 @@
         ]
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     },
     {
       "id": "T119",
@@ -2912,7 +2912,7 @@
         "commands": []
       },
       "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
-      "supervisor_comment": null
+      "reviewer_comment": null
     }
   ]
 }

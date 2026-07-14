@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
-"""NCP performance figures — colorblind-safe, dual-theme (light + dark) SVGs.
+"""Historical NCP developer-performance figures (non-normative).
 
 Emits four SVGs into ``docs/plots/`` (created if missing):
 
     docs/plots/overlap_light.svg   docs/plots/overlap_dark.svg
     docs/plots/realtime_light.svg  docs/plots/realtime_dark.svg
 
-Run from repo root::
+Generate with the exact dependencies in ``requirements-plot.txt``::
 
     python3 scripts/plot_perf.py
+    python3 scripts/plot_perf.py --check
 
 It regenerates every SVG and prints the two GitHub ``<picture>`` embed blocks to
 stdout (one per figure), ready to paste into PERFORMANCE.md / README.md.
 
-DATA IS NORMATIVE. The benchmark numbers below are transcribed verbatim from
-``PERFORMANCE.md`` (L164-187, the overlap table + the 1.68x-ceiling note) and
-``NEST_REALTIME.md`` (L375-391, the rt-vs-threads grid + the live-ceiling
-caveat). DO NOT alter them here. Regenerate after any benchmark change so the
-figures and the prose never drift.
+DATA IS HISTORICAL AND NON-NORMATIVE. The fallback values below transcribe old
+developer runs described in ``PERFORMANCE.md`` and ``NEST_REALTIME.md``. They are
+not raw release evidence, calibration, capacity certification, or a performance
+gate for ``1.0.0-rc.1``.
 
 DATA PROVENANCE. Each benchmark script (``bench_realtime.py``, ``bench_overlap.py``,
 ``bench_gil_overlap.py``, ``bench_chunk_overhead.py``) now accepts ``--out <file>``
-to persist its JSON results. When the data files exist under ``docs/plots/data/``,
-this script reads them instead of the hardcoded constants below, so the figures
-are always backed by a machine-generated audit trail. If the files are absent
-(e.g. NEST is not installed), the hardcoded constants are used as fallback so
-SVG generation never breaks. To regenerate the full audit trail::
+to persist its JSON results. When complete data files exist under
+``docs/plots/data/``, this script validates and reads them instead of the fallback.
+When absent, generation emits the explicitly labelled historical fallback. A
+future release campaign must retain raw data and provenance separately.
 
     python3 scripts/bench_realtime.py --out docs/plots/data/realtime.json [flags]
     python3 scripts/bench_gil_overlap.py --out docs/plots/data/gil_overlap.json [flags]
@@ -39,7 +38,7 @@ Honesty invariants baked into the figures (a regression in any is a bug):
     A naive Python-serialize thread lands at ~1.08x (the realistic, solid bar).
   * Only the three N=10000 cells at T>=4 (1.18/2.01/2.13x) reach real time;
     no N>=50000 point is ever marked real-time.
-  * The ~17-20k live ceiling is INTERPOLATED (no sample between 10k and 50k):
+  * The ~17-20k crossing is INTERPOLATED (no sample between 10k and 50k):
     hollow marker, annotated as such, never a solid measured point.
   * Each figure carries its OWN regime caption (the two benches differ).
 
@@ -48,8 +47,13 @@ Deps: stdlib + numpy + matplotlib only (no seaborn).
 
 from __future__ import annotations
 
+import argparse
+import filecmp
 import json
-import os
+import math
+import sys
+import tempfile
+from pathlib import Path
 
 import matplotlib
 
@@ -60,8 +64,11 @@ import matplotlib.patheffects as path_effects
 import matplotlib.ticker as mticker
 import numpy as np
 
+EXPECTED_MATPLOTLIB = "3.11.0"
+EXPECTED_NUMPY = "2.4.2"
+
 # --------------------------------------------------------------------------- #
-# 1. NORMATIVE DATA  (frozen — see module docstring for provenance)
+# 1. HISTORICAL FALLBACK DATA (non-normative; see module docstring)
 # --------------------------------------------------------------------------- #
 
 # (A) I/O-overlap speedup — PERFORMANCE.md L164-166.
@@ -95,58 +102,154 @@ RT_LIVE_THREADS = (4, 8, 16)
 LIVE_CEILING_XY = (16, 1.0)  # placed at the T=16 column on the rt=1 line
 
 REGIME_RT = (
-    "NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron "
+    "HISTORICAL LOCAL RUN — NOT RELEASE-BOUND · NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron "
     "· ~13 Hz async-irregular"
 )
 REGIME_OVERLAP = (
-    "8000-neuron net · ~8 ms compute + 10 ms transport-work / 20 ms chunk "
+    "HISTORICAL SYNTHETIC STAND-IN — NOT TRANSPORT EVIDENCE · 8000-neuron net · ~8 ms compute + 10 ms work / 20 ms chunk "
     "· 30 chunks · bench_gil_overlap.py (NEST 3.8.0)"
 )
 
-OUTDIR = os.path.join("docs", "plots")
-DATADIR = os.path.join("docs", "plots", "data")
+ROOT = Path(__file__).resolve().parents[1]
+OUTDIR = ROOT / "docs" / "plots"
+DATADIR = OUTDIR / "data"
 
 # --------------------------------------------------------------------------- #
-# 1b. OPTIONAL DATA-FILE OVERRIDE (audit trail)
-#     If benchmark JSON files exist under docs/plots/data/, load them and
-#     override the hardcoded constants above. This creates a machine-generated
-#     provenance chain: bench script → JSON file → plot. If the files are
-#     absent (e.g. NEST not installed), the hardcoded constants stand.
+# 1b. OPTIONAL STRICT DATA-FILE OVERRIDE
 # --------------------------------------------------------------------------- #
 
-_rt_data_path = os.path.join(DATADIR, "realtime.json")
-_gil_data_path = os.path.join(DATADIR, "gil_overlap.json")
+_rt_data_path = DATADIR / "realtime.json"
+_gil_data_path = DATADIR / "gil_overlap.json"
 
-if os.path.isfile(_rt_data_path):
-    with open(_rt_data_path) as _f:
-        _rt = json.load(_f)
-    # Rebuild RT dict from the grid: {n: [rt_t1, rt_t2, ...]}
-    _new_rt = {}
-    for _row in _rt.get("grid", []):
-        _n = _row["n"]
-        if _n not in _new_rt:
-            _new_rt[_n] = []
-        _new_rt[_n].append(_row["realtime_factor"])
-    if _new_rt:
-        # Preserve the original series order (10k, 50k, 100k, 200k); only
-        # replace entries that have data. Threads are expected in [1,2,4,8,16].
-        for _n, _rts in _new_rt.items():
-            if _n in RT and len(_rts) == len(THREADS):
-                RT[_n] = _rts
-        print(f"[plot_perf] Loaded realtime data from {_rt_data_path}")
+class PlotDataError(ValueError):
+    """A benchmark input cannot support the figure's stated regime."""
 
-if os.path.isfile(_gil_data_path):
-    with open(_gil_data_path) as _f:
-        _gil = json.load(_f)
-    _native_sp = _gil.get("native_speedup")
-    _py_sp = _gil.get("py_thread_speedup")
-    if _native_sp is not None:
-        # Update the measured native-thread bar and the measured overlap point.
-        OVERLAP_BARS[2] = ("native thread (C/Rust/PyO3) in Run", _native_sp, "ceiling")
-        MEASURED_OVERLAP_PT = (10.0, _native_sp)
-    if _py_sp is not None:
-        OVERLAP_BARS[1] = ("Python thread during Run", _py_sp, "measured")
-    print(f"[plot_perf] Loaded GIL-overlap data from {_gil_data_path}")
+
+def _object_no_duplicates(pairs):
+    value = {}
+    for key, member in pairs:
+        if key in value:
+            raise PlotDataError(f"duplicate JSON key {key!r}")
+        value[key] = member
+    return value
+
+
+def _load_json(path: Path):
+    try:
+        value = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=_object_no_duplicates
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise PlotDataError(f"cannot read {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise PlotDataError(f"{path} must contain one JSON object")
+    return value
+
+
+def _positive_number(value, label):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise PlotDataError(f"{label} must be numeric")
+    number = float(value)
+    if not math.isfinite(number) or number <= 0:
+        raise PlotDataError(f"{label} must be finite and positive")
+    return number
+
+
+def _realtime_override(value):
+    if (
+        set(value) != {"nest_version", "grid"}
+        or not isinstance(value["nest_version"], str)
+        or not value["nest_version"].strip()
+    ):
+        raise PlotDataError("realtime.json has an unexpected top-level shape")
+    rows = value["grid"]
+    if not isinstance(rows, list):
+        raise PlotDataError("realtime.json grid must be an array")
+    expected_pairs = {(n, thread) for n in RT for thread in THREADS}
+    actual = {}
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise PlotDataError(f"realtime grid row {index} must be an object")
+        n, thread = row.get("n"), row.get("threads")
+        if (
+            isinstance(n, bool)
+            or not isinstance(n, int)
+            or isinstance(thread, bool)
+            or not isinstance(thread, int)
+        ):
+            raise PlotDataError(f"realtime grid row {index} has invalid n/threads")
+        pair = (n, thread)
+        if pair in actual:
+            raise PlotDataError(f"realtime grid duplicates {pair}")
+        actual[pair] = _positive_number(
+            row.get("realtime_factor"), f"realtime grid {pair} factor"
+        )
+    if set(actual) != expected_pairs:
+        missing = sorted(expected_pairs - set(actual))
+        extra = sorted(set(actual) - expected_pairs)
+        raise PlotDataError(
+            f"realtime grid must contain the exact plotted matrix; missing={missing}, extra={extra}"
+        )
+    return {n: [actual[(n, thread)] for thread in THREADS] for n in RT}
+
+
+def _gil_override(value):
+    required = {
+        "nest_version",
+        "compute_ms",
+        "chunk_ms",
+        "work_ms",
+        "n_chunks",
+        "threads",
+        "n",
+        "serial_s",
+        "native_overlap_s",
+        "py_thread_overlap_s",
+        "native_speedup",
+        "py_thread_speedup",
+    }
+    if (
+        set(value) != required
+        or not isinstance(value["nest_version"], str)
+        or not value["nest_version"].strip()
+    ):
+        raise PlotDataError("gil_overlap.json has an unexpected top-level shape")
+    expected_regime = {
+        "chunk_ms": 20.0,
+        "work_ms": 10.0,
+        "n_chunks": 30,
+        "threads": 8,
+        "n": 8000,
+    }
+    for key, expected in expected_regime.items():
+        if value[key] != expected:
+            raise PlotDataError(
+                f"gil_overlap.json {key}={value[key]!r} does not match the plotted regime {expected!r}"
+            )
+    native = _positive_number(value["native_speedup"], "native_speedup")
+    python = _positive_number(value["py_thread_speedup"], "py_thread_speedup")
+    return native, python
+
+
+def load_overrides() -> str:
+    global MEASURED_OVERLAP_PT
+    sources = []
+    if _rt_data_path.is_file():
+        RT.update(_realtime_override(_load_json(_rt_data_path)))
+        sources.append("validated realtime.json")
+    if _gil_data_path.is_file():
+        native, python = _gil_override(_load_json(_gil_data_path))
+        OVERLAP_BARS[2] = (
+            "native thread (synthetic off-GIL work)",
+            native,
+            "ceiling",
+        )
+        OVERLAP_BARS[1] = ("Python thread during Run", python, "measured")
+        MEASURED_OVERLAP_PT = (10.0, native)
+        sources.append("validated gil_overlap.json")
+    if sources:
+        return ", ".join(sources)
+    return "historical fallback constants (non-normative; raw receipts absent)"
 
 # --------------------------------------------------------------------------- #
 # 2. THEME TOKENS  (GitHub light / dark canvases; design-system §4 / §5)
@@ -212,8 +315,19 @@ def _rc() -> None:
         {
             "font.family": ["DejaVu Sans"],
             "svg.fonttype": "none",  # keep text as text in the SVG (selectable/sharp)
+            "svg.hashsalt": "ncp-historical-performance-v1",
             "axes.linewidth": 1.0,
         }
+    )
+
+
+def _normalize_svg(path: Path) -> None:
+    """Remove generator-only line-end whitespace while preserving one final newline."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    path.write_text(
+        "\n".join(line.rstrip() for line in lines) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -294,7 +408,7 @@ def regime_caption(fig, text, T) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def fig_overlap(T) -> str:
+def fig_overlap(T, outdir: Path) -> Path:
     theme = T["name"]
     C = HUE[theme]
     c_blue = C["blue"]
@@ -315,7 +429,7 @@ def fig_overlap(T) -> str:
     axL.set_ylabel("overlap speedup (×)", fontsize=12)
     # Shortened so the 15pt bold hero fits inside the 1.6-ratio left panel and
     # never reaches the right panel's title band (was: "… single-digit-% win").
-    hero_title(axL, "I/O overlap: sub-ms loop, single-digit-% win", T, fontsize=14)
+    hero_title(axL, "Historical overlap model: diminishing synthetic gain", T, fontsize=14)
 
     # Shaded sub-ms rate-loop regime (where the real T_ncp lives).
     axL.axvspan(0.05, 1.0, color=c_verm, alpha=0.08, zorder=0)
@@ -531,9 +645,16 @@ def fig_overlap(T) -> str:
     fig.subplots_adjust(bottom=0.16, wspace=0.46)
 
     name = f"overlap_{theme}"
-    out = os.path.join(OUTDIR, f"{name}.svg")
-    fig.savefig(out, format="svg", bbox_inches="tight", facecolor=fig.get_facecolor())
+    out = outdir / f"{name}.svg"
+    fig.savefig(
+        out,
+        format="svg",
+        bbox_inches="tight",
+        facecolor=fig.get_facecolor(),
+        metadata={"Date": None, "Creator": "NCP plot_perf.py"},
+    )
     plt.close(fig)
+    _normalize_svg(out)
     return out
 
 
@@ -542,7 +663,7 @@ def fig_overlap(T) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def fig_realtime(T) -> str:
+def fig_realtime(T, outdir: Path) -> Path:
     theme = T["name"]
     C = HUE[theme]
 
@@ -562,8 +683,7 @@ def fig_realtime(T) -> str:
     ax.set_ylabel("real-time factor   rt = bio-s / wall-s", fontsize=12)
     hero_title(
         ax,
-        "Real-time factor vs threads — a 10k-neuron brain runs "
-        "2.13× real-time on 16 cores",
+        "Historical local sweep — only sampled 10k series crosses rt=1",
         T,
     )
 
@@ -614,14 +734,14 @@ def fig_realtime(T) -> str:
         va="bottom", ha="right", color=T["ref"], fontsize=9, zorder=6,
     )
 
-    # Interpolated live ceiling: hollow marker + caveat. NEVER a solid point.
+    # Interpolated crossing: hollow marker + caveat. NEVER a solid point.
     lx, ly = LIVE_CEILING_XY
     ax.plot([lx], [ly], marker="o", mfc="none", mec=T["muted"], mew=1.5, ms=10, ls="none", zorder=6)
     # Dropped lower and shifted left (was xytext=(7.2, 0.30)) so the box sits in
     # the gap BELOW the N=50k line and no longer occludes the N=50k end-label /
     # marker at x=16; the arrow still reaches the hollow ceiling dot at (16, 1.0).
     ax.annotate(
-        "~17–20k live ceiling:\ninterpolated (no sample 10k–50k)",
+        "~17–20k crossing:\ninterpolated (no sample 10k–50k)",
         xy=(lx, ly),
         xytext=(2.0, 0.185),
         textcoords="data",
@@ -652,9 +772,16 @@ def fig_realtime(T) -> str:
     fig.subplots_adjust(bottom=0.16, right=0.86)
 
     name = f"realtime_{theme}"
-    out = os.path.join(OUTDIR, f"{name}.svg")
-    fig.savefig(out, format="svg", bbox_inches="tight", facecolor=fig.get_facecolor())
+    out = outdir / f"{name}.svg"
+    fig.savefig(
+        out,
+        format="svg",
+        bbox_inches="tight",
+        facecolor=fig.get_facecolor(),
+        metadata={"Date": None, "Creator": "NCP plot_perf.py"},
+    )
     plt.close(fig)
+    _normalize_svg(out)
     return out
 
 
@@ -665,13 +792,13 @@ def fig_realtime(T) -> str:
 EMBED_REALTIME = """<picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/realtime_dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/plots/realtime_light.svg">
-  <img alt="Real-time factor rt = bio-s/wall-s vs OpenMP thread count (1-16) on a 16-core box, log-log. Only N=10,000 crosses the dashed rt=1.0 real-time line - 1.18x at 4 threads up to 2.13x at 16; N=50,000/100,000/200,000 stay below real-time (best 0.35x at N=50k, T=16). The ~17-20k live ceiling is interpolated. NEST 3.8.0, ~500 syn/neuron, ~13 Hz async-irregular." src="docs/plots/realtime_light.svg">
+  <img alt="Historical non-release-bound local real-time-factor sweep versus OpenMP threads. Only the sampled N=10,000 series crosses rt=1; larger sampled series remain below it. The hollow ~17–20k crossing is interpolated across an unsampled range and is not capacity evidence. NEST 3.8.0 developer run." src="docs/plots/realtime_light.svg">
 </picture>"""
 
 EMBED_OVERLAP = """<picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/overlap_dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/plots/overlap_light.svg">
-  <img alt="Left: I/O-overlap speedup vs transport-work per chunk (log x). The analytic ceiling (compute+work)/max(compute,work) falls from 1.80x at 10 ms to ~1.01x at 0.1 ms; the measured native-thread point (1.68x at 10 ms) sits below the ideal line; the sub-millisecond rate-loop regime yields only single-digit-percent gain. Right: serial 1.00x, Python-thread 1.08x (solid, measured), native-thread 1.68x (hatched - idealized off-GIL ceiling, not measured transport). NEST 3.8.0, 8000-neuron net, bench_gil_overlap.py." src="docs/plots/overlap_light.svg">
+  <img alt="Historical synthetic overlap illustration. The left panel shows an analytic ceiling versus modeled work; the right panel compares retained serial and Python-thread values with a hatched 1.68x off-GIL busy-spin stand-in. This is not measured NCP transport or release performance evidence." src="docs/plots/overlap_light.svg">
 </picture>"""
 
 
@@ -680,24 +807,108 @@ EMBED_OVERLAP = """<picture>
 # --------------------------------------------------------------------------- #
 
 
-def main() -> None:
-    os.makedirs(OUTDIR, exist_ok=True)
+def self_test() -> None:
+    grid = [
+        {"n": n, "threads": thread, "realtime_factor": RT[n][index]}
+        for n in RT
+        for index, thread in enumerate(THREADS)
+    ]
+    value = {"nest_version": "test", "grid": grid}
+    if _realtime_override(value) != RT:
+        raise AssertionError("valid realtime fixture changed values")
+    truncated = {"nest_version": "test", "grid": grid[:-1]}
+    try:
+        _realtime_override(truncated)
+    except PlotDataError:
+        pass
+    else:
+        raise AssertionError("partial realtime grid unexpectedly passed")
+
+    gil = {
+        "nest_version": "test",
+        "compute_ms": 8.0,
+        "chunk_ms": 20.0,
+        "work_ms": 10.0,
+        "n_chunks": 30,
+        "threads": 8,
+        "n": 8000,
+        "serial_s": 0.586,
+        "native_overlap_s": 0.348,
+        "py_thread_overlap_s": 0.541,
+        "native_speedup": 1.68,
+        "py_thread_speedup": 1.08,
+    }
+    if _gil_override(gil) != (1.68, 1.08):
+        raise AssertionError("valid GIL fixture changed values")
+    gil["n"] = 9000
+    try:
+        _gil_override(gil)
+    except PlotDataError:
+        pass
+    else:
+        raise AssertionError("mislabeled GIL regime unexpectedly passed")
+
+    try:
+        json.loads('{"a":1,"a":2}', object_pairs_hook=_object_no_duplicates)
+    except PlotDataError:
+        pass
+    else:
+        raise AssertionError("duplicate JSON key unexpectedly passed")
+
+
+def _generate(outdir: Path) -> list[Path]:
+    outdir.mkdir(parents=True, exist_ok=True)
     _rc()
-
     written = []
-    for T in (LIGHT, DARK):
-        written.append(fig_overlap(T))
-        written.append(fig_realtime(T))
+    for theme in (LIGHT, DARK):
+        written.append(fig_overlap(theme, outdir))
+        written.append(fig_realtime(theme, outdir))
+    return written
 
-    print("Wrote {} SVG(s) into {}/:".format(len(written), OUTDIR))
-    for p in written:
-        print("  " + p)
 
-    print("\n--- PERFORMANCE.md / README hero (realtime) ---\n")
-    print(EMBED_REALTIME)
-    print("\n--- PERFORMANCE.md deep-dive (overlap) ---\n")
-    print(EMBED_OVERLAP)
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args()
+    try:
+        if matplotlib.__version__ != EXPECTED_MATPLOTLIB or np.__version__ != EXPECTED_NUMPY:
+            raise PlotDataError(
+                "plot dependency versions differ: "
+                f"matplotlib={matplotlib.__version__} numpy={np.__version__}; "
+                f"expected {EXPECTED_MATPLOTLIB}/{EXPECTED_NUMPY}"
+            )
+        if args.self_test:
+            self_test()
+        source = load_overrides()
+        if args.check:
+            with tempfile.TemporaryDirectory() as directory:
+                fresh = _generate(Path(directory))
+                for generated in fresh:
+                    committed = OUTDIR / generated.name
+                    if not committed.is_file() or not filecmp.cmp(
+                        generated, committed, shallow=False
+                    ):
+                        raise PlotDataError(
+                            f"{committed.relative_to(ROOT)} differs from deterministic generation"
+                        )
+            print(f"OK historical plots reproducible from {source}")
+            return 0
+
+        written = _generate(OUTDIR)
+        print(f"Wrote {len(written)} non-normative SVG(s) from {source}:")
+        for path in written:
+            print(f"  {path.relative_to(ROOT)}")
+
+        print("\n--- PERFORMANCE.md / README historical realtime figure ---\n")
+        print(EMBED_REALTIME)
+        print("\n--- PERFORMANCE.md historical overlap figure ---\n")
+        print(EMBED_OVERLAP)
+        return 0
+    except (PlotDataError, OSError, AssertionError) as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

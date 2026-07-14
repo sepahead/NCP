@@ -9,7 +9,8 @@
 #
 # This workspace is self-contained and **extractable**: it has no path/parent
 # dependency on the surrounding engram repo and can be lifted into its own
-# repository / published to crates.io with no refactoring. Consumers (robot/UAV
+# repository and packaged without a parent checkout. Public registry names and
+# ownership remain a separate release gate. Consumers (robot/UAV
 # bodies, analysis/observer clients, and a commander gateway) depend on `ncp-core`
 # (+ `ncp-zenoh`) as a normal dependency.
 #

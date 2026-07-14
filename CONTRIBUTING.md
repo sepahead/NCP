@@ -1,8 +1,8 @@
 # Contributing to NCP
 
 Repository HEAD is the unreleased, release-blocked NCP `1.0.0-rc.1` candidate
-(wire `1.0`, compact proto hash `163acc57d8a62b66`). The latest immutable release
-is `v0.8.0` and is wire-incompatible. Contributions are welcome under the
+(wire `1.0`, compact proto hash `163acc57d8a62b66`). The latest immutable annotated
+source tag is `v0.8.0` and is wire-incompatible. Contributions are welcome under the
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 Read [`AGENTS.md`](AGENTS.md),

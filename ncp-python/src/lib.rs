@@ -215,7 +215,7 @@ fn parse_sensor(sensor_json: Option<&str>) -> PyResult<Option<SensorFrame>> {
 /// **One-shot**: a fresh governor is constructed per call, so the ESTOP latch
 /// cannot persist across calls. Use this for stateless/corpus checks only — a
 /// real plant MUST hold a persistent [`Governor`] so a latched ESTOP survives
-/// until a supervisor `reset()`.
+/// until an authorized operator calls `reset()`.
 #[pyfunction]
 #[pyo3(signature = (limits_json, command_json, now_s, sensor_json = None, last_sensor_s = None))]
 fn govern(
@@ -260,7 +260,7 @@ fn govern_with(
 
 /// A **persistent** action-plane safety governor: the stateful form whose ESTOP
 /// latch survives across calls (a geofence breach / inbound ESTOP / link collapse
-/// keeps every later `govern` at ESTOP until a supervisor calls `reset()`).
+/// keeps every later `govern` at ESTOP until an authorized operator calls `reset()`).
 /// This is what a real plant must hold — the module-level one-shot `govern`
 /// function cannot latch by construction. Wraps `ncp_core::SafetyGovernor`.
 #[pyclass]
@@ -297,7 +297,7 @@ impl Governor {
         )
     }
 
-    /// Clear the governor's local ESTOP after external supervisor/interlock
+    /// Clear the governor's local ESTOP after external operator/interlock
     /// authorization. This method does not authenticate or restore session
     /// authority. A config-level fail-closed state is not cleared.
     fn reset(&mut self) {
@@ -366,7 +366,7 @@ impl ActionBuffer {
     }
 
     /// Clear the local latch and permanently retire this generation-bound buffer.
-    /// This method does not authenticate a supervisor or restore remote authority;
+    /// This method does not authenticate an operator or restore remote authority;
     /// a successful generation cut constructs a fresh ActionBuffer.
     fn reset(&mut self) {
         self.inner.reset()

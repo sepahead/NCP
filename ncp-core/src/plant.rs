@@ -124,7 +124,12 @@ impl PlantProfile {
         })?;
         value
             .as_object_mut()
-            .expect("PlantProfile serializes as an object")
+            .ok_or_else(|| {
+                PlantProfileError::new(
+                    "NCP-PLANT-001",
+                    "profile serialization did not produce a JSON object",
+                )
+            })?
             .remove("profile_digest_sha256");
         Ok(value)
     }

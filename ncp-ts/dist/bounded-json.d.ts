@@ -16,6 +16,8 @@ export declare const JSON_LIMITS: Readonly<{
     maxKeyBytes: 128;
     maxStringBytes: 65536;
     maxTotalStringBytes: 1048576;
+    safeIntegerMin: -9007199254740991;
+    safeIntegerMax: 9007199254740991;
     maxFiniteNumberMagnitude: 1e+300;
 }>;
 export type JsonLimitCode = 'NCP-LIMIT-001' | 'NCP-LIMIT-002' | 'NCP-LIMIT-003' | 'NCP-LIMIT-004' | 'NCP-LIMIT-005' | 'NCP-LIMIT-006' | 'NCP-LIMIT-007' | 'NCP-LIMIT-008' | 'NCP-LIMIT-009';

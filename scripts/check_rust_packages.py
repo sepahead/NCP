@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build and exercise the distributable Rust crate archives.
 
-All five publishable workspace crates are packaged and inspected. The three
+All five packageable workspace crates are packaged and inspected. The three
 crates with package-sensitive test fixtures are tested from their extracted
 archives; the Python binding and gateway are type-checked from theirs. Temporary
 Cargo patches point exact unpublished NCP dependencies at the corresponding
@@ -162,7 +162,7 @@ def main() -> int:
 
     # Catch a canonical fixture changing while the longer archive tests ran.
     run([sys.executable, "scripts/sync_rust_package_testdata.py"])
-    print("Rust package archive self-test passed for all five publishable crates.")
+    print("Rust package archive self-test passed for all five packageable crates.")
     return 0
 
 

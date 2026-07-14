@@ -449,6 +449,44 @@ for (const c of corpus.cases.action_buffer) {
       `bounded JSON: lone surrogate wrong error ${String(error)}`,
     )
   }
+  const exactIntegerBoundaries = parseBoundedJson(
+    '{"future_extension":{"positive":9007199254740991,"negative":-9007199254740991}}',
+  )
+  check(
+    exactIntegerBoundaries.future_extension.positive === JSON_LIMITS.safeIntegerMax &&
+      exactIntegerBoundaries.future_extension.negative === JSON_LIMITS.safeIntegerMin,
+    'bounded JSON: exact integer boundaries remain admissible in unknown extensions',
+  )
+  for (const unsafeInteger of ['9007199254740992', '-9007199254740992']) {
+    try {
+      parseBoundedJson(`{"future_extension":${unsafeInteger}}`)
+      check(false, `bounded JSON: unsafe integer ${unsafeInteger} accepted in unknown extension`)
+    } catch (error) {
+      check(
+        error instanceof BoundedJsonError && error.code === 'NCP-LIMIT-006',
+        `bounded JSON: unsafe integer ${unsafeInteger} returned wrong error ${String(error)}`,
+      )
+    }
+  }
+  try {
+    parseBoundedJson('{"future_extension":9007199254740992.5}')
+    check(true, 'bounded JSON: finite non-integer remains governed by the magnitude budget')
+  } catch (error) {
+    check(false, `bounded JSON: finite non-integer policy changed ${String(error)}`)
+  }
+  try {
+    assertNcpMessage({
+      kind: 'error',
+      ncp_version: NCP_VERSION,
+      code: 'NCP-WIRE-001',
+      error: 'invalid',
+      session_id: `bad\ud800`,
+      session: { generation: GEN },
+    })
+    check(false, 'validator: unpaired surrogate accepted in an in-memory session_id')
+  } catch {
+    check(true, 'validator: unpaired surrogate rejected in an in-memory session_id')
+  }
   // The outer byte gate must not duplicate an oversized WebSocket string into a
   // full TextEncoder buffer before rejecting it. A throwing encoder proves the
   // admission decision is made by the allocation-free bounded counter.
@@ -843,6 +881,41 @@ for (const c of corpus.cases.action_buffer) {
       }), (client) => client.step('s', MUTATION)),
     ),
     'client: a correlated responder receipt completes a mutation',
+  )
+  check(
+    await rejectsAsync(
+      invoke((request) => ({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: '30000000-0000-4000-8000-000000000099' },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: receipt(request.operation.request_digest),
+      }), (client) => client.step('s', MUTATION)),
+    ),
+    'client: a responder receipt on a stale session generation is rejected',
+  )
+  check(
+    await rejectsAsync(
+      invoke((request) => ({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: {
+          ...receipt(request.operation.request_digest),
+          operation_id: '30000000-0000-4000-8000-000000000099',
+        },
+      }), (client) => client.step('s', MUTATION)),
+    ),
+    'client: a responder receipt for another operation is rejected',
   )
   check(
     await rejectsAsync(

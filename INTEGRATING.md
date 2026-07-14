@@ -2,8 +2,8 @@
 
 > **Do not deploy this as released 1.0.** Repository HEAD is the unreleased,
 > release-blocked `1.0.0-rc.1` candidate (wire `1.0`, compact proto hash
-> `163acc57d8a62b66`). `v0.8.0` remains the latest immutable release and is not
-> natively compatible.
+> `163acc57d8a62b66`). `v0.8.0` remains the latest immutable annotated source tag
+> and is not natively compatible.
 
 An integration is certified only when it installs immutable candidate artifacts,
 reports the same complete normative/corpus digests, passes every applicable vector

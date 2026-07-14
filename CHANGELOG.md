@@ -15,10 +15,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   terminology across current candidate documentation. This changes the complete
   normative SHA-256 digest but does not change the wire-1.0 protobuf structure or
   compact hash.
-- Added a non-normative standalone-handoff audit cut and review-commentable
+- Added a non-normative standalone-handoff audit cut and reviewer-commentable
   `T000`–`T119` review ledger. All tasks remain open, release authorization remains
   false, the requested `0.9` line requires a separately reviewed normative
   rebaseline, and no DOI or Zenodo archive is assigned.
+- Added a separate schema-2.0 max-effort handoff source index, updated-cut audit,
+  and reviewer-commentable `T000`–`T145` review ledger. Exact guards retain all
+  146 tasks and 2,920 lens reviews as `OPEN`, record the handoff's serial-DAG/wave
+  contradiction and stale 268-vector claim, and preserve `NO_GO` without rewriting
+  the earlier 120-task history.
+- Added a reproducible 21-column file-review ledger for all 782 immutable Git blobs
+  in the reviewed cut. It records the completed internal AI-assisted inspection,
+  zero independent reviews, open findings, and no release authorization.
+- Made the tag-triggered packaging workflow fail before archive construction while
+  `release_allowed=false`, and renamed `scripts/check.sh` output as local preflight
+  evidence so a green local run cannot be mistaken for external release approval.
+- Bound the unresolved `RUSTSEC-2026-0041` transitive exposure to Zenoh 1.9.0's
+  exact resolved feature graph. Default features and transport compression remain
+  disabled, downstream feature unification is unsupported, and stable publication
+  stays blocked until Zenoh permits a patched `lz4_flex`.
+- Added public-registry namespace ownership as an explicit pre-release gate. Local
+  archives remain packageability evidence only because the intended crates.io
+  `ncp-core` and PyPI `ncp` distribution names identify unrelated projects.
+- Reclassified historical performance plots and comparisons as non-normative,
+  removed unmatched cross-system faster/slower claims, and made SVG generation
+  deterministic with exact tool versions and strict benchmark-input validation.
 - Corrected the Zenoh ACL to an exact default-deny source/destination flow matrix,
   concrete one-session action/data routes, and four protocol-closed RPC verbs;
   removed unused DELETE authority and added broad-selector, wildcard-publisher,
@@ -55,6 +76,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unknown codes fail validation; generic malformed-message RPC failures use
   `NCP-WIRE-001`, contained implementation failures use `NCP-INTERNAL-001`, and
   diagnostics no longer substitute for machine-readable classification.
+- Corrected lifecycle correlation across the Rust and independent TypeScript
+  validators: nested step/run stimuli now match the outer generation, session IDs
+  use the 64-byte UTF-8 ceiling, successful receipts require `succeeded`, error
+  receipts require `rejected`/`cancelled` plus the exact session pair, and the typed
+  Zenoh client fences replies by generation, operation ID, and request digest.
+  Generated schemas now require every `SessionRef` and `StreamPosition` identity
+  member. This is a wire-1.0 candidate correction with an updated complete
+  normative digest; it does not change the protobuf structure/compact hash or
+  release/certify the candidate.
 - Added package, wire, compact-proto, complete-contract, and non-certifying build
   identity introspection across Rust, TypeScript, Python, C/C++, and the gateway.
   The checked-in RC reports `unreleased-worktree`; it is not a source revision.

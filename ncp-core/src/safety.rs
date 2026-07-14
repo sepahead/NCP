@@ -5,7 +5,7 @@
 //! the plant / flight controller enforces it. Mirrors `loop.py::SafetyGovernor`.
 //!
 //! ESTOP **latches**: once any condition trips it, every subsequent `govern`
-//! returns ESTOP + a zeroed command until a supervisor calls
+//! returns ESTOP + a zeroed command until an authorized operator calls
 //! [`reset`](SafetyGovernor::reset). HOLD (on a
 //! stale/frozen sensor) is **non-latching** — it clears as soon as fresh data
 //! flows again.
@@ -14,9 +14,14 @@
 //! producer-overrun backstop: if the brain (`nest.Run`) misses the deadline, the
 //! plant-side governor fails safe to HOLD independent of the controller.
 
+use crate::bounded_json::{
+    MAX_ARRAY_ITEMS, MAX_FINITE_NUMBER_MAGNITUDE, MAX_KEY_BYTES, MAX_STRING_BYTES,
+    MAX_TOTAL_ARRAY_ITEMS, MAX_TOTAL_STRING_BYTES,
+};
 use crate::messages::{
-    Capabilities, ChannelKind, ChannelRequirement, ChannelSpec, ChannelValue, CommandFrame, Mode,
-    SafetyLimits, SensorFrame, StreamPosition, WireFrame, JSON_SAFE_INTEGER_MAX,
+    is_canonical_uuid_v4, Capabilities, ChannelKind, ChannelRequirement, ChannelSpec, ChannelValue,
+    CommandFrame, Mode, SafetyLimits, SensorFrame, StreamPosition, WireFrame,
+    JSON_SAFE_INTEGER_MAX, MAX_CHANNELS,
 };
 
 const POSITION_CHANNEL: &str = "pose_position";
@@ -164,8 +169,13 @@ impl SafetyGovernor {
         command_channels: &[String],
         sensor_channels: &[String],
     ) -> bool {
-        let valid = |name: &str| !name.is_empty() && !name.chars().any(char::is_control);
+        let valid = |name: &str| {
+            !name.is_empty() && name.len() <= MAX_KEY_BYTES && !name.chars().any(char::is_control)
+        };
         let unique_valid = |names: &[String]| {
+            if names.len() > MAX_CHANNELS {
+                return false;
+            }
             let mut seen = std::collections::BTreeSet::new();
             names
                 .iter()
@@ -249,7 +259,7 @@ impl SafetyGovernor {
             && channel.data.iter().all(|value| value.is_finite())
     }
 
-    /// Clear this governor's local ESTOP latch after an external supervisor and
+    /// Clear this governor's local ESTOP latch after an authorized operator and
     /// plant interlock have authorized the generation cut. This method does not
     /// authenticate that decision or restore session authority. On a fresh govern
     /// the latch may re-engage if the condition remains. A config-level fail-closed
@@ -265,7 +275,7 @@ impl SafetyGovernor {
 
     /// Latch ESTOP when the link monitor reports a sustained loss burst (a jam) —
     /// the documented Layer-3 fail-safe escalation. A collapsed link is NOT a
-    /// transient HOLD; it de-energizes to a latched safe state until a supervisor
+    /// transient HOLD; it de-energizes to a latched safe state until an operator
     /// [`reset`](SafetyGovernor::reset)s (an operator-supplied loss-rate threshold may gate this too, but
     /// the CUSUM `burst` is the trip today). Without this, a jammed craft sits in
     /// self-clearing HOLD forever while the link is dead.
@@ -286,42 +296,90 @@ impl SafetyGovernor {
     /// channels, preserving each channel's arity (width) and unit so the HOLD/ESTOP
     /// frame is shaped exactly like the live command — no channel is silently
     /// dropped or left unzeroed.
+    fn insert_zeroed_channel(
+        channels: &mut crate::messages::Map<ChannelValue>,
+        name: &str,
+        requested_width: usize,
+        requested_unit: Option<&str>,
+        total_items: &mut usize,
+        total_string_bytes: &mut usize,
+    ) {
+        if channels.contains_key(name)
+            || channels.len() >= MAX_CHANNELS
+            || name.is_empty()
+            || name.len() > MAX_KEY_BYTES
+            || name.chars().any(char::is_control)
+            || total_string_bytes.saturating_add(name.len()) > MAX_TOTAL_STRING_BYTES
+        {
+            return;
+        }
+        let remaining_items = MAX_TOTAL_ARRAY_ITEMS.saturating_sub(*total_items);
+        if remaining_items == 0 {
+            return;
+        }
+        let width = requested_width
+            .clamp(1, MAX_ARRAY_ITEMS)
+            .min(remaining_items);
+        let unit = requested_unit.filter(|unit| {
+            unit.len() <= MAX_STRING_BYTES
+                && total_string_bytes
+                    .saturating_add(name.len())
+                    .saturating_add(unit.len())
+                    <= MAX_TOTAL_STRING_BYTES
+        });
+        *total_items += width;
+        *total_string_bytes += name.len() + unit.map_or(0, str::len);
+        channels.insert(
+            name.to_owned(),
+            ChannelValue {
+                data: vec![0.0; width],
+                unit: unit.map(str::to_owned),
+            },
+        );
+    }
+
     fn zeroed_channels(&self, command: &CommandFrame) -> crate::messages::Map<ChannelValue> {
         let mut m = crate::messages::Map::new();
-        for (name, cv) in &command.channels {
-            if name.is_empty() || name.chars().any(char::is_control) {
-                continue;
-            }
+        let mut total_items = 0;
+        let mut total_string_bytes = 0;
+
+        // Negotiated channels take precedence over caller-supplied extras so a
+        // hostile oversized map cannot crowd out the plant's known command set.
+        for name in self.command_channels.iter().take(MAX_CHANNELS) {
+            let source = command.channels.get(name);
             let (width, unit) = if name == &self.velocity_channel {
-                (SAFETY_VECTOR_WIDTH, Some(VELOCITY_UNIT.to_string()))
+                (SAFETY_VECTOR_WIDTH, Some(VELOCITY_UNIT))
             } else {
-                (cv.data.len().max(1), cv.unit.clone())
+                (
+                    source.map_or(1, |channel| channel.data.len()),
+                    source.and_then(|channel| channel.unit.as_deref()),
+                )
             };
-            m.insert(
-                name.clone(),
-                ChannelValue {
-                    data: vec![0.0; width],
-                    unit,
-                },
+            Self::insert_zeroed_channel(
+                &mut m,
+                name,
+                width,
+                unit,
+                &mut total_items,
+                &mut total_string_bytes,
             );
         }
-        for name in &self.command_channels {
-            if name.is_empty() || name.chars().any(char::is_control) {
-                continue;
-            }
-            m.entry(name.clone()).or_insert_with(|| {
-                if name == &self.velocity_channel {
-                    ChannelValue::vec3(0.0, 0.0, 0.0, Some(VELOCITY_UNIT))
-                } else {
-                    ChannelValue::scalar(0.0, None)
-                }
-            });
+
+        for (name, channel) in command.channels.iter().take(MAX_CHANNELS) {
+            Self::insert_zeroed_channel(
+                &mut m,
+                name,
+                channel.data.len(),
+                channel.unit.as_deref(),
+                &mut total_items,
+                &mut total_string_bytes,
+            );
         }
         m
     }
 
     fn safe_envelope(command: &CommandFrame) -> (f64, StreamPosition, String) {
-        let t = if command.t.is_finite() {
+        let t = if command.t.is_finite() && command.t.abs() <= MAX_FINITE_NUMBER_MAGNITUDE {
             command.t
         } else {
             0.0
@@ -333,22 +391,42 @@ impl SafetyGovernor {
         if !(1..=JSON_SAFE_INTEGER_MAX).contains(&stream.seq) {
             stream.seq = 1;
         }
-        let frame_id =
-            if command.frame_id.is_empty() || command.frame_id.chars().any(char::is_control) {
-                "world".to_string()
-            } else {
-                command.frame_id.clone()
-            };
+        let frame_id = if command.frame_id.is_empty()
+            || command.frame_id.len() > MAX_STRING_BYTES
+            || command.frame_id.chars().any(char::is_control)
+        {
+            "world".to_string()
+        } else {
+            command.frame_id.clone()
+        };
         (t, stream, frame_id)
+    }
+
+    fn safe_source_correlation(command: &CommandFrame) -> (Option<StreamPosition>, f64) {
+        let Some(source) = command.source.as_ref() else {
+            return (None, 0.0);
+        };
+        if is_canonical_uuid_v4(&source.epoch)
+            && (1..=JSON_SAFE_INTEGER_MAX).contains(&source.seq)
+            && command.source_t.is_finite()
+            && command.source_t.abs() <= MAX_FINITE_NUMBER_MAGNITUDE
+        {
+            (Some(source.clone()), command.source_t)
+        } else {
+            // Correlation is diagnostic context, never authority. Drop both halves
+            // when either is invalid so bad metadata cannot suppress a fail-safe.
+            (None, 0.0)
+        }
     }
 
     fn estop_frame(&self, command: &CommandFrame) -> CommandFrame {
         let (t, stream, frame_id) = Self::safe_envelope(command);
+        let (source, source_t) = Self::safe_source_correlation(command);
         CommandFrame {
             t,
             stream,
-            source: command.source.clone(),
-            source_t: command.source_t,
+            source,
+            source_t,
             session: command.session.clone(),
             session_id: command.session_id.clone(),
             frame_id,
@@ -360,11 +438,12 @@ impl SafetyGovernor {
 
     fn hold_frame(&self, command: &CommandFrame) -> CommandFrame {
         let (t, stream, frame_id) = Self::safe_envelope(command);
+        let (source, source_t) = Self::safe_source_correlation(command);
         CommandFrame {
             t,
             stream,
-            source: command.source.clone(),
-            source_t: command.source_t,
+            source,
+            source_t,
             session: command.session.clone(),
             session_id: command.session_id.clone(),
             frame_id,
@@ -385,7 +464,7 @@ impl SafetyGovernor {
         now_s: f64,
         last_sensor_s: Option<f64>,
     ) -> CommandFrame {
-        // Latched ESTOP dominates everything until a supervisor reset.
+        // Latched ESTOP dominates everything until an authorized operator resets it.
         if self.estop {
             return self.estop_frame(command);
         }
@@ -715,7 +794,7 @@ pub const MAX_TTL_MS: f64 = 60_000.0;
 /// escalate the non-latching staleness HOLD to a latched ESTOP. One missed
 /// deadline is a transient (HOLD); staying silent this many deadlines means the
 /// link is collapsed, which must de-energize to a latched safe state (a
-/// supervisor `reset` is then required). Fail-safe over-triggering (a spurious
+/// authorized-operator `reset` is then required). Fail-safe over-triggering (a spurious
 /// ESTOP on a long-but-recoverable dropout) is acceptable; failing OPEN — sitting
 /// in self-clearing HOLD on a dead link — is not.
 const LINK_LOSS_ESTOP_FACTOR: f64 = 20.0;
@@ -859,6 +938,20 @@ impl CommandWatchdog {
 mod tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, SID};
+    use crate::messages::AuthorityLease;
+
+    fn authority() -> AuthorityLease {
+        AuthorityLease {
+            session_epoch: session().generation,
+            term: 1,
+            lease_id: "20000000-0000-4000-8000-000000000001".into(),
+            issuer_principal_id: "controller-1".into(),
+            holder_principal_id: "controller-1".into(),
+            holder_entity_id: "body-1".into(),
+            issued_at_utc_ms: 1_000,
+            expires_at_utc_ms: 2_000,
+        }
+    }
 
     fn active_command() -> CommandFrame {
         CommandFrame {
@@ -866,6 +959,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
             ..Default::default()
         }
@@ -1089,6 +1183,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             ttl_ms: 500.0,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
             horizon: vec![
@@ -1170,6 +1265,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             ttl_ms: 200.0,
             channels: channels_with("velocity_setpoint", 1.0, "m/s"),
             ..Default::default()
@@ -1218,6 +1314,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             ttl_ms: 200.0,
             channels: channels_with("velocity_setpoint", 0.5, "m/s"),
             horizon: vec![channels_with("velocity_setpoint", 0.5, "km/h")],
@@ -1265,6 +1362,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: channels_with("velocity_setpoint", f64::NAN, "m/s"),
             ..Default::default()
         };
@@ -1369,7 +1467,7 @@ mod tests {
             "latched ESTOP zeroes the command"
         );
 
-        // Supervisor reset clears it; the next safe state is ACTIVE again.
+        // Authorized reset clears it; the next safe state is ACTIVE again.
         gov.reset();
         assert!(!gov.is_estopped());
         let after = gov.govern(&active_command(), Some(&inside), 3.0, Some(3.0));
@@ -1447,6 +1545,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: channels_with(VELOCITY_CHANNEL, 2.0, VELOCITY_UNIT),
             ..Default::default()
         };
@@ -1601,6 +1700,7 @@ mod tests {
                 session: session(),
                 session_id: SID.into(),
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: [(VELOCITY_CHANNEL.into(), velocity)].into_iter().collect(),
                 ..Default::default()
             };
@@ -1734,6 +1834,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: tick0,
             horizon: vec![over],
             horizon_dt_ms: Some(50.0),
@@ -1769,6 +1870,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: step(0.5),
             // good, then non-finite, then good: replay must stop AT the poisoned step.
             horizon: vec![step(1.0), step(f64::NAN), step(1.0)],
@@ -1821,6 +1923,7 @@ mod tests {
                 session: session(),
                 session_id: SID.into(),
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: channels_with("velocity_setpoint", 99.0, "m/s"),
                 ..Default::default()
             };
@@ -1855,6 +1958,7 @@ mod tests {
                 session: session(),
                 session_id: SID.into(),
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: channels_with("velocity_setpoint", 2.0, "m/s"),
                 ..Default::default()
             },
@@ -1953,6 +2057,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: ch,
             ..Default::default()
         };
@@ -1985,7 +2090,7 @@ mod tests {
         let out = gov.govern(&cmd, None, 12.0, Some(1.0)); // 11 s silence > 10 s
         assert_eq!(out.mode, Mode::Estop, "a collapsed link must latch ESTOP");
         assert!(gov.is_estopped(), "the ESTOP must latch");
-        // Latched: even fresh data now returns ESTOP until a supervisor reset.
+        // Latched: even fresh data now returns ESTOP until an authorized operator resets it.
         let out = gov.govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
         assert_eq!(out.mode, Mode::Estop, "ESTOP stays latched until reset");
         gov.reset();
@@ -2071,13 +2176,14 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: channels_with("velocity_setpoint", 0.5, "m/s"),
             ..Default::default()
         };
         assert_eq!(
             gov.govern(&active, None, 2.0, Some(2.0)).mode,
             Mode::Estop,
-            "the latch persists until a supervisor reset"
+            "the latch persists until an authorized operator resets it"
         );
         gov.reset();
         assert_eq!(
@@ -2086,6 +2192,125 @@ mod tests {
             Mode::Active,
             "reset restores normal governing"
         );
+    }
+
+    #[test]
+    fn inbound_estop_builds_a_resource_bounded_zero_output() {
+        let mut channels = crate::messages::Map::new();
+        channels.insert(
+            "bulk".into(),
+            ChannelValue {
+                data: vec![1.0; crate::bounded_json::MAX_ARRAY_ITEMS + 1],
+                unit: Some("u".repeat(crate::bounded_json::MAX_STRING_BYTES + 1)),
+            },
+        );
+        channels.insert(
+            "a".repeat(crate::bounded_json::MAX_KEY_BYTES + 1),
+            ChannelValue::scalar(1.0, None),
+        );
+        for index in 0..=MAX_CHANNELS {
+            channels.insert(
+                format!("channel_{index:04}"),
+                ChannelValue::scalar(1.0, None),
+            );
+        }
+        let command = CommandFrame {
+            t: f64::MAX,
+            stream: stream(1),
+            source: Some(stream(2)),
+            source_t: f64::MAX,
+            session: session(),
+            session_id: SID.into(),
+            frame_id: "f".repeat(crate::bounded_json::MAX_STRING_BYTES + 1),
+            mode: Mode::Estop,
+            channels,
+            ..Default::default()
+        };
+
+        let mut governor = SafetyGovernor::default();
+        let output = governor.govern(&command, None, 0.0, None);
+
+        assert_eq!(output.mode, Mode::Estop);
+        assert_eq!(output.t, 0.0);
+        assert_eq!(output.frame_id, "world");
+        assert_eq!((output.source, output.source_t), (None, 0.0));
+        assert!(output.channels.len() <= MAX_CHANNELS);
+        assert!(output
+            .channels
+            .keys()
+            .all(|name| !name.is_empty() && name.len() <= crate::bounded_json::MAX_KEY_BYTES));
+        assert!(output
+            .channels
+            .values()
+            .all(|channel| channel.data.iter().all(|value| *value == 0.0)));
+        assert!(
+            output
+                .channels
+                .values()
+                .map(|channel| channel.data.len())
+                .sum::<usize>()
+                <= crate::bounded_json::MAX_TOTAL_ARRAY_ITEMS
+        );
+        assert!(output
+            .channels
+            .get("bulk")
+            .is_some_and(
+                |channel| channel.data.len() == crate::bounded_json::MAX_ARRAY_ITEMS
+                    && channel.unit.is_none()
+            ));
+    }
+
+    fn govern_estop_with_source(source: StreamPosition, source_t: f64) -> CommandFrame {
+        let mut governor = SafetyGovernor::new(SafetyLimits::default());
+        governor.govern(
+            &CommandFrame {
+                stream: stream(2),
+                source: Some(source),
+                source_t,
+                session: session(),
+                session_id: SID.into(),
+                mode: Mode::Estop,
+                ..Default::default()
+            },
+            None,
+            1.0,
+            Some(1.0),
+        )
+    }
+
+    #[test]
+    fn inbound_estop_clears_noncanonical_source_epoch() {
+        let output = govern_estop_with_source(
+            StreamPosition {
+                epoch: "not-a-canonical-epoch".into(),
+                seq: 1,
+            },
+            1.0,
+        );
+
+        assert_eq!((output.source, output.source_t), (None, 0.0));
+    }
+
+    #[test]
+    fn inbound_estop_clears_invalid_source_sequence() {
+        let output = govern_estop_with_source(stream(0), 1.0);
+
+        assert_eq!((output.source, output.source_t), (None, 0.0));
+    }
+
+    #[test]
+    fn inbound_estop_clears_non_finite_source_time() {
+        let output = govern_estop_with_source(stream(1), f64::NAN);
+
+        assert_eq!((output.source, output.source_t), (None, 0.0));
+    }
+
+    #[test]
+    fn inbound_estop_preserves_valid_source_correlation() {
+        let source = stream(1);
+        let output = govern_estop_with_source(source.clone(), 1.25);
+
+        assert_eq!((output.source, output.source_t), (Some(source), 1.25));
     }
 
     #[test]

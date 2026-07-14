@@ -22,9 +22,10 @@
 /// choice lives in the *deployment*, not in the protocol.
 pub const DEFAULT_REALM: &str = "ncp";
 
-/// Request kinds carried by the lifecycle control plane. Wire 0.7 routes each
-/// verb on a distinct key so transport ACLs can grant `open_session` without also
-/// granting `step_request`, `run_request`, or cross-session `close_session`.
+/// Request kinds carried by the lifecycle control plane. Introduced in wire 0.7
+/// and retained by wire 1.0, each verb uses a distinct key so transport ACLs can
+/// grant `open_session` without also granting `step_request`, `run_request`, or
+/// cross-session `close_session`.
 pub const RPC_REQUEST_KINDS: &[&str] = &[
     "open_session",
     "step_request",
@@ -138,8 +139,9 @@ impl Keys {
         &self.realm
     }
 
-    /// Control-plane RPC prefix. It is not itself queried in wire 0.7; use
-    /// [`Self::rpc_for_kind`] for a request or [`Self::rpc_glob`] for a server.
+    /// Control-plane RPC prefix. Since wire 0.7, including wire 1.0, it is not
+    /// queried directly; use [`Self::rpc_for_kind`] for a request or
+    /// [`Self::rpc_glob`] for a server.
     pub fn rpc(&self) -> String {
         format!("{}/rpc", self.realm())
     }

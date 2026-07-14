@@ -7,17 +7,153 @@
 //! population's readout rate back onto a command-channel component. Mirrors
 //! `backend/neurocontrol/codec.py`.
 
+use std::collections::BTreeSet;
+use std::fmt;
+use std::marker::PhantomData;
+
+use serde::de::{self, IgnoredAny, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+
+use crate::bounded_json::{MAX_KEY_BYTES, MAX_STRING_BYTES};
 use crate::messages::{
     ChannelValue, CommandFrame, Map, Mode, SensorFrame, SessionRef, StreamPosition, WireFrame,
-    JSON_SAFE_INTEGER_MAX,
+    JSON_SAFE_INTEGER_MAX, MAX_CHANNELS,
 };
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
 
 /// Maximum zero-based component index accepted from an untrusted codec spec.
 /// This bounds per-channel allocation during decode while remaining far above
 /// practical actuator dimensionality.
 pub const MAX_CODEC_COMPONENTS: usize = 4096;
+
+/// Maximum encoder or decoder mappings accepted from an untrusted codec spec.
+/// A mapping direction cannot exceed the protocol channel-count ceiling.
+pub const MAX_CODEC_MAPPINGS: usize = MAX_CHANNELS;
+
+struct BoundedStringVisitor<const MAX_BYTES: usize>;
+
+impl<const MAX_BYTES: usize> BoundedStringVisitor<MAX_BYTES> {
+    fn check<E: de::Error>(value: &str) -> Result<(), E> {
+        if value.len() > MAX_BYTES {
+            return Err(E::custom(format_args!(
+                "codec string exceeds the {MAX_BYTES}-byte protocol limit"
+            )));
+        }
+        Ok(())
+    }
+}
+
+impl<'de, const MAX_BYTES: usize> Visitor<'de> for BoundedStringVisitor<MAX_BYTES> {
+    type Value = String;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "a UTF-8 string of at most {MAX_BYTES} bytes")
+    }
+
+    fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+        Self::check(value)?;
+        Ok(value.to_owned())
+    }
+
+    fn visit_string<E: de::Error>(self, value: String) -> Result<Self::Value, E> {
+        Self::check(&value)?;
+        Ok(value)
+    }
+}
+
+fn deserialize_bounded_string<'de, D, const MAX_BYTES: usize>(
+    deserializer: D,
+) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_str(BoundedStringVisitor::<MAX_BYTES>)
+}
+
+fn deserialize_codec_name<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserialize_bounded_string::<D, MAX_KEY_BYTES>(deserializer)
+}
+
+struct OptionalBoundedStringVisitor<const MAX_BYTES: usize>;
+
+impl<'de, const MAX_BYTES: usize> Visitor<'de> for OptionalBoundedStringVisitor<MAX_BYTES> {
+    type Value = Option<String>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "null or a UTF-8 string of at most {MAX_BYTES} bytes"
+        )
+    }
+
+    fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> {
+        Ok(None)
+    }
+
+    fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+        Ok(None)
+    }
+
+    fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+        deserialize_bounded_string::<D, MAX_BYTES>(deserializer).map(Some)
+    }
+}
+
+fn deserialize_optional_codec_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_option(OptionalBoundedStringVisitor::<MAX_STRING_BYTES>)
+}
+
+struct BoundedMappingsVisitor<T>(PhantomData<fn() -> T>);
+
+impl<'de, T> Visitor<'de> for BoundedMappingsVisitor<T>
+where
+    T: Deserialize<'de>,
+{
+    type Value = Vec<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "a codec mapping list with at most {MAX_CODEC_MAPPINGS} entries"
+        )
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
+        let capacity = sequence.size_hint().unwrap_or(0);
+        if capacity > MAX_CODEC_MAPPINGS {
+            return Err(<A::Error as de::Error>::custom(format_args!(
+                "codec mapping list exceeds the {MAX_CODEC_MAPPINGS}-entry protocol limit"
+            )));
+        }
+
+        let mut mappings = Vec::with_capacity(capacity);
+        while mappings.len() < MAX_CODEC_MAPPINGS {
+            let Some(mapping) = sequence.next_element()? else {
+                return Ok(mappings);
+            };
+            mappings.push(mapping);
+        }
+        if sequence.next_element::<IgnoredAny>()?.is_some() {
+            return Err(<A::Error as de::Error>::custom(format_args!(
+                "codec mapping list exceeds the {MAX_CODEC_MAPPINGS}-entry protocol limit"
+            )));
+        }
+        Ok(mappings)
+    }
+}
+
+fn deserialize_bounded_mappings<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    deserializer.deserialize_seq(BoundedMappingsVisitor::<T>(PhantomData))
+}
 
 /// Invalid codec configuration or input. Codec JSON is deployment data rather
 /// than part of the NCP wire, but it still sits on the actuation path and must
@@ -25,8 +161,8 @@ pub const MAX_CODEC_COMPONENTS: usize = 4096;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CodecError(pub String);
 
-impl std::fmt::Display for CodecError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for CodecError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
     }
 }
@@ -34,7 +170,7 @@ impl std::fmt::Display for CodecError {
 impl std::error::Error for CodecError {}
 
 fn valid_codec_name(value: &str) -> bool {
-    !value.is_empty() && !value.chars().any(|ch| ch.is_control())
+    !value.is_empty() && value.len() <= MAX_KEY_BYTES && !value.chars().any(|ch| ch.is_control())
 }
 
 fn validate_range(range: (f64, f64), path: &str, nonnegative: bool) -> Result<(), CodecError> {
@@ -92,12 +228,18 @@ fn one() -> i64 {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct EncoderChannelMap {
+    #[serde(deserialize_with = "deserialize_codec_name")]
     pub channel: String,
     #[serde(default)]
     pub component: usize,
+    #[serde(deserialize_with = "deserialize_codec_name")]
     pub population: String,
-    #[serde(default = "default_coding")]
+    #[serde(
+        default = "default_coding",
+        deserialize_with = "deserialize_codec_name"
+    )]
     pub coding: String,
     #[serde(default = "default_value_range")]
     pub value_range: (f64, f64),
@@ -112,14 +254,20 @@ fn default_coding() -> String {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct DecoderChannelMap {
+    #[serde(deserialize_with = "deserialize_codec_name")]
     pub population: String,
-    #[serde(default = "default_readout")]
+    #[serde(
+        default = "default_readout",
+        deserialize_with = "deserialize_codec_name"
+    )]
     pub readout: String,
+    #[serde(deserialize_with = "deserialize_codec_name")]
     pub command_channel: String,
     #[serde(default)]
     pub component: usize,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_optional_codec_string")]
     pub unit: Option<String>,
     #[serde(default = "default_rate_range")]
     pub rate_range_hz: (f64, f64),
@@ -132,10 +280,13 @@ fn default_readout() -> String {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct CodecSpec {
+    #[serde(deserialize_with = "deserialize_codec_name")]
     pub codec_id: String,
+    #[serde(deserialize_with = "deserialize_bounded_mappings")]
     pub encoder: Vec<EncoderChannelMap>,
+    #[serde(deserialize_with = "deserialize_bounded_mappings")]
     pub decoder: Vec<DecoderChannelMap>,
 }
 
@@ -153,10 +304,20 @@ impl CodecSpec {
     /// Validate deployment-supplied codec configuration before it can allocate,
     /// overwrite an ambiguous mapping, or produce non-finite rates/setpoints.
     pub fn validate(&self) -> Result<(), CodecError> {
+        if self.encoder.len() > MAX_CODEC_MAPPINGS {
+            return Err(CodecError(format!(
+                "encoder exceeds the {MAX_CODEC_MAPPINGS}-mapping protocol limit"
+            )));
+        }
+        if self.decoder.len() > MAX_CODEC_MAPPINGS {
+            return Err(CodecError(format!(
+                "decoder exceeds the {MAX_CODEC_MAPPINGS}-mapping protocol limit"
+            )));
+        }
         if !valid_codec_name(&self.codec_id) {
-            return Err(CodecError(
-                "codec_id must be non-empty and contain no control characters".into(),
-            ));
+            return Err(CodecError(format!(
+                "codec_id must be non-empty, at most {MAX_KEY_BYTES} UTF-8 bytes, and contain no control characters"
+            )));
         }
 
         let mut encoder_populations = BTreeSet::new();
@@ -164,7 +325,12 @@ impl CodecSpec {
             let path = format!("encoder[{index}]");
             if !valid_codec_name(&mapping.channel) || !valid_codec_name(&mapping.population) {
                 return Err(CodecError(format!(
-                    "{path}.channel and population must be non-empty and contain no control characters"
+                    "{path}.channel and population must be non-empty, at most {MAX_KEY_BYTES} UTF-8 bytes, and contain no control characters"
+                )));
+            }
+            if !valid_codec_name(&mapping.coding) {
+                return Err(CodecError(format!(
+                    "{path}.coding must be non-empty, at most {MAX_KEY_BYTES} UTF-8 bytes, and contain no control characters"
                 )));
             }
             if mapping.coding != "rate" {
@@ -205,7 +371,12 @@ impl CodecSpec {
             if !valid_codec_name(&mapping.population) || !valid_codec_name(&mapping.command_channel)
             {
                 return Err(CodecError(format!(
-                    "{path}.population and command_channel must be non-empty and contain no control characters"
+                    "{path}.population and command_channel must be non-empty, at most {MAX_KEY_BYTES} UTF-8 bytes, and contain no control characters"
+                )));
+            }
+            if !valid_codec_name(&mapping.readout) {
+                return Err(CodecError(format!(
+                    "{path}.readout must be non-empty, at most {MAX_KEY_BYTES} UTF-8 bytes, and contain no control characters"
                 )));
             }
             if mapping.readout != "rate" {
@@ -219,6 +390,15 @@ impl CodecSpec {
                     "{path}.component {} exceeds the allocation ceiling {}",
                     mapping.component,
                     MAX_CODEC_COMPONENTS - 1
+                )));
+            }
+            if mapping
+                .unit
+                .as_ref()
+                .is_some_and(|unit| unit.len() > MAX_STRING_BYTES)
+            {
+                return Err(CodecError(format!(
+                    "{path}.unit exceeds the {MAX_STRING_BYTES}-byte protocol string limit"
                 )));
             }
             validate_range(
@@ -303,9 +483,9 @@ impl CodecSpec {
             return Err(CodecError("command timestamp must be finite".into()));
         }
         if !valid_codec_name(frame_id) {
-            return Err(CodecError(
-                "frame_id must be non-empty and contain no control characters".into(),
-            ));
+            return Err(CodecError(format!(
+                "frame_id must be non-empty, at most {MAX_KEY_BYTES} UTF-8 bytes, and contain no control characters"
+            )));
         }
         let mut command = self.decode(pop_rates, t, stream, frame_id, mode, session, session_id);
         command.authority = authority;
@@ -349,7 +529,11 @@ impl CodecSpec {
         rates
     }
 
-    /// Map `{population: readout_rate_hz}` to a `CommandFrame`.
+    /// Map `{population: readout_rate_hz}` to an unchecked `CommandFrame`.
+    ///
+    /// This low-level mapper does not attach authority and may return a frame that
+    /// is intentionally invalid for wire publication. Actuation paths must use
+    /// [`Self::decode_checked_with_authority`] and propagate its error.
     #[allow(clippy::too_many_arguments)]
     pub fn decode(
         &self,
@@ -450,7 +634,35 @@ pub fn default_uav_velocity_codec() -> CodecSpec {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::messages::test_ids::{session, stream, SID};
+    use crate::messages::test_ids::{session, stream, GEN, SID};
+
+    fn authority() -> crate::messages::AuthorityLease {
+        crate::messages::AuthorityLease {
+            session_epoch: GEN.into(),
+            term: 1,
+            lease_id: "20000000-0000-4000-8000-000000000001".into(),
+            issuer_principal_id: "controller-1".into(),
+            holder_principal_id: "controller-1".into(),
+            holder_entity_id: "body-1".into(),
+            issued_at_utc_ms: 1_000,
+            expires_at_utc_ms: 2_000,
+        }
+    }
+
+    fn repeated_mapping_json(field: &str, mapping: &str, count: usize) -> String {
+        let mut json = String::with_capacity(mapping.len().saturating_mul(count) + field.len() + 8);
+        json.push_str("{\"");
+        json.push_str(field);
+        json.push_str("\":[");
+        for index in 0..count {
+            if index != 0 {
+                json.push(',');
+            }
+            json.push_str(mapping);
+        }
+        json.push_str("]}");
+        json
+    }
 
     fn stamped_sensor() -> SensorFrame {
         SensorFrame {
@@ -469,17 +681,9 @@ mod tests {
         assert!(rates.values().all(|rate| rate.is_finite()));
 
         let command = codec
-            .decode_checked(
-                &rates,
-                0.0,
-                stream(1),
-                "world",
-                Mode::Active,
-                session(),
-                SID,
-            )
+            .decode_checked(&rates, 0.0, stream(1), "world", Mode::Hold, session(), SID)
             .unwrap();
-        assert_eq!(command.mode, Mode::Active);
+        assert_eq!(command.mode, Mode::Hold);
         command.validate_wire().unwrap();
     }
 
@@ -539,6 +743,54 @@ mod tests {
     }
 
     #[test]
+    fn checked_codec_requires_explicit_matching_authority_for_active_output() {
+        let codec = default_uav_velocity_codec();
+        let rates = codec.encode_checked(Some(&stamped_sensor())).unwrap();
+
+        assert!(codec
+            .decode_checked(
+                &rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+            )
+            .is_err());
+
+        let command = codec
+            .decode_checked_with_authority(
+                &rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+                Some(authority()),
+            )
+            .unwrap();
+        assert_eq!(command.mode, Mode::Active);
+        command.validate_wire().unwrap();
+
+        let mut mismatched = authority();
+        mismatched.session_epoch = "30000000-0000-4000-8000-000000000001".into();
+        assert!(codec
+            .decode_checked_with_authority(
+                &rates,
+                0.0,
+                stream(2),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+                Some(mismatched),
+            )
+            .is_err());
+    }
+
+    #[test]
     fn missing_or_short_sensor_channel_encodes_neutral_not_extreme() {
         let codec = default_uav_velocity_codec();
         let sensor = stamped_sensor();
@@ -583,5 +835,157 @@ mod tests {
         let mut codec = default_uav_velocity_codec();
         codec.encoder[0].coding = "future-coding".into();
         assert!(codec.validate().is_err());
+    }
+
+    #[test]
+    fn codec_deserialization_preserves_struct_defaults() {
+        let codec: CodecSpec = serde_json::from_str("{}").unwrap();
+
+        assert_eq!(codec, CodecSpec::default());
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_unknown_top_level_field() {
+        let error = serde_json::from_str::<CodecSpec>(r#"{"future_extension":true}"#)
+            .expect_err("deployment config must fail closed on unknown fields");
+
+        assert!(error
+            .to_string()
+            .contains("unknown field `future_extension`"));
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_unknown_encoder_field() {
+        let error = serde_json::from_str::<CodecSpec>(
+            r#"{"encoder":[{"channel":"sensor","population":"population","future_extension":true}]}"#,
+        )
+        .expect_err("encoder mappings must fail closed on unknown fields");
+
+        assert!(error
+            .to_string()
+            .contains("unknown field `future_extension`"));
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_unknown_decoder_field() {
+        let error = serde_json::from_str::<CodecSpec>(
+            r#"{"decoder":[{"population":"population","command_channel":"command","future_extension":true}]}"#,
+        )
+        .expect_err("decoder mappings must fail closed on unknown fields");
+
+        assert!(error
+            .to_string()
+            .contains("unknown field `future_extension`"));
+    }
+
+    #[test]
+    fn codec_deserialization_accepts_per_direction_mapping_count_boundary() {
+        let json = repeated_mapping_json(
+            "encoder",
+            r#"{"channel":"sensor","population":"population"}"#,
+            MAX_CODEC_MAPPINGS,
+        );
+        let codec: CodecSpec = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(codec.encoder.len(), MAX_CODEC_MAPPINGS);
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_encoder_mapping_overflow() {
+        let json = repeated_mapping_json(
+            "encoder",
+            r#"{"channel":"sensor","population":"population"}"#,
+            MAX_CODEC_MAPPINGS + 1,
+        );
+        let error = serde_json::from_str::<CodecSpec>(&json)
+            .expect_err("encoder mappings must be bounded during deserialization");
+
+        assert!(error.to_string().contains("mapping list exceeds"));
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_decoder_mapping_overflow() {
+        let json = repeated_mapping_json(
+            "decoder",
+            r#"{"population":"population","command_channel":"command"}"#,
+            MAX_CODEC_MAPPINGS + 1,
+        );
+        let error = serde_json::from_str::<CodecSpec>(&json)
+            .expect_err("decoder mappings must be bounded during deserialization");
+
+        assert!(error.to_string().contains("mapping list exceeds"));
+    }
+
+    #[test]
+    fn codec_validation_rejects_programmatic_mapping_overflow() {
+        let codec = CodecSpec {
+            encoder: vec![default_uav_velocity_codec().encoder[0].clone(); MAX_CODEC_MAPPINGS + 1],
+            ..CodecSpec::default()
+        };
+        let error = codec
+            .validate()
+            .expect_err("programmatic specs must receive the same mapping bound");
+
+        assert!(error.0.contains("mapping protocol limit"));
+    }
+
+    #[test]
+    fn codec_deserialization_accepts_multibyte_name_at_byte_boundary() {
+        let codec_id = "é".repeat(MAX_KEY_BYTES / "é".len());
+        let json = serde_json::to_string(&serde_json::json!({ "codec_id": codec_id })).unwrap();
+        let codec: CodecSpec = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(codec.codec_id.len(), MAX_KEY_BYTES);
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_multibyte_name_over_byte_boundary() {
+        let codec_id = "é".repeat(MAX_KEY_BYTES / "é".len() + 1);
+        let json = serde_json::to_string(&serde_json::json!({ "codec_id": codec_id })).unwrap();
+        let error = serde_json::from_str::<CodecSpec>(&json)
+            .expect_err("name limits must count decoded UTF-8 bytes");
+
+        assert!(error.to_string().contains("128-byte protocol limit"));
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_nested_name_over_byte_boundary() {
+        let channel = "x".repeat(MAX_KEY_BYTES + 1);
+        let json = format!(
+            r#"{{"encoder":[{{"channel":{},"population":"population"}}]}}"#,
+            serde_json::to_string(&channel).unwrap()
+        );
+        let error = serde_json::from_str::<CodecSpec>(&json)
+            .expect_err("mapping names must be bounded during deserialization");
+
+        assert!(error.to_string().contains("128-byte protocol limit"));
+    }
+
+    #[test]
+    fn codec_deserialization_accepts_unit_at_string_boundary() {
+        let unit = "u".repeat(MAX_STRING_BYTES);
+        let json = format!(
+            r#"{{"decoder":[{{"population":"population","command_channel":"command","unit":{}}}]}}"#,
+            serde_json::to_string(&unit).unwrap()
+        );
+        let codec: CodecSpec = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(
+            codec.decoder[0].unit.as_deref().map(str::len),
+            Some(MAX_STRING_BYTES)
+        );
+    }
+
+    #[test]
+    fn codec_deserialization_rejects_unit_over_string_boundary() {
+        let unit = "u".repeat(MAX_STRING_BYTES + 1);
+        let json = format!(
+            r#"{{"decoder":[{{"population":"population","command_channel":"command","unit":{}}}]}}"#,
+            serde_json::to_string(&unit).unwrap()
+        );
+        let error = serde_json::from_str::<CodecSpec>(&json)
+            .expect_err("optional config strings must be bounded during deserialization");
+
+        assert!(error.to_string().contains("65536-byte protocol limit"));
     }
 }

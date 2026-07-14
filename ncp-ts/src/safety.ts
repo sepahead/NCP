@@ -358,7 +358,7 @@ export class SafetyGovernor {
     )
   }
 
-  /** Clear the local latch after external supervisor/interlock authorization. This
+  /** Clear the local latch after external operator/interlock authorization. This
    * does not authenticate or restore session authority; config failure stays set. */
   reset(): void {
     this.estop = false
@@ -451,7 +451,7 @@ export class SafetyGovernor {
     nowS: number,
     lastSensorS: number | null,
   ): CommandLike {
-    // Latched ESTOP dominates everything until a supervisor reset.
+    // Latched ESTOP dominates everything until an authorized operator resets it.
     if (this.estop) return this.safeFrame(command, 'estop')
     // An INBOUND ESTOP-mode command is itself a fail-safe: LATCH and propagate
     // (zeroed ESTOP out), never downgrade to a non-latching HOLD.

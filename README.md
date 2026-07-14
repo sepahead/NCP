@@ -6,7 +6,7 @@ read-only analysis clients.
 
 > **Current status:** repository HEAD is the **unreleased, release-blocked**
 > `1.0.0-rc.1` candidate: wire `1.0`, compact proto contract hash
-> `163acc57d8a62b66`. The latest immutable release remains `v0.8.0`; it is a
+> `163acc57d8a62b66`. The latest immutable annotated source tag is `v0.8.0`; it is a
 > different, incompatible wire. Do not describe this candidate as NCP 1.0,
 > production-certified, published, signed, or consumer-certified.
 
@@ -83,8 +83,8 @@ define a universal safe action. An `ObservationFrame` must retain
 
 The reference governor, command watchdog, action buffer, ESTOP latch, and plant
 profile checks are deterministic software controls. A deployment still needs a
-plant-owned safety case, tested safe actions, an independent hardware
-ESTOP, and a transport adapter that fully implements the `production-secure`
+plant-owned safety case, tested safe actions, an independent hardware or plant-local
+ESTOP interlock, and a transport adapter that fully implements the `production-secure`
 profile. The current Zenoh adapter does not. Mode and TTL are not network security.
 
 ## Normative contract
@@ -194,8 +194,9 @@ baseline.
 - [`RELEASE_READINESS.md`](RELEASE_READINESS.md): evidence ledger and blockers.
 - [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md): per-task local
   receipts and exact not-run acceptance gaps.
-- [`docs/handoff/README.md`](docs/handoff/README.md): non-normative standalone
-  handoff audit inputs and review-commentable `T000`–`T119` ledger.
+- [`docs/handoff/README.md`](docs/handoff/README.md): separate non-normative
+  standalone `T000`–`T119` and current max-effort `T000`–`T145` audit records;
+  both expose guarded reviewer-comment fields and authorize no release.
 - [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md): current residual risks.
 - [`VERSIONING.md`](VERSIONING.md): compatibility and release policy.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.

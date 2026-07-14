@@ -147,7 +147,7 @@ export declare class SafetyGovernor {
         sensor_channels: Capabilities['sensor_channels'];
         safety: SafetyLimits;
     }): SafetyGovernor;
-    /** Clear the local latch after external supervisor/interlock authorization. This
+    /** Clear the local latch after external operator/interlock authorization. This
      * does not authenticate or restore session authority; config failure stays set. */
     reset(): void;
     isEstopped(): boolean;

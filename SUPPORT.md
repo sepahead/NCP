@@ -2,7 +2,7 @@
 
 NCP is research software maintained by **Sepehr Mahmoudian** (**@sepahead**).
 Repository HEAD is the unreleased, release-blocked `1.0.0-rc.1` candidate; the
-latest immutable release remains `v0.8.0`. Do not use support responses as security,
+latest immutable annotated source tag is `v0.8.0`. Do not use support responses as security,
 safety, interoperability, or release certification.
 
 - **Bugs / feature requests** — open a [GitHub issue](https://github.com/sepahead/NCP/issues) using the templates.

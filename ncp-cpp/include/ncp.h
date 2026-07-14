@@ -98,7 +98,7 @@ char *ncp_govern(const char *limits_json, const char *command_json, double now_s
 
 /* PERSISTENT (latching) safety governor: a geofence breach / inbound ESTOP /
  * link collapse keeps every later ncp_governor_govern at ESTOP until a local
- * ncp_governor_reset after external supervisor/interlock authorization. The
+ * ncp_governor_reset after external operator/interlock authorization. The
  * method does not authenticate or restore session authority. NOT thread-safe:
  * synchronize access to one handle. Free with ncp_governor_free. */
 typedef struct NcpGovernor NcpGovernor;
@@ -136,7 +136,7 @@ char *ncp_action_buffer_active(const NcpActionBuffer *buffer, double now_s);
 int32_t ncp_action_buffer_should_hold(const NcpActionBuffer *buffer,
                                       double now_s);
 /* Clears the local latch and permanently retires this generation-bound buffer;
- * does not authenticate a supervisor or restore remote authority. */
+ * does not authenticate an operator or restore remote authority. */
 void ncp_action_buffer_reset(NcpActionBuffer *buffer);
 /* 1 latched / 0 not / -1 NULL handle. */
 int32_t ncp_action_buffer_is_estopped(const NcpActionBuffer *buffer);

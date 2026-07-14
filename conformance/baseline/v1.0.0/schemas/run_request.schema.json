@@ -112,10 +112,12 @@
       "description": "One live session incarnation (`proto/ncp.proto` `SessionRef`). The routing\n`session_id` (carried alongside on every session-scoped frame) remains the logical\nname; this server-issued `generation` distinguishes one opening of that id from a\nlater reuse, so a stale-session frame is rejectable. The pair\n`(session_id, generation)` identifies the live instance; `\"\"` = unset.",
       "properties": {
         "generation": {
-          "default": "",
           "type": "string"
         }
       },
+      "required": [
+        "generation"
+      ],
       "type": "object"
     },
     "StimulusFrame": {

@@ -160,6 +160,35 @@ fn error_frame_conforms() {
     assert_parity("error", &ErrorFrame::default());
 }
 
+#[test]
+fn session_and_stream_identity_members_are_schema_required() {
+    let schema = load_schema("sensor_frame");
+    let definitions = schema["$defs"]
+        .as_object()
+        .expect("sensor_frame schema carries nested definitions");
+
+    for (definition, expected) in [
+        ("SessionRef", ["generation"].as_slice()),
+        ("StreamPosition", ["epoch", "seq"].as_slice()),
+    ] {
+        let required: std::collections::BTreeSet<&str> = definitions[definition]["required"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{definition} must declare required members"))
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .unwrap_or_else(|| panic!("{definition}.required must contain strings"))
+            })
+            .collect();
+        assert_eq!(
+            required,
+            expected.iter().copied().collect(),
+            "{definition} identity members must not be optional/defaultable on the JSON wire"
+        );
+    }
+}
+
 /// Targeted: `NetworkRef.ref_` must serialize on the wire as `"ref"`, never
 /// `"ref_"`. `ref` is a Rust keyword, so the struct field is renamed; if that
 /// `#[serde(rename = "ref")]` is ever dropped this guards the regression.

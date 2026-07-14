@@ -34,8 +34,17 @@ python3 scripts/bench_overlap.py --out docs/plots/data/overlap.json
 python3 scripts/bench_chunk_overhead.py --out docs/plots/data/chunk_overhead.json
 
 # Regenerate the SVGs (picks up the data files automatically)
-python3 scripts/plot_perf.py
+python3 -m venv .venv-plot
+.venv-plot/bin/pip install -r scripts/requirements-plot.txt
+.venv-plot/bin/python scripts/plot_perf.py
+.venv-plot/bin/python scripts/plot_perf.py --check
 ```
+
+The generator uses fixed Matplotlib/NumPy versions, a fixed SVG hash salt, and no
+wall-clock metadata. Its strict input reader rejects duplicate keys, partial grids,
+non-finite values, and data whose configuration would contradict the figure
+caption. Exact SVG reproduction is documentation hygiene, not performance
+certification.
 
 ## File format
 

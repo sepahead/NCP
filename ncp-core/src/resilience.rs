@@ -25,7 +25,7 @@ pub struct ActionBuffer {
     watchdog: CommandWatchdog,
     /// Latched ESTOP (mirrors `SafetyGovernor`): once an ESTOP command is ingested
     /// the buffer fails safe (HOLD) on every subsequent `active()` until a
-    /// supervisor [`reset`]s it — a later non-ESTOP command does NOT clear it.
+    /// authorized operator [`reset`]s it — a later non-ESTOP command does NOT clear it.
     /// A plain HOLD command stays non-latching (it self-clears on the next Active).
     estop: bool,
     /// Highest accepted command `seq`, for monotonic-forward acceptance (drop
@@ -424,6 +424,20 @@ impl LinkMonitor {
 mod tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, EPOCH, SID};
+    use crate::messages::AuthorityLease;
+
+    fn authority() -> AuthorityLease {
+        AuthorityLease {
+            session_epoch: session().generation,
+            term: 1,
+            lease_id: "20000000-0000-4000-8000-000000000001".into(),
+            issuer_principal_id: "controller-1".into(),
+            holder_principal_id: "controller-1".into(),
+            holder_entity_id: "body-1".into(),
+            issued_at_utc_ms: 1_000,
+            expires_at_utc_ms: 2_000,
+        }
+    }
 
     fn vec3(x: f64) -> Map<ChannelValue> {
         let mut m = Map::new();
@@ -443,6 +457,7 @@ mod tests {
             session: session(),
             session_id: SID.into(),
             mode: Mode::Active,
+            authority: Some(authority()),
             ttl_ms: 200.0,
             channels: vec3(-0.1),
             horizon: vec![vec3(-0.2), vec3(-0.3)],
@@ -489,6 +504,7 @@ mod tests {
                     session: session(),
                     session_id: SID.into(),
                     mode: Mode::Active,
+                    authority: Some(authority()),
                     channels: vec3(9.9),
                     ..Default::default()
                 },
@@ -507,6 +523,7 @@ mod tests {
                 session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: vec3(0.5),
                 ..Default::default()
             },
@@ -519,6 +536,7 @@ mod tests {
                 session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: vec3(9.9),
                 ..Default::default()
             },
@@ -543,6 +561,7 @@ mod tests {
             session_id: SID.into(),
             ttl_ms: 200.0,
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: vec3(v),
             ..Default::default()
         };
@@ -578,6 +597,7 @@ mod tests {
             session_id: SID.into(),
             ttl_ms: 200.0,
             mode: Mode::Active,
+            authority: Some(authority()),
             channels: vec3(v),
             ..Default::default()
         };
@@ -686,6 +706,7 @@ mod tests {
             stream: stream(seq),
             session: session(),
             session_id: SID.into(),
+            authority: matches!(&mode, Mode::Active).then(authority),
             mode,
             channels: vec3(v),
             ..Default::default()
@@ -712,7 +733,7 @@ mod tests {
             "ESTOP latches — a later Active does not revive the actuator"
         );
 
-        // Supervisor reset clears this local latch, retires the old generation's
+        // Authorized reset clears this local latch, retires the old generation's
         // buffer, and cannot accept another command in-place.
         buf.reset();
         assert!(buf.is_retired());
@@ -743,6 +764,7 @@ mod tests {
                 session: session(),
                 session_id: SID.into(),
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: vec3(0.5),
                 ..Default::default()
             },
@@ -757,6 +779,7 @@ mod tests {
                 session: session(),
                 session_id: SID.into(),
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: vec3(0.9),
                 ..Default::default()
             },
@@ -793,6 +816,7 @@ mod tests {
                 session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: vec3(0.3),
                 ..Default::default()
             },
@@ -807,6 +831,7 @@ mod tests {
                 session_id: SID.into(),
                 ttl_ms: 200.0,
                 mode: Mode::Active,
+                authority: Some(authority()),
                 channels: vec3(0.3),
                 ..Default::default()
             },

@@ -20,9 +20,15 @@ Configuration:
 
 ```text
 NCP_REALM        canonical deployment realm (default: ncp)
-NCP_BRIDGE_ADDR  loopback SessionService address (default: 127.0.0.1:28474)
+NCP_BRIDGE_ADDR  numeric loopback TCP SessionService address (default: 127.0.0.1:28474)
 NCP_ZENOH_CONFIG requests the fail-closed production-secure path; startup currently refuses because authenticated peer identity is not callback-visible
 ```
+
+`NCP_BRIDGE_ADDR` accepts only a numeric IPv4 or IPv6 loopback socket address,
+for example `127.0.0.1:28474` or `[::1]:28474`, with a nonzero port. Hostnames,
+unspecified addresses, Unix-domain paths, and non-loopback addresses fail startup
+before the gateway opens Zenoh. The bridge protocol is plaintext and has no remote
+deployment mode.
 
 ```bash
 cargo run -p ncp-gateway

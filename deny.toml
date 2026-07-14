@@ -11,8 +11,11 @@ yanked = "deny"
 ignore = [
   # lz4_flex LZ4 *block*-API out-of-bounds read on invalid data. Fixed in 0.11.6 /
   # 0.12.1, but zenoh-transport 1.9.0 requires lz4_flex "^0.10.0" (no patched 0.10
-  # exists), so the lock is stuck at 0.10.0. Exposure is zenoh's internal batch
-  # compression only. Remove when zenoh bumps its lz4_flex bound.
+  # exists), so the lock is stuck at 0.10.0. The affected Zenoh call is compiled
+  # only with transport_compression; NCP disables that and default features, and
+  # scripts/check_dependency_exposure.py verifies the resolved graph. Downstream
+  # feature unification can re-enable it and is unsupported. Remove this waiver
+  # and release hold when Zenoh permits a patched lz4_flex.
   "RUSTSEC-2026-0041",
   # paste — unmaintained proc-macro (no vuln), pulled in transitively. No fix.
   "RUSTSEC-2024-0436",

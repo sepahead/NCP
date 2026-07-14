@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""verify_nest_chunking.py — prove NCP's Prepare-once / Run(chunk) model on YOUR NEST.
+"""Local, non-certifying probe of one installed NEST chunking fixture.
 
 WHY THIS EXISTS
   A reasonable worry about NCP's stepwise control model (nest.Prepare() once,
@@ -7,30 +7,27 @@ WHY THIS EXISTS
   preparation hook — `calibrate()`, renamed `pre_run_hook()` in NEST 3.x, which
   precomputes the resolution-dependent integration propagators — might re-run on
   every Run() (every "resume"), making chunked simulation slower and changing the
-  science vs one monolithic Run. It does NOT, and this script proves it on the NEST
-  you actually have installed (the numbers in PERFORMANCE.md were taken on 3.8.0;
-  engram pins 3.9). See NEST_REALTIME.md "The chunking question".
+  science vs one monolithic Run. This script checks one bounded fixture on the NEST
+  installation that invokes it. It does not prove behavior for another model,
+  version, backend, schedule, or consumer.
 
-WHAT IT PROVES (3 tests; --strict exits non-zero on any failure)
+WHAT IT PROBES (every failed assertion exits non-zero)
   A. CALIBRATION IS ONCE-PER-PREPARE (operational). Times three patterns over the
      SAME total biological time:
        - monolithic         : Prepare(); Run(T); Cleanup()
        - chunked-efficient  : Prepare() ONCE; Run(T/N) x N; Cleanup()   (the NCP pattern)
        - chunked-naive      : nest.Simulate(T/N) x N  (= Prepare()+Run()+Cleanup()
                               EACH chunk, i.e. re-calibrates every chunk)
-     If pre_run_hook re-ran per Run(), chunked-efficient would cost the same as
-     chunked-naive. It does not: efficient ~= monolithic + small fixed per-Run
-     overhead, while naive is many times slower. That gap IS the once-per-Prepare
-     calibration, measured on your NEST.
+     Preparation-log counts directly test the fixture. Timing is descriptive and
+     cannot isolate calibration from every other cost.
   B. PER-RUN FIXED OVERHEAD. Reports (chunked_efficient - monolithic) / N across a
-     sweep of chunk sizes — the per-Run() bookkeeping cost, which should be small and
-     roughly independent of network size.
-  C. CHUNKING IS BIT-IDENTICAL SCIENCE. Two identically-seeded networks WITH plastic
+     sweep of chunk sizes. It is not assumed small or network-size independent.
+  C. SCOPED EQUIVALENCE. Two identically-seeded networks WITH plastic
      (stdp_synapse) connections: one monolithic, one chunked. Asserts identical
      spike (time, sender) sets AND identical final STDP weights — so chunk boundaries
-     change neither spike timing nor plasticity.
+     match for this fixture and schedule only.
 
-REQUIRES NEST 3.x (3.9 recommended). Run the env interpreter directly with -u
+REQUIRES an installed NEST Python binding. Run the environment interpreter directly with -u
   (NOT `conda run`, which buffers child stdout):
       /path/to/envs/engram/bin/python -u scripts/verify_nest_chunking.py --strict
 """
@@ -38,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import math
 import os
 import re
 import sys
@@ -125,7 +123,7 @@ def _stdp_weights(nest, exc):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Prove NEST Prepare-once/Run-chunk equivalence + cost.")
+    ap = argparse.ArgumentParser(description="Probe one installed-NEST Prepare/Run fixture.")
     ap.add_argument("--n", type=int, default=2000)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--t-bio", type=float, default=1000.0, help="total biological ms")
@@ -135,13 +133,37 @@ def main() -> int:
     ap.add_argument("--resolution", type=float, default=0.1)
     ap.add_argument("--seed", type=int, default=12345)
     ap.add_argument("--reps", type=int, default=3)
-    ap.add_argument("--strict", action="store_true", help="exit non-zero on any equivalence failure")
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="deprecated compatibility flag; failures are always non-zero",
+    )
     a = ap.parse_args()
+
+    if (
+        a.n < 2
+        or a.threads < 1
+        or a.reps < 1
+        or not a.chunks
+        or any(chunks < 1 for chunks in a.chunks)
+        or len(a.chunks) != len(set(a.chunks))
+        or not all(
+            math.isfinite(value) and value > 0
+            for value in (a.t_bio, a.poisson_hz, a.resolution)
+        )
+    ):
+        print(
+            "LOCAL PROBE RESULT: INVALID CONFIG — require n>=2, threads/reps/chunks>=1, "
+            "unique chunks, and finite positive durations/rate/resolution",
+            file=sys.stderr,
+        )
+        return 2
 
     try:
         import nest  # noqa
     except Exception as exc:  # pragma: no cover
-        sys.exit(f"REQUIRES NEST: `import nest` failed ({exc}). Install NEST 3.x.")
+        print(f"LOCAL PROBE RESULT: NOT RUN — import nest failed ({exc})", file=sys.stderr)
+        return 2
     ver = getattr(nest, "__version__", "unknown")
     nest.set_verbosity("M_ERROR")
     print(f"RESULT nest_version={ver} n={a.n} threads={a.threads} t_bio={a.t_bio} "
@@ -188,6 +210,12 @@ def main() -> int:
             f"Prepare()+{n_proof}xRun() logged {eff_prepares} node-calibration passes, expected 1 — "
             f"node pre_run_hook() must be once-per-Prepare, not per-Run"
         )
+    if naive_prepares != n_proof:
+        failures.append(
+            f"{n_proof}xSimulate() logged {naive_prepares} node-calibration passes, "
+            f"expected {n_proof} — the claimed 1-vs-{n_proof} preparation comparison "
+            "was not observed"
+        )
 
     def timed_monolithic() -> float:
         _reset(nest, a.threads, a.seed, a.resolution)
@@ -230,14 +258,8 @@ def main() -> int:
         per_run_ms = max(0.0, (eff - mono)) / nchunks * 1000.0
         ratio = naive / eff if eff else float("inf")
         print(f"RESULT   {nchunks:>5} | {eff:>10.4f} | {naive:>7.4f} | {per_run_ms:>18.3f} | {ratio:>6.1f}x")
-        # The decisive assertion: Prepare-once is dramatically cheaper than re-Prepare
-        # per chunk. If pre_run_hook re-ran per Run(), this ratio would be ~1.0.
-        if a.strict and nchunks >= 10 and ratio < 1.5:
-            failures.append(
-                f"chunked-naive is only {ratio:.2f}x slower than chunked-efficient at "
-                f"{nchunks} chunks — expected >> 1 (re-Prepare/re-calibrate should be costly). "
-                f"Either the network is too small to show it, or Run() is re-calibrating."
-            )
+        # Timing is descriptive. The direct preparation-log count above carries
+        # the fixture assertion; no universal ratio threshold is invented.
 
     # ── Test C: bit-identical spike times + STDP weights ─────────────────────
     def run_capture(nchunks: int):
@@ -266,16 +288,15 @@ def main() -> int:
         failures.append("monolithic vs chunked produced DIFFERENT final STDP weights")
 
     print(
-        "NOTE pre_run_hook (calibrate) runs once in Prepare(), not per Run(): chunked-efficient "
-        "~= monolithic + small per-Run overhead, while chunked-naive (Simulate-per-chunk) "
-        "re-calibrates every chunk and is many times slower. Chunking is bit-identical."
+        "NOTE local fixture only: preparation-log counts and monolithic/chunked "
+        "spike/weight equality do not generalize to another model or schedule."
     )
     if failures:
         print("FAIL verify_nest_chunking:")
         for f in failures:
             print(f"  - {f}")
-        return 1 if a.strict else 0
-    print("OK verify_nest_chunking: Prepare-once avoids per-chunk calibration; chunking is exact.")
+        return 1
+    print("LOCAL PROBE PASS: scoped preparation counts and fixture outputs matched.")
     return 0
 
 
