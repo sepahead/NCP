@@ -12,9 +12,9 @@ publish.
   index `T000` through `T119` to inspected implementation coverage, retained
   evidence, gaps, and residual risk. Every task remains `OPEN`.
 
-## Supervisor comments
+## Review comments
 
-Each task has a `supervisor_comment` member. Leave it `null` when there is no
+Each task has one dedicated comment member. Leave it `null` when there is no
 comment, or replace `null` with a non-empty JSON string. Comments are review
 input only: they do not change task state, prove an acceptance criterion, waive
 a dependency, satisfy an external gate, or authorize a release.

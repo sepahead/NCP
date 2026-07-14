@@ -43,6 +43,7 @@ FROZEN_RELEASED_BASELINE_PREFIXES = tuple(
     f"conformance/baseline/{tag}/"
     for tag in ("v0.5.0", "v0.6.0", "v0.7.0", "v0.8.0")
 )
+FORBIDDEN_MARKDOWN_TERM = re.compile(r"\bsupervis[a-z]*\b", re.IGNORECASE)
 
 
 def candidate_files(repo: Path = REPO) -> set[str]:
@@ -211,6 +212,20 @@ def check_links(repo: Path, candidates: set[str]) -> list[str]:
     return failures
 
 
+def check_language_policy(repo: Path, candidates: set[str]) -> list[str]:
+    """Apply repository-wide wording rules to every Markdown candidate."""
+
+    failures: list[str] = []
+    for name in sorted(
+        item for item in candidates if item.lower().endswith(".md")
+    ):
+        path = repo / name
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if FORBIDDEN_MARKDOWN_TERM.search(line):
+                failures.append(f"{name}:{number}: repository wording policy violation")
+    return failures
+
+
 def self_test() -> None:
     with tempfile.TemporaryDirectory(prefix="ncp-markdown-links-") as directory:
         root = Path(directory)
@@ -262,6 +277,11 @@ Setext title
         failures = check_links(root, candidates)
         assert len(failures) == 1 and "missing Markdown anchor" in failures[0]
 
+        forbidden = "super" + "visor"
+        frozen.write_text(f"{forbidden}\n", encoding="utf-8")
+        policy_failures = check_language_policy(root, candidates)
+        assert len(policy_failures) == 1 and "wording policy" in policy_failures[0]
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -274,7 +294,10 @@ def main() -> int:
 
     candidates = candidate_files()
     markdown = candidate_markdown(candidates)
-    failures = check_links(REPO, candidates)
+    failures = [
+        *check_links(REPO, candidates),
+        *check_language_policy(REPO, candidates),
+    ]
     if failures:
         print("Markdown candidate-link gate failed:", file=sys.stderr)
         for failure in failures:

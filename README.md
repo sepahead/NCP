@@ -83,7 +83,7 @@ define a universal safe action. An `ObservationFrame` must retain
 
 The reference governor, command watchdog, action buffer, ESTOP latch, and plant
 profile checks are deterministic software controls. A deployment still needs a
-plant-owned safety case, tested safe actions, an independent hardware or supervisory
+plant-owned safety case, tested safe actions, an independent hardware
 ESTOP, and a transport adapter that fully implements the `production-secure`
 profile. The current Zenoh adapter does not. Mode and TTL are not network security.
 
@@ -195,7 +195,7 @@ baseline.
 - [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md): per-task local
   receipts and exact not-run acceptance gaps.
 - [`docs/handoff/README.md`](docs/handoff/README.md): non-normative standalone
-  handoff audit inputs and supervisor-commentable `T000`–`T119` review ledger.
+  handoff audit inputs and review-commentable `T000`–`T119` ledger.
 - [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md): current residual risks.
 - [`VERSIONING.md`](VERSIONING.md): compatibility and release policy.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.

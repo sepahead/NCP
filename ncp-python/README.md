@@ -32,7 +32,7 @@ and its own ESTOP latch.
 TTL expiry, and a foreign epoch requires a fresh object. `reset()` is a body-local
 primitive for an already-authorized session-generation cut. It clears the latch and
 permanently retires that object (`is_retired() == True`); it does not authenticate a
-supervisor or restore authority. Construct a new buffer only for the fresh
+control-plane identity or restore authority. Construct a new buffer only for the fresh
 `SessionOpened` generation.
 
 Every binding entry point that accepts JSON applies the same universal byte,

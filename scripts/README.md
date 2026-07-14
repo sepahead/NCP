@@ -21,7 +21,7 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check_wire_baseline.py` | additive compatibility, freeze, and exact candidate snapshot verification |
 | `check_schema_defaults.py` | reject optimistic or type-invalid generated defaults |
 | `check_release_gates.py [--self-test]` | validate distinct pre-release gates and non-blocking post-publication checks |
-| `check_handoff_review.py [--self-test]` | freeze the non-comment T000–T119 review content and source index while allowing only supervisor comments; never authorizes release |
+| `check_handoff_review.py [--self-test]` | freeze the non-comment T000–T119 review content and source index while allowing only designated review comments; never authorizes release |
 | `sync_rust_package_testdata.py [--write]` | exact crate-local corpus/proto/schema copies |
 | `check_markdown_links.py [--self-test]` | current indexed and non-ignored untracked Markdown target/anchor integrity; byte-frozen baseline Markdown is verified against its tag instead |
 

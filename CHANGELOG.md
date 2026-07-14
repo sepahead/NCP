@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   terminology across current candidate documentation. This changes the complete
   normative SHA-256 digest but does not change the wire-1.0 protobuf structure or
   compact hash.
-- Added a non-normative standalone-handoff audit cut and supervisor-commentable
+- Added a non-normative standalone-handoff audit cut and review-commentable
   `T000`–`T119` review ledger. All tasks remain open, release authorization remains
   false, the requested `0.9` line requires a separately reviewed normative
   rebaseline, and no DOI or Zenodo archive is assigned.
