@@ -388,7 +388,7 @@ def requirements(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ),
         (
             "NCP-REQ-005",
-            "NEURO_CYBERNETIC_PROTOCOL.md#session-epochs",
+            "NEURO_CYBERNETIC_PROTOCOL.md#session-generations-and-stream-epochs",
             "Session-scoped messages bind a live session generation.",
             ("stale_operation_epoch", "stale_authority_epoch", "generation_without"),
         ),

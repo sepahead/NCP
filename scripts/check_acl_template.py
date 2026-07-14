@@ -8,12 +8,14 @@ This guard runs in CI without a Zenoh runtime and fails closed on:
 
   1. an invalid `messages` token (e.g. the `get` that zenohd rejects — the real
      token for the querier/get side is `query`), and
-  2. a violation of a PUT-authority invariant: only `commander` may write command
-     or the exact observation key, while only `robot` may write sensor data, and
-  3. loss of the observer's read-only coverage across sensor, command, and
-     observation. The perception plane is a control input too — a spoofed
-     SensorFrame steers the controller and can defeat the geofence (false-data
-     injection) — so it is restricted symmetrically to the action plane.
+  2. any mismatch in the exact subject/message/flow/plane matrix. Zenoh applies
+     ingress policy to a source client link and egress policy to each destination
+     client link, so safe publication and functional delivery are separate grants;
+  3. a violation of PUT authority: only `commander` may send command ingress,
+     while only `body` may send sensor or exact-observation ingress;
+  4. a violation of lifecycle-RPC direction: only `commander` may send query
+     ingress and only `body` may send queryable declarations/replies ingress; and
+  5. loss of the observer's read-only subscription and delivery coverage.
 
 On every run it also self-tests (a tampered template MUST be rejected) so the
 guard cannot silently rot into a no-op.
@@ -45,16 +47,81 @@ VALID_TOKENS = {
     "declare_queryable",
     "query",
     "reply",
-    "declare_querier",
     "liveliness_token",
     "declare_liveliness_subscriber",
     "liveliness_query",
 }
-WRITE_TOKENS = {"put", "delete"}
 PLANE_COMMAND = "command"
 PLANE_SENSOR = "sensor"
 PLANE_OBSERVATION = "observation"
 PLANE_RPC = "rpc"
+
+
+def _matrix(
+    subject: str, flow: str, messages: set[str], planes: set[str]
+) -> set[tuple[str, str, str, str]]:
+    return {
+        (subject, flow, message, plane)
+        for message in messages
+        for plane in planes
+    }
+
+
+# Exact effective allow matrix for this minimal profile. Ingress grants what an
+# authenticated remote may send to the router; egress grants what the router may
+# deliver to that remote. Egress PUT/DELETE is read delivery, never publish power.
+EXPECTED_MATRIX = set().union(
+    _matrix("commander", "ingress", {"put", "delete"}, {PLANE_COMMAND}),
+    _matrix(
+        "commander", "egress", {"declare_subscriber"}, {PLANE_COMMAND}
+    ),
+    _matrix(
+        "commander",
+        "ingress",
+        {"declare_subscriber"},
+        {PLANE_SENSOR, PLANE_OBSERVATION},
+    ),
+    _matrix(
+        "commander",
+        "egress",
+        {"put", "delete"},
+        {PLANE_SENSOR, PLANE_OBSERVATION},
+    ),
+    _matrix("commander", "ingress", {"query"}, {PLANE_RPC}),
+    _matrix(
+        "commander", "egress", {"declare_queryable", "reply"}, {PLANE_RPC}
+    ),
+    _matrix(
+        "body",
+        "ingress",
+        {"put", "delete"},
+        {PLANE_SENSOR, PLANE_OBSERVATION},
+    ),
+    _matrix(
+        "body",
+        "egress",
+        {"declare_subscriber"},
+        {PLANE_SENSOR, PLANE_OBSERVATION},
+    ),
+    _matrix("body", "ingress", {"declare_subscriber"}, {PLANE_COMMAND}),
+    _matrix("body", "egress", {"put", "delete"}, {PLANE_COMMAND}),
+    _matrix(
+        "body", "ingress", {"declare_queryable", "reply"}, {PLANE_RPC}
+    ),
+    _matrix("body", "egress", {"query"}, {PLANE_RPC}),
+    _matrix(
+        "observer",
+        "ingress",
+        {"declare_subscriber"},
+        {PLANE_SENSOR, PLANE_COMMAND, PLANE_OBSERVATION},
+    ),
+    _matrix(
+        "observer",
+        "egress",
+        {"put", "delete"},
+        {PLANE_SENSOR, PLANE_COMMAND, PLANE_OBSERVATION},
+    ),
+)
 
 ACL_PATH = Path(__file__).resolve().parent.parent / "deploy" / "zenoh-access-control.json5"
 ZENOH_MANIFEST = Path(__file__).resolve().parent.parent / "ncp-zenoh" / "Cargo.toml"
@@ -154,6 +221,12 @@ def check(cfg: dict) -> list[str]:
     if None in subject_ids or len(set(subject_ids)) != len(subject_ids):
         errors.append("ACL subject ids must be present and unique")
     known_rules, known_subjects = set(rule_ids), set(subject_ids)
+    expected_subjects = {"commander", "body", "observer"}
+    if known_subjects != expected_subjects:
+        errors.append(
+            "minimal ACL subjects must equal exactly "
+            f"{sorted(expected_subjects)}, got {sorted(known_subjects)}"
+        )
 
     # Certificate subject selectors must be explicit, exact, and globally unique.
     # Mapping one certificate CN to two subjects collapses role separation.
@@ -186,26 +259,30 @@ def check(cfg: dict) -> list[str]:
         for rid in p_rules & known_rules:
             rule_subjects[rid].update(p_subjects)
 
-    command_put_rules: set[str] = set()
-    sensor_put_rules: set[str] = set()
-    observation_put_rules: set[str] = set()
-    rpc_query_rules: set[str] = set()
-    rpc_serve_rules: set[str] = set()
-    rule_planes: dict[str, set[str]] = {}
+    effective_matrix: set[tuple[str, str, str, str]] = set()
     realms: set[str] = set()
     for rule in rules:
         rid = rule.get("id", "<unnamed>")
-        messages = set(rule.get("messages", []))
+        message_list = rule.get("messages", [])
+        flow_list = rule.get("flows", [])
+        messages = set(message_list) if isinstance(message_list, list) else set()
+        flows = set(flow_list) if isinstance(flow_list, list) else set()
         keys = rule.get("key_exprs", [])
         if rule.get("permission") != "allow":
             errors.append(f"rule {rid!r} must be an explicit allow rule")
-        if set(rule.get("flows", [])) != {"ingress", "egress"}:
-            errors.append(f"rule {rid!r} must cover exactly ingress and egress flows")
+        if not flows or not flows <= {"ingress", "egress"}:
+            errors.append(f"rule {rid!r} must contain valid explicit flows")
+        if isinstance(flow_list, list) and len(flow_list) != len(flows):
+            errors.append(f"rule {rid!r} contains a duplicate flow")
         if not messages:
             errors.append(f"rule {rid!r} must contain at least one messages token")
+        if isinstance(message_list, list) and len(message_list) != len(messages):
+            errors.append(f"rule {rid!r} contains a duplicate messages token")
         if not isinstance(keys, list) or not keys:
             errors.append(f"rule {rid!r} must contain at least one key expression")
             keys = []
+        elif len(keys) != len(set(keys)):
+            errors.append(f"rule {rid!r} contains a duplicate key expression")
         for token in messages:
             if token not in VALID_TOKENS:
                 errors.append(
@@ -223,57 +300,32 @@ def check(cfg: dict) -> list[str]:
             realm, plane = classified
             realms.add(realm)
             planes.add(plane)
-        rule_planes[rid] = planes
-        puts = bool(messages & WRITE_TOKENS)
-        if puts and PLANE_COMMAND in planes:
-            command_put_rules.add(rid)
-        if puts and PLANE_SENSOR in planes:
-            sensor_put_rules.add(rid)
-        if puts and PLANE_OBSERVATION in planes:
-            observation_put_rules.add(rid)
-        if "query" in messages and PLANE_RPC in planes:
-            rpc_query_rules.add(rid)
-        if messages & {"declare_queryable", "reply"} and PLANE_RPC in planes:
-            rpc_serve_rules.add(rid)
+        subjects = rule_subjects.get(rid, set())
+        if not subjects:
+            errors.append(f"rule {rid!r} is not bound to an authenticated subject")
+        effective_matrix.update(
+            (subject, flow, message, plane)
+            for subject in subjects
+            for flow in flows
+            for message in messages
+            for plane in planes
+        )
 
     if len(realms) != 1 or not realms or not valid_realm(next(iter(realms), "")):
         errors.append(f"all ACL keys must share one valid exact realm, got {sorted(realms)}")
 
-    def authorities(rule_set: set[str]) -> set[str]:
-        return set().union(*(rule_subjects.get(rid, set()) for rid in rule_set)) if rule_set else set()
-
-    if authorities(command_put_rules) != {"commander"}:
-        errors.append("command PUT authority must exist and equal exactly {'commander'}")
-    if authorities(sensor_put_rules) != {"robot"}:
-        errors.append("sensor PUT authority must exist and equal exactly {'robot'}")
-    if authorities(observation_put_rules) != {"commander"}:
-        errors.append("observation PUT authority must exist and equal exactly {'commander'}")
-    if authorities(rpc_query_rules) != {"commander"}:
-        errors.append("lifecycle RPC query authority must equal exactly {'commander'}")
-    if authorities(rpc_serve_rules) != {"commander"}:
-        errors.append("lifecycle RPC serve/reply authority must equal exactly {'commander'}")
-
-    # Analysis clients need aligned sensor/command/observation reads, but never a
-    # write token. This also guards the Prisoma deployment contract.
-    observer_rules = {rid for rid, bound in rule_subjects.items() if "observer" in bound}
-    observer_read_planes = set().union(
-        *(
-            rule_planes.get(rule.get("id"), set())
-            for rule in rules
-            if rule.get("id") in observer_rules
-            and "declare_subscriber" in rule.get("messages", [])
-        )
-    )
-    required_observer_planes = {PLANE_SENSOR, PLANE_COMMAND, PLANE_OBSERVATION}
-    missing_observer_planes = required_observer_planes - observer_read_planes
-    if missing_observer_planes:
+    missing_matrix = EXPECTED_MATRIX - effective_matrix
+    extra_matrix = effective_matrix - EXPECTED_MATRIX
+    if missing_matrix:
         errors.append(
-            "observer must have read-only sensor/command/observation coverage; "
-            f"missing {sorted(missing_observer_planes)}"
+            "ACL effective matrix is missing: "
+            + ", ".join("/".join(item) for item in sorted(missing_matrix))
         )
-    for rule in rules:
-        if rule.get("id") in observer_rules and set(rule.get("messages", [])) & WRITE_TOKENS:
-            errors.append(f"observer is bound to write rule {rule.get('id')!r}")
+    if extra_matrix:
+        errors.append(
+            "ACL effective matrix grants unexpected authority/delivery: "
+            + ", ".join("/".join(item) for item in sorted(extra_matrix))
+        )
 
     return errors
 
@@ -292,31 +344,31 @@ def _selftest() -> list[str]:
     next(
         policy
         for policy in wrong_command["access_control"]["policies"]
-        if "commander-publishes-command-observation" in policy["rules"]
-    )["subjects"] = ["robot"]
+        if "commander-command-ingress" in policy["rules"]
+    )["subjects"] = ["body"]
     cases.append(("a non-commander command-put policy", wrong_command))
 
     no_sensor_authority = copy.deepcopy(base)
-    no_sensor_authority["access_control"]["policies"] = [
-        policy
-        for policy in no_sensor_authority["access_control"]["policies"]
-        if "robot-publishes-sensor" not in policy["rules"]
-    ]
+    next(
+        rule
+        for rule in no_sensor_authority["access_control"]["rules"]
+        if rule["id"] == "body-data-ingress"
+    )["messages"].remove("put")
     cases.append(("missing sensor-put authority", no_sensor_authority))
 
     wrong_observation = copy.deepcopy(base)
     next(
         policy
         for policy in wrong_observation["access_control"]["policies"]
-        if "commander-publishes-command-observation" in policy["rules"]
-    )["subjects"] = ["commander", "robot"]
-    cases.append(("non-commander observation-put authority", wrong_observation))
+        if "body-data-ingress" in policy["rules"]
+    )["subjects"] = ["body", "commander"]
+    cases.append(("non-body observation-put authority", wrong_observation))
 
     no_observation_authority = copy.deepcopy(base)
     publisher_rule = next(
         rule
         for rule in no_observation_authority["access_control"]["rules"]
-        if rule["id"] == "commander-publishes-command-observation"
+        if rule["id"] == "body-data-ingress"
     )
     publisher_rule["key_exprs"].remove("ncp/session/*/observation")
     cases.append(("missing observation-put authority", no_observation_authority))
@@ -325,7 +377,7 @@ def _selftest() -> list[str]:
     publisher_rule = next(
         rule
         for rule in broad_observation["access_control"]["rules"]
-        if rule["id"] == "commander-publishes-command-observation"
+        if rule["id"] == "body-data-ingress"
     )
     publisher_rule["key_exprs"][-1] = "ncp/session/**"
     cases.append(("an over-broad session write expression", broad_observation))
@@ -339,18 +391,70 @@ def _selftest() -> list[str]:
     cases.append(("a router with mTLS disabled", no_mtls))
 
     observer_rpc = copy.deepcopy(base)
+    observer_rpc["access_control"]["policies"].append(
+        {"rules": ["commander-rpc-query-ingress"], "subjects": ["observer"]}
+    )
+    cases.append(("observer lifecycle-RPC query authority", observer_rpc))
+
+    commander_serves_rpc = copy.deepcopy(base)
+    commander_serves_rpc["access_control"]["policies"].append(
+        {"rules": ["body-rpc-serve-ingress"], "subjects": ["commander"]}
+    )
+    cases.append(("commander lifecycle-RPC serve/reply authority", commander_serves_rpc))
+
+    no_rpc_query = copy.deepcopy(base)
+    next(
+        rule
+        for rule in no_rpc_query["access_control"]["rules"]
+        if rule["id"] == "commander-rpc-query-ingress"
+    )["messages"].clear()
+    cases.append(("missing lifecycle-RPC query authority", no_rpc_query))
+
+    no_rpc_queryable = copy.deepcopy(base)
+    next(
+        rule
+        for rule in no_rpc_queryable["access_control"]["rules"]
+        if rule["id"] == "body-rpc-serve-ingress"
+    )["messages"].remove("declare_queryable")
+    cases.append(("missing lifecycle-RPC queryable authority", no_rpc_queryable))
+
+    no_rpc_reply = copy.deepcopy(base)
+    next(
+        rule
+        for rule in no_rpc_reply["access_control"]["rules"]
+        if rule["id"] == "body-rpc-serve-ingress"
+    )["messages"].remove("reply")
+    cases.append(("missing lifecycle-RPC reply authority", no_rpc_reply))
+
+    no_command_delivery = copy.deepcopy(base)
     next(
         policy
-        for policy in observer_rpc["access_control"]["policies"]
-        if "commander-rpc" in policy["rules"]
-    )["subjects"] = ["commander", "observer"]
-    cases.append(("observer lifecycle-RPC authority", observer_rpc))
+        for policy in no_command_delivery["access_control"]["policies"]
+        if "body-command-data-egress" in policy["rules"]
+    )["rules"].remove("body-command-data-egress")
+    cases.append(("missing body command delivery", no_command_delivery))
+
+    unsafe_both_flows = copy.deepcopy(base)
+    next(
+        rule
+        for rule in unsafe_both_flows["access_control"]["rules"]
+        if rule["id"] == "body-command-data-egress"
+    )["flows"].append("ingress")
+    cases.append(("egress delivery widened into publish ingress", unsafe_both_flows))
+
+    unsupported_token = copy.deepcopy(base)
+    next(
+        rule
+        for rule in unsupported_token["access_control"]["rules"]
+        if rule["id"] == "commander-rpc-query-ingress"
+    )["messages"].append("declare_querier")
+    cases.append(("unsupported declare_querier token", unsupported_token))
 
     missing_observer_sensor = copy.deepcopy(base)
     observer_rule = next(
         rule
         for rule in missing_observer_sensor["access_control"]["rules"]
-        if rule["id"] == "observer-reads"
+        if rule["id"] == "observer-subscription-ingress"
     )
     observer_rule["key_exprs"].remove("ncp/session/*/sensor/**")
     cases.append(("observer without sensor-plane read coverage", missing_observer_sensor))
@@ -359,7 +463,7 @@ def _selftest() -> list[str]:
     observer_rule = next(
         rule
         for rule in missing_observer_command["access_control"]["rules"]
-        if rule["id"] == "observer-reads"
+        if rule["id"] == "observer-subscription-ingress"
     )
     observer_rule["key_exprs"].remove("ncp/session/*/command/**")
     cases.append(("observer without command-plane read coverage", missing_observer_command))
@@ -368,7 +472,7 @@ def _selftest() -> list[str]:
     observer_rule = next(
         rule
         for rule in missing_observer_observation["access_control"]["rules"]
-        if rule["id"] == "observer-reads"
+        if rule["id"] == "observer-subscription-ingress"
     )
     observer_rule["key_exprs"].remove("ncp/session/*/observation")
     cases.append(
@@ -376,11 +480,9 @@ def _selftest() -> list[str]:
     )
 
     observer_write = copy.deepcopy(base)
-    next(
-        policy
-        for policy in observer_write["access_control"]["policies"]
-        if "robot-publishes-sensor" in policy["rules"]
-    )["subjects"].append("observer")
+    observer_write["access_control"]["policies"].append(
+        {"rules": ["body-data-ingress"], "subjects": ["observer"]}
+    )
     cases.append(("observer sensor-plane write authority", observer_write))
 
     shared_cn = copy.deepcopy(base)
@@ -455,8 +557,9 @@ def main() -> int:
     n_rules = len(cfg.get("access_control", {}).get("rules", []))
     print(
         f"OK: {ACL_PATH.name} — {n_rules} rules, tokens valid, "
-        "command/observation PUT restricted to commander, sensor PUT to robot, "
-        "observer read coverage complete, TLS transport compiled; router-config "
+        f"{len(EXPECTED_MATRIX)} exact subject/message/flow/plane grants, "
+        "functional source/destination directions, TLS transport compiled; "
+        "router-config "
         "preflight only (NCP peer/IdentityClaim binding unavailable)"
     )
     return 0

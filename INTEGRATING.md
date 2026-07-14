@@ -91,10 +91,10 @@ native 1.0 context. It maps explicit legacy `optional=false` to `required` and
 `optional=true` to `optional`. Missing, null, string, mixed old/new, transparent, or
 context-free inputs reject.
 
-The gateway cannot invent identity, security, session epoch, authority, operation,
-receipt, plant, or scientific evidence. A result that traverses it is labelled
-legacy-translated and cannot count as native 1.0 certification. Native peers may set
-`gateway_permitted=false`.
+The gateway cannot invent identity, security, session generation, authority,
+operation, receipt, plant, or scientific evidence. A result that traverses it is
+labelled legacy-translated and cannot count as native 1.0 certification. Native
+peers may set `gateway_permitted=false`.
 
 [`ncp-gateway`](ncp-gateway/) is unrelated to this version translation. It is a
 same-wire native-1.0 lifecycle edge and requires a native-1.0 Python

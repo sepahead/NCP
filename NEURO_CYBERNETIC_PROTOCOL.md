@@ -24,6 +24,40 @@ Only items explicitly listed `stable-1.0` in
 the stable runtime encoding and Zenoh is the stable transport binding. Protobuf is
 the field-number and shape IDL, not a stable runtime encoding.
 
+## Normative terminology
+
+The following terms are distinct and MUST NOT be used interchangeably:
+
+- A **realm** is the validated exact deployment key-expression prefix that names
+  one NCP routing domain. Knowing a realm proves no identity or authority.
+- A **session** is one logical controller/body lifecycle named by `session_id`.
+  The name may recur after restart; it is not sufficient to identify live state.
+- A **generation** is the opaque, server-issued canonical lowercase UUIDv4 in
+  `SessionRef` returned by one successful `SessionOpened`. It identifies one
+  incarnation of a session and fences every later mutation, data frame, lease,
+  receipt, and replay decision. Closing, reopening, or recovering a session never
+  revives a retired generation.
+- A **stream epoch** is the unguessable UUIDv4 in `stream.epoch` owned by one
+  concrete publisher stream declaration. It scopes that stream's positive
+  sequence numbers. A stream epoch is not a session generation and MUST NOT
+  survive publisher redeclaration or restart. The legacy-named `session_epoch`
+  members of `AuthorityLease` and `OperationContext` are not stream epochs: they
+  carry the exact live `SessionRef.generation` and MUST equal it.
+- A **stream** is the ordered sequence emitted by one authenticated publisher for
+  one concrete route, message kind, plane, and live session generation under one
+  stream epoch. A receiver applies replay/high-water policy to that complete
+  identity.
+- A **plane** is one of the closed transport-policy classes `control`,
+  `perception`, `action`, or `observation`; it fixes publisher roles, message
+  purpose, and QoS policy but is not itself a route or credential.
+- A **route** is one concrete key produced by the grammar below. Wildcard
+  selectors describe subscription coverage, not a publisher route, and MUST NOT
+  broaden action authority.
+
+Payload identity, the route, and the plane remain claims until bound to the
+verified transport principal and the live generation. No default, omitted value,
+or name equality supplies that binding.
+
 ## Wire version compatibility
 
 Peers MUST reject a missing or malformed `ncp_version`, and any version whose major
@@ -154,35 +188,37 @@ request's exact pair. Pre-authentication and shape failures have no receipt, whi
 committed rejection or cancellation may retain its authenticated terminal receipt.
 No error, including one with a registered code, is an authorizing success.
 
-## Session epochs
+## Session generations and stream epochs
 
 A successful open creates a server-issued canonical lowercase UUIDv4
 `session.generation`. Every subsequent session-scoped envelope, nested stimulus,
 operation context, authority lease, and receipt correlation MUST refer to that same
 incarnation. A stale generation is unusable evidence and MUST be rejected before
-side effects. Reconnect does not silently create or adopt another epoch.
+side effects. Reconnect does not silently create or adopt another generation.
 
 Data and periodically published status streams additionally carry their own
 canonical UUIDv4 `stream.epoch` and a strictly positive, monotonically increasing
 JSON-safe `stream.seq`; zero is always unstamped. One receiver declaration binds
-one epoch and high-water mark. Expiry, HOLD, or silence does not authorize a lower
-sequence or foreign epoch; restart requires fresh authenticated route/session
-declaration state. Source correlation uses a typed `source` stream position;
-arrival order is not correlation.
+one stream epoch and high-water mark. Expiry, HOLD, or silence does not authorize a
+lower sequence or foreign stream epoch; restart requires fresh authenticated
+route/session declaration state. Source correlation uses a typed `source` stream
+position; arrival order is not correlation.
 
 ## Authority leases
 
-Lifecycle mutation and active action require an `AuthorityLease` bound to one
-session epoch, strictly positive term, canonical lease UUID, issuer principal,
-holder principal/entity, and integer UTC issue/expiry times. The declared interval
-MUST be positive and no more than 60 seconds. A receiver converts the accepted
-remaining duration to a local monotonic deadline; UTC is retained for receipt/audit,
-not used as a continuously trusted control clock.
+Lifecycle mutation and active action require an `AuthorityLease` bound to one live
+session generation through its legacy-named `session_epoch` member, plus a strictly
+positive term, canonical lease UUID, issuer principal, holder principal/entity, and
+integer UTC issue/expiry times. The declared interval MUST be positive and no more
+than 60 seconds. A receiver converts the accepted remaining duration to a local
+monotonic deadline; UTC is retained for receipt/audit, not used as a continuously
+trusted control clock.
 
 Only an enrolled commander may hold controller authority. Initial self-acquisition,
 holder transfer, and an explicitly enrolled operator override are distinct paths.
-Terms only increase across acquisition/preemption; a stale term, different epoch,
-wrong holder, expired lease, conflict, or clock-uncertainty violation fails closed.
+Terms only increase across acquisition/preemption; a stale term, different session
+generation, wrong holder, expired lease, conflict, or clock-uncertainty violation
+fails closed.
 Expiry or loss of the holder transitions out of active authority. ESTOP remains
 latched across disconnect/reconnect and cannot be cleared by reacquisition.
 
@@ -198,8 +234,9 @@ generation cannot be opened, acquired, renewed, or reconnected.
 
 `StepRequest`, `RunRequest`, and `CloseSession` are mutations and MUST carry both an
 `OperationContext` and matching authority lease. The operation context includes a
-canonical operation UUID, SHA-256 request digest, session epoch, expected state
-version, absolute deadline, and explicit retry bit.
+canonical operation UUID, SHA-256 request digest, the legacy-named `session_epoch`
+member containing the live session generation, expected state version, absolute
+deadline, and explicit retry bit. It is not a stream epoch.
 
 The digest is exactly `contract/request-digest.v1.json`: SHA-256 over the
 domain-separated typed, length-prefixed semantic projection. Object order and JSON
@@ -207,9 +244,10 @@ number spelling do not affect it. The projection covers the full request, includ
 unknown extension members, except the renewable top-level `authority` envelope and
 the attempt-local `operation.request_digest` and `operation.retry` members. A lease
 may therefore be renewed and `retry` may change from false to true without changing
-mutation identity; changing the operation ID, epoch, state expectation, deadline,
-session, version, payload, or any other covered member changes the digest. Every
-ingress MUST recompute and compare it after bounded JSON and structural validation.
+mutation identity; changing the operation ID, session generation, state
+expectation, deadline, session, version, payload, or any other covered member
+changes the digest. Every ingress MUST recompute and compare it after bounded JSON
+and structural validation.
 Digest equality never grants authority: before idempotency lookup, the server MUST
 derive the caller from the authenticated transport, require that caller to be the
 lease holder, and require the supplied lease to equal the `AuthorityMachine`'s
@@ -219,12 +257,12 @@ principal. An authority transfer therefore produces a distinct key and an
 expired, stale, weaker, mismatched-holder, or payload-only lease is rejected before
 the cache can reveal or replay a result.
 
-The idempotency key binds authenticated caller principal, session ID, session epoch,
-and operation ID. Reusing an ID with different content is rejected. A retry may
-replay only an authenticated terminal `ResponderReceipt`; in-progress work returns
-the registered busy outcome. If restart, expiry, or eviction prevents the server
-from proving the result, it returns `outcome_unknown` and MUST NOT execute the
-mutation again by assumption.
+The idempotency key binds authenticated caller principal, session ID, session
+generation (carried in `session_epoch`), and operation ID. Reusing an ID with
+different content is rejected. A retry may replay only an authenticated terminal
+`ResponderReceipt`; in-progress work returns the registered busy outcome. If
+restart, expiry, or eviction prevents the server from proving the result, it
+returns `outcome_unknown` and MUST NOT execute the mutation again by assumption.
 
 A terminal receipt binds operation ID, request and result SHA-256 digests, closed
 outcome, state version, commit time, and authenticated responder principal/entity.
@@ -245,9 +283,9 @@ bounded by the negotiated specification and plant profile.
 
 `ControlStatus.stream` and `LinkStatus.stream` start at sequence 1 and never reuse a
 position; an exhausted publisher becomes silent until a fresh declaration mints a
-new epoch. `LinkStatus.observed_stream` and `last_arrival_seq` are present together
-or absent together. When present, both are positive, and the last arrival cannot
-exceed the observed forward high-water.
+new stream epoch. `LinkStatus.observed_stream` and `last_arrival_seq` are present
+together or absent together. When present, both are positive, and the last arrival
+cannot exceed the observed forward high-water.
 
 Before publication, callback delivery, safety-latch mutation, or any other state
 change, the payload `session_id` MUST exactly equal the session encoded by the actual
@@ -327,7 +365,8 @@ or ESTOP cannot be overwritten by active traffic. Remote actor/plane and exact
 route/session admission occurs before this local buffer. Within that admitted
 context, every non-active command clears buffered active output before replay checks.
 Stream sequence must strictly advance forever within the declaration; timeout never
-reopens a lower position, and a foreign epoch requires a fresh buffer/declaration.
+reopens a lower position, and a foreign stream epoch requires a fresh
+buffer/declaration.
 An older frame cannot refresh a deadline. Predictive replay is limited by both the
 60-second TTL ceiling and the maximum 65,536 horizon entries.
 
@@ -360,7 +399,7 @@ then HOLD/non-active, then Active) and replaces latest at equal severity, and
 observation drops oldest while counting. A transport adapter MUST preserve those
 semantics rather than create unbounded retry/task queues. Duplicate, reordered,
 delayed, partitioned, restart, and replay behavior remains subject to authority,
-epoch, idempotency, TTL, and ESTOP checks.
+session-generation, stream-epoch, idempotency, TTL, and ESTOP checks.
 
 The stable Zenoh action publisher uses one transport-owned stream epoch and sequence
 allocator across Active, HOLD, and ESTOP. Once a put is attempted, its position is

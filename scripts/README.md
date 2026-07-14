@@ -17,9 +17,11 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check_profile_digests.py` | independent Python replay of portable security-state and plant-profile digest vectors |
 | `check_released_baselines.py [--self-test]` | read-only exact path/mode/blob verification of every registered released baseline against its bound annotated tag object, peeled commit, and subtree |
 | `check_buf_breaking.py [--self-test]` | select the latest verified same-major annotated release for Buf, or explicitly report that an initial major has no released baseline |
+| `check_buf_generator_pins.py [--self-test]` | require exact reviewed BSR remote-plugin versions, positive revisions, and output directories in `buf.gen.yaml` |
 | `check_wire_baseline.py` | additive compatibility, freeze, and exact candidate snapshot verification |
 | `check_schema_defaults.py` | reject optimistic or type-invalid generated defaults |
 | `check_release_gates.py [--self-test]` | validate distinct pre-release gates and non-blocking post-publication checks |
+| `check_handoff_review.py [--self-test]` | freeze the non-comment T000–T119 review content and source index while allowing only supervisor comments; never authorizes release |
 | `sync_rust_package_testdata.py [--write]` | exact crate-local corpus/proto/schema copies |
 | `check_markdown_links.py [--self-test]` | current indexed and non-ignored untracked Markdown target/anchor integrity; byte-frozen baseline Markdown is verified against its tag instead |
 

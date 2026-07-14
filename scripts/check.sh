@@ -28,6 +28,7 @@ require_tool buf
 step "format + whitespace integrity"
 cargo fmt --all -- --check
 git diff --check
+python3 scripts/gen_diagrams.py --check
 
 step "bounded pure-Python line ingress"
 python3 -m unittest -v e2e.test_bounded_json
@@ -78,6 +79,7 @@ bun run check:ws
 bun run check:package
 
 step "proto, schema, JSON/binary corpus, and released/candidate wire baselines"
+python3 scripts/check_handoff_review.py --self-test
 python3 scripts/check_markdown_links.py --self-test
 python3 scripts/check_markdown_links.py
 python3 scripts/check_proto_schema_parity.py
@@ -91,6 +93,7 @@ python3 scripts/check_released_baselines.py --self-test
 python3 scripts/check_released_baselines.py
 python3 scripts/check_buf_breaking.py --self-test
 python3 scripts/check_buf_breaking.py
+python3 scripts/check_buf_generator_pins.py --self-test
 python3 scripts/check_wire_baseline.py --self-test
 python3 scripts/check_wire_baseline.py
 python3 scripts/check_wire_baseline.py --verify-current-cut

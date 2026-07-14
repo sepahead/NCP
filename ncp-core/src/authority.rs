@@ -145,7 +145,7 @@ impl AuthorityMachine {
         if !is_canonical_uuid_v4(&session_epoch) {
             return Err(AuthorityError::new(
                 "NCP-STATE-001",
-                "session epoch must be a canonical lowercase UUIDv4",
+                "session generation must be a canonical lowercase UUIDv4",
             ));
         }
         Ok(Self {
@@ -252,7 +252,7 @@ impl AuthorityMachine {
         if lease.session_epoch != self.session_epoch {
             return Err(AuthorityError::new(
                 "NCP-LEASE-001",
-                "lease belongs to a different session epoch",
+                "lease belongs to a different session generation",
             ));
         }
         if lease.issuer_principal_id != issuer.principal_id

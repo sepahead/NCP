@@ -1,7 +1,3 @@
-# A Zenodo DOI will be minted when a release is archived to Zenodo (via the
-# GitHub–Zenodo integration); at that point an `identifiers:` block with a
-# `type: doi` / `value:` entry (and a matching `doi:` field) will be added here so
-# this software has a citable, archived DOI.
 cff-version: 1.2.0
 title: "NCP — Neuro-Cybernetic Protocol"
 message: >-
@@ -12,8 +8,6 @@ authors:
   - family-names: Mahmoudian
     given-names: Sepehr
     email: sepehr.mahmoudian@gmail.com
-    # orcid: 'https://orcid.org/0000-0000-0000-0000'  # add the author ORCID iD for
-    # academic-graph linkage (left out rather than fabricated).
 repository-code: 'https://github.com/sepahead/NCP'
 url: 'https://github.com/sepahead/NCP'
 abstract: >-

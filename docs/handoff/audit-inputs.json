@@ -1,0 +1,229 @@
+{
+  "schema": "ncp-standalone-handoff-audit-inputs/1",
+  "author": {
+    "name": "Sepehr Mahmoudian",
+    "git_email": "sepmhn@gmail.com",
+    "citation_email": "sepehr.mahmoudian@gmail.com"
+  },
+  "captured_at_utc": "2026-07-14T07:30:32Z",
+  "scope": {
+    "handoff_target": "1.0.0",
+    "repository_candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "release_allowed": false,
+    "requested_0_9_disposition": "requires_normative_rebaseline_not_a_label_change",
+    "doi": "NOT_ASSIGNED",
+    "zenodo_archive": "NOT_CREATED"
+  },
+  "source_cut": {
+    "repository": "https://github.com/sepahead/NCP",
+    "branch": "main",
+    "commit": "2527b36a9d187d2bdee19ccf471b1efbdeed2fab",
+    "commit_authored_at": "2026-07-14T08:09:46+02:00",
+    "origin_main": "2527b36a9d187d2bdee19ccf471b1efbdeed2fab",
+    "worktree_clean": true,
+    "hosted_ci": {
+      "provider": "GitHub Actions",
+      "run_id": 29310540198,
+      "url": "https://github.com/sepahead/NCP/actions/runs/29310540198",
+      "head_sha": "2527b36a9d187d2bdee19ccf471b1efbdeed2fab",
+      "conclusion": "success"
+    }
+  },
+  "handoff_artifacts": {
+    "declared_schema": "1.0.0",
+    "source_location_at_capture": "/Users/torusprime/Downloads/NCP_V1_0_STANDALONE_IMPLEMENTATION_HANDOFF",
+    "validation": "all published checksums matched",
+    "files": [
+      {
+        "path": "NCP_V1_0_AGENT_TASK_LEDGER.yaml",
+        "sha256": "ba88fe5adae8157d16832a42833c14c73b23fbd6407118b6b999aeae88501aa3"
+      },
+      {
+        "path": "NCP_V1_0_ARCHITECTURE.md",
+        "sha256": "cecde132f997ea9fe18c2ee38df59ea96e67fea0cde02e2dca2715b47b94ccf7"
+      },
+      {
+        "path": "NCP_V1_0_ARTIFACT_SHA256SUMS.txt",
+        "sha256": "ee012a4d1e21036938d36d75eec7b20df9c3a12a0425f7a2814f403eac30f4e2"
+      },
+      {
+        "path": "NCP_V1_0_ARTIFACT_VALIDATION_REPORT.md",
+        "sha256": "7749d94e28be416de0d93100588950f96e7c2f138ec44286e276541ea096d467"
+      },
+      {
+        "path": "NCP_V1_0_CORE_CONTRACT_SCHEMA.json",
+        "sha256": "ba9d5bf8bc945d9addafd07b25b1e9331b979ef9f1deafabbe7d0074aee1f8aa"
+      },
+      {
+        "path": "NCP_V1_0_GO_NO_GO_CHECKLIST.md",
+        "sha256": "bc7f5894d569f57b97707676189928073a5f3b41e5151de5bb3fa56eeef82fb6"
+      },
+      {
+        "path": "NCP_V1_0_MIGRATION_AND_ECOSYSTEM.md",
+        "sha256": "bebdf85e274e455b48cf04f8a53dcfbcfec5c16c07506e2741c0655fa47d1c83"
+      },
+      {
+        "path": "NCP_V1_0_RELEASE_BLUEPRINT.md",
+        "sha256": "12433b62cac54bf02f5c4f4f624fe31ad01de369a7f9ed592dcadbf6b76a51e5"
+      },
+      {
+        "path": "NCP_V1_0_RELEASE_MANIFEST_TEMPLATE.json",
+        "sha256": "0b65dd28f9c92def3c7021009a54147d781da04c68afa997c4ea5cabb8ec506b"
+      },
+      {
+        "path": "PACKAGE_INDEX.md",
+        "sha256": "7a1b4a2661b2c2ef0a6ea0f189d54ee3586b78e158e7e4168fe8bf1ab662ed4f"
+      }
+    ]
+  },
+  "locked_inputs": {
+    "Cargo.lock": "9ca81eda2ab5c175df0c8baa5a3fb2d15ac9ccddd97aa2ef10bc99898ef1e472",
+    "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
+    "contract/manifest.v1.json": "7884fab95fb999412b3a9aa2e3ef291a5337aba084d21e9609750a0b1ebe5032",
+    "conformance/manifest.v1.json": "8ebc6eeb7351aa2e93bec7e6ab5af0805c1ef30fce430a0947c9ab3f0ab3ad04"
+  },
+  "normative_digests": {
+    "complete_contract_sha256": "10b81f8dfec289dc553c320430ab3fefea0f0bb2002b6e85415383119445555b",
+    "mandatory_corpus_sha256": "11378dc2856dd122489d7b8cef5dd1a7e297279e22fd1a874f9ea0eb11de1b9b",
+    "compact_proto_fnv1a64": "163acc57d8a62b66"
+  },
+  "local_environment": {
+    "os": "macOS 26.5.1 (25F80)",
+    "architecture": "arm64",
+    "kernel": "Darwin 25.5.0",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "python": "3.14.6",
+    "node": "26.3.0",
+    "bun": "1.3.14",
+    "typescript": "5.9.2",
+    "buf": "1.71.0",
+    "cargo_deny": "0.19.9",
+    "clang": "Apple clang 21.0.0 (clang-2100.1.1.101)",
+    "git": "2.50.1 (Apple Git-155)"
+  },
+  "baseline_verification": {
+    "command": "scripts/check.sh",
+    "source_commit": "2527b36a9d187d2bdee19ccf471b1efbdeed2fab",
+    "result": "PASS",
+    "terminal": "NCP RELEASE GATE PASSED",
+    "complete_log_sha256": "6954243c36f5528b93d479913611c521965755f0477f892685538c82d53d3bb8",
+    "complete_log_bytes": 304854,
+    "complete_log_lines": 5297
+  },
+  "downstream_cuts": [
+    {
+      "consumer": "Engram",
+      "repository": "https://github.com/sepahead/Paper2Brain",
+      "branch": "main",
+      "commit": "9845c31bc5bae4746120858037b27f9c9ed2f445",
+      "worktree": "DIRTY_CONCURRENT_WORK_PRESERVED",
+      "porcelain_entries": 888
+    },
+    {
+      "consumer": "pid-rs",
+      "repository": "https://github.com/sepahead/pid-rs",
+      "branch": "main",
+      "commit": "76d43d771a2cc62e7a27140c3fddba274251bc58",
+      "worktree": "DIRTY_CONCURRENT_WORK_PRESERVED",
+      "porcelain_entries": 42
+    },
+    {
+      "consumer": "Prisoma",
+      "repository": "https://github.com/sepahead/prisoma",
+      "branch": "main",
+      "commit": "0968128062f30da5c04f3f31c23f6ce8e0d95d36",
+      "worktree": "clean",
+      "porcelain_entries": 0
+    },
+    {
+      "consumer": "Galadriel",
+      "repository": "https://github.com/sepahead/galadriel",
+      "branch": "main",
+      "commit": "017c615e3976eae69c3115aeeb74e9fdb50ec15d",
+      "worktree": "clean",
+      "porcelain_entries": 0
+    },
+    {
+      "consumer": "Haldir",
+      "repository": "https://github.com/sepahead/haldir",
+      "branch": "main",
+      "commit": "da40bd8494f894c48add09fc26ce19b161ad91c8",
+      "worktree": "DIRTY_CONCURRENT_WORK_PRESERVED",
+      "porcelain_entries": 3
+    },
+    {
+      "consumer": "Crebain",
+      "repository": "https://github.com/sepahead/crebain",
+      "branch": "main",
+      "commit": "22e2af7e74eafe37889ba0eee50fb8a79aa16272",
+      "worktree": "clean",
+      "porcelain_entries": 0
+    },
+    {
+      "consumer": "Crebain Galadriel producer",
+      "repository": "https://github.com/sepahead/crebain",
+      "branch": "feat/galadriel-integration-refresh",
+      "commit": "113ee70d5660daf90bb373bd7857d4b3f2f56784",
+      "worktree": "clean",
+      "porcelain_entries": 0
+    }
+  ],
+  "history_inventory": {
+    "annotated_tags": [
+      "v0.1.0",
+      "v0.2.0",
+      "v0.2.1",
+      "v0.2.2",
+      "v0.2.3",
+      "v0.2.4",
+      "v0.2.5",
+      "v0.2.6",
+      "v0.2.7",
+      "v0.2.8",
+      "v0.3.0",
+      "v0.4.0",
+      "v0.4.1",
+      "v0.4.2",
+      "v0.4.3",
+      "v0.4.4",
+      "v0.5.0",
+      "v0.5.1",
+      "v0.5.2",
+      "v0.5.3",
+      "v0.6.0",
+      "v0.7.0",
+      "v0.7.1",
+      "v0.8.0"
+    ],
+    "frozen_baseline_tags_must_be_retained": [
+      "v0.5.0",
+      "v0.6.0",
+      "v0.7.0",
+      "v0.8.0"
+    ],
+    "github_release_objects": [
+      "v0.2.0",
+      "v0.2.1",
+      "v0.5.1"
+    ],
+    "destructive_cleanup_disposition": "NOT_PERFORMED_IMMUTABLE_MIGRATION_EVIDENCE"
+  },
+  "known_external_gates": {
+    "policy": "NOT_RUN and missing evidence remain failures",
+    "status": "NOT_RUN",
+    "ids": [
+      "live-mtls-acl-rotation-revocation",
+      "two-independent-non-rust-live-peers",
+      "fault-backpressure-restart-soak",
+      "fuzz-sanitizer-duration",
+      "performance-resource-profile",
+      "installed-package-matrix",
+      "consumer-certification",
+      "independent-clean-room-reproduction",
+      "signed-sbom-provenance"
+    ]
+  }
+}

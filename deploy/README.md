@@ -33,6 +33,35 @@ binding. The later campaign must use real installed peers/certificates and retai
 mTLS, correct/incorrect identity, wrong-plane, validity, rotation, revocation,
 unauthorized-action, and downgrade evidence.
 
+The router prerequisite probe uses the canonical roles from
+`contract/planes.v1.json`: `commander` publishes commands and issues lifecycle
+queries; `body` publishes sensor/observation data and serves lifecycle replies;
+`observer` is read-only.
+
+This minimal profile does not enroll an `operator` transport subject. A deployment
+that needs the normative operator action role must add a distinct certificate
+subject, exact action-plane rules, and matching authority-manifest grants. It MUST
+NOT widen commander rules to approximate one. Operator override and reset authority
+remain separate grants, and wire 1.0 defines no stable ESTOP-reset RPC.
+
+Validate a concrete credential set before the live probe with `--dry-run`:
+
+```bash
+python3 scripts/verify_acl_deployment.py --dry-run \
+  --endpoint tls/router.example:7447 --realm engram/ncp \
+  --ca deploy/certs/ca.pem \
+  --commander-cert deploy/certs/commander.pem \
+  --commander-key deploy/certs/commander-key.pem \
+  --body-cert deploy/certs/body.pem \
+  --body-key deploy/certs/body-key.pem \
+  --observer-cert deploy/certs/observer.pem \
+  --observer-key deploy/certs/observer-key.pem
+```
+
+Removing `--dry-run` performs the nonce-delivery campaign. It remains only a
+router ACL prerequisite and cannot satisfy the production-secure identity-binding
+gate by itself.
+
 ## Plant profiles
 
 [`plant-profiles/`](plant-profiles/) contains reference simulation, UAV, mobile-base,

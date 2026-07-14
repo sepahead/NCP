@@ -1,0 +1,2918 @@
+{
+  "schema": "ncp.handoff-task-review.v1",
+  "normative": false,
+  "review_status": "OPEN_FOR_SUPERVISOR_REVIEW",
+  "author": {
+    "name": "Sepehr Mahmoudian"
+  },
+  "release_authorized": false,
+  "claim_boundary": "Implementation coverage records inspected local evidence only. Every task remains OPEN until the handoff completion rule, dependencies, retained evidence, independent gates, and supervisor review are satisfied.",
+  "source_ledger": {
+    "name": "NCP_V1_0_AGENT_TASK_LEDGER.yaml",
+    "handoff_schema": "1.0.0",
+    "sha256": "ba88fe5adae8157d16832a42833c14c73b23fbd6407118b6b999aeae88501aa3",
+    "task_count": 120,
+    "task_index_sha256": "8106226fbd03446394531a845eefc620f4d122befe0898acf010f69d48590861"
+  },
+  "review_basis": {
+    "initial_source_commit": "2527b36a9d187d2bdee19ccf471b1efbdeed2fab",
+    "repository_candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "worktree_note": "The initial audit used the exact source commit above. This review also covers the repository changes in the commit containing this file; coverage alone does not close a task without its complete dependencies, rerun retained evidence, and supervisor review."
+  },
+  "implementation_coverage_scale": {
+    "NONE": "No implementation evidence found for the requested behavior.",
+    "MINIMAL": "Prerequisites, prose, or isolated mechanics exist.",
+    "PARTIAL": "Material implementation exists, with acceptance gaps.",
+    "SUBSTANTIAL": "Most local implementation exists, but task completion evidence or external gates are missing.",
+    "COMPLETE": "Reserved for fully implemented tasks; completion still requires state COMPLETE.",
+    "NOT_ASSESSED": "No implementation coverage assessment has been made."
+  },
+  "global_findings": {
+    "ten_lenses": [
+      {
+        "lens": "Correctness and invariants",
+        "finding": "The candidate has strong local state machines, closed registries, exact manifests, and fail-closed validators, but none of the 120 handoff tasks has its complete task-specific acceptance package.",
+        "residual_risk": "Local correctness can be overgeneralized to release, live transport, or independent interoperability."
+      },
+      {
+        "lens": "Safety and failure behavior",
+        "finding": "HOLD/ESTOP defaults, TTL equality, governors, authority leases, and plant profiles are substantial local controls with the body retained as final authority.",
+        "residual_risk": "No physical plant, final-route, delivery, reset, or safe-action certification exists."
+      },
+      {
+        "lens": "Security and adversarial behavior",
+        "finding": "Default-deny profiles, closed roles/planes, bounded ingress, and negative configuration tests exist.",
+        "residual_risk": "Production-secure is implementation-blocked by absent callback-visible verified peer identity; live mTLS, ACL, rotation, and revocation evidence is not run."
+      },
+      {
+        "lens": "Determinism and reproducibility",
+        "finding": "Locks, generated manifests, digests, schema diffs, package checks, and a frozen candidate baseline provide strong local determinism.",
+        "residual_risk": "Toolchain pinning, signatures, provenance, SBOMs, and independent clean-room reproduction remain incomplete."
+      },
+      {
+        "lens": "Performance and bounded resources",
+        "finding": "Universal JSON limits, bounded queues, buffers, and historical developer benchmarks exist.",
+        "residual_risk": "Release-bound CPU, memory, maximum-size, overload, tail-latency, and soak evidence is not run."
+      },
+      {
+        "lens": "API, schema, and compatibility",
+        "finding": "Wire 1.0, schema generation, stable-major parsing, Buf policy, and broad shared corpora are implemented locally.",
+        "residual_risk": "API parity, pairwise language tests, provenance semantics, migration completeness, and a released v1 baseline are missing."
+      },
+      {
+        "lens": "Observability and provenance",
+        "finding": "Scientific flags, receipts, canonical digests, audit chains, and explicit non-claims provide useful provenance foundations.",
+        "residual_risk": "Clock domains, complete artifact lineage, cross-language emission, retention, signing, and external anchoring are incomplete."
+      },
+      {
+        "lens": "Testing and independent evidence",
+        "finding": "Hosted CI passed the exact audited source commit across Rust, Python, C/C++, TypeScript, packages, schemas, corpus, and Buf on Ubuntu.",
+        "residual_risk": "Coverage-guided fuzzing, mutation, sanitizers, multi-OS/runtime matrices, live fault campaigns, clean-room builds, and independent operators are absent."
+      },
+      {
+        "lens": "Documentation and operator usability",
+        "finding": "Core candidate documents candidly distinguish local implementation, historical wire 0.8, certification, and release status.",
+        "residual_risk": "Not every example executes in CI, remote metadata is stale, and the requested 0.9 label conflicts with the reviewed 1.0 contract."
+      },
+      {
+        "lens": "Ecosystem composition and governance",
+        "finding": "Project-owned sidecars and optional consumer boundaries are mostly explicit, while Engram has an in-progress native-1.0 migration.",
+        "residual_risk": "Five consumers remain wire 0.8, none of six is certified, and extension, support-window, signer, and post-1.0 governance processes are incomplete."
+      }
+    ]
+  },
+  "requested_dispositions": {
+    "requested_0_9_release": {
+      "disposition": "REQUIRES_NORMATIVE_REBASELINE",
+      "action_taken": false,
+      "finding": "The supplied handoff and current candidate are package 1.0 and wire 1.0. Releasing 0.9 is not a label edit; it requires an explicitly reviewed wire/package rebaseline, regenerated contract, migration, consumers, and evidence."
+    },
+    "doi_and_zenodo": {
+      "disposition": "DEFERRED_NOT_ASSIGNED",
+      "action_taken": false,
+      "finding": "No DOI or Zenodo archive is assigned or created. This matches the request and must remain separate from candidate or release claims."
+    },
+    "historical_tag_cleanup": {
+      "disposition": "DECLINED_PRESERVE_IMMUTABLE_HISTORY",
+      "action_taken": false,
+      "finding": "Historical annotated tags, especially v0.5.0 through v0.8.0, are inputs to released-baseline and Buf gates. Deleting them would destroy required migration and compatibility evidence; GitHub Release-object curation is a distinct future decision."
+    }
+  },
+  "tasks": [
+    {
+      "id": "T000",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Capture exact source, dependency, toolchain, generated-artifact and downstream consumer revisions.",
+      "dependencies": [],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "docs/handoff/audit-inputs.json records the source cut, locks, handoff checksums, hosted CI, and downstream pin inventory.",
+      "gap_summary": "The record is unsigned and mutable, and no T000-specific review package proves a reproducible immutable cut.",
+      "evidence": {
+        "paths": [
+          "docs/handoff/audit-inputs.json",
+          "Cargo.lock",
+          "bun.lock",
+          "docs/1.0-candidate-receipts.md"
+        ],
+        "commands": [
+          "scripts/check-version-coherence.sh",
+          "scripts/check-consumer-pins.sh '' .."
+        ]
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T001",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Choose one unambiguous protocol version model for wire, SDK and package releases.",
+      "dependencies": [
+        "T000"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "VERSIONING.md and runtime/package constants distinguish package 1.0.0-rc.1, wire 1.0, compact hash, and the unreleased build sentinel.",
+      "gap_summary": "The candidate is unpublished; the requested 0.9 release would require a normative rebaseline rather than a label edit.",
+      "evidence": {
+        "paths": [
+          "VERSIONING.md",
+          "Cargo.toml",
+          "scripts/check-version-coherence.sh"
+        ],
+        "commands": [
+          "scripts/check-version-coherence.sh"
+        ]
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T002",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Reconcile every README, spec, constant, schema and package version reference.",
+      "dependencies": [
+        "T001"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Version-coherence gates cover current manifests, constants, schemas, bindings, and citation metadata.",
+      "gap_summary": "Repository diagrams are reconciled in this reviewed batch, but live GitHub metadata remains stale, the requested 0.9 model is unresolved, and no final cross-artifact release evidence exists.",
+      "evidence": {
+        "paths": [
+          "scripts/check-version-coherence.sh",
+          "scripts/gen_diagrams.py",
+          "CITATION.cff"
+        ],
+        "commands": [
+          "scripts/check-version-coherence.sh"
+        ]
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T003",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Define NCP 1.0 mandatory scope and move incomplete messages to experimental namespaces or remove them.",
+      "dependencies": [
+        "T002"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "contract/surface.v1.json classifies stable, experimental, and excluded surfaces, including offline-only bare bulk blocks.",
+      "gap_summary": "No task-bound independent adoption or installed-artifact evidence proves the frozen scope.",
+      "evidence": {
+        "paths": [
+          "contract/surface.v1.json",
+          "docs/1.0-scope.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T004",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Write a protocol threat model and environmental assumptions.",
+      "dependencies": [
+        "T003"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "SECURITY.md and RATIONALE.md state network, credentialed-peer, compromised-host, plant, and scientific threat boundaries.",
+      "gap_summary": "Live adversarial transport, host, certificate, and environmental campaigns remain not run.",
+      "evidence": {
+        "paths": [
+          "SECURITY.md",
+          "RATIONALE.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T005",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Define the mandatory Engram external boundary and optional uses elsewhere.",
+      "dependencies": [
+        "T004"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "INTEGRATING.md and the readiness ledger identify Engram as the mandatory external migration boundary and other uses as optional.",
+      "gap_summary": "Engram is only an in-progress worktree migration; installed-artifact and live certification are absent.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "RELEASE_READINESS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T006",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Create a normative terminology glossary for realm, session, generation, epoch, stream, plane and route.",
+      "dependencies": [
+        "T005"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "The protocol specification defines realm, session, generation, epoch, stream, plane, and route in their operative sections.",
+      "gap_summary": "There is no demonstrated complete normative glossary audit eliminating every overloaded legacy use.",
+      "evidence": {
+        "paths": [
+          "README.md",
+          "VERSIONING.md",
+          "docs/1.0-scope.md",
+          "NEURO_CYBERNETIC_PROTOCOL.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T007",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Freeze compatibility policy for wire, JSON, IDL, semantics and transport profiles.",
+      "dependencies": [
+        "T006"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "VERSIONING.md, the candidate wire baseline, and Buf policy define stable-major and pre-1.0 compatibility behavior.",
+      "gap_summary": "There is no released v1 baseline, and the exact supported Zenoh compatibility policy remains incomplete.",
+      "evidence": {
+        "paths": [
+          "README.md",
+          "VERSIONING.md",
+          "docs/1.0-scope.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T008",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Create requirement-to-vector and requirement-to-test ledgers.",
+      "dependencies": [
+        "T007"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "conformance/manifest.v1.json maps 13 normative requirements to an exact mandatory vector set.",
+      "gap_summary": "It does not map all 120 handoff requirements to retained tests, review records, and unclaimed status.",
+      "evidence": {
+        "paths": [
+          "conformance/manifest.v1.json",
+          "scripts/generate_conformance_manifest.py"
+        ],
+        "commands": [
+          "python3 scripts/generate_conformance_manifest.py"
+        ]
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T009",
+      "phase": 1,
+      "phase_title": "Freeze protocol scope, terminology, version model and immutable audit cut",
+      "title": "Establish release-candidate change control and generated-file reproducibility rules.",
+      "dependencies": [
+        "T008"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "AGENTS.md, CONTRIBUTING.md, generators, and exact-diff gates define generated-file and candidate-change rules.",
+      "gap_summary": "No release-candidate approval roster, signer record, or task-specific reproducibility receipt closes change control.",
+      "evidence": {
+        "paths": [
+          "AGENTS.md",
+          "CONTRIBUTING.md",
+          "scripts/check.sh"
+        ],
+        "commands": [
+          "scripts/check.sh"
+        ]
+      },
+      "residual_risk": "Scope or version drift can invalidate every later task and create a false release claim.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T010",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Audit every proto message and field for purpose, cardinality, units, defaults and validation.",
+      "dependencies": [
+        "T009"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "proto comments, Rust validators, schemas, and parity checks cover much field purpose, type, default, and validation behavior.",
+      "gap_summary": "No retained exhaustive field-by-field audit proves purpose, cardinality, units, defaults, and validation for every field.",
+      "evidence": {
+        "paths": [
+          "proto/ncp.proto",
+          "contract/planes.v1.json",
+          "contract/surface.v1.json",
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T011",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Remove ambiguous optionality and proto3 default-value traps.",
+      "dependencies": [
+        "T010"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Closed enums, fail-safe Rust defaults, schema-default checks, and missing-field negatives remove many proto3 default traps.",
+      "gap_summary": "There is no per-field completion proof that every ambiguous optional/default path has been eliminated.",
+      "evidence": {
+        "paths": [
+          "scripts/check_schema_defaults.py",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": [
+          "python3 scripts/check_schema_defaults.py"
+        ]
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T012",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Use explicit oneof/enum/state objects for mutually exclusive semantics.",
+      "dependencies": [
+        "T011"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Closed enums and explicit lifecycle, authority, operation, and safety state objects model many exclusive meanings.",
+      "gap_summary": "No systematic oneof/exclusivity audit proves all mutually exclusive semantics are structurally impossible to combine.",
+      "evidence": {
+        "paths": [
+          "proto/ncp.proto",
+          "contract/surface.v1.json",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T013",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Reserve removed field numbers and names permanently.",
+      "dependencies": [
+        "T012"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "The IDL retains reserved/deprecated field policy and Buf breaking checks.",
+      "gap_summary": "A complete removed-number/name inventory and released same-major v1 comparison do not yet exist.",
+      "evidence": {
+        "paths": [
+          "proto/ncp.proto",
+          "scripts/check_buf_breaking.py"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T014",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Separate normative stable messages from project-owned extension envelopes.",
+      "dependencies": [
+        "T013"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "contract/surface.v1.json and extension envelopes separate stable protocol messages from experimental and project-owned data.",
+      "gap_summary": "Extension registration and promotion governance is incomplete, so future boundary collisions remain possible.",
+      "evidence": {
+        "paths": [
+          "proto/ncp.proto",
+          "contract/surface.v1.json",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T015",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Define extension points without permitting semantic collision.",
+      "dependencies": [
+        "T014"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Project-owned sidecars and bounded extension envelopes are documented outside the stable contract hash.",
+      "gap_summary": "No complete namespace registry, collision test, or promotion procedure closes extension-point ambiguity.",
+      "evidence": {
+        "paths": [
+          "proto/ncp.proto",
+          "contract/surface.v1.json",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T016",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Ensure every action, perception, telemetry, lifecycle and provenance message has a clear owner.",
+      "dependencies": [
+        "T015"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "contract/planes.v1.json and the protocol assign publishers and owners across control, perception, action, and observation.",
+      "gap_summary": "Production transport cannot yet bind every delivered payload to the verified remote principal.",
+      "evidence": {
+        "paths": [
+          "proto/ncp.proto",
+          "contract/surface.v1.json",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T017",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Complete BulkObservation or keep bare bulk blocks explicitly offline and non-wire.",
+      "dependencies": [
+        "T016"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "BulkBlock is explicitly offline/local and BulkObservation is excluded from the stable wire surface.",
+      "gap_summary": "BulkObservation remains incomplete and therefore cannot support any stable live-wire claim.",
+      "evidence": {
+        "paths": [
+          "contract/surface.v1.json",
+          "ncp-core/src/bulk.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T018",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Define error/status messages without leaking implementation internals.",
+      "dependencies": [
+        "T017"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "contract/errors.v1.json, ErrorFrame validation, and closed error-code handling prevent arbitrary success or internal-detail defaults.",
+      "gap_summary": "Cross-language failure-trigger coverage and a complete leakage audit are not independently demonstrated.",
+      "evidence": {
+        "paths": [
+          "contract/errors.v1.json",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T019",
+      "phase": 2,
+      "phase_title": "Redesign normative IDL and stable message taxonomy",
+      "title": "Run buf lint and breaking baselines against the declared 1.0 contract.",
+      "dependencies": [
+        "T018"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "scripts/check.sh runs Buf lint/build and same-major baseline selection; the initial ncp.v1 line is handled explicitly.",
+      "gap_summary": "The candidate snapshot is not a released baseline, signature, or compatibility certification.",
+      "evidence": {
+        "paths": [
+          "buf.yaml",
+          "scripts/check_buf_breaking.py",
+          "scripts/check.sh"
+        ],
+        "commands": [
+          "buf lint",
+          "buf build",
+          "python3 scripts/check_buf_breaking.py"
+        ]
+      },
+      "residual_risk": "Ambiguous stable-wire semantics can split peers or let defaults acquire unintended meaning.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T020",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Specify canonical JSON mapping for every scalar, enum, byte string, integer and timestamp.",
+      "dependencies": [
+        "T019"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Canonical digest projections and the protocol constrain JSON scalar, integer, enum, map, and timestamp representations.",
+      "gap_summary": "No task-specific exhaustive mapping proves every scalar and alternate representation is covered.",
+      "evidence": {
+        "paths": [
+          "README.md",
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "schemas/",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T021",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Reject duplicate keys, non-finite numbers, unsafe integers and noncanonical alternate forms.",
+      "dependencies": [
+        "T020"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "The bounded JSON scanner rejects duplicate keys, non-finite values, unsafe integers, malformed Unicode, and resource excesses before semantic allocation.",
+      "gap_summary": "Independent live ingress across every transport and SDK remains uncertified.",
+      "evidence": {
+        "paths": [
+          "contract/limits.v1.json",
+          "ncp-core/src/bounded_json.rs",
+          "e2e/bounded_json.py"
+        ],
+        "commands": [
+          "python3 -m unittest -v e2e.test_bounded_json"
+        ]
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T022",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Define unknown-field handling separately for stable messages and extension envelopes.",
+      "dependencies": [
+        "T021"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Stable closed enums fail closed while compatible-version unknown fields have documented handling.",
+      "gap_summary": "Extension-envelope retention/ignore rules and parity are not exhaustively demonstrated across SDKs.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "schemas/",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T023",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Generate JSON Schemas from one controlled source and verify proto parity.",
+      "dependencies": [
+        "T022"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Rust-controlled schema generation, fresh-schema diffing, and proto/schema parity gates are in CI.",
+      "gap_summary": "Parity is source-parser based rather than protobuf reflection, and no independent clean-room regeneration exists.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/bin/gen-schemas.rs",
+          "scripts/check_proto_schema_parity.py"
+        ],
+        "commands": [
+          "python3 scripts/check_proto_schema_parity.py"
+        ]
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T024",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Make schema identifiers immutable, content-addressed and versioned.",
+      "dependencies": [
+        "T023"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Versioned schema files and candidate baseline manifests retain hashes for the reviewed set.",
+      "gap_summary": "Per-schema immutable identifiers are not uniformly content-addressed and backed by a released registry.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "schemas/",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T025",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Implement canonical serialization and domain-separated frame digests.",
+      "dependencies": [
+        "T024"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Domain-separated canonical digests exist for requests, security state, plant profiles, audits, and the normative contract.",
+      "gap_summary": "There is no single canonical frame-digest rule and cross-language vector set for every stable frame.",
+      "evidence": {
+        "paths": [
+          "contract/canonical-digest.v1.json",
+          "ncp-core/src/idempotency.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T026",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Create positive and negative golden vectors for every message.",
+      "dependencies": [
+        "T025"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Fourteen stable canonical positive messages and broad negative behavior vectors are mandatory in the generated manifest.",
+      "gap_summary": "A distinct positive and triggering negative set for every stable message and registered failure class is not proven.",
+      "evidence": {
+        "paths": [
+          "conformance/vectors/",
+          "conformance/behavior/vectors.json",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": [
+          "python3 scripts/check_conformance_vectors.py",
+          "python3 scripts/generate_conformance_manifest.py"
+        ]
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T027",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Test Unicode normalization, map ordering, numeric boundaries and enum casing.",
+      "dependencies": [
+        "T026"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Bounded JSON and digest tests cover malformed Unicode, numeric limits, casing, and deterministic map projection.",
+      "gap_summary": "NFC normalization, every numeric edge, and exhaustive map-order/casing equivalence are not evidenced per SDK.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "schemas/",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T028",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Ensure all SDKs reject and accept the identical corpus.",
+      "dependencies": [
+        "T027"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Rust, Python, C/C++, and TypeScript replay shared canonical and behavior corpora in local CI.",
+      "gap_summary": "Non-Rust applicability is smaller than the Rust manifest and two installed independent non-Rust peers are not certified.",
+      "evidence": {
+        "paths": [
+          "ncp-core/tests/behavior_conformance.rs",
+          "ncp-cpp/tests/behavior_corpus.rs",
+          "ncp-ts/scripts/"
+        ],
+        "commands": [
+          "NCP_REQUIRE_BINDING=1 python3 scripts/check_behavior_vectors.py",
+          "bun run check:behavior"
+        ]
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T029",
+      "phase": 3,
+      "phase_title": "Finalize canonical JSON, schemas, validation and unknown-field policy",
+      "title": "Document JSON runtime encoding separately from protobuf IDL semantics.",
+      "dependencies": [
+        "T028"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "README.md and the protocol state that canonical JSON is the runtime wire while protobuf is the normative field-shape IDL.",
+      "gap_summary": "No T029 review receipt proves every example and package document preserves that distinction.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "schemas/",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Parser, schema, or digest divergence can admit malformed or resource-hostile input inconsistently.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T030",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Define session creation, generation fencing and restart behavior.",
+      "dependencies": [
+        "T029"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Session state machines, server-issued generations, fencing, close, reconnect, and restart rules have deterministic tests.",
+      "gap_summary": "Cross-process restart and retained live-peer evidence remain not run.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/bus.rs",
+          "ncp-core/src/messages.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T031",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Define epoch ownership, freshness, rollover and non-reuse requirements.",
+      "dependencies": [
+        "T030"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Stream epochs, positive sequence positions, exhaustion, retirement, and non-reuse rules are implemented locally.",
+      "gap_summary": "Authenticated publisher ownership and long-duration rollover behavior are not certified live.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T032",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Define StreamPosition as an ordered typed pair such as generation/epoch plus sequence.",
+      "dependencies": [
+        "T031"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "StreamPosition is an explicit epoch-plus-sequence pair and SessionRef carries the separate live generation.",
+      "gap_summary": "Full cross-language semantic parity and persisted-data migration for this split are not independently proven.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T033",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Specify which streams require contiguous delivery and which tolerate gaps.",
+      "dependencies": [
+        "T032"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Plane registries and transport documentation distinguish best-effort, latest-value, and control/action behavior.",
+      "gap_summary": "An exact normative contiguous-versus-gap-tolerant rule for every stream is not fully mapped to vectors.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T034",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Define duplicate, reorder, late, future and replay behavior.",
+      "dependencies": [
+        "T033"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "ActionBuffer, LinkMonitor, ordering validators, and behavior vectors reject stale, duplicate, reordered, and replayed positions.",
+      "gap_summary": "Combined live delay, duplication, reorder, and cross-generation fault evidence remains not run.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/resilience.rs",
+          "conformance/behavior/vectors.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T035",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Bind stream identity to producer, route, plane, schema and session.",
+      "dependencies": [
+        "T034"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Route/session/generation and plane binding are specified and locally checked before delivery or mutation.",
+      "gap_summary": "Producer principal and schema binding at the Zenoh callback is unavailable in production-secure.",
+      "evidence": {
+        "paths": [
+          "SECURITY.md",
+          "ncp-zenoh/src/lib.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T036",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Specify high-water retention, capacity and safe rollover.",
+      "dependencies": [
+        "T035"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Bounded high-water structures and exhaustion/retirement tests prevent unbounded local replay state.",
+      "gap_summary": "Duration, saturation, safe rollover, and resource evidence at maximum configuration are absent.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T037",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Define multi-publisher prohibition or arbitration for each authoritative stream.",
+      "dependencies": [
+        "T036"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Authority leases and default-deny action-publisher rules prohibit implicit multi-writer authority.",
+      "gap_summary": "Live enforcement and arbitration evidence are blocked by missing authenticated-principal callback data.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T038",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Build state-machine tests for reconnect, restart and partial partition.",
+      "dependencies": [
+        "T037"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Deterministic tests cover reconnect, restart, partitions in state models, and failure preservation in pieces.",
+      "gap_summary": "The combined multi-process reconnect/restart/partial-partition campaign and soak evidence are not run.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T039",
+      "phase": 4,
+      "phase_title": "Finalize sessions, generations, epochs, streams, ordering and replay",
+      "title": "Publish conformance vectors for every ordering and replay edge case.",
+      "dependencies": [
+        "T038"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Ordering and replay behavior vectors are retained under exact manifest coverage.",
+      "gap_summary": "There is no explicit completeness proof that every ordering/replay edge case is represented and independently replayed.",
+      "evidence": {
+        "paths": [
+          "conformance/behavior/vectors.json",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": [
+          "python3 scripts/generate_conformance_manifest.py"
+        ]
+      },
+      "residual_risk": "Session and ordering gaps can replay stale authority or resurrect retired state.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T040",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Define authoritative time fields, clock domains and uncertainty.",
+      "dependencies": [
+        "T039"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Frames and receipts carry several source, simulation, stream, and operation time values.",
+      "gap_summary": "Authoritative clock domains, uncertainty, synchronization, and comparison rules are not complete.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/messages.rs",
+          "NEURO_CYBERNETIC_PROTOCOL.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T041",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Use explicit units and coordinate-frame identifiers for every physical quantity.",
+      "dependencies": [
+        "T040"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Channels and plant profiles carry explicit units and frame identifiers on important physical values.",
+      "gap_summary": "Some optional and nested quantities can still lack uniform unit or frame identity.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "contract/observability.v1.json",
+          "KNOWN_LIMITATIONS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T042",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Define calibration, model, dataset, software and configuration provenance.",
+      "dependencies": [
+        "T041"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Model/network and simulation metadata provide portions of provenance.",
+      "gap_summary": "Calibration, dataset, software, configuration, and algorithm identities/digests are not a complete closed provenance model.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "contract/observability.v1.json",
+          "KNOWN_LIMITATIONS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T043",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Retain mandatory is_simulation_output and calibrated_posterior semantics or replace them with a stronger closed epistemic model.",
+      "dependencies": [
+        "T042"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Simulation observations enforce is_simulation_output=true and calibrated_posterior=false in validators and vectors.",
+      "gap_summary": "External scientific validation is still required; these flags cannot establish calibration or physical truth.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/messages.rs",
+          "conformance/behavior/vectors.json"
+        ],
+        "commands": [
+          "python3 scripts/check_conformance_vectors.py"
+        ]
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T044",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Prevent absent epistemic evidence from being interpreted as calibrated or physical truth.",
+      "dependencies": [
+        "T043"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Missing or contradictory epistemic fields fail validation rather than defaulting to calibrated or physical evidence.",
+      "gap_summary": "Independent downstream handling has not been certified.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/messages.rs",
+          "scripts/check_schema_defaults.py"
+        ],
+        "commands": [
+          "python3 scripts/check_schema_defaults.py"
+        ]
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T045",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Define source timestamp, receipt timestamp and processing timestamp separately.",
+      "dependencies": [
+        "T044"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Source and operation receipts expose some distinct event and receipt-time context.",
+      "gap_summary": "Source, receipt, and processing timestamps are not uniformly separate on all relevant messages.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "contract/observability.v1.json",
+          "KNOWN_LIMITATIONS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T046",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Specify frame transforms and prohibit implicit coordinate conversion.",
+      "dependencies": [
+        "T045"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "frame_id and plant-profile frame declarations prohibit several implicit frame assumptions.",
+      "gap_summary": "There is no normative transform registry, transform chain, uncertainty model, or complete implicit-conversion prohibition.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/messages.rs",
+          "contract/plant-profile.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T047",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Bind provenance digests to immutable artifacts and algorithms.",
+      "dependencies": [
+        "T046"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Contract, request, security-state, plant-profile, and audit digests bind several important projections.",
+      "gap_summary": "All provenance artifacts and their algorithms are not content-bound into one immutable provenance chain.",
+      "evidence": {
+        "paths": [
+          "contract/canonical-digest.v1.json",
+          "contract/manifest.v1.json"
+        ],
+        "commands": [
+          "python3 scripts/generate_contract_manifest.py",
+          "python3 scripts/check_profile_digests.py"
+        ]
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T048",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Create validation rules and cross-language vectors for all provenance fields.",
+      "dependencies": [
+        "T047"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Provenance and scientific-boundary behavior vectors cover selected valid and invalid cases.",
+      "gap_summary": "Cross-language vectors do not exhaust every provenance field, digest, and missing-evidence combination.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "contract/observability.v1.json",
+          "KNOWN_LIMITATIONS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T049",
+      "phase": 5,
+      "phase_title": "Finalize provenance, time, units, coordinate frames and epistemic fields",
+      "title": "Document what NCP authenticity can and cannot establish about physical reality.",
+      "dependencies": [
+        "T048"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "README.md, SECURITY.md, the protocol, and plant profiles explicitly limit what authenticity and ESTOP prove about physical reality.",
+      "gap_summary": "Operators can still overinterpret unqualified downstream deployments without their own safety and scientific cases.",
+      "evidence": {
+        "paths": [
+          "README.md",
+          "SECURITY.md",
+          "contract/plant-profile.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete time, provenance, unit, or frame semantics can produce invalid scientific or physical interpretation.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T050",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Specify mode state machine for init, active, hold and estop.",
+      "dependencies": [
+        "T049"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Mode validation and lifecycle/safety state machines define init, active, hold, and estop behavior with fail-safe defaults.",
+      "gap_summary": "Live plant integration and physical transition evidence remain outside local proof.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/messages.rs",
+          "ncp-core/src/safety.rs"
+        ],
+        "commands": [
+          "cargo test -p ncp-core --locked"
+        ]
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T051",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Make ESTOP latching, clearing authority and audit behavior normative.",
+      "dependencies": [
+        "T050"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "ESTOP latch, generation-cut reset rules, and authority requirements are documented and unit-tested.",
+      "gap_summary": "End-to-end audit integration, authorized clearing, delivery, and physical-stop evidence are incomplete.",
+      "evidence": {
+        "paths": [
+          "SECURITY.md",
+          "ncp-core/src/safety.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T052",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Define TTL expiration and watchdog behavior at exact temporal boundaries.",
+      "dependencies": [
+        "T051"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "CommandWatchdog and ActionBuffer tests cover TTL equality, expiry, rewind, and fail-safe transition.",
+      "gap_summary": "Target-runtime clock and scheduling behavior under load is not certified.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/safety.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": [
+          "cargo test -p ncp-core --locked"
+        ]
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T053",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Define geofence and constraint semantics with units and frame identity.",
+      "dependencies": [
+        "T052"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "SafetyGovernor and plant profiles bind constraints to units, channel contracts, and frames with boundary tests.",
+      "gap_summary": "No consumer plant safety case or physical constraint enforcement is certified.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/safety.rs",
+          "contract/plant-profile.v1.json"
+        ],
+        "commands": [
+          "cargo test -p ncp-core --locked"
+        ]
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T054",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Separate command intent from authorized plant-facing command.",
+      "dependencies": [
+        "T053"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "CommandFrame represents proposed actuation and the body is documented as final authority.",
+      "gap_summary": "A distinct intent-to-authorized PlantCommand transition and exclusive final route are not fully modeled.",
+      "evidence": {
+        "paths": [
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "ncp-core/src/safety.rs",
+          "ncp-core/src/authority.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T055",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Define authority identities and final-route publication obligations without embedding Haldir as mandatory.",
+      "dependencies": [
+        "T054"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "AuthorityLease, enrolled principal roles, plant profiles, and route policy keep protocol semantics independent of Haldir.",
+      "gap_summary": "Gate-owned construction and final-route publication are not proven in native 1.0 live deployment.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/authority.rs",
+          "contract/planes.v1.json",
+          "INTEGRATING.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T056",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Make observers read-only under the secure reference profile.",
+      "dependencies": [
+        "T055"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Observer roles are read-only in core plane rules and default-deny reference ACL intent.",
+      "gap_summary": "Production-secure principal binding is unavailable, so the secure-profile property is not live-proven.",
+      "evidence": {
+        "paths": [
+          "contract/planes.v1.json",
+          "SECURITY.md",
+          "deploy/zenoh-access-control.json5"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T057",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Ensure action-plane validation is in ncp-core and reused by every SDK.",
+      "dependencies": [
+        "T056"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Rust core validation is reused by Python and C/C++ FFI surfaces.",
+      "gap_summary": "TypeScript intentionally reimplements independent decision logic, conflicting with the literal every-SDK reuse requirement.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/messages.rs",
+          "ncp-python/src/lib.rs",
+          "ncp-cpp/src/lib.rs",
+          "ncp-ts/src/"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T058",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Create exhaustive and property tests for governor non-widening.",
+      "dependencies": [
+        "T057"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Governor unit and boundary tests exercise clamping, HOLD/ESTOP, invalid channels, and non-finite inputs.",
+      "gap_summary": "No exhaustive property or mutation proof establishes non-widening for the full input space.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/safety.rs",
+          "ncp-core/tests/behavior_conformance.rs"
+        ],
+        "commands": [
+          "cargo test -p ncp-core --locked"
+        ]
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T059",
+      "phase": 6,
+      "phase_title": "Finalize action plane, safety governor, ESTOP, TTL and authority boundaries",
+      "title": "Publish failure-mode vectors for stale, malformed, unauthorized and conflicting commands.",
+      "dependencies": [
+        "T058"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "The behavior corpus includes stale, malformed, unauthorized, lease, and command conflict failures.",
+      "gap_summary": "A complete cross-product of conflicting command, authority, stream, and transport failures is missing.",
+      "evidence": {
+        "paths": [
+          "conformance/behavior/vectors.json",
+          "contract/errors.v1.json"
+        ],
+        "commands": [
+          "cargo test -p ncp-core --test behavior_conformance --locked"
+        ]
+      },
+      "residual_risk": "Incomplete authority and safety boundaries can permit stale actuation or false stop and safety claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T060",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Treat ncp-core as the semantic reference and remove duplicated peer logic.",
+      "dependencies": [
+        "T059"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "ncp-core is the reference and FFI peers delegate consequential logic to it.",
+      "gap_summary": "TypeScript duplicates validator and safety decisions, so duplicated peer logic has not been removed.",
+      "evidence": {
+        "paths": [
+          "ncp-core/",
+          "ncp-python/",
+          "ncp-cpp/",
+          "ncp-ts/"
+        ],
+        "commands": []
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T061",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Generate or bind Python APIs so validation and safety behavior comes from Rust.",
+      "dependencies": [
+        "T060"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "The PyO3 package calls ncp-core for version, validation, codec, and governor behavior and replays the shared corpus.",
+      "gap_summary": "Independent installed-platform and ABI matrix evidence remains incomplete.",
+      "evidence": {
+        "paths": [
+          "ncp-python/src/lib.rs",
+          "ncp-python/tests/"
+        ],
+        "commands": [
+          "NCP_REQUIRE_BINDING=1 python3 scripts/check_behavior_vectors.py"
+        ]
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T062",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Define C ABI ownership, lifetime, thread-safety and error-buffer contracts.",
+      "dependencies": [
+        "T061"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "The C ABI documents allocation/free ownership, null handling, and exposes bounded string-return conventions with tests.",
+      "gap_summary": "There is no complete thread-safety contract, last-error buffer design, threaded stress, or sanitizer evidence.",
+      "evidence": {
+        "paths": [
+          "ncp-cpp/include/ncp.h",
+          "ncp-cpp/src/lib.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T063",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Generate TypeScript types and provide runtime validation against the canonical schemas.",
+      "dependencies": [
+        "T062"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "TypeScript types are generated/synchronized and runtime validators replay shared canonical and behavior inputs.",
+      "gap_summary": "Runtime validation is handwritten rather than generated directly from canonical schemas.",
+      "evidence": {
+        "paths": [
+          "ncp-core/bindings/",
+          "ncp-ts/src/generated/",
+          "ncp-ts/src/safety.ts"
+        ],
+        "commands": [
+          "bun run regen",
+          "bun run check:behavior"
+        ]
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T064",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Create identical API concepts and names where language conventions permit.",
+      "dependencies": [
+        "T063"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Bindings share major protocol nouns and behavior concepts.",
+      "gap_summary": "There is no enforced cross-language API concept/name specification or parity inventory.",
+      "evidence": {
+        "paths": [
+          "ncp-core/",
+          "ncp-python/",
+          "ncp-cpp/",
+          "ncp-ts/"
+        ],
+        "commands": []
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T065",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Test every golden vector through every language implementation.",
+      "dependencies": [
+        "T064"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Every peer replays substantial canonical/behavior corpora under exact applicability accounting.",
+      "gap_summary": "Non-Rust peers execute fewer vectors than Rust, so literal every-vector/every-language coverage is absent.",
+      "evidence": {
+        "paths": [
+          "conformance/manifest.v1.json",
+          "ncp-core/tests/behavior_conformance.rs",
+          "ncp-ts/scripts/"
+        ],
+        "commands": [
+          "python3 scripts/generate_conformance_manifest.py"
+        ]
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T066",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Test round trips across all producer/consumer language pairs.",
+      "dependencies": [
+        "T065"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Local cross-language E2E and package smokes exercise selected producer/consumer combinations.",
+      "gap_summary": "No complete ordered Rust/Python/C/C++/TypeScript pair matrix exists.",
+      "evidence": {
+        "paths": [
+          "ncp-core/",
+          "ncp-python/",
+          "ncp-cpp/",
+          "ncp-ts/"
+        ],
+        "commands": []
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T067",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Pin compiler and generator versions and verify generated artifacts are reproducible.",
+      "dependencies": [
+        "T066"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Cargo.lock, bun.lock, pinned GitHub actions, Rust floor, package generators, and byte-diff gates constrain builds.",
+      "gap_summary": "Buf plugins/tool downloads and the compiler channel are not fully pinned by an immutable toolchain manifest.",
+      "evidence": {
+        "paths": [
+          "Cargo.lock",
+          "bun.lock",
+          ".github/workflows/ci.yml"
+        ],
+        "commands": [
+          "scripts/check.sh"
+        ]
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T068",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Publish package metadata, type stubs, headers and docs from one release manifest.",
+      "dependencies": [
+        "T067"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Package manifests, headers, stubs, bindings, and docs carry coordinated candidate metadata.",
+      "gap_summary": "They are not emitted from one authoritative release manifest and live metadata has drifted.",
+      "evidence": {
+        "paths": [
+          "Cargo.toml",
+          "package.json",
+          "ncp-python/pyproject.toml",
+          "ncp-cpp/include/ncp.h"
+        ],
+        "commands": []
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T069",
+      "phase": 7,
+      "phase_title": "Bring Rust, Python, C/C++ and TypeScript to exact semantic parity",
+      "title": "Create a parity dashboard that blocks release on any semantic divergence.",
+      "dependencies": [
+        "T068"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "Individual CI jobs and manifests report local parity results.",
+      "gap_summary": "No machine parity dashboard aggregates and blocks release on every semantic divergence.",
+      "evidence": {
+        "paths": [
+          "ncp-core/",
+          "ncp-python/",
+          "ncp-cpp/",
+          "ncp-ts/"
+        ],
+        "commands": []
+      },
+      "residual_risk": "SDK divergence can cause peers to make different security, safety, or compatibility decisions.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T070",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Define exact route grammar, escaping, normalization and plane classification.",
+      "dependencies": [
+        "T069"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Key builders and contract route grammar reject wildcards and unsafe segments and classify four planes.",
+      "gap_summary": "Unicode normalization, complete escaping rules, and total route-length bounds are not fully normative.",
+      "evidence": {
+        "paths": [
+          "contract/planes.v1.json",
+          "ncp-core/src/keys.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T071",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Enforce publisher/subscriber capabilities by plane and message type.",
+      "dependencies": [
+        "T070"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Plane registries, core roles, ACL templates, and negative checks attempt publisher/subscriber capability enforcement.",
+      "gap_summary": "The reviewed ACL and checker now enforce an exact source/destination flow matrix, but the live mTLS/ACL campaign is NOT RUN and callback-visible peer-identity binding remains unavailable.",
+      "evidence": {
+        "paths": [
+          "contract/planes.v1.json",
+          "deploy/zenoh-access-control.json5",
+          "scripts/check_acl_template.py"
+        ],
+        "commands": [
+          "python3 scripts/check_acl_template.py"
+        ]
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T072",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Provide a default-deny mTLS and ACL reference profile with named principals.",
+      "dependencies": [
+        "T071"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Two named security profiles, default-deny manifest validation, mTLS templates, and downgrade negatives exist.",
+      "gap_summary": "Verified remote-principal callback binding is unavailable, so production-secure fails closed and live certification is blocked.",
+      "evidence": {
+        "paths": [
+          "SECURITY.md",
+          "contract/security-profiles.v1.json",
+          "deploy/profiles/"
+        ],
+        "commands": [
+          "python3 scripts/validate_security_profile.py --self-test"
+        ]
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T073",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "State clearly that open-realm transport is unauthenticated unless secured.",
+      "dependencies": [
+        "T072"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "SECURITY.md and dev-loopback profile mark open transport unauthenticated, loopback/UDS-only, and visibly insecure.",
+      "gap_summary": "Consumers may still misconfigure external development surfaces without independent deployment controls.",
+      "evidence": {
+        "paths": [
+          "SECURITY.md",
+          "deploy/profiles/dev-loopback-insecure.json"
+        ],
+        "commands": [
+          "python3 scripts/validate_security_profile.py --self-test"
+        ]
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T074",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Bound message size before large allocation wherever the transport permits.",
+      "dependencies": [
+        "T073"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Bounded JSON scanners and several ingress paths cap bytes before semantic decoding.",
+      "gap_summary": "Zenoh payload copies now use pre-copy frame admission, but route metadata is still copied before payload admission and hostile integration tests do not exercise every actual ingress callback.",
+      "evidence": {
+        "paths": [
+          "contract/limits.v1.json",
+          "ncp-core/src/bounded_json.rs",
+          "ncp-zenoh/src/lib.rs"
+        ],
+        "commands": [
+          "python3 -m unittest -v e2e.test_bounded_json"
+        ]
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T075",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Bound callback queues, gateway buffers, subscriptions and reconnect work.",
+      "dependencies": [
+        "T074"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Plane queues, buffers, callback work, and several retry/state structures are bounded.",
+      "gap_summary": "Retained subscriptions, reconnect work, and some lifecycle task cardinalities lack complete bounds and soak proof.",
+      "evidence": {
+        "paths": [
+          "ncp-zenoh/src/lib.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T076",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Specify gateway translation as explicit lossless, lossy or prohibited mappings.",
+      "dependencies": [
+        "T075"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "The terminating migration helper labels one supported mapping and rejects transparent, reverse, mixed, and unsafe context.",
+      "gap_summary": "There is no complete lossless/lossy/prohibited mapping registry for the public contract.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/migration.rs",
+          "conformance/migration/"
+        ],
+        "commands": [
+          "cargo test -p ncp-core migration --locked"
+        ]
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T077",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Test router restart, partition, ACL denial, certificate expiry and identity rotation.",
+      "dependencies": [
+        "T076"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "Deterministic local state and configuration negatives are prerequisites.",
+      "gap_summary": "Live router restart, partition, ACL denial, certificate expiry, and identity rotation are not run.",
+      "evidence": {
+        "paths": [
+          "RESILIENCE.md",
+          "SECURITY.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T078",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Retain real multi-process allow/deny evidence and packet/route manifests.",
+      "dependencies": [
+        "T077"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "Verifier self-tests define evidence logic and reject local put success as proof.",
+      "gap_summary": "No retained real multi-process allow/deny packets, process logs, route manifest, or signed campaign exists.",
+      "evidence": {
+        "paths": [
+          "scripts/verify_acl_deployment.py",
+          "SECURITY.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T079",
+      "phase": 8,
+      "phase_title": "Harden Zenoh transport, security profiles, gateway and resource limits",
+      "title": "Document supported Zenoh versions and exact compatibility policy.",
+      "dependencies": [
+        "T078"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Cargo.lock fixes one Zenoh dependency set and transport docs identify Zenoh as the stable binding.",
+      "gap_summary": "No supported Zenoh version window or exact compatibility/upgrade policy is published.",
+      "evidence": {
+        "paths": [
+          "Cargo.lock",
+          "ncp-zenoh/Cargo.toml",
+          "INTEGRATING.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Transport identity and resource gaps block production-secure and leave denial or misauthorization risk.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T080",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Expand the conformance corpus to every stable message and failure class.",
+      "dependencies": [
+        "T079"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "The manifest requires 269 vectors, 262 stable and 7 migration, across all 14 stable message kinds and 13 requirements.",
+      "gap_summary": "Registered error codes are not each proven by a distinct triggering vector, and no signed external conformance report exists.",
+      "evidence": {
+        "paths": [
+          "contract/surface.v1.json",
+          "contract/errors.v1.json",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": [
+          "python3 scripts/check_conformance_vectors.py",
+          "python3 scripts/generate_conformance_manifest.py"
+        ]
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T081",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Fuzz Rust decoders and feed minimized corpus cases into all peers.",
+      "dependencies": [
+        "T080"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "Boundary and malformed corpora provide potential fuzz seeds.",
+      "gap_summary": "No coverage-guided Rust fuzz targets, minimized crash corpus, duration run, sanitizer matrix, or all-peer feed exists.",
+      "evidence": {
+        "paths": [
+          "KNOWN_LIMITATIONS.md",
+          "contract/release-gates.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T082",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Run differential testing across schemas, proto reflection and SDK validators.",
+      "dependencies": [
+        "T081"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Shared corpora are replayed by Rust, Python, C/C++, TypeScript, and source-level proto/schema parity checks.",
+      "gap_summary": "The parity checker is not protobuf reflection and no randomized differential triage report is retained.",
+      "evidence": {
+        "paths": [
+          "scripts/check_proto_schema_parity.py",
+          "ncp-core/tests/behavior_conformance.rs",
+          "ncp-ts/scripts/"
+        ],
+        "commands": [
+          "python3 scripts/check_proto_schema_parity.py",
+          "bun run check:behavior"
+        ]
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T083",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Run mutation testing on version, provenance, ordering and safety guards.",
+      "dependencies": [
+        "T082"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Hostile self-tests mutate baselines, digests, audit chains, and selected safety inputs.",
+      "gap_summary": "No systematic mutation framework, mutation score, or surviving-mutant report covers the named guards.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/audit.rs",
+          "scripts/check_wire_baseline.py"
+        ],
+        "commands": [
+          "python3 scripts/check_wire_baseline.py --self-test"
+        ]
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T084",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Benchmark encode, decode, validation, governor and transport at representative and maximum sizes.",
+      "dependencies": [
+        "T083"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Historical overhead and NEST benchmark tools measure selected encode, decode, governor, and loop operations.",
+      "gap_summary": "Release-bound representative/max-size validation, secure transport, cross-platform tails, and raw evidence are not run.",
+      "evidence": {
+        "paths": [
+          "PERFORMANCE.md",
+          "ncp-core/examples/overhead.rs",
+          "scripts/bench_realtime.py"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T085",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Prove configured memory and CPU bounds under hostile traffic.",
+      "dependencies": [
+        "T084"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Universal JSON limits, bounded bulk structures, action buffers, and transport queues encode static resource ceilings.",
+      "gap_summary": "No hostile-traffic CPU, RSS, allocation, leak, or duration proof exists at maximum configuration.",
+      "evidence": {
+        "paths": [
+          "contract/limits.v1.json",
+          "ncp-core/src/bounded_json.rs",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T086",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Run long-duration resilience tests with loss, duplication, reorder and reconnect.",
+      "dependencies": [
+        "T085"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Deterministic loss, replay, restart, and backpressure behavior is tested in local components.",
+      "gap_summary": "The combined long-duration loss, duplication, reorder, reconnect, flood, and soak campaign is not run.",
+      "evidence": {
+        "paths": [
+          "RESILIENCE.md",
+          "ncp-core/src/resilience.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T087",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Test supported operating systems, architectures and language runtime versions.",
+      "dependencies": [
+        "T086"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Metadata states runtime floors and hosted CI exercises Ubuntu, Rust 1.88, Python 3.12, C++17, and Bun.",
+      "gap_summary": "No supported OS, architecture, or language-runtime matrix covers macOS, Windows, alternate architectures, and version ranges.",
+      "evidence": {
+        "paths": [
+          ".github/workflows/ci.yml",
+          "Cargo.toml",
+          "ncp-python/pyproject.toml",
+          "ncp-ts/package.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T088",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Generate SBOMs, vulnerability scans, license reports and supply-chain attestations.",
+      "dependencies": [
+        "T087"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "cargo-deny checks advisories, licenses, bans, and sources in the local gate.",
+      "gap_summary": "No retained SBOM, vulnerability/license dossier, signatures, provenance, or supply-chain attestations exist.",
+      "evidence": {
+        "paths": [
+          "deny.toml",
+          "contract/release-gates.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T089",
+      "phase": 9,
+      "phase_title": "Complete conformance, fuzzing, performance, resilience and interoperability",
+      "title": "Publish raw benchmark and interoperability artifacts with uncertainty and environment data.",
+      "dependencies": [
+        "T088"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "Plot scripts and historical informative figures identify desired measurements.",
+      "gap_summary": "docs/plots/data contains no raw release benchmark or interoperability dataset with uncertainty and environment metadata.",
+      "evidence": {
+        "paths": [
+          "docs/plots/data/README.md",
+          "scripts/plot_perf.py"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Missing duration, performance, fuzz, and independent evidence leaves robustness and interoperability unknown.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T090",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Make NCP mandatory for Engram external neural-service, closed-loop and ecosystem protocol relationships.",
+      "dependencies": [
+        "T089"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "NCP documents Engram as the mandatory external consumer boundary and Engram has an explicit native-1.0 migration worktree.",
+      "gap_summary": "No machine-enforced boundary or installed/live Engram certification exists.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "RELEASE_READINESS.md",
+          "docs/1.0-scope.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T091",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Define the Engram profile, required messages, routes, timing and authority behavior.",
+      "dependencies": [
+        "T090"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Engram development code and docs describe candidate messages, routes, sessions, authority, and bounded behavior.",
+      "gap_summary": "No immutable NCP-owned Engram profile, timing campaign, route matrix, or authority certification exists.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "e2e/README.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T092",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Keep pid-rs independent of NCP while preserving dataset provenance for NCP-derived studies.",
+      "dependencies": [
+        "T091"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "pid-rs has no NCP dependency, preserving its independent estimator boundary.",
+      "gap_summary": "There is no explicit immutable provenance contract and campaign for datasets derived from NCP studies.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "RATIONALE.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T093",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Define Prisoma capture/replay adapters and row-level lineage for NCP-acquired datasets.",
+      "dependencies": [
+        "T092"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Prisoma has v0.8 capture/replay and row-lineage mechanics in its ncp-observer crate.",
+      "gap_summary": "It remains optional, exploratory, wire 0.8, and lacks native-1.0 live dataset evidence.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "docs/0.8-current-baseline.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T094",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Keep Galadriel sidecar messages clearly project-owned unless promoted to normative NCP extensions.",
+      "dependencies": [
+        "T093"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Galadriel documents PID observations and sidecar envelopes as project-owned and outside the normative NCP proto/hash.",
+      "gap_summary": "It remains pinned to wire 0.8 and lacks a native-1.0 qualification or extension-promotion record.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "GOVERNANCE.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T095",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Support Haldir Gate-owned command construction without making Haldir a protocol prerequisite.",
+      "dependencies": [
+        "T094"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Haldir v0.8 constructs a new Gate-owned CommandFrame while NCP core remains project-neutral.",
+      "gap_summary": "There is no haldir-ncp10 adapter, production-secure principal binding, or native-1.0 campaign.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "GOVERNANCE.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T096",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Do not require NCP for Crebain internal communication.",
+      "dependencies": [
+        "T095"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Crebain keeps its NCP feature off by default and documents internal detection, fusion, visualization, and simulation as standalone.",
+      "gap_summary": "No T096-specific immutable review closes the requirement, and optional bridge code remains on wire 0.8.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "docs/1.0-scope.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T097",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Use NCP for Crebain external federation with Engram where claimed.",
+      "dependencies": [
+        "T096"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Crebain's dormant external Engram bridge uses its optional NCP feature and an Engram realm.",
+      "gap_summary": "It is wire 0.8, commands are unregistered, and no live external federation is implemented or qualified.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "RELEASE_READINESS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T098",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Run immutable cross-repository conformance campaigns for every claimed integration.",
+      "dependencies": [
+        "T097"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "The generic consumer-pin checker discovers six declared consumers and reports exact pin identities.",
+      "gap_summary": "It currently fails the 1.x agreement: Engram alone is candidate 1.0 while the other five remain v0.8.0; no immutable campaign exists.",
+      "evidence": {
+        "paths": [
+          "scripts/check-consumer-pins.sh",
+          "INTEGRATING.md"
+        ],
+        "commands": [
+          "scripts/check-consumer-pins.sh v1.0.0-rc.1 .."
+        ]
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T099",
+      "phase": 10,
+      "phase_title": "Qualify Engram and optional ecosystem integrations",
+      "title": "Remove any integration from public support tables if its qualification evidence is absent.",
+      "dependencies": [
+        "T098"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Public tables label the six repositories as an inventory and explicitly state that none is native-1.0 certified.",
+      "gap_summary": "Remote metadata remains stale and no completed qualification exists to add any integration to a support table.",
+      "evidence": {
+        "paths": [
+          "README.md",
+          "INTEGRATING.md",
+          "KNOWN_LIMITATIONS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Unqualified consumers can create silent wire forks and unsupported ecosystem claims.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T100",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Write a precise SemVer and wire-compatibility policy for 1.x.",
+      "dependencies": [
+        "T099"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "VERSIONING.md, runtime parsers, schemas, bindings, baselines, and Buf policy implement same-major 1.x compatibility.",
+      "gap_summary": "No released v1 baseline exists, and a requested 0.9 package would contradict the current wire/package coherence rule.",
+      "evidence": {
+        "paths": [
+          "VERSIONING.md",
+          "ncp-core/src/messages.rs",
+          "scripts/check_wire_baseline.py"
+        ],
+        "commands": [
+          "python3 scripts/check_wire_baseline.py",
+          "python3 scripts/check_buf_breaking.py"
+        ]
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T101",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Produce a complete 0.x-to-1.0 migration guide with field and semantic mappings.",
+      "dependencies": [
+        "T100"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "INTEGRATING.md provides a useful minimum ten-row 0.8-to-1.0 delta table.",
+      "gap_summary": "It is not a complete per-message, field, enum, unit, default, semantic, and persisted-capture migration inventory.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "docs/0.8-current-baseline.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T102",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Provide migration validators and capture converters where conversion is sound.",
+      "dependencies": [
+        "T101"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "ncp-core migration converts the one sound explicit optional-to-requirement mapping under authenticated terminating context.",
+      "gap_summary": "No capture converters or complete lifecycle, retry, security, and backpressure migration proof exists.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/migration.rs",
+          "conformance/migration/"
+        ],
+        "commands": [
+          "cargo test -p ncp-core migration --locked"
+        ]
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T103",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Explicitly reject captures that cannot be converted without guessing.",
+      "dependencies": [
+        "T102"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "The translator rejects context-free, malformed, mixed-wire, reverse, and unsupported-message conversion.",
+      "gap_summary": "There is no capture validator or legacy_unqualified classification for data requiring guessed epoch, unit, frame, identity, authority, or estimand.",
+      "evidence": {
+        "paths": [
+          "ncp-core/src/migration.rs",
+          "INTEGRATING.md"
+        ],
+        "commands": [
+          "cargo test -p ncp-core migration --locked"
+        ]
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T104",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Rewrite README and protocol specification around the final version model.",
+      "dependencies": [
+        "T103"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "README.md and the protocol specification are substantially organized around the unreleased wire-1.0 candidate.",
+      "gap_summary": "Repository diagrams are corrected and generator-checked in this batch, but the requested 0.9 version-model conflict and broader final migration/documentation acceptance remain unresolved.",
+      "evidence": {
+        "paths": [
+          "README.md",
+          "NEURO_CYBERNETIC_PROTOCOL.md",
+          "scripts/gen_diagrams.py"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T105",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Update INTEGRATING, SECURITY, VERSIONING, RELEASE_READINESS and KNOWN_LIMITATIONS.",
+      "dependencies": [
+        "T104"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "INTEGRATING, SECURITY, VERSIONING, RELEASE_READINESS, and KNOWN_LIMITATIONS consistently describe the release-blocked candidate and not-run gates.",
+      "gap_summary": "Migration completeness, support windows, and a T105 review receipt remain missing.",
+      "evidence": {
+        "paths": [
+          "INTEGRATING.md",
+          "SECURITY.md",
+          "VERSIONING.md",
+          "RELEASE_READINESS.md",
+          "KNOWN_LIMITATIONS.md"
+        ],
+        "commands": [
+          "python3 scripts/check_markdown_links.py"
+        ]
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T106",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Update GitHub description, topics, citation, changelog and package metadata.",
+      "dependencies": [
+        "T105"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Local citation names Sepehr Mahmoudian with no DOI, while changelog and package files carry candidate metadata.",
+      "gap_summary": "The live GitHub description still says wire 0.6 and its latest GitHub Release is v0.5.1; metadata is not fully reconciled.",
+      "evidence": {
+        "paths": [
+          "CITATION.cff",
+          "CHANGELOG.md",
+          "package.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T107",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Define governance for IDL changes, extension registration and security patches.",
+      "dependencies": [
+        "T106"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "GOVERNANCE.md and CONTRIBUTING.md define normative authority, additive 1.x change rules, review, and release evidence.",
+      "gap_summary": "No concrete extension registry/promotion flow, supported security-patch branches, embargo/CVE process, or signer team exists.",
+      "evidence": {
+        "paths": [
+          "GOVERNANCE.md",
+          "CONTRIBUTING.md",
+          "SECURITY.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T108",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Define support windows for SDK/runtime versions and transport profiles.",
+      "dependencies": [
+        "T107"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "Runtime floors and security profile names are documented.",
+      "gap_summary": "No dated SDK/runtime/transport support windows, maintenance period, or end-of-life policy exists.",
+      "evidence": {
+        "paths": [
+          "SUPPORT.md",
+          "Cargo.toml",
+          "ncp-python/pyproject.toml",
+          "ncp-ts/package.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T109",
+      "phase": 11,
+      "phase_title": "Finish versioning, migration, documentation, packaging and governance",
+      "title": "Make every documentation example executable in CI.",
+      "dependencies": [
+        "T108"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "CI compiles and runs package examples, bindings, corpora, generated artifacts, and Markdown link checks.",
+      "gap_summary": "There is no Markdown code-fence/doctest extraction proving every documentation example executes.",
+      "evidence": {
+        "paths": [
+          ".github/workflows/ci.yml",
+          "scripts/check_markdown_links.py"
+        ],
+        "commands": [
+          "python3 scripts/check_markdown_links.py"
+        ]
+      },
+      "residual_risk": "Incomplete migration, support, metadata, and governance can strand users or mislabel compatibility.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T110",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Run the complete locked multi-language CI matrix on the exact release commit.",
+      "dependencies": [
+        "T109"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Hosted CI passed exact source SHA 2527b36 across locked Rust, Python wheel, C/C++, TypeScript, schema, package, and Buf jobs on Ubuntu.",
+      "gap_summary": "There is no final release commit or complete OS, architecture, and runtime-version matrix.",
+      "evidence": {
+        "paths": [
+          ".github/workflows/ci.yml",
+          "docs/handoff/audit-inputs.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T111",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Commission an independent clean-room build of every SDK.",
+      "dependencies": [
+        "T110"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "The repository specifies independent clean-room reproduction as a release gate.",
+      "gap_summary": "No independent clean-room build of any complete SDK set is retained.",
+      "evidence": {
+        "paths": [
+          "contract/release-gates.v1.json",
+          "RELEASE_READINESS.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T112",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Run a cross-organization or independently operated interoperability campaign.",
+      "dependencies": [
+        "T111"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "NONE",
+      "evidence_summary": "In-tree TypeScript decisions and sibling consumer work provide local diversity.",
+      "gap_summary": "No cross-organization or independently operated live interoperability campaign exists.",
+      "evidence": {
+        "paths": [
+          "contract/release-gates.v1.json",
+          "e2e/README.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T113",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Verify all golden vectors and generated artifacts from scratch.",
+      "dependencies": [
+        "T112"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "SUBSTANTIAL",
+      "evidence_summary": "Local gates regenerate schemas, TypeScript bindings/dist, manifests, digests, package testdata, and the candidate baseline.",
+      "gap_summary": "No retained independent clean-from-scratch release run covers every vector and generated artifact.",
+      "evidence": {
+        "paths": [
+          "scripts/check.sh",
+          "scripts/generate_conformance_manifest.py",
+          "scripts/generate_contract_manifest.py"
+        ],
+        "commands": [
+          "scripts/check.sh"
+        ]
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T114",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Run the secure-reference router campaign and Engram profile end to end.",
+      "dependencies": [
+        "T113"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Secure templates, verifier prerequisites, loopback runners, and an in-progress Engram native profile exist.",
+      "gap_summary": "ncp-zenoh cannot expose the verified remote principal and fails production-secure closed; secure router plus Engram E2E is blocked and not run.",
+      "evidence": {
+        "paths": [
+          "SECURITY.md",
+          "e2e/README.md",
+          "ncp-zenoh/src/lib.rs"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T115",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Verify every requirement has retained evidence or is explicitly unclaimed.",
+      "dependencies": [
+        "T114"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "A3 candidate receipts and 13 normative conformance requirements identify many local and external gaps.",
+      "gap_summary": "They do not map every T000-T119 requirement through ten-lens review to retained evidence or explicit unclaimed status.",
+      "evidence": {
+        "paths": [
+          "docs/1.0-candidate-receipts.md",
+          "conformance/manifest.v1.json"
+        ],
+        "commands": [
+          "python3 scripts/generate_conformance_manifest.py"
+        ]
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T116",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Build and sign source archives, packages, SBOMs, checksums and attestations.",
+      "dependencies": [
+        "T115"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Local scripts construct and inspect Rust, wheel, npm, header, and source package candidates.",
+      "gap_summary": "No final signed archives, SBOMs, checksums dossier, provenance, or attestations exist.",
+      "evidence": {
+        "paths": [
+          "scripts/check_rust_packages.py",
+          ".github/workflows/release.yml",
+          "contract/release-gates.v1.json"
+        ],
+        "commands": [
+          "python3 scripts/check_rust_packages.py --offline"
+        ]
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T117",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Rehearse package publication, rollback and security withdrawal.",
+      "dependencies": [
+        "T116"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "A dry-run release workflow and post-publication install/revocation policy establish rehearsal prerequisites.",
+      "gap_summary": "No retained package publication, rollback, security withdrawal, or emergency-revocation rehearsal exists.",
+      "evidence": {
+        "paths": [
+          ".github/workflows/release.yml",
+          "contract/release-gates.v1.json"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T118",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Publish packages and tag only after registry artifacts are verified.",
+      "dependencies": [
+        "T117"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "MINIMAL",
+      "evidence_summary": "Release policy keeps release_allowed=false and no v1 tag or stable publication was made.",
+      "gap_summary": "There is no registry-verification-then-tag/publish orchestration, and all preceding external gates remain open.",
+      "evidence": {
+        "paths": [
+          "contract/release-gates.v1.json",
+          "RELEASE_READINESS.md",
+          ".github/workflows/release.yml"
+        ],
+        "commands": [
+          "python3 scripts/check_release_gates.py"
+        ]
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    },
+    {
+      "id": "T119",
+      "phase": 12,
+      "phase_title": "Run independent interoperability campaign and release ceremony",
+      "title": "Record residual risks, compatibility baseline and post-1.0 protocol governance schedule.",
+      "dependencies": [
+        "T118"
+      ],
+      "state": "OPEN",
+      "implementation_coverage": "PARTIAL",
+      "evidence_summary": "Known limitations, roadmap, versioning, and governance record residual risks, baseline rules, and broad post-1.0 direction.",
+      "gap_summary": "No final risk acceptance, support term, or dated post-1.0 governance schedule exists.",
+      "evidence": {
+        "paths": [
+          "KNOWN_LIMITATIONS.md",
+          "ROADMAP.md",
+          "VERSIONING.md",
+          "GOVERNANCE.md"
+        ],
+        "commands": []
+      },
+      "residual_risk": "Absent independent, signed, and publication evidence forbids release and makes recovery unverifiable.",
+      "supervisor_comment": null
+    }
+  ]
+}

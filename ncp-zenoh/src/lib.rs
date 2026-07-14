@@ -301,23 +301,28 @@ fn oversized_rpc_reply_error(actual_bytes: usize) -> ZenohError {
     ))
 }
 
+/// Copy a Zenoh payload only after its segmented representation has passed the
+/// universal frame-byte limit. `ZBytes::len` does not flatten the payload; keeping
+/// this check in one helper prevents an ingress path from accidentally calling
+/// `to_bytes` (and allocating an attacker-sized contiguous buffer) first.
+fn copy_admitted_zbytes(payload: &zenoh::bytes::ZBytes) -> Option<Vec<u8>> {
+    (payload.len() <= ncp_core::bounded_json::MAX_FRAME_BYTES)
+        .then(|| payload.to_bytes().into_owned())
+}
+
 fn validate_and_copy_rpc_reply(
     payload: &zenoh::bytes::ZBytes,
     request_kind: &str,
     session_id: &str,
 ) -> Result<Vec<u8>> {
-    if payload.len() > ncp_core::bounded_json::MAX_FRAME_BYTES {
-        return Err(oversized_rpc_reply_error(payload.len()));
-    }
-    let bytes = payload.to_bytes();
-    ncp_core::validate_rpc_reply_for(request_kind, session_id, bytes.as_ref()).map_err(
-        |error| {
-            ZenohError(bounded_diagnostic(format_args!(
-                "invalid NCP RPC reply: {error}"
-            )))
-        },
-    )?;
-    Ok(bytes.into_owned())
+    let bytes =
+        copy_admitted_zbytes(payload).ok_or_else(|| oversized_rpc_reply_error(payload.len()))?;
+    ncp_core::validate_rpc_reply_for(request_kind, session_id, &bytes).map_err(|error| {
+        ZenohError(bounded_diagnostic(format_args!(
+            "invalid NCP RPC reply: {error}"
+        )))
+    })?;
+    Ok(bytes)
 }
 
 fn bounded_transport_reply_error(payload: &zenoh::bytes::ZBytes) -> String {
@@ -958,10 +963,12 @@ impl ZenohBus {
             .declare_subscriber(selector.clone())
             .callback(move |sample| {
                 let key = sample.key_expr().as_str().to_string();
-                let payload = sample.payload().to_bytes().to_vec();
                 if key != expected_route {
                     return;
                 }
+                let Some(payload) = copy_admitted_zbytes(sample.payload()) else {
+                    return;
+                };
                 let Ok(frame) = check_observation_payload_for(
                     &expected_session_id,
                     &expected_session,
@@ -1056,12 +1063,33 @@ impl ZenohBus {
                         Err(_) => break,
                     },
                 };
-                let req = query
-                    .payload()
-                    .map(|p| p.to_bytes().to_vec())
-                    .unwrap_or_default();
                 let ke = query.key_expr().clone();
                 let selector = ke.as_str().to_owned();
+                let req = match query.payload() {
+                    Some(payload) => match copy_admitted_zbytes(payload) {
+                        Some(payload) => payload,
+                        None => {
+                            let reply = rpc_error_payload(
+                                ncp_core::RpcErrorCode::JsonLimit(
+                                    ncp_core::bounded_json::JsonLimitCode::FrameBytes,
+                                ),
+                                format_args!(
+                                    "RPC request frame byte limit exceeded ({} > {})",
+                                    payload.len(),
+                                    ncp_core::bounded_json::MAX_FRAME_BYTES
+                                ),
+                                None,
+                                None,
+                                selector_request_kind(&keys, &selector),
+                            );
+                            if let Err(error) = query.reply(ke, reply).await {
+                                eprintln!("ncp-zenoh: oversized RPC reply failed: {error}");
+                            }
+                            continue;
+                        }
+                    },
+                    None => Vec::new(),
+                };
                 let permit = match permits.clone().try_acquire_owned() {
                     Ok(permit) => Arc::new(permit),
                     Err(_) => {
@@ -1398,7 +1426,9 @@ impl ZenohBus {
             .declare_subscriber(selector.clone())
             .callback(move |sample| {
                 let key = sample.key_expr().as_str().to_string();
-                let payload = sample.payload().to_bytes().to_vec();
+                let Some(payload) = copy_admitted_zbytes(sample.payload()) else {
+                    return;
+                };
                 if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     callback(key, payload);
                 }))
@@ -2295,6 +2325,34 @@ mod tests {
 
         assert!(error.0.contains("NCP-LIMIT-001"), "{error}");
         assert!(error.0.len() <= MAX_RPC_DIAGNOSTIC_BYTES);
+    }
+
+    #[test]
+    fn zbytes_copy_helper_rejects_oversized_payload_before_flattening() {
+        let at_limit =
+            zenoh::bytes::ZBytes::from(vec![b'x'; ncp_core::bounded_json::MAX_FRAME_BYTES]);
+        let oversized =
+            zenoh::bytes::ZBytes::from(vec![b'x'; ncp_core::bounded_json::MAX_FRAME_BYTES + 1]);
+
+        assert_eq!(
+            copy_admitted_zbytes(&at_limit).map(|bytes| bytes.len()),
+            Some(ncp_core::bounded_json::MAX_FRAME_BYTES)
+        );
+        assert!(
+            copy_admitted_zbytes(&oversized).is_none(),
+            "oversized payload must be rejected before flattening/copying"
+        );
+    }
+
+    #[test]
+    fn source_has_no_direct_zbytes_flattening_bypass() {
+        let source = include_str!("lib.rs");
+        let flatten_call = [".to_", "bytes()"].concat();
+        assert_eq!(
+            source.matches(&flatten_call).count(),
+            1,
+            "all ZBytes flattening must remain centralized in copy_admitted_zbytes"
+        );
     }
 
     #[test]

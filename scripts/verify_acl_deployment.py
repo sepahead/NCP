@@ -10,10 +10,11 @@ trial, and judges the router only by delivery acknowledgments:
 * a denied nonce MUST remain unobserved; and
 * every denied check requires a successful allowed baseline on the same plane.
 
-It covers command PUT = commander, sensor PUT = robot, observation PUT =
-commander, observer read access to all three planes, and a separate no-client-cert
-transport rejection. Probes use a randomized ``acl-verify-*`` session so they
-cannot collide with a live actuator session.
+It covers command PUT = commander, sensor/observation PUT = body, delivery to the
+body/commander and read-only observer destinations, commander-to-body query/reply,
+negative PUT/query authority, and a separate no-client-cert transport rejection.
+Probes use randomized ``acl-verify-*`` routes so they cannot collide with a live
+actuator session.
 
 The Zenoh CLI fallback was intentionally removed: ``z_put`` alone cannot prove
 end-to-end delivery or distinguish ACL denial from a broken route.
@@ -40,7 +41,7 @@ from typing import Any
 from render_acl_template import valid_realm, valid_segment
 
 ROLE_COMMANDER = "commander"
-ROLE_ROBOT = "robot"
+ROLE_BODY = "body"
 ROLE_OBSERVER = "observer"
 PLANE_COMMAND = "command"
 PLANE_SENSOR = "sensor"
@@ -60,6 +61,7 @@ class ProbeCase:
     plane: str
     key: str
     expect_delivery: bool
+    required_receivers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -250,6 +252,82 @@ class DeliveryRecorder:
             return (key, payload) in self._deliveries
 
 
+def _optional_payload_bytes(message: Any) -> bytes:
+    payload = message.payload
+    if callable(payload):
+        payload = payload()
+    if payload is None:
+        return b""
+    try:
+        return bytes(payload)
+    except TypeError:
+        return bytes(payload.to_bytes())
+
+
+class RpcRecorder:
+    def __init__(self, key: str) -> None:
+        self.key = key
+        self._condition = threading.Condition()
+        self._seen: set[bytes] = set()
+        self._errors: list[str] = []
+
+    @staticmethod
+    def reply_payload(request_payload: bytes) -> bytes:
+        return b"ncp-acl-rpc-reply:" + request_payload
+
+    def callback(self, query: Any) -> None:
+        try:
+            request_payload = _optional_payload_bytes(query)
+            query.reply(self.key, self.reply_payload(request_payload))
+        except Exception as error:
+            with self._condition:
+                self._errors.append(str(error))
+                self._condition.notify_all()
+            return
+        with self._condition:
+            self._seen.add(request_payload)
+            self._condition.notify_all()
+
+    def wait_seen(self, request_payload: bytes, timeout_s: float) -> bool:
+        deadline = time.monotonic() + timeout_s
+        with self._condition:
+            while request_payload not in self._seen:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return False
+                self._condition.wait(remaining)
+            return True
+
+    def contains(self, request_payload: bytes) -> bool:
+        with self._condition:
+            return request_payload in self._seen
+
+    def errors(self) -> list[str]:
+        with self._condition:
+            return list(self._errors)
+
+
+def _rpc_replies(
+    session: Any, key: str, request_payload: bytes, timeout_s: float
+) -> tuple[list[bytes], list[str]]:
+    payloads: list[bytes] = []
+    errors: list[str] = []
+    try:
+        replies = session.get(key, timeout=timeout_s, payload=request_payload)
+        for reply in replies:
+            try:
+                sample = reply.ok
+                if callable(sample):
+                    sample = sample()
+                if sample is not None:
+                    payloads.append(_optional_payload_bytes(sample))
+            except Exception as error:
+                errors.append(str(error))
+    except Exception as error:
+        errors.append(str(error))
+    return payloads, errors
+
+
 def _evaluate_delivery(
     *, expect_delivery: bool, observed: bool, plane_baseline_ok: bool
 ) -> tuple[bool, str]:
@@ -269,14 +347,35 @@ def _probe_plan(realm: str, session_id: str) -> list[ProbeCase]:
     sensor = f"{realm}/session/{session_id}/sensor/acl-probe"
     observation = f"{realm}/session/{session_id}/observation"
     return [
-        ProbeCase(1, ROLE_COMMANDER, PLANE_COMMAND, command, True),
-        ProbeCase(2, ROLE_ROBOT, PLANE_SENSOR, sensor, True),
-        ProbeCase(3, ROLE_COMMANDER, PLANE_OBSERVATION, observation, True),
-        ProbeCase(4, ROLE_ROBOT, PLANE_COMMAND, command, False),
+        ProbeCase(
+            1,
+            ROLE_COMMANDER,
+            PLANE_COMMAND,
+            command,
+            True,
+            (ROLE_BODY, ROLE_OBSERVER),
+        ),
+        ProbeCase(
+            2,
+            ROLE_BODY,
+            PLANE_SENSOR,
+            sensor,
+            True,
+            (ROLE_COMMANDER, ROLE_OBSERVER),
+        ),
+        ProbeCase(
+            3,
+            ROLE_BODY,
+            PLANE_OBSERVATION,
+            observation,
+            True,
+            (ROLE_COMMANDER, ROLE_OBSERVER),
+        ),
+        ProbeCase(4, ROLE_BODY, PLANE_COMMAND, command, False),
         ProbeCase(5, ROLE_OBSERVER, PLANE_COMMAND, command, False),
         ProbeCase(6, ROLE_COMMANDER, PLANE_SENSOR, sensor, False),
         ProbeCase(7, ROLE_OBSERVER, PLANE_SENSOR, sensor, False),
-        ProbeCase(8, ROLE_ROBOT, PLANE_OBSERVATION, observation, False),
+        ProbeCase(8, ROLE_COMMANDER, PLANE_OBSERVATION, observation, False),
         ProbeCase(9, ROLE_OBSERVER, PLANE_OBSERVATION, observation, False),
     ]
 
@@ -310,9 +409,9 @@ def _validate_live_args(args: argparse.Namespace) -> tuple[dict[str, dict[str, o
             _required_path(args.commander_cert, "commander-cert", errors),
             _required_path(args.commander_key, "commander-key", errors),
         ),
-        ROLE_ROBOT: IdentityFiles(
-            _required_path(args.robot_cert, "robot-cert", errors),
-            _required_path(args.robot_key, "robot-key", errors),
+        ROLE_BODY: IdentityFiles(
+            _required_path(args.body_cert, "body-cert", errors),
+            _required_path(args.body_key, "body-key", errors),
         ),
         ROLE_OBSERVER: IdentityFiles(
             _required_path(args.observer_cert, "observer-cert", errors),
@@ -325,14 +424,14 @@ def _validate_live_args(args: argparse.Namespace) -> tuple[dict[str, dict[str, o
         if identity.certificate
     }
     if len(set(resolved_certificates.values())) != len(resolved_certificates):
-        errors.append("commander, robot, and observer must use distinct certificate files")
+        errors.append("commander, body, and observer must use distinct certificate files")
     resolved_keys = {
         role: str(Path(identity.private_key).resolve())
         for role, identity in identities.items()
         if identity.private_key
     }
     if len(set(resolved_keys.values())) != len(resolved_keys):
-        errors.append("commander, robot, and observer must use distinct private-key files")
+        errors.append("commander, body, and observer must use distinct private-key files")
     for role in resolved_certificates.keys() & resolved_keys.keys():
         if resolved_certificates[role] == resolved_keys[role]:
             errors.append(f"{role} certificate and private key must be separate files")
@@ -407,11 +506,15 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
     plan = _probe_plan(args.realm, session_id)
     sessions: dict[str, Any] = {}
     subscribers: list[Any] = []
-    recorder = DeliveryRecorder()
+    recorders = {
+        ROLE_COMMANDER: DeliveryRecorder(),
+        ROLE_BODY: DeliveryRecorder(),
+        ROLE_OBSERVER: DeliveryRecorder(),
+    }
     results: list[CheckResult] = []
     denied_deliveries: list[tuple[int, str, bytes]] = []
     try:
-        for role in (ROLE_COMMANDER, ROLE_ROBOT, ROLE_OBSERVER):
+        for role in (ROLE_COMMANDER, ROLE_BODY, ROLE_OBSERVER):
             session = zenoh.open(_to_zenoh_config(zenoh, specs[role]))
             sessions[role] = session
             if not _wait_for_router(session, args.timeout):
@@ -421,9 +524,21 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                 )
                 return 1
 
-        observer = sessions[ROLE_OBSERVER]
-        for key in dict.fromkeys(case.key for case in plan):
-            subscribers.append(observer.declare_subscriber(key, recorder.callback))
+        subscription_keys: dict[str, set[str]] = {
+            ROLE_COMMANDER: set(),
+            ROLE_BODY: set(),
+            ROLE_OBSERVER: {
+                case.key for case in plan
+            },
+        }
+        for case in plan:
+            for receiver in case.required_receivers:
+                subscription_keys[receiver].add(case.key)
+        for role, keys in subscription_keys.items():
+            for key in sorted(keys):
+                subscribers.append(
+                    sessions[role].declare_subscriber(key, recorders[role].callback)
+                )
         if args.settle:
             time.sleep(args.settle)
 
@@ -434,22 +549,42 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
             ).encode("ascii")
             put_detail = "local put accepted"
             actor_connected = bool(_router_ids(sessions[case.actor]))
-            observer_connected = bool(_router_ids(observer))
+            required_links = set(case.required_receivers) | {
+                ROLE_OBSERVER if not case.expect_delivery else case.actor
+            }
             try:
-                if not actor_connected or not observer_connected:
-                    raise RuntimeError("actor or observer lost its authenticated router link")
+                receivers_connected = all(
+                    bool(_router_ids(sessions[role])) for role in required_links
+                )
+                if not actor_connected or not receivers_connected:
+                    raise RuntimeError("actor or required receiver lost its router link")
                 sessions[case.actor].put(case.key, payload)
             except Exception as error:
                 put_detail = f"local put raised: {error}"
-            observed = recorder.wait(case.key, payload, args.timeout)
+            if case.expect_delivery:
+                observed_receivers = [
+                    receiver
+                    for receiver in case.required_receivers
+                    if recorders[receiver].wait(case.key, payload, args.timeout)
+                ]
+                observed = len(observed_receivers) == len(case.required_receivers)
+                delivery_detail = (
+                    "required receivers="
+                    f"{list(case.required_receivers)}, observed={observed_receivers}"
+                )
+            else:
+                observed = recorders[ROLE_OBSERVER].wait(
+                    case.key, payload, args.timeout
+                )
+                delivery_detail = "forbidden observer delivery check"
             passed, detail = _evaluate_delivery(
                 expect_delivery=case.expect_delivery,
                 observed=observed,
                 plane_baseline_ok=plane_baselines.get(case.plane, False),
             )
             try:
-                links_intact = bool(_router_ids(sessions[case.actor])) and bool(
-                    _router_ids(observer)
+                links_intact = bool(_router_ids(sessions[case.actor])) and all(
+                    bool(_router_ids(sessions[role])) for role in required_links
                 )
             except Exception:
                 links_intact = False
@@ -467,7 +602,7 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                     "DELIVERED" if case.expect_delivery else "NOT_DELIVERED",
                     "DELIVERED" if observed else "NOT_DELIVERED",
                     passed,
-                    f"{detail}; {put_detail}",
+                    f"{detail}; {delivery_detail}; {put_detail}",
                 )
             )
 
@@ -476,7 +611,7 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
         # can satisfy this check accidentally.
         time.sleep(args.timeout)
         for result_index, key, payload in denied_deliveries:
-            if recorder.contains(key, payload):
+            if recorders[ROLE_OBSERVER].contains(key, payload):
                 previous = results[result_index]
                 results[result_index] = CheckResult(
                     previous.step,
@@ -487,8 +622,61 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
                     "forbidden nonce arrived during the final rejection quarantine",
                 )
 
+        rpc_key = f"{args.realm}/rpc/acl-probe-{run_nonce[:12]}"
+        rpc_recorder = RpcRecorder(rpc_key)
+        subscribers.append(
+            sessions[ROLE_BODY].declare_queryable(rpc_key, rpc_recorder.callback)
+        )
+        if args.settle:
+            time.sleep(args.settle)
+
+        rpc_positive = f"ncp-acl-rpc:{run_nonce}:commander".encode("ascii")
+        positive_replies, positive_errors = _rpc_replies(
+            sessions[ROLE_COMMANDER], rpc_key, rpc_positive, args.timeout
+        )
+        positive_seen = rpc_recorder.wait_seen(rpc_positive, args.timeout)
+        expected_reply = RpcRecorder.reply_payload(rpc_positive)
+        positive_ok = (
+            positive_seen
+            and expected_reply in positive_replies
+            and not positive_errors
+            and not rpc_recorder.errors()
+        )
         results.append(
-            _verify_no_certificate(zenoh, specs["no-cert"], args.timeout, len(plan) + 1)
+            CheckResult(
+                len(plan) + 1,
+                "commander query reaches body queryable and body reply returns",
+                "QUERY_AND_REPLY_DELIVERED",
+                "QUERY_AND_REPLY_DELIVERED" if positive_ok else "RPC_INCOMPLETE",
+                positive_ok,
+                "body query observed="
+                f"{positive_seen}; replies={len(positive_replies)}; "
+                f"client_errors={positive_errors}; server_errors={rpc_recorder.errors()}",
+            )
+        )
+
+        rpc_negative = f"ncp-acl-rpc:{run_nonce}:observer".encode("ascii")
+        negative_replies, negative_errors = _rpc_replies(
+            sessions[ROLE_OBSERVER], rpc_key, rpc_negative, args.timeout
+        )
+        time.sleep(args.timeout)
+        negative_seen = rpc_recorder.contains(rpc_negative)
+        negative_ok = positive_ok and not negative_seen and not negative_replies
+        results.append(
+            CheckResult(
+                len(plan) + 2,
+                "observer cannot issue lifecycle RPC query",
+                "QUERY_NOT_DELIVERED",
+                "QUERY_DELIVERED" if negative_seen else "QUERY_NOT_DELIVERED",
+                negative_ok,
+                "positive RPC baseline="
+                f"{positive_ok}; replies={len(negative_replies)}; "
+                f"client_errors={negative_errors}",
+            )
+        )
+
+        results.append(
+            _verify_no_certificate(zenoh, specs["no-cert"], args.timeout, len(plan) + 3)
         )
     except Exception as error:
         print(f"FAIL: live verification could not complete: {error}", file=sys.stderr)
@@ -509,8 +697,9 @@ def run_live(args: argparse.Namespace, specs: dict[str, dict[str, object]]) -> i
     print()
     if all(result.passed for result in results):
         print(
-            "RESULT: ROUTER-ONLY PRECHECK PASSED — allowed deliveries were observed, "
-            "denied deliveries were absent, and no-cert mTLS failed. NCP "
+            "RESULT: ROUTER-ONLY PRECHECK PASSED — destination-specific data and "
+            "RPC deliveries were observed, denied deliveries were absent, and "
+            "no-cert mTLS failed. NCP "
             "production-secure remains blocked until transport-authenticated peer "
             "identity is bound to IdentityClaim."
         )
@@ -576,17 +765,28 @@ def _selftest() -> list[str]:
     plan = _probe_plan("engram/ncp", "acl-verify-test")
     expected = {
         (ROLE_COMMANDER, PLANE_COMMAND, True),
-        (ROLE_ROBOT, PLANE_SENSOR, True),
-        (ROLE_COMMANDER, PLANE_OBSERVATION, True),
-        (ROLE_ROBOT, PLANE_COMMAND, False),
+        (ROLE_BODY, PLANE_SENSOR, True),
+        (ROLE_BODY, PLANE_OBSERVATION, True),
+        (ROLE_BODY, PLANE_COMMAND, False),
         (ROLE_OBSERVER, PLANE_COMMAND, False),
         (ROLE_COMMANDER, PLANE_SENSOR, False),
         (ROLE_OBSERVER, PLANE_SENSOR, False),
-        (ROLE_ROBOT, PLANE_OBSERVATION, False),
+        (ROLE_COMMANDER, PLANE_OBSERVATION, False),
         (ROLE_OBSERVER, PLANE_OBSERVATION, False),
     }
     if {(case.actor, case.plane, case.expect_delivery) for case in plan} != expected:
         failures.append("live probe plan lost an authority or negative case")
+    expected_receivers = {
+        PLANE_COMMAND: (ROLE_BODY, ROLE_OBSERVER),
+        PLANE_SENSOR: (ROLE_COMMANDER, ROLE_OBSERVER),
+        PLANE_OBSERVATION: (ROLE_COMMANDER, ROLE_OBSERVER),
+    }
+    for case in plan:
+        wanted = expected_receivers.get(case.plane, ()) if case.expect_delivery else ()
+        if case.required_receivers != wanted:
+            failures.append(
+                f"{case.plane} probe has wrong receivers {case.required_receivers!r}"
+            )
     if any("acl-verify-test" not in case.key for case in plan):
         failures.append("probe plan escaped its dedicated session namespace")
     return failures
@@ -609,8 +809,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--commander-cert")
     parser.add_argument("--commander-key")
-    parser.add_argument("--robot-cert")
-    parser.add_argument("--robot-key")
+    parser.add_argument("--body-cert")
+    parser.add_argument("--body-key")
     parser.add_argument("--observer-cert")
     parser.add_argument("--observer-key")
     parser.add_argument("--ca", help="router CA certificate")
@@ -645,8 +845,18 @@ def main() -> int:
         print(f"  session:  {preview_session}")
         for case in _probe_plan(args.realm, preview_session):
             verdict = "DELIVERED" if case.expect_delivery else "NOT_DELIVERED"
-            print(f"  {case.step}. {case.actor} -> {case.plane}: expect {verdict}")
-        print("  10. no-client-cert -> expect NO_ROUTER_CONNECTION")
+            receivers = (
+                f" to {','.join(case.required_receivers)}"
+                if case.required_receivers
+                else ""
+            )
+            print(
+                f"  {case.step}. {case.actor} -> {case.plane}{receivers}: "
+                f"expect {verdict}"
+            )
+        print("  10. commander -> body RPC -> commander reply: expect DELIVERED")
+        print("  11. observer -> RPC: expect NOT_DELIVERED")
+        print("  12. no-client-cert -> expect NO_ROUTER_CONNECTION")
         return 0
     return run_live(args, specs)
 

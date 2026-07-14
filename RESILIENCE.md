@@ -123,21 +123,25 @@ The plant-side `SafetyGovernor` state machine (verified against
 velocity path over the full TTL/horizon window, preserving safe inward motion but
 HOLDing/truncating before a geofence crossing; a stale/missing sensor (or non-finite
 clock, velocity, or position, bad timeout, absent geofence channel) drops to
-**non-latching** `HOLD` that self-clears on fresh in-bounds data; an actual geofence
-breach or sustained link burst **latches** `ESTOP`. `SafetyGovernor::reset()` is a
-body-local primitive, not a stable wire RPC or an authority transition; a limit
-referencing an undeclared channel is a `config_fail_closed` HOLD that the primitive
-does **not** clear. A successful deployment-level reset is an out-of-band
+**non-latching** `HOLD`. Fresh in-bounds data can clear the governor's local HOLD,
+but deployment actuation additionally requires the live session generation,
+matching authority lease, admitted active command, and all plant gates. An actual
+geofence breach or sustained link burst **latches** `ESTOP` and executes the plant
+profile's declared ESTOP action. `SafetyGovernor::reset()` is a body-local primitive,
+not a stable wire RPC or an authority transition; a limit referencing an undeclared
+channel is `config_fail_closed` state that the primitive does **not** clear. A
+successful deployment-level reset is an out-of-band
 session-generation cut: it retires the generation, authority and lease, and stream
 state, and the body remains non-actuating until a fresh `SessionOpened`, new
-generation, new streams, and a new matching authority lease. The diagram below
-describes only the governor's local state; its reset edge does not authorize
-actuation:
+generation, new streams, a new matching authority lease, and an admitted active
+command with all plant gates satisfied. The diagram below composes the governor's
+local state with those deployment admission gates; its reset edge returns through
+non-actuating HOLD and does not authorize actuation:
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/fsm-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/fsm-light.svg">
-  <img alt="NCP plant-side safety-governor primitive finite state machine. Four local states: ACTIVE clamps speed and truncates the predictive horizon near the geofence; HOLD is non-latching and self-clears on fresh in-bounds data; ESTOP is latched and de-energized; CONFIG-FAIL-CLOSED is permanent for the session. A supervisor may clear the local ESTOP primitive only when plant preconditions hold, but this does not authorize NCP actuation: the deployment retires that session generation and remains non-actuating until a fresh SessionOpened, new streams, and new authority. HOLD, ESTOP, and CONFIG-FAIL-CLOSED emit the plant profile's declared safe action rather than assuming a universal zero." src="docs/diagrams/fsm-light.svg" width="820">
+  <img alt="NCP plant-side safety and admission state machine. INIT validates configuration and enters non-actuating HOLD when valid or CONFIG-FAIL-CLOSED when invalid. ACTIVE requires fresh in-bounds sensor data, a live session generation, matching authority lease, and admitted active command. HOLD is non-latching but cannot restore actuation until all gates pass. ESTOP is latched and executes the plant profile's declared ESTOP action. A successful body-local or out-of-band reset retires the old generation and returns through non-actuating HOLD; fresh SessionOpened, streams, authority, command, and plant gates are required before ACTIVE. NCP assumes no universal zero-safe or de-energized action." src="docs/diagrams/fsm-light.svg" width="820">
 </picture>
 
 **The hard PHY boundary, stated plainly:** no application-layer scheme — not PPC,

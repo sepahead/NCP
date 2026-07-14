@@ -2339,6 +2339,31 @@
         }
       },
       {
+        "name": "close_session_missing_authority_rejected",
+        "input": {
+          "kind": "close_session",
+          "message": {
+            "kind": "close_session",
+            "ncp_version": "1.0",
+            "session_id": "vec-open-1",
+            "session": {
+              "generation": "293279f3-d459-4bfd-aeeb-604799e96925"
+            },
+            "operation": {
+              "operation_id": "10000000-0000-4000-8000-000000000003",
+              "request_digest": "d1195d90bc7d7050ce67192430210460ff7cea0414bdc5c45b458a7dcb039afb",
+              "session_epoch": "293279f3-d459-4bfd-aeeb-604799e96925",
+              "expected_state_version": 3,
+              "deadline_utc_ms": 1700000030000,
+              "retry": false
+            }
+          }
+        },
+        "expect": {
+          "valid": false
+        }
+      },
+      {
         "name": "session_closed_false_uses_error_frame_rejected",
         "input": {
           "kind": "session_closed",

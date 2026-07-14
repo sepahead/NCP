@@ -18,7 +18,8 @@ it is not the complete normative digest.
 ## What the 1.0 candidate changes
 
 Wire 1.0 is an intentional break from 0.8. It adds authenticated principal/entity/
-role/plane claims, named security profiles and digests, session epochs, bounded
+role/plane claims, named security profiles and digests, session generations and
+stream epochs, bounded
 authority leases, idempotent lifecycle operation contexts, authenticated responder
 receipts, content-addressed plant profiles, closed stable capability negotiation,
 universal JSON limits, and explicit channel requirements.
@@ -193,6 +194,8 @@ baseline.
 - [`RELEASE_READINESS.md`](RELEASE_READINESS.md): evidence ledger and blockers.
 - [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md): per-task local
   receipts and exact not-run acceptance gaps.
+- [`docs/handoff/README.md`](docs/handoff/README.md): non-normative standalone
+  handoff audit inputs and supervisor-commentable `T000`–`T119` review ledger.
 - [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md): current residual risks.
 - [`VERSIONING.md`](VERSIONING.md): compatibility and release policy.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.

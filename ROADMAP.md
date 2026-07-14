@@ -8,8 +8,8 @@
 
 The candidate now has a frozen scope/registry model, exact v0.8 boundary, canonical
 JSON/proto/schema parity, explicit security profiles, identity and plane claims,
-session epochs, authority leases, idempotent mutations and receipts, bounded JSON,
-plant profiles, four-plane queue policy, audit vocabulary, a mandatory
+session generations and stream epochs, authority leases, idempotent mutations and
+receipts, bounded JSON, plant profiles, four-plane queue policy, audit vocabulary, a mandatory
 self-describing corpus, independent TypeScript validation, and a labelled
 0.8-to-1.0 translation API.
 

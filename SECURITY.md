@@ -124,7 +124,8 @@ fresh objects only after a new generation is issued.
 
 Revocation blocks new authentication immediately, transitions affected active
 authority to fail-safe behavior, and does not clear ESTOP. Reconnect must prove the
-same epoch, term, lease, principal, and entity within the local monotonic deadline.
+same session generation, term, lease, principal, and entity within the local
+monotonic deadline.
 
 ## Configuration artifacts
 

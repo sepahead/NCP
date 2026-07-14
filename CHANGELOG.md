@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed the wire to `1.0` and compact protobuf-structure hash to
   `163acc57d8a62b66`; added a generated complete normative SHA-256 manifest.
+- Clarified realm, session generation, stream epoch, stream, plane, and route
+  terminology across current candidate documentation. This changes the complete
+  normative SHA-256 digest but does not change the wire-1.0 protobuf structure or
+  compact hash.
+- Added a non-normative standalone-handoff audit cut and supervisor-commentable
+  `T000`–`T119` review ledger. All tasks remain open, release authorization remains
+  false, the requested `0.9` line requires a separately reviewed normative
+  rebaseline, and no DOI or Zenodo archive is assigned.
+- Corrected the Zenoh ACL to an exact default-deny source/destination flow matrix,
+  centralized pre-copy `ZBytes` frame admission, added a single-fault missing-
+  authority CloseSession vector, pinned Buf remote generator versions/revisions,
+  and regenerated current-wire diagrams. These are local candidate improvements;
+  live security and other external acceptance gates remain **NOT RUN**.
 - Added closed identity/role/plane claims, named security profiles and digests,
   session-bound authority leases, idempotent mutation contexts, authenticated
   responder receipts, plant profiles, stable capability negotiation, and explicit

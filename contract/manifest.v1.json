@@ -6,7 +6,7 @@
   "wire_proto_contract_hash_fnv1a64": "163acc57d8a62b66",
   "contract_digest_algorithm": "sha256(domain || repeated(u64be(path_bytes) || path_utf8 || u64be(content_bytes) || exact_content))",
   "contract_digest_domain_hex": "6e63702e6e6f726d61746976652d636f6e74726163742e763100",
-  "contract_digest_sha256": "10b81f8dfec289dc553c320430ab3fefea0f0bb2002b6e85415383119445555b",
+  "contract_digest_sha256": "6ea955330bf876f4419a2dc10e6a4bf113fa827c08b89815cb25417de3937dc0",
   "normative_precedence": [
     "contract/*.v1.json except contract/manifest.v1.json (derived digest manifest)",
     "proto/ncp.proto",
@@ -18,13 +18,13 @@
   "normative_sources": [
     {
       "path": "NEURO_CYBERNETIC_PROTOCOL.md",
-      "bytes": 23899,
-      "sha256": "b65bdd1e7e755c1b9ed345cc769d7ad194dcd948c0ace97697343d051d3cf023"
+      "bytes": 26222,
+      "sha256": "000e09dab7c0a5f01347d109d1f1ef2c5bdaf9d9f844a2212d9e3855855f64e8"
     },
     {
       "path": "conformance/manifest.v1.json",
-      "bytes": 237088,
-      "sha256": "8ebc6eeb7351aa2e93bec7e6ab5af0805c1ef30fce430a0947c9ab3f0ab3ad04"
+      "bytes": 237982,
+      "sha256": "2a3fcb9546b5e82331dc7cace91c0d0fc47f5e7557dc30329c439c896a029d5a"
     },
     {
       "path": "contract/canonical-digest.v1.json",

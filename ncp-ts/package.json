@@ -1,6 +1,7 @@
 {
   "name": "@sepahead/ncp",
   "version": "1.0.0-rc.1",
+  "author": "Sepehr Mahmoudian",
   "description": "NCP (Neuro-Cybernetic Protocol) canonical-JSON TypeScript types and transport-agnostic client, conforming to the repository's normative registries, field-shape IDL, schemas, specification, and mandatory corpus.",
   "license": "MIT OR Apache-2.0",
   "type": "module",

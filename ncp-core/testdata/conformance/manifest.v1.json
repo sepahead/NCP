@@ -7,12 +7,12 @@
   "skip_policy": "required-vector-skip-is-failure",
   "unknown_vector_policy": "reject",
   "partial_report_policy": "reject",
-  "corpus_digest_sha256": "11378dc2856dd122489d7b8cef5dd1a7e297279e22fd1a874f9ea0eb11de1b9b",
+  "corpus_digest_sha256": "a9a741e2b74952e6c8d8c7f589114918f673591eaccba938c997578c189cd2b0",
   "sources": [
     {
       "path": "conformance/behavior/vectors.json",
-      "sha256": "f01ca228c1e7c618a356d735c121894cdfc3d42711bd24ab09b964e61fde8035",
-      "bytes": 220483
+      "sha256": "f9ffd03a1295d2773b5007d99b237cddf9ecdae9310643ff310b227b9805b3ba",
+      "bytes": 221335
     },
     {
       "path": "conformance/request-digest/v1.json",
@@ -106,8 +106,8 @@
     }
   ],
   "counts": {
-    "required_total": 268,
-    "stable_1_0": 261,
+    "required_total": 269,
+    "stable_1_0": 262,
     "migration_only": 7
   },
   "report_requirements": {
@@ -234,7 +234,7 @@
     },
     {
       "id": "NCP-REQ-005",
-      "source": "NEURO_CYBERNETIC_PROTOCOL.md#session-epochs",
+      "source": "NEURO_CYBERNETIC_PROTOCOL.md#session-generations-and-stream-epochs",
       "requirement": "Session-scoped messages bind a live session generation.",
       "vector_ids": [
         "behavior/validate/command_frame_active_stale_authority_epoch_rejected",
@@ -248,6 +248,7 @@
       "source": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "requirement": "Actuation and lifecycle mutation require a bounded matching authority lease.",
       "vector_ids": [
+        "behavior/validate/close_session_missing_authority_rejected",
         "behavior/validate/command_frame_active_missing_authority_rejected",
         "behavior/validate/command_frame_active_stale_authority_epoch_rejected",
         "behavior/validate/step_request_inverted_authority_lease_rejected",
@@ -2381,9 +2382,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/86/input",
+      "input": "/cases/validate/87/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/86/expect",
+      "expected": "/cases/validate/87/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -2407,216 +2408,6 @@
     },
     {
       "id": "behavior/validate/capabilities_complete_ok",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/80/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/80/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_duplicate_channel_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/82/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/82/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_duplicate_stable_capability_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/134/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/134/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_identity_entity_mismatch_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/131/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/131/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_identity_role_mismatch_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/130/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/130/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_legacy_optional_boolean_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/83/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/83/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_missing_core_stable_capability_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/132/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/132/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_missing_safety_timeout_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
@@ -2646,7 +2437,37 @@
       "required": true
     },
     {
-      "id": "behavior/validate/capabilities_plant_missing_profile_digest_rejected",
+      "id": "behavior/validate/capabilities_duplicate_channel_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/83/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/83/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_duplicate_stable_capability_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
@@ -2676,14 +2497,14 @@
       "required": true
     },
     {
-      "id": "behavior/validate/capabilities_plant_profile_digest_ok",
+      "id": "behavior/validate/capabilities_identity_entity_mismatch_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/136/input",
+      "input": "/cases/validate/132/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/136/expect",
+      "expected": "/cases/validate/132/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -2706,14 +2527,14 @@
       "required": true
     },
     {
-      "id": "behavior/validate/capabilities_safety_sequence_rejected",
+      "id": "behavior/validate/capabilities_identity_role_mismatch_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/87/input",
+      "input": "/cases/validate/131/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/87/expect",
+      "expected": "/cases/validate/131/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -2736,100 +2557,10 @@
       "required": true
     },
     {
-      "id": "behavior/validate/capabilities_sensor_channel_sequence_rejected",
+      "id": "behavior/validate/capabilities_legacy_optional_boolean_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/85/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/85/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_unknown_optional_channel_kind_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/138/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/138/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_unknown_required_channel_kind_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/137/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/137/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_unknown_requirement_fails_closed",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
       "source": "conformance/behavior/vectors.json",
       "input": "/cases/validate/84/input",
       "state": "fresh-instance-per-vector",
@@ -2856,37 +2587,7 @@
       "required": true
     },
     {
-      "id": "behavior/validate/capabilities_unknown_role_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/129/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/129/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/capabilities_unknown_stable_capability_rejected",
+      "id": "behavior/validate/capabilities_missing_core_stable_capability_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
@@ -2916,10 +2617,160 @@
       "required": true
     },
     {
-      "id": "behavior/validate/capabilities_unpermitted_gateway_attribution_rejected",
+      "id": "behavior/validate/capabilities_missing_safety_timeout_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/82/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/82/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_plant_missing_profile_digest_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/136/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/136/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_plant_profile_digest_ok",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/137/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/137/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_safety_sequence_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/88/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/88/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_sensor_channel_sequence_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/86/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/86/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_unknown_optional_channel_kind_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
       "source": "conformance/behavior/vectors.json",
       "input": "/cases/validate/139/input",
       "state": "fresh-instance-per-vector",
@@ -2931,6 +2782,183 @@
           "body",
           "observer",
           "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_unknown_required_channel_kind_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/138/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/138/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_unknown_requirement_fails_closed",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/85/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/85/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_unknown_role_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/130/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/130/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_unknown_stable_capability_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#capability-negotiation",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/134/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/134/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/capabilities_unpermitted_gateway_attribution_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/140/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/140/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/close_session_missing_authority_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/79/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/79/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander"
         ],
         "implementations": [
           "rust",
@@ -3035,9 +3063,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/120/input",
+      "input": "/cases/validate/121/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/120/expect",
+      "expected": "/cases/validate/121/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -3091,9 +3119,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/121/input",
+      "input": "/cases/validate/122/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/121/expect",
+      "expected": "/cases/validate/122/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -3539,9 +3567,9 @@
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/88/input",
+      "input": "/cases/validate/89/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/88/expect",
+      "expected": "/cases/validate/89/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -3563,6 +3591,34 @@
     },
     {
       "id": "behavior/validate/control_status_negative_latency_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "contract/limits.v1.json#json",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/91/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/91/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/control_status_unstamped_seq_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
@@ -3590,155 +3646,7 @@
       "required": true
     },
     {
-      "id": "behavior/validate/control_status_unstamped_seq_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "contract/limits.v1.json#json",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/89/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/89/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
       "id": "behavior/validate/error_frame_later_minor_ok",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/96/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/96/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/error_frame_missing_code_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/99/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/99/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/error_frame_noncanonical_version_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/98/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/98/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/error_frame_ok",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/95/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/95/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/error_frame_u64_max_minor_ok",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
@@ -3768,7 +3676,7 @@
       "required": true
     },
     {
-      "id": "behavior/validate/error_frame_unknown_code_rejected",
+      "id": "behavior/validate/error_frame_missing_code_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
@@ -3798,7 +3706,97 @@
       "required": true
     },
     {
-      "id": "behavior/validate/error_frame_unversioned_rejected",
+      "id": "behavior/validate/error_frame_noncanonical_version_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/99/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/99/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/error_frame_ok",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/96/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/96/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/error_frame_u64_max_minor_ok",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/98/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/98/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/error_frame_unknown_code_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
@@ -3828,7 +3826,67 @@
       "required": true
     },
     {
+      "id": "behavior/validate/error_frame_unversioned_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/102/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/102/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
       "id": "behavior/validate/error_generation_without_session_id_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/128/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/128/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body",
+          "observer",
+          "operator"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/error_session_id_without_generation_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
@@ -3858,44 +3916,14 @@
       "required": true
     },
     {
-      "id": "behavior/validate/error_session_id_without_generation_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/126/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/126/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body",
-          "observer",
-          "operator"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
       "id": "behavior/validate/error_unknown_receipt_outcome_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#idempotent-lifecycle-rpcs",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/128/input",
+      "input": "/cases/validate/129/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/128/expect",
+      "expected": "/cases/validate/129/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -3923,9 +3951,9 @@
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/91/input",
+      "input": "/cases/validate/92/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/91/expect",
+      "expected": "/cases/validate/92/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -3947,6 +3975,34 @@
     },
     {
       "id": "behavior/validate/link_status_invalid_loss_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "contract/limits.v1.json#json",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/95/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/95/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "commander",
+          "body"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/link_status_observation_presence_mismatch_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
@@ -3974,7 +4030,7 @@
       "required": true
     },
     {
-      "id": "behavior/validate/link_status_observation_presence_mismatch_rejected",
+      "id": "behavior/validate/link_status_unstamped_seq_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
@@ -3982,34 +4038,6 @@
       "input": "/cases/validate/93/input",
       "state": "fresh-instance-per-vector",
       "expected": "/cases/validate/93/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "commander",
-          "body"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
-      "id": "behavior/validate/link_status_unstamped_seq_rejected",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "contract/limits.v1.json#json",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/92/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/92/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -4534,9 +4562,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/109/input",
+      "input": "/cases/validate/110/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/109/expect",
+      "expected": "/cases/validate/110/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -4561,9 +4589,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/110/input",
+      "input": "/cases/validate/111/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/110/expect",
+      "expected": "/cases/validate/111/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -4615,9 +4643,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/107/input",
+      "input": "/cases/validate/108/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/107/expect",
+      "expected": "/cases/validate/108/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -4642,9 +4670,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/102/input",
+      "input": "/cases/validate/103/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/102/expect",
+      "expected": "/cases/validate/103/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -4966,9 +4994,9 @@
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/103/input",
+      "input": "/cases/validate/104/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/103/expect",
+      "expected": "/cases/validate/104/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5101,9 +5129,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/105/input",
+      "input": "/cases/validate/106/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/105/expect",
+      "expected": "/cases/validate/106/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5155,9 +5183,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#labelled-legacy-gateway",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/108/input",
+      "input": "/cases/validate/109/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/108/expect",
+      "expected": "/cases/validate/109/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5182,9 +5210,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/106/input",
+      "input": "/cases/validate/107/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/106/expect",
+      "expected": "/cases/validate/107/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5236,9 +5264,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#identity-and-security-profile",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/104/input",
+      "input": "/cases/validate/105/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/104/expect",
+      "expected": "/cases/validate/105/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5457,9 +5485,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/79/input",
+      "input": "/cases/validate/80/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/79/expect",
+      "expected": "/cases/validate/80/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5484,9 +5512,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/125/input",
+      "input": "/cases/validate/126/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/125/expect",
+      "expected": "/cases/validate/126/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5507,6 +5535,33 @@
     },
     {
       "id": "behavior/validate/session_closed_missing_receipt_rejected",
+      "stability": "stable-1.0",
+      "suite": "behavior",
+      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#idempotent-lifecycle-rpcs",
+      "source": "conformance/behavior/vectors.json",
+      "input": "/cases/validate/124/input",
+      "state": "fresh-instance-per-vector",
+      "expected": "/cases/validate/124/expect",
+      "resource_budget": "contract/limits.v1.json#/json",
+      "applicability": {
+        "roles": [
+          "body"
+        ],
+        "implementations": [
+          "rust",
+          "typescript",
+          "python-ffi",
+          "cpp-ffi"
+        ],
+        "transports": [
+          "transport-independent"
+        ]
+      },
+      "wire_version": "1.0",
+      "required": true
+    },
+    {
+      "id": "behavior/validate/session_closed_receipt_ok",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#idempotent-lifecycle-rpcs",
@@ -5533,41 +5588,14 @@
       "required": true
     },
     {
-      "id": "behavior/validate/session_closed_receipt_ok",
-      "stability": "stable-1.0",
-      "suite": "behavior",
-      "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#idempotent-lifecycle-rpcs",
-      "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/122/input",
-      "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/122/expect",
-      "resource_budget": "contract/limits.v1.json#/json",
-      "applicability": {
-        "roles": [
-          "body"
-        ],
-        "implementations": [
-          "rust",
-          "typescript",
-          "python-ffi",
-          "cpp-ffi"
-        ],
-        "transports": [
-          "transport-independent"
-        ]
-      },
-      "wire_version": "1.0",
-      "required": true
-    },
-    {
       "id": "behavior/validate/session_closed_unknown_outcome_rejected",
       "stability": "stable-1.0",
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#lifecycle-and-errors",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/124/input",
+      "input": "/cases/validate/125/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/124/expect",
+      "expected": "/cases/validate/125/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5835,9 +5863,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/119/input",
+      "input": "/cases/validate/120/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/119/expect",
+      "expected": "/cases/validate/120/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5862,9 +5890,9 @@
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/114/input",
+      "input": "/cases/validate/115/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/114/expect",
+      "expected": "/cases/validate/115/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5889,9 +5917,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/112/input",
+      "input": "/cases/validate/113/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/112/expect",
+      "expected": "/cases/validate/113/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -5916,9 +5944,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#idempotent-lifecycle-rpcs",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/111/input",
+      "input": "/cases/validate/112/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/111/expect",
+      "expected": "/cases/validate/112/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -6078,9 +6106,9 @@
       "suite": "behavior",
       "normative_clause": "contract/limits.v1.json#json",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/115/input",
+      "input": "/cases/validate/116/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/115/expect",
+      "expected": "/cases/validate/116/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -6105,9 +6133,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/118/input",
+      "input": "/cases/validate/119/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/118/expect",
+      "expected": "/cases/validate/119/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -6132,9 +6160,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/116/input",
+      "input": "/cases/validate/117/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/116/expect",
+      "expected": "/cases/validate/117/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -6159,9 +6187,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#idempotent-lifecycle-rpcs",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/113/input",
+      "input": "/cases/validate/114/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/113/expect",
+      "expected": "/cases/validate/114/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
@@ -6213,9 +6241,9 @@
       "suite": "behavior",
       "normative_clause": "NEURO_CYBERNETIC_PROTOCOL.md#authority-leases",
       "source": "conformance/behavior/vectors.json",
-      "input": "/cases/validate/117/input",
+      "input": "/cases/validate/118/input",
       "state": "fresh-instance-per-vector",
-      "expected": "/cases/validate/117/expect",
+      "expected": "/cases/validate/118/expect",
       "resource_budget": "contract/limits.v1.json#/json",
       "applicability": {
         "roles": [
