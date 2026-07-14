@@ -262,6 +262,6 @@
         <animate attributeName="opacity" values="1;1;0.3;1;1" keyTimes="0;0.34;0.56;0.62;1" dur="2.6s" repeatCount="indefinite"/>
       </circle>
     </g>
-    
+
   </g>
 </svg>
