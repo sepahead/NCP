@@ -78,8 +78,14 @@ git diff --binary -- ncp-core/bindings ncp-ts/src/generated ncp-ts/dist \
     > "$tmp_dir/ts-after.diff"
 cmp "$tmp_dir/ts-before.diff" "$tmp_dir/ts-after.diff"
 bun run check:behavior
+bun run check:integers
+"$tmp_dir/venv/bin/python" scripts/check_cross_language_canonical_json.py
 bun run check:ws
 bun run check:package
+
+step "retained threat, latent-path, and traceability audit artifacts"
+python3 scripts/generate_audit_artifacts.py --self-test
+python3 scripts/check_audit_artifacts.py --self-test
 
 step "handoff, proto, schema, JSON/binary corpus, and wire baselines"
 python3 scripts/check_handoff_review.py --self-test
@@ -88,6 +94,7 @@ python3 scripts/check_max_effort_handoff_review.py --self-test
 python3 scripts/generate_max_effort_review_template.py --check
 python3 scripts/generate_file_review_ledger.py --self-test
 python3 scripts/generate_file_review_ledger.py --check
+python3 scripts/generate_convergence_manifest.py --self-test --check
 python3 scripts/plot_perf.py --self-test --check
 python3 scripts/check_markdown_links.py --self-test
 python3 scripts/check_markdown_links.py
@@ -126,15 +133,47 @@ scripts/check-version-coherence.sh
 
 step "Rust crate archive self-containment"
 python3 scripts/check_rust_packages.py --offline
+python3 scripts/build_candidate_dossier.py --self-test
 
 step "dependency, license, and source policy"
 python3 scripts/check_dependency_exposure.py --self-test
-if cargo deny --version >/dev/null 2>&1; then
-    cargo deny check
-else
+if ! cargo deny --version >/dev/null 2>&1; then
     printf 'cargo-deny is required; install it with: cargo install cargo-deny --locked\n' >&2
     exit 1
 fi
+if [[ "$(cargo deny --version)" != "cargo-deny 0.19.9" ]]; then
+    printf 'cargo-deny 0.19.9 is required; found: %s\n' "$(cargo deny --version)" >&2
+    exit 1
+fi
+export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+current_advisory_home="$tmp_dir/advisory-current-home"
+pinned_advisory_home="$tmp_dir/advisory-pinned-home"
+mkdir -p "$current_advisory_home" "$pinned_advisory_home"
+HOME="$current_advisory_home" cargo deny --locked --all-features check
+HOME="$current_advisory_home" \
+    python3 scripts/generate_supply_chain_evidence.py \
+        --validate-current-advisories
+find "$current_advisory_home/.cargo/advisory-dbs" \
+    -mindepth 1 -maxdepth 1 -type d -name 'advisory-db-*' -print \
+    > "$tmp_dir/current-advisory-databases"
+if [[ "$(wc -l < "$tmp_dir/current-advisory-databases" | tr -d ' ')" != "1" ]]; then
+    printf 'current advisory scan did not prepare exactly one database\n' >&2
+    exit 1
+fi
+current_advisory_database="$(sed -n '1p' "$tmp_dir/current-advisory-databases")"
+export NCP_ADVISORY_DB_PATH="$pinned_advisory_home/.cargo/advisory-dbs"
+python3 scripts/prepare_advisory_database.py \
+    --source-database "$current_advisory_database" \
+    --destination "$NCP_ADVISORY_DB_PATH"
+HOME="$pinned_advisory_home" \
+    cargo deny --locked --offline --all-features check --disable-fetch
+HOME="$pinned_advisory_home" \
+    python3 scripts/generate_supply_chain_evidence.py --self-test --check
+
+step "repo-less exact-commit candidate preflight"
+export NCP_PINNED_ADVISORY_HOME="$pinned_advisory_home"
+python3 scripts/build_candidate_dossier.py \
+    --archive-preflight "$(git rev-parse HEAD)"
 
 step "protobuf lint + build"
 buf lint

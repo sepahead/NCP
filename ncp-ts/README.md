@@ -41,13 +41,41 @@ const client = new NeuroSimClient(ws.send, negotiation)
 ```
 
 The insecure profile shown above is valid only on loopback/UDS and is not a
-production example. `open()` verifies the returned session generation, responder
-identity/security state, compact-hash advisory, and scientific boundary.
+production example. `open()` validates the returned session generation, responder
+identity claim and security-state fields, compact-hash advisory, and scientific
+boundary.
 `step()`, `run()`, and `close()` require a `MutationInput` carrying a canonical
-operation context and matching authority lease; their replies require correlated
-authenticated receipts. The client computes and seals `request-digest-v1` over the
+operation context and matching authority lease; their replies require structurally
+valid receipts correlated to the operation ID and request digest. Payload identity
+in a session reply or receipt does not authenticate itself: the transport adapter
+must bind the reply to the verified responder. The client computes and seals
+`request-digest-v1` over the
 complete request. A caller-supplied digest is accepted only when it already matches;
-placeholders and payload/digest divergence fail before transport.
+placeholders and payload/digest divergence fail before transport. A successful open
+must also preserve the precommitted security profile, security-state digest,
+gateway permission, and gateway attribution.
+
+Session generations are process-local client state. A newly constructed client
+cannot mutate a session until its own successful `open()`. Starting a reopen retires
+the previous local generation before the transport wait, so an unavailable reopen
+outcome cannot fall back to stale state; a correlated terminal `close()` likewise
+retires the generation before another mutation can be sent. Concurrent opens are
+attempt-fenced, and a mutation reply is rechecked against the current client-local
+generation after its transport wait, so a late old result cannot overwrite or
+complete against a newer opening. Generations observed by that client instance are
+retained in a bounded non-evicting fence and cannot be revived during the same
+instance lifetime. Step/run observations bind the
+fresh generation to one stream epoch: the first reply must use sequence 1, later
+positions must advance the high-water mark, forward gaps are tolerated, and only a
+full-reply-fingerprint-identical terminal retry may repeat a retained position. The
+generation and observation fences each fail closed at 4096 globally retained
+entries, and at most 4096 unresolved openings may exist at once.
+
+The client validates `result_digest` syntax and uses it in replay correlation but
+does not independently recompute it. This candidate has no normative nonrecursive
+result projection that an independent TypeScript implementation can hash without
+inventing wire semantics. That remains an open release blocker; receipt correlation
+alone is not result-body certification.
 
 `WebSocketNeuroSim` is an experimental FIFO-correlated binding. It uses the bounded
 parser, rejects binary and malformed replies, preflights outbound JSON against the
@@ -65,6 +93,7 @@ until its full negotiation, lifecycle, authority, digest, and receipt contract
 passes retained integration evidence.
 
 The package also exports `parseBoundedJson`, `assertNcpMessage`,
+`canonicalizeNcpJson`/`canonicalizeNcpMessage`,
 `NCP_ERROR_CODES`/`NcpErrorCode`, `SafetyGovernor`, `CommandWatchdog`,
 `ActionBuffer`, and shared safety constants. `assertNcpMessage` rejects an
 `ErrorFrame` whose required `code` is absent or outside the registry. Active commands
@@ -77,12 +106,19 @@ the method does not authenticate an operator or restore remote authority.
 `LinkStatus` observation high-water fields. These controls are not physical safety
 certification.
 
+The canonicalization helpers validate first, then independently reproduce the
+Rust reference's typed round trip: serde defaults are materialized, unknown members
+are removed, map keys are UTF-8 ordered, integer values remain in the exact JSON
+safe range, and binary64 spelling is deterministic. They do not make TypeScript an
+independent live transport peer or add another normative contract layer.
+
 Regenerate and verify with:
 
 ```bash
 bun install --frozen-lockfile
 bun run regen
 bun run check:behavior
+bun run check:integers
 bun run check:ws
 bun run check:package
 ```

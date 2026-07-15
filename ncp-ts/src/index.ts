@@ -59,6 +59,7 @@ export {
   preflightJson,
 } from './bounded-json.js'
 export type { JsonLimitCode } from './bounded-json.js'
+export { canonicalizeNcpJson, canonicalizeNcpMessage } from './canonical-json.js'
 export {
   canonicalRequestProjection,
   requestDigest,

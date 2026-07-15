@@ -1,0 +1,176 @@
+name: Candidate artifact dossier
+
+on:
+  workflow_dispatch:
+
+# This workflow builds, retains, and attests a held candidate only. It has no
+# tag, release, registry, package-publication, or repository-content authority.
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_DENY_VERSION: "0.19.9"
+  PYTHON_VERSION: "3.14.6"
+  NODE_VERSION: "24.18.0"
+  BUN_VERSION: "1.3.14"
+
+jobs:
+  build-dossier:
+    name: build, compare, checksum, and retain candidate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact source with immutable history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable, pinned 2026-07-10
+        with:
+          toolchain: "1.88.0"
+
+      - name: Cache Cargo build artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+
+      - name: Set up exact Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up exact Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Install exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install pinned builders and locked inputs
+        run: |
+          python3 -m pip install --disable-pip-version-check \
+            --only-binary=:all: --require-hashes \
+            -r scripts/requirements-candidate-build-linux-x86_64.txt
+          python3 -m pip --version | grep -Eq '^pip 26\.1\.2 '
+          cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"
+          test "$(cargo deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
+          bun install --frozen-lockfile
+          cargo fetch --locked
+
+      - name: Current policy scan and evidence-pinned replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          current_home="$RUNNER_TEMP/ncp-advisory-current-home"
+          pinned_home="$RUNNER_TEMP/ncp-advisory-pinned-home"
+          mkdir -p "$current_home" "$pinned_home"
+
+          HOME="$current_home" cargo deny --locked --all-features check
+          HOME="$current_home" \
+            python3 scripts/generate_supply_chain_evidence.py \
+              --validate-current-advisories
+
+          mapfile -t databases < <(
+            find "$current_home/.cargo/advisory-dbs" -mindepth 1 -maxdepth 1 \
+              -type d -name 'advisory-db-*' -print
+          )
+          test "${#databases[@]}" -eq 1
+          export NCP_ADVISORY_DB_PATH="$pinned_home/.cargo/advisory-dbs"
+          python3 scripts/prepare_advisory_database.py \
+            --source-database "${databases[0]}" \
+            --destination "$NCP_ADVISORY_DB_PATH"
+          export NCP_PINNED_ADVISORY_HOME="$pinned_home"
+          printf 'NCP_PINNED_ADVISORY_HOME=%s\n' "$pinned_home" >> "$GITHUB_ENV"
+
+          HOME="$pinned_home" \
+            cargo deny --locked --offline --all-features check --disable-fetch
+          HOME="$pinned_home" \
+            python3 scripts/generate_supply_chain_evidence.py --self-test --check
+          python3 scripts/check_dependency_exposure.py --self-test
+          python3 scripts/build_candidate_dossier.py \
+            --archive-preflight "$GITHUB_SHA"
+
+      - name: Build exact held candidate dossier
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/build_candidate_dossier.py \
+            --source-revision "$GITHUB_SHA" \
+            --output candidate-dossier
+          mkdir candidate-held
+          mv candidate-dossier candidate-held/
+          python3 scripts/build_candidate_dossier.py \
+            --verify-dossier candidate-held/candidate-dossier \
+            --require-hosted-toolchain \
+            --subject-checksums candidate-held/attestation-subjects.sha256
+          test "$(wc -l < candidate-held/attestation-subjects.sha256)" -eq 10
+
+      - name: Retain candidate dossier and exact attestation inputs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ncp-candidate-dossier-${{ github.sha }}
+          path: candidate-held
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+
+  attest-dossier:
+    name: attest exact held subjects
+    needs: build-dossier
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout the attested verifier
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Download held candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ncp-candidate-dossier-${{ github.sha }}
+          path: candidate-held
+
+      - name: Revalidate dossier and exact subject manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 scripts/build_candidate_dossier.py \
+            --verify-dossier candidate-held/candidate-dossier \
+            --require-hosted-toolchain \
+            --subject-checksums "$RUNNER_TEMP/recomputed-subjects.sha256"
+          cmp candidate-held/attestation-subjects.sha256 \
+            "$RUNNER_TEMP/recomputed-subjects.sha256"
+          tail -n 1 candidate-held/attestation-subjects.sha256 \
+            > candidate-held/aggregate-sbom-subject.sha256
+          test "$(wc -l < candidate-held/aggregate-sbom-subject.sha256)" -eq 1
+
+      - name: Attest build provenance for packages and aggregate dossier
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-checksums: candidate-held/attestation-subjects.sha256
+          create-storage-record: false
+
+      - name: Attest workspace SBOM to the aggregate dossier subject
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-checksums: candidate-held/aggregate-sbom-subject.sha256
+          sbom-path: candidate-held/candidate-dossier/products/supply-chain/sbom.cdx.json
+          create-storage-record: false

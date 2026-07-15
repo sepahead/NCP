@@ -10,32 +10,35 @@ does not silently reinterpret the earlier standalone ledger.
 The `NCP_V1_0_CURRENT_HEAD_MAX_EFFORT_HANDOFF` declares tasks `T000` through
 `T145` and twenty review lenses per task. Its frozen commit predates the reviewed
 repository state, so the audit records both the declared `0ba5ff6` cut and the
-explicitly diffed, inventoried, hosted-CI-green `18a45bd` local review cut.
+explicitly diffed, inventoried, hosted-CI-green `f08c2ad` implementation cut.
 
 - [`max-effort-source-index.v2.json`](max-effort-source-index.v2.json) is an exact
   non-normative extract of the ordered task, dependency, wave, lane, scope, and
   twenty-lens index from the SHA-256-bound external ledger.
 - [`max-effort-audit-inputs.v2.json`](max-effort-audit-inputs.v2.json) records the
   handoff package checksums, updated source cut, complete intervening-diff identity,
-  782-file inventory, current contract/corpus identities, package/wire boundary,
+  793-file inventory, current contract/corpus identities, package/wire boundary,
   handoff defects, and explicit external `NOT_RUN` gates.
 - [`max-effort-task-review.v2.json`](max-effort-task-review.v2.json) maps every
   exact task to local implementation leads, acceptance gaps, residual risk, all
   twenty `OPEN` lens states, and a `reviewer_comment`. All 146 tasks remain
   `OPEN`; the decision is `NO_GO`.
 - [`max-effort-file-review.v2.csv`](max-effort-file-review.v2.csv) and its
-  [`manifest`](max-effort-file-review-manifest.v2.json) bind all 782 tracked paths
-  at `18a45bd` to exact Git blob IDs, SHA-256 digests, the mandated 21 columns,
+  [`manifest`](max-effort-file-review-manifest.v2.json) bind all 793 tracked paths
+  at `f08c2ad` to exact Git blob IDs, SHA-256 digests, the mandated 21 columns,
   balanced review lanes, and the completed internal AI-assisted inspection. They
   explicitly record zero independent reviews and leave every disposition open.
 
 The handoff dependency graph is a strict `T000`→…→`T145` chain even though its wave
 document assigns dependent tasks to three parallel lanes. The review therefore
 treats task completion as serial while allowing independent file inspection to run
-in parallel. It also records that the handoff says 268 vectors while the exact
-frozen and reviewed manifests contain 269 (262 stable plus 7 migration), and that
-the supplied inventory, evidence-verification, and convergence helpers are not
-strong enough to establish release evidence.
+in parallel. It also records that the handoff says 268 vectors, the exact frozen
+manifest contains 269 (262 stable plus 7 migration), and the reviewed implementation
+manifest contains 282 (275 stable plus 7 migration). The supplied inventory,
+evidence-verification, and convergence helpers are not strong enough to establish
+release evidence. Repository-owned generated threat, latent-path, supply-chain,
+traceability, and local-convergence controls harden that bookkeeping while keeping
+every unresolved dependency and external gate explicit.
 
 ## Earlier standalone handoff (schema 1.0)
 

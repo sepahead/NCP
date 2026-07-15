@@ -1,0 +1,66 @@
+{
+  "schema": "ncp.audit-evidence-manifest.v1",
+  "normative": false,
+  "candidate": "1.0.0-rc.1",
+  "wire_version": "1.0",
+  "generated_by": "scripts/generate_audit_artifacts.py",
+  "claim_boundary": "These generated records are local, non-normative candidate audit controls. They do not close the handoff tasks, resolve independent review, satisfy an external release gate, certify a consumer or deployment, or authorize publication.",
+  "artifacts": [
+    {
+      "path": "evidence/audit/latent-path-inventory.v1.json",
+      "sha256": "ef92c1a893581d8a35662d3b5aeeff5e4d540912a1d023c7d49b0178bd78a351",
+      "bytes": 299088,
+      "records": 129
+    },
+    {
+      "path": "evidence/audit/requirement-traceability.v1.json",
+      "sha256": "6163aa5cd1884b7aa34f80f1a868de419534ee7592cc17b95414afb01f7ff6d6",
+      "bytes": 194024,
+      "records": 100
+    },
+    {
+      "path": "evidence/audit/threat-register.v1.json",
+      "sha256": "e1ba1f1cebd6028f1ac10e69db276ea84c6b927ac15c5059c55e47cbbb3548c2",
+      "bytes": 45741,
+      "records": 18
+    }
+  ],
+  "source_inputs": [
+    {
+      "path": "contract/surface.v1.json",
+      "sha256": "74a3fd62ec2454bfedadccfeec9ca2ed9164e044116ccf6776cd1858316323d6",
+      "bytes": 2522
+    },
+    {
+      "path": "contract/release-gates.v1.json",
+      "sha256": "fad29f287f446e4cd2144ef919457d39f1c5a47d38498ac892cf704c08830179",
+      "bytes": 1705
+    },
+    {
+      "path": "conformance/manifest.v1.json",
+      "sha256": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
+      "bytes": 249436
+    },
+    {
+      "path": "contract/manifest.v1.json",
+      "sha256": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
+      "bytes": 6113
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "c4d2c007a404350d462a63d934985f0474a2fd6dab62a2b1df51c558585a3c03",
+      "bytes": 94783
+    },
+    {
+      "path": "bun.lock",
+      "sha256": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
+      "bytes": 412
+    },
+    {
+      "path": "evidence/supply-chain/vulnerability-report.v1.json",
+      "sha256": "f1af60b3fbb8f0f8dc76ae8e772ea50e643e0c1f110830d7153cc50230cb14b0",
+      "bytes": 1916
+    }
+  ],
+  "generation_policy": "Rebuild from current repository inputs; byte drift or an unclassified latent path fails the local gate."
+}

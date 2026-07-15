@@ -26,6 +26,7 @@
     "sync": "node ncp-ts/scripts/sync-bindings.mjs",
     "build": "tsc -p ncp-ts/tsconfig.json",
     "check:behavior": "node ncp-ts/scripts/check-behavior.mjs",
+    "check:integers": "node ncp-ts/scripts/check-integer-safety.mjs",
     "check:ws": "node ncp-ts/scripts/check-ws.mjs",
     "check:package": "node ncp-ts/scripts/check-package.mjs && node ncp-ts/scripts/build-release.mjs --self-test",
     "build:npm-release": "node ncp-ts/scripts/build-release.mjs",

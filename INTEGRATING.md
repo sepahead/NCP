@@ -96,6 +96,19 @@ operation, receipt, plant, or scientific evidence. A result that traverses it is
 labelled legacy-translated and cannot count as native 1.0 certification. Native
 peers may set `gateway_permitted=false`.
 
+Persisted captures require a separate validation step. The bounded
+`validate-wire-08-capture` tool checks the exact declared wire/compact contract
+identity, one realm and frozen route grammar, exact nested legacy shapes, explicit
+units and frames, open-index/generation lineage, global non-evicting publisher and
+epoch restart fences, source correlation, requested-seed agreement, and simulation
+epistemic flags. It rejects `control_status` because frozen wire 0.8 defines no
+transport route for it, and rejects commands and step/run/close traffic because
+wire 0.8 cannot prove the 1.0 lease and operation evidence after the fact. A
+matching declaration does not authenticate capture origin. An accepted report is
+validation-only, identifies the validator package/build and complete target
+contract digest, and emits no target capture. See
+[`docs/wire-0.8-capture-migration.md`](docs/wire-0.8-capture-migration.md).
+
 [`ncp-gateway`](ncp-gateway/) is unrelated to this version translation. It is a
 same-wire native-1.0 lifecycle edge and requires a native-1.0 Python
 `SessionService`.

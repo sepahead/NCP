@@ -10,6 +10,8 @@ export declare class RequestDigestError extends Error {
 }
 /** Exact request-digest-v1 projection bytes. */
 export declare function canonicalRequestProjection(request: unknown): Uint8Array;
+/** Lowercase SHA-256 for bounded internal content fingerprints. */
+export declare function sha256Hex(input: Uint8Array): string;
 /** Lowercase SHA-256 of the request-digest-v1 projection. */
 export declare function requestDigest(request: unknown): string;
 /** Verify the embedded operation.request_digest. */

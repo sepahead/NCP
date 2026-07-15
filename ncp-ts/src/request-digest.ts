@@ -270,11 +270,14 @@ function sha256(input: Uint8Array): Uint8Array {
   return output
 }
 
+/** Lowercase SHA-256 for bounded internal content fingerprints. */
+export function sha256Hex(input: Uint8Array): string {
+  return Array.from(sha256(input), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 /** Lowercase SHA-256 of the request-digest-v1 projection. */
 export function requestDigest(request: unknown): string {
-  return Array.from(sha256(canonicalRequestProjection(request)), (byte) =>
-    byte.toString(16).padStart(2, '0'),
-  ).join('')
+  return sha256Hex(canonicalRequestProjection(request))
 }
 
 /** Verify the embedded operation.request_digest. */

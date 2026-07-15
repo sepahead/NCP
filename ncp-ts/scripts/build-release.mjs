@@ -203,6 +203,7 @@ function verifyRustBuildIdentity(sourceRoot, targetRoot, revision) {
     [
       'test',
       '--locked',
+      '--offline',
       '-p',
       'ncp-core',
       'contract_identity::tests::build_identity_matches_release_builder_expectation',

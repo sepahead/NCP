@@ -205,6 +205,7 @@ try {
         '--no-audit',
         '--no-fund',
         '--package-lock=false',
+        '--offline',
         tarball,
       ],
       { cwd: installRoot, env, stdio: 'pipe' },

@@ -12,6 +12,7 @@ export { NCP_BUILD_IDENTITY, NCP_NORMATIVE_CONTRACT_DIGEST, NCP_PACKAGE_VERSION,
 export { NeuroSimClient, NCP_VERSION, NCP_CONTRACT_HASH, checkVersion, NcpVersionError, contractStatus, assertScientificBoundary, assertNcpMessage, NcpScientificBoundaryError, JSON_SAFE_INTEGER_MAX, JSON_SAFE_INTEGER_MIN, MAX_HORIZON_STEPS, MAX_CHANNELS, NCP_ERROR_CODES, } from './client.js';
 export { WebSocketNeuroSim, WEBSOCKET_TRANSPORT_DEFAULTS } from './ws.js';
 export { BoundedJsonError, JSON_LIMITS, parseBoundedJson, preflightJson, } from './bounded-json.js';
+export { canonicalizeNcpJson, canonicalizeNcpMessage } from './canonical-json.js';
 export { canonicalRequestProjection, requestDigest, verifyRequestDigest, RequestDigestError, REQUEST_DIGEST_DOMAIN_V1, MAX_REQUEST_PROJECTION_BYTES, } from './request-digest.js';
 // Plant-side safety + resilience (the ncp-core safety.rs / resilience.rs port,
 // behaviour-pinned to the shared corpus) + the wire-1.0 data-plane ingress gate.

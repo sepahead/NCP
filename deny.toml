@@ -1,9 +1,12 @@
 # cargo-deny — supply-chain gate for the NCP workspace.
-# Run locally with `cargo deny check`; CI runs it via cargo-deny-action.
+# Local and hosted gates install/use the exact reviewed host scanner.
 
 [advisories]
 # RustSec advisory DB. A known-vulnerable crate fails the build. A yanked crate
 # (pulled from crates.io after publish) is also denied — it must not be in the lock.
+# Qualification jobs temporarily bind HOME to a private directory; ordinary
+# invocations use the caller's per-user cache instead of a shared /tmp path.
+db-path = "${HOME}/.cargo/advisory-dbs"
 yanked = "deny"
 # Each ignore is a TRANSITIVE advisory pinned by zenoh = "1.9.0" (we do not own the
 # constraint) with no fix reachable from our lock. Documented, not silent; drop the

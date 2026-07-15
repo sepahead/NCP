@@ -18,6 +18,9 @@ Zenoh lives in [`ncp-zenoh`](../ncp-zenoh/).
 RPC failures use a required registered `ErrorFrame.code`. The typed builders
 distinguish invalid wire messages (`NCP-WIRE-001`) from contained implementation
 failures (`NCP-INTERNAL-001`) while preserving an exact optional session pair.
+`canonicalize_message_json` is the shared bounded validate-and-round-trip path used
+by the Python and C/C++ bindings; it emits deterministic Rust-reference bytes and
+keeps those wrappers from acquiring subtly different defaults or field ordering.
 
 Runtime/package introspection is available through `PACKAGE_VERSION`,
 `NCP_VERSION`, `CONTRACT_HASH`, `NORMATIVE_CONTRACT_DIGEST`, and `BUILD_IDENTITY`.
@@ -50,6 +53,19 @@ Important boundaries:
   actuator authority;
 - simulation results remain `calibrated_posterior=false` and
   `is_simulation_output=true` and are not paper reproductions.
+
+The `validate-wire-08-capture` binary and
+`validate_wire_0_8_capture` API provide bounded, validation-only legacy-capture
+reconstructability checks. They require the exact declared legacy wire/compact
+contract identity, one realm and frozen route grammar, exact nested shapes,
+explicit units and frames, opening lineage, global non-evicting publisher/epoch
+restart fences, source correlation, requested-seed agreement, and epistemic flags.
+Wire-0.8 records that would need authority or operation evidence reject, as does
+`control_status` because the frozen route grammar has no status route. The report
+binds the source bytes, validator package/build identity, compact target hash, and
+complete target normative digest; it emits no target capture or upgraded claim.
+See
+[`docs/wire-0.8-capture-migration.md`](../docs/wire-0.8-capture-migration.md).
 
 Run the crate's complete tests with:
 

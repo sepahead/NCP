@@ -50,8 +50,20 @@ python3 scripts/check_released_baselines.py
 python3 scripts/check_buf_breaking.py
 python3 scripts/check_behavior_vectors.py   # requires an installed candidate wheel
 bun run check:behavior
+bun run check:integers
 cargo test -p ncp-core --all-features
 ```
+
+After building `ncp-ts/dist` and installing the candidate wheel into the active
+Python environment, `python3 scripts/check_cross_language_canonical_json.py`
+executes the exact 14-vector canonical-byte matrix across Rust, TypeScript,
+Python FFI, and C/C++ FFI. It requires every one of the 16 ordered
+producer-to-consumer pairs, including self-pairs, and compares 224 emitted byte
+sequences. Python and C/C++ share the Rust codec, so their rows are binding
+coverage rather than independent-implementation evidence. `bun run check:integers`
+separately discovers all stable integer paths from the complete schema set and
+proves the safe boundary plus pre-parse and programmatic unsafe-value rejection at
+each path.
 
 A local zero-skip pass is necessary but not sufficient for release. Signed reports
 must also identify the installed implementation version, full normative digest,

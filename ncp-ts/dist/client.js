@@ -13,7 +13,7 @@
  * for a WebSocket implementation; a Zenoh/native transport can implement the same
  * `Send`).
  */
-import { requestDigest, verifyRequestDigest } from './request-digest.js';
+import { requestDigest, sha256Hex, verifyRequestDigest } from './request-digest.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
  * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
  * correlation-only `source`, adds `session` (generation) + `session_id` on every
@@ -32,6 +32,8 @@ export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991;
 export const JSON_SAFE_INTEGER_MIN = -JSON_SAFE_INTEGER_MAX;
 export const MAX_HORIZON_STEPS = 65_536;
 export const MAX_CHANNELS = 4_096;
+const MAX_CLIENT_GENERATIONS = 4_096;
+const MAX_CLIENT_OBSERVATION_POSITIONS = 4_096;
 /** Closed stable wire-1.0 error-code registry. Keep this in exact parity with
  * `contract/errors.v1.json`; the shared mandatory corpus exercises rejection of
  * missing and unknown values in every implementation. */
@@ -1178,11 +1180,91 @@ function assertReceiptCorrelation(receipt, operation, path) {
         throw new Error(`${path}.request_digest does not match the request operation`);
     }
 }
+const REPLAY_FINGERPRINT_DOMAIN = 'ncp.observation-replay-fingerprint.v1\0';
+const replayFingerprintEncoder = new TextEncoder();
+/** Deterministic, key-order-independent projection of the complete parsed reply.
+ * This intentionally retains unknown fields: the client returns them to its
+ * caller, so changing one at an already accepted stream position must fail even
+ * though the typed canonical projection would discard it. */
+function replayProjection(value, depth = 0) {
+    if (depth > 32)
+        throw new Error('NCP observation reply fingerprint exceeds the nesting-depth budget');
+    if (value === null)
+        return 'null';
+    if (typeof value === 'boolean')
+        return value ? 'true' : 'false';
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) {
+            throw new Error('NCP observation reply fingerprint contains a non-finite number');
+        }
+        return Object.is(value, -0) ? '-0' : JSON.stringify(value);
+    }
+    if (typeof value === 'string') {
+        for (let index = 0; index < value.length; index++) {
+            const unit = value.charCodeAt(index);
+            if (unit >= 0xd800 && unit <= 0xdbff) {
+                const next = value.charCodeAt(index + 1);
+                if (!(next >= 0xdc00 && next <= 0xdfff)) {
+                    throw new Error('NCP observation reply fingerprint contains an unpaired high surrogate');
+                }
+                index += 1;
+            }
+            else if (unit >= 0xdc00 && unit <= 0xdfff) {
+                throw new Error('NCP observation reply fingerprint contains an unpaired low surrogate');
+            }
+        }
+        return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) {
+        const items = [];
+        for (let index = 0; index < value.length; index++) {
+            if (!Object.hasOwn(value, index)) {
+                throw new Error('NCP observation reply fingerprint contains a sparse non-JSON array');
+            }
+            items.push(replayProjection(value[index], depth + 1));
+        }
+        if (Object.keys(value).length !== value.length) {
+            throw new Error('NCP observation reply fingerprint contains a non-JSON array property');
+        }
+        return `[${items.join(',')}]`;
+    }
+    if (typeof value !== 'object' || value === undefined) {
+        throw new Error(`NCP observation reply fingerprint contains unsupported ${typeof value} value`);
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+        throw new Error('NCP observation reply fingerprint contains a non-JSON object');
+    }
+    if (Object.getOwnPropertySymbols(value).length !== 0) {
+        throw new Error('NCP observation reply fingerprint contains a non-JSON symbol key');
+    }
+    const object = value;
+    const entries = Object.keys(object)
+        .sort()
+        .map((key) => `${replayProjection(key, depth)}:${replayProjection(object[key], depth + 1)}`);
+    return `{${entries.join(',')}}`;
+}
+function observationReplyFingerprint(frame) {
+    const projection = REPLAY_FINGERPRINT_DOMAIN + replayProjection(frame);
+    return sha256Hex(replayFingerprintEncoder.encode(projection));
+}
 export class NeuroSimClient {
     send;
     negotiation;
     /** session_id -> the server-issued generation, learned at open(). */
     generations = new Map();
+    /** Non-evicting retired/seen generations; a logical session never revives one. */
+    seenGenerations = new Map();
+    /** Global count backing the bounded non-evicting generation fence. */
+    seenGenerationCount = 0;
+    /** Per-live-generation observation epoch/high-water and full-reply replay state. */
+    observationFences = new Map();
+    /** Global retained position count across all live generation fences. */
+    observationPositionCount = 0;
+    /** Current in-flight open attempt per logical session. */
+    openings = new Map();
+    /** Total in-flight opens, including superseded attempts for the same session. */
+    inFlightOpenCount = 0;
     constructor(send, negotiation) {
         this.send = send;
         this.negotiation = negotiation;
@@ -1212,27 +1294,130 @@ export class NeuroSimClient {
             gateway: this.negotiation.gateway ?? null,
         };
         assertNcpMessage(request, 'open_session');
-        const reply = await this.send(request);
-        const opened = unwrap(reply, 'open_session', 'session_opened', sessionId);
-        if (!opened.ok || opened.session == null) {
-            throw new Error(`NCP session open failed: ${opened.error ?? 'peer supplied no reason'}`);
+        if (this.inFlightOpenCount >= MAX_CLIENT_GENERATIONS) {
+            throw new Error('NCP client opening fence reached its non-evicting capacity');
         }
-        if (opened.security_profile !== this.negotiation.security_profile ||
-            opened.security_state_digest !== this.negotiation.security_state_digest ||
-            opened.gateway_permitted !== this.negotiation.gateway_permitted) {
-            throw new Error('NCP session security negotiation does not match the precommitted request');
+        // An attempted reopen retires the client-local binding before any transport
+        // wait. If the process, transport, or peer fails mid-open, subsequent
+        // mutations must fail locally until a new successful SessionOpened supplies
+        // a generation; retaining the prior generation would turn uncertainty into a
+        // stale-session retry.
+        const attempt = Symbol(sessionId);
+        this.retireGeneration(sessionId);
+        this.openings.set(sessionId, attempt);
+        this.inFlightOpenCount += 1;
+        try {
+            const reply = await this.send(request);
+            if (this.openings.get(sessionId) !== attempt) {
+                throw new Error(`NCP session ${JSON.stringify(sessionId)} open result was superseded by a newer attempt`);
+            }
+            const opened = unwrap(reply, 'open_session', 'session_opened', sessionId);
+            if (!opened.ok || opened.session == null) {
+                throw new Error(`NCP session open failed: ${opened.error ?? 'peer supplied no reason'}`);
+            }
+            if (opened.security_profile !== this.negotiation.security_profile ||
+                opened.security_state_digest !== this.negotiation.security_state_digest ||
+                opened.gateway_permitted !== this.negotiation.gateway_permitted ||
+                opened.gateway?.gateway_id !== this.negotiation.gateway?.gateway_id ||
+                opened.gateway?.source_wire !== this.negotiation.gateway?.source_wire) {
+                throw new Error('NCP session security negotiation does not match the precommitted request');
+            }
+            // Advisory contract-hash check (the reply half): log a mismatch, do not throw —
+            // the version is the hard gate (mirrors the NCP session-service contract).
+            const advisory = contractStatus(opened.contract_hash);
+            if (advisory)
+                console.warn(`[ncp] ${advisory}`);
+            const generation = opened.session.generation;
+            const existingSeen = this.seenGenerations.get(sessionId);
+            if (existingSeen?.has(generation) === true) {
+                throw new Error(`NCP session ${JSON.stringify(sessionId)} attempted to revive retired generation ${JSON.stringify(generation)}`);
+            }
+            if (this.seenGenerationCount >= MAX_CLIENT_GENERATIONS) {
+                throw new Error(`NCP session ${JSON.stringify(sessionId)} exceeded the non-evicting generation fence capacity`);
+            }
+            let seen = existingSeen;
+            if (seen === undefined) {
+                seen = new Set();
+                this.seenGenerations.set(sessionId, seen);
+            }
+            seen.add(generation);
+            this.seenGenerationCount += 1;
+            this.generations.set(sessionId, generation);
+            return opened;
         }
-        // Advisory contract-hash check (the reply half): log a mismatch, do not throw —
-        // the version is the hard gate (mirrors the NCP session-service contract).
-        const advisory = contractStatus(opened.contract_hash);
-        if (advisory)
-            console.warn(`[ncp] ${advisory}`);
-        this.generations.set(sessionId, opened.session.generation);
-        return opened;
+        finally {
+            this.inFlightOpenCount -= 1;
+            if (this.openings.get(sessionId) === attempt)
+                this.openings.delete(sessionId);
+        }
+    }
+    retireGeneration(sessionId) {
+        this.generations.delete(sessionId);
+        const observation = this.observationFences.get(sessionId);
+        if (observation !== undefined) {
+            this.observationPositionCount -= observation.replyFingerprints.size;
+            this.observationFences.delete(sessionId);
+        }
+    }
+    requireOpenGeneration(sessionId) {
+        const generation = this.generations.get(sessionId);
+        if (generation === undefined) {
+            throw new Error(`NCP session ${JSON.stringify(sessionId)} has no live generation in this client instance; open it after startup or restart before mutating`);
+        }
+        return generation;
+    }
+    requireCurrentGeneration(sessionId, expected) {
+        if (this.generations.get(sessionId) !== expected) {
+            throw new Error(`NCP session ${JSON.stringify(sessionId)} generation changed while a mutation was in flight; its result is stale`);
+        }
+    }
+    acceptObservationPosition(sessionId, generation, frame) {
+        const { epoch, seq } = frame.stream;
+        const receipt = frame.receipt;
+        if (receipt == null) {
+            throw new Error('NCP mutation observation reply carries no responder receipt');
+        }
+        // A receipt's result_digest is not independently recomputable at this
+        // boundary. Bind terminal retries to the complete reply so an identical
+        // receipt cannot mask changed result content at an accepted position.
+        const fingerprint = observationReplyFingerprint(frame);
+        const fence = this.observationFences.get(sessionId);
+        if (fence === undefined) {
+            if (seq !== 1) {
+                throw new Error('NCP first observation reply for a fresh session generation must use stream.seq 1');
+            }
+            if (this.observationPositionCount >= MAX_CLIENT_OBSERVATION_POSITIONS) {
+                throw new Error('NCP observation replay fence reached its non-evicting capacity');
+            }
+            this.observationFences.set(sessionId, {
+                generation,
+                epoch,
+                highWater: 1,
+                replyFingerprints: new Map([[1, fingerprint]]),
+            });
+            this.observationPositionCount += 1;
+            return;
+        }
+        if (fence.generation !== generation || fence.epoch !== epoch) {
+            throw new Error('NCP observation reply changed generation or stream epoch without a fresh open');
+        }
+        if (seq > fence.highWater) {
+            if (this.observationPositionCount >= MAX_CLIENT_OBSERVATION_POSITIONS) {
+                throw new Error('NCP observation replay fence reached its non-evicting capacity');
+            }
+            fence.highWater = seq;
+            fence.replyFingerprints.set(seq, fingerprint);
+            this.observationPositionCount += 1;
+            return;
+        }
+        if (seq <= fence.highWater && fence.replyFingerprints.get(seq) === fingerprint) {
+            return;
+        }
+        throw new Error(`NCP observation stream position is replayed, reordered, or non-increasing: high-water ${fence.highWater}, got ${seq}`);
     }
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
     async step(sessionId, mutation, stimulus = {}, advanceMs) {
-        const generation = this.generations.get(sessionId) ?? '';
+        const generation = this.requireOpenGeneration(sessionId);
         const request = sealMutationRequest({
             kind: 'step_request',
             ncp_version: NCP_VERSION,
@@ -1251,11 +1436,14 @@ export class NeuroSimClient {
         });
         assertNcpMessage(request, 'step_request');
         const reply = await this.send(request);
-        return unwrap(reply, 'step_request', 'observation_frame', sessionId, generation, request.operation);
+        this.requireCurrentGeneration(sessionId, generation);
+        const observation = unwrap(reply, 'step_request', 'observation_frame', sessionId, generation, request.operation);
+        this.acceptObservationPosition(sessionId, generation, observation);
+        return observation;
     }
     /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */
     async run(sessionId, durationMs, mutation, stimulus = {}) {
-        const generation = this.generations.get(sessionId) ?? '';
+        const generation = this.requireOpenGeneration(sessionId);
         const request = sealMutationRequest({
             kind: 'run_request',
             ncp_version: NCP_VERSION,
@@ -1274,11 +1462,14 @@ export class NeuroSimClient {
         });
         assertNcpMessage(request, 'run_request');
         const reply = await this.send(request);
-        return unwrap(reply, 'run_request', 'observation_frame', sessionId, generation, request.operation);
+        this.requireCurrentGeneration(sessionId, generation);
+        const observation = unwrap(reply, 'run_request', 'observation_frame', sessionId, generation, request.operation);
+        this.acceptObservationPosition(sessionId, generation, observation);
+        return observation;
     }
     /** Close the session. */
     async close(sessionId, mutation) {
-        const generation = this.generations.get(sessionId) ?? '';
+        const generation = this.requireOpenGeneration(sessionId);
         const request = sealMutationRequest({
             kind: 'close_session',
             ncp_version: NCP_VERSION,
@@ -1288,6 +1479,11 @@ export class NeuroSimClient {
             authority: mutation.authority,
         });
         assertNcpMessage(request, 'close_session');
+        // A close attempt makes the prior generation unavailable immediately. A
+        // timeout or lost reply leaves the outcome unknown; it never restores local
+        // mutation authority. A concurrent successful open may install a new
+        // generation without a late close result deleting it.
+        this.retireGeneration(sessionId);
         const reply = await this.send(request);
         return unwrap(reply, 'close_session', 'session_closed', sessionId, generation, request.operation);
     }

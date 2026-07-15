@@ -3395,6 +3395,60 @@ pub fn validate(json: &serde_json::Value) -> Result<(), ValidationError> {
     Ok(())
 }
 
+/// Validate one bounded stable message and emit the deterministic JSON bytes of
+/// the Rust reference projection selected by `kind`.
+///
+/// This is the shared implementation behind the Python and C/C++ binding
+/// `validate` functions. Keeping the parse, kind check, semantic validation,
+/// typed default materialization, unknown-field removal, map ordering, and
+/// serialization in one function prevents the FFI surfaces from drifting while
+/// still leaving those bindings correctly classified as Rust FFI rather than
+/// independent implementations.
+pub fn canonicalize_message_json(kind: &str, bytes: &[u8]) -> Result<String, ValidationError> {
+    let value = crate::bounded_json::parse_value(bytes)
+        .map_err(|error| ValidationError(error.to_string()))?;
+    let body_kind = message_kind(&value)
+        .ok_or_else(|| ValidationError("NCP message has no string `kind`".into()))?;
+    if body_kind != kind {
+        return Err(ValidationError(format!(
+            "kind mismatch: argument {kind:?} but body says {body_kind:?}"
+        )));
+    }
+    validate(&value)?;
+
+    macro_rules! round_trip {
+        ($ty:ty) => {{
+            let typed: $ty = serde_json::from_value(value)
+                .map_err(|error| ValidationError(format!("{kind}: invalid wire shape: {error}")))?;
+            serde_json::to_string(&typed).map_err(|error| {
+                ValidationError(format!(
+                    "{kind}: canonical JSON serialization failed: {error}"
+                ))
+            })
+        }};
+    }
+
+    match kind {
+        "open_session" => round_trip!(OpenSession),
+        "session_opened" => round_trip!(SessionOpened),
+        "step_request" => round_trip!(StepRequest),
+        "run_request" => round_trip!(RunRequest),
+        "stimulus_frame" => round_trip!(StimulusFrame),
+        "observation_frame" => round_trip!(ObservationFrame),
+        "close_session" => round_trip!(CloseSession),
+        "session_closed" => round_trip!(SessionClosed),
+        "sensor_frame" => round_trip!(SensorFrame),
+        "command_frame" => round_trip!(CommandFrame),
+        "control_status" => round_trip!(ControlStatus),
+        "link_status" => round_trip!(LinkStatus),
+        "capabilities" => round_trip!(Capabilities),
+        "error" => round_trip!(ErrorFrame),
+        other => Err(ValidationError(format!(
+            "unknown NCP message kind {other:?}"
+        ))),
+    }
+}
+
 fn required_nonempty_string<'a>(
     obj: &'a serde_json::Map<String, serde_json::Value>,
     field: &str,

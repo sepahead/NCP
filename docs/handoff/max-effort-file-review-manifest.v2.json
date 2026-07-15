@@ -1,9 +1,9 @@
 {
   "schema": "ncp.max-effort-file-review-manifest.v2",
   "normative": false,
-  "source_commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
-  "source_tree": "b4886f2389a6b526249cf13b673de9e92a4f14f1",
-  "source_boundary": "Exact committed Git objects; worktree bytes and evidence-layer files are excluded.",
+  "source_commit": "f08c2ad5f68bab0a583db918439660636996ca07",
+  "source_tree": "5a39bc6cb5df634fb8a50b841b80cc30244644f3",
+  "source_boundary": "Exact committed Git objects; worktree bytes and this subsequent evidence update are excluded.",
   "columns": [
     "path",
     "git_blob_id",
@@ -27,36 +27,36 @@
     "disposition",
     "completed_at"
   ],
-  "tracked_files": 782,
-  "internally_reviewed_files": 782,
+  "tracked_files": 793,
+  "internally_reviewed_files": 793,
   "independently_reviewed_files": 0,
   "critical_files_independently_reviewed": 0,
-  "tracked_bytes": 6360298,
-  "text_lines": 169759,
+  "tracked_bytes": 7817402,
+  "text_lines": 191813,
   "review_status": "INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS",
-  "completed_at": "2026-07-14T16:09:26Z",
+  "completed_at": "2026-07-14T20:48:47Z",
   "decision": "NO_GO",
   "reviewers": [
     {
       "id": "/root/cross_repo_audit",
-      "files": 258,
-      "text_lines": 56587,
+      "files": 262,
+      "text_lines": 63938,
       "independent_human_reviewer": false
     },
     {
       "id": "/root/handoff_audit",
-      "files": 266,
-      "text_lines": 56586,
+      "files": 262,
+      "text_lines": 63938,
       "independent_human_reviewer": false
     },
     {
       "id": "/root/repo_gap_audit",
-      "files": 258,
-      "text_lines": 56586,
+      "files": 269,
+      "text_lines": 63937,
       "independent_human_reviewer": false
     }
   ],
-  "csv_sha256": "ffb707b52de49d2f86fd23104431b256de0391cdf6267c38a94fcc83c520681b",
-  "generator": "python3 scripts/generate_file_review_ledger.py --source 18a45bd4fdf17381351be5bd8c1da58b7835997c --review-status INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS --completed-at 2026-07-14T16:09:26Z",
+  "csv_sha256": "12e556e1678391f5ec5246d16385b85559fdc14079ceb160f7658b8425941549",
+  "generator": "python3 scripts/generate_file_review_ledger.py --source f08c2ad5f68bab0a583db918439660636996ca07 --review-status INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS --completed-at 2026-07-14T20:48:47Z",
   "limitation": "Complete internal AI-assisted inspection and exact row coverage do not satisfy the handoff's independent critical-file review, task evidence, external gates, or release signature requirements."
 }

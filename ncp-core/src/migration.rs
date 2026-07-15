@@ -4,7 +4,19 @@
 //! mapping is `Capabilities.optional` -> `ChannelSpec.requirement`, and it is
 //! allowed only when every legacy boolean is explicitly present. The gateway
 //! never asserts transport security, authority, plant safety, or scientific
-//! evidence that the 0.8 payload did not carry.
+//! evidence that the 0.8 payload did not carry. The capture validator is likewise
+//! validation-only: it checks explicit legacy fields in a bounded capture limited
+//! to capabilities, the lifecycle open exchange, sensor data, and observations,
+//! but never emits a native-1.0 capture or upgrades its security, authority,
+//! safety, or scientific status.
+
+mod capture;
+
+pub use capture::{
+    validate_wire_0_8_capture, CaptureMigrationError, CaptureMigrationGap, CaptureMigrationReport,
+    CaptureReconstructability, CAPTURE_MIGRATION_REPORT_SCHEMA, LEGACY_CAPTURE_SCHEMA,
+    LEGACY_WIRE_0_8_CONTRACT_HASH, MAX_CAPTURE_RECORDS,
+};
 
 use crate::bounded_json;
 use crate::idempotency::sha256_hex;

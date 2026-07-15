@@ -15,6 +15,7 @@ export { WebSocketNeuroSim, WEBSOCKET_TRANSPORT_DEFAULTS } from './ws.js';
 export type { WebSocketNeuroSimOptions } from './ws.js';
 export { BoundedJsonError, JSON_LIMITS, parseBoundedJson, preflightJson, } from './bounded-json.js';
 export type { JsonLimitCode } from './bounded-json.js';
+export { canonicalizeNcpJson, canonicalizeNcpMessage } from './canonical-json.js';
 export { canonicalRequestProjection, requestDigest, verifyRequestDigest, RequestDigestError, REQUEST_DIGEST_DOMAIN_V1, MAX_REQUEST_PROJECTION_BYTES, } from './request-digest.js';
 export { ActionBuffer, CommandWatchdog, SafetyGovernor, assertWireFrame, maxHorizonLen, LINK_LOSS_ESTOP_FACTOR, MAX_TTL_MS, } from './safety.js';
 export type { CommandLike, SensorLike, WireChannels } from './safety.js';

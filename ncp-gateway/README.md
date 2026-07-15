@@ -42,9 +42,34 @@ hash, complete normative contract digest, and build identity. This RC reports
 The gateway validates selector/request/reply/session shape and uses bounded Zenoh
 RPC concurrency. Its loopback reply reader requires one newline-terminated JSON
 frame, caps the read at the normative frame ceiling, and runs the universal bounded
-preflight before returning bytes to the transport; malformed, duplicate-key,
-unterminated, and oversized replies are contained as internal bridge failures. The
-local socket does not upgrade backend trust. The current Zenoh adapter cannot bind a
+preflight before returning bytes to the transport. Before forwarding a native
+reply, the gateway also binds its session generation and responder receipt to the
+originating request and requires a successful open reply to preserve the requested
+security profile, security-state digest, gateway permission, and gateway
+attribution. A stale reply from an independently restarted backend is contained.
+Malformed, duplicate-key, unterminated, oversized, stale-generation, and
+mis-correlated replies are internal bridge failures.
+
+Restart fencing is bounded process-local state. A new gateway process cannot
+forward step/run/close until it observes a fresh successful open. Starting an open
+or close retires the prior live generation before bridge I/O; failed or lost I/O
+never restores it, and a generation observed by that gateway process cannot be
+revived during the same process lifetime. Completed failed opens release their
+attempt fence; completion of an older concurrent open cannot remove a newer one. For
+step/run replies, the first observation of a fresh generation must use sequence 1;
+later accepted positions retain one epoch and a strictly increasing high-water
+mark, while only a full-reply-fingerprint-identical terminal retry may repeat an
+already retained position. Forward gaps are tolerated; unseen lower positions,
+foreign epochs, and content-conflicting replays reject. Generation and observation
+fences each retain at most 4096 entries globally, unresolved openings are also
+capped at 4096, and all three fences fail closed at capacity.
+
+The gateway checks `result_digest` syntax and uses it in replay correlation, but it
+does not independently recompute it: the candidate has no normative nonrecursive
+result projection that independent gateway and TypeScript implementations can
+hash without inventing wire semantics. That is an open release blocker, so these
+checks are not result-body certification. The local socket does not upgrade backend
+trust. The current Zenoh adapter cannot bind a
 transport-authenticated remote principal to `IdentityClaim`, so setting
 `NCP_ZENOH_CONFIG` causes startup to fail closed rather than expose a purportedly
 secure remote bus. Remote deployment remains unavailable until that binding is

@@ -85,10 +85,15 @@ def fixture_pairs() -> list[tuple[Path, Path]]:
                 ROOT / "ncp-cpp/testdata/conformance/manifest.v1.json",
             ),
             (
-                ROOT
-                / "conformance/migration/v0.8-to-v1.0/channel-requirement.json",
+                ROOT / "conformance/migration/v0.8-to-v1.0/channel-requirement.json",
                 ROOT
                 / "ncp-core/testdata/conformance/migration/channel-requirement.json",
+            ),
+            (
+                ROOT
+                / "conformance/migration/v0.8-to-v1.0/wire-0.8-reconstructable-capture.json",
+                ROOT
+                / "ncp-core/testdata/migration/wire-0.8-reconstructable-capture.json",
             ),
             (
                 ROOT / "conformance/behavior/vectors.json",

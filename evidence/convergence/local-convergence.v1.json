@@ -1,0 +1,169 @@
+{
+  "candidate": "1.0.0-rc.1",
+  "claim_boundary": "This is a deterministic NO_GO convergence and handoff inventory. It does not convert required local commands, open implementation prerequisites, or NOT_RUN external gates into passing evidence.",
+  "compact_contract_hash": "163acc57d8a62b66",
+  "conformance_corpus_digest_sha256": "83bdcfae2e07f1c69efa87279f0b3c27392be83f31b292647cddd10eb35226b3",
+  "conformance_counts": {
+    "migration": 7,
+    "required": 282,
+    "stable": 275
+  },
+  "decision": "NO_GO",
+  "external_pre_release_handoff": [
+    {
+      "evidence_required": "live wrong-principal/entity/plane, validity, rotation, revocation, ACL, and downgrade negatives bound to one artifact set",
+      "id": "live-mtls-acl-rotation-revocation",
+      "owner": "deployment security campaign",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "two installed non-Rust implementations exercising the live transport without Rust decision FFI",
+      "id": "two-independent-non-rust-live-peers",
+      "owner": "independent peer implementers",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "delay/loss/duplication/reordering/partition, router/peer restart, slow-consumer/flood, and duration receipts",
+      "id": "fault-backpressure-restart-soak",
+      "owner": "qualification environment",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "coverage-guided parser/state/FFI fuzzing plus sanitizers for the required duration and exact source",
+      "id": "fuzz-sanitizer-duration",
+      "owner": "qualification environment",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "artifact-bound latency, throughput, memory, queue, and saturation profiles on declared platforms",
+      "id": "performance-resource-profile",
+      "owner": "supported-platform qualification",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "clean installs and zero-skip conformance for crates, wheel/sdist, npm, and C/C++ artifacts",
+      "id": "installed-package-matrix",
+      "owner": "package qualification",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "verified control of every final package name or one coordinated rename across manifests, docs, tests, and consumers",
+      "id": "registry-namespace-ownership",
+      "owner": "package registry accounts",
+      "status": "NOT_RUN"
+    },
+    {
+      "current_consumer_inventory": [
+        "Engram",
+        "crebain",
+        "crebain-galadriel-producer",
+        "galadriel",
+        "haldir",
+        "prisoma"
+      ],
+      "evidence_required": "native installed-artifact certification for every enumerated consumer against the same NCP source and artifacts",
+      "id": "consumer-certification",
+      "owner": "consumer repositories",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "clean-room source, package, core-conformance, and checksum reproduction without the originating build cache",
+      "id": "independent-clean-room-reproduction",
+      "owner": "independent reproducer",
+      "status": "NOT_RUN"
+    },
+    {
+      "evidence_required": "verified package checksums, vulnerability/license dossier, SBOM/provenance attestations, signatures, and revocation procedure",
+      "id": "signed-sbom-provenance",
+      "owner": "hosted build and independent verifier",
+      "status": "NOT_RUN"
+    }
+  ],
+  "handoff_review_state": {
+    "decision": "NO_GO",
+    "lens_reviews_open": 2920,
+    "lens_reviews_resolved": 0,
+    "lens_reviews_total": 2920,
+    "tasks_complete": 0,
+    "tasks_open": 146,
+    "tasks_total": 146
+  },
+  "local_reproducible_gates": [
+    {
+      "command": "python3 scripts/generate_contract_manifest.py",
+      "evidence": "contract/manifest.v1.json",
+      "id": "normative-contract",
+      "status": "REQUIRED_REPRODUCIBLE_LOCAL_GATE"
+    },
+    {
+      "command": "scripts/check.sh",
+      "evidence": "conformance/manifest.v1.json",
+      "id": "zero-skip-conformance",
+      "status": "REQUIRED_REPRODUCIBLE_LOCAL_GATE"
+    }
+  ],
+  "normative_contract_digest_sha256": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+  "post_publication_validations": [
+    {
+      "blocks_initial_release": false,
+      "id": "post-publication-install-smoke",
+      "local": false,
+      "required": true
+    },
+    {
+      "blocks_initial_release": false,
+      "id": "post-publication-emergency-revocation-exercise",
+      "local": false,
+      "required": true
+    }
+  ],
+  "release_authorized": false,
+  "repository_owned_open_prerequisites": [
+    {
+      "acceptance": "Implement an adapter that supplies callback-visible verified peer identity, bind every ingress identity/plane to it, and pass local negative tests before any live campaign.",
+      "current_behavior": "ZenohBus::open_secure validates the strict config and refuses to open.",
+      "id": "zenoh-production-secure-peer-principal-binding",
+      "reason": "Zenoh 1.9 callbacks do not identify the authenticated transport link/principal for each delivered sample or query.",
+      "status": "OPEN_FAIL_CLOSED"
+    },
+    {
+      "acceptance": "Upgrade to a reviewed Zenoh graph that resolves a patched lz4_flex, remove the advisory disposition, and pass the dependency exposure and current RustSec gates.",
+      "current_behavior": "Transport compression stays disabled and the resolved feature graph is guarded, but stable publication remains blocked.",
+      "id": "zenoh-lz4-rustsec-stable-publication-hold",
+      "reason": "Zenoh 1.9.0 retains lz4_flex 0.10.0 under RUSTSEC-2026-0041; no patched 0.10 release exists.",
+      "status": "OPEN_FAIL_CLOSED"
+    },
+    {
+      "acceptance": "Specify and review one bounded domain-separated result projection, implement independent Rust and TypeScript computation, add cross-language vectors, and rebaseline every affected normative artifact together.",
+      "current_behavior": "Clients validate digest syntax and receipt correlation but do not claim result-body certification.",
+      "id": "independent-result-digest-projection",
+      "reason": "The receipt result_digest has no approved normative nonrecursive wire-result projection that independent clients can recompute.",
+      "status": "OPEN_FAIL_CLOSED"
+    }
+  ],
+  "requested_dispositions": {
+    "doi_and_zenodo": {
+      "action_taken": false,
+      "disposition": "DEFERRED_NOT_ASSIGNED",
+      "finding": "No DOI or Zenodo archive is assigned or created. Citation metadata remains author-only candidate metadata until a later publication step assigns those identifiers."
+    },
+    "historical_tag_and_release_cleanup": {
+      "action_taken": false,
+      "disposition": "RETAIN_IMMUTABLE_HISTORY",
+      "finding": "No erroneous candidate tag or disposable release object exists. Historical annotated tags and release objects are compatibility, migration, and provenance evidence; v0.5.0 through v0.8.0 are machine-bound by released-baseline checks."
+    },
+    "requested_0_9_release": {
+      "action_taken": false,
+      "disposition": "REQUIRES_CROSS_REPOSITORY_NORMATIVE_REBASELINE",
+      "finding": "Current bytes are package 1.0.0-rc.1, wire 1.0, proto ncp.v1, and compact hash 163acc57d8a62b66. A v0.9 label would be incoherent; a genuine 0.9 requires a reviewed normative rebaseline and coordinated consumer migration."
+    }
+  },
+  "schema": "ncp.local-convergence.v1",
+  "source_evidence": {
+    "conformance/manifest.v1.json": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
+    "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
+    "contract/release-gates.v1.json": "fad29f287f446e4cd2144ef919457d39f1c5a47d38498ac892cf704c08830179",
+    "docs/handoff/max-effort-task-review.v2.json": "46cf1f3cecf16980087d4b951a9b4f54a6e13dc1aab99f054c5ad6eafd71dbeb"
+  },
+  "wire_version": "1.0"
+}

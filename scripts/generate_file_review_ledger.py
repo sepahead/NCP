@@ -26,13 +26,13 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE = "18a45bd4fdf17381351be5bd8c1da58b7835997c"
+DEFAULT_SOURCE = "f08c2ad5f68bab0a583db918439660636996ca07"
 DEFAULT_OUTPUT = ROOT / "docs" / "handoff" / "max-effort-file-review.v2.csv"
 DEFAULT_MANIFEST = (
     ROOT / "docs" / "handoff" / "max-effort-file-review-manifest.v2.json"
 )
 DEFAULT_REVIEW_STATUS = "INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS"
-DEFAULT_COMPLETED_AT = "2026-07-14T16:09:26Z"
+DEFAULT_COMPLETED_AT = "2026-07-14T20:48:47Z"
 SOURCE_ID = re.compile(r"^[0-9a-f]{40}$")
 REVIEWERS = (
     "/root/cross_repo_audit",
@@ -443,7 +443,7 @@ def build(
         "normative": False,
         "source_commit": commit,
         "source_tree": tree,
-        "source_boundary": "Exact committed Git objects; worktree bytes and evidence-layer files are excluded.",
+        "source_boundary": "Exact committed Git objects; worktree bytes and this subsequent evidence update are excluded.",
         "columns": list(FIELDNAMES),
         "tracked_files": len(intermediate),
         "internally_reviewed_files": reviewed_files,

@@ -6,7 +6,7 @@
     "git_email": "sepmhn@gmail.com",
     "citation_email": "sepehr.mahmoudian@gmail.com"
   },
-  "captured_at_utc": "2026-07-14T14:59:13Z",
+  "captured_at_utc": "2026-07-14T20:48:47Z",
   "claim_boundary": "This record identifies a local review cut and unresolved evidence. It is not a signature, release authorization, protocol certification, consumer certification, or publication receipt.",
   "scope": {
     "handoff_target": "1.0.0",
@@ -61,59 +61,59 @@
       "hosted_ci_conclusion": "failure"
     },
     "reviewed_current": {
-      "commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
-      "tree": "b4886f2389a6b526249cf13b673de9e92a4f14f1",
-      "authored_at": "2026-07-14T16:39:12+02:00",
-      "origin_main_at_capture": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+      "commit": "f08c2ad5f68bab0a583db918439660636996ca07",
+      "tree": "5a39bc6cb5df634fb8a50b841b80cc30244644f3",
+      "authored_at": "2026-07-14T21:26:03+02:00",
+      "origin_main_at_capture": "f08c2ad5f68bab0a583db918439660636996ca07",
       "worktree_was_clean_at_capture": true,
       "status": "LOCAL_REVIEW_CUT_NOT_RELEASE_AUTHORIZATION",
       "hosted_ci": {
         "provider": "GitHub Actions",
-        "run_id": 29341815204,
-        "url": "https://github.com/sepahead/NCP/actions/runs/29341815204",
-        "head_sha": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+        "run_id": 29366777050,
+        "url": "https://github.com/sepahead/NCP/actions/runs/29366777050",
+        "head_sha": "f08c2ad5f68bab0a583db918439660636996ca07",
         "conclusion": "success"
       }
     },
     "intervening_diff": {
-      "range": "0ba5ff6e963225b0635f8fec349278f1ac287df3..18a45bd4fdf17381351be5bd8c1da58b7835997c",
-      "changed_files": 24,
-      "insertions": 816,
-      "deletions": 364,
-      "binary_full_index_patch_sha256": "2cee3c79e92c050767985e815ae1b070885c7ec0d9a6dec9e630fcd48d94d3e4",
-      "nul_name_status_sha256": "79c0d7aec0baa8e7591bc802c6b2cb4d56c63ab57f2450bf1be935dd8ff0eb8c",
-      "reviewed_tree_ls_tree_sha256": "45279eb5f0581f733db2a98b98b9c3c90072dbd3e3cabf423bec5d7cc10e4633"
+      "range": "0ba5ff6e963225b0635f8fec349278f1ac287df3..f08c2ad5f68bab0a583db918439660636996ca07",
+      "changed_files": 174,
+      "insertions": 35924,
+      "deletions": 13418,
+      "binary_full_index_patch_sha256": "94968a4f137c16a7588d67321b0e1f4b3c1f008986445632fffdde9d57614743",
+      "nul_name_status_sha256": "f741ee9409ff016490c4da734271278778a7f020cc0c6752137d2030179bca8d",
+      "reviewed_tree_ls_tree_sha256": "32c0f3235cd2d5fd469e8637b873d2d669839bc1c404942a9702fab0b25327cb"
     }
   },
   "reviewed_source_inventory": {
-    "source_commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
-    "tracked_files": 782,
-    "tracked_bytes": 6360298,
-    "text_lines": 169759,
-    "three_lane_line_totals": [56587, 56586, 56586],
-    "three_lane_file_totals": [258, 266, 258],
+    "source_commit": "f08c2ad5f68bab0a583db918439660636996ca07",
+    "tracked_files": 793,
+    "tracked_bytes": 7817402,
+    "text_lines": 191813,
+    "three_lane_line_totals": [63938, 63938, 63937],
+    "three_lane_file_totals": [262, 262, 269],
     "handoff_generated_manifest_sha256": "3db582da44602b441dca1c23aa24d6a6683a69bdcc854a7c44cb69892e76a4f9",
     "handoff_generated_csv_sha256": "ef87693789dc19ff5cf6af11d8c19d7157fcb15403ddc4879b73b5ae873fad5e",
-    "corrected_review_manifest_sha256": "2fb6de342dcd2b0cea7ab3299b7c1bc4be79524249c343bd8fe7066bf174167f",
-    "corrected_review_csv_sha256": "ffb707b52de49d2f86fd23104431b256de0391cdf6267c38a94fcc83c520681b",
-    "internal_review_completed_at_utc": "2026-07-14T16:09:26Z",
+    "corrected_review_manifest_sha256": "d4c3667b22873887b58c92f2946166862b82d44d5e4f89ea96ec3e9d45bbf676",
+    "corrected_review_csv_sha256": "12e556e1678391f5ec5246d16385b85559fdc14079ceb160f7658b8425941549",
+    "internal_review_completed_at_utc": "2026-07-14T20:48:47Z",
     "review_status": "THREE_LANE_INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS",
-    "internally_reviewed_files": 782,
+    "internally_reviewed_files": 793,
     "independently_reviewed_files": 0,
-    "limitation": "The supplied audit helper emitted only 18 of the mandated 21 columns and inspected worktree bytes. The corrected ledger binds all 782 rows to immutable Git blobs and records complete internal AI-assisted inspection, but it is not independent human review, task closure, external-gate evidence, certification, or release authorization."
+    "limitation": "The supplied audit helper emitted only 18 of the mandated 21 columns and inspected worktree bytes. The corrected ledger binds all 793 rows to immutable Git blobs and records complete internal AI-assisted inspection, but it is not independent human review, task closure, external-gate evidence, certification, or release authorization."
   },
   "locked_inputs": {
     "Cargo.lock": "9ca81eda2ab5c175df0c8baa5a3fb2d15ac9ccddd97aa2ef10bc99898ef1e472",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
-    "contract/manifest.v1.json": "94340940ac13bb7869dcd4da405c2e0d5d71b2f8e6d99b8fe0d43978c1e76c10",
-    "conformance/manifest.v1.json": "2a3fcb9546b5e82331dc7cace91c0d0fc47f5e7557dc30329c439c896a029d5a"
+    "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
+    "conformance/manifest.v1.json": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e"
   },
   "normative_identities": {
-    "complete_contract_sha256": "5154b02c7dd35d3e29e5eda89c41140a5e70967964f7bb913a8e687e1a5977ef",
-    "mandatory_corpus_sha256": "a9a741e2b74952e6c8d8c7f589114918f673591eaccba938c997578c189cd2b0",
+    "complete_contract_sha256": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+    "mandatory_corpus_sha256": "83bdcfae2e07f1c69efa87279f0b3c27392be83f31b292647cddd10eb35226b3",
     "compact_proto_fnv1a64": "163acc57d8a62b66",
-    "required_vectors": 269,
-    "stable_vectors": 262,
+    "required_vectors": 282,
+    "stable_vectors": 275,
     "migration_vectors": 7
   },
   "local_environment": {
@@ -131,10 +131,10 @@
     "git": "2.50.1 (Apple Git-155)"
   },
   "handoff_defects": [
-    "The frozen 0ba5ff6 source cut predates 24 reviewed repository changes and its hosted CI failed; an explicit updated source cut is required.",
+    "The frozen 0ba5ff6 source cut predates 174 changed files in the reviewed implementation cut and its hosted CI failed; this audit therefore binds an explicit updated source cut.",
     "The task graph is a strict T000-to-T145 dependency chain while the wave plan assigns dependent tasks to three concurrent lanes.",
     "All 146 tasks repeat the same generic procedure, evidence list, counterfactuals, and blank twenty-lens form; task completion cannot be inferred from that template.",
-    "The handoff reports 268 required vectors, but both frozen and reviewed manifests contain 269: 262 stable and 7 migration.",
+    "The handoff reports 268 required vectors, the frozen manifest contains 269 (262 stable and 7 migration), and the reviewed implementation manifest contains 282 (275 stable and 7 migration).",
     "The convergence schema does not require the exact T000-to-T145 set or reviewed_files equality and hard-codes stale source and target identities.",
     "The tracked-file helper omits mandated columns, follows worktree paths, and cannot bind a dirty or symlinked input to immutable Git bytes.",
     "The evidence verifier accepts an empty manifest and does not enforce schema, containment, unique artifacts, source identity, signatures, or provenance.",
@@ -151,6 +151,7 @@
       "fuzz-sanitizer-duration",
       "performance-resource-profile",
       "installed-package-matrix",
+      "registry-namespace-ownership",
       "consumer-certification",
       "independent-clean-room-reproduction",
       "signed-sbom-provenance"

@@ -16,23 +16,28 @@ unsigned evidence is a failure for initial release.
 |---|---|---|
 | Released baseline and historical mirror boundary | read-only gate binds the annotated tag object, peeled commit, fixed path, and exact subtree for every `v0.5.0`–`v0.8.0` baseline; Buf explicitly reports that initial package `ncp.v1` has no released same-major comparison target and does not compare the intentional major break with `ncp.v0` | establishes immutable local migration/history input only; it is not tag-signature, artifact, or consumer evidence; later v1 candidates must compare with the latest registered v1 release |
 | Stable/excluded surface and registries | implemented; generated digest gate present | not a release by itself |
-| Proto/schema/canonical-vector parity | complete current-worktree matrix passes | dirty worktree is not immutable release evidence |
-| Mandatory self-describing corpus | current manifest has 282 required vectors (275 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; the complete dirty-worktree preflight replay passed after the lifecycle/schema correction | signed external conformance reports remain required |
+| Proto/schema/canonical-vector parity | complete matrix passes locally and in hosted CI at exact implementation cut `f08c2ad` | source-bound tests are not signed release-artifact or independent evidence |
+| Mandatory self-describing corpus | current manifest has 282 required vectors (275 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; complete local and hosted replay passed at `f08c2ad` after the lifecycle/schema correction | signed external conformance reports remain required |
+| Ordered canonical bytes and stable integers | local harness covers 14 all-surface stable vectors across 16 ordered Rust/TypeScript/Python-FFI/C-FFI pairs; TypeScript discovers 45 reachable stable-integer schema paths and tests exact/unsafe boundaries | Python and C share Rust code; installed independent peers, complete normative traffic, alternate engines/platforms, and signed reports remain required |
 | Universal bounded JSON | implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader are gated before generic decoding | live/fuzz duration still required |
 | Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
 | Plant profile, safety governor, action buffer, ESTOP | implemented with deterministic tests | non-certifying; each consumer needs a safety case |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
-| Candidate package builds/install smoke | packageable archives and local installs passed for the current 2026-07-14 dirty-worktree snapshot | immutable multi-OS install matrix and public-registry ownership remain required |
+| Candidate package builds/install smoke | packageable archives and local installs passed for exact implementation cut `f08c2ad` on 2026-07-14 | immutable multi-OS install matrix and public-registry ownership remain required |
+| Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and 100-node local requirement graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
+| Supply-chain and candidate dossier | deterministic inventory, CycloneDX 1.6 SBOM, license/vulnerability reports, provenance policy, and exact-revision double-build workflow are implemented | final exact-source dossier, hosted attestations, signatures, registry ownership, clean-room reproduction, and multi-platform artifacts remain NOT RUN |
+| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, six consumer handoffs, and post-publication checks | predecessor gates and cross-repository consumer certifications remain unresolved |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
-The complete `scripts/check.sh` gate passed for the current dirty-worktree candidate
-bytes on 2026-07-14. The lock uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The run
-covered the full local package, binding, bounded-ingress, corpus, archive,
-dependency-policy, and protobuf matrix. It still used a dirty, uncommitted worktree
-and therefore has no immutable source revision, signatures, multi-platform
-environment set, or independent reproduction. It is time-bound local preflight
-evidence, not a release receipt. The generated normative identity and candidate
-baseline match the checked worktree snapshot.
+The complete `scripts/check.sh` gate and hosted CI run
+[`29366777050`](https://github.com/sepahead/NCP/actions/runs/29366777050) passed for
+exact source `f08c2ad5f68bab0a583db918439660636996ca07` on 2026-07-14. The lock
+uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The runs covered the local
+package, binding, bounded-ingress, corpus, archive, dependency-policy, and protobuf
+matrix. They provide an immutable source revision, but no signatures,
+multi-platform environment set, final artifact dossier, or independent
+reproduction. This is time-bound preflight evidence, not a release receipt. The
+generated normative identity and candidate baseline match the checked source cut.
 Per-task receipts and their exact residual acceptance gaps are indexed in
 [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md).
 

@@ -132,9 +132,25 @@ export declare class NeuroSimClient {
     private readonly negotiation;
     /** session_id -> the server-issued generation, learned at open(). */
     private readonly generations;
+    /** Non-evicting retired/seen generations; a logical session never revives one. */
+    private readonly seenGenerations;
+    /** Global count backing the bounded non-evicting generation fence. */
+    private seenGenerationCount;
+    /** Per-live-generation observation epoch/high-water and full-reply replay state. */
+    private readonly observationFences;
+    /** Global retained position count across all live generation fences. */
+    private observationPositionCount;
+    /** Current in-flight open attempt per logical session. */
+    private readonly openings;
+    /** Total in-flight opens, including superseded attempts for the same session. */
+    private inFlightOpenCount;
     constructor(send: Send, negotiation: ClientNegotiation);
     /** Open a session: declare what to record and what to stimulate. */
     open(sessionId: string, network: NetworkInput, record: RecordInput[], stimulus: StimulusInput[], sim?: SimInput): Promise<SessionOpenedReply>;
+    private retireGeneration;
+    private requireOpenGeneration;
+    private requireCurrentGeneration;
+    private acceptObservationPosition;
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
     step(sessionId: string, mutation: MutationInput, stimulus?: Record<string, ChannelInput>, advanceMs?: number): Promise<ObservationFrameReply>;
     /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */

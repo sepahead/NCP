@@ -18,8 +18,8 @@
   },
   "audit_inputs": {
     "path": "docs/handoff/max-effort-audit-inputs.v2.json",
-    "sha256": "61100a3a668438e4f3287e3fcfda863f5d6f39b1ce7271724c224a0623b5f34b",
-    "reviewed_source_commit": "18a45bd4fdf17381351be5bd8c1da58b7835997c",
+    "sha256": "7932dbcfeac3014efc5f0977403c4e4df89a0072b03e2f1d4f6326f224b218eb",
+    "reviewed_source_commit": "f08c2ad5f68bab0a583db918439660636996ca07",
     "handoff_frozen_commit": "0ba5ff6e963225b0635f8fec349278f1ac287df3"
   },
   "execution_disposition": {
@@ -47,7 +47,7 @@
     "doi_and_zenodo": {
       "disposition": "DEFERRED_NOT_ASSIGNED",
       "action_taken": false,
-      "finding": "No DOI or Zenodo archive is assigned or created. Citation metadata remains author-only candidate metadata until the user completes that later publication step."
+      "finding": "No DOI or Zenodo archive is assigned or created. Citation metadata remains author-only candidate metadata until a later publication step assigns those identifiers."
     },
     "historical_tag_and_release_cleanup": {
       "disposition": "RETAIN_IMMUTABLE_HISTORY",
@@ -87,15 +87,15 @@
     {
       "id": "L05",
       "name": "Time, ordering, and replay",
-      "finding": "Typed stream positions, exact-session epochs, monotonic high-water fencing, leases, and idempotency contexts are locally tested.",
-      "residual_risk": "Crash/restart, rollover, delayed delivery, capture replay, and all-client transport lifecycle campaigns remain incomplete.",
+      "finding": "Typed stream positions, exact-session epochs, monotonic high-water fencing, leases, idempotency contexts, and bounded capture migration are locally tested.",
+      "residual_risk": "Real process crash, rollover, delayed delivery, retained transport replay, and long-running all-client lifecycle campaigns remain incomplete.",
       "status": "OPEN"
     },
     {
       "id": "L06",
       "name": "Identity and provenance",
-      "finding": "The candidate records compact and complete contract identities, corpus digests, profile digests, receipts, and immutable released baselines.",
-      "residual_risk": "Review evidence is unsigned, some cross-repository inputs are mutable, and complete source-to-installed-artifact lineage is not independently reproduced.",
+      "finding": "The candidate records compact and complete contract identities, corpus digests, profile digests, receipts, immutable released baselines, and a deterministic local supply-chain inventory.",
+      "residual_risk": "The current review evidence is unsigned, some cross-repository inputs are mutable, and complete source-to-installed-artifact lineage has not been independently reproduced.",
       "status": "OPEN"
     },
     {
@@ -115,8 +115,8 @@
     {
       "id": "L09",
       "name": "Hostile inputs and parsers",
-      "finding": "Universal JSON limits and duplicate-key-aware ingress exist in key Rust, Python, and TypeScript paths with hostile tests.",
-      "residual_risk": "Every independent decoder and producer has not yet demonstrated identical duplicate, Unicode, non-finite, unsafe-integer, nesting, and path rejection.",
+      "finding": "Universal JSON limits, duplicate-key-aware ingress, a four-surface canonical-byte matrix, and TypeScript stable-integer path checks have hostile local tests.",
+      "residual_risk": "The binding surfaces share Rust implementation code, and every independent decoder and producer has not demonstrated identical Unicode, non-finite, nesting, and path rejection across the complete mandatory corpus.",
       "status": "OPEN"
     },
     {
@@ -136,8 +136,8 @@
     {
       "id": "L12",
       "name": "Determinism and reproducibility",
-      "finding": "Locked dependencies, generated-output diffs, exact manifests, package extraction, and hosted CI provide strong local reproducibility controls.",
-      "residual_risk": "Signed provenance, pinned multi-platform toolchains, clean-room reproduction, and independently rebuilt final archives are absent.",
+      "finding": "Locked dependencies, generated-output diffs, exact manifests, pinned workflow actions, deterministic SBOM inputs, archive comparison, and hosted CI provide strong local reproducibility controls.",
+      "residual_risk": "A final signed dossier, pinned multi-platform toolchains, clean-room reproduction, and independently rebuilt publication archives remain NOT RUN.",
       "status": "OPEN"
     },
     {
@@ -150,8 +150,8 @@
     {
       "id": "L14",
       "name": "Schema, wire, and language parity",
-      "finding": "Proto-first generation, schema parity, a 269-vector corpus, shared behavior vectors, and generated TypeScript reduce projection drift.",
-      "residual_risk": "Every producer-consumer language pair, canonical byte emission path, BulkObservation surface, and independent decoder has not passed one exact matrix.",
+      "finding": "Proto-first generation, schema parity, a 282-vector corpus, shared behavior vectors, generated TypeScript, and a four-surface ordered canonical-byte matrix reduce projection drift.",
+      "residual_risk": "Python and C expose the same Rust implementation, and the ordered matrix does not yet cover every normative type, independent peer implementation, or installed-platform combination; the BulkObservation and bare-NCPB quarantine remains local evidence only.",
       "status": "OPEN"
     },
     {
@@ -171,7 +171,7 @@
     {
       "id": "L17",
       "name": "Verification and evidence quality",
-      "finding": "The local gate covers Rust, Python, C/C++, TypeScript, proto/schema, corpus, profiles, packages, dependencies, and Buf, with hostile self-tests.",
+      "finding": "The local gate covers Rust, Python, C/C++, TypeScript, proto/schema, corpus, profiles, packages, dependencies, audit artifacts, supply-chain evidence, and Buf, with hostile self-tests.",
       "residual_risk": "Fuzzing, mutation, sanitizers, real-router security, duration, performance, independent peers, and clean-room evidence remain NOT RUN.",
       "status": "OPEN"
     },
@@ -192,7 +192,7 @@
     {
       "id": "L20",
       "name": "Counterfactual and quirky-case review",
-      "finding": "Adversarial review found a consumed-stream retry in a test, an underconstrained convergence schema, weak handoff evidence helpers, and a contradictory task DAG.",
+      "finding": "Adversarial review found and locally addressed a consumed-stream retry, an underconstrained convergence schema, weak handoff evidence helpers, and an incomplete local threat and traceability inventory.",
       "residual_risk": "Coverage-guided quirky-case generation and independent red-team reproduction have not run, so unanticipated simple counterexamples may remain.",
       "status": "OPEN"
     }
@@ -369,7 +369,7 @@
     {
       "id": "T004",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -392,20 +392,20 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Create threat, misuse, failure, and quirky-case register' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "The repository has relevant local implementation and tests, but the task's repeated twelve-step procedure, all required counterfactuals, task-specific retained raw evidence, independent reproduction, dependencies, and all twenty lens resolutions are not complete.",
+      "evidence_summary": "A deterministic threat, misuse, failure, and quirky-case register links eighteen retained OPEN threats to local controls and explicit missing evidence without treating mitigation as closure.",
+      "acceptance_gap": "The generated register retains every threat OPEN and links local controls, but task dependencies, all twenty lens resolutions, external campaigns, and independent adversarial review remain incomplete.",
       "evidence": {
         "paths": [
-          "docs/handoff/max-effort-audit-inputs.v2.json",
-          "docs/handoff/max-effort-source-index.v2.json",
-          "RELEASE_READINESS.md"
+          "evidence/audit/threat-register.v1.json",
+          "scripts/generate_audit_artifacts.py",
+          "scripts/check_audit_artifacts.py"
         ],
         "commands": [
-          "python3 scripts/check_max_effort_handoff_review.py --self-test",
-          "scripts/check.sh"
+          "python3 scripts/generate_audit_artifacts.py --check",
+          "python3 scripts/check_audit_artifacts.py"
         ]
       },
-      "residual_risk": "Treating local coverage of T004 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T004; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
@@ -453,7 +453,7 @@
     {
       "id": "T006",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -476,26 +476,26 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Inventory TODO/FIXME/HACK/experimental/unimplemented/dormant and permissive fallback paths' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "The repository has relevant local implementation and tests, but the task's repeated twelve-step procedure, all required counterfactuals, task-specific retained raw evidence, independent reproduction, dependencies, and all twenty lens resolutions are not complete.",
+      "evidence_summary": "A deterministic per-file inventory binds byte counts, SHA-256 identities, Git blob identities, index state, text classification, and every reviewed latent-marker occurrence.",
+      "acceptance_gap": "The deterministic tracked-file and latent-marker inventory has zero undispositioned text occurrences, but binary semantics, generated-state changes, dependency order, and independent review remain open.",
       "evidence": {
         "paths": [
-          "docs/handoff/max-effort-audit-inputs.v2.json",
-          "docs/handoff/max-effort-source-index.v2.json",
-          "RELEASE_READINESS.md"
+          "evidence/audit/latent-path-inventory.v1.json",
+          "evidence/audit/manifest.v1.json",
+          "scripts/check_audit_artifacts.py"
         ],
         "commands": [
-          "python3 scripts/check_max_effort_handoff_review.py --self-test",
-          "scripts/check.sh"
+          "python3 scripts/generate_audit_artifacts.py --check",
+          "python3 scripts/check_audit_artifacts.py --self-test"
         ]
       },
-      "residual_risk": "Treating local coverage of T006 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T006; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
       "id": "T007",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -518,26 +518,30 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Inventory dependencies, features, code generators, licenses, assets, datasets, and supply-chain trust' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "The repository has relevant local implementation and tests, but the task's repeated twelve-step procedure, all required counterfactuals, task-specific retained raw evidence, independent reproduction, dependencies, and all twenty lens resolutions are not complete.",
+      "evidence_summary": "Deterministic local inventory, CycloneDX SBOM, license, vulnerability, and provenance-policy artifacts cover declared dependencies, features, generators, workflows, assets, datasets, and fixtures.",
+      "acceptance_gap": "The deterministic dependency, feature, generator, asset, license, vulnerability, SBOM, and provenance-policy inventory exists locally; final artifact signatures, legal review, clean-room reproduction, and external registry evidence remain NOT RUN.",
       "evidence": {
         "paths": [
-          "docs/handoff/max-effort-audit-inputs.v2.json",
-          "docs/handoff/max-effort-source-index.v2.json",
-          "RELEASE_READINESS.md"
+          "evidence/supply-chain/inventory.v1.json",
+          "evidence/supply-chain/sbom.cdx.json",
+          "evidence/supply-chain/license-report.v1.json",
+          "evidence/supply-chain/vulnerability-report.v1.json",
+          "evidence/supply-chain/provenance-policy.v1.json",
+          "scripts/generate_supply_chain_evidence.py"
         ],
         "commands": [
-          "python3 scripts/check_max_effort_handoff_review.py --self-test",
-          "scripts/check.sh"
+          "python3 scripts/generate_supply_chain_evidence.py --check",
+          "python3 scripts/generate_supply_chain_evidence.py --self-test",
+          "cargo deny check advisories --disable-fetch"
         ]
       },
-      "residual_risk": "Treating local coverage of T007 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T007; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
       "id": "T008",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -560,20 +564,20 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Create the requirement-to-code-to-test-to-evidence graph' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "The repository has relevant local implementation and tests, but the task's repeated twelve-step procedure, all required counterfactuals, task-specific retained raw evidence, independent reproduction, dependencies, and all twenty lens resolutions are not complete.",
+      "evidence_summary": "A generated traceability graph links one hundred local requirements to code, tests, commands, and evidence while preserving PARTIAL_LOCAL and NOT_RUN_EXTERNAL states.",
+      "acceptance_gap": "The generated local requirement-to-code-to-test-to-evidence graph is checked for exact coverage and references, but it does not resolve OPEN requirements, prove semantic adequacy of every edge, or replace independent review.",
       "evidence": {
         "paths": [
-          "docs/handoff/max-effort-audit-inputs.v2.json",
-          "docs/handoff/max-effort-source-index.v2.json",
-          "RELEASE_READINESS.md"
+          "evidence/audit/requirement-traceability.v1.json",
+          "evidence/audit/manifest.v1.json",
+          "scripts/check_audit_artifacts.py"
         ],
         "commands": [
-          "python3 scripts/check_max_effort_handoff_review.py --self-test",
-          "scripts/check.sh"
+          "python3 scripts/generate_audit_artifacts.py --check",
+          "python3 scripts/check_audit_artifacts.py"
         ]
       },
-      "residual_risk": "Treating local coverage of T008 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T008; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
@@ -5548,7 +5552,7 @@
     {
       "id": "T127",
       "state": "OPEN",
-      "implementation_coverage": "MINIMAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -5571,19 +5575,21 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Prove canonical JSON byte equality and identical accept/reject behavior across Rust, Python binding, C/C++ binding, and TypeScript for every mandatory vector.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "Shared decision corpora exist, but canonical emission and every mandatory vector are not proved across every independent language surface.",
+      "evidence_summary": "Four declared package surfaces exercise one canonical JSON algorithm over fourteen stable fixtures and compare exact bytes across all ordered surface pairs.",
+      "acceptance_gap": "The four declared package surfaces pass an ordered 14-vector canonical-byte matrix, but Python and C share Rust implementation code and the matrix does not yet cover every normative type, full mandatory corpus, independent peer, installed package, or platform.",
       "evidence": {
         "paths": [
-          "conformance/manifest.v1.json",
-          "conformance/behavior/vectors.json"
+          "ncp-core/src/messages.rs",
+          "ncp-core/tests/canonical_json_bytes.rs",
+          "ncp-ts/src/canonical-json.ts",
+          "scripts/check_cross_language_canonical_json.py"
         ],
         "commands": [
-          "python3 scripts/check_behavior_vectors.py",
-          "bun run check:behavior"
+          "cargo test -p ncp-core --test canonical_json_bytes --locked",
+          "python3 scripts/check_cross_language_canonical_json.py"
         ]
       },
-      "residual_risk": "Treating local coverage of T127 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T127; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
@@ -5631,7 +5637,7 @@
     {
       "id": "T129",
       "state": "OPEN",
-      "implementation_coverage": "MINIMAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -5654,24 +5660,25 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Prove no stable integer passes through a lossy JavaScript Number path.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "TypeScript guards stable integer domains in key paths, but an exhaustive no-loss proof for every stable integer field is absent.",
+      "evidence_summary": "The TypeScript proof inventories every reachable stable-integer path and rejects unsafe Number encodings at the bounded canonical boundary.",
+      "acceptance_gap": "The TypeScript reachable stable-integer inventory and unsafe-value rejection proof pass locally, but independent review, alternate JavaScript engines/build targets, and installed-consumer evidence remain open.",
       "evidence": {
         "paths": [
+          "ncp-ts/scripts/check-integer-safety.mjs",
           "ncp-ts/src/bounded-json.ts",
           "ncp-ts/src/safety.ts"
         ],
         "commands": [
-          "bun run check:behavior"
+          "bun run check:integers"
         ]
       },
-      "residual_risk": "Treating local coverage of T129 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T129; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
       "id": "T130",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -5694,24 +5701,26 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Complete and test session/generation/epoch/high-water restart semantics across transport, clients, gateway, and captures.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "Focused stream-fence and transport tests pass, but process crash, capture, gateway, and every-client restart semantics are not fully exercised.",
+      "evidence_summary": "Local restart checks exercise fresh session generations, epochs, high-water retirement, bounded capture lineage, and stale-state rejection across the implemented surfaces.",
+      "acceptance_gap": "Focused core, capture, client, gateway, and transport restart checks pass locally, but result_digest has no approved normative nonrecursive result projection, and real process crash, retained-router replay, rollover, delayed delivery, and long-duration every-client campaigns remain NOT RUN.",
       "evidence": {
         "paths": [
           "ncp-core/src/stream_fence.rs",
+          "ncp-core/src/migration/capture.rs",
           "ncp-zenoh/tests/cross_session_rpc.rs"
         ],
         "commands": [
+          "cargo test -p ncp-core migration::capture::tests --locked",
           "cargo test -p ncp-zenoh --locked"
         ]
       },
-      "residual_risk": "Treating local coverage of T130 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T130; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
       "id": "T131",
       "state": "OPEN",
-      "implementation_coverage": "NONE",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -5734,18 +5743,19 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Run all producer-consumer language pairs, not only each implementation against itself.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "The ordered all-producer/all-consumer language-pair campaign is NOT RUN.",
+      "evidence_summary": "The local canonical harness exercises all sixteen ordered producer-to-consumer pairs across Rust, Python FFI, C FFI, and TypeScript, with the shared-Rust binding limitation disclosed.",
+      "acceptance_gap": "All sixteen ordered pairs across the four declared package surfaces pass the bounded canonical fixture matrix, but two bindings delegate to Rust and independent installed peers, complete normative traffic, and platform combinations remain NOT RUN.",
       "evidence": {
         "paths": [
-          "e2e/run_cross_language_e2e.py",
-          "conformance/manifest.v1.json"
+          "scripts/check_cross_language_canonical_json.py",
+          "ncp-ts/scripts/emit-canonical-json.mjs",
+          "ncp-core/tests/canonical_json_bytes.rs"
         ],
         "commands": [
-          "NOT RUN: all ordered producer-consumer language pairs"
+          "python3 scripts/check_cross_language_canonical_json.py"
         ]
       },
-      "residual_risk": "Treating local coverage of T131 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T131; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
@@ -5833,7 +5843,7 @@
     {
       "id": "T134",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -5856,25 +5866,30 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Complete BulkObservation across all stable SDKs or quarantine it outside stable wire/public packages.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "BulkObservation is present in the wire corpus, but complete stable SDK support or explicit quarantine has not been proved.",
+      "evidence_summary": "The reviewed cut explicitly excludes BulkObservation and bare NCPB from stable wire/public packages while retaining bounded BulkBlock only as an offline fixture. This proves the task's local quarantine alternative, not full handoff closure.",
+      "acceptance_gap": "The closed surface registry and exact corpus exclusions prove the local quarantine branch; the task remains OPEN only because its handoff dependency chain, independent review, and signed release evidence are not closed.",
       "evidence": {
         "paths": [
+          "contract/surface.v1.json",
+          "docs/1.0-scope.md",
+          "conformance/manifest.v1.json",
+          "conformance/README.md",
           "ncp-core/src/bulk.rs",
           "conformance/vectors/bulk_observation.bin"
         ],
         "commands": [
-          "cargo test -p ncp-core --locked",
-          "NOT RUN: every stable SDK BulkObservation matrix"
+          "python3 scripts/generate_contract_manifest.py",
+          "python3 scripts/check_conformance_vectors.py",
+          "cargo test -p ncp-core --locked bulk::tests"
         ]
       },
-      "residual_risk": "Treating local coverage of T134 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "A future surface-registry, package, transport, or corpus change could undo the quarantine; independent review and the predecessor task chain remain OPEN.",
       "reviewer_comment": null
     },
     {
       "id": "T135",
       "state": "OPEN",
-      "implementation_coverage": "MINIMAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -5897,19 +5912,21 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Create a migration validator that rejects 0.8 captures when units, frames, session lineage, authority, or epistemic status cannot be reconstructed without guessing.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "Migration helpers and prose exist, but no end-to-end capture validator proves rejection when reconstruction would require guessing.",
+      "evidence_summary": "A validation-only bounded wire-0.8 path checks explicit legacy units, frames, lineage, restart boundaries, and epistemic fields and excludes records needing unavailable native-1.0 authority or operation evidence; it does not reconstruct a native-1.0 capture.",
+      "acceptance_gap": "The bounded wire-0.8 validator checks explicit legacy units, frames, lineage, restart boundaries, and epistemic fields and excludes records needing unavailable native-1.0 authority or operation evidence; it emits no native-1.0 capture, and a retained real-world campaign and independent migration review remain NOT RUN.",
       "evidence": {
         "paths": [
-          "ncp-core/src/migration.rs",
-          "INTEGRATING.md"
+          "ncp-core/src/migration/capture.rs",
+          "conformance/migration/v0.8-to-v1.0/wire-0.8-reconstructable-capture.json",
+          "ncp-core/testdata/migration/wire-0.8-reconstructable-capture.json",
+          "ncp-core/src/migration.rs"
         ],
         "commands": [
-          "cargo test -p ncp-core --locked",
-          "NOT RUN: legacy capture migration validator campaign"
+          "cargo test -p ncp-core migration::capture::tests --locked",
+          "NOT RUN: retained real-world wire-0.8 capture campaign"
         ]
       },
-      "residual_risk": "Treating local coverage of T135 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T135; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
@@ -6036,7 +6053,7 @@
     {
       "id": "T139",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -6059,20 +6076,23 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Generate reproducible packages, SBOM, license report, vulnerability scan, provenance and checksums' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "Local archives and dependency policy are checked, but final multi-package SBOM, provenance, signatures, and reproducible artifact set are absent.",
+      "evidence_summary": "The repository contains deterministic supply-chain evidence and a held exact-revision pipeline that rebuilds and byte-compares five crates, a Python wheel and sdist, and two npm archives before optional hosted attestations.",
+      "acceptance_gap": "Deterministic supply-chain evidence and an exact-revision reproducible dossier pipeline exist, but the final hosted dossier, attestations, signatures, clean-room reproduction, and publication archives remain NOT RUN.",
       "evidence": {
         "paths": [
+          "scripts/build_candidate_dossier.py",
           "scripts/check_rust_packages.py",
-          "deny.toml"
+          "scripts/generate_supply_chain_evidence.py",
+          ".github/workflows/candidate-dossier.yml",
+          "evidence/supply-chain/sbom.cdx.json"
         ],
         "commands": [
-          "python3 scripts/check_rust_packages.py --offline",
-          "cargo deny check",
-          "NOT RUN: signed SBOM and provenance"
+          "python3 scripts/build_candidate_dossier.py --self-test",
+          "python3 scripts/generate_supply_chain_evidence.py --check",
+          "NOT RUN: final exact-revision hosted dossier and attestations"
         ]
       },
-      "residual_risk": "Treating local coverage of T139 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T139; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {
@@ -6200,7 +6220,7 @@
     {
       "id": "T143",
       "state": "OPEN",
-      "implementation_coverage": "PARTIAL",
+      "implementation_coverage": "SUBSTANTIAL",
       "lens_statuses": {
         "L01": "OPEN",
         "L02": "OPEN",
@@ -6223,19 +6243,20 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "Relevant local surfaces for 'Create local convergence manifest and hand off only explicit cross-repository requirements' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "This local NO_GO review is not the handoff's completed convergence manifest, and cross-repository prerequisites remain unresolved.",
+      "evidence_summary": "A deterministic local convergence artifact locks the candidate identities, local gates, explicit NOT_RUN external gates, consumer handoffs, and NO_GO decision.",
+      "acceptance_gap": "The generated local convergence manifest records NO_GO and explicit non-local handoffs, but predecessor gates, all six consumer certifications, and cross-repository convergence remain unresolved.",
       "evidence": {
         "paths": [
-          "RELEASE_READINESS.md",
-          "docs/handoff/max-effort-audit-inputs.v2.json"
+          "evidence/convergence/local-convergence.v1.json",
+          "scripts/generate_convergence_manifest.py",
+          "RELEASE_READINESS.md"
         ],
         "commands": [
-          "python3 scripts/check_max_effort_handoff_review.py",
-          "NOT RUN: cross-repository convergence"
+          "python3 scripts/generate_convergence_manifest.py --check",
+          "NOT RUN: cross-repository convergence and consumer certification"
         ]
       },
-      "residual_risk": "Treating local coverage of T143 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
+      "residual_risk": "This is repository-local evidence for T143; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",
       "reviewer_comment": null
     },
     {

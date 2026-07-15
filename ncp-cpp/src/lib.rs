@@ -840,59 +840,13 @@ pub unsafe extern "C" fn ncp_action_buffer_free(buffer: *mut NcpActionBuffer) {
 /// Arguments must be NULL or valid C strings.
 #[no_mangle]
 pub unsafe extern "C" fn ncp_validate(kind: *const c_char, json: *const c_char) -> *mut c_char {
-    use ncp_core::*;
     ffi_guard(std::ptr::null_mut(), || {
         let (Ok(kind), Ok(json)) = (required_cstr(kind), required_cstr(json)) else {
             return std::ptr::null_mut();
         };
-        // The C ABI is an ingress boundary, not a trusted typed-conversion helper.
-        // Apply the same byte/depth/node/string/number/duplicate-key preflight as
-        // every other NCP 1.0 ingress before allocating a generic JSON value.
-        let Ok(mut value) = ncp_core::bounded_json::parse_value(json.as_bytes()) else {
-            return std::ptr::null_mut();
-        };
-        // Canonical kind-aware checks follow (required fields + scientific-boundary
-        // value pins) — the typed round-trip alone would silently default a
-        // missing required field and round-trip a tampered discriminator clean.
-        match value.as_object_mut() {
-            Some(m) => match m.get("kind") {
-                Some(serde_json::Value::String(k)) if k == kind => {}
-                _ => return std::ptr::null_mut(),
-            },
-            None => return std::ptr::null_mut(),
-        }
-        if ncp_core::validate(&value).is_err() {
-            return std::ptr::null_mut();
-        }
-        // Round-trip the exact document that was validated. `kind` is mandatory
-        // since wire 0.6 and must never be fabricated from the C API argument.
-        macro_rules! rt {
-            ($t:ty) => {
-                match serde_json::from_value::<$t>(value.clone())
-                    .map_err(|_| ())
-                    .and_then(|v| serde_json::to_string(&v).map_err(|_| ()))
-                {
-                    Ok(s) => cstr_out(s),
-                    Err(()) => std::ptr::null_mut(),
-                }
-            };
-        }
-        match kind {
-            "open_session" => rt!(OpenSession),
-            "session_opened" => rt!(SessionOpened),
-            "step_request" => rt!(StepRequest),
-            "run_request" => rt!(RunRequest),
-            "stimulus_frame" => rt!(StimulusFrame),
-            "observation_frame" => rt!(ObservationFrame),
-            "close_session" => rt!(CloseSession),
-            "session_closed" => rt!(SessionClosed),
-            "sensor_frame" => rt!(SensorFrame),
-            "command_frame" => rt!(CommandFrame),
-            "control_status" => rt!(ControlStatus),
-            "link_status" => rt!(LinkStatus),
-            "capabilities" => rt!(Capabilities),
-            "error" => rt!(ErrorFrame),
-            _ => std::ptr::null_mut(),
+        match ncp_core::canonicalize_message_json(kind, json.as_bytes()) {
+            Ok(canonical) => cstr_out(canonical),
+            Err(_) => std::ptr::null_mut(),
         }
     })
 }

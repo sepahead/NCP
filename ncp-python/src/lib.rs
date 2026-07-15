@@ -391,61 +391,7 @@ impl ActionBuffer {
 /// replayed command).
 #[pyfunction]
 fn validate(kind: &str, json: &str) -> PyResult<String> {
-    use ncp_core::*;
-    // Run the CANONICAL, kind-aware checks first: required fields + the
-    // scientific-boundary value pins (calibrated_posterior=false /
-    // is_simulation_output=true). The typed serde round-trip below alone does NOT
-    // enforce these — a missing required field would silently default, and a
-    // tampered discriminator would round-trip clean. (Previously this binding
-    // skipped ncp_core::validate entirely, so the Python wire check was weaker
-    // than the Rust reference.)
-    let mut value = ncp_core::bounded_json::parse_value(json.as_bytes()).map_err(val)?;
-    match value.as_object_mut() {
-        Some(m) => match m.get("kind") {
-            Some(serde_json::Value::String(k)) if k == kind => {}
-            Some(serde_json::Value::String(k)) => {
-                return Err(PyValueError::new_err(format!(
-                    "kind mismatch: argument {kind:?} but body says {k:?}"
-                )));
-            }
-            Some(_) => return Err(PyValueError::new_err("NCP message kind must be a string")),
-            None => {
-                return Err(PyValueError::new_err(
-                    "NCP message carries no kind (mandatory since wire 0.6)",
-                ));
-            }
-        },
-        None => return Err(PyValueError::new_err("NCP message is not a JSON object")),
-    }
-    ncp_core::validate(&value).map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-    // Round-trip the same document that was validated. `kind` is a mandatory
-    // wire-0.6 discriminator and must never be fabricated from the API argument.
-    macro_rules! rt {
-        ($t:ty) => {{
-            let v: $t = serde_json::from_value(value.clone()).map_err(val)?;
-            serde_json::to_string(&v).map_err(val)
-        }};
-    }
-    match kind {
-        "open_session" => rt!(OpenSession),
-        "session_opened" => rt!(SessionOpened),
-        "step_request" => rt!(StepRequest),
-        "run_request" => rt!(RunRequest),
-        "stimulus_frame" => rt!(StimulusFrame),
-        "observation_frame" => rt!(ObservationFrame),
-        "close_session" => rt!(CloseSession),
-        "session_closed" => rt!(SessionClosed),
-        "sensor_frame" => rt!(SensorFrame),
-        "command_frame" => rt!(CommandFrame),
-        "control_status" => rt!(ControlStatus),
-        "link_status" => rt!(LinkStatus),
-        "capabilities" => rt!(Capabilities),
-        "error" => rt!(ErrorFrame),
-        other => Err(PyValueError::new_err(format!(
-            "unknown NCP message kind {other:?}"
-        ))),
-    }
+    ncp_core::canonicalize_message_json(kind, json.as_bytes()).map_err(val)
 }
 
 /// Convenience: build a `ChannelValue` JSON (`{"data": [...], "unit": ...}`).

@@ -194,6 +194,12 @@ baseline.
 - [`RELEASE_READINESS.md`](RELEASE_READINESS.md): evidence ledger and blockers.
 - [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md): per-task local
   receipts and exact not-run acceptance gaps.
+- [`evidence/audit/README.md`](evidence/audit/README.md): generated, non-normative
+  threat, latent-path, and requirement-traceability audit controls.
+- [`evidence/supply-chain/README.md`](evidence/supply-chain/README.md): generated
+  dependency, SBOM, license, vulnerability, and provenance-policy evidence.
+- [`evidence/convergence/README.md`](evidence/convergence/README.md): deterministic
+  local `NO_GO` identity and explicit non-local handoff boundary.
 - [`docs/handoff/README.md`](docs/handoff/README.md): separate non-normative
   standalone `T000`–`T119` and current max-effort `T000`–`T145` audit records;
   both expose guarded reviewer-comment fields and authorize no release.

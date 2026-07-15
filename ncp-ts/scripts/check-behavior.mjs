@@ -784,8 +784,8 @@ for (const c of corpus.cases.action_buffer) {
     await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
     return call(client)
   }
-  const receipt = (requestDigestValue) => ({
-    operation_id: OP,
+  const receipt = (requestDigestValue, operationId = OP) => ({
+    operation_id: operationId,
     request_digest: requestDigestValue,
     result_digest: 'c'.repeat(64),
     outcome: 'succeeded',
@@ -794,6 +794,405 @@ for (const c of corpus.cases.action_buffer) {
     responder_principal_id: 'body-principal',
     responder_entity_id: 'simulator',
   })
+  {
+    let sends = 0
+    const restarted = new NeuroSimClient(async () => {
+      sends += 1
+      return opened
+    }, NEGOTIATION)
+    const message = await rejectionMessage(restarted.step('s', MUTATION))
+    check(
+      message.includes('has no live generation in this client instance') && sends === 0,
+      'client restart: mutation fails locally until this client instance opens the session',
+    )
+  }
+  {
+    let pendingClose
+    let sends = 0
+    const client = new NeuroSimClient((request) => {
+      sends += 1
+      if (request.kind === 'open_session') return Promise.resolve(opened)
+      if (request.kind === 'close_session') {
+        let resolve
+        const promise = new Promise((accept) => {
+          resolve = accept
+        })
+        pendingClose = { request, resolve }
+        return promise
+      }
+      throw new Error('mutation was sent while close was in flight')
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const closing = client.close('s', MUTATION)
+    const sendsAfterCloseStarted = sends
+    const message = await rejectionMessage(client.step('s', MUTATION))
+    check(
+      message.includes('has no live generation in this client instance') &&
+        sends === sendsAfterCloseStarted,
+      'client close race: starting close retires the generation before another mutation can send',
+    )
+    pendingClose.resolve({
+      kind: 'session_closed',
+      ncp_version: NCP_VERSION,
+      session_id: 's',
+      ok: true,
+      session: { generation: GEN },
+      receipt: receipt(
+        pendingClose.request.operation.request_digest,
+        pendingClose.request.operation.operation_id,
+      ),
+    })
+    await closing
+  }
+  {
+    let opens = 0
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind !== 'open_session') throw new Error('unexpected mutation send')
+      opens += 1
+      return opened
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const message = await rejectionMessage(
+      client.open('s', { kind: 'builtin', ref: 'test' }, [], []),
+    )
+    check(
+      message.includes('attempted to revive retired generation') && opens === 2,
+      'client reopen: a previously seen generation can never be revived',
+    )
+  }
+  {
+    let sends = 0
+    const client = new NeuroSimClient(async (request) => {
+      sends += 1
+      if (request.kind === 'open_session') return opened
+      if (request.kind === 'close_session') {
+        return {
+          kind: 'session_closed',
+          ncp_version: NCP_VERSION,
+          session_id: 's',
+          ok: true,
+          session: { generation: GEN },
+          receipt: receipt(request.operation.request_digest),
+        }
+      }
+      throw new Error('unexpected send after close')
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    await client.close('s', MUTATION)
+    const sendsAfterClose = sends
+    const message = await rejectionMessage(client.step('s', MUTATION))
+    check(
+      message.includes('has no live generation in this client instance') && sends === sendsAfterClose,
+      'client close: terminal close retires the local generation before another mutation',
+    )
+  }
+  {
+    const OP2 = '30000000-0000-4000-8000-000000000098'
+    const OP3 = '30000000-0000-4000-8000-000000000097'
+    const mutation2 = {
+      operation: { ...MUTATION.operation, operation_id: OP2 },
+      authority: MUTATION.authority,
+    }
+    const mutation3 = {
+      operation: { ...MUTATION.operation, operation_id: OP3 },
+      authority: MUTATION.authority,
+    }
+    let mutationReplies = 0
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind === 'open_session') return opened
+      mutationReplies += 1
+      const responseReceipt = receipt(
+        request.operation.request_digest,
+        request.operation.operation_id,
+      )
+      if (mutationReplies === 4) responseReceipt.state_version = 2
+      return {
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: {
+          epoch: EP,
+          seq: request.operation.operation_id === OP3
+            ? 3
+            : request.operation.operation_id === OP2
+              ? 2
+              : 1,
+        },
+        session: { generation: GEN },
+        records: {},
+        ...(mutationReplies === 3 ? { sim_time_ms: 1 } : {}),
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: responseReceipt,
+      }
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    await client.step('s', MUTATION)
+    await client.step('s', {
+      ...MUTATION,
+      operation: { ...MUTATION.operation, retry: true },
+    })
+    const changedBodyMessage = await rejectionMessage(client.step('s', {
+      ...MUTATION,
+      operation: { ...MUTATION.operation, retry: true },
+    }))
+    const changedReceiptMessage = await rejectionMessage(client.step('s', {
+      ...MUTATION,
+      operation: { ...MUTATION.operation, retry: true },
+    }))
+    await client.step('s', mutation3)
+    const replayMessage = await rejectionMessage(client.step('s', mutation2))
+    check(
+      mutationReplies === 6 &&
+        changedBodyMessage.includes('replayed, reordered, or non-increasing') &&
+        changedReceiptMessage.includes('replayed, reordered, or non-increasing') &&
+        replayMessage.includes('replayed, reordered, or non-increasing'),
+      'client observation fence: only a full-reply-fingerprint-identical terminal retry repeats a position; changed content under an identical receipt rejects',
+    )
+  }
+  {
+    const gatewayNegotiation = {
+      ...NEGOTIATION,
+      gateway_permitted: true,
+      gateway: { gateway_id: 'expected-gateway', source_wire: '0.8' },
+    }
+    const client = new NeuroSimClient(async () => ({
+      ...opened,
+      gateway_permitted: true,
+      gateway: { gateway_id: 'different-gateway', source_wire: '0.8' },
+    }), gatewayNegotiation)
+    const message = await rejectionMessage(
+      client.open('s', { kind: 'builtin', ref: 'test' }, [], []),
+    )
+    check(
+      message.includes('security negotiation does not match the precommitted request'),
+      'client open: gateway attribution must match the precommitted request',
+    )
+  }
+  {
+    let opening = 0
+    const generationFor = (index) =>
+      `40000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
+    const client = new NeuroSimClient(async () => ({
+      ...opened,
+      session: { generation: generationFor(++opening) },
+    }), NEGOTIATION)
+    for (let index = 0; index < 4096; index += 1) {
+      await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    }
+    const message = await rejectionMessage(
+      client.open('s', { kind: 'builtin', ref: 'test' }, [], []),
+    )
+    check(
+      opening === 4097 && message.includes('generation fence capacity'),
+      'client generation fence: capacity exhaustion fails closed without eviction',
+    )
+  }
+  {
+    const client = new NeuroSimClient(
+      () => new Promise(() => {}),
+      NEGOTIATION,
+    )
+    for (let index = 0; index < 4096; index += 1) {
+      void client.open('pending', { kind: 'builtin', ref: 'test' }, [], [])
+    }
+    const message = await rejectionMessage(
+      client.open('pending', { kind: 'builtin', ref: 'test' }, [], []),
+    )
+    check(
+      message.includes('opening fence reached'),
+      'client opening fence: unresolved opens are globally bounded',
+    )
+  }
+  {
+    let sequence = 0
+    const operationFor = (index) =>
+      `50000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind === 'open_session') return opened
+      sequence += 1
+      return {
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: sequence },
+        session: { generation: GEN },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: {
+          ...receipt(request.operation.request_digest, request.operation.operation_id),
+          state_version: sequence,
+        },
+      }
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    for (let index = 1; index <= 4096; index += 1) {
+      await client.step('s', {
+        operation: {
+          ...MUTATION.operation,
+          operation_id: operationFor(index),
+          expected_state_version: index - 1,
+        },
+        authority: MUTATION.authority,
+      })
+    }
+    const message = await rejectionMessage(client.step('s', {
+      operation: {
+        ...MUTATION.operation,
+        operation_id: operationFor(4097),
+        expected_state_version: 4096,
+      },
+      authority: MUTATION.authority,
+    }))
+    check(
+      sequence === 4097 && message.includes('observation replay fence reached'),
+      'client observation fence: capacity exhaustion fails closed without eviction',
+    )
+  }
+  {
+    let openAttempts = 0
+    let sends = 0
+    const client = new NeuroSimClient(async (request) => {
+      sends += 1
+      if (request.kind !== 'open_session') throw new Error('unexpected mutation send')
+      openAttempts += 1
+      if (openAttempts === 1) return opened
+      throw new Error('reopen outcome unavailable')
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    await rejectsAsync(client.open('s', { kind: 'builtin', ref: 'test' }, [], []))
+    const sendsAfterFailedReopen = sends
+    const message = await rejectionMessage(client.run('s', 10, MUTATION))
+    check(
+      message.includes('has no live generation in this client instance') &&
+        sends === sendsAfterFailedReopen,
+      'client reopen crash: an unprovable open outcome never falls back to the prior generation',
+    )
+  }
+  {
+    const restartedGeneration = '30000000-0000-4000-8000-000000000099'
+    let openAttempts = 0
+    let mutationRequest
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind === 'open_session') {
+        openAttempts += 1
+        return {
+          ...opened,
+          session: { generation: openAttempts === 1 ? GEN : restartedGeneration },
+        }
+      }
+      mutationRequest = request
+      return {
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: restartedGeneration },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: receipt(request.operation.request_digest),
+      }
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const restartedMutation = {
+      operation: { ...MUTATION.operation, session_epoch: restartedGeneration },
+      authority: { ...MUTATION.authority, session_epoch: restartedGeneration },
+    }
+    await client.step('s', restartedMutation)
+    check(
+      mutationRequest.session.generation === restartedGeneration &&
+        mutationRequest.operation.session_epoch === restartedGeneration &&
+        mutationRequest.authority.session_epoch === restartedGeneration,
+      'client reopen: a successful new opening atomically replaces every mutation generation binding',
+    )
+  }
+  {
+    const restartedGeneration = '30000000-0000-4000-8000-000000000099'
+    const pendingOpens = []
+    let mutationRequest
+    const client = new NeuroSimClient((request) => {
+      if (request.kind === 'open_session') {
+        let resolve
+        const promise = new Promise((accept) => {
+          resolve = accept
+        })
+        pendingOpens.push({ promise, resolve })
+        return promise
+      }
+      mutationRequest = request
+      return Promise.resolve({
+        kind: 'observation_frame',
+        ncp_version: NCP_VERSION,
+        session_id: 's',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: restartedGeneration },
+        records: {},
+        is_simulation_output: true,
+        calibrated_posterior: false,
+        receipt: receipt(request.operation.request_digest),
+      })
+    }, NEGOTIATION)
+    const olderOpen = client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const newerOpen = client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    pendingOpens[1].resolve({ ...opened, session: { generation: restartedGeneration } })
+    await newerOpen
+    pendingOpens[0].resolve(opened)
+    const olderMessage = await rejectionMessage(olderOpen)
+    const restartedMutation = {
+      operation: { ...MUTATION.operation, session_epoch: restartedGeneration },
+      authority: { ...MUTATION.authority, session_epoch: restartedGeneration },
+    }
+    await client.step('s', restartedMutation)
+    check(
+      olderMessage.includes('open result was superseded') &&
+        mutationRequest.session.generation === restartedGeneration,
+      'client concurrent reopen: a late older open result cannot overwrite the newer generation',
+    )
+  }
+  {
+    const restartedGeneration = '30000000-0000-4000-8000-000000000099'
+    let openAttempts = 0
+    let pendingMutation
+    const client = new NeuroSimClient((request) => {
+      if (request.kind === 'open_session') {
+        openAttempts += 1
+        return Promise.resolve({
+          ...opened,
+          session: { generation: openAttempts === 1 ? GEN : restartedGeneration },
+        })
+      }
+      if (pendingMutation === undefined) {
+        let resolve
+        const promise = new Promise((accept) => {
+          resolve = accept
+        })
+        pendingMutation = { request, promise, resolve }
+        return promise
+      }
+      throw new Error('unexpected second mutation')
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const oldMutation = client.step('s', MUTATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    pendingMutation.resolve({
+      kind: 'observation_frame',
+      ncp_version: NCP_VERSION,
+      session_id: 's',
+      stream: { epoch: EP, seq: 1 },
+      session: { generation: GEN },
+      records: {},
+      is_simulation_output: true,
+      calibrated_posterior: false,
+      receipt: receipt(pendingMutation.request.operation.request_digest),
+    })
+    check(
+      (await rejectionMessage(oldMutation)).includes('generation changed while a mutation was in flight'),
+      'client in-flight restart: a correlated old-generation result is stale after reopen',
+    )
+  }
   check(
     await rejectsAsync(
       invoke({

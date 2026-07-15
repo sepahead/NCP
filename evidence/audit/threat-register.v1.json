@@ -1,0 +1,1142 @@
+{
+  "schema": "ncp.audit-threat-register.v1",
+  "normative": false,
+  "candidate": "1.0.0-rc.1",
+  "wire_version": "1.0",
+  "generated_by": "scripts/generate_audit_artifacts.py",
+  "claim_boundary": "These generated records are local, non-normative candidate audit controls. They do not close the handoff tasks, resolve independent review, satisfy an external release gate, certify a consumer or deployment, or authorize publication.",
+  "task": "T004",
+  "risk_status": "OPEN",
+  "assumptions": [
+    "Network attackers can read, inject, replay, reorder, delay, duplicate, or drop traffic.",
+    "Credentialed peers can claim the wrong entity, role, plane, session, or authority.",
+    "Processes, routers, and hosts can crash, restart, exhaust resources, or lose replies.",
+    "The body host and physical safety system are outside NCP's certification boundary.",
+    "Local source-tree tests cannot supply independent, live, duration, signed, or publication evidence."
+  ],
+  "trust_boundaries": [
+    "untrusted bytes to bounded decoder",
+    "decoded payload claim to verified transport principal",
+    "transport route to live session and plane",
+    "commander intent to body-owned final actuator authority",
+    "simulation output to scientific or physical claim",
+    "legacy wire and consumer repository to native 1.0",
+    "source tree to installed package and public registry",
+    "local evidence to release authorization"
+  ],
+  "current_behavior_dimensions": [
+    {
+      "dimension": "inputs",
+      "current_behavior": "Bounded canonical JSON, exact routes, profiles, packages, and immutable migration inputs."
+    },
+    {
+      "dimension": "validation",
+      "current_behavior": "Raw resource limits precede schema and semantic validation; unknown authorizing values fail closed."
+    },
+    {
+      "dimension": "state",
+      "current_behavior": "Session generations, stream high-water marks, authority terms, idempotency records, and safety latches are explicit."
+    },
+    {
+      "dimension": "transitions",
+      "current_behavior": "Lifecycle, authority, reset, reconnect, and fail-safe transitions are closed and non-reviving."
+    },
+    {
+      "dimension": "outputs",
+      "current_behavior": "Replies, receipts, frames, diagnostics, and audit events retain exact identity and scientific boundaries."
+    },
+    {
+      "dimension": "errors",
+      "current_behavior": "Registered codes classify failure; free text never grants success."
+    },
+    {
+      "dimension": "resources",
+      "current_behavior": "Envelope, queue, retry, task, and diagnostic budgets are finite before expensive work."
+    },
+    {
+      "dimension": "time",
+      "current_behavior": "UTC evidence is separated from local monotonic control deadlines; equality boundaries fail closed."
+    },
+    {
+      "dimension": "identity",
+      "current_behavior": "Payload claims require verified transport-principal, route, plane, and live-generation binding."
+    },
+    {
+      "dimension": "persistence",
+      "current_behavior": "Unknown mutation outcomes stay unknown; released baselines and evidence identities are immutable inputs."
+    },
+    {
+      "dimension": "concurrency",
+      "current_behavior": "Plane queues, callback ownership, cancellation, ambiguous delivery, and shutdown have explicit local behavior."
+    },
+    {
+      "dimension": "public_claims",
+      "current_behavior": "HEAD remains an unreleased candidate; security, safety, science, scale, consumers, and publication are not certified."
+    }
+  ],
+  "mandatory_counterfactuals": [
+    {
+      "id": "CF-01",
+      "scenario": "valid syntax with contradictory semantics"
+    },
+    {
+      "id": "CF-02",
+      "scenario": "authenticated but unauthorized producer"
+    },
+    {
+      "id": "CF-03",
+      "scenario": "stale yet correctly signed data"
+    },
+    {
+      "id": "CF-04",
+      "scenario": "correct version string with wrong contract or algorithm digest"
+    },
+    {
+      "id": "CF-05",
+      "scenario": "clean synthetic result under a nonrepresentative distribution"
+    },
+    {
+      "id": "CF-06",
+      "scenario": "timeout or capacity exhaustion followed by convenience fallback"
+    },
+    {
+      "id": "CF-07",
+      "scenario": "feature unification activating a privileged or experimental path"
+    },
+    {
+      "id": "CF-08",
+      "scenario": "partial migration accepted through default values"
+    },
+    {
+      "id": "CF-09",
+      "scenario": "crash between decision or output and durable evidence"
+    },
+    {
+      "id": "CF-10",
+      "scenario": "simple but odd input unlikely to resemble familiar examples"
+    }
+  ],
+  "counts": {
+    "threats": 18,
+    "open_risks": 18,
+    "release_blocking": 16
+  },
+  "threats": [
+    {
+      "id": "NCP-THREAT-001",
+      "control_requirement_id": "NCP-THREAT-REQ-001",
+      "title": "Payload identity is mistaken for authentication",
+      "category": "authentication",
+      "boundary": "transport principal to NCP identity claim",
+      "asset_or_claim": "principal, entity, role, and plane authorization",
+      "actor_or_trigger": "remote peer with a syntactically valid claim",
+      "preconditions": [
+        "a payload reaches an NCP-aware transport boundary"
+      ],
+      "misuse_or_failure": "The receiver trusts IdentityClaim without binding it to the verified transport principal.",
+      "accepted_case": "A development-loopback message remains visibly unauthenticated and non-production.",
+      "rejected_case": "A production message without callback-visible verified principal binding is rejected before state change.",
+      "impact": "An attacker can impersonate a commander, body, observer, or operator.",
+      "detection": [
+        "profile reason codes",
+        "identity and ACL negative vectors"
+      ],
+      "prevention": [
+        "default-deny authority manifest",
+        "production-secure open fails closed until binding exists"
+      ],
+      "failure_response": "Reject the message or startup; do not infer identity from payload fields.",
+      "counterfactual_ids": [
+        "CF-02"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-003",
+        "NCP-REQ-006",
+        "NCP-THREAT-REQ-001"
+      ],
+      "code_paths": [
+        "ncp-core/src/security.rs",
+        "ncp-core/src/messages.rs",
+        "ncp-zenoh/src/lib.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "ncp-zenoh/tests/loopback.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked",
+        "cargo test -p ncp-zenoh --locked"
+      ],
+      "evidence_paths": [
+        "SECURITY.md",
+        "KNOWN_LIMITATIONS.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The stable Zenoh API still lacks callback-visible authenticated peer identity; the live campaign is NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-002",
+      "control_requirement_id": "NCP-THREAT-REQ-002",
+      "title": "Authenticated peer exceeds enrolled authority",
+      "category": "authorization",
+      "boundary": "verified principal to exact entity, role, plane, session, and lease",
+      "asset_or_claim": "least privilege and final actuator authority",
+      "actor_or_trigger": "credentialed but unauthorized peer",
+      "preconditions": [
+        "transport authentication succeeded",
+        "the peer requests another plane or entity"
+      ],
+      "misuse_or_failure": "Authentication alone is treated as permission to publish or mutate.",
+      "accepted_case": "An enrolled commander with the exact live lease may issue an admitted mutation.",
+      "rejected_case": "A valid certificate for the wrong entity, role, plane, or lease is denied.",
+      "impact": "A credentialed peer widens its authority or actuates another plant.",
+      "detection": [
+        "registered authorization errors",
+        "ACL and authority negative tests"
+      ],
+      "prevention": [
+        "exact claim binding",
+        "closed roles and planes",
+        "bounded matching lease"
+      ],
+      "failure_response": "Fail closed to denial or HOLD without changing authority state.",
+      "counterfactual_ids": [
+        "CF-02",
+        "CF-01"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-003",
+        "NCP-REQ-006",
+        "NCP-THREAT-REQ-002"
+      ],
+      "code_paths": [
+        "ncp-core/src/authority.rs",
+        "ncp-core/src/security.rs",
+        "deploy/zenoh-access-control.json5"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "scripts/check_acl_template.py"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked",
+        "python3 scripts/check_acl_template.py"
+      ],
+      "evidence_paths": [
+        "SECURITY.md",
+        "conformance/behavior/vectors.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_PREREQUISITES_ONLY",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Offline policy is tested, but live verified-principal enforcement remains unavailable."
+    },
+    {
+      "id": "NCP-THREAT-003",
+      "control_requirement_id": "NCP-THREAT-REQ-003",
+      "title": "Stale generation or stream position is replayed",
+      "category": "replay",
+      "boundary": "session generation and publisher stream",
+      "asset_or_claim": "freshness, high-water state, and restart fencing",
+      "actor_or_trigger": "prior holder, delayed network sample, or restarted publisher",
+      "preconditions": [
+        "an old message remains well formed",
+        "the session or publisher has advanced"
+      ],
+      "misuse_or_failure": "A correctly encoded stale frame refreshes a lease, watchdog, TTL, or output.",
+      "accepted_case": "The exact live generation and strictly increasing position are accepted.",
+      "rejected_case": "A retired generation, foreign epoch, duplicate, or lower sequence is rejected before callback or latch mutation.",
+      "impact": "Old authority or action is revived after restart or reordering.",
+      "detection": [
+        "stream-fence result",
+        "session mismatch error",
+        "unchanged latch state"
+      ],
+      "prevention": [
+        "generation binding",
+        "one-epoch declaration",
+        "permanent high-water state"
+      ],
+      "failure_response": "Reject without refreshing any deadline or safety state.",
+      "counterfactual_ids": [
+        "CF-03"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-005",
+        "NCP-REQ-006",
+        "NCP-THREAT-REQ-003"
+      ],
+      "code_paths": [
+        "ncp-core/src/stream_fence.rs",
+        "ncp-core/src/transport.rs",
+        "ncp-zenoh/src/lib.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "ncp-zenoh/tests/cross_session_rpc.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked",
+        "cargo test -p ncp-zenoh --locked"
+      ],
+      "evidence_paths": [
+        "NEURO_CYBERNETIC_PROTOCOL.md",
+        "conformance/behavior/vectors.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_WITH_EXTERNAL_GAP",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Process-crash, capture replay, rollover, and duration campaigns remain incomplete."
+    },
+    {
+      "id": "NCP-THREAT-004",
+      "control_requirement_id": "NCP-THREAT-REQ-004",
+      "title": "Version text masks contract or algorithm drift",
+      "category": "compatibility",
+      "boundary": "wire compatibility and complete normative identity",
+      "asset_or_claim": "one coherent candidate contract",
+      "actor_or_trigger": "peer or package with the right wire string and different semantics",
+      "preconditions": [
+        "wire major is compatible",
+        "contract bytes or digest algorithm differ"
+      ],
+      "misuse_or_failure": "A matching version string is treated as proof of identical semantics.",
+      "accepted_case": "The wire gate accepts compatible 1.x and reports the exact complete digest separately.",
+      "rejected_case": "Malformed versions fail; compact or complete digest drift is surfaced and cannot certify artifacts.",
+      "impact": "Peers silently disagree on security, safety, or canonicalization rules.",
+      "detection": [
+        "contract-status mismatch",
+        "manifest and package identity checks"
+      ],
+      "prevention": [
+        "complete SHA-256 manifest",
+        "advisory compact hash",
+        "version-coherence gate"
+      ],
+      "failure_response": "Reject malformed/incompatible wire and retain digest mismatch as non-certifying evidence.",
+      "counterfactual_ids": [
+        "CF-04"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-001",
+        "NCP-REQ-013",
+        "NCP-THREAT-REQ-004"
+      ],
+      "code_paths": [
+        "ncp-core/src/contract_identity.rs",
+        "ncp-core/src/messages.rs",
+        "scripts/generate_contract_manifest.py"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "scripts/check-version-coherence.sh"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_contract_manifest.py",
+        "scripts/check-version-coherence.sh"
+      ],
+      "evidence_paths": [
+        "contract/manifest.v1.json",
+        "conformance/behavior/vectors.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Independent artifact-bound verification and signatures remain external release evidence."
+    },
+    {
+      "id": "NCP-THREAT-005",
+      "control_requirement_id": "NCP-THREAT-REQ-005",
+      "title": "Syntactically valid but contradictory state grants success",
+      "category": "semantic-integrity",
+      "boundary": "decoded message to state transition",
+      "asset_or_claim": "closed lifecycle, error, authority, capability, and scientific states",
+      "actor_or_trigger": "peer constructing mutually inconsistent fields",
+      "preconditions": [
+        "JSON and schema syntax are valid"
+      ],
+      "misuse_or_failure": "Unknown, default, or contradictory values are interpreted as authority or success.",
+      "accepted_case": "A complete known state satisfying all cross-field invariants is admitted.",
+      "rejected_case": "Unknown enums, missing evidence, mismatched receipts, or contradictory flags fail closed.",
+      "impact": "Invalid combinations reach application or actuation state.",
+      "detection": [
+        "registered validation outcome",
+        "negative corpus exact-set execution"
+      ],
+      "prevention": [
+        "closed registries",
+        "semantic validators",
+        "non-authorizing defaults"
+      ],
+      "failure_response": "Return a registered error or non-authorizing HOLD state.",
+      "counterfactual_ids": [
+        "CF-01",
+        "CF-10"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-008",
+        "NCP-REQ-009",
+        "NCP-REQ-012",
+        "NCP-THREAT-REQ-005"
+      ],
+      "code_paths": [
+        "ncp-core/src/messages.rs",
+        "ncp-core/src/safety.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "ncp-core/tests/conformance.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked"
+      ],
+      "evidence_paths": [
+        "conformance/behavior/vectors.json",
+        "conformance/manifest.v1.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "All-language construction and independent mutation evidence remain incomplete."
+    },
+    {
+      "id": "NCP-THREAT-006",
+      "control_requirement_id": "NCP-THREAT-REQ-006",
+      "title": "Resource exhaustion triggers permissive recovery",
+      "category": "availability",
+      "boundary": "untrusted bytes and transport work queues",
+      "asset_or_claim": "bounded parsing, queues, retries, and fail-safe behavior",
+      "actor_or_trigger": "malformed sender, slow consumer, flood, or exhausted host",
+      "preconditions": [
+        "an ingress or queue reaches a configured limit"
+      ],
+      "misuse_or_failure": "A timeout, overflow, or allocation failure bypasses validation or widens authority.",
+      "accepted_case": "Within-budget input is decoded before semantic allocation.",
+      "rejected_case": "Oversize, over-depth, queue-full, timeout, or cancellation states fail explicitly without a permissive fallback.",
+      "impact": "Denial of service becomes unauthorized delivery or invisible data loss.",
+      "detection": [
+        "NCP-LIMIT codes",
+        "drop/reject counters",
+        "bounded terminal errors"
+      ],
+      "prevention": [
+        "universal preflight",
+        "plane-specific capacities",
+        "finite timeouts"
+      ],
+      "failure_response": "Reject, count, HOLD, or terminate the affected transport; never grant success.",
+      "counterfactual_ids": [
+        "CF-06",
+        "CF-10"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-002",
+        "NCP-REQ-010",
+        "NCP-THREAT-REQ-006"
+      ],
+      "code_paths": [
+        "ncp-core/src/bounded_json.rs",
+        "ncp-core/src/resilience.rs",
+        "ncp-ts/src/ws.ts"
+      ],
+      "test_paths": [
+        "e2e/test_bounded_json.py",
+        "ncp-ts/scripts/check-ws.mjs",
+        "ncp-zenoh/tests/loopback.rs"
+      ],
+      "verification_commands": [
+        "python3 -m unittest -v e2e.test_bounded_json",
+        "cd ncp-ts && bun run check:ws",
+        "cargo test -p ncp-zenoh --locked"
+      ],
+      "evidence_paths": [
+        "contract/limits.v1.json",
+        "RESILIENCE.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_WITH_EXTERNAL_GAP",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Maximum-size CPU/RSS, hostile traffic, leak, and duration evidence is NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-007",
+      "control_requirement_id": "NCP-THREAT-REQ-007",
+      "title": "Dependency feature unification activates excluded code",
+      "category": "supply-chain",
+      "boundary": "resolved dependency features",
+      "asset_or_claim": "reviewed Zenoh transport surface and advisory containment",
+      "actor_or_trigger": "downstream feature unification or dependency update",
+      "preconditions": [
+        "a dependent enables defaults or transport compression"
+      ],
+      "misuse_or_failure": "An excluded vulnerable or privileged feature enters the compiled surface silently.",
+      "accepted_case": "The reviewed lock and exact feature set keep defaults and compression disabled.",
+      "rejected_case": "Unexpected Zenoh defaults, compression, or unreviewed versions fail the dependency-exposure gate.",
+      "impact": "The shipped attack surface differs from the reviewed candidate.",
+      "detection": [
+        "resolved feature inspection",
+        "cargo-deny advisory output"
+      ],
+      "prevention": [
+        "exact lock",
+        "feature exposure checker",
+        "publication hold on the retained Zenoh/lz4 advisory"
+      ],
+      "failure_response": "Fail CI and keep publication blocked until the graph is patched and re-reviewed.",
+      "counterfactual_ids": [
+        "CF-07"
+      ],
+      "requirement_ids": [
+        "NCP-THREAT-REQ-007"
+      ],
+      "code_paths": [
+        "Cargo.lock",
+        "ncp-zenoh/Cargo.toml",
+        "scripts/check_dependency_exposure.py"
+      ],
+      "test_paths": [
+        "scripts/check_dependency_exposure.py",
+        ".github/workflows/ci.yml"
+      ],
+      "verification_commands": [
+        "python3 scripts/check_dependency_exposure.py --self-test",
+        "cargo deny check"
+      ],
+      "evidence_paths": [
+        "KNOWN_LIMITATIONS.md",
+        "deny.toml",
+        "evidence/supply-chain/vulnerability-report.v1.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The reviewed Zenoh path still locks the lz4_flex advisory while defaults and compression remain disabled under the resolved-feature guard; that specific residual blocks stable publication."
+    },
+    {
+      "id": "NCP-THREAT-008",
+      "control_requirement_id": "NCP-THREAT-REQ-008",
+      "title": "Partial 0.8 migration invents missing context",
+      "category": "migration",
+      "boundary": "legacy wire input to native 1.0 state",
+      "asset_or_claim": "identity, security, session, authority, units, frames, and epistemic integrity",
+      "actor_or_trigger": "legacy gateway or copied consumer contract",
+      "preconditions": [
+        "wire 0.8 lacks mandatory 1.0 context"
+      ],
+      "misuse_or_failure": "Defaults or guessed values make an incomplete legacy message appear native 1.0.",
+      "accepted_case": "The labelled terminating translator maps only explicit authenticated channel requirements.",
+      "rejected_case": "Missing, null, mixed, reverse, transparent, or context-inventing translation is rejected.",
+      "impact": "A legacy peer gains native authority or produces scientifically mislabelled data.",
+      "detection": [
+        "migration reason code",
+        "seven migration vectors"
+      ],
+      "prevention": [
+        "one-way bounded translator",
+        "no transparent proxy",
+        "native consumer certification boundary"
+      ],
+      "failure_response": "Reject conversion and retain the source as legacy-unqualified input.",
+      "counterfactual_ids": [
+        "CF-08"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-004",
+        "NCP-THREAT-REQ-008"
+      ],
+      "code_paths": [
+        "ncp-core/src/migration.rs",
+        "ncp-core/src/migration/capture.rs",
+        "ncp-gateway/src/main.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "conformance/migration/v0.8-to-v1.0/wire-0.8-reconstructable-capture.json",
+        "ncp-core/testdata/migration/wire-0.8-reconstructable-capture.json",
+        "conformance/migration/v0.8-to-v1.0/channel-requirement.json"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked"
+      ],
+      "evidence_paths": [
+        "INTEGRATING.md",
+        "KNOWN_LIMITATIONS.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The bounded repository validator checks explicit legacy units, frames, lineage, restart boundaries, and epistemic fields and excludes records needing unavailable native-1.0 authority or operation evidence; it emits no native-1.0 capture, while live consumer captures, independent clean-room replay, and installed-artifact migration certification remain NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-009",
+      "control_requirement_id": "NCP-THREAT-REQ-009",
+      "title": "Crash separates mutation outcome from durable evidence",
+      "category": "crash-consistency",
+      "boundary": "idempotent mutation and responder receipt",
+      "asset_or_claim": "at-most-once retry semantics and explicit unknown outcome",
+      "actor_or_trigger": "process crash, reply loss, cache eviction, or restart",
+      "preconditions": [
+        "a mutation may have committed",
+        "the caller lacks a correlated terminal receipt"
+      ],
+      "misuse_or_failure": "The caller retries and assumes success or re-executes because the result is absent.",
+      "accepted_case": "A matching authenticated terminal receipt is replayed from retained idempotency state.",
+      "rejected_case": "Unprovable outcomes return outcome_unknown and are never guessed or executed again by assumption.",
+      "impact": "A lifecycle mutation is duplicated or a false success is reported.",
+      "detection": [
+        "receipt correlation",
+        "idempotency conflict/busy/unknown outcomes"
+      ],
+      "prevention": [
+        "principal-bound cache key",
+        "request digest",
+        "snapshot-capable state"
+      ],
+      "failure_response": "Return explicit unknown outcome and require reconciliation outside the mutation path.",
+      "counterfactual_ids": [
+        "CF-09"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-007",
+        "NCP-THREAT-REQ-009"
+      ],
+      "code_paths": [
+        "ncp-core/src/idempotency.rs",
+        "ncp-core/src/request_digest.rs",
+        "ncp-core/src/messages.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "conformance/request-digest/v1.json"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked",
+        "python3 scripts/check_request_digests.py"
+      ],
+      "evidence_paths": [
+        "NEURO_CYBERNETIC_PROTOCOL.md",
+        "conformance/behavior/vectors.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_WITH_EXTERNAL_GAP",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Durable server integration and process-crash campaigns remain NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-010",
+      "control_requirement_id": "NCP-THREAT-REQ-010",
+      "title": "Synthetic output is promoted to scientific evidence",
+      "category": "scientific-integrity",
+      "boundary": "simulation output to downstream claim",
+      "asset_or_claim": "honest epistemic and provenance boundary",
+      "actor_or_trigger": "operator, paper, dashboard, or downstream dataset",
+      "preconditions": [
+        "a clean simulation result resembles expected behavior"
+      ],
+      "misuse_or_failure": "Simulation output is described as calibrated, experimental, representative, or a reproduction.",
+      "accepted_case": "Output remains explicitly simulation output with calibrated_posterior=false.",
+      "rejected_case": "Missing or upgraded epistemic flags and unsupported reproduction claims are rejected or removed.",
+      "impact": "Scientific conclusions exceed the model, data, and validation evidence.",
+      "detection": [
+        "scientific-boundary validation",
+        "claim and documentation review"
+      ],
+      "prevention": [
+        "mandatory flags",
+        "provenance fields",
+        "explicit non-claims"
+      ],
+      "failure_response": "Reject the message or narrow the public claim to raw simulation/control output.",
+      "counterfactual_ids": [
+        "CF-05"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-009",
+        "NCP-THREAT-REQ-010"
+      ],
+      "code_paths": [
+        "ncp-core/src/messages.rs",
+        "ncp-core/src/audit.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/behavior_conformance.rs",
+        "ncp-cpp/tests/corpus.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked"
+      ],
+      "evidence_paths": [
+        "NEURO_CYBERNETIC_PROTOCOL.md",
+        "NEUROMORPHIC.md",
+        "conformance/behavior/vectors.json"
+      ],
+      "control_status": "LOCAL_VERIFIED_NON_CLAIM",
+      "risk_status": "OPEN",
+      "release_blocking": false,
+      "residual_risk": "No external scientific validation or representative-distribution campaign exists."
+    },
+    {
+      "id": "NCP-THREAT-011",
+      "control_requirement_id": "NCP-THREAT-REQ-011",
+      "title": "Protocol ESTOP is mistaken for physical safety certification",
+      "category": "physical-safety",
+      "boundary": "command protocol to plant actuation",
+      "asset_or_claim": "plant-owned safe action and final actuator authority",
+      "actor_or_trigger": "deployment relying on mode text or transport success",
+      "preconditions": [
+        "an ESTOP or HOLD message is accepted or published"
+      ],
+      "misuse_or_failure": "Protocol state is treated as proof that a physical plant stopped safely.",
+      "accepted_case": "The body applies its content-addressed plant profile and independent interlock.",
+      "rejected_case": "A missing/mismatched profile, stale session, or malformed ESTOP is rejected without inventing a universal action.",
+      "impact": "Physical harm occurs despite a nominal protocol success.",
+      "detection": [
+        "profile digest",
+        "governor/latch state",
+        "plant-local acknowledgement outside current wire"
+      ],
+      "prevention": [
+        "body final authority",
+        "profile-owned HOLD/ESTOP action",
+        "physical-safety non-claim"
+      ],
+      "failure_response": "Fail safe at the body and retain the absence of physical acknowledgement as an open limitation.",
+      "counterfactual_ids": [
+        "CF-01",
+        "CF-05"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-010",
+        "NCP-REQ-011",
+        "NCP-THREAT-REQ-011"
+      ],
+      "code_paths": [
+        "ncp-core/src/plant.rs",
+        "ncp-core/src/safety.rs",
+        "ncp-zenoh/src/lib.rs"
+      ],
+      "test_paths": [
+        "ncp-core/tests/profile_digest_conformance.rs",
+        "ncp-zenoh/tests/safety_governor_over_wire.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-core --locked",
+        "cargo test -p ncp-zenoh --locked"
+      ],
+      "evidence_paths": [
+        "SECURITY.md",
+        "KNOWN_LIMITATIONS.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_NON_CLAIM",
+      "risk_status": "OPEN",
+      "release_blocking": false,
+      "residual_risk": "No physical plant, universal safe action, or applied-command acknowledgement is certified."
+    },
+    {
+      "id": "NCP-THREAT-012",
+      "control_requirement_id": "NCP-THREAT-REQ-012",
+      "title": "Production profile downgrades or starts partially configured",
+      "category": "configuration-security",
+      "boundary": "deployment configuration to transport startup",
+      "asset_or_claim": "mutual TLS, default-deny ACL, and no downgrade",
+      "actor_or_trigger": "misconfiguration, missing secret, expired certificate, or rushed operator",
+      "preconditions": [
+        "production-secure is selected"
+      ],
+      "misuse_or_failure": "A missing control silently falls back to plaintext, discovery, or development mode.",
+      "accepted_case": "A complete valid profile is precommitted and bound to an exact security-state digest.",
+      "rejected_case": "Partial TLS, insecure endpoints, hidden listeners, discovery, downgrade, or invalid files fail startup.",
+      "impact": "A deployment appears secure while accepting unauthenticated or overbroad traffic.",
+      "detection": [
+        "profile validation reason",
+        "startup failure",
+        "live router evidence when available"
+      ],
+      "prevention": [
+        "closed profiles",
+        "no fail-soft path",
+        "security-state digest"
+      ],
+      "failure_response": "Abort startup and keep the live security gate NOT RUN.",
+      "counterfactual_ids": [
+        "CF-06",
+        "CF-02"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-003",
+        "NCP-THREAT-REQ-012"
+      ],
+      "code_paths": [
+        "ncp-core/src/security.rs",
+        "ncp-zenoh/src/lib.rs",
+        "scripts/validate_security_profile.py"
+      ],
+      "test_paths": [
+        "scripts/validate_security_profile.py",
+        "scripts/verify_acl_deployment.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/validate_security_profile.py --self-test",
+        "python3 scripts/verify_acl_deployment.py --self-test"
+      ],
+      "evidence_paths": [
+        "SECURITY.md",
+        "RELEASE_READINESS.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Principal binding is unimplemented and the live certificate/rotation/revocation campaign is NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-013",
+      "control_requirement_id": "NCP-THREAT-REQ-013",
+      "title": "Route and payload refer to different live sessions",
+      "category": "routing-integrity",
+      "boundary": "actual transport key to payload session identity",
+      "asset_or_claim": "cross-session isolation",
+      "actor_or_trigger": "misrouted, malicious, delayed, or copied data-plane sample",
+      "preconditions": [
+        "the payload itself is well formed"
+      ],
+      "misuse_or_failure": "A receiver trusts the payload session while delivery occurred on another route or generation.",
+      "accepted_case": "Route session, payload session_id, and current generation all match exactly.",
+      "rejected_case": "Cross-route, missing, stale, or foreign generation samples are rejected before callback and latch mutation.",
+      "impact": "One session observes or actuates another session's data.",
+      "detection": [
+        "route/session rejection",
+        "callback count",
+        "unchanged safety state"
+      ],
+      "prevention": [
+        "typed transport wrappers",
+        "exact session and generation checks"
+      ],
+      "failure_response": "Drop or reject the sample without repairing inbound identity.",
+      "counterfactual_ids": [
+        "CF-03",
+        "CF-10"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-005",
+        "NCP-REQ-012",
+        "NCP-THREAT-REQ-013"
+      ],
+      "code_paths": [
+        "ncp-core/src/transport.rs",
+        "ncp-zenoh/src/lib.rs"
+      ],
+      "test_paths": [
+        "ncp-zenoh/tests/cross_session_rpc.rs",
+        "ncp-zenoh/tests/loopback.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-zenoh --locked"
+      ],
+      "evidence_paths": [
+        "NEURO_CYBERNETIC_PROTOCOL.md",
+        "SECURITY.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_WITH_EXTERNAL_GAP",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Authenticated multi-process cross-session evidence remains part of the NOT RUN live campaign."
+    },
+    {
+      "id": "NCP-THREAT-014",
+      "control_requirement_id": "NCP-THREAT-REQ-014",
+      "title": "Ambiguous delivery reuses an action position",
+      "category": "delivery-semantics",
+      "boundary": "action publisher to transport outcome",
+      "asset_or_claim": "single-use stream positions and fail-safe priority",
+      "actor_or_trigger": "transport error after a put may already have delivered",
+      "preconditions": [
+        "put completion is ambiguous"
+      ],
+      "misuse_or_failure": "The sender retries the same bytes or resumes Active without a new fail-safe position.",
+      "accepted_case": "Every attempted put consumes its position; a new logical fail-safe uses a new position.",
+      "rejected_case": "Same-position retry and Active while fail-safe delivery is pending are rejected.",
+      "impact": "A replay bypasses high-water checks or Active resumes after an unproved stop.",
+      "detection": [
+        "publisher position state",
+        "fail-safe pending state",
+        "transport outcome"
+      ],
+      "prevention": [
+        "single allocator",
+        "no busy retry",
+        "new-position recovery"
+      ],
+      "failure_response": "Block Active until a new fail-safe publishes successfully or declaration state is replaced.",
+      "counterfactual_ids": [
+        "CF-09",
+        "CF-06"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-005",
+        "NCP-REQ-010",
+        "NCP-THREAT-REQ-014"
+      ],
+      "code_paths": [
+        "ncp-zenoh/src/lib.rs",
+        "ncp-core/src/transport.rs"
+      ],
+      "test_paths": [
+        "ncp-zenoh/tests/loopback.rs",
+        "ncp-core/tests/behavior_conformance.rs"
+      ],
+      "verification_commands": [
+        "cargo test -p ncp-zenoh --locked"
+      ],
+      "evidence_paths": [
+        "README.md",
+        "SECURITY.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_WITH_EXTERNAL_GAP",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Fault injection against real routers and plants remains NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-015",
+      "control_requirement_id": "NCP-THREAT-REQ-015",
+      "title": "Unicode, duplicate keys, or path tricks create cross-language ambiguity",
+      "category": "parser-differential",
+      "boundary": "raw bytes to semantic object, route, or file path",
+      "asset_or_claim": "one bounded interpretation across implementations",
+      "actor_or_trigger": "odd-but-valid-looking JSON, Unicode, endpoint, or filesystem input",
+      "preconditions": [
+        "different runtimes would otherwise normalize or collapse input differently"
+      ],
+      "misuse_or_failure": "A duplicate, lone surrogate, unsafe integer, control character, or aliased path reaches semantics inconsistently.",
+      "accepted_case": "Canonical bounded input has one decoded key set, safe numbers, valid Unicode, and canonical paths.",
+      "rejected_case": "Duplicate/ambiguous/unsafe input is rejected before generic allocation, schema use, or file access.",
+      "impact": "Peers disagree on identity, digest, route, or authority while accepting the same bytes.",
+      "detection": [
+        "NCP-LIMIT reason",
+        "cross-language behavior corpus",
+        "path no-follow checks"
+      ],
+      "prevention": [
+        "raw scanner",
+        "canonical key grammar",
+        "bounded no-follow file validation"
+      ],
+      "failure_response": "Reject the complete input; do not normalize it into an accepted identity.",
+      "counterfactual_ids": [
+        "CF-10",
+        "CF-01"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-002",
+        "NCP-REQ-013",
+        "NCP-THREAT-REQ-015"
+      ],
+      "code_paths": [
+        "ncp-core/src/bounded_json.rs",
+        "ncp-ts/src/bounded-json.ts",
+        "e2e/bounded_json.py"
+      ],
+      "test_paths": [
+        "e2e/test_bounded_json.py",
+        "ncp-cpp/tests/corpus.rs",
+        "ncp-ts/scripts/check-behavior.mjs"
+      ],
+      "verification_commands": [
+        "python3 -m unittest -v e2e.test_bounded_json",
+        "cd ncp-ts && bun run check:behavior",
+        "cargo test -p ncp-cpp --locked"
+      ],
+      "evidence_paths": [
+        "contract/limits.v1.json",
+        "conformance/manifest.v1.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_WITH_EXTERNAL_GAP",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Duration fuzzing, sanitizers, and independent installed-peer differential evidence are NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-016",
+      "control_requirement_id": "NCP-THREAT-REQ-016",
+      "title": "Package namespace or dependency provenance is misattributed",
+      "category": "supply-chain",
+      "boundary": "source and package identity to public registry artifact",
+      "asset_or_claim": "authentic package installation and provenance",
+      "actor_or_trigger": "unrelated registry owner, typosquat, compromised dependency, or unsigned archive",
+      "preconditions": [
+        "local package archives build successfully"
+      ],
+      "misuse_or_failure": "Local packageability or a not-found registry response is treated as ownership or provenance.",
+      "accepted_case": "Exact intended namespaces, artifacts, checksums, SBOM, signatures, and provenance are independently verified.",
+      "rejected_case": "Unowned names, unsigned artifacts, unresolved advisories, and missing provenance remain failed release gates.",
+      "impact": "Users install unrelated or unreviewed code under an expected NCP name.",
+      "detection": [
+        "registry ownership receipt",
+        "artifact digest and signature verification",
+        "dependency policy"
+      ],
+      "prevention": [
+        "publication hold",
+        "coordinated rename requirement",
+        "signed provenance gate"
+      ],
+      "failure_response": "Do not publish; resolve ownership or rename every manifest, test, document, and consumer coherently.",
+      "counterfactual_ids": [
+        "CF-07",
+        "CF-04"
+      ],
+      "requirement_ids": [
+        "NCP-THREAT-REQ-016"
+      ],
+      "code_paths": [
+        "scripts/check_rust_packages.py",
+        "scripts/check_dependency_exposure.py",
+        ".github/workflows/release.yml"
+      ],
+      "test_paths": [
+        "scripts/check_rust_packages.py",
+        "scripts/check_dependency_exposure.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/check_rust_packages.py --offline",
+        "cargo deny check"
+      ],
+      "evidence_paths": [
+        "KNOWN_LIMITATIONS.md",
+        "RELEASE_READINESS.md",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "NOT_RUN_EXTERNAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Registry control, final SBOM/provenance/signatures, and clean-room reproduction are absent."
+    },
+    {
+      "id": "NCP-THREAT-017",
+      "control_requirement_id": "NCP-THREAT-REQ-017",
+      "title": "Candidate evidence is relabelled as release authorization",
+      "category": "governance",
+      "boundary": "local implementation evidence to public release claim",
+      "asset_or_claim": "truthful candidate and evidence tier",
+      "actor_or_trigger": "version-only relabel, stale metadata, missing signature, or incomplete checklist",
+      "preconditions": [
+        "local and hosted tests pass"
+      ],
+      "misuse_or_failure": "A green source-tree gate is described as a published, certified, or signed release.",
+      "accepted_case": "Local evidence remains bound to the candidate cut and explicit unresolved gates.",
+      "rejected_case": "A release tag or stable publication is blocked while any required evidence is missing, skipped, stale, or unsigned.",
+      "impact": "Public users rely on unsupported security, interoperability, performance, or safety claims.",
+      "detection": [
+        "release-gate checker",
+        "candidate identity",
+        "public metadata review"
+      ],
+      "prevention": [
+        "release_allowed=false",
+        "tag workflow hold",
+        "NO_GO handoff ledger"
+      ],
+      "failure_response": "Keep the candidate blocked and narrow or remove unsupported claims.",
+      "counterfactual_ids": [
+        "CF-04",
+        "CF-05",
+        "CF-09"
+      ],
+      "requirement_ids": [
+        "NCP-THREAT-REQ-017"
+      ],
+      "code_paths": [
+        "scripts/check_release_gates.py",
+        ".github/workflows/release.yml"
+      ],
+      "test_paths": [
+        "scripts/check_release_gates.py",
+        ".github/workflows/ci.yml"
+      ],
+      "verification_commands": [
+        "python3 scripts/check_release_gates.py --self-test"
+      ],
+      "evidence_paths": [
+        "RELEASE_READINESS.md",
+        "docs/handoff/max-effort-task-review.v2.json",
+        "docs/1.0-candidate-receipts.md"
+      ],
+      "control_status": "LOCAL_VERIFIED_RELEASE_HOLD",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Independent review, signatures, external gates, and publication receipts remain absent."
+    },
+    {
+      "id": "NCP-THREAT-018",
+      "control_requirement_id": "NCP-THREAT-REQ-018",
+      "title": "Copied protocol files create a silent consumer fork",
+      "category": "ecosystem",
+      "boundary": "NCP candidate to downstream runtime and descriptor",
+      "asset_or_claim": "one explicit consumer migration with exact installed behavior",
+      "actor_or_trigger": "partial repin, copied schema, or stale runtime implementation",
+      "preconditions": [
+        "a consumer changes a version string or vendored file"
+      ],
+      "misuse_or_failure": "The consumer is called native 1.0 without updating runtime, descriptor, fixtures, transport, and evidence together.",
+      "accepted_case": "A consumer pins one immutable NCP cut and passes installed-artifact plus live-transport certification.",
+      "rejected_case": "Movable refs, copied files, mixed wire values, incomplete descriptors, and unqualified profiles remain uncertified.",
+      "impact": "Cross-repository drift creates incompatible or unsafe ecosystem behavior.",
+      "detection": [
+        "consumer descriptor scan",
+        "exact mirror revision",
+        "installed/live certification report"
+      ],
+      "prevention": [
+        "immutable pins",
+        "no silent fork policy",
+        "six-consumer release gate"
+      ],
+      "failure_response": "Reject the compatibility claim and retain explicit cross-repository prerequisites.",
+      "counterfactual_ids": [
+        "CF-08",
+        "CF-04"
+      ],
+      "requirement_ids": [
+        "NCP-REQ-004",
+        "NCP-THREAT-REQ-018"
+      ],
+      "code_paths": [
+        "scripts/consumer_pin_guard.py",
+        "scripts/repin-ncp.sh"
+      ],
+      "test_paths": [
+        "scripts/test_consumer_pins.sh",
+        "scripts/check-consumer-pins.sh"
+      ],
+      "verification_commands": [
+        "scripts/test_consumer_pins.sh"
+      ],
+      "evidence_paths": [
+        "INTEGRATING.md",
+        "RELEASE_READINESS.md",
+        "docs/handoff/max-effort-audit-inputs.v2.json"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "All six installed-artifact and live consumer certifications remain NOT RUN."
+    }
+  ]
+}

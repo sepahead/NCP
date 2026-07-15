@@ -38,7 +38,10 @@ pub use keys::{valid_id_segment, InvalidKeySegment, InvalidRealm, Keys, DEFAULT_
 pub use messages::*;
 pub use migration::{
     translate_capabilities_0_8_to_1_0, translate_capabilities_0_8_to_1_0_with_context,
-    GatewayContext, MigrationError, MigrationReceipt,
+    validate_wire_0_8_capture, CaptureMigrationError, CaptureMigrationGap, CaptureMigrationReport,
+    CaptureReconstructability, GatewayContext, MigrationError, MigrationReceipt,
+    CAPTURE_MIGRATION_REPORT_SCHEMA, LEGACY_CAPTURE_SCHEMA, LEGACY_WIRE_0_8_CONTRACT_HASH,
+    MAX_CAPTURE_RECORDS,
 };
 pub use plant::{PlantCommand, PlantProfile, PlantProfileError, SafeActionKind};
 pub use request_digest::{

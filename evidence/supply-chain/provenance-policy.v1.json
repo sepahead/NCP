@@ -1,0 +1,27 @@
+{
+  "candidate_dossier_requirements": [
+    "build from one exact full Git commit with a clean archived source tree",
+    "record and verifier-bind every exact identity injection used to create disposable package-source derivatives",
+    "build all five Rust archives, the abi3 wheel, Python sdist, and both npm tarballs; smoke every locally installable surface",
+    "record SHA-256 checksums for every package, SBOM, license report, and scan report",
+    "bind the normative contract and conformance corpus digests",
+    "retain package-install and behavioral-conformance results",
+    "attest package subjects and the CycloneDX SBOM in the hosted build"
+  ],
+  "candidate_version": "1.0.0-rc.1",
+  "claim_boundary": "These deterministic local files are candidate evidence. They are not a signature, provenance attestation, registry publication, or release approval.",
+  "publication_preconditions_not_satisfied_locally": [
+    "independent clean-room reproduction",
+    "registry namespace ownership",
+    "authorized release policy",
+    "independently verified signatures and revocation path"
+  ],
+  "release_authorized": false,
+  "schema": "ncp.provenance-policy.v1",
+  "source_materials": {
+    "Cargo.lock": "c4d2c007a404350d462a63d934985f0474a2fd6dab62a2b1df51c558585a3c03",
+    "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
+    "conformance/manifest.v1.json": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
+    "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97"
+  }
+}

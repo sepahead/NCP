@@ -1,0 +1,2347 @@
+{
+  "candidate_version": "1.0.0-rc.1",
+  "license_expression_counts": {
+    "(MIT OR Apache-2.0) AND Unicode-3.0": 1,
+    "0BSD OR MIT OR Apache-2.0": 1,
+    "Apache-2.0": 2,
+    "Apache-2.0 AND ISC": 1,
+    "Apache-2.0 OR BSL-1.0": 1,
+    "Apache-2.0 OR ISC OR MIT": 3,
+    "Apache-2.0 OR MIT": 19,
+    "Apache-2.0 WITH LLVM-exception": 1,
+    "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT": 3,
+    "BSD-2-Clause": 2,
+    "BSD-2-Clause OR Apache-2.0 OR MIT": 2,
+    "BSD-3-Clause": 1,
+    "CDLA-Permissive-2.0": 2,
+    "EPL-2.0 OR Apache-2.0": 34,
+    "ISC": 4,
+    "MIT": 57,
+    "MIT OR Apache-2.0": 231,
+    "MIT OR Apache-2.0 OR LGPL-2.1-or-later": 1,
+    "MIT OR Apache-2.0 OR Zlib": 2,
+    "MIT OR Zlib OR Apache-2.0": 1,
+    "MPL-2.0": 1,
+    "Unlicense OR MIT": 6,
+    "Zlib": 7,
+    "Zlib OR Apache-2.0 OR MIT": 1
+  },
+  "package_count": 384,
+  "packages": [
+    {
+      "bom_ref": "pkg:cargo/adler2@2.0.1",
+      "license_expression_normalized": "0BSD OR MIT OR Apache-2.0",
+      "license_expression_raw": "0BSD OR MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/advisory-lock@0.3.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/aes@0.8.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ahash@0.8.12",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/aho-corasick@1.1.4",
+      "license_expression_normalized": "Unlicense OR MIT",
+      "license_expression_raw": "Unlicense OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/allocator-api2@0.2.21",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/android_system_properties@0.1.5",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/anyhow@1.0.103",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/arc-swap@1.9.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/array-init@2.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/asn1-rs-derive@0.6.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/asn1-rs-impl@0.2.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/asn1-rs@0.7.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/async-trait@0.1.89",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/autocfg@1.5.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/base64@0.22.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/bit-vec@0.9.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/bitflags@1.3.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/bitflags@2.13.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/block-buffer@0.10.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/bs58@0.5.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/buddy_system_allocator@0.10.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/bumpalo@3.20.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/bytes@1.11.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cc@1.2.64",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cesu8@1.1.0",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0/MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cfg-if@1.0.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cfg_aliases@0.1.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cfg_aliases@0.2.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/chrono@0.4.45",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cipher@0.4.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/combine@4.6.7",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/concurrent-queue@2.5.0",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/const_format@0.2.36",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/const_format_proc_macros@0.2.34",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/core-foundation-sys@0.8.7",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/core-foundation@0.10.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/cpufeatures@0.2.17",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crc32fast@1.5.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crossbeam-channel@0.5.15",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crossbeam-deque@0.8.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crossbeam-epoch@0.9.20",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crossbeam-queue@0.3.12",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crossbeam-utils@0.8.21",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crossbeam@0.8.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/crypto-common@0.1.7",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/darling@0.23.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/darling_core@0.23.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/darling_macro@0.23.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/data-encoding@2.11.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/der-parser@10.0.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/deranged@0.5.8",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/digest@0.10.7",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/dirs-sys@0.5.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/dirs@6.0.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/displaydoc@0.2.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/dtoa@1.0.11",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/dyn-clone@1.0.20",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/either@1.16.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/equivalent@1.0.2",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/errno@0.3.14",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/event-listener@5.4.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/fastbloom@0.14.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/fastrand@2.4.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/find-msvc-tools@0.1.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/fixedbitset@0.5.7",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/flate2@1.1.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/flume@0.11.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0/MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/foldhash@0.1.5",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/foldhash@0.2.0",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-channel@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-core@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-executor@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-io@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-macro@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-sink@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-task@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures-util@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/futures@0.3.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/generic-array@0.14.7",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/getrandom@0.2.17",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/getrandom@0.3.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/git-version-macro@0.3.9",
+      "license_expression_normalized": "BSD-2-Clause",
+      "license_expression_raw": "BSD-2-Clause",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/git-version@0.3.9",
+      "license_expression_normalized": "BSD-2-Clause",
+      "license_expression_raw": "BSD-2-Clause",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hashbrown@0.12.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hashbrown@0.14.5",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hashbrown@0.15.5",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hashbrown@0.16.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hashbrown@0.17.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/heck@0.5.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hermit-abi@0.5.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hex@0.4.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/hmac@0.12.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/home@0.5.12",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/humantime@2.3.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/iana-time-zone-haiku@0.1.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/iana-time-zone@0.1.65",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ident_case@1.0.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/indexmap@1.9.3",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/indexmap@2.14.0",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/inout@0.1.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ipnetwork@0.20.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/itertools@0.14.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/itoa@1.0.18",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/jni-sys-macros@0.4.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/jni-sys@0.3.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/jni-sys@0.4.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/jni@0.21.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/js-sys@0.3.102",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/json5@0.4.1",
+      "license_expression_normalized": "ISC",
+      "license_expression_raw": "ISC",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/keccak@0.1.6",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/keyed-set@1.1.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/konst@0.2.20",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/konst_macro_rules@0.2.19",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/lazy_static@1.5.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/libc@0.2.186",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/libloading@0.8.9",
+      "license_expression_normalized": "ISC",
+      "license_expression_raw": "ISC",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/libm@0.2.16",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/libredox@0.1.17",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/lock_api@0.4.14",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/log@0.4.32",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/lru-slab@0.1.2",
+      "license_expression_normalized": "MIT OR Apache-2.0 OR Zlib",
+      "license_expression_raw": "MIT OR Apache-2.0 OR Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/lz4_flex@0.10.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/matchers@0.2.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/memchr@2.8.0",
+      "license_expression_normalized": "Unlicense OR MIT",
+      "license_expression_raw": "Unlicense OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/minimal-lexical@0.2.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/miniz_oxide@0.8.9",
+      "license_expression_normalized": "MIT OR Zlib OR Apache-2.0",
+      "license_expression_raw": "MIT OR Zlib OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/mio@1.2.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/nanorand@0.7.0",
+      "license_expression_normalized": "Zlib",
+      "license_expression_raw": "Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/nix@0.29.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/no-std-net@0.6.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/nom@7.1.3",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/nonempty-collections@0.3.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/nu-ansi-term@0.50.3",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/num-bigint@0.4.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/num-conv@0.2.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/num-integer@0.1.46",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/num-traits@0.2.19",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/num_cpus@1.17.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/oid-registry@0.8.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/once_cell@1.21.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/openssl-probe@0.2.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/option-ext@0.2.0",
+      "license_expression_normalized": "MPL-2.0",
+      "license_expression_raw": "MPL-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/parking@2.2.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/parking_lot@0.12.5",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/parking_lot_core@0.9.12",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/paste@1.0.15",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pem@3.0.6",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pest@2.8.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pest_derive@2.8.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pest_generator@2.8.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pest_meta@2.8.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/petgraph@0.8.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/phf@0.13.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/phf_generator@0.13.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/phf_macros@0.13.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/phf_shared@0.13.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pin-project-lite@0.2.17",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pnet_base@0.35.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pnet_datalink@0.35.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pnet_sys@0.35.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/portable-atomic@1.13.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/powerfmt@0.2.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ppv-lite86@0.2.21",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/proc-macro-crate@3.5.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/proc-macro2@1.0.106",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/prometheus-client-derive-encode@0.5.0",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/prometheus-client@0.24.1",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pyo3-build-config@0.29.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pyo3-ffi@0.29.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pyo3-macros-backend@0.29.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pyo3-macros@0.29.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/pyo3@0.29.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/quinn-proto@0.11.15",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/quinn-udp@0.5.14",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/quinn@0.11.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/quote@1.0.45",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/r-efi@5.3.0",
+      "license_expression_normalized": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "license_expression_raw": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rand@0.8.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rand@0.9.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rand_chacha@0.3.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rand_chacha@0.9.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rand_core@0.6.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rand_core@0.9.5",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rcgen@0.14.8",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/redox_syscall@0.5.18",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/redox_users@0.5.2",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ref-cast-impl@1.0.25",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ref-cast@1.0.25",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/regex-automata@0.4.14",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/regex-syntax@0.8.11",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ring@0.17.14",
+      "license_expression_normalized": "Apache-2.0 AND ISC",
+      "license_expression_raw": "Apache-2.0 AND ISC",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ringbuffer-spsc@0.1.15",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ron@0.12.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustc-hash@2.1.2",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustc_version@0.4.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rusticata-macros@4.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls-native-certs@0.8.4",
+      "license_expression_normalized": "Apache-2.0 OR ISC OR MIT",
+      "license_expression_raw": "Apache-2.0 OR ISC OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls-pemfile@2.2.0",
+      "license_expression_normalized": "Apache-2.0 OR ISC OR MIT",
+      "license_expression_raw": "Apache-2.0 OR ISC OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls-pki-types@1.14.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls-platform-verifier-android@0.1.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls-platform-verifier@0.6.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls-webpki@0.103.13",
+      "license_expression_normalized": "ISC",
+      "license_expression_raw": "ISC",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustls@0.23.40",
+      "license_expression_normalized": "Apache-2.0 OR ISC OR MIT",
+      "license_expression_raw": "Apache-2.0 OR ISC OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/rustversion@1.0.22",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ryu@1.0.23",
+      "license_expression_normalized": "Apache-2.0 OR BSL-1.0",
+      "license_expression_raw": "Apache-2.0 OR BSL-1.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/same-file@1.0.6",
+      "license_expression_normalized": "Unlicense OR MIT",
+      "license_expression_raw": "Unlicense/MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/schannel@0.1.29",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/schemars@0.9.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/schemars@1.2.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/schemars_derive@1.2.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/scopeguard@1.2.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/secrecy@0.8.0",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/security-framework-sys@2.17.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/security-framework@3.7.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/semver@1.0.28",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde@1.0.228",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_core@1.0.228",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_derive@1.0.228",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_derive_internals@0.29.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_json@1.0.150",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_with@3.21.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_with_macros@3.21.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/serde_yaml@0.9.34%2Bdeprecated",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/sha2-const-stable@0.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/sha2@0.10.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/sha3@0.10.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/sharded-slab@0.1.7",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/shellexpand@3.1.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/shlex@2.0.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/signal-hook-registry@1.4.8",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/simd-adler32@0.3.9",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/siphasher@1.0.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/slab@0.4.12",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/smallvec@1.15.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/socket2@0.5.10",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/socket2@0.6.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/spin@0.10.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/spin@0.9.9",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/stabby-abi@72.1.8",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": " EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/stabby-macros@72.1.8",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": " EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/stabby@72.1.8",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": " EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/static_assertions@1.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/static_init@1.0.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/static_init_macro@1.0.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/strsim@0.11.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/subtle@2.6.1",
+      "license_expression_normalized": "BSD-3-Clause",
+      "license_expression_raw": "BSD-3-Clause",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/syn@1.0.109",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/syn@2.0.117",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/synstructure@0.13.2",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/talc@4.4.3",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/target-lexicon@0.13.5",
+      "license_expression_normalized": "Apache-2.0 WITH LLVM-exception",
+      "license_expression_raw": "Apache-2.0 WITH LLVM-exception",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/termcolor@1.4.1",
+      "license_expression_normalized": "Unlicense OR MIT",
+      "license_expression_raw": "Unlicense OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/thiserror-impl@1.0.69",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/thiserror-impl@2.0.18",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/thiserror@1.0.69",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/thiserror@2.0.18",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/thread-priority@1.2.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/thread_local@1.1.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/time-core@0.1.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/time-macros@0.2.29",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/time@0.3.49",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tinyvec@1.11.0",
+      "license_expression_normalized": "Zlib OR Apache-2.0 OR MIT",
+      "license_expression_raw": "Zlib OR Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tinyvec_macros@0.1.1",
+      "license_expression_normalized": "MIT OR Apache-2.0 OR Zlib",
+      "license_expression_raw": "MIT OR Apache-2.0 OR Zlib",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tls-listener@0.11.2",
+      "license_expression_normalized": "Apache-2.0",
+      "license_expression_raw": "Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/token-cell@2.1.1",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tokio-macros@2.7.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tokio-rustls@0.26.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tokio-util@0.7.18",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tokio@1.52.3",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/toml_datetime@1.1.1%2Bspec-1.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/toml_edit@0.25.12%2Bspec-1.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/toml_parser@1.1.2%2Bspec-1.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tracing-attributes@0.1.31",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tracing-core@0.1.36",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tracing-log@0.2.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tracing-serde@0.2.0",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tracing-subscriber@0.3.23",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/tracing@0.1.44",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ts-rs-macros@12.0.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ts-rs@12.0.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/twox-hash@1.6.3",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/typeid@1.0.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/typenum@1.20.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/ucd-trie@0.1.7",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/uhlc@0.8.2",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/unicode-ident@1.0.24",
+      "license_expression_normalized": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "license_expression_raw": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/unicode-xid@0.2.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/unsafe-libyaml@0.2.11",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/untrusted@0.9.0",
+      "license_expression_normalized": "ISC",
+      "license_expression_raw": "ISC",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/unzip-n@0.1.4",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/validated_struct@2.2.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/validated_struct_macros@2.2.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/valuable@0.1.1",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/vec_map@0.8.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/version_check@0.9.5",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/walkdir@2.5.0",
+      "license_expression_normalized": "Unlicense OR MIT",
+      "license_expression_raw": "Unlicense/MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wasi@0.11.1%2Bwasi-snapshot-preview1",
+      "license_expression_normalized": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wasip2@1.0.4%2Bwasi-0.2.12",
+      "license_expression_normalized": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wasm-bindgen-macro-support@0.2.125",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wasm-bindgen-macro@0.2.125",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wasm-bindgen-shared@0.2.125",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wasm-bindgen@0.2.125",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/web-time@1.1.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/webpki-root-certs@1.0.7",
+      "license_expression_normalized": "CDLA-Permissive-2.0",
+      "license_expression_raw": "CDLA-Permissive-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/webpki-roots@1.0.7",
+      "license_expression_normalized": "CDLA-Permissive-2.0",
+      "license_expression_raw": "CDLA-Permissive-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/win-sys@0.3.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/winapi-i686-pc-windows-gnu@0.4.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/winapi-util@0.1.11",
+      "license_expression_normalized": "Unlicense OR MIT",
+      "license_expression_raw": "Unlicense OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/winapi-x86_64-pc-windows-gnu@0.4.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/winapi@0.3.9",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT/Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-core@0.62.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-implement@0.60.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-interface@0.59.3",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-link@0.2.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-result@0.4.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-strings@0.5.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-sys@0.45.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-sys@0.52.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-sys@0.61.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-targets@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows-targets@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows@0.34.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_aarch64_gnullvm@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_aarch64_gnullvm@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_aarch64_msvc@0.34.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_aarch64_msvc@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_aarch64_msvc@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_gnu@0.34.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_gnu@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_gnu@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_gnullvm@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_msvc@0.34.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_msvc@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_i686_msvc@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_gnu@0.34.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_gnu@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_gnu@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_gnullvm@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_gnullvm@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_msvc@0.34.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_msvc@0.42.2",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/windows_x86_64_msvc@0.52.6",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/winnow@1.0.3",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/wit-bindgen@0.57.1",
+      "license_expression_normalized": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/x509-parser@0.18.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/yasna@0.6.0",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-buffers@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-codec@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-collections@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-config@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-core@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-crypto@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-keyexpr@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-link-commons@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-link-quic_datagram@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-link-tcp@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-link-tls@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-link-udp@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-link@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-macros@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-plugin-trait@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-protocol@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-result@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-runtime@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-shm@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-stats@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-sync@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-task@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-transport@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh-util@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zenoh@1.9.0",
+      "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
+      "license_expression_raw": "EPL-2.0 OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zerocopy-derive@0.8.52",
+      "license_expression_normalized": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_expression_raw": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zerocopy@0.8.52",
+      "license_expression_normalized": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_expression_raw": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zeroize@1.9.0",
+      "license_expression_normalized": "Apache-2.0 OR MIT",
+      "license_expression_raw": "Apache-2.0 OR MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:cargo/zmij@1.0.21",
+      "license_expression_normalized": "MIT",
+      "license_expression_raw": "MIT",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "pkg:npm/typescript@5.9.2",
+      "license_expression_normalized": "Apache-2.0",
+      "license_expression_raw": "Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:cargo:ncp-core@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:cargo:ncp-cpp@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:cargo:ncp-gateway@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:cargo:ncp-python@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:cargo:ncp-zenoh@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": false
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:npm:%40sepahead%2Fncp@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": true
+    },
+    {
+      "bom_ref": "urn:ncp:workspace:python:ncp@1.0.0-rc.1",
+      "license_expression_normalized": "MIT OR Apache-2.0",
+      "license_expression_raw": "MIT OR Apache-2.0",
+      "license_file_declared": true
+    }
+  ],
+  "policy": {
+    "cargo_default_deny": true,
+    "repository_license_files": {
+      "LICENSE-APACHE": "bea3a5ebc1671071bb1bb157c18313a08821abd3d5e5e1915043b18cf78a0cfd",
+      "LICENSE-MIT": "faa815fa3c5afee4349c48ea3740b75d82d9e2b6f10835daf224709f00348b33"
+    },
+    "sha256": "1e8fe5ab6d9d784bc1a4bc777d7b114f4cd31bf4e5ed1694ffb2a4853d9f73c7",
+    "source": "deny.toml"
+  },
+  "qualification_command": "cargo deny --locked --offline --all-features check licenses",
+  "schema": "ncp.license-report.v1"
+}

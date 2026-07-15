@@ -24,9 +24,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   146 tasks and 2,920 lens reviews as `OPEN`, record the handoff's serial-DAG/wave
   contradiction and stale 268-vector claim, and preserve `NO_GO` without rewriting
   the earlier 120-task history.
-- Added a reproducible 21-column file-review ledger for all 782 immutable Git blobs
+- Added a reproducible 21-column file-review ledger for all 793 immutable Git blobs
   in the reviewed cut. It records the completed internal AI-assisted inspection,
   zero independent reviews, open findings, and no release authorization.
+- Added deterministic local threat, latent-path, supply-chain, requirement-
+  traceability, and convergence artifacts. The generated controls retain OPEN and
+  NOT-RUN states and cannot turn repository inspection into release authorization.
+- Added an exact 14-vector canonical-JSON matrix across all 16 ordered Rust,
+  TypeScript, Python-FFI, and C-FFI surface pairs, plus a schema-discovered proof
+  for every reachable TypeScript stable-integer path. The FFI rows are explicitly
+  Rust wrappers rather than independent implementations.
+- Added a bounded validation-only wire-0.8 capture migration path that rejects
+  missing units, frames, session lineage, authority, epistemic status, or stream
+  continuity instead of guessing a native-1.0 reconstruction.
+- Added deterministic CycloneDX 1.6, dependency/feature/generator/asset, license,
+  vulnerability, and provenance-policy evidence, plus a manual held-dossier
+  workflow for exact-revision double builds, checksums, and hosted attestations.
+  The workflow cannot tag or publish and does not satisfy any external gate until
+  one immutable final artifact set is actually built and independently verified.
 - Made the tag-triggered packaging workflow fail before archive construction while
   `release_allowed=false`, and renamed `scripts/check.sh` output as local preflight
   evidence so a green local run cannot be mistaken for external release approval.
@@ -34,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exact resolved feature graph. Default features and transport compression remain
   disabled, downstream feature unification is unsupported, and stable publication
   stays blocked until Zenoh permits a patched `lz4_flex`.
+- Updated `anyhow` to 1.0.103, removing its resolved advisory while retaining the
+  separately documented Zenoh/`lz4_flex` exposure and disabled compression path.
 - Added public-registry namespace ownership as an explicit pre-release gate. Local
   archives remain packageability evidence only because the intended crates.io
   `ncp-core` and PyPI `ncp` distribution names identify unrelated projects.

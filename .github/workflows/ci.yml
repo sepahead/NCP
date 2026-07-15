@@ -56,6 +56,14 @@ jobs:
       - name: Reviewed dependency feature exposure
         run: python3 scripts/check_dependency_exposure.py --self-test
 
+      # Scanner/database-bound supply evidence runs in the dedicated host
+      # cargo-deny job. Keep the scanner-independent builder parser hostile tests
+      # visible in the primary build job as well.
+      - name: Candidate dossier builder self-test
+        run: |
+          python3 scripts/build_candidate_dossier.py --self-test
+          python3 scripts/prepare_advisory_database.py --self-test
+
       - name: Install deterministic plot tooling
         run: python3 -m pip install --disable-pip-version-check -r scripts/requirements-plot.txt
 
@@ -164,6 +172,8 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - name: Install build + test deps
         run: pip install maturin==1.14.1 pytest==9.1.1
       # Build the abi3 wheel from the EXACT committed lock (--locked) and install it,
@@ -185,6 +195,11 @@ jobs:
       # the decision corpus does not cover — plus the exported contract pins.
       - name: Binding smoke test
         run: python -m pytest ncp-python/tests -q
+      - name: Ordered canonical-byte matrix and stable-integer proof
+        run: |
+          bun install --frozen-lockfile
+          bun run check:integers
+          python scripts/check_cross_language_canonical_json.py
 
   buf:
     name: buf lint + build
@@ -210,12 +225,15 @@ jobs:
       - name: Release-owned machine-contract gates
         run: |
           python3 -m unittest -v e2e.test_bounded_json e2e.test_runner_status
+          python3 scripts/generate_audit_artifacts.py --self-test
+          python3 scripts/check_audit_artifacts.py --self-test
           python3 scripts/check_handoff_review.py --self-test
           python3 scripts/generate_max_effort_handoff_index.py --self-test
           python3 scripts/check_max_effort_handoff_review.py --self-test
           python3 scripts/generate_max_effort_review_template.py --check
           python3 scripts/generate_file_review_ledger.py --self-test
           python3 scripts/generate_file_review_ledger.py --check
+          python3 scripts/generate_convergence_manifest.py --self-test --check
           python3 scripts/check_markdown_links.py --self-test
           python3 scripts/check_markdown_links.py
           python3 scripts/check_proto_schema_parity.py
@@ -275,6 +293,8 @@ jobs:
       # mutate dist, so it cannot trip the diff gate above).
       - name: TS behavioral conformance
         run: bun run check:behavior
+      - name: TS stable-integer proof
+        run: bun run check:integers
       - name: TS WebSocket lifecycle regression
         run: bun run check:ws
       - name: npm packed-package smoke
@@ -316,18 +336,58 @@ jobs:
           fi
 
   cargo-deny:
-    name: cargo-deny (advisories, licenses, bans, sources)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: current policy + pinned supply replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_DENY_VERSION: "0.19.9"
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
-      # Supply-chain gate over the committed Cargo.lock: RustSec vulnerability +
-      # yanked advisories, a default-deny license allowlist, banned/wildcard deps,
-      # and source restrictions. Config + documented advisory ignores: deny.toml.
-      - name: cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@bb137d7af7e4fb67e5f82a49c4fce4fad40782fe # v2
+          fetch-depth: 0
+      - name: Install exact Rust and cargo-deny
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable, pinned 2026-07-10
         with:
-          command: check
+          toolchain: "1.88.0"
+      - name: Install host scanner and locked inputs
+        run: |
+          cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"
+          test "$(cargo deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
+          cargo fetch --locked
+      # The current database gate detects newly applicable findings. A local clone
+      # is then rewound to the evidence-pinned revision for deterministic byte
+      # replay and the repo-less Git-archive preflight.
+      - name: Current policy and pinned evidence replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          current_home="$RUNNER_TEMP/ncp-advisory-current-home"
+          pinned_home="$RUNNER_TEMP/ncp-advisory-pinned-home"
+          mkdir -p "$current_home" "$pinned_home"
+
+          HOME="$current_home" cargo deny --locked --all-features check
+          HOME="$current_home" \
+            python3 scripts/generate_supply_chain_evidence.py \
+              --validate-current-advisories
+
+          mapfile -t databases < <(
+            find "$current_home/.cargo/advisory-dbs" -mindepth 1 -maxdepth 1 \
+              -type d -name 'advisory-db-*' -print
+          )
+          test "${#databases[@]}" -eq 1
+          export NCP_ADVISORY_DB_PATH="$pinned_home/.cargo/advisory-dbs"
+          python3 scripts/prepare_advisory_database.py \
+            --source-database "${databases[0]}" \
+            --destination "$NCP_ADVISORY_DB_PATH"
+          export NCP_PINNED_ADVISORY_HOME="$pinned_home"
+
+          HOME="$pinned_home" \
+            cargo deny --locked --offline --all-features check --disable-fetch
+          HOME="$pinned_home" \
+            python3 scripts/generate_supply_chain_evidence.py --self-test --check
+          python3 scripts/check_dependency_exposure.py --self-test
+          python3 scripts/build_candidate_dossier.py \
+            --archive-preflight "$GITHUB_SHA"
