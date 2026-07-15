@@ -445,6 +445,43 @@ def _safe_repository_path(value: object) -> str:
     return value
 
 
+def _validate_archived_file_records(
+    root: Path, records: list[dict[str, Any]]
+) -> list[str]:
+    files = [record["path"] for record in records]
+    actual: list[str] = []
+    for path in root.rglob("*"):
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            raise EvidenceError(f"archived source contains a link: {relative}")
+        if path.is_file():
+            actual.append(relative)
+        elif not path.is_dir():
+            raise EvidenceError(f"archived source contains a special entry: {relative}")
+
+    if len(actual) != len(files) or set(actual) != set(files):
+        raise EvidenceError(
+            "archived source differs from its exact file manifest: "
+            f"missing={sorted(set(files) - set(actual))!r}, "
+            f"extra={sorted(set(actual) - set(files))!r}"
+        )
+
+    for expected in records:
+        relative = expected["path"]
+        path = root / relative
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode):
+            raise EvidenceError(f"archived source entry is not a file: {relative}")
+        git_mode = "100755" if metadata.st_mode & stat.S_IXUSR else "100644"
+        if git_mode != expected["git_mode"]:
+            raise EvidenceError(f"archived source mode differs for {relative}")
+        if metadata.st_size != expected["size_bytes"]:
+            raise EvidenceError(f"archived source size differs for {relative}")
+        if _sha256(path) != expected["sha256"]:
+            raise EvidenceError(f"archived source SHA-256 differs for {relative}")
+    return files
+
+
 def _archived_tracked_files(manifest_path: Path) -> list[str]:
     revision = os.environ.get("NCP_ARCHIVED_SOURCE_REVISION")
     if revision is None or SOURCE_REVISION.fullmatch(revision) is None:
@@ -506,38 +543,7 @@ def _archived_tracked_files(manifest_path: Path) -> list[str]:
         raise EvidenceError(
             "archived-source file manifest must be sorted and duplicate-free"
         )
-
-    actual: list[str] = []
-    for path in sorted(ROOT.rglob("*")):
-        if path.is_symlink():
-            raise EvidenceError(
-                f"archived source contains a link: {path.relative_to(ROOT).as_posix()}"
-            )
-        if path.is_file():
-            relative = path.relative_to(ROOT).as_posix()
-            actual.append(relative)
-            expected = records[len(actual) - 1] if len(actual) <= len(records) else None
-            if expected is None or expected["path"] != relative:
-                continue
-            mode = path.lstat().st_mode
-            git_mode = "100755" if mode & stat.S_IXUSR else "100644"
-            if git_mode != expected["git_mode"]:
-                raise EvidenceError(f"archived source mode differs for {relative}")
-            if path.stat().st_size != expected["size_bytes"]:
-                raise EvidenceError(f"archived source size differs for {relative}")
-            if _sha256(path) != expected["sha256"]:
-                raise EvidenceError(f"archived source SHA-256 differs for {relative}")
-        elif not path.is_dir():
-            raise EvidenceError(
-                f"archived source contains a special entry: {path.relative_to(ROOT).as_posix()}"
-            )
-    if actual != files:
-        raise EvidenceError(
-            "archived source differs from its exact file manifest: "
-            f"missing={sorted(set(files) - set(actual))!r}, "
-            f"extra={sorted(set(actual) - set(files))!r}"
-        )
-    return files
+    return _validate_archived_file_records(ROOT, records)
 
 
 def _tracked_files(manifest_path: Path | None = None) -> list[str]:
@@ -2305,6 +2311,38 @@ def _self_test() -> None:
 
     with tempfile.TemporaryDirectory(prefix="ncp-generator-self-test-") as directory:
         root = Path(directory)
+        archive = root / "archived-source"
+        flat_migration = archive / "ncp-core" / "src" / "migration.rs"
+        nested_migration = archive / "ncp-core" / "src" / "migration" / "capture.rs"
+        flat_migration.parent.mkdir(parents=True)
+        nested_migration.parent.mkdir()
+        flat_migration.write_text("pub mod capture;\n", encoding="utf-8")
+        nested_migration.write_text("pub fn validate() {}\n", encoding="utf-8")
+        flat_migration.chmod(0o644)
+        nested_migration.chmod(0o644)
+        archived_records = [
+            {
+                "path": path.relative_to(archive).as_posix(),
+                "git_mode": "100644",
+                "size_bytes": path.stat().st_size,
+                "sha256": _sha256(path),
+            }
+            for path in (flat_migration, nested_migration)
+        ]
+        archived_paths = [record["path"] for record in archived_records]
+        if archived_paths != sorted(archived_paths):
+            raise AssertionError("archived-source self-test paths are not canonical")
+        if _validate_archived_file_records(archive, archived_records) != archived_paths:
+            raise AssertionError(
+                "archived-source validation depends on filesystem traversal order"
+            )
+        invalid_archived_records = [dict(record) for record in archived_records]
+        invalid_archived_records[0]["sha256"] = "0" * 64
+        expect_rejected(
+            "archived-source content mismatch",
+            lambda: _validate_archived_file_records(archive, invalid_archived_records),
+        )
+
         target = root / "regular.py"
         target.write_text("pass\n", encoding="utf-8")
         link = root / "generate_link.py"

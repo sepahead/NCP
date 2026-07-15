@@ -2265,7 +2265,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "e8dd9c361716856ff8a473179021e1f1f7e90439c9c3237273f9a97230767a8b"
+      "sha256": "4c6b5bd1f31128bfa0916967cd39e366ad678297cbfbd47c026c2894c5a37efc"
     },
     {
       "outputs": [
