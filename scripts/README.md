@@ -44,8 +44,9 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check_acl_template.py` | offline Zenoh ACL structure and negative mutations |
 | `verify_acl_deployment.py` | router mTLS/ACL nonce-delivery probe; it cannot prove NCP payload-to-peer identity binding, and `--self-test` is logic only |
 | `render_acl_template.py` | atomically render a validated exact realm and concrete action session |
-| `check_rust_packages.py --offline` | package/extract/build/test publishable Rust crates without workspace leakage |
-| `build_candidate_dossier.py --source-revision REV --output DIR` | build exact archived source into twice-compared Rust/npm/Python candidate packages, smoke them, bind hashes/SBOM/toolchains, and emit an unsigned held dossier; never tags or publishes |
+| `check_rust_packages.py --offline` | package/extract/build/test publishable Rust crates without workspace leakage, using canonical local-patch identities across filesystem aliases |
+| `build_candidate_dossier.py --source-revision REV --output DIR` | build exact archived source into twice-compared Rust/npm/release-profile Python candidate packages, smoke them, bind hashes/SBOM/toolchains, and emit an unsigned held dossier; never tags or publishes |
+| `build_candidate_dossier.py --sdist-preflight REV` | build the exact Python sdist twice with Cargo network access disabled, require a prune-only two-crate lock, compare archive bytes, and revalidate the extracted source under `--locked --offline` |
 | `prepare_advisory_database.py --source-database DIR --destination DIR` | clone one current, verified RustSec database locally and rewind a disposable copy to the evidence-pinned revision for deterministic replay |
 | `check-version-coherence.sh` | package/wire/compact-hash metadata coherence |
 | `../ncp-ts/scripts/build-release.mjs --source-revision REV --output DIR` | archive one exact 40-hex `HEAD`, inject and verify the shared Rust/TypeScript build identity, and emit smoke-tested root+nested npm tarballs plus a hash receipt; never publishes |

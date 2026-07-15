@@ -142,12 +142,56 @@ def cargo_patch_args(
 ) -> list[str]:
     args: list[str] = []
     for dependency in dependencies:
+        try:
+            path = paths[dependency].resolve(strict=True)
+        except (KeyError, OSError, RuntimeError) as error:
+            raise RuntimeError(
+                f"cannot resolve local Cargo patch path for {dependency}"
+            ) from error
+        if not path.is_dir():
+            raise RuntimeError(f"local Cargo patch path is not a directory: {path}")
         # JSON string syntax is valid Cargo config TOML and handles spaces safely.
-        value = (
-            f"patch.crates-io.{dependency}.path={json.dumps(str(paths[dependency]))}"
-        )
+        # Resolve filesystem aliases before Cargo compares the patch source with
+        # its canonical package identity (notably /var versus /private/var on macOS).
+        value = f"patch.crates-io.{dependency}.path={json.dumps(str(path))}"
         args.extend(("--config", value))
     return args
+
+
+def self_test() -> None:
+    with tempfile.TemporaryDirectory(prefix="ncp-package-path-selftest-") as tmp:
+        root = Path(tmp)
+        real_parent = root / "real source"
+        real_crate = real_parent / "ncp-core"
+        real_crate.mkdir(parents=True)
+        detour = real_parent / "detour"
+        detour.mkdir()
+        aliased_paths = [detour / ".." / "ncp-core"]
+        alias = root / "source-alias"
+        try:
+            alias.symlink_to(real_parent, target_is_directory=True)
+        except OSError:
+            pass
+        else:
+            aliased_paths.append(alias / "ncp-core")
+        for aliased_path in aliased_paths:
+            args = cargo_patch_args(("ncp-core",), {"ncp-core": aliased_path})
+            if args[:1] != ["--config"] or len(args) != 2:
+                raise AssertionError("Cargo patch arguments have an unexpected shape")
+            prefix = "patch.crates-io.ncp-core.path="
+            if not args[1].startswith(prefix):
+                raise AssertionError(
+                    "Cargo patch argument lost its exact dependency key"
+                )
+            encoded = args[1][len(prefix) :]
+            if json.loads(encoded) != str(real_crate.resolve(strict=True)):
+                raise AssertionError("Cargo patch path retained a filesystem alias")
+        try:
+            cargo_patch_args(("ncp-core",), {"ncp-core": root / "missing" / "ncp-core"})
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("missing Cargo patch path passed canonicalization")
 
 
 def extract_archive(archive: Path, destination: Path, expected_prefix: str) -> Path:
@@ -227,7 +271,18 @@ def main() -> int:
         "--source-revision",
         help="exact 40-hex source revision bound into an --output-dir receipt",
     )
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
+    if args.self_test:
+        if (
+            args.offline
+            or args.output_dir is not None
+            or args.source_revision is not None
+        ):
+            parser.error("--self-test cannot be combined with package build options")
+        self_test()
+        print("Rust package archive checker self-test passed.")
+        return 0
     output = args.output_dir.resolve() if args.output_dir is not None else None
     if output is None and args.source_revision is not None:
         parser.error("--source-revision requires --output-dir")

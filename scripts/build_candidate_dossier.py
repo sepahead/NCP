@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,26 @@ PACKAGE_SUBJECT_ROLES = (
     "npm:repository-root",
     "npm:ncp-ts",
 )
+FULL_WORKSPACE_MEMBERS = (
+    'members = ["ncp-core", "ncp-zenoh", "ncp-gateway", "ncp-python", "ncp-cpp"]'
+)
+SDIST_WORKSPACE_MEMBERS = 'members = ["ncp-core", "ncp-python"]'
+PYTHON_WHEEL_BUILD_ARGS = (
+    "maturin",
+    "build",
+    "-m",
+    "ncp-python/Cargo.toml",
+    "--features",
+    "extension-module",
+    "--release",
+    "--locked",
+    "--offline",
+    "--strip",
+)
+PYTHON_WHEEL_CARGO_ENVIRONMENT = {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_NET_OFFLINE": "true",
+}
 AUTHOR = {"name": "Sepehr Mahmoudian"}
 REPRODUCIBILITY_COMPARISONS = {
     "rust_source_archives": "PASS",
@@ -123,6 +144,26 @@ def _source_derivations(revision: str) -> list[dict[str, Any]]:
             "boundary": (
                 "The Git archive remains the immutable input; packaging uses a "
                 "disposable identity-bearing derivative with only this replacement."
+            ),
+        },
+        {
+            "artifact_roles": ["python:sdist"],
+            "source_path": "Cargo.toml and Cargo.lock",
+            "operation": "reduce-packaged-workspace-and-refresh-lock-offline",
+            "input": FULL_WORKSPACE_MEMBERS,
+            "output": (
+                f"{SDIST_WORKSPACE_MEMBERS}; force offline Cargo.lock garbage "
+                "collection by precisely updating the unchanged ncp-python version, "
+                "preserve every retained package identity and non-edge field, then "
+                "require the refreshed lock unchanged under --locked --offline with "
+                "an exact all-feature package closure"
+            ),
+            "boundary": (
+                "The sdist contains only ncp-core and ncp-python. Its derivative "
+                "workspace and lock are prepared before packaging so the shipped "
+                "lock exactly resolves that closed source set; no dependency is "
+                "fetched under CARGO_NET_OFFLINE=true and the Git archive remains "
+                "the immutable input."
             ),
         },
         {
@@ -296,6 +337,209 @@ def _inject_packaged_source_identity(source: Path, revision: str) -> None:
             "generated Rust build-identity sentinel is missing, duplicated, or pre-injected"
         )
     identity.write_text(text.replace(sentinel, replacement), encoding="utf-8")
+
+
+def _reduce_sdist_workspace(source: Path) -> None:
+    manifest = source / "Cargo.toml"
+    text = manifest.read_text(encoding="utf-8")
+    if text.count(FULL_WORKSPACE_MEMBERS) != 1 or SDIST_WORKSPACE_MEMBERS in text:
+        raise DossierError(
+            "full workspace member declaration is missing, duplicated, or already reduced"
+        )
+    manifest.write_text(
+        text.replace(FULL_WORKSPACE_MEMBERS, SDIST_WORKSPACE_MEMBERS),
+        encoding="utf-8",
+    )
+
+
+def _toml(path: Path) -> dict[str, Any]:
+    try:
+        value = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise DossierError(f"cannot parse candidate TOML {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise DossierError(f"candidate TOML {path} is not a table")
+    return value
+
+
+def _lock_package_records(path: Path) -> dict[tuple[str, str, str], dict[str, Any]]:
+    value = _toml(path)
+    packages = value.get("package")
+    if not isinstance(packages, list) or not packages:
+        raise DossierError(f"candidate lock {path} has no package records")
+    records: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for number, package in enumerate(packages):
+        if not isinstance(package, dict):
+            raise DossierError(f"candidate lock {path} package {number} is not a table")
+        name = package.get("name")
+        version = package.get("version")
+        source = package.get("source", "")
+        if not all(isinstance(item, str) and item for item in (name, version)) or (
+            not isinstance(source, str)
+        ):
+            raise DossierError(
+                f"candidate lock {path} package {number} has an invalid identity"
+            )
+        identity = (name, version, source)
+        if identity in records:
+            raise DossierError(
+                f"candidate lock {path} repeats package identity {identity!r}"
+            )
+        records[identity] = {
+            key: value for key, value in package.items() if key != "dependencies"
+        }
+    return records
+
+
+def _sdist_workspace_version(source: Path) -> str:
+    workspace = _toml(source / "Cargo.toml").get("workspace")
+    python_package = _toml(source / "ncp-python" / "Cargo.toml").get("package")
+    if not isinstance(workspace, dict) or not isinstance(python_package, dict):
+        raise DossierError("Python sdist workspace/package metadata is incomplete")
+    workspace_package = workspace.get("package")
+    version = (
+        workspace_package.get("version")
+        if isinstance(workspace_package, dict)
+        else None
+    )
+    if (
+        not isinstance(version, str)
+        or not version
+        or python_package.get("name") != "ncp-python"
+        or python_package.get("version") != {"workspace": True}
+    ):
+        raise DossierError("Python sdist does not inherit one exact workspace version")
+    return version
+
+
+def _metadata_package_identities(raw: bytes) -> set[tuple[str, str, str]]:
+    try:
+        value = _strict_json_object(
+            raw.decode("utf-8", "strict"), "locked Python sdist Cargo metadata"
+        )
+    except UnicodeError as error:
+        raise DossierError("locked Python sdist metadata is not UTF-8") from error
+    packages = value.get("packages")
+    if not isinstance(packages, list) or not packages:
+        raise DossierError("locked Python sdist metadata has no packages")
+    identities: set[tuple[str, str, str]] = set()
+    for number, package in enumerate(packages):
+        if not isinstance(package, dict):
+            raise DossierError(
+                f"locked Python sdist metadata package {number} is not an object"
+            )
+        name = package.get("name")
+        version = package.get("version")
+        source = package.get("source") or ""
+        if not all(isinstance(item, str) and item for item in (name, version)) or (
+            not isinstance(source, str)
+        ):
+            raise DossierError(
+                f"locked Python sdist metadata package {number} has an invalid identity"
+            )
+        identity = (name, version, source)
+        if identity in identities:
+            raise DossierError(
+                f"locked Python sdist metadata repeats package {identity!r}"
+            )
+        identities.add(identity)
+    return identities
+
+
+def _locked_sdist_metadata(
+    source: Path, environment: dict[str, str]
+) -> set[tuple[str, str, str]]:
+    raw = _run(
+        [
+            "cargo",
+            "metadata",
+            "--manifest-path",
+            "ncp-python/Cargo.toml",
+            "--format-version",
+            "1",
+            "--offline",
+            "--locked",
+            "--all-features",
+        ],
+        cwd=source,
+        env=environment,
+        capture=True,
+    )
+    return _metadata_package_identities(raw)
+
+
+def _refresh_sdist_lock(source: Path, environment: dict[str, str]) -> None:
+    before = _directory_snapshot(source)
+    lock = source / "Cargo.lock"
+    before_packages = _lock_package_records(lock)
+    version = _sdist_workspace_version(source)
+    _run(
+        [
+            "cargo",
+            "update",
+            "--manifest-path",
+            "ncp-python/Cargo.toml",
+            "--offline",
+            "--package",
+            f"ncp-python@{version}",
+            "--precise",
+            version,
+        ],
+        cwd=source,
+        env=environment,
+        capture=True,
+    )
+    after_refresh = _directory_snapshot(source)
+    after_packages = _lock_package_records(lock)
+    changed = {
+        path
+        for path in set(before) | set(after_refresh)
+        if before.get(path) != after_refresh.get(path)
+    }
+    if changed != {"Cargo.lock"}:
+        raise DossierError(
+            "offline sdist lock refresh changed an unexpected source set: "
+            f"{sorted(changed)!r}"
+        )
+    if not set(after_packages) < set(before_packages) or any(
+        record != before_packages[identity]
+        for identity, record in after_packages.items()
+    ):
+        raise DossierError(
+            "offline sdist lock refresh changed a retained package identity or "
+            "non-edge field, added a package, or failed to prune one"
+        )
+    if _locked_sdist_metadata(source, environment) != set(after_packages):
+        raise DossierError(
+            "pruned Python sdist lock differs from its all-feature metadata closure"
+        )
+    if _directory_snapshot(source) != after_refresh:
+        raise DossierError("locked sdist metadata verification mutated its source")
+
+
+def _verify_sdist_workspace(source: Path, environment: dict[str, str]) -> None:
+    manifest = (source / "Cargo.toml").read_text(encoding="utf-8")
+    if (
+        manifest.count(SDIST_WORKSPACE_MEMBERS) != 1
+        or FULL_WORKSPACE_MEMBERS in manifest
+    ):
+        raise DossierError("Python sdist workspace membership is not exact")
+    before = _directory_snapshot(source)
+    lock_packages = _lock_package_records(source / "Cargo.lock")
+    if _locked_sdist_metadata(source, environment) != set(lock_packages):
+        raise DossierError(
+            "Python sdist lock contains packages outside its all-feature metadata closure"
+        )
+    if _directory_snapshot(source) != before:
+        raise DossierError("locked Python sdist verification mutated its source")
+
+
+def _prepare_sdist_source(
+    source: Path, revision: str, environment: dict[str, str]
+) -> None:
+    _inject_packaged_source_identity(source, revision)
+    _reduce_sdist_workspace(source)
+    _refresh_sdist_lock(source, environment)
 
 
 def _assert_packaged_source_identity(source: Path, revision: str) -> None:
@@ -574,42 +818,20 @@ def _smoke_python_wheel(
     }
 
 
-def _build_python(
+def _build_python_sdist(
     source: Path,
-    products: Path,
+    first: Path,
+    second: Path,
     revision: str,
-    source_date_epoch: int,
     temporary: Path,
-) -> list[dict[str, Any]]:
-    first = temporary / "wheel-first"
-    second = temporary / "wheel-second"
-    first.mkdir()
-    second.mkdir()
-    base_environment = os.environ.copy()
-    base_environment.update(
-        {
-            "NCP_BUILD_IDENTITY": revision,
-            "SOURCE_DATE_EPOCH": str(source_date_epoch),
-        }
-    )
-    base = [
-        "maturin",
-        "build",
-        "-m",
-        "ncp-python/Cargo.toml",
-        "--features",
-        "extension-module",
-        "--locked",
-        "--offline",
-        "--strip",
-    ]
-    first_environment = base_environment.copy()
-    first_environment["CARGO_TARGET_DIR"] = str(temporary / "python-target-first")
-    second_environment = base_environment.copy()
-    second_environment["CARGO_TARGET_DIR"] = str(temporary / "python-target-second")
-    _run([*base, "--out", str(first)], cwd=source, env=first_environment)
-    _run([*base, "--out", str(second)], cwd=source, env=second_environment)
-    _compare_directories(first, second, ".whl")
+    first_environment: dict[str, str],
+    second_environment: dict[str, str],
+) -> Path:
+    if any(
+        environment.get("CARGO_NET_OFFLINE") != "true"
+        for environment in (first_environment, second_environment)
+    ):
+        raise DossierError("Python sdist construction requires CARGO_NET_OFFLINE=true")
     sdist = [
         "maturin",
         "sdist",
@@ -620,16 +842,18 @@ def _build_python(
     sdist_source_second = temporary / "sdist-source-second"
     _copy_regular_tree(source, sdist_source_first)
     _copy_regular_tree(source, sdist_source_second)
-    _inject_packaged_source_identity(sdist_source_first, revision)
-    _inject_packaged_source_identity(sdist_source_second, revision)
-    sdist_first_snapshot = _directory_snapshot(sdist_source_first)
-    sdist_second_snapshot = _directory_snapshot(sdist_source_second)
     sdist_first_environment = first_environment.copy()
     sdist_first_environment.pop("NCP_BUILD_IDENTITY", None)
     sdist_first_environment.pop("NCP_EXPECTED_BUILD_IDENTITY", None)
     sdist_second_environment = second_environment.copy()
     sdist_second_environment.pop("NCP_BUILD_IDENTITY", None)
     sdist_second_environment.pop("NCP_EXPECTED_BUILD_IDENTITY", None)
+    _prepare_sdist_source(sdist_source_first, revision, sdist_first_environment)
+    _prepare_sdist_source(sdist_source_second, revision, sdist_second_environment)
+    sdist_first_snapshot = _directory_snapshot(sdist_source_first)
+    sdist_second_snapshot = _directory_snapshot(sdist_source_second)
+    if sdist_first_snapshot != sdist_second_snapshot:
+        raise DossierError("independently prepared Python sdist sources differ")
     _run(
         [*sdist, "--out", str(first)],
         cwd=sdist_source_first,
@@ -648,8 +872,49 @@ def _build_python(
             "maturin sdist mutated its reviewed identity-bearing derivative source tree"
         )
     _compare_directories(first, second, ".tar.gz")
+    return _single_file(first, ".tar.gz")
+
+
+def _python_wheel_build_command(output: Path) -> list[str]:
+    return [*PYTHON_WHEEL_BUILD_ARGS, "--out", str(output)]
+
+
+def _build_python(
+    source: Path,
+    products: Path,
+    revision: str,
+    source_date_epoch: int,
+    temporary: Path,
+) -> list[dict[str, Any]]:
+    first = temporary / "wheel-first"
+    second = temporary / "wheel-second"
+    first.mkdir()
+    second.mkdir()
+    base_environment = os.environ.copy()
+    base_environment.update(PYTHON_WHEEL_CARGO_ENVIRONMENT)
+    base_environment.update(
+        {
+            "NCP_BUILD_IDENTITY": revision,
+            "SOURCE_DATE_EPOCH": str(source_date_epoch),
+        }
+    )
+    first_environment = base_environment.copy()
+    first_environment["CARGO_TARGET_DIR"] = str(temporary / "python-target-first")
+    second_environment = base_environment.copy()
+    second_environment["CARGO_TARGET_DIR"] = str(temporary / "python-target-second")
+    _run(_python_wheel_build_command(first), cwd=source, env=first_environment)
+    _run(_python_wheel_build_command(second), cwd=source, env=second_environment)
+    _compare_directories(first, second, ".whl")
+    source_distribution = _build_python_sdist(
+        source,
+        first,
+        second,
+        revision,
+        temporary,
+        first_environment,
+        second_environment,
+    )
     wheel = _single_file(first, ".whl")
-    source_distribution = _single_file(first, ".tar.gz")
     destination = products / "python"
     destination.mkdir()
     shutil.copyfile(wheel, destination / wheel.name)
@@ -680,26 +945,19 @@ def _build_python(
     sdist_source_parent.mkdir()
     sdist_source = _extract_sdist(source_distribution, sdist_source_parent)
     _assert_packaged_source_identity(sdist_source, revision)
+    if _sha256(sdist_source / "Cargo.lock") != _sha256(
+        temporary / "sdist-source-first" / "Cargo.lock"
+    ):
+        raise DossierError("Python sdist did not retain its exact prepared lock")
     sdist_wheels = temporary / "sdist-wheel"
     sdist_wheels.mkdir()
     sdist_environment = base_environment.copy()
     sdist_environment.pop("NCP_BUILD_IDENTITY", None)
     sdist_environment.pop("NCP_EXPECTED_BUILD_IDENTITY", None)
     sdist_environment["CARGO_TARGET_DIR"] = str(temporary / "sdist-target")
+    _verify_sdist_workspace(sdist_source, sdist_environment)
     _run(
-        [
-            "maturin",
-            "build",
-            "-m",
-            "ncp-python/Cargo.toml",
-            "--features",
-            "extension-module",
-            "--locked",
-            "--offline",
-            "--strip",
-            "--out",
-            str(sdist_wheels),
-        ],
+        _python_wheel_build_command(sdist_wheels),
         cwd=sdist_source,
         env=sdist_environment,
     )
@@ -716,6 +974,60 @@ def _build_python(
         _sha256(source_distribution),
     )
     return [source_wheel_receipt, sdist_wheel_receipt]
+
+
+def _sdist_preflight(revision: str) -> None:
+    _, source_date_epoch = _exact_source(revision)
+    with tempfile.TemporaryDirectory(prefix="ncp-sdist-preflight-") as directory:
+        temporary = Path(directory)
+        source = temporary / "source"
+        source.mkdir()
+        _extract_git_archive(revision, source, temporary / "source.tar")
+        first = temporary / "first"
+        second = temporary / "second"
+        first.mkdir()
+        second.mkdir()
+        base_environment = os.environ.copy()
+        base_environment.update(
+            {
+                "CARGO_NET_OFFLINE": "true",
+                "NCP_BUILD_IDENTITY": revision,
+                "SOURCE_DATE_EPOCH": str(source_date_epoch),
+            }
+        )
+        first_environment = {
+            **base_environment,
+            "CARGO_TARGET_DIR": str(temporary / "target-first"),
+        }
+        second_environment = {
+            **base_environment,
+            "CARGO_TARGET_DIR": str(temporary / "target-second"),
+        }
+        source_distribution = _build_python_sdist(
+            source,
+            first,
+            second,
+            revision,
+            temporary,
+            first_environment,
+            second_environment,
+        )
+        extracted_parent = temporary / "extracted"
+        extracted_parent.mkdir()
+        extracted = _extract_sdist(source_distribution, extracted_parent)
+        _assert_packaged_source_identity(extracted, revision)
+        verification_environment = {
+            **base_environment,
+            "CARGO_TARGET_DIR": str(temporary / "target-verify"),
+        }
+        verification_environment.pop("NCP_BUILD_IDENTITY", None)
+        verification_environment.pop("NCP_EXPECTED_BUILD_IDENTITY", None)
+        _verify_sdist_workspace(extracted, verification_environment)
+        prepared_lock = temporary / "sdist-source-first" / "Cargo.lock"
+        if _sha256(extracted / "Cargo.lock") != _sha256(prepared_lock):
+            raise DossierError(
+                "Python sdist did not retain its exact prepared two-crate lock"
+            )
 
 
 def _build_npm(products: Path, revision: str, temporary: Path) -> None:
@@ -1602,9 +1914,120 @@ def _self_test() -> None:
     derivations = _source_derivations("a" * 40)
     if [record["artifact_roles"] for record in derivations] != [
         ["rust:ncp-core", "python:sdist"],
+        ["python:sdist"],
         ["npm:repository-root", "npm:ncp-ts"],
-    ] or any("a" * 40 not in record["output"] for record in derivations):
+    ] or any("a" * 40 not in derivations[index]["output"] for index in (0, 2)):
         raise AssertionError("candidate source-derivation record is incomplete")
+    if _python_wheel_build_command(Path("wheel-output")) != [
+        "maturin",
+        "build",
+        "-m",
+        "ncp-python/Cargo.toml",
+        "--features",
+        "extension-module",
+        "--release",
+        "--locked",
+        "--offline",
+        "--strip",
+        "--out",
+        "wheel-output",
+    ]:
+        raise AssertionError("candidate Python wheel command is not exact release mode")
+    if PYTHON_WHEEL_CARGO_ENVIRONMENT != {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_NET_OFFLINE": "true",
+    }:
+        raise AssertionError("candidate Python wheel environment is not reproducible")
+    try:
+        _build_python_sdist(
+            Path("unused-source"),
+            Path("unused-first"),
+            Path("unused-second"),
+            "a" * 40,
+            Path("unused-temporary"),
+            {},
+            {"CARGO_NET_OFFLINE": "true"},
+        )
+    except DossierError as error:
+        if "CARGO_NET_OFFLINE=true" not in str(error):
+            raise AssertionError(
+                "sdist offline guard returned the wrong error"
+            ) from error
+    else:
+        raise AssertionError(
+            "sdist construction accepted a network-capable environment"
+        )
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        source = root / "source"
+        source.mkdir()
+        (source / "Cargo.toml").write_text(
+            '[workspace]\nresolver = "2"\n'
+            + FULL_WORKSPACE_MEMBERS
+            + '\n\n[workspace.package]\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        for package in (
+            "ncp-core",
+            "ncp-zenoh",
+            "ncp-gateway",
+            "ncp-python",
+            "ncp-cpp",
+        ):
+            crate = source / package
+            (crate / "src").mkdir(parents=True)
+            dependency = ""
+            if package == "ncp-python":
+                dependency = (
+                    "\n[dependencies]\n"
+                    'ncp-core = { path = "../ncp-core", version = "0.0.0" }\n'
+                )
+            version = (
+                "version.workspace = true"
+                if package == "ncp-python"
+                else 'version = "0.0.0"'
+            )
+            (crate / "Cargo.toml").write_text(
+                "[package]\n"
+                f'name = "{package}"\n'
+                f"{version}\n"
+                'edition = "2021"\n' + dependency,
+                encoding="utf-8",
+            )
+            (crate / "src" / "lib.rs").write_text("", encoding="utf-8")
+        environment = {
+            **os.environ,
+            "CARGO_NET_OFFLINE": "true",
+            "CARGO_TARGET_DIR": str(root / "target"),
+        }
+        _run(
+            ["cargo", "generate-lockfile", "--offline"],
+            cwd=source,
+            env=environment,
+            capture=True,
+        )
+        full_lock_bytes = (source / "Cargo.lock").read_bytes()
+        full_lock = hashlib.sha256(full_lock_bytes).hexdigest()
+        _reduce_sdist_workspace(source)
+        _refresh_sdist_lock(source, environment)
+        if _sha256(source / "Cargo.lock") == full_lock:
+            raise AssertionError(
+                "reduced Python sdist retained the full workspace lock"
+            )
+        _verify_sdist_workspace(source, environment)
+        try:
+            _reduce_sdist_workspace(source)
+        except DossierError:
+            pass
+        else:
+            raise AssertionError("already reduced Python sdist workspace passed")
+        (source / "Cargo.lock").write_bytes(full_lock_bytes)
+        try:
+            _verify_sdist_workspace(source, environment)
+        except DossierError:
+            pass
+        else:
+            raise AssertionError("oversized full workspace lock passed sdist closure")
     for accepted in (
         "linux_x86_64",
         "manylinux2014_x86_64",
@@ -1667,6 +2090,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--archive-preflight")
+    parser.add_argument("--sdist-preflight")
     parser.add_argument("--source-revision")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--verify-dossier", type=Path)
@@ -1677,6 +2101,7 @@ def main() -> int:
         if args.self_test:
             if (
                 args.archive_preflight is not None
+                or args.sdist_preflight is not None
                 or args.source_revision is not None
                 or args.output is not None
                 or args.verify_dossier is not None
@@ -1689,7 +2114,8 @@ def main() -> int:
             return 0
         if args.archive_preflight is not None:
             if (
-                args.source_revision is not None
+                args.sdist_preflight is not None
+                or args.source_revision is not None
                 or args.output is not None
                 or args.verify_dossier is not None
                 or args.subject_checksums is not None
@@ -1700,6 +2126,20 @@ def main() -> int:
                 )
             _archive_preflight(args.archive_preflight)
             print("OK candidate dossier archived-source preflight")
+            return 0
+        if args.sdist_preflight is not None:
+            if (
+                args.source_revision is not None
+                or args.output is not None
+                or args.verify_dossier is not None
+                or args.subject_checksums is not None
+                or args.require_hosted_toolchain
+            ):
+                raise DossierError(
+                    "--sdist-preflight cannot be combined with build options"
+                )
+            _sdist_preflight(args.sdist_preflight)
+            print("OK exact Python sdist lock and byte-reproducibility preflight")
             return 0
         if args.verify_dossier is not None:
             if args.source_revision is not None or args.output is not None:

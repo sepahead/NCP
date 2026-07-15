@@ -2178,7 +2178,7 @@
         "candidate checksums and build receipt"
       ],
       "path": "scripts/build_candidate_dossier.py",
-      "sha256": "621c42174412186936a1517fc2c6508601c1000978adb74232bb2ca8bc60ba33"
+      "sha256": "72cd7e0fc0dab84f2fa0ca7fd2cabe485793487203d9ab2f27afdcfed5186d9e"
     },
     {
       "outputs": [
@@ -2194,7 +2194,7 @@
         "Rust package checksum receipt"
       ],
       "path": "scripts/check_rust_packages.py",
-      "sha256": "f3c57d15e3212630bee4420c36df8bc7822876e49a458061e3ae4b70c23a6b25"
+      "sha256": "cd93682095c495837ef477627dd5d95a02023fa0dbf21922b7df1801ea8ce6c8"
     },
     {
       "outputs": [

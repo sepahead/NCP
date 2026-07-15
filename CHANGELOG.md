@@ -42,6 +42,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow for exact-revision double builds, checksums, and hosted attestations.
   The workflow cannot tag or publish and does not satisfy any external gate until
   one immutable final artifact set is actually built and independently verified.
+- Made the Python source distribution carry a lockfile resolved for its exact
+  two-crate packaged workspace. Candidate construction now performs a strict
+  offline-only pruning of the full workspace lock, forces Cargo network access off,
+  proves that no retained package identity or non-edge metadata changed, rebuilds
+  the sdist twice, and requires the extracted source and rewritten dependency edges
+  to resolve to the exact all-feature package closure under `--locked --offline`.
+  Hosted CI runs this focused preflight before a held dossier can be attempted.
+- Unified direct and sdist-rebuilt Python wheels on one locked, offline, stripped
+  release-profile command with incremental compilation disabled. Direct wheels use
+  separate clean targets and exact byte comparison; the sdist-rebuilt wheel retains
+  independent install, identity, and behavior smoke. This avoids path-sensitive
+  development-link UUID variation while retaining normal Mach-O `LC_UUID` and
+  linker-generated ad-hoc code-signature metadata; it does not imply a publisher
+  signature or release authorization.
+- Canonicalized local Rust package patch paths before Cargo resolves staged and
+  extracted unpublished dependencies, preventing filesystem aliases such as macOS
+  `/var` and `/private/var` from producing different package identities while
+  retaining the exact `--locked` guard.
 - Made the tag-triggered packaging workflow fail before archive construction while
   `release_allowed=false`, and renamed `scripts/check.sh` output as local preflight
   evidence so a green local run cannot be mistaken for external release approval.

@@ -62,12 +62,19 @@ step "Python wheel + required behavior corpus + smoke tests"
 python3 -m venv "$tmp_dir/venv"
 "$tmp_dir/venv/bin/python" -m pip install --disable-pip-version-check \
     maturin==1.14.1 pytest==9.1.1
-"$tmp_dir/venv/bin/maturin" build -m ncp-python/Cargo.toml \
-    --features extension-module --locked --out "$tmp_dir/wheels"
+cargo fetch --locked
+CARGO_INCREMENTAL=0 "$tmp_dir/venv/bin/maturin" build -m ncp-python/Cargo.toml \
+    --features extension-module --release --locked --offline --strip \
+    --out "$tmp_dir/wheels"
 "$tmp_dir/venv/bin/python" -m pip install --disable-pip-version-check \
     --no-index --find-links "$tmp_dir/wheels" ncp
 NCP_REQUIRE_BINDING=1 "$tmp_dir/venv/bin/python" scripts/check_behavior_vectors.py
 "$tmp_dir/venv/bin/python" -m pytest ncp-python/tests -q
+
+step "Python sdist locked-source closure"
+PATH="$tmp_dir/venv/bin:$PATH" \
+    "$tmp_dir/venv/bin/python" scripts/build_candidate_dossier.py \
+        --sdist-preflight "$(git rev-parse HEAD)"
 
 step "TypeScript generated source + prebuilt dist are reproducible"
 git diff --binary -- ncp-core/bindings ncp-ts/src/generated ncp-ts/dist \
@@ -136,6 +143,7 @@ scripts/check-version-coherence.sh --self-test
 scripts/check-version-coherence.sh
 
 step "Rust crate archive self-containment"
+python3 scripts/check_rust_packages.py --self-test
 python3 scripts/check_rust_packages.py --offline
 python3 scripts/build_candidate_dossier.py --self-test
 

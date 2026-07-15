@@ -92,9 +92,9 @@
       },
       {
         "path": ".github/workflows/ci.yml",
-        "bytes": 19383,
-        "sha256": "06a8bc13fc56203fe3243615442663b3d92ab6da0f1d2aedd62af9ab2627dc74",
-        "git_blob_oid": "a531feff7f7378ae6b58f073aaac1d36307a4625",
+        "bytes": 20158,
+        "sha256": "e28ad21b85cb138612e41faf2e46c9fbad3bb742551ea9d413b04c54d3a896bc",
+        "git_blob_oid": "fd716e9ed0046fb543a3821d88db7bbe0a75f480",
         "indexed": true
       },
       {
@@ -134,9 +134,9 @@
       },
       {
         "path": "CHANGELOG.md",
-        "bytes": 87484,
-        "sha256": "5289c0eff2327d38d8689231d39e874a0007048f571de19ec198fb86a529e959",
-        "git_blob_oid": "2a15d5a9d7b4af3a0158b413bcc3b0ff3f54199a",
+        "bytes": 88857,
+        "sha256": "0454d9e68cc1d50db8ee8a3a87b1442cca75688a99daa2badd85673959023c4e",
+        "git_blob_oid": "7835be78c9319a232981299b8bc1ea130138e662",
         "indexed": true
       },
       {
@@ -1983,8 +1983,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 124896,
-        "sha256": "5d6a3bd2ea67a4ccbc9c6709915b7ce8fdacd00e9c64cd976dfecddd2676d9e1",
-        "git_blob_oid": "6b57fe983a9ffacab1cb027ffd38e3e48b880316",
+        "sha256": "4d3779f850644d870fd9d3d5828d05e79a5f962dc80f49d0a93f6e2e20d68a04",
+        "git_blob_oid": "0a9027d908d599e855b66a229210a956f91637ca",
         "indexed": true
       },
       {
@@ -5426,9 +5426,9 @@
       },
       {
         "path": "scripts/README.md",
-        "bytes": 9402,
-        "sha256": "b2f7911200b094307de8fdc8d363de2e3665306f0594c2b11411713ca9277726",
-        "git_blob_oid": "e9bd78f3aa251fae39284a4d7a82f05863e2ac95",
+        "bytes": 9735,
+        "sha256": "50013804d0a2b4e6a20c1ac53b2fc14c38817976a7fe779ed44c59433e79823f",
+        "git_blob_oid": "9646c9826f9738c682334e32607df3ba13d11b5c",
         "indexed": true
       },
       {
@@ -5461,9 +5461,9 @@
       },
       {
         "path": "scripts/build_candidate_dossier.py",
-        "bytes": 66981,
-        "sha256": "621c42174412186936a1517fc2c6508601c1000978adb74232bb2ca8bc60ba33",
-        "git_blob_oid": "e54cab9de02e9d83f48bae63c8eb1ba18b7f6947",
+        "bytes": 83606,
+        "sha256": "72cd7e0fc0dab84f2fa0ca7fd2cabe485793487203d9ab2f27afdcfed5186d9e",
+        "git_blob_oid": "ce7cd850a8f8fb661ee6c46b436976be2e05354d",
         "indexed": true
       },
       {
@@ -5482,9 +5482,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 7635,
-        "sha256": "19a77bc484d5e900b75c59570b9a36c6e61b92118b7de37adc8779bcfc652894",
-        "git_blob_oid": "c0f69a88bafd8eeeed147ed5ba285809af4bb185",
+        "bytes": 7955,
+        "sha256": "e6403611c1b0d84fe534cff82795fa5576bfa1d8961e36b4a6cecdec5211ce3d",
+        "git_blob_oid": "b56d5375fa7eeea594f8ef444af346e1e140f93d",
         "indexed": true
       },
       {
@@ -5601,9 +5601,9 @@
       },
       {
         "path": "scripts/check_rust_packages.py",
-        "bytes": 17077,
-        "sha256": "f3c57d15e3212630bee4420c36df8bc7822876e49a458061e3ae4b70c23a6b25",
-        "git_blob_oid": "120702dbf4f72a79683fe3f106ee1105f9bc03f9",
+        "bytes": 19549,
+        "sha256": "cd93682095c495837ef477627dd5d95a02023fa0dbf21922b7df1801ea8ce6c8",
+        "git_blob_oid": "38ad686d0892a4c80a06c6d666ec31dbf13e3bef",
         "indexed": true
       },
       {
@@ -5881,13 +5881,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-715BF1CC52097A09DC28",
+      "id": "NCP-LATENT-23EFE893F7C98ABC21A1",
       "path": "CHANGELOG.md",
-      "line": 597,
+      "line": 615,
       "column": 75,
       "token_id": "M008",
       "line_sha256": "23edc0f4299db445c52e6d256956600083b59cb34a5b0bcdcf6932902739f4ad",
-      "file_sha256": "5289c0eff2327d38d8689231d39e874a0007048f571de19ec198fb86a529e959",
+      "file_sha256": "0454d9e68cc1d50db8ee8a3a87b1442cca75688a99daa2badd85673959023c4e",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -5895,13 +5895,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9BE83D67D5CFEE5DB81A",
+      "id": "NCP-LATENT-E69EA7574F16B40138E8",
       "path": "CHANGELOG.md",
-      "line": 786,
+      "line": 804,
       "column": 72,
       "token_id": "M007",
       "line_sha256": "42d6d813f7486528eb0d901b58d764987bacc5a624d0999f262560e07d711564",
-      "file_sha256": "5289c0eff2327d38d8689231d39e874a0007048f571de19ec198fb86a529e959",
+      "file_sha256": "0454d9e68cc1d50db8ee8a3a87b1442cca75688a99daa2badd85673959023c4e",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
