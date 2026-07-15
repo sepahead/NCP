@@ -85,16 +85,16 @@
       },
       {
         "path": ".github/workflows/candidate-dossier.yml",
-        "bytes": 6987,
-        "sha256": "ae0c3ed4d990f3edbdfde9b4ad01974bbd7649f36e5e0e95bbb2b795bb6183c7",
-        "git_blob_oid": "8569a09027889b87baa8b8fb6de9a684bbb9bbc9",
+        "bytes": 7167,
+        "sha256": "370429ecdf5bed9d8e22ac789a5ef2e8e35b392796b85c190d5e7d7f6c3e0d19",
+        "git_blob_oid": "9b10140320df3e6d4a421b4b444ac57a5629b0ba",
         "indexed": true
       },
       {
         "path": ".github/workflows/ci.yml",
-        "bytes": 19322,
-        "sha256": "0b1b4710b70cf8485a747f13d25490b9e23d12f1f5bb6f05d4ae50b49d8a4e3f",
-        "git_blob_oid": "22f228285920f1dfd73ec95f98a8c1df4c785fc1",
+        "bytes": 19383,
+        "sha256": "06a8bc13fc56203fe3243615442663b3d92ab6da0f1d2aedd62af9ab2627dc74",
+        "git_blob_oid": "a531feff7f7378ae6b58f073aaac1d36307a4625",
         "indexed": true
       },
       {
@@ -1983,8 +1983,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 124896,
-        "sha256": "23ae4650b407e6b8576848f5537b39ae64f5733d94a48c0dad4c98cb98cd4e57",
-        "git_blob_oid": "d4dc24d4bece6794dc97528b4c98ca2bbf4b45ae",
+        "sha256": "5d6a3bd2ea67a4ccbc9c6709915b7ce8fdacd00e9c64cd976dfecddd2676d9e1",
+        "git_blob_oid": "6b57fe983a9ffacab1cb027ffd38e3e48b880316",
         "indexed": true
       },
       {
@@ -5461,9 +5461,9 @@
       },
       {
         "path": "scripts/build_candidate_dossier.py",
-        "bytes": 65406,
-        "sha256": "2190de6543d0913d0acee8cf430661465de0b5582479c45d2ab008e3bc418645",
-        "git_blob_oid": "bdd5f714dbe10c4f01416f6ca0e94e681b034d10",
+        "bytes": 66981,
+        "sha256": "621c42174412186936a1517fc2c6508601c1000978adb74232bb2ca8bc60ba33",
+        "git_blob_oid": "e54cab9de02e9d83f48bae63c8eb1ba18b7f6947",
         "indexed": true
       },
       {
@@ -5482,9 +5482,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 7584,
-        "sha256": "b0aa1e68518f3a4ec459596242c64b27ebd24509c892b25505f109f548889a1d",
-        "git_blob_oid": "54e736f08aad8e2d337c9d22fd115785e5b31b00",
+        "bytes": 7635,
+        "sha256": "19a77bc484d5e900b75c59570b9a36c6e61b92118b7de37adc8779bcfc652894",
+        "git_blob_oid": "c0f69a88bafd8eeeed147ed5ba285809af4bb185",
         "indexed": true
       },
       {

@@ -149,6 +149,7 @@ if [[ "$(cargo deny --version)" != "cargo-deny 0.19.9" ]]; then
     printf 'cargo-deny 0.19.9 is required; found: %s\n' "$(cargo deny --version)" >&2
     exit 1
 fi
+export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
 export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
 current_advisory_home="$tmp_dir/advisory-current-home"
 pinned_advisory_home="$tmp_dir/advisory-pinned-home"

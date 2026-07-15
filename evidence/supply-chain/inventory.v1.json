@@ -2178,7 +2178,7 @@
         "candidate checksums and build receipt"
       ],
       "path": "scripts/build_candidate_dossier.py",
-      "sha256": "2190de6543d0913d0acee8cf430661465de0b5582479c45d2ab008e3bc418645"
+      "sha256": "621c42174412186936a1517fc2c6508601c1000978adb74232bb2ca8bc60ba33"
     },
     {
       "outputs": [

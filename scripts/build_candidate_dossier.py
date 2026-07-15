@@ -1333,11 +1333,7 @@ def _write_archived_manifest(
     )
 
 
-def _archived_preflight(
-    source: Path,
-    archived_manifest: Path,
-    environment: dict[str, str],
-) -> None:
+def _qualification_environment(environment: dict[str, str]) -> dict[str, str]:
     qualification_environment = environment.copy()
     advisory_home = environment.get("NCP_PINNED_ADVISORY_HOME")
     if advisory_home is not None:
@@ -1346,11 +1342,25 @@ def _archived_preflight(
             raise DossierError(
                 "NCP_PINNED_ADVISORY_HOME is not an existing absolute directory"
             )
+        original_home = Path(environment.get("HOME", str(Path.home())))
         qualification_environment.setdefault(
             "CARGO_HOME",
-            str(Path(environment.get("HOME", str(Path.home()))) / ".cargo"),
+            str(original_home / ".cargo"),
+        )
+        qualification_environment.setdefault(
+            "RUSTUP_HOME",
+            str(original_home / ".rustup"),
         )
         qualification_environment["HOME"] = str(advisory_path)
+    return qualification_environment
+
+
+def _archived_preflight(
+    source: Path,
+    archived_manifest: Path,
+    environment: dict[str, str],
+) -> None:
+    qualification_environment = _qualification_environment(environment)
     _run(
         ["scripts/check-version-coherence.sh"],
         cwd=source,
@@ -1533,6 +1543,38 @@ def _self_test() -> None:
         raise AssertionError("invalid source revision accepted")
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
+        original_home = root / "original-home"
+        advisory_home = root / "advisory-home"
+        advisory_home.mkdir()
+        qualified = _qualification_environment(
+            {
+                "HOME": str(original_home),
+                "NCP_PINNED_ADVISORY_HOME": str(advisory_home),
+            }
+        )
+        if qualified != {
+            "HOME": str(advisory_home),
+            "CARGO_HOME": str(original_home / ".cargo"),
+            "RUSTUP_HOME": str(original_home / ".rustup"),
+            "NCP_PINNED_ADVISORY_HOME": str(advisory_home),
+        }:
+            raise AssertionError(
+                "pinned advisory HOME did not preserve Rust tool locations"
+            )
+        explicit = _qualification_environment(
+            {
+                "HOME": str(original_home),
+                "CARGO_HOME": "/reviewed/cargo",
+                "RUSTUP_HOME": "/reviewed/rustup",
+                "NCP_PINNED_ADVISORY_HOME": str(advisory_home),
+            }
+        )
+        if (
+            explicit.get("CARGO_HOME") != "/reviewed/cargo"
+            or explicit.get("RUSTUP_HOME") != "/reviewed/rustup"
+        ):
+            raise AssertionError("explicit Rust tool locations were overwritten")
+
         (root / "b").write_bytes(b"second")
         (root / "a").write_bytes(b"first")
         _write_checksums(root)
