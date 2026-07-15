@@ -4,7 +4,8 @@
 This generator maps the frozen source index to repository-local evidence without
 closing any handoff task.  Existing reviewer comments are preserved by task ID.
 The resulting ledger is non-normative and remains NO_GO while any task or lens is
-open.  It does not ingest or manufacture external evidence.
+open.  It records only evidence already bound in the reviewed audit inputs and
+does not manufacture external evidence.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ EXPECTED_INDEX_SHA256 = (
     "2e0337544d91a780415d5f86e6372f2067121fc60244c8a30d5231e5ab031b51"
 )
 EXPECTED_AUDIT_SHA256 = (
-    "7932dbcfeac3014efc5f0977403c4e4df89a0072b03e2f1d4f6326f224b218eb"
+    "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b"
 )
 LENS_IDS = tuple(f"L{index:02d}" for index in range(1, 21))
 COMMIT_ID = re.compile(r"^[0-9a-f]{40}$")
@@ -123,8 +124,8 @@ def _global_findings(lenses: list[dict[str, str]]) -> list[dict[str, str]]:
             "Arbitrary scheduling, cancellation, process crash, restart, leak, and long-duration lifecycle campaigns remain NOT RUN.",
         ),
         "L12": (
-            "Locked dependencies, generated-output diffs, exact manifests, pinned workflow actions, deterministic SBOM inputs, archive comparison, and hosted CI provide strong local reproducibility controls.",
-            "A final signed dossier, pinned multi-platform toolchains, clean-room reproduction, and independently rebuilt publication archives remain NOT RUN.",
+            "Locked dependencies, generated-output diffs, exact manifests, pinned workflow actions, deterministic SBOM inputs, archive comparison, exact hosted CI, and a verified held Linux dossier with SLSA and CycloneDX attestations provide source-bound reproducibility evidence.",
+            "A release-authorized multi-platform artifact set, publisher signatures, independent clean-room reproduction, and independently rebuilt publication archives remain NOT RUN.",
         ),
         "L13": (
             "Rust, Python, C/C++, TypeScript, and gateway packages have explicit candidate versions and local archive or build checks.",
@@ -641,12 +642,15 @@ def _task_specific_evidence(task: dict[str, Any]) -> tuple[list[str], list[str]]
                 "scripts/check_rust_packages.py",
                 "scripts/generate_supply_chain_evidence.py",
                 ".github/workflows/candidate-dossier.yml",
+                "docs/handoff/max-effort-audit-inputs.v2.json",
+                "docs/1.0-candidate-receipts.md",
                 "evidence/supply-chain/sbom.cdx.json",
             ],
             [
                 "python3 scripts/build_candidate_dossier.py --self-test",
                 "python3 scripts/generate_supply_chain_evidence.py --check",
-                "NOT RUN: final exact-revision hosted dossier and attestations",
+                "python3 scripts/check_max_effort_handoff_review.py --self-test",
+                "NOT RUN: release-authorized multi-platform artifacts, publisher signatures, and independent clean-room reproduction",
             ],
         ),
         "T140": (
@@ -712,7 +716,7 @@ def _acceptance_gap(task: dict[str, Any]) -> str:
     if number == 125:
         return "Public candidate wording is largely reconciled, but a 0.9 release requires a coordinated normative rebaseline and cannot be closed locally."
     if number == 126:
-        return "Current compact and complete digests reproduce locally, but final clean-source and independent artifact-bound verification is unsigned and not complete."
+        return "Current compact and complete digests reproduce locally and the held Linux artifact set is source-bound by hosted attestations, but final multi-platform, publisher-signed, and independently reproduced release evidence is not complete."
     if number == 127:
         return "The four declared package surfaces pass an ordered 14-vector canonical-byte matrix, but Python and C share Rust implementation code and the matrix does not yet cover every normative type, full mandatory corpus, independent peer, installed package, or platform."
     if number == 128:
@@ -738,7 +742,7 @@ def _acceptance_gap(task: dict[str, Any]) -> str:
     if number == 138:
         return "Long-duration resource, cancellation, restart, fault, and hostile-input campaigns are NOT RUN."
     if number == 139:
-        return "Deterministic supply-chain evidence and an exact-revision reproducible dossier pipeline exist, but the final hosted dossier, attestations, signatures, clean-room reproduction, and publication archives remain NOT RUN."
+        return "An exact-revision held Linux dossier passed deterministic archive comparisons, install smoke, checksum verification, SLSA provenance, and CycloneDX predicate equality; release-authorized multi-platform artifacts, publisher signatures, independent clean-room reproduction, publication archives, and the task dependency chain remain NOT RUN or OPEN."
     if number == 140:
         return "Independent clean-room build and critical evidence reproduction are NOT RUN."
     if number == 141:
@@ -764,7 +768,7 @@ def _task_record(task: dict[str, Any], comment: str | None) -> dict[str, Any]:
         "T130": "Local restart checks exercise fresh session generations, epochs, high-water retirement, bounded capture lineage, and stale-state rejection across the implemented surfaces.",
         "T131": "The local canonical harness exercises all sixteen ordered producer-to-consumer pairs across Rust, Python FFI, C FFI, and TypeScript, with the shared-Rust binding limitation disclosed.",
         "T135": "A validation-only bounded wire-0.8 path checks explicit legacy units, frames, lineage, restart boundaries, and epistemic fields and excludes records needing unavailable native-1.0 authority or operation evidence; it does not reconstruct a native-1.0 capture.",
-        "T139": "The repository contains deterministic supply-chain evidence and a held exact-revision pipeline that rebuilds and byte-compares five crates, a Python wheel and sdist, and two npm archives before optional hosted attestations.",
+        "T139": "The exact reviewed source produced a held Linux dossier that byte-compares five crates, the direct Python wheel, the Python sdist, and two npm archives, separately smoke-tests an extracted-sdist wheel, and binds ten exact subjects plus the retained SBOM to verified hosted attestations.",
         "T143": "A deterministic local convergence artifact locks the candidate identities, local gates, explicit NOT_RUN external gates, consumer handoffs, and NO_GO decision.",
     }
     identifier = task["id"]

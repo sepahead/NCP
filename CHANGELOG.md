@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   146 tasks and 2,920 lens reviews as `OPEN`, record the handoff's serial-DAG/wave
   contradiction and stale 268-vector claim, and preserve `NO_GO` without rewriting
   the earlier 120-task history.
-- Added a reproducible 21-column file-review ledger for all 793 immutable Git blobs
+- Added a reproducible 21-column file-review ledger for all 828 immutable Git blobs
   in the reviewed cut. It records the completed internal AI-assisted inspection,
   zero independent reviews, open findings, and no release authorization.
 - Added deterministic local threat, latent-path, supply-chain, requirement-
@@ -42,6 +42,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow for exact-revision double builds, checksums, and hosted attestations.
   The workflow cannot tag or publish and does not satisfy any external gate until
   one immutable final artifact set is actually built and independently verified.
+- Ran exact hosted CI `29414498370` and held-dossier workflow `29414924349`
+  successfully for source `ef357d20692f707e185495dcfd16b16556fec264`. The held
+  artifact `8342883563` has SHA-256
+  `b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5`;
+  its nine packages plus aggregate checksum subject passed constrained exact-source
+  verification against SLSA attestation `35446154` (Rekor `2172913900`, canonical
+  bundle-object SHA-256
+  `eac629acd68a9e2f63097508655fb9ea77ebdeae192c15818c2a0d8df08be9f5`),
+  and the aggregate CycloneDX attestation `35446158` (Rekor `2172913945`, canonical
+  bundle-object SHA-256
+  `fc85bb970b4835128f0b1a71818c38a330bd306528b238058aa4d43b6fdff2c9`).
+  This is one-platform held candidate evidence with `release_authorized=false`,
+  not a tag, publication, DOI/archive deposit, final publisher signature,
+  independent clean-room reproduction, multi-platform release set, or external
+  certification. `RUSTSEC-2026-0041` and the unavailable `production-secure`
+  principal binding remain release holds; external gates remain **NOT RUN** and
+  the decision remains `NO_GO`.
 - Made the Python source distribution carry a lockfile resolved for its exact
   two-crate packaged workspace. Candidate construction now performs a strict
   offline-only pruning of the full workspace lock, forces Cargo network access off,

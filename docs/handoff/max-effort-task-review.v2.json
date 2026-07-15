@@ -18,8 +18,8 @@
   },
   "audit_inputs": {
     "path": "docs/handoff/max-effort-audit-inputs.v2.json",
-    "sha256": "7932dbcfeac3014efc5f0977403c4e4df89a0072b03e2f1d4f6326f224b218eb",
-    "reviewed_source_commit": "f08c2ad5f68bab0a583db918439660636996ca07",
+    "sha256": "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b",
+    "reviewed_source_commit": "ef357d20692f707e185495dcfd16b16556fec264",
     "handoff_frozen_commit": "0ba5ff6e963225b0635f8fec349278f1ac287df3"
   },
   "execution_disposition": {
@@ -136,8 +136,8 @@
     {
       "id": "L12",
       "name": "Determinism and reproducibility",
-      "finding": "Locked dependencies, generated-output diffs, exact manifests, pinned workflow actions, deterministic SBOM inputs, archive comparison, and hosted CI provide strong local reproducibility controls.",
-      "residual_risk": "A final signed dossier, pinned multi-platform toolchains, clean-room reproduction, and independently rebuilt publication archives remain NOT RUN.",
+      "finding": "Locked dependencies, generated-output diffs, exact manifests, pinned workflow actions, deterministic SBOM inputs, archive comparison, exact hosted CI, and a verified held Linux dossier with SLSA and CycloneDX attestations provide source-bound reproducibility evidence.",
+      "residual_risk": "A release-authorized multi-platform artifact set, publisher signatures, independent clean-room reproduction, and independently rebuilt publication archives remain NOT RUN.",
       "status": "OPEN"
     },
     {
@@ -5535,7 +5535,7 @@
         "L20": "OPEN"
       },
       "evidence_summary": "Relevant local surfaces for 'Regenerate the complete contract digest and compact proto hash from clean immutable inputs and independently verify both.' were inventoried at the reviewed source cut; the paths and commands below are implementation leads, not completion evidence.",
-      "acceptance_gap": "Current compact and complete digests reproduce locally, but final clean-source and independent artifact-bound verification is unsigned and not complete.",
+      "acceptance_gap": "Current compact and complete digests reproduce locally and the held Linux artifact set is source-bound by hosted attestations, but final multi-platform, publisher-signed, and independently reproduced release evidence is not complete.",
       "evidence": {
         "paths": [
           "contract/manifest.v1.json",
@@ -6076,20 +6076,23 @@
         "L19": "OPEN",
         "L20": "OPEN"
       },
-      "evidence_summary": "The repository contains deterministic supply-chain evidence and a held exact-revision pipeline that rebuilds and byte-compares five crates, a Python wheel and sdist, and two npm archives before optional hosted attestations.",
-      "acceptance_gap": "Deterministic supply-chain evidence and an exact-revision reproducible dossier pipeline exist, but the final hosted dossier, attestations, signatures, clean-room reproduction, and publication archives remain NOT RUN.",
+      "evidence_summary": "The exact reviewed source produced a held Linux dossier that byte-compares five crates, the direct Python wheel, the Python sdist, and two npm archives, separately smoke-tests an extracted-sdist wheel, and binds ten exact subjects plus the retained SBOM to verified hosted attestations.",
+      "acceptance_gap": "An exact-revision held Linux dossier passed deterministic archive comparisons, install smoke, checksum verification, SLSA provenance, and CycloneDX predicate equality; release-authorized multi-platform artifacts, publisher signatures, independent clean-room reproduction, publication archives, and the task dependency chain remain NOT RUN or OPEN.",
       "evidence": {
         "paths": [
           "scripts/build_candidate_dossier.py",
           "scripts/check_rust_packages.py",
           "scripts/generate_supply_chain_evidence.py",
           ".github/workflows/candidate-dossier.yml",
+          "docs/handoff/max-effort-audit-inputs.v2.json",
+          "docs/1.0-candidate-receipts.md",
           "evidence/supply-chain/sbom.cdx.json"
         ],
         "commands": [
           "python3 scripts/build_candidate_dossier.py --self-test",
           "python3 scripts/generate_supply_chain_evidence.py --check",
-          "NOT RUN: final exact-revision hosted dossier and attestations"
+          "python3 scripts/check_max_effort_handoff_review.py --self-test",
+          "NOT RUN: release-authorized multi-platform artifacts, publisher signatures, and independent clean-room reproduction"
         ]
       },
       "residual_risk": "This is repository-local evidence for T139; its OPEN dependency chain, twenty-lens review, independent reproduction, and applicable external gates remain authoritative.",

@@ -10,24 +10,57 @@ does not silently reinterpret the earlier standalone ledger.
 The `NCP_V1_0_CURRENT_HEAD_MAX_EFFORT_HANDOFF` declares tasks `T000` through
 `T145` and twenty review lenses per task. Its frozen commit predates the reviewed
 repository state, so the audit records both the declared `0ba5ff6` cut and the
-explicitly diffed, inventoried, hosted-CI-green `f08c2ad` implementation cut.
+explicitly diffed, inventoried, hosted-CI-green
+`ef357d20692f707e185495dcfd16b16556fec264` source boundary.
 
 - [`max-effort-source-index.v2.json`](max-effort-source-index.v2.json) is an exact
   non-normative extract of the ordered task, dependency, wave, lane, scope, and
   twenty-lens index from the SHA-256-bound external ledger.
 - [`max-effort-audit-inputs.v2.json`](max-effort-audit-inputs.v2.json) records the
   handoff package checksums, updated source cut, complete intervening-diff identity,
-  793-file inventory, current contract/corpus identities, package/wire boundary,
-  handoff defects, and explicit external `NOT_RUN` gates.
+  828-file inventory, current contract/corpus identities, package/wire boundary,
+  exact hosted CI and held-dossier receipts, handoff defects, and explicit external
+  `NOT_RUN` gates.
 - [`max-effort-task-review.v2.json`](max-effort-task-review.v2.json) maps every
   exact task to local implementation leads, acceptance gaps, residual risk, all
   twenty `OPEN` lens states, and a `reviewer_comment`. All 146 tasks remain
   `OPEN`; the decision is `NO_GO`.
 - [`max-effort-file-review.v2.csv`](max-effort-file-review.v2.csv) and its
-  [`manifest`](max-effort-file-review-manifest.v2.json) bind all 793 tracked paths
-  at `f08c2ad` to exact Git blob IDs, SHA-256 digests, the mandated 21 columns,
-  balanced review lanes, and the completed internal AI-assisted inspection. They
-  explicitly record zero independent reviews and leave every disposition open.
+  [`manifest`](max-effort-file-review-manifest.v2.json) bind all 828 tracked paths
+  at `ef357d20692f707e185495dcfd16b16556fec264` to exact Git blob IDs, SHA-256
+  digests, the mandated 21 columns, balanced review lanes, and the completed
+  internal AI-assisted inspection. They explicitly record zero independent
+  reviews and leave every disposition open.
+
+## Exact-source hosted evidence
+
+[Hosted CI run `29414498370`](https://github.com/sepahead/NCP/actions/runs/29414498370)
+and [held-dossier run `29414924349`](https://github.com/sepahead/NCP/actions/runs/29414924349)
+both succeeded for source
+`ef357d20692f707e185495dcfd16b16556fec264`, tree
+`940e5de1ee5435ceb77485f94070e3f894b94c66`. The held GitHub artifact
+[`8342883563`](https://github.com/sepahead/NCP/actions/runs/29414924349/artifacts/8342883563)
+has SHA-256
+`b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5`.
+Its exact nine package subjects plus aggregate checksum subject are covered by SLSA
+attestation `35446154` (Rekor index `2172913900`; canonical bundle-object SHA-256
+`eac629acd68a9e2f63097508655fb9ea77ebdeae192c15818c2a0d8df08be9f5`).
+The aggregate subject is separately covered by CycloneDX attestation `35446158`
+(Rekor index `2172913945`; canonical bundle-object SHA-256
+`fc85bb970b4835128f0b1a71818c38a330bd306528b238058aa4d43b6fdff2c9`).
+
+A detached exact-source verifier recomputed the 18-entry checksum file and
+10-entry subject manifest, checked all 19 dossier files and nine package subjects,
+enforced the hosted signer/source/ref/predicate constraints, and confirmed that the
+canonical CycloneDX predicate equals the retained SBOM. Direct wheels were
+byte-compared with direct wheels; the sdist-rebuilt wheel received an independent
+install/identity/behavior smoke and was not byte-compared with the direct wheel.
+This is held candidate-only evidence with `release_authorized=false`, not a tag,
+registry publication, DOI/archive deposit, final publisher signature, independent
+clean-room reproduction, multi-platform release set, or external certification.
+`RUSTSEC-2026-0041` and the unavailable `production-secure` transport-principal
+binding remain release holds; all external gates remain **NOT RUN** and the decision
+remains `NO_GO`.
 
 The handoff dependency graph is a strict `T000`→…→`T145` chain even though its wave
 document assigns dependent tasks to three parallel lanes. The review therefore

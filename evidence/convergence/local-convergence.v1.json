@@ -1,6 +1,6 @@
 {
   "candidate": "1.0.0-rc.1",
-  "claim_boundary": "This is a deterministic NO_GO convergence and handoff inventory. It does not convert required local commands, open implementation prerequisites, or NOT_RUN external gates into passing evidence.",
+  "claim_boundary": "This deterministic NO_GO convergence inventory acknowledges an exact held-candidate dossier and hosted attestations. It does not convert them, required local commands, open implementation prerequisites, or NOT_RUN external gates into release, independent-reproduction, publication, or certification evidence.",
   "compact_contract_hash": "163acc57d8a62b66",
   "conformance_corpus_digest_sha256": "83bdcfae2e07f1c69efa87279f0b3c27392be83f31b292647cddd10eb35226b3",
   "conformance_counts": {
@@ -88,6 +88,73 @@
     "tasks_open": 146,
     "tasks_total": 146
   },
+  "held_candidate_evidence": {
+    "attestations": {
+      "cyclonedx_sbom": {
+        "canonical_bundle_sha256": "fc85bb970b4835128f0b1a71818c38a330bd306528b238058aa4d43b6fdff2c9",
+        "canonical_predicate_sha256": "768bfb3e5c245ae639df53cb61443f68ecc6f4200590c4e22bef05ab01e89953",
+        "canonical_statement_sha256": "5c27ce73acde745ecee6e85b75881b6faca6bb779f4fcf7419f43de38ef18403",
+        "github_attestation_id": 35446158,
+        "predicate_exactly_matches_retained_sbom": true,
+        "predicate_type": "https://cyclonedx.org/bom",
+        "subject_count": 1
+      },
+      "slsa_provenance": {
+        "canonical_bundle_sha256": "eac629acd68a9e2f63097508655fb9ea77ebdeae192c15818c2a0d8df08be9f5",
+        "canonical_predicate_sha256": "ceedfab5d22da329a637e0bf5197b04cb7d405378cc9801a1e8b1af8bd1250c8",
+        "canonical_statement_sha256": "acbd27d031b756d0c39e036134e4fcdb426b320ec1bae4d3160948b68f80b82f",
+        "github_attestation_id": 35446154,
+        "predicate_type": "https://slsa.dev/provenance/v1",
+        "subject_count": 10
+      }
+    },
+    "dossier_workflow": {
+      "conclusion": "success",
+      "event": "workflow_dispatch",
+      "run_attempt": 1,
+      "run_id": 29414924349,
+      "run_number": 2,
+      "workflow_id": 313593531,
+      "workflow_path": ".github/workflows/candidate-dossier.yml"
+    },
+    "gate_effect": {
+      "credit": "NONE",
+      "independent-clean-room-reproduction": "NOT_RUN",
+      "installed-package-matrix": "NOT_RUN",
+      "publication_evidence": false,
+      "release_authorized": false,
+      "signed-sbom-provenance": "NOT_RUN"
+    },
+    "held_artifact": {
+      "artifact_id": 8342883563,
+      "name": "ncp-candidate-dossier-ef357d20692f707e185495dcfd16b16556fec264",
+      "sha256": "b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5",
+      "size_bytes": 2338294
+    },
+    "hosted_ci": {
+      "conclusion": "success",
+      "event": "push",
+      "run_attempt": 1,
+      "run_id": 29414498370,
+      "run_number": 207,
+      "workflow_id": 297103412,
+      "workflow_path": ".github/workflows/ci.yml"
+    },
+    "source_revision": "ef357d20692f707e185495dcfd16b16556fec264",
+    "source_tree": "940e5de1ee5435ceb77485f94070e3f894b94c66",
+    "status": "HELD_CANDIDATE_EVIDENCE_ONLY",
+    "verified_at_utc": "2026-07-15T12:58:20Z",
+    "verified_dossier": {
+      "attestation_subjects": 10,
+      "attestation_subjects_sha256": "e96526feb8d91e7c8af49ff4987ea4ab2ff68d110104c49bde86a9fd2668f7ad",
+      "candidate_dossier_json_sha256": "354ec10c350b367b5013119630d79254a49fb2b3da9676c1ce6fa5693d4e3cd2",
+      "checksum_entries": 18,
+      "checksums_sha256": "47ea382dcf4c103f80d2ae8401014772594511c009bd4b7cd686a72b88cd83c6",
+      "dossier_files": 19,
+      "package_subjects": 9,
+      "reproducibility_comparisons": 5
+    }
+  },
   "local_reproducible_gates": [
     {
       "command": "python3 scripts/generate_contract_manifest.py",
@@ -163,7 +230,8 @@
     "conformance/manifest.v1.json": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
     "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
     "contract/release-gates.v1.json": "fad29f287f446e4cd2144ef919457d39f1c5a47d38498ac892cf704c08830179",
-    "docs/handoff/max-effort-task-review.v2.json": "46cf1f3cecf16980087d4b951a9b4f54a6e13dc1aab99f054c5ad6eafd71dbeb"
+    "docs/handoff/max-effort-audit-inputs.v2.json": "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b",
+    "docs/handoff/max-effort-task-review.v2.json": "274678e5576f4c1bae7c8593625fc932e665da2f48a5ce4e80a9a99818fd59f5"
   },
   "wire_version": "1.0"
 }

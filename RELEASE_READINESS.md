@@ -16,28 +16,56 @@ unsigned evidence is a failure for initial release.
 |---|---|---|
 | Released baseline and historical mirror boundary | read-only gate binds the annotated tag object, peeled commit, fixed path, and exact subtree for every `v0.5.0`–`v0.8.0` baseline; Buf explicitly reports that initial package `ncp.v1` has no released same-major comparison target and does not compare the intentional major break with `ncp.v0` | establishes immutable local migration/history input only; it is not tag-signature, artifact, or consumer evidence; later v1 candidates must compare with the latest registered v1 release |
 | Stable/excluded surface and registries | implemented; generated digest gate present | not a release by itself |
-| Proto/schema/canonical-vector parity | complete matrix passes locally and in hosted CI at exact implementation cut `f08c2ad` | source-bound tests are not signed release-artifact or independent evidence |
-| Mandatory self-describing corpus | current manifest has 282 required vectors (275 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; complete local and hosted replay passed at `f08c2ad` after the lifecycle/schema correction | signed external conformance reports remain required |
+| Proto/schema/canonical-vector parity | complete matrix passes locally and in hosted CI at exact source boundary `ef357d20692f707e185495dcfd16b16556fec264` | source-bound tests are not release-artifact or independent evidence |
+| Mandatory self-describing corpus | current manifest has 282 required vectors (275 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; complete local and hosted replay passed at `ef357d20692f707e185495dcfd16b16556fec264` | signed external conformance reports remain required |
 | Ordered canonical bytes and stable integers | local harness covers 14 all-surface stable vectors across 16 ordered Rust/TypeScript/Python-FFI/C-FFI pairs; TypeScript discovers 45 reachable stable-integer schema paths and tests exact/unsafe boundaries | Python and C share Rust code; installed independent peers, complete normative traffic, alternate engines/platforms, and signed reports remain required |
 | Universal bounded JSON | implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader are gated before generic decoding | live/fuzz duration still required |
 | Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
 | Plant profile, safety governor, action buffer, ESTOP | implemented with deterministic tests | non-certifying; each consumer needs a safety case |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
-| Candidate package builds/install smoke | packageable archives and local installs passed for exact implementation cut `f08c2ad` on 2026-07-14 | immutable multi-OS install matrix and public-registry ownership remain required |
+| Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for exact source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | immutable multi-OS/ABI install matrix and public-registry ownership remain required |
 | Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and 100-node local requirement graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
-| Supply-chain and candidate dossier | deterministic inventory, CycloneDX 1.6 SBOM, license/vulnerability reports, provenance policy, and exact-revision double-build workflow are implemented | final exact-source dossier, hosted attestations, signatures, registry ownership, clean-room reproduction, and multi-platform artifacts remain NOT RUN |
+| Supply-chain and candidate dossier | a held, one-platform, exact-source dossier passed checksums, five applicable comparisons, install/identity/behavior smoke, exact-source verification, a ten-subject SLSA provenance attestation, and an aggregate CycloneDX attestation; `release_authorized=false` | final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
 | Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, six consumer handoffs, and post-publication checks | predecessor gates and cross-repository consumer certifications remain unresolved |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
 The complete `scripts/check.sh` gate and hosted CI run
-[`29366777050`](https://github.com/sepahead/NCP/actions/runs/29366777050) passed for
-exact source `f08c2ad5f68bab0a583db918439660636996ca07` on 2026-07-14. The lock
+[`29414498370`](https://github.com/sepahead/NCP/actions/runs/29414498370) passed for
+exact source `ef357d20692f707e185495dcfd16b16556fec264`, tree
+`940e5de1ee5435ceb77485f94070e3f894b94c66`, on 2026-07-15. The lock
 uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The runs covered the local
 package, binding, bounded-ingress, corpus, archive, dependency-policy, and protobuf
-matrix. They provide an immutable source revision, but no signatures,
-multi-platform environment set, final artifact dossier, or independent
-reproduction. This is time-bound preflight evidence, not a release receipt. The
-generated normative identity and candidate baseline match the checked source cut.
+matrix. This is time-bound preflight evidence, not a release receipt. The generated
+normative identity and candidate baseline match the checked source cut.
+
+The separate held-candidate workflow run
+[`29414924349`](https://github.com/sepahead/NCP/actions/runs/29414924349) also
+passed for that exact source. Artifact
+[`8342883563`](https://github.com/sepahead/NCP/actions/runs/29414924349/artifacts/8342883563)
+has SHA-256
+`b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5`.
+Its 19-file dossier has 18 checksum entries and nine package subjects. SLSA
+attestation `35446154` covers the exact nine packages plus aggregate checksum
+subject (Rekor index `2172913900`; canonical bundle-object SHA-256
+`eac629acd68a9e2f63097508655fb9ea77ebdeae192c15818c2a0d8df08be9f5`).
+CycloneDX attestation `35446158` covers that aggregate subject (Rekor index
+`2172913945`; canonical bundle-object SHA-256
+`fc85bb970b4835128f0b1a71818c38a330bd306528b238058aa4d43b6fdff2c9`).
+A separate exact-source verifier recomputed all hashes and the ten-subject manifest,
+enforced the repository/workflow/source/ref/hosted-runner/predicate constraints,
+and confirmed the canonical embedded CycloneDX predicate equals the retained SBOM.
+The direct wheels were byte-compared only with each other; the sdist-rebuilt wheel
+received a separate install/identity/behavior smoke and was not compared with the
+direct wheel. The dossier records `release_authorized=false` and does not supply a
+tag, publication, final publisher signatures, multi-platform release artifacts, or
+independent clean-room reproduction.
+
+Two source-level holds also remain unchanged: `RUSTSEC-2026-0041` is still present
+through Zenoh's resolved `lz4_flex` dependency even though transport compression is
+disabled, and the stable Zenoh adapter still cannot bind a callback-visible
+transport-authenticated principal for `production-secure`. The candidate therefore
+remains `NO_GO`.
+
 Per-task receipts and their exact residual acceptance gaps are indexed in
 [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md).
 
@@ -69,8 +97,10 @@ The following are **NOT RUN** and independently block release:
   C/C++ artifacts built from one immutable source;
 - verified ownership of every intended public package namespace, with unrelated
   registry names resolved or renamed consistently before publication;
-- reproducible artifact comparison, checksums, vulnerability report, license
-  notices, signed SBOM/provenance, and signature verification;
+- final release-bound reproducible comparison across supported platforms,
+  checksums, vulnerability report, license notices, SBOM/provenance, publisher
+  signatures, and signature verification; the held one-platform candidate
+  attestations above do not satisfy this gate;
 - independent clean-room build and core-conformance reproduction;
 - native installed-artifact certification for Engram, crebain,
   crebain-galadriel-producer, galadriel, haldir, and prisoma.

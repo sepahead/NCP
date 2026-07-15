@@ -26,13 +26,11 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE = "f08c2ad5f68bab0a583db918439660636996ca07"
+DEFAULT_SOURCE = "ef357d20692f707e185495dcfd16b16556fec264"
 DEFAULT_OUTPUT = ROOT / "docs" / "handoff" / "max-effort-file-review.v2.csv"
-DEFAULT_MANIFEST = (
-    ROOT / "docs" / "handoff" / "max-effort-file-review-manifest.v2.json"
-)
+DEFAULT_MANIFEST = ROOT / "docs" / "handoff" / "max-effort-file-review-manifest.v2.json"
 DEFAULT_REVIEW_STATUS = "INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS"
-DEFAULT_COMPLETED_AT = "2026-07-14T20:48:47Z"
+DEFAULT_COMPLETED_AT = "2026-07-15T12:30:58Z"
 SOURCE_ID = re.compile(r"^[0-9a-f]{40}$")
 REVIEWERS = (
     "/root/cross_repo_audit",
@@ -120,7 +118,9 @@ def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
 
 
 def resolve_source(repo: Path, source: str) -> tuple[str, str]:
-    commit = _git(repo, "rev-parse", "--verify", f"{source}^{{commit}}").decode().strip()
+    commit = (
+        _git(repo, "rev-parse", "--verify", f"{source}^{{commit}}").decode().strip()
+    )
     if SOURCE_ID.fullmatch(commit) is None:
         raise LedgerError("resolved source is not a full lowercase commit ID")
     tree = _git(repo, "rev-parse", "--verify", f"{commit}^{{tree}}").decode().strip()
@@ -159,7 +159,9 @@ def _tree_entries(repo: Path, commit: str) -> list[tuple[str, str, str, int, str
     return entries
 
 
-def _blob(repo: Path, kind: str, object_id: str, expected_size: int, path: str) -> bytes:
+def _blob(
+    repo: Path, kind: str, object_id: str, expected_size: int, path: str
+) -> bytes:
     if kind == "commit":
         return object_id.encode("ascii")
     data = _git(repo, "cat-file", "blob", object_id)
@@ -230,7 +232,9 @@ def _language(path: str, mode: str, text: str | None) -> str:
         ".bin": "binary fixture",
         ".cff": "Citation File Format",
     }
-    return names.get(name, extensions.get(suffix, "UTF-8 text" if text is not None else "binary"))
+    return names.get(
+        name, extensions.get(suffix, "UTF-8 text" if text is not None else "binary")
+    )
 
 
 def _generated(path: str) -> tuple[str, str]:
@@ -240,7 +244,9 @@ def _generated(path: str) -> tuple[str, str]:
         return "YES", "python3 scripts/generate_conformance_manifest.py --write"
     if path.startswith("schemas/") and path != "schemas/README.md":
         return "YES", "cargo run -p ncp-core --features schema --bin gen-schemas"
-    if path.startswith("ncp-core/bindings/") or path.startswith("ncp-ts/src/generated/"):
+    if path.startswith("ncp-core/bindings/") or path.startswith(
+        "ncp-ts/src/generated/"
+    ):
         return "YES", "node ncp-ts/scripts/sync-bindings.mjs"
     if path.startswith("ncp-ts/dist/"):
         return "YES", "bun run build"
@@ -251,7 +257,10 @@ def _generated(path: str) -> tuple[str, str]:
     if "/testdata/" in path:
         return "YES", "python3 scripts/sync_rust_package_testdata.py --write"
     if path.startswith("conformance/baseline/"):
-        return "FROZEN", "immutable release/candidate baseline; verified by scripts/check_released_baselines.py or scripts/check_wire_baseline.py"
+        return (
+            "FROZEN",
+            "immutable release/candidate baseline; verified by scripts/check_released_baselines.py or scripts/check_wire_baseline.py",
+        )
     if path == "Cargo.lock":
         return "YES", "cargo generate-lockfile"
     if path == "bun.lock":
@@ -264,7 +273,10 @@ def _flags(path: str) -> tuple[str, str, str, str]:
     public = (
         path in {"README.md", "CITATION.cff", "VERSIONING.md", "SECURITY.md"}
         or lower.startswith(("proto/", "contract/", "schemas/", "docs/"))
-        or any(part in lower for part in ("/readme.md", "/include/", "pyproject.toml", "package.json"))
+        or any(
+            part in lower
+            for part in ("/readme.md", "/include/", "pyproject.toml", "package.json")
+        )
     )
     security = any(
         token in lower
@@ -311,7 +323,9 @@ def _flags(path: str) -> tuple[str, str, str, str]:
             "deploy/",
         )
     )
-    return *("YES" if value else "NO" for value in (public, security, science, authority)),
+    return (
+        *("YES" if value else "NO" for value in (public, security, science, authority)),
+    )
 
 
 def _requirements(path: str) -> str:
@@ -340,7 +354,11 @@ def _requirements(path: str) -> str:
         groups.append("T100-T104")
     elif path.startswith("e2e/"):
         groups.append("T105-T109")
-    elif path.startswith("scripts/") or Path(path).name in {"Cargo.lock", "bun.lock", "package.json"}:
+    elif path.startswith("scripts/") or Path(path).name in {
+        "Cargo.lock",
+        "bun.lock",
+        "package.json",
+    }:
         groups.append("T110-T114")
     elif path.startswith(".github/"):
         groups.append("T115-T119")
@@ -415,9 +433,7 @@ def build(
         lane = min(lanes, key=lambda item: int(item["lines"]))
         lane["paths"].append(row["path"])
         lane["lines"] += row["lines"]
-    reviewers = {
-        path: lane["reviewer"] for lane in lanes for path in lane["paths"]
-    }
+    reviewers = {path: lane["reviewer"] for lane in lanes for path in lane["paths"]}
 
     output = io.StringIO(newline="")
     writer = csv.DictWriter(output, fieldnames=FIELDNAMES, lineterminator="\n")
@@ -505,8 +521,12 @@ def self_test() -> None:
         by_path = {row["path"]: row for row in rows}
         if "odd,\nname.txt" not in by_path:
             raise AssertionError("CSV did not round-trip comma/newline path")
-        if by_path["link"]["language"] != "symlink" or by_path["link"]["bytes"] != str(len("plain.txt")):
-            raise AssertionError("symlink target was followed instead of hashing link bytes")
+        if by_path["link"]["language"] != "symlink" or by_path["link"]["bytes"] != str(
+            len("plain.txt")
+        ):
+            raise AssertionError(
+                "symlink target was followed instead of hashing link bytes"
+            )
         if manifest["tracked_files"] != 4 or manifest["internally_reviewed_files"] != 0:
             raise AssertionError("assigned manifest counts are wrong")
         complete, complete_manifest = build(
@@ -524,9 +544,13 @@ def self_test() -> None:
             "--completed-at 2026-07-14T00:00:00Z"
         )
         if complete_manifest["generator"] != expected_command:
-            raise AssertionError("manifest generator command did not reflect build arguments")
+            raise AssertionError(
+                "manifest generator command did not reflect build arguments"
+            )
         if not manifest["generator"].endswith("--completed-at ''"):
-            raise AssertionError("assigned-review generator omitted the required empty timestamp")
+            raise AssertionError(
+                "assigned-review generator omitted the required empty timestamp"
+            )
 
 
 def main() -> int:
@@ -536,7 +560,9 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument(
-        "--review-status", choices=sorted(REVIEW_STATUSES), default=DEFAULT_REVIEW_STATUS
+        "--review-status",
+        choices=sorted(REVIEW_STATUSES),
+        default=DEFAULT_REVIEW_STATUS,
     )
     parser.add_argument("--completed-at", default=DEFAULT_COMPLETED_AT)
     parser.add_argument("--check", action="store_true")
@@ -551,9 +577,13 @@ def main() -> int:
         manifest_text = _encoded_manifest(manifest)
         if args.check:
             if args.output.read_text(encoding="utf-8") != csv_text:
-                raise LedgerError("committed file-review CSV differs from exact Git source")
+                raise LedgerError(
+                    "committed file-review CSV differs from exact Git source"
+                )
             if args.manifest.read_text(encoding="utf-8") != manifest_text:
-                raise LedgerError("committed file-review manifest differs from exact Git source")
+                raise LedgerError(
+                    "committed file-review manifest differs from exact Git source"
+                )
         else:
             args.output.write_text(csv_text, encoding="utf-8", newline="")
             args.manifest.write_text(manifest_text, encoding="utf-8")

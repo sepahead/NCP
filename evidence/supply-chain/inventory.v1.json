@@ -2236,7 +2236,7 @@
         "evidence/convergence/local-convergence.v1.json"
       ],
       "path": "scripts/generate_convergence_manifest.py",
-      "sha256": "687f634e91a57b21dfa84cf953f9f24786d4bd60fe01e2b2675bfe2b36f4403e"
+      "sha256": "b66149192e5b217b92afdde6000eb31e388e282a1f7ec6a97b344230fce810d7"
     },
     {
       "outputs": [
@@ -2244,7 +2244,7 @@
         "docs/handoff/max-effort-file-review-manifest.v2.json"
       ],
       "path": "scripts/generate_file_review_ledger.py",
-      "sha256": "4436646cf3c8f4069728bebc5d11fb28c02db9c08a1ef1337d566af272684804"
+      "sha256": "97e16d721de15467c4e72f9bf358dcb029111cc156bfe965e9d9b9ffa45d0fec"
     },
     {
       "outputs": [
@@ -2258,7 +2258,7 @@
         "docs/handoff/max-effort-task-review.v2.json"
       ],
       "path": "scripts/generate_max_effort_review_template.py",
-      "sha256": "d334759e342883783be405020c1c53fa6ac9a04682b5163290913f54ad6ea83a"
+      "sha256": "52920a06c29bb7a648a7e9da36bd5958d6bfb9c12a5b34f88a4fed9f397d650c"
     },
     {
       "outputs": [

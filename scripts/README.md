@@ -31,7 +31,7 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `generate_max_effort_handoff_index.py SOURCE [--output PATH]` | extract the exact 20-lens/T000–T145 index from the external schema-2.0 handoff using a strict stdlib parser |
 | `generate_max_effort_review_template.py [--check]` | reproduce the NO_GO 146-task review while preserving reviewer comments |
 | `check_max_effort_handoff_review.py [--self-test]` | freeze the max-effort source/audit identities and all non-comment review content; all tasks and lenses remain OPEN |
-| `generate_file_review_ledger.py [--self-test] [--check]` | reproduce the exact 21-column, Git-blob-bound 793-file internal-review ledger without treating it as independent review or release evidence |
+| `generate_file_review_ledger.py [--self-test] [--check]` | reproduce the exact 21-column, Git-blob-bound 828-file internal-review ledger without treating it as independent review or release evidence |
 | `plot_perf.py [--self-test] [--check]` + `requirements-plot.txt` | deterministically reproduce explicitly non-normative historical SVGs and reject partial/mislabeled benchmark inputs |
 | `sync_rust_package_testdata.py [--write]` | exact crate-local corpus/proto/schema copies |
 | `check_markdown_links.py [--self-test]` | current indexed and non-ignored untracked Markdown target/anchor integrity; byte-frozen baseline Markdown is verified against its tag instead |
@@ -47,9 +47,35 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check_rust_packages.py --offline` | package/extract/build/test publishable Rust crates without workspace leakage, using canonical local-patch identities across filesystem aliases |
 | `build_candidate_dossier.py --source-revision REV --output DIR` | build exact archived source into twice-compared Rust/npm/release-profile Python candidate packages, smoke them, bind hashes/SBOM/toolchains, and emit an unsigned held dossier; never tags or publishes |
 | `build_candidate_dossier.py --sdist-preflight REV` | build the exact Python sdist twice with Cargo network access disabled, require a prune-only two-crate lock, compare archive bytes, and revalidate the extracted source under `--locked --offline` |
+| `build_candidate_dossier.py --verify-dossier DIR --require-hosted-toolchain --subject-checksums PATH` | independently recompute a held dossier's checksums, identities, comparisons, toolchain policy, package subjects, and exact attestation-subject manifest without authorizing release |
 | `prepare_advisory_database.py --source-database DIR --destination DIR` | clone one current, verified RustSec database locally and rewind a disposable copy to the evidence-pinned revision for deterministic replay |
 | `check-version-coherence.sh` | package/wire/compact-hash metadata coherence |
 | `../ncp-ts/scripts/build-release.mjs --source-revision REV --output DIR` | archive one exact 40-hex `HEAD`, inject and verify the shared Rust/TypeScript build identity, and emit smoke-tested root+nested npm tarballs plus a hash receipt; never publishes |
+
+The exact-source verifier mode was exercised against held-dossier run
+[`29414924349`](https://github.com/sepahead/NCP/actions/runs/29414924349), sourced
+from `ef357d20692f707e185495dcfd16b16556fec264`, after exact hosted CI run
+[`29414498370`](https://github.com/sepahead/NCP/actions/runs/29414498370) passed.
+It independently recomputed the 19-file dossier's 18 checksums, nine package
+subjects, and ten attestation subjects. Artifact `8342883563` has SHA-256
+`b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5`.
+SLSA attestation `35446154` has Rekor index `2172913900` and canonical
+bundle-object SHA-256
+`eac629acd68a9e2f63097508655fb9ea77ebdeae192c15818c2a0d8df08be9f5`;
+the aggregate CycloneDX attestation `35446158` has Rekor index `2172913945` and
+canonical bundle-object SHA-256
+`fc85bb970b4835128f0b1a71818c38a330bd306528b238058aa4d43b6fdff2c9`.
+The verifier constrained signer/source/ref/hosted-runner/predicate identities and
+matched the canonical embedded SBOM to the retained file. Direct wheels were
+byte-compared only with each other; the sdist-rebuilt wheel passed separate
+install/identity/behavior smoke.
+
+That receipt is held candidate-only evidence with `release_authorized=false`. It
+does not provide a tag, registry publication, DOI/archive deposit, final publisher
+signatures, independent clean-room reproduction, multi-platform release artifacts,
+or external certification. `RUSTSEC-2026-0041` and the unavailable
+`production-secure` transport-principal binding remain holds; external gates remain
+**NOT RUN** and the candidate remains `NO_GO`.
 
 ## Consumer tooling
 

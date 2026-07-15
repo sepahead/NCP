@@ -34,10 +34,10 @@ EXPECTED_INDEX_SHA256 = (
     "2e0337544d91a780415d5f86e6372f2067121fc60244c8a30d5231e5ab031b51"
 )
 EXPECTED_AUDIT_SHA256 = (
-    "7932dbcfeac3014efc5f0977403c4e4df89a0072b03e2f1d4f6326f224b218eb"
+    "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b"
 )
 EXPECTED_REVIEW_CONTENT_SHA256 = (
-    "da0218dd783b24f12fda2a5204fc5a23fddd8c1b82185ddf18ceef9a59b2ef5b"
+    "4a73a51f4ad74b61aca9cd6d171092d7563a3a866a7788c7d692e6753652661f"
 )
 EXPECTED_CANONICAL_INDEX_SHA256 = (
     "b4290ad1b08be16e1400c008d642ee14b416d6f39a33bb65c44f53dccd09897f"
@@ -46,7 +46,11 @@ EXPECTED_LEDGER_SHA256 = (
     "9a411e41f1e44324311316af20404632b085b167e70eff1914aaff02ce65e947"
 )
 FROZEN_COMMIT = "0ba5ff6e963225b0635f8fec349278f1ac287df3"
-REVIEWED_COMMIT = "f08c2ad5f68bab0a583db918439660636996ca07"
+REVIEWED_COMMIT = "ef357d20692f707e185495dcfd16b16556fec264"
+REVIEWED_TREE = "940e5de1ee5435ceb77485f94070e3f894b94c66"
+EXPECTED_HOSTED_DOSSIER_SHA256 = (
+    "3a514781f7e86fe3e006de13ec486a99364f7adf838140a536ce02a396889574"
+)
 LENS_IDS = tuple(f"L{number:02d}" for number in range(1, 21))
 TASK_IDS = tuple(f"T{number:03d}" for number in range(146))
 TASK_ID = re.compile(r"^T[0-9]{3}$")
@@ -153,14 +157,17 @@ def _strings(value: Any, path: str, *, allow_empty: bool = False) -> list[str]:
     return result
 
 
-def _canonical_index(value: dict[str, Any]) -> str:
+def _canonical_sha256(value: Any) -> str:
     canonical = json.dumps(
-        {"twenty_lenses": value["twenty_lenses"], "tasks": value["tasks"]},
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
+
+
+def _canonical_index(value: dict[str, Any]) -> str:
+    return _canonical_sha256(
+        {"twenty_lenses": value["twenty_lenses"], "tasks": value["tasks"]}
+    )
 
 
 def _review_content(value: dict[str, Any]) -> str:
@@ -168,10 +175,7 @@ def _review_content(value: dict[str, Any]) -> str:
     for task in frozen.get("tasks", []):
         if isinstance(task, dict):
             task.pop("reviewer_comment", None)
-    canonical = json.dumps(
-        frozen, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
-    return hashlib.sha256(canonical).hexdigest()
+    return _canonical_sha256(frozen)
 
 
 def validate_index(value: dict[str, Any]) -> None:
@@ -261,6 +265,289 @@ def validate_index(value: dict[str, Any]) -> None:
         raise ReviewError("canonical task/lens index differs from the reviewed ledger")
 
 
+def validate_hosted_candidate_dossier(value: Any) -> None:
+    """Retain exact candidate receipts without promoting any release gate."""
+    if not isinstance(value, dict):
+        raise ReviewError("hosted candidate dossier receipt must be an object")
+    if _canonical_sha256(value) != EXPECTED_HOSTED_DOSSIER_SHA256:
+        raise ReviewError("hosted candidate dossier receipt identity drifted")
+    if set(value) != {
+        "schema",
+        "normative",
+        "verified_at_utc",
+        "claim_boundary",
+        "source_boundary",
+        "release_gate_effect",
+        "exact_hosted_ci",
+        "successful_dossier_workflow",
+        "held_artifact",
+        "verified_dossier",
+        "attestation_certificate_constraints",
+        "attestations",
+        "nonqualifying_defect_discovery",
+    }:
+        raise ReviewError("hosted candidate dossier receipt has an unexpected shape")
+    if value["schema"] != "ncp.hosted-candidate-dossier-receipt.v1":
+        raise ReviewError("hosted candidate dossier receipt schema drifted")
+    if value["normative"] is not False:
+        raise ReviewError("hosted candidate dossier receipt must remain non-normative")
+    _nonempty(value["verified_at_utc"], "hosted_candidate_dossier.verified_at_utc")
+    _nonempty(value["claim_boundary"], "hosted_candidate_dossier.claim_boundary")
+
+    source = value["source_boundary"]
+    if source != {
+        "repository": "sepahead/NCP",
+        "repository_url": "https://github.com/sepahead/NCP",
+        "ref": "refs/heads/main",
+        "commit": REVIEWED_COMMIT,
+        "tree": REVIEWED_TREE,
+        "candidate_version": "1.0.0-rc.1",
+        "wire_version": "1.0",
+        "release_authorized": False,
+    }:
+        raise ReviewError("hosted candidate source boundary drifted")
+
+    gate_effect = value["release_gate_effect"]
+    if gate_effect != {
+        "credit": "NONE",
+        "signed-sbom-provenance": "NOT_RUN",
+        "independent-clean-room-reproduction": "NOT_RUN",
+        "installed-package-matrix": "NOT_RUN",
+        "reason": "One held Linux candidate dossier and its hosted attestations do not constitute a final signed multi-platform release artifact set, independent clean-room reproduction, installed-package matrix, registry publication, or release authorization.",
+    }:
+        raise ReviewError("hosted receipts must not promote a pre-release gate")
+
+    ci = value["exact_hosted_ci"]
+    if [
+        ci.get("workflow_id"),
+        ci.get("workflow_path"),
+        ci.get("workflow_source_revision"),
+        ci.get("run_id"),
+        ci.get("run_number"),
+        ci.get("run_attempt"),
+        ci.get("event"),
+        ci.get("ref"),
+        ci.get("head_sha"),
+        ci.get("status"),
+        ci.get("conclusion"),
+    ] != [
+        297103412,
+        ".github/workflows/ci.yml",
+        REVIEWED_COMMIT,
+        29414498370,
+        207,
+        1,
+        "push",
+        "refs/heads/main",
+        REVIEWED_COMMIT,
+        "completed",
+        "success",
+    ]:
+        raise ReviewError("exact hosted CI receipt drifted")
+    ci_jobs = ci.get("jobs")
+    if (
+        not isinstance(ci_jobs, list)
+        or len(ci_jobs) != 6
+        or len({job.get("id") for job in ci_jobs if isinstance(job, dict)}) != 6
+        or any(
+            not isinstance(job, dict) or job.get("conclusion") != "success"
+            for job in ci_jobs
+        )
+    ):
+        raise ReviewError("exact hosted CI must retain six unique successful jobs")
+
+    workflow = value["successful_dossier_workflow"]
+    if [
+        workflow.get("workflow_id"),
+        workflow.get("workflow_path"),
+        workflow.get("workflow_source_revision"),
+        workflow.get("run_id"),
+        workflow.get("run_number"),
+        workflow.get("run_attempt"),
+        workflow.get("event"),
+        workflow.get("ref"),
+        workflow.get("head_sha"),
+        workflow.get("status"),
+        workflow.get("conclusion"),
+    ] != [
+        313593531,
+        ".github/workflows/candidate-dossier.yml",
+        REVIEWED_COMMIT,
+        29414924349,
+        2,
+        1,
+        "workflow_dispatch",
+        "refs/heads/main",
+        REVIEWED_COMMIT,
+        "completed",
+        "success",
+    ]:
+        raise ReviewError("successful hosted dossier workflow receipt drifted")
+    workflow_jobs = workflow.get("jobs")
+    if (
+        not isinstance(workflow_jobs, list)
+        or len(workflow_jobs) != 2
+        or [job.get("conclusion") for job in workflow_jobs] != ["success", "success"]
+    ):
+        raise ReviewError("hosted dossier workflow must retain both green jobs")
+
+    artifact = value["held_artifact"]
+    if [
+        artifact.get("artifact_id"),
+        artifact.get("workflow_run_id"),
+        artifact.get("source_revision"),
+        artifact.get("digest"),
+        artifact.get("downloaded_zip_sha256"),
+        artifact.get("size_bytes"),
+        artifact.get("release_authorized"),
+    ] != [
+        8342883563,
+        29414924349,
+        REVIEWED_COMMIT,
+        "b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5",
+        "b2228a89232e3751a3fc205dbda1f66cc07eac7c1f7811f5cdea0a44d6277ed5",
+        2338294,
+        False,
+    ]:
+        raise ReviewError("held candidate artifact identity drifted")
+
+    dossier = value["verified_dossier"]
+    if [
+        dossier.get("source_revision"),
+        dossier.get("source_tree"),
+        dossier.get("release_authorized"),
+        dossier.get("dossier_files"),
+        dossier.get("checksum_entries"),
+        dossier.get("package_subjects"),
+        dossier.get("attestation_subjects"),
+    ] != [REVIEWED_COMMIT, REVIEWED_TREE, False, 19, 18, 9, 10]:
+        raise ReviewError("verified dossier counts or source identity drifted")
+    expected_comparisons = {
+        "rust_source_archives": "PASS",
+        "npm_tarballs": "PASS",
+        "python_wheel_same_platform": "PASS",
+        "python_sdist_same_platform": "PASS",
+        "python_sdist_build_install_smoke": "PASS",
+    }
+    if dossier.get("reproducibility_comparisons") != expected_comparisons:
+        raise ReviewError("candidate reproducibility comparison receipt drifted")
+    subjects = dossier.get("subjects")
+    if not isinstance(subjects, list) or len(subjects) != 9:
+        raise ReviewError(
+            "verified dossier must retain the exact nine package subjects"
+        )
+    package_pairs = [
+        (subject.get("path"), subject.get("sha256"))
+        for subject in subjects
+        if isinstance(subject, dict)
+    ]
+    if len(package_pairs) != 9 or len(set(package_pairs)) != 9:
+        raise ReviewError("verified dossier package subjects are missing or duplicated")
+
+    constraints = value["attestation_certificate_constraints"]
+    for field in (
+        "workflow_sha",
+        "build_signer_digest",
+        "source_repository_digest",
+    ):
+        if constraints.get(field) != REVIEWED_COMMIT:
+            raise ReviewError(f"attestation certificate {field} is not source-bound")
+    if (
+        constraints.get("workflow_ref") != "refs/heads/main"
+        or constraints.get("source_repository_ref") != "refs/heads/main"
+        or constraints.get("runner_environment") != "github-hosted"
+        or constraints.get("self_hosted_runner_permitted") is not False
+        or constraints.get("run_invocation_uri")
+        != "https://github.com/sepahead/NCP/actions/runs/29414924349/attempts/1"
+    ):
+        raise ReviewError("attestation certificate source/runner constraints drifted")
+
+    attestations = value["attestations"]
+    if not isinstance(attestations, dict) or set(attestations) != {
+        "slsa_provenance",
+        "cyclonedx_sbom",
+    }:
+        raise ReviewError("hosted attestation set drifted")
+    slsa = attestations["slsa_provenance"]
+    if [
+        slsa.get("github_attestation_id"),
+        slsa.get("rekor_log_index"),
+        slsa.get("predicate_type"),
+        slsa.get("canonical_bundle_sha256"),
+        slsa.get("subject_count"),
+    ] != [
+        35446154,
+        2172913900,
+        "https://slsa.dev/provenance/v1",
+        "eac629acd68a9e2f63097508655fb9ea77ebdeae192c15818c2a0d8df08be9f5",
+        10,
+    ]:
+        raise ReviewError("SLSA attestation receipt drifted")
+    slsa_subjects = slsa.get("subjects")
+    prefix = "candidate-held/candidate-dossier/"
+    if not isinstance(slsa_subjects, list) or len(slsa_subjects) != 10:
+        raise ReviewError("SLSA attestation must retain ten exact subjects")
+    if [
+        (subject.get("name"), subject.get("sha256"))
+        for subject in slsa_subjects[:9]
+        if isinstance(subject, dict)
+    ] != [(prefix + path, digest) for path, digest in package_pairs]:
+        raise ReviewError("SLSA package subjects differ from the held dossier")
+    if slsa_subjects[9] != {
+        "name": prefix + "checksums.sha256",
+        "sha256": dossier.get("checksums_sha256"),
+    }:
+        raise ReviewError("SLSA aggregate checksum subject drifted")
+
+    cyclonedx = attestations["cyclonedx_sbom"]
+    expected_checksum_subject = {
+        "name": prefix + "checksums.sha256",
+        "sha256": dossier.get("checksums_sha256"),
+    }
+    if [
+        cyclonedx.get("github_attestation_id"),
+        cyclonedx.get("rekor_log_index"),
+        cyclonedx.get("predicate_type"),
+        cyclonedx.get("canonical_bundle_sha256"),
+        cyclonedx.get("canonical_predicate_sha256"),
+        cyclonedx.get("subject_count"),
+        cyclonedx.get("subject"),
+        cyclonedx.get("retained_sbom_raw_sha256"),
+        cyclonedx.get("predicate_exactly_matches_retained_sbom"),
+    ] != [
+        35446158,
+        2172913945,
+        "https://cyclonedx.org/bom",
+        "fc85bb970b4835128f0b1a71818c38a330bd306528b238058aa4d43b6fdff2c9",
+        "768bfb3e5c245ae639df53cb61443f68ecc6f4200590c4e22bef05ab01e89953",
+        1,
+        expected_checksum_subject,
+        dossier.get("retained_sbom_sha256"),
+        True,
+    ]:
+        raise ReviewError("CycloneDX attestation receipt drifted")
+
+    failed = value["nonqualifying_defect_discovery"]
+    if [
+        failed.get("run_id"),
+        failed.get("head_sha"),
+        failed.get("conclusion"),
+        failed.get("artifact_count"),
+        failed.get("qualifying_evidence"),
+        failed.get("release_gate_credit"),
+        failed.get("disposition"),
+    ] != [
+        29407942080,
+        "a506d473937ff27ce0a073b50a62e7546bae7c2c",
+        "failure",
+        0,
+        False,
+        "NONE",
+        "DEFECT_DISCOVERY_ONLY",
+    ]:
+        raise ReviewError("failed predecessor run was promoted beyond defect discovery")
+
+
 def validate_audit(value: dict[str, Any]) -> None:
     required = {
         "schema",
@@ -274,6 +561,7 @@ def validate_audit(value: dict[str, Any]) -> None:
         "reviewed_source_inventory",
         "locked_inputs",
         "normative_identities",
+        "hosted_candidate_dossier",
         "local_environment",
         "handoff_defects",
         "known_external_gates",
@@ -358,7 +646,7 @@ def validate_audit(value: dict[str, Any]) -> None:
         raise ReviewError("intervening diff range drifted")
     if [
         intervening.get(key) for key in ("changed_files", "insertions", "deletions")
-    ] != [174, 35924, 13418]:
+    ] != [225, 87246, 13664]:
         raise ReviewError("intervening diff statistics drifted")
 
     inventory = value["reviewed_source_inventory"]
@@ -369,8 +657,15 @@ def validate_audit(value: dict[str, Any]) -> None:
         raise ReviewError("file inventory is not bound to the reviewed source cut")
     if [
         inventory.get(key) for key in ("tracked_files", "tracked_bytes", "text_lines")
-    ] != [793, 7817402, 191813]:
+    ] != [828, 9653164, 242889]:
         raise ReviewError("reviewed source inventory counts drifted")
+    if (
+        inventory.get("handoff_generated_outputs_status")
+        != "HISTORICAL_SUPPLIED_HELPER_OUTPUT_NOT_REVIEWED_SOURCE_INVENTORY"
+    ):
+        raise ReviewError(
+            "supplied-helper hashes were promoted to the reviewed inventory"
+        )
     if inventory.get("review_status") not in {
         "THREE_LANE_REVIEW_IN_PROGRESS",
         "THREE_LANE_REVIEW_COMPLETE_WITH_OPEN_FINDINGS",
@@ -390,6 +685,7 @@ def validate_audit(value: dict[str, Any]) -> None:
     }
     if identities != expected_identities:
         raise ReviewError("normative identity or 282-vector inventory drifted")
+    validate_hosted_candidate_dossier(value["hosted_candidate_dossier"])
     defects = _strings(value["handoff_defects"], "handoff_defects")
     if len(defects) != 9:
         raise ReviewError("audit must retain all nine handoff defects")
@@ -432,18 +728,47 @@ def validate_repository_evidence(value: dict[str, Any]) -> None:
     authored_at = _git("show", "-s", "--format=%aI", REVIEWED_COMMIT).decode().strip()
     if reviewed.get("tree") != reviewed_tree or frozen.get("tree") != frozen_tree:
         raise ReviewError("source-cut tree identity does not match Git objects")
+    if reviewed_tree != REVIEWED_TREE:
+        raise ReviewError("reviewed source tree differs from the frozen receipt")
     if reviewed.get("authored_at") != authored_at:
         raise ReviewError("reviewed source author timestamp does not match Git")
 
     expected_hosted = {
         "provider": "GitHub Actions",
-        "run_id": 29366777050,
-        "url": "https://github.com/sepahead/NCP/actions/runs/29366777050",
+        "workflow_id": 297103412,
+        "workflow_path": ".github/workflows/ci.yml",
+        "run_id": 29414498370,
+        "run_number": 207,
+        "run_attempt": 1,
+        "url": "https://github.com/sepahead/NCP/actions/runs/29414498370",
+        "event": "push",
+        "ref": "refs/heads/main",
         "head_sha": REVIEWED_COMMIT,
         "conclusion": "success",
     }
     if reviewed.get("hosted_ci") != expected_hosted:
         raise ReviewError("hosted CI receipt differs from the exact successful run")
+
+    hosted = value["hosted_candidate_dossier"]
+    for receipt_name in ("exact_hosted_ci", "successful_dossier_workflow"):
+        receipt = hosted[receipt_name]
+        path = receipt["workflow_path"]
+        source_bytes = _git("show", f"{REVIEWED_COMMIT}:{path}")
+        blob = _git("rev-parse", f"{REVIEWED_COMMIT}:{path}").decode().strip()
+        if receipt.get("workflow_git_blob") != blob:
+            raise ReviewError(f"{receipt_name} workflow Git blob differs from source")
+        if receipt.get("workflow_sha256") != hashlib.sha256(source_bytes).hexdigest():
+            raise ReviewError(f"{receipt_name} workflow SHA-256 differs from source")
+    verifier = hosted["verified_dossier"]["verification"]
+    verifier_path = verifier["verifier_path"]
+    verifier_bytes = _git("show", f"{REVIEWED_COMMIT}:{verifier_path}")
+    verifier_blob = (
+        _git("rev-parse", f"{REVIEWED_COMMIT}:{verifier_path}").decode().strip()
+    )
+    if verifier.get("verifier_git_blob") != verifier_blob:
+        raise ReviewError("dossier verifier Git blob differs from reviewed source")
+    if verifier.get("verifier_sha256") != hashlib.sha256(verifier_bytes).hexdigest():
+        raise ReviewError("dossier verifier SHA-256 differs from reviewed source")
 
     diff_range = f"{FROZEN_COMMIT}..{REVIEWED_COMMIT}"
     changed_paths = [
@@ -863,6 +1188,42 @@ def _must_fail(callback: Any, label: str) -> None:
     raise AssertionError(f"hostile mutation passed: {label}")
 
 
+def _scalar_paths(
+    value: Any, path: tuple[str | int, ...] = ()
+) -> list[tuple[str | int, ...]]:
+    if isinstance(value, dict):
+        return [
+            nested
+            for key, member in value.items()
+            for nested in _scalar_paths(member, (*path, key))
+        ]
+    if isinstance(value, list):
+        return [
+            nested
+            for index, member in enumerate(value)
+            for nested in _scalar_paths(member, (*path, index))
+        ]
+    return [path]
+
+
+def _drift_scalar(value: Any) -> Any:
+    if isinstance(value, bool):
+        return not value
+    if isinstance(value, int):
+        return value + 1
+    if isinstance(value, str):
+        return value + "-hostile-drift"
+    raise AssertionError(f"unsupported hosted-receipt scalar {type(value).__name__}")
+
+
+def _mutate_path(value: Any, path: tuple[str | int, ...]) -> None:
+    cursor = value
+    for part in path[:-1]:
+        cursor = cursor[part]
+    leaf = path[-1]
+    cursor[leaf] = _drift_scalar(cursor[leaf])
+
+
 def self_test(
     index: dict[str, Any], audit: dict[str, Any], review: dict[str, Any]
 ) -> None:
@@ -919,6 +1280,38 @@ def self_test(
     frozen_vectors["normative_identities"]["required_vectors"] = 269
     frozen_vectors["normative_identities"]["stable_vectors"] = 262
     _must_fail(lambda: validate_audit(frozen_vectors), "frozen 269-vector count")
+
+    hosted_receipt = audit["hosted_candidate_dossier"]
+    for scalar_path in _scalar_paths(hosted_receipt):
+        hostile = copy.deepcopy(audit)
+        _mutate_path(hostile["hosted_candidate_dossier"], scalar_path)
+        label = ".".join(str(part) for part in scalar_path)
+        _must_fail(
+            lambda hostile=hostile: validate_audit(hostile),
+            f"hosted receipt scalar {label}",
+        )
+
+    promoted_receipt = copy.deepcopy(audit)
+    promoted_receipt["hosted_candidate_dossier"]["release_gate_effect"][
+        "signed-sbom-provenance"
+    ] = "PASS"
+    _must_fail(
+        lambda: validate_audit(promoted_receipt),
+        "hosted receipt release-gate promotion",
+    )
+
+    promoted_failure = copy.deepcopy(audit)
+    promoted_failure["hosted_candidate_dossier"]["nonqualifying_defect_discovery"][
+        "qualifying_evidence"
+    ] = True
+    _must_fail(
+        lambda: validate_audit(promoted_failure),
+        "failed dossier promotion beyond defect discovery",
+    )
+
+    external_pass = copy.deepcopy(audit)
+    external_pass["known_external_gates"]["status"] = "PASS"
+    _must_fail(lambda: validate_audit(external_pass), "external gate promotion")
 
     bad_diff = copy.deepcopy(audit)
     bad_diff["source_cuts"]["intervening_diff"]["binary_full_index_patch_sha256"] = (
