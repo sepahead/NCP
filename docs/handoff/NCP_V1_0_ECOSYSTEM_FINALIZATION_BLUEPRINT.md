@@ -923,7 +923,7 @@ supply a generation; the authenticated body resolves the current live generation
 
 The grant is read-only and cannot be converted into authority, reset, publish,
 open, close, step, run, or stream-declaration rights. The transport ACL or trusted
-gateway enforces the same exact routes. Fleet discovery is a separate
+gateway enforces the same routes exactly. Fleet discovery is a separate
 deployment-owned directory and cannot leak unauthorized descriptors. Attachment
 expiry/revocation stops new delivery and dataset admission but does not fabricate
 missing data or erase retained audit evidence.
@@ -3658,7 +3658,7 @@ Implementation:
   profile-defined non-actuating state;
 - verify full signed envelope, actual route, manifest, session, declared stream,
   sequence, operation, TTL, channel kinds/units/widths/finite values and plant
-  profile before every mode; require the exact live lease for all mutating action
+  profile before every mode; require the exact live lease for all mutating actions
   except the narrowly ratified, fully admitted same-session ESTOP exemption;
 - remove `minimal_estop_command`, the raw JSON `mode == "estop"` bypass, and the
   early typed ESTOP bypass in `src-tauri/src/ncp/mod.rs`; unauthenticated malformed
@@ -4793,7 +4793,25 @@ release completion.
 | P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V10 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |
 | P5 | exact implementation task DAG and per-repository file/runbook detail | `LOCAL_PASS` | dependency order, execution protocol, B/N/F provider tasks, all named consumer tasks, cross-ecosystem qualification and ten-lens records in section 10; implementation remains `OPEN`/`NOT_RUN` |
 | P6 | release, package, documentation, GitHub, rollback, and incident runbook | `LOCAL_PASS` | exact release state machine, gate matrix, signed authorization, tag/artifact/publication order, NCP/ecosystem/profile metadata, consumer repin, post-publication, incident and stewardship tasks in section 11; execution remains `OPEN`/`NOT_RUN` |
-| P7 | triple review, repository gate, commit, and push receipts | `OPEN` | to be added |
+| P7 | triple review, repository gate, commit, and push receipts | `IN_PROGRESS` | three review passes are recorded in section 12.1; exact final-tree repository gate and remote receipt remain pending |
+
+### 12.1 Triple-review and render receipt
+
+The review sequence began from pushed NCP commit
+`2f742144f959a592dfdba8bc87c35026576c00de`. Corrections found by each pass were
+applied to this living document and must be included in the exact final-tree gate.
+This receipt establishes blueprint quality only; it does not run or satisfy any
+NCP 1.0 implementation, formal, consumer, external or release gate.
+
+| Pass | Status | Exact local result |
+|---|---|---|
+| technical structure and cross-repository truth | `LOCAL_PASS` | 17 unique D01–D17 findings and 17/17 closure-map rows; 54 unique tasks; every task has status, acceptance and ten lenses; zero missing dependency IDs, cycles or forward level edges; R10 is intentionally event-triggered; archive SHA-256 rechecked; named local paths/remotes/roles and live GitHub metadata rechecked read-only |
+| security, safety, science and release claims | `LOCAL_PASS` | removed identifier ambiguity and nonexistent task reference; repaired ESTOP lease/admission and R03/R04 boundaries; current candidate remains `NO_GO`, external/formal work remains `NOT_RUN`; no positive current release/certification/perfection pattern; live RustSec, registry/package-name and GitHub conditional-metadata claims rechecked |
+| prose, Markdown and rendered document | `LOCAL_PASS` | `codespell 2.4.1` zero findings; `cspell 10.0.1` zero findings after a manually reviewed repository/protocol-name allowlist; `proselint 0.14.0` zero findings after disabling only code-syntax/typography, intentional TODO-marker, technical compound and ASCII-name rules; `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0` zero findings with line-length disabled for tables/digests, `<br>` allowed only for task metadata, and compact-table style accepted; candidate link/anchor checks pass; all 17 external references returned HTTP 200 |
+| browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` exposed one H1, 12 H2, 78 H3, 74 H4, 21 tables and 29 code blocks with no browser error; a pinned temporary `marked 18.0.6` + Playwright `1.61.0` audit render at 1440×1000 and 768×1200 had document scroll width equal to viewport, zero overflowing heading/paragraph/list/blockquote/code/table containers and zero console errors; top, architecture, DAG, release and progress samples were read visually with no overlap, clipping, missing glyph or illegible text |
+| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 10 tracked generated protocol diagrams current; this is byte freshness only and does not close V01–V10 or claim release visual acceptance |
+| exact final-tree `scripts/check.sh` | `NOT_RUN` | next step; no result may be inferred from the focused checks above |
+| final professional commit, push and remote-ref equality | `OPEN` | last step after the exact-tree full gate; the handoff reports the resulting commit externally because a Git commit cannot contain its own object ID |
 
 The implementation task IDs will use prefixes `B` (bookkeeping/decisions), `N`
 (canonical NCP), `F` (formal/verification), `E` (Engram), `H` (Haldir), `C`
