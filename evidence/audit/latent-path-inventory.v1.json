@@ -1983,8 +1983,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 124896,
-        "sha256": "fc52035e68e5e5eb1bc8593c3a65ee496b7c36b0fb3b937f50955d793fd72afe",
-        "git_blob_oid": "ae2ecfdff11b89fed8e47ec5a5c221e9cffd9497",
+        "sha256": "923805ff96ab6556cf47f62154294160f1154d3ef04cdccd5e362a49b1c1a3e7",
+        "git_blob_oid": "77a8faaf233a65fef8f0b9f8c222fd5fb7918863",
         "indexed": true
       },
       {
@@ -5685,9 +5685,9 @@
       },
       {
         "path": "scripts/generate_supply_chain_evidence.py",
-        "bytes": 96396,
-        "sha256": "2dd2d2aa54fbc85c5a74f43aba61a377989784df551ea6664031f36755ad9468",
-        "git_blob_oid": "599b97f70bb3b2a7a98225694ab21796af8ac317",
+        "bytes": 96757,
+        "sha256": "e8dd9c361716856ff8a473179021e1f1f7e90439c9c3237273f9a97230767a8b",
+        "git_blob_oid": "7ed9474d1a9ca546c95d7a528a6be928d02ee10d",
         "indexed": true
       },
       {
@@ -5699,9 +5699,9 @@
       },
       {
         "path": "scripts/prepare_advisory_database.py",
-        "bytes": 9166,
-        "sha256": "a20ecb84028ed30d16b3188691bdbb88fd938ee92c799ab6fc20217248a69297",
-        "git_blob_oid": "02adb7d55d474ed5d6be1ec80f9b8b0af4a03c42",
+        "bytes": 9407,
+        "sha256": "b1e6031a0a1234e07ce6b14e072e9e3e68857af9cef8bebdbcb28891ad84be32",
+        "git_blob_oid": "543af6adb1a018595a04522bf67c9934e8914902",
         "indexed": true
       },
       {

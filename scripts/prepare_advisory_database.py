@@ -115,11 +115,19 @@ def _assert_database(database: Path) -> None:
         or DATABASE_DIRECTORY.fullmatch(database.name) is None
     ):
         raise PreparationError("source advisory database has an unexpected layout")
-    origin = (
-        _run(["git", "remote", "get-url", "origin"], cwd=database)
+    origins = (
+        _run(
+            ["git", "config", "--get-all", "remote.origin.url"],
+            cwd=database,
+        )
         .decode("utf-8", "strict")
-        .strip()
+        .splitlines()
     )
+    if len(origins) != 1 or not origins[0]:
+        raise PreparationError(
+            "source advisory database must configure exactly one origin URL"
+        )
+    origin = origins[0]
     if origin.rstrip("/").removesuffix(".git") != EXPECTED_URL:
         raise PreparationError(f"unexpected advisory database origin {origin!r}")
     if _run(["git", "status", "--porcelain"], cwd=database):

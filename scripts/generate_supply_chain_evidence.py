@@ -1168,11 +1168,25 @@ def _cargo_advisories() -> dict[str, Any]:
     )
     if database_status:
         raise EvidenceError("RustSec advisory database is not clean")
-    database_url = (
-        _run(["git", "-C", str(database_path), "remote", "get-url", "origin"])
+    database_urls = (
+        _run(
+            [
+                "git",
+                "-C",
+                str(database_path),
+                "config",
+                "--get-all",
+                "remote.origin.url",
+            ]
+        )
         .decode("utf-8", "strict")
-        .strip()
+        .splitlines()
     )
+    if len(database_urls) != 1 or not database_urls[0]:
+        raise EvidenceError(
+            "RustSec advisory database must configure exactly one origin URL"
+        )
+    database_url = database_urls[0]
     if database_url.rstrip("/").removesuffix(".git") != (
         "https://github.com/RustSec/advisory-db"
     ):
