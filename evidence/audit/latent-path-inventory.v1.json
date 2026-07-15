@@ -5482,9 +5482,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 7410,
-        "sha256": "46fdcb19ea52cccd977716c1340a67f40af2391df917b8777a77560a21ce6111",
-        "git_blob_oid": "78fee450c42d58ca6a451d04fefbbf655e712a4e",
+        "bytes": 7584,
+        "sha256": "b0aa1e68518f3a4ec459596242c64b27ebd24509c892b25505f109f548889a1d",
+        "git_blob_oid": "54e736f08aad8e2d337c9d22fd115785e5b31b00",
         "indexed": true
       },
       {

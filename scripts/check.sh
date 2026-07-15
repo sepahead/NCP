@@ -83,6 +83,11 @@ bun run check:integers
 bun run check:ws
 bun run check:package
 
+step "deterministic historical plot tooling"
+"$tmp_dir/venv/bin/python" -m pip install --disable-pip-version-check \
+    -r scripts/requirements-plot.txt
+"$tmp_dir/venv/bin/python" scripts/plot_perf.py --self-test --check
+
 step "retained threat, latent-path, and traceability audit artifacts"
 python3 scripts/generate_audit_artifacts.py --self-test
 python3 scripts/check_audit_artifacts.py --self-test
@@ -95,7 +100,6 @@ python3 scripts/generate_max_effort_review_template.py --check
 python3 scripts/generate_file_review_ledger.py --self-test
 python3 scripts/generate_file_review_ledger.py --check
 python3 scripts/generate_convergence_manifest.py --self-test --check
-python3 scripts/plot_perf.py --self-test --check
 python3 scripts/check_markdown_links.py --self-test
 python3 scripts/check_markdown_links.py
 python3 scripts/check_proto_schema_parity.py
