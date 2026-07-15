@@ -5,6 +5,15 @@ not normative protocol sources, release manifests, certification, or authorizati
 to publish. Git history preserves each source package; the current max-effort review
 does not silently reinterpret the earlier standalone ledger.
 
+## Ecosystem finalization blueprint
+
+[`NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md`](NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md)
+is the living, non-normative implementation plan for resolving the candidate's
+remaining architecture decisions and migrating Engram, Haldir, Galadriel, Crebain,
+and Prisoma. Its task states require evidence receipts and do not close or replace
+either audit below, authorize publication, or turn a consumer worktree into
+installed interoperability evidence.
+
 ## Current max-effort handoff (schema 2.0)
 
 The `NCP_V1_0_CURRENT_HEAD_MAX_EFFORT_HANDOFF` declares tasks `T000` through
