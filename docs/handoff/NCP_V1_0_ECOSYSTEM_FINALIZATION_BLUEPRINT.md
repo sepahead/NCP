@@ -250,7 +250,7 @@ must never be accepted in the other merely because the `session_id` matches.
 
 ### D02 — observers have no authenticated attach protocol
 
-Prisoma and Galadriel are intended read-only observers. Current stable transport
+Prisoma and Galadriel are intended read-only observers. Current candidate transport
 helpers require an exact `SessionRef`, while raw fleet/session subscriptions are
 explicitly untrusted. There is no stable request by which an authenticated observer
 can learn the current server-issued generation, session kind, full contract
@@ -448,11 +448,17 @@ assumptions, or release readiness.
 
 ### D13 — dependencies and registry identities remain release blockers
 
-The locked Zenoh graph retains `RUSTSEC-2026-0041` through `lz4_flex`. Compression
-is disabled and checked, but the advisory remains a publication hold until the
-upstream graph is patched or a separately reviewed policy decision is made. The
-intended crates.io `ncp-core` and PyPI `ncp` names currently refer to unrelated
-projects. A stable release cannot rely on names the publisher does not control.
+The locked Zenoh graph retains `lz4_flex 0.10.0` through `zenoh-transport 1.9.0` and
+therefore retains [RUSTSEC-2026-0041](https://rustsec.org/advisories/RUSTSEC-2026-0041).
+Compression is disabled and checked, but the advisory remains a publication hold
+until the locked graph no longer contains an affected version and the transport,
+dependency and fault gates repeat. Risk acceptance may document interim exposure;
+it cannot satisfy this blueprint's final release gate. At the 2026-07-15 registry
+check, crates.io `ncp-core 0.2.0` belonged to the
+unrelated NetCat++ project and [PyPI `ncp 1.15`](https://pypi.org/project/ncp/)
+belonged to an unrelated configuration generator. The other current Rust names and
+scoped npm name returned not-found, which is not ownership evidence. A stable
+release cannot rely on any name the publisher does not demonstrably control.
 
 Select owned, collision-free package names, test fresh installs, update every
 manifest/import/document/generated package reference coherently, and retain
@@ -1205,7 +1211,7 @@ Retain four authority planes but make subprofiles executable:
 
 | Plane | Publisher | Core queue | Required behavior |
 |---|---|---|---|
-| control | enrolled commander/body/observer for the exact request | bounded 128 default | reliable request/reply, explicit overload rejection, operation deadline and idempotency |
+| control | enrolled commander/body; observer only for attach, detach and permitted read-only query | bounded 128 default | reliable request/reply, explicit overload rejection, operation deadline and idempotency; observer grant never authorizes session mutation |
 | perception | enrolled body | capacity 1 per declared stream | replace latest; count overwritten positions and expose gaps, never synthesize |
 | action | current commander or enrolled operator for allowed fail-safe | capacity 1 per declared stream | severity priority, one allocator across Active/HOLD/ESTOP, consume ambiguous attempts, block Active after ambiguous fail-safe |
 | observation data | enrolled body | bounded 64 default | drop oldest and count; scientific consumers mark incomplete |
@@ -3651,12 +3657,13 @@ Implementation:
   restart without proved continuity invalidates sessions/leases and enters the
   profile-defined non-actuating state;
 - verify full signed envelope, actual route, manifest, session, declared stream,
-  sequence, lease, operation, TTL, channel kinds/units/widths/finite values and
-  plant profile before every mode—including ESTOP;
+  sequence, operation, TTL, channel kinds/units/widths/finite values and plant
+  profile before every mode; require the exact live lease for all mutating action
+  except the narrowly ratified, fully admitted same-session ESTOP exemption;
 - remove `minimal_estop_command`, the raw JSON `mode == "estop"` bypass, and the
   early typed ESTOP bypass in `src-tauri/src/ncp/mod.rs`; unauthenticated malformed
-  input cannot latch or actuate. Provide a separately authenticated local/out-of-band
-  physical ESTOP interface if required by the plant design;
+  input cannot latch or actuate. Keep any plant-required local/out-of-band physical
+  ESTOP independently designed and authorized outside the NCP validation path;
 - define the exact `dispatched`, `applied`, `stopped` and `unknown` boundaries in
   the adapter/runtime and publish signed dispositions only after the declared event;
 - ensure reset retires generation, grants, streams, leases, operation state and
@@ -3664,10 +3671,11 @@ Implementation:
 - never equate zero velocity with universal safe state; dispatch the content-addressed
   plant profile's HOLD/ESTOP actions and record limitations.
 
-Acceptance: malformed/raw ESTOP rejects before state; valid authorized ESTOP has
-priority; active/hold/expiry/revocation/restart/transfer; disposition journal/query;
-profile mutation; deadline and apply-boundary tests; non-actuating hardware/mock
-campaign. Commit in units, including `plant: remove unauthenticated NCP ESTOP
+Acceptance: malformed/raw ESTOP rejects before state; a valid fully admitted
+same-session ESTOP has priority with or without a lease exactly as ratified;
+active/hold/expiry/revocation/restart/transfer; disposition journal/query; profile
+mutation; deadline and apply-boundary tests; non-actuating hardware/mock campaign.
+Commit in units, including `plant: remove unauthenticated NCP ESTOP
 bypass` and `plant: issue NCP authority and command dispositions`, pushing each.
 
 Ten-lens record:
@@ -4276,14 +4284,16 @@ Implementation:
    normative-release, corpus and authorization-bundle digests;
 4. locally verify signature, tag object, peeled commit and message; push only that
    tag without force and verify the remote tag object byte identity;
-5. wait for the tag workflow; it must re-verify authorization before building or
-   obtaining publication credentials;
+5. wait for the tag workflow's authorization and subject preflight; it must
+   re-verify authorization before dispatching protected R04 builders or obtaining
+   any publication credential, and it must not publish;
 6. create a **draft** GitHub Release for the existing tag, populate exact reviewed
    notes and do not mark it latest or public yet.
 
-Acceptance: signed tag and remote object verified; tag workflow reaches verified
-artifact stage with no publication; draft release remains private; audit receipt
-contains API responses and object hashes. Transition: `AUTHORIZED -> TAGGED`.
+Acceptance: signed tag and remote object verified; tag workflow authorization and
+subject preflight pass without building a divergent source or publishing; draft
+release remains private; audit receipt contains API responses and object hashes.
+Transition: `AUTHORIZED -> TAGGED`.
 
 Ten-lens record:
 
