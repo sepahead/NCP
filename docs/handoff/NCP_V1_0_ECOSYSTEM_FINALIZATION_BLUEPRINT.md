@@ -499,6 +499,26 @@ with race-resistant handles where supported, and revalidate identity/validity at
 use. A changed public trust state requires a controlled security-epoch transition
 or fail-safe session retirement; it cannot inherit the old digest.
 
+### F17 — release authorization is currently inside the bytes it authorizes
+
+`contract/release-gates.v1.json` contains the mutable
+`release_allowed=false` status and is itself a source in the complete normative
+contract digest. Flipping that bit to true changes the source/digest/package input
+after external evidence has been collected. Requiring the external evidence to
+bind the post-flip source instead creates a circular condition: the source asserts
+authorization before the evidence authorizes it. A final authorization-only commit
+would also invalidate exact-source consumer and clean-room receipts.
+
+Separate immutable release policy from mutable decision evidence before the final
+freeze. The normative gate registry lists required gate IDs, applicability and
+decision rules, but no self-authorizing current-status bit. A separately signed,
+non-source release-authorization bundle binds the exact commit/tree, stable-core,
+normative-release and corpus digests, package hashes, gate-policy digest, every
+evidence receipt, issuer, decision, time, expiry and revocation reference. Protected
+workflows verify that bundle before tag creation and again before publication.
+`RELEASE_READINESS.md` may render the current decision for humans, but editing
+repository prose cannot authorize a release.
+
 ## 6. Ecosystem-specific audit conclusions
 
 ### 6.1 Engram / Paper2Brain
@@ -2168,18 +2188,26 @@ L6  N05, F01
 L7  N06, F02
 L8  N07
 L9  N08, N09
-L10 N10, F03, E01, H01, G01, C01, P01
-L11 E02, H02, G02, C02, P02
-L12 E03, C03
-L13 E04, C04, X01
-L14 X02
-L15 E05, H03, G03, P03, F04
-L16 C05
-L17 X03
-L18 X04
-L19 F05
-L20 R00
-L21 remaining R* release and public-metadata tasks
+L10 N10, F03
+L11 R01, R11
+L12 E01, H01, G01, C01, P01
+L13 E02, H02, G02, C02, P02
+L14 E03, C03
+L15 E04, C04, X01
+L16 X02
+L17 E05, H03, G03, P03, F04
+L18 C05
+L19 X03
+L20 X04
+L21 F05
+L22 R00
+L23 R02
+L24 R03
+L25 R04
+L26 R05
+L27 R06, R07
+L28 R08, R09
+triggered at any applicable state: R10
 ```
 
 Stop the DAG immediately if an accepted ADR changes, a stable-core projection is
@@ -3995,7 +4023,7 @@ Ten-lens record:
 
 Freeze exact candidate source/artifacts/receipts and evaluate every release gate
 without changing status optimistically. This task does not tag, publish or edit
-GitHub metadata. It produces the immutable input set for section 12 and stays
+GitHub metadata. It produces the immutable input set for section 11 and stays
 `NOT_RUN` until every dependency is actually complete.
 
 Ten-lens record:
@@ -4011,7 +4039,654 @@ Ten-lens record:
 9. **L9:** every gate receipt is current, independent where required and zero-skip.
 10. **L10:** release authority remains human/explicit; freeze cannot self-publish.
 
-## 11. Blueprint progress index
+## 11. Release, publication, GitHub, rollback, and stewardship runbook
+
+This section is executable only after the implementation tasks produce their own
+evidence. It does not authorize this repository's current candidate. As of the
+blueprint audit, `v0.8.0` remains the latest immutable release and every external
+1.0 gate remains `NOT_RUN`.
+
+### 11.1 Release state machine and invariants
+
+Use this release state machine; every transition has a signed receipt:
+
+```text
+BLOCKED
+  -> FINAL_SOURCE_CUT
+  -> QUALIFIED
+  -> AUTHORIZED
+  -> TAGGED
+  -> ARTIFACTS_VERIFIED
+  -> PARTIALLY_PUBLISHED
+  -> PUBLISHED
+  -> POST_PUBLICATION_VALIDATED
+
+Any state before TAGGED -> ABANDONED_CUT
+TAGGED or later         -> WITHDRAWN or REVOKED, never rewritten
+```
+
+Rules:
+
+1. State is monotonic for one source cut. A failure does not turn `NOT_RUN` into
+   pass or move a release back to an earlier successful-looking state.
+2. The subject is always exact: tag object, peeled commit/tree, stable-core digest,
+   normative-release digest, corpus digest, package/archive hashes, toolchain and
+   authorization bundle. A branch, version string or manifest alone is not a
+   subject.
+3. No tag, registry upload, GitHub Release publication, DOI deposit, metadata claim
+   or consumer stable pin occurs before `AUTHORIZED`.
+4. The stable tag is signed and annotated, created once and never moved, replaced,
+   force-pushed or silently deleted. A defect produces withdrawal/revocation and a
+   new version.
+5. Registry publication is not transactional. `PARTIALLY_PUBLISHED` is a first-class
+   incident state; already published bytes are never replaced under the same name
+   and version.
+6. Build once per platform policy, verify, sign and publish those exact subjects.
+   Never rebuild different bytes locally because one registry upload failed.
+7. All GitHub and registry credentials use protected environments, least privilege,
+   short-lived/OIDC identity where supported, named human approval and secret-safe
+   logs. Pull-request workflows never receive publication secrets.
+8. A release claim names its boundary. “Perfect,” “proved secure,” “formally verified
+   NCP,” “certified safe,” “zero failures,” and “all platforms” are prohibited.
+9. Publication cannot certify a physical plant, airworthiness, scientific result,
+   posterior calibration, field performance or an unnamed consumer.
+10. Stable 1.0 core meaning is immutable after tag. Corrections use implementation
+    patches, errata that do not change meaning, separately identified extensions,
+    or a future major wire—never a silent reinterpretation.
+
+### 11.2 Exact pre-release adjudication matrix
+
+The final authorization bundle must contain one current receipt for every row:
+
+| Required gate | Producing tasks/evidence | Exact pass rule |
+|---|---|---|
+| normative contract and generated parity | B01–B03, N01–N08 | accepted ADRs; exact stable/full/corpus identities; proto/Rust/schema/TS/FFI/manifest parity; no generated drift |
+| zero-skip conformance | N08, F03, X01 | every mandatory vector executed by every applicable implementation; no skip/unknown/unexplained difference |
+| live mTLS/ACL/signature/rotation/revocation | N04, N06, F04 | exact installed production profile; negative principals/routes/keys/epochs; planned rotation and emergency revocation |
+| two independent non-Rust peers | X01 | two installed decision implementations with no Rust decision FFI; live and corpus pass |
+| fault/backpressure/restart/soak | F04, X02 | preregistered duration/scenarios, bounded resources, no open critical/high defect |
+| fuzz/sanitizer duration | F03 | release-duration matrix, retained coverage/seeds, no crash/race/UB/leak or critical surviving mutant |
+| performance/resource profile | F05 | every declared platform/workload meets preregistered bounds/confidence; all outliers/failures visible |
+| installed package matrix | N07, N09, X01, X04 | exact crates/wheel/sdist/npm/C++ artifacts install and pass applicable behavior on supported platforms |
+| registry namespace ownership | N09 | every final distribution name is controlled, verified and collision-free before upload |
+| six consumer-role certifications | E05, H03, G03, C05, P03, X03 | six exact role receipts, including separate Crebain body and producer surfaces; no aggregate substitution |
+| independent clean-room reproduction | X04 | at least two independent builders from public inputs; promised byte/semantic reproduction succeeds |
+| signed SBOM/provenance | N09, X04 | complete subjects, licenses/advisories, publisher signatures/attestations and independent verification |
+| formal/evidence claim boundary | F01–F03 | all required models/obligations/refinements pass under disclosed bounds and no broad proof claim |
+| documentation and visual acceptance | N10, F05 | V01–V10 closed; all registered prose/examples/visuals have current machine and independent-human receipts |
+
+If a receipt binds an earlier commit, different package hash, different contract
+digest, expired configuration, superseded key/manifest, narrower platform or an
+unexplained skip, that row fails. Re-running only a local smoke cannot refresh an
+external receipt.
+
+### 11.3 Release tasks
+
+#### R01 — create the final untagged 1.0.0 source cut and publication machinery
+
+**Status:** `OPEN`<br>
+**Depends on:** N10, F03; F17 design accepted<br>
+**Repository:** NCP<br>
+**Update:** all version-bearing manifests, `contract/release-gates.v1.json`, release
+workflow/scripts, `CHANGELOG.md`, `CITATION.cff`, release notes template, package
+surface, documentation status text and B00 ledger.
+
+Implementation:
+
+- remove the self-authorizing status bit described in F17 from normative identity;
+  keep gate definitions/decision rules immutable and define a strict external
+  signed authorization-bundle schema/verifier;
+- configure a protected, manually approved pre-tag verification workflow and a
+  tag-triggered publication workflow that both verify the same external bundle,
+  exact commit/tag subject, artifact set and protected environment;
+- set package versions to `1.0.0` across Rust, Python, npm and generated surfaces;
+  use wording such as “1.0.0 release source; it is released only when the signed
+  annotated `v1.0.0` tag and published artifacts exist,” so the untagged commit does
+  not claim release;
+- derive build identity from the exact source commit and build subject; remove the
+  worktree sentinel only in reproducible tagged/candidate builds and reject dirty or
+  unpushed source;
+- write release notes with architecture, packages, migration, supported platforms,
+  security profile, formal-result bounds, consumer-role scope, known limitations,
+  checksums/signature verification, install/upgrade/rollback and support;
+- make tag and package workflows dry-run safely without publication credentials;
+  test missing/invalid/expired/wrong-subject authorization, fork/PR secret denial,
+  partial artifact and replay mutants;
+- commit and push one final source cut. After it, any source change abandons the cut
+  and invalidates every descendant receipt; do not “fix the tag” later.
+
+Acceptance: complete local gate; hosted dry-run on exact pushed commit; generated
+versions/archives/docs reproduce; authorization verifier mutants; no tag/registry
+mutation. Commit/push `release: prepare the final untagged NCP 1.0.0 source cut`.
+
+Ten-lens record:
+
+1. **L1:** final source has one version/identity/policy truth without authorization
+   self-reference.
+2. **L2:** protected workflows and signed exact-subject authorization fail closed.
+3. **L3:** release wording preserves plant/ESTOP/physical limitations.
+4. **L4:** abandoned cut, duplicate workflow, replay and partial build states are
+   explicit.
+5. **L5:** workflow/artifact/log/authorization sizes, time and concurrency are bounded.
+6. **L6:** final packages/interfaces are exactly what consumers qualify.
+7. **L7:** release notes preserve simulation/statistical/scientific claim boundaries.
+8. **L8:** dry-run, verification, installation, migration and support are executable.
+9. **L9:** full gates and authorization mutants bind the pushed commit.
+10. **L10:** release managers, environment approvers, namespace/signing owners and
+    abandonment policy are named.
+
+R01 must move into topological level L11, before all consumer final pins and
+qualifications. Development may begin against an earlier RC, but X01–X04, F04/F05
+and every certification receipt must bind R01 or a later fully recut replacement.
+
+#### R02 — issue the signed release-authorization bundle
+
+**Status:** `OPEN`<br>
+**Depends on:** R00 and every row in section 11.2<br>
+**Environment:** independent release adjudication, not a source edit<br>
+
+Implementation:
+
+- assemble the strict bundle with final commit/tree, all protocol/package digests,
+  exact gate-policy digest, artifact manifest, receipt IDs/digests, reviewer/
+  producer independence, authorization decision, timestamp, short expiry and
+  revocation reference;
+- independently recompute every hash and validate every receipt's subject/status/
+  applicability/expiry/skips; do not trust a generated summary;
+- require named protocol, security, safety, release/supply-chain and owner approvals;
+  a reviewer signs the exact canonical bundle bytes, not a screenshot;
+- store the bundle/signature in an immutable, access-controlled evidence location
+  retrievable by protected workflows; publish a privacy-safe digest/summary;
+- run the pre-tag protected workflow against the exact R01 commit and bundle, then
+  verify its hosted-runner/attestation identity and outputs.
+
+Acceptance: two independent bundle verifications; every gate current/pass; protected
+pre-tag run passes; bundle unexpired and unrevoked; no repository source changes.
+The transition is `QUALIFIED -> AUTHORIZED`.
+
+Ten-lens record:
+
+1. **L1:** bundle binds one exact source/contract/corpus/package set.
+2. **L2:** signatures, reviewer identities, storage and revocation are verified.
+3. **L3:** safety evidence/residual hazards are mandatory and cannot be waived.
+4. **L4:** stale/superseded/duplicate/partially missing receipt states reject.
+5. **L5:** canonical bundle and verifier inputs are bounded before allocation.
+6. **L6:** all peers/consumers/artifacts reference the same final source cut.
+7. **L7:** claim tiers and exclusions are part of authorization.
+8. **L8:** release operators can retrieve/verify without private producer state.
+9. **L9:** independent recomputation and hostile bundle mutants provide evidence.
+10. **L10:** approvers, expiry, custody, supersession and revocation authority are set.
+
+#### R03 — create and verify the immutable signed tag and draft GitHub Release
+
+**Status:** `OPEN`<br>
+**Depends on:** R02<br>
+**Repository/GitHub:** NCP<br>
+
+Implementation:
+
+1. confirm `git status --porcelain=v1` is empty, local `HEAD` equals the authorized
+   40-hex commit and `origin/main`, and no local/remote `v1.0.0` ref exists;
+2. verify the authorization bundle again and record tagger identity/signing-key
+   fingerprint and protected-environment approval;
+3. create a signed annotated `v1.0.0` tag whose message includes commit, stable-core,
+   normative-release, corpus and authorization-bundle digests;
+4. locally verify signature, tag object, peeled commit and message; push only that
+   tag without force and verify the remote tag object byte identity;
+5. wait for the tag workflow; it must re-verify authorization before building or
+   obtaining publication credentials;
+6. create a **draft** GitHub Release for the existing tag, populate exact reviewed
+   notes and do not mark it latest or public yet.
+
+Acceptance: signed tag and remote object verified; tag workflow reaches verified
+artifact stage with no publication; draft release remains private; audit receipt
+contains API responses and object hashes. Transition: `AUTHORIZED -> TAGGED`.
+
+Ten-lens record:
+
+1. **L1:** tag message and peeled source identities agree exactly.
+2. **L2:** signing key, protected authorization and remote verification prevent tag
+   substitution.
+3. **L3:** release notes retain non-certification boundaries.
+4. **L4:** duplicate/tag-race/workflow-replay states reject.
+5. **L5:** tag/message/API inputs and workflow concurrency are bounded.
+6. **L6:** one immutable tag becomes the common consumer/artifact anchor.
+7. **L7:** tag existence confers no scientific claim.
+8. **L8:** operators have exact preflight and verification steps.
+9. **L9:** signature/tag/API/workflow receipts are retained.
+10. **L10:** tagger, signing-key custody, ruleset and no-move policy are explicit.
+
+#### R04 — build, compare, sign, attest, and stage final artifacts
+
+**Status:** `OPEN`<br>
+**Depends on:** R03<br>
+**Environment:** protected release builders for every supported platform<br>
+
+Build only from the tag's peeled source. Produce the resolved package surface from
+N09: Rust crate archives in dependency order, Python sdist/wheels for declared
+platform/ABI matrix, npm tarball(s), C/C++ headers/library packages where promised,
+source archive, checksums, SBOM, license notices and provenance. Build twice where
+reproducibility is promised; compare direct versus sdist-rebuilt wheels only under
+their declared equivalence rule. Install and run the mandatory corpus from staged
+artifacts. Sign checksum/subject manifests and create verified OIDC/SLSA and
+CycloneDX attestations with pinned workflows/actions.
+
+Acceptance: artifact manifest is a closed exact set; all hashes/signatures/
+attestations verify independently; archives contain no secret/absolute path/cache/
+unexpected file; installed behavior passes; staged bytes match X04 subjects.
+Transition: `TAGGED -> ARTIFACTS_VERIFIED`.
+
+Ten-lens record:
+
+1. **L1:** artifacts expose final version/build/contract identities.
+2. **L2:** isolated builders, signatures, attestations and secret hygiene are verified.
+3. **L3:** package tests cannot claim hardware safety.
+4. **L4:** concurrent/retry build and partial platform failure retain exact subjects.
+5. **L5:** archive/file/path/symbol/resource bounds and build time are enforced.
+6. **L6:** supported installed package/language/platform matrix passes.
+7. **L7:** artifact publication confers no scientific validation.
+8. **L8:** install/verify/uninstall and offline procedures are tested.
+9. **L9:** twice-build comparisons, corpus, hashes, SBOM and provenance are retained.
+10. **L10:** builder/publisher/signing/license/dependency owners are recorded.
+
+#### R05 — publish exact registry artifacts and the GitHub Release
+
+**Status:** `OPEN`<br>
+**Depends on:** R04<br>
+**External state:** crates.io, Python registry chosen in N09, npm, GitHub Releases
+
+Publication order:
+
+1. re-verify authorization, tag, artifact manifest, signatures and registry
+   namespace/account/2FA/token scope immediately before first upload;
+2. publish the base Rust crate first, wait for immutable registry availability and
+   install it by exact version; then publish dependent Rust crates in generated DAG
+   order, waiting/verifying each before the next;
+3. publish the Python sdist and all declared wheels as one version set, then install
+   by exact name/version on clean supported environments and verify identity/corpus;
+4. publish npm tarball(s) by exact name/version, install with lifecycle scripts
+   disabled for verification, then run package/corpus/integer/WebSocket checks;
+5. publish any remaining signed binary/source artifacts exactly as registered;
+6. attach the closed artifact/checksum/signature/SBOM/provenance set to the draft
+   GitHub Release, verify downloaded bytes, publish the release and mark it latest;
+7. record immutable registry/API/download responses, timestamps and hashes.
+
+After the first successful external upload the state is `PARTIALLY_PUBLISHED` until
+all subjects and the GitHub Release verify. Do not continue after an unexplained
+hash, ownership, availability, install or signature failure. Resume only with the
+same verified bytes when safe; otherwise invoke R10.
+
+Acceptance: every intended registry subject resolves/downloads/installs at the
+exact version/hash; GitHub assets match; release notes/checksums/verification links
+work; no RC/latest-channel ambiguity. Transition to `PUBLISHED`.
+
+Ten-lens record:
+
+1. **L1:** registry metadata/artifacts match tag identities exactly.
+2. **L2:** least-privilege publishers, 2FA/OIDC, signatures and downloads verify.
+3. **L3:** public wording preserves safety limitations.
+4. **L4:** irreversible partial publication has explicit stop/resume/incident state.
+5. **L5:** upload/download/archive/install limits and timeouts are bounded.
+6. **L6:** clean registry installs pass in dependency/platform order.
+7. **L7:** release/latest badges do not imply scientific validation.
+8. **L8:** users receive working install, verify, migrate and support links.
+9. **L9:** every API response, downloaded hash and smoke result is retained.
+10. **L10:** publisher accounts, tokens, registries, yanking/deprecation and support
+    owners are explicit.
+
+#### R06 — update NCP README, GitHub description, topics, and repository controls
+
+**Status:** `OPEN`<br>
+**Depends on:** R05<br>
+**Repository/GitHub:** `sepahead/NCP`<br>
+
+Before publication, the current GitHub description correctly says HEAD is an
+unreleased, release-blocked candidate and must remain. After R05 succeeds, use the
+following reviewed target description unless the final package surface differs:
+
+> NCP (Neuro-Cybernetic Protocol): a stable canonical-JSON contract for
+> authenticated neural simulators, robots/UAVs, and read-only observers over
+> Zenoh. Rust reference with TypeScript, Python, and C/C++ packages. v1.0.0 is the
+> current stable wire.
+
+Set the homepage to the canonical documentation/repository URL that actually
+exists. Use at most the following 20 evidence-backed topics, deleting stale ones
+rather than exceeding GitHub's limit:
+
+```text
+brain-simulation
+canonical-json
+closed-loop
+cpp
+cyber-physical-systems
+formal-methods
+nest-simulator
+neuromorphic
+neurorobotics
+network-protocol
+provenance
+pyo3
+robotics
+rust
+security
+spiking-neural-networks
+typescript
+uav
+wire-protocol
+zenoh
+```
+
+Update `README.md` from source/generators with: released/version badges linked to
+the exact release; two-minute simulation, plant and observer quick starts; package
+matrix and verification commands; architecture/session/security diagrams; stable
+identity values; supported platforms; 0.8 migration; six scoped consumer receipts;
+security/safety/science limitations; docs map; support/security contacts; citation
+and license. Remove candidate warnings only where the tag/publication makes them
+false; keep warnings about unnamed consumers, physical certification and
+simulation/statistics. Regenerate diagrams and pass section 9.
+
+Via GitHub API/CLI, capture before/after JSON and verify exact description, homepage,
+topics, default branch, security policy, issue/PR templates, CODEOWNERS, branch/tag
+rulesets, required checks, signed-tag protection, environments and least-privilege
+workflow permissions. Do not enable a control that has not been tested for the
+repository/plan. Commit README/doc changes on `main` after the tag as a clearly
+post-release documentation commit; never move the tag to include them. Push
+`docs: present NCP 1.0.0 as the current stable release`.
+
+Ten-lens record:
+
+1. **L1:** README/metadata describe the published artifacts and stable wire exactly.
+2. **L2:** “authenticated” appears only after production security evidence; controls
+   and security contact are live.
+3. **L3:** safety/ESTOP/plant limitations remain prominent.
+4. **L4:** migration/rollback/revocation and post-release state are documented.
+5. **L5:** support/platform/resource limits remain visible.
+6. **L6:** badges/install commands/consumer receipts resolve exact public artifacts.
+7. **L7:** no profile/README wording inflates scientific evidence.
+8. **L8:** visual, accessible quick starts and repository controls are usable.
+9. **L9:** before/after API, link, render and clean-install receipts are retained.
+10. **L10:** metadata/docs/ruleset/support owners and future update policy are named.
+
+#### R07 — repin and revalidate every consumer against the immutable tag
+
+**Status:** `OPEN`<br>
+**Depends on:** R05, all consumer repositories available cleanly on authorized main
+branches<br>
+**Repositories:** Engram, Haldir, Galadriel, canonical Crebain, Prisoma; producer
+surface remains within canonical Crebain.
+
+Implementation:
+
+- verify `v1.0.0` peels to the exact R01 commit and all published hashes equal the
+  certified subjects;
+- run `scripts/repin-ncp.sh --dry-run v1.0.0 <consumer-base>` and inspect every
+  discovered descriptor/action; do not run while Engram is dirty or Haldir remains
+  on a work branch;
+- use the coordinated repinner only when every discovered consumer is clean,
+  tracked, non-sparse, lockable and owner-authorized; otherwise perform separate
+  consumer PRs with exact equivalent controls;
+- Engram synchronizes its mirror by tag label plus 40-hex revision; Rust consumers
+  pin the tag **and** resolved immutable revision/lock; npm lockfiles resolve the
+  published exact package if N09 chose registry publication;
+- run each complete consumer gate and its installed-artifact smoke again; pin-only
+  equivalence is not assumed, even when the commit matches;
+- make one professional commit and push per repository, then run NCP's fleet pin
+  checker against the exact roots and retain remote-ref receipts.
+
+Acceptance: all descriptors/manifests/locks/mirror/runtime identities agree; six
+role receipts reference the tag/published hashes or a signed equivalence supplement;
+no consumer work lost. Suggested commit: `build: pin NCP v1.0.0 release artifacts`.
+
+Ten-lens record:
+
+1. **L1:** consumer descriptors/runtime/locks resolve the immutable release exactly.
+2. **L2:** a tag/pin grants no runtime authority; security tests repeat.
+3. **L3:** plant consumers repeat safety/fail-safe gates after repin.
+4. **L4:** coordinated locks/rollback and concurrent-repo refusal prevent partial
+   hidden mutation.
+5. **L5:** lock/install/package resource bounds and scripts are controlled.
+6. **L6:** six consumers use the public immutable anchor without forks.
+7. **L7:** stable pin changes no scientific status.
+8. **L8:** professional per-repo commits, clear PRs and recovery are provided.
+9. **L9:** full consumer tests and fleet checker receipts are retained.
+10. **L10:** each repo owner approves, supports and can revoke/upgrade its pin.
+
+#### R08 — update ecosystem repository metadata and the public selected-work profile
+
+**Status:** `OPEN`<br>
+**Depends on:** R06, R07; exact role receipt for each statement<br>
+**Repositories/GitHub:** Haldir, Galadriel, Crebain, Prisoma, public Engram placeholder,
+private implementation as authorized, and `sepahead/sepahead` profile source.
+
+The live GitHub metadata snapshot at 2026-07-15 showed:
+
+- `sepehrmn/crebain` redirects to canonical `sepahead/crebain`; never treat it as a
+  second repository or certify both names;
+- Haldir's description is evidence-aware but it has no topics;
+- Galadriel, Crebain and Prisoma descriptions correctly preserve research/advisory
+  scope and should not be replaced with production language;
+- public `sepahead/engram` is a computational-neuroscience placeholder, while the
+  reviewed active implementation is private; do not expose private source or make
+  the public placeholder look like its certified artifact;
+- the public profile selected-work section already lists NCP, the public Engram
+  placeholder, Haldir, Galadriel, Crebain and Prisoma; its generated text currently
+  calls NCP an unreleased/release-blocked RC; and
+- the local profile worktree contained unrelated untracked `.claude/` and
+  `.playwright-mcp/` directories, which must not be staged, deleted or overwritten.
+
+After exact role certifications, use these description targets, adjusting only if
+final truth differs:
+
+| Repository | Target description |
+|---|---|
+| Haldir | `Experimental fail-closed NCP commander-side mission-authorization reference monitor: signed intents, deterministic policy, body-issued authority integration, and decision receipts. Rust; not production-ready or airworthy.` |
+| Galadriel | `Experimental read-only cross-sensor consistency monitor for NCP: NIS/CUSUM, signed correlation, and optional PID evidence. Safe Rust; synthetic/component evidence, not field validation.` |
+| Crebain | `Research-only Tauri/React/Rust spatial-visualization, sensor-fusion, drone-simulation, and NCP reference-body prototype with ROS/Gazebo integration; not certified for deployment.` |
+| Prisoma | `Auditable experiment semantics and read-only NCP capture for intervention-grounded diagnosis of embodied policies; PID remains a gated optional diagnostic.` |
+| public Engram placeholder | keep its public-placeholder description unless its own source is actually published; do not mention private certification as public code |
+| private Engram implementation | update only within authorized private visibility, naming its exact NCP simulation/commander role and non-reproduction boundary |
+
+Add `ncp` and role-relevant topics only after the corresponding public code/receipt
+exists. Haldir may add `access-control`, `authorization`, `ncp`, `policy-engine`,
+`reference-monitor`, `robotics`, `rust`, `security`, `signed-data`, `zenoh`.
+Galadriel may add `ncp`, `nis`, `cusum`, `read-only` to its existing topics.
+Crebain may add `ncp` and `cyber-physical-systems`; Prisoma may add `ncp`,
+`provenance`, `reproducible-research`. Keep existing accurate topics and remain
+under the GitHub limit.
+
+In the profile repository, edit only canonical `scripts/data.mjs` semantic source
+and any graph relationship source—not generated `README.md`, SVG cards, HTML,
+JSON-LD, `llms.txt` or sitemap. NCP's post-release source should say:
+
+```text
+desc: Canonical-JSON neural-control contract for authenticated simulators,
+      robots/UAVs and read-only observers. v1.0.0 is the stable wire.
+status: v1.0.0 is the first stable protocol release; scoped software-role receipts
+        do not certify physical safety or scientific results.
+```
+
+The longer summary must name the packages and exact scope without saying every
+consumer/platform is certified. Update Haldir/Galadriel/Crebain/Prisoma summaries
+only with their exact role-receipt links and limitations. Keep the Engram card
+linked to the public repository and labelled placeholder until public source
+actually changes. Update the ecosystem graph edges/legend only after X03: distinguish
+stable protocol, certified exact role, historical 0.8, advisory extension and
+intended/unqualified relationship by both text and shape; never label the whole
+ecosystem “production.”
+
+Run exactly:
+
+```text
+node --check scripts/data.mjs
+node --check scripts/sync-selected-work.mjs
+node --check scripts/work-cards.mjs
+node --check scripts/work-graph.mjs
+node scripts/sync-selected-work.mjs --write
+node scripts/work-cards.mjs
+node scripts/work-graph.mjs
+node scripts/sync-selected-work.mjs --check
+```
+
+Then run the profile CI generators a second time and require no diff; run its full
+light/dark/reduced-motion/pixel/text/link/accessibility audit; inspect every selected
+work letter and edge at supported viewports. Commit only intended source/generated
+paths and push `docs: reflect the NCP 1.0 ecosystem release`.
+
+Ten-lens record:
+
+1. **L1:** every description/card/edge states exact repository and role status.
+2. **L2:** metadata never implies identity/authority or leaks private implementation
+   details.
+3. **L3:** research/physical-safety limitations remain visible.
+4. **L4:** redirects, mutable metadata and partial consumer updates are handled.
+5. **L5:** topic/description/card/graph bounds and rendering remain valid.
+6. **L6:** canonical public repository links and exact stable/legacy edges are used.
+7. **L7:** statistical/scientific status is not inflated for visual appeal.
+8. **L8:** generator-first, accessible, pixel/letter-perfect public surfaces result.
+9. **L9:** API before/after, generator idempotence and visual receipts are retained.
+10. **L10:** each repo/profile owner approves metadata and future drift correction.
+
+#### R09 — run post-publication installs and emergency-revocation exercise
+
+**Status:** `OPEN`<br>
+**Depends on:** R05 immediately; R06–R08 may run in parallel where safe<br>
+**Environment:** clean public-network install hosts and isolated revocation lab.
+
+Within the preregistered operational window, install every artifact from public
+registries/Release URLs on clean supported environments, verify downloads/signatures/
+identities and rerun package/corpus/live smoke. Separately exercise the documented
+emergency revocation procedure against test keys/artifacts: publish signed
+revocation state, update manifest/ACL, force affected sessions non-actuating, reject
+old key/artifact and recover with a new authorized key without clearing ESTOP.
+
+A failure does not retroactively claim the initial release was never published. It
+sets post-publication validation `FAIL`, opens an incident and invokes R10. Commit
+and push public evidence only after redaction/verification as
+`evidence: record NCP 1.0 post-publication validation`.
+
+Ten-lens record:
+
+1. **L1:** public downloads identify the same release/contract/corpus.
+2. **L2:** signatures and emergency revocation are verified end-to-end.
+3. **L3:** revocation drives declared non-actuating behavior and preserves ESTOP.
+4. **L4:** registry propagation/cache/retry/session recovery are exercised.
+5. **L5:** install/download/revocation/recovery bounds are measured.
+6. **L6:** every public package/platform/peer smoke is included.
+7. **L7:** post-validation makes no broader science claim.
+8. **L8:** public users can install, verify and follow incident guidance.
+9. **L9:** public-source hashes/logs/results and exact failures are retained.
+10. **L10:** operational SLA, registry/security owners and escalation are exercised.
+
+#### R10 — execute rollback, withdrawal, revocation, and incident response
+
+**Status:** `OPEN` until exercised; incident instances have unique IDs<br>
+**Depends on:** documented/tested before R02; invoked by any qualifying event<br>
+
+Trigger on signing/private-key compromise, signature/admission bypass, authority
+split brain, unsafe actuation or malformed safety-path acceptance, stable-core/
+artifact identity mismatch, malicious/compromised registry artifact, critical
+dependency vulnerability, irreproducible published bytes, incorrect consumer-role
+receipt or failed required post-publication validation.
+
+Response:
+
+1. open a time-stamped incident, assign commander/security/protocol/safety/
+   communications roles, preserve logs/artifacts and freeze new releases;
+2. contain runtime risk: revoke affected keys/certs/manifests/ACL rights, retire
+   sessions/streams/leases, enter each plant's declared non-actuating behavior and
+   use independent physical safety procedures as authorized;
+3. verify scope across packages, consumers and mirrors; privately coordinate via a
+   GitHub Security Advisory or equivalent until disclosure is safe;
+4. before tag publication, mark the source cut `ABANDONED_CUT`, invalidate all
+   descendant receipts and create a new commit/cut; never reuse old receipts;
+5. after tag/publication, never move or overwrite tag/artifact/version. Mark the
+   release withdrawn/revoked, publish a signed advisory/revocation record, yank or
+   deprecate registry versions using current official registry mechanisms, and
+   direct consumers to the exact fixed/replacement version;
+6. in `PARTIALLY_PUBLISHED`, stop further uploads. Resume only with the already
+   verified exact bytes and explicit incident approval; otherwise deprecate/yank
+   published subjects and issue a new version;
+7. patch as `1.0.x` only when stable-core meaning remains identical. If security or
+   safety repair requires changing core semantics, use an explicit new major wire
+   or terminating gateway; do not reinterpret 1.0;
+8. update all six consumer revocation/deny records and profile/public metadata with
+   exact impact; do not delete history;
+9. perform root-cause, counterexample/vector/test/model additions and independent
+   review before replacement; and
+10. publish a factual timeline, affected subjects, user actions, evidence limits and
+    resolution when disclosure permits.
+
+Ten-lens record:
+
+1. **L1:** affected contract/artifact/version scope is exact and history immutable.
+2. **L2:** credential/release revocation and compromise containment lead.
+3. **L3:** plant containment uses declared actions and independent physical process.
+4. **L4:** partial publication, caches, partitions and mixed consumer states are
+   handled.
+5. **L5:** incident/log/evidence/response-time bounds and overload channels are set.
+6. **L6:** all packages/peers/consumers receive exact deny/fix guidance.
+7. **L7:** correction does not hide invalid scientific/benchmark claims.
+8. **L8:** operators/users have tested detection, containment, recovery and comms.
+9. **L9:** preserved evidence, root cause, regression/model tests and exercise prove
+   readiness.
+10. **L10:** incident commander, disclosure, CVE/advisory, registry, support and
+    postmortem ownership are named.
+
+#### R11 — establish durable 1.0 stewardship without pretending software is eternal
+
+**Status:** `OPEN`<br>
+**Depends on:** N10; policy approved before R02 and operated after R05<br>
+**Repositories:** NCP and ecosystem governance/support surfaces.
+
+No engineering process can prove that version 1.0 will be the last version ever
+needed: future vulnerabilities, platforms, laws, cryptography and use cases are
+unknown. The sound commitment is stronger and testable: released wire-1.0 core
+semantics and stable-core digest never change; the defined ecosystem needs are
+covered at release; fixes that preserve meaning use 1.0.x; optional additions use
+registered, separately versioned extensions; any necessary core semantic change is
+an explicit new major wire with migration and a terminating trust boundary.
+
+Before release, publish an owner-approved support policy covering supported
+platforms/languages, security contact/response targets, dependency/advisory cadence,
+cryptographic algorithm review, registry/signing-key/CI maintenance, extension and
+namespace review, errata rules, consumer-receipt expiry/renewal, periodic fault/
+revocation exercises, deprecation and end-of-support notice. Do not invent a support
+duration the owner has not committed to. Maintain immutable 0.8 and 1.0 release
+baselines and signed revocation/errata records separately.
+
+Ten-lens record:
+
+1. **L1:** stable 1.0 meaning remains immutable; errata cannot redefine it.
+2. **L2:** crypto/dependency/key/registry reviews and response targets continue.
+3. **L3:** plant profiles/hazards/physical certifications remain deployment-specific.
+4. **L4:** mixed fleets, extension evolution, deprecation and migration are planned.
+5. **L5:** supported resource/platform envelopes and regression budgets are tracked.
+6. **L6:** extension and future-major rules preserve independent interoperation.
+7. **L7:** scientific evidence expires/evolves independently of protocol stability.
+8. **L8:** maintainers/users receive clear support, upgrade and end-of-support paths.
+9. **L9:** periodic conformance/security/fault/reproduction receipts detect drift.
+10. **L10:** long-term owners, funding/availability assumptions and succession are
+    explicit.
+
+### 11.4 Release stop checklist
+
+Do not stop the implementation effort or declare 1.0 released until all are true:
+
+- every B/N/F/E/H/G/C/P/X task is complete with a pushed professional commit and
+  exact receipt, or is explicitly excluded by an accepted ADR before final source;
+- R01 final source has not changed since every external/certification receipt;
+- R02 authorization is valid, current, unrevoked and independently verified;
+- R03–R08 completed in order with exact remote/registry/API receipts;
+- R09 completed or, because it is necessarily post-publication, is actively owned
+  within its promised window and any failure invokes R10;
+- all documentation and visuals meet section 9, including public profile artifacts;
+- no critical/high security/safety/release defect, unexplained skip, stale evidence,
+  namespace collision, vulnerable dependency hold, private fork, unowned key/
+  package/route or unresolved consumer mismatch remains; and
+- the final report says exactly what is and is not established, without “perfect”
+  or forever claims.
+
+## 12. Blueprint progress index
 
 This index tracks construction of the blueprint itself. It does not track NCP
 release completion.
@@ -4020,12 +4695,12 @@ release completion.
 |---|---|---|---|
 | P0 | mandated NCP documents and boundary | `LOCAL_PASS` | source cut and digest recorded above |
 | P1 | archive, local consumers, and public metadata inventory | `LOCAL_PASS` | archive digest and mutable snapshot recorded above |
-| P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings F01–F16 above; implementation remains open |
+| P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings F01–F17 above; implementation remains open |
 | P3 | target 1.0 architecture and normative decision records | `LOCAL_PASS` | target laws, messages, security, extensions, and ADR gates in section 7; ADRs remain unratified |
 | P4 | formal, executable, statistical, security, and fault verification program | `LOCAL_PASS` | layered program, models, invariants, refinement, security/fault/fuzz and statistical rules in section 8; all new executions remain `NOT_RUN` |
 | P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V10 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |
 | P5 | exact implementation task DAG and per-repository file/runbook detail | `LOCAL_PASS` | dependency order, execution protocol, B/N/F provider tasks, all named consumer tasks, cross-ecosystem qualification and ten-lens records in section 10; implementation remains `OPEN`/`NOT_RUN` |
-| P6 | release, package, documentation, GitHub, rollback, and incident runbook | `OPEN` | to be added |
+| P6 | release, package, documentation, GitHub, rollback, and incident runbook | `LOCAL_PASS` | exact release state machine, gate matrix, signed authorization, tag/artifact/publication order, NCP/ecosystem/profile metadata, consumer repin, post-publication, incident and stewardship tasks in section 11; execution remains `OPEN`/`NOT_RUN` |
 | P7 | triple review, repository gate, commit, and push receipts | `OPEN` | to be added |
 
 The implementation task IDs will use prefixes `B` (bookkeeping/decisions), `N`
