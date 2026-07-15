@@ -220,9 +220,11 @@ obligation when they overlap.
 ## 5. First-principles findings that block a stable 1.0 freeze
 
 These findings were reproduced against the exact source and consumer cuts above.
-They are architecture inputs, not implementation completion.
+They are architecture inputs, not implementation completion. `D01` through `D17`
+are defect identifiers; they are deliberately disjoint from the `F01` through
+`F05` formal/verification task identifiers in section 10.
 
-### F01 — one session opening currently has two contradictory jobs
+### D01 — one session opening currently has two contradictory jobs
 
 `OpenSession` is explicitly a neural simulation request: it requires a
 `NetworkRef`, recording specification, stimulus specification, simulation
@@ -246,7 +248,7 @@ idempotency, and receipts, but their request kinds, required fields, capabilitie
 and authorization rules must be mutually exclusive. A frame from one session type
 must never be accepted in the other merely because the `session_id` matches.
 
-### F02 — observers have no authenticated attach protocol
+### D02 — observers have no authenticated attach protocol
 
 Prisoma and Galadriel are intended read-only observers. Current stable transport
 helpers require an exact `SessionRef`, while raw fleet/session subscriptions are
@@ -263,7 +265,7 @@ attachment lifetime or revocation epoch, and never grant commander/operator
 authority. “Describe” without access control is insufficient because descriptors
 can expose topology and enable subscriptions.
 
-### F03 — stream epochs are normative but stream declaration is not executable
+### D03 — stream epochs are normative but stream declaration is not executable
 
 The protocol says a receiver declaration binds one epoch and that exhaustion or
 restart requires a fresh authenticated declaration. No stable declaration message
@@ -278,7 +280,7 @@ security state, transcript digest, and bounded operation context. A declaration 
 not authority to publish on another plane. Sequence exhaustion must stop output
 until a successful fresh declaration; it must not rotate silently.
 
-### F04 — compact proto identity is advisory and incomplete
+### D04 — compact proto identity is advisory and incomplete
 
 The compact `CONTRACT_HASH` covers the proto and is intentionally advisory. It does
 not identify the complete normative contract, behavior corpus, security registries,
@@ -293,7 +295,7 @@ session fails closed on stable-core mismatch. Optional extensions use separate
 content-addressed manifests and explicit negotiation. The compact hash remains a
 diagnostic, never the hard compatibility proof.
 
-### F05 — capabilities are not cryptographically bound into the session transcript
+### D05 — capabilities are not cryptographically bound into the session transcript
 
 Capabilities exist, but the stable lifecycle does not establish one unambiguous
 negotiation transcript whose digest is echoed by both session-opening parties,
@@ -306,7 +308,7 @@ plant profile, channels, and extension manifests. The server-issued session
 response commits the transcript digest. All later declarations, authority leases,
 observer descriptors, and terminal receipts bind that digest.
 
-### F06 — transport principal proof is unavailable in the reference Zenoh callback
+### D06 — transport principal proof is unavailable in the reference Zenoh callback
 
 The `production-secure` profile correctly refuses to start because the current
 Zenoh subscriber/query callback does not expose the authenticated certificate
@@ -314,9 +316,9 @@ principal needed to bind `IdentityClaim`. Zenoh source IDs are not certificate
 principals. Default-deny ACL configuration and successful TLS setup do not by
 themselves give the application a per-message verified actor.
 
-Do not weaken the identity rule. Task `A06` must implement and independently review
-a production security envelope or a trusted terminating ingress that produces an
-application-visible authenticated actor. The recommended stable design is a
+Do not weaken the identity rule. Tasks N04 and N06 must implement and independently
+review a production security envelope or a trusted terminating ingress that
+produces an application-visible authenticated actor. The recommended stable design is a
 domain-separated, end-to-end signed canonical payload using a tightly profiled JWS
 representation and an enrolled key manifest, while retaining TLS 1.3 and
 default-deny ACLs for hop confidentiality and route minimization. The profile must:
@@ -356,7 +358,7 @@ Primary standards and substrate references:
 - [Zenoh `Sample` API](https://docs.rs/zenoh/latest/zenoh/sample/index.html)
 - [Zenoh default configuration and ACL model](https://github.com/eclipse-zenoh/zenoh/blob/main/DEFAULT_CONFIG.json5)
 
-### F07 — the plant cannot report a protocol-level command disposition
+### D07 — the plant cannot report a protocol-level command disposition
 
 A successful publisher call is not proof that the body received, admitted, applied,
 rejected, superseded, expired, or physically stopped on a command. Haldir's Gate
@@ -375,7 +377,7 @@ accepted the command at a recorded instant; it never means the physical world
 achieved the requested state. A separate stop disposition can report the boundary
 latch but cannot certify a universal physical zero-safe condition.
 
-### F08 — authority coordination does not yet close multi-writer topology
+### D08 — authority coordination does not yet close multi-writer topology
 
 The authority lease model is strong locally, but the specification still admits
 unresolved “who steps when” and multi-writer coordination. Stable 1.0 must define a
@@ -389,7 +391,7 @@ both hold live action authority for the same session/term under the modeled cloc
 and fault assumptions. If plant and simulation sessions have separate authority,
 their terms and operations must remain disjoint.
 
-### F09 — extension traffic currently occupies stable NCP routes
+### D09 — extension traffic currently occupies stable NCP routes
 
 Galadriel and Crebain use a project-owned `SidecarEnvelope` with kind
 `galadriel_pid_observation` on an NCP named perception route. The code explicitly
@@ -405,7 +407,7 @@ write a narrow adapter that emits a valid standard `SensorFrame` or
 declared stream, exact units/schema, and authenticated producer. Do not add
 Galadriel-specific scientific fields or kinds to the generic NCP core.
 
-### F10 — one Crebain ESTOP path bypasses full envelope validation
+### D10 — one Crebain ESTOP path bypasses full envelope validation
 
 Both inspected Crebain worktrees contain a legacy path that recognizes raw JSON
 `mode="estop"` and constructs a minimal ESTOP before full wire validation. NCP 1.0
@@ -419,7 +421,7 @@ and plane, exact route/session generation, declared stream, and security state
 before ESTOP latch mutation. Then permit the validated ESTOP to omit a lease so a
 stale lease cannot suppress a fail-safe request.
 
-### F11 — Engram and Prisoma scientific documentation has a semantic conflict
+### D11 — Engram and Prisoma scientific documentation has a semantic conflict
 
 Engram architecture prose says Prisoma can replace absent language variable `L`
 with zeros. Prisoma's current scientific contract says absent `L` is excluded,
@@ -431,7 +433,7 @@ exclude unavailable axes. Preserve `calibrated_posterior=false` and
 `is_simulation_output=true`; protocol success cannot promote a population, measure,
 estimator, or application gate.
 
-### F12 — formal verification is not yet part of canonical NCP
+### D12 — formal verification is not yet part of canonical NCP
 
 NCP has extensive executable tests and bounded state-machine checks, but no
 canonical `formal/` program. Haldir has a bounded TLA+ authority model and Prisoma
@@ -444,7 +446,7 @@ bounds. A green model checker proves only the encoded abstraction; it does not
 prove cryptography, code refinement, hardware safety, liveness outside fairness
 assumptions, or release readiness.
 
-### F13 — dependencies and registry identities remain release blockers
+### D13 — dependencies and registry identities remain release blockers
 
 The locked Zenoh graph retains `RUSTSEC-2026-0041` through `lz4_flex`. Compression
 is disabled and checked, but the advisory remains a publication hold until the
@@ -457,7 +459,7 @@ manifest/import/document/generated package reference coherently, and retain
 registry ownership evidence before publication. Never describe an unpublished
 local archive as the registry package.
 
-### F14 — current “wire 0.8” comments leak into present 1.0 surfaces
+### D14 — current “wire 0.8” comments leak into present 1.0 surfaces
 
 Several source comments and generated schema descriptions say “Wire 0.8” for
 fields retained in the 1.0 candidate. Historical origin is useful, but current
@@ -466,7 +468,7 @@ requirement. Change source comments to “introduced in 0.8; retained/required i
 1.0” where historically relevant, regenerate all derived artifacts, and keep
 frozen 0.8 baselines untouched.
 
-### F15 — required authority leases have no stable wire lifecycle
+### D15 — required authority leases have no stable wire lifecycle
 
 The Rust authority machine can acquire, renew, transfer, reconnect, and retire a
 lease, but the stable wire exposes no RPC that requests or returns those
@@ -482,7 +484,7 @@ still issues the replacement. Every operation is authenticated, idempotent, boun
 to the exact session/transcript/security epoch, and returns a body-issued receipt.
 An open session begins non-actuating; opening alone does not create authority.
 
-### F16 — the security-state digest binds paths, not installed public trust state
+### D16 — the security-state digest binds paths, not installed public trust state
 
 The current projection hashes configured CA/certificate/private-key path strings
 but deliberately not the file bytes. Avoiding private-key serialization is correct;
@@ -499,7 +501,7 @@ with race-resistant handles where supported, and revalidate identity/validity at
 use. A changed public trust state requires a controlled security-epoch transition
 or fail-safe session retirement; it cannot inherit the old digest.
 
-### F17 — release authorization is currently inside the bytes it authorizes
+### D17 — release authorization is currently inside the bytes it authorizes
 
 `contract/release-gates.v1.json` contains the mutable
 `release_allowed=false` status and is itself a source in the complete normative
@@ -518,6 +520,32 @@ evidence receipt, issuer, decision, time, expiry and revocation reference. Prote
 workflows verify that bundle before tag creation and again before publication.
 `RELEASE_READINESS.md` may render the current decision for humans, but editing
 repository prose cannot authorize a release.
+
+### 5.1 Defect closure map
+
+No defect is closed by this blueprint. The implementation ledger must retain these
+minimum closure edges; an accepted ADR may add work, but may not silently delete an
+edge or mark a defect closed from prose alone.
+
+| Defect | Minimum implementing tasks | Minimum closing evidence |
+|---|---|---|
+| D01 | N02, E02, C01 | distinct typed simulation/plant vectors plus live role tests |
+| D02 | N02, G01, G02, P01 | authenticated attach/grant/revoke and observer non-authority negatives |
+| D03 | N03, E03, C03, G02, P01 | declare/retire/exhaust/restart vectors and live stream traces |
+| D04 | N01, N07, N08, X01 | generated identity projections and independent exact-match/rejection results |
+| D05 | N02, N04, N08, F02 | transcript swap negatives and model-to-Rust refinement |
+| D06 | N04, N06, F04 | per-message actor/route provenance and live rotation/revocation campaign |
+| D07 | N03, C02, C05, X02 | body-issued dispositions, query/replay tests and composed live traces |
+| D08 | N03, E04, H02, C02, X02 | acquire/conflict/transfer/expiry/restart multi-writer campaign |
+| D09 | B03, G01, C03, N10 | disjoint registered extension route, core-route rejection and corrected visuals |
+| D10 | C01, C02, C05, F03 | deleted bypass plus malformed/wrong-context ESTOP mutants at the latch boundary |
+| D11 | E05, P02, P03 | explicit missingness mapping and statistical/scientific claim review |
+| D12 | F01, F02, F03 | disclosed bounded models, witnesses, refinement and mutation evidence |
+| D13 | B03, N09, X04, R05 | owned names, clean installs, advisory resolution, SBOM and publication receipts |
+| D14 | N07, N08, N10 | regenerated current surfaces with frozen 0.8 byte identity unchanged |
+| D15 | N03, E04, H02, C02 | body-issued authority lifecycle and live distributed transition evidence |
+| D16 | N04, N06, F04 | semantic public-trust projection and live rebind/revoke tests |
+| D17 | B01, R01, R02 | accepted release-identity decision and external exact-subject authorization |
 
 ## 6. Ecosystem-specific audit conclusions
 
@@ -1218,7 +1246,7 @@ ten lens decisions.
 | ADR | Decision | Required reviewers before `ACCEPTED` |
 |---|---|---|
 | ADR-001 | split simulation-service and plant-control sessions | NCP maintainer, Engram owner, Crebain body owner, independent protocol reviewer |
-| ADR-002 | stable-core/release/corpus identity hierarchy and extension freeze | protocol + release/supply-chain reviewers |
+| ADR-002 | stable-core/release/corpus identity hierarchy, extension freeze and external exact-subject release authorization | protocol + release/supply-chain reviewers |
 | ADR-003 | production JWS authenticated envelope versus equivalent terminating ingress | two independent security/cryptography reviewers plus transport implementer |
 | ADR-004 | observer attach, grants, descriptors, privacy and revocation | Prisoma, Galadriel, security reviewers |
 | ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems + all stream consumer owners |
@@ -2205,8 +2233,8 @@ L23 R02
 L24 R03
 L25 R04
 L26 R05
-L27 R06, R07
-L28 R08, R09
+L27 R06, R07, R09
+L28 R08
 triggered at any applicable state: R10
 ```
 
@@ -2857,7 +2885,8 @@ Ten-lens record:
 #### N10 — rewrite normative and user documentation and regenerate visuals
 
 **Status:** `OPEN`<br>
-**Depends on:** N01–N09, accepted ADRs<br>
+**Depends on:** N01, N02, N03, N04, N05, N06, N07, N08, N09 and accepted
+ADRs<br>
 **Repository:** NCP<br>
 **Update/create:** all current protocol/security/release docs, migration/integration
 docs, examples, `scripts/gen_diagrams.py`, `docs/diagrams/`, documentation manifest
@@ -2911,14 +2940,18 @@ Ten-lens record:
 **Create/update:** `formal/README.md`, `formal/tools.lock.json`, `formal/tla/*`, trace
 exporter, CI workflows, B00 ledger.
 
-Implementation and acceptance are exactly section 8.2–8.5: implement all seven
-component models and composition model; small and large configurations; safety,
-liveness, fairness, non-vacuity and coverage properties; pinned TLC/JRE; retained
-state counts/config/source digests and counterexamples. An independent reviewer
-must search for omitted actions, overconstraints and invalid fairness. Every model
+Implementation: follow sections 8.2–8.5; implement all seven component models and
+the composition model, small and large configurations, safety, liveness, fairness,
+non-vacuity and coverage properties, a pinned TLC/JRE, and retained state counts,
+configuration/source digests and counterexamples. An independent reviewer must
+search for omitted actions, overconstraints and invalid fairness. Every model
 counterexample becomes an ADR/code/vector issue before the task can pass. Commit
 models by coherent state machine and push after small checks; final commit
 `formal: model the composed NCP 1.0 lifecycle` follows reviewed large runs.
+
+Acceptance: every section 8.2–8.5 property passes under every registered bound;
+coverage and non-vacuity witnesses exist; no counterexample is unexplained; exact
+tool/configuration/source/result receipts and independent review are complete.
 
 Ten-lens record:
 
@@ -3118,7 +3151,8 @@ The required role allocation is:
 #### E01 — establish Engram's clean native-1.0 integration baseline
 
 **Status:** `OPEN`<br>
-**Depends on:** N07–N09 candidate provider commit, fresh consumer intake<br>
+**Depends on:** N07–N09 candidate provider commit, R01 final source cut, fresh
+consumer intake<br>
 **Repository:** local `engram`, canonical remote verified at intake<br>
 **Update:** `.ncp-consumer`, `ncp/.mirror-ref`, `ncp/` only through
 `scripts/sync_ncp_mirror.sh`, `scripts/ncp_mirror_pin.py`, mirror drift tests,
@@ -3331,7 +3365,8 @@ Ten-lens record:
 #### H01 — add a parallel `haldir-ncp10` adapter without mutating v0.8 history
 
 **Status:** `OPEN`<br>
-**Depends on:** N07–N09 provider commit, fresh Haldir intake<br>
+**Depends on:** N07–N09 provider commit, R01 final source cut, fresh Haldir
+intake<br>
 **Repository:** Haldir<br>
 **Create/update:** `crates/haldir-ncp10/`, root `Cargo.toml`/`Cargo.lock`,
 `crates/haldir-contracts/` mappings, `.ncp-consumer`, compatibility docs/tests.
@@ -3448,7 +3483,8 @@ Ten-lens record:
 #### G01 — create Galadriel's native-1.0 observer and extension adapter
 
 **Status:** `OPEN`<br>
-**Depends on:** N07–N09, B03 extension allocation, fresh Galadriel intake<br>
+**Depends on:** N07–N09, B03 extension allocation, R01 final source cut, fresh
+Galadriel intake<br>
 **Repository:** Galadriel<br>
 **Create/update:** preferably `crates/galadriel-ncp10/`, root manifests/locks/features,
 Galadriel-owned extension schemas, `.ncp-consumer`, migration/docs/tests.
@@ -3562,7 +3598,7 @@ Ten-lens record:
 #### C01 — create Crebain's separate native-1.0 plant adapter and exact pins
 
 **Status:** `OPEN`<br>
-**Depends on:** N07–N09, fresh canonical Crebain intake<br>
+**Depends on:** N07–N09, R01 final source cut, fresh canonical Crebain intake<br>
 **Repository:** canonical `sepahead/crebain`, not the producer clone<br>
 **Create/update:** explicit `ncp10` feature and `src-tauri/src/ncp10/` (or a renamed
 equivalent), `src-tauri/Cargo.toml`/`Cargo.lock`, `package.json`/`bun.lock`,
@@ -3769,7 +3805,7 @@ Ten-lens record:
 #### P01 — add a parallel native-1.0 Prisoma observer
 
 **Status:** `OPEN`<br>
-**Depends on:** N07–N09, fresh Prisoma intake<br>
+**Depends on:** N07–N09, R01 final source cut, fresh Prisoma intake<br>
 **Repository:** Prisoma<br>
 **Create/update:** `crates/ncp-observer10/`, root/exclusion metadata as appropriate,
 `.ncp-consumer`, observer docs, tests and research ledgers.
@@ -4018,13 +4054,18 @@ Ten-lens record:
 #### R00 — hand the qualified candidate to the release runbook
 
 **Status:** `OPEN`<br>
-**Depends on:** F01–F05, N10, X03, X04<br>
+**Depends on:** F01, F02, F03, F04, F05, N10, R01, X03, X04<br>
 **Repository:** NCP<br>
 
 Freeze exact candidate source/artifacts/receipts and evaluate every release gate
 without changing status optimistically. This task does not tag, publish or edit
 GitHub metadata. It produces the immutable input set for section 11 and stays
 `NOT_RUN` until every dependency is actually complete.
+
+Acceptance: the frozen candidate is the exact surviving R01 source cut; every
+section 11.2 row evaluates `PASS` against current exact-subject evidence; the
+complete adjudication report has no skip, unknown, expired receipt or unresolved
+exception; named release authorities sign the handoff without creating a tag.
 
 Ten-lens record:
 
@@ -4125,7 +4166,7 @@ external receipt.
 #### R01 — create the final untagged 1.0.0 source cut and publication machinery
 
 **Status:** `OPEN`<br>
-**Depends on:** N10, F03; F17 design accepted<br>
+**Depends on:** N10, F03; accepted release-authorization design resolving D17<br>
 **Repository:** NCP<br>
 **Update:** all version-bearing manifests, `contract/release-gates.v1.json`, release
 workflow/scripts, `CHANGELOG.md`, `CITATION.cff`, release notes template, package
@@ -4133,7 +4174,7 @@ surface, documentation status text and B00 ledger.
 
 Implementation:
 
-- remove the self-authorizing status bit described in F17 from normative identity;
+- remove the self-authorizing status bit described in D17 from normative identity;
   keep gate definitions/decision rules immutable and define a strict external
   signed authorization-bundle schema/verifier;
 - configure a protected, manually approved pre-tag verification workflow and a
@@ -4182,8 +4223,10 @@ and every certification receipt must bind R01 or a later fully recut replacement
 #### R02 — issue the signed release-authorization bundle
 
 **Status:** `OPEN`<br>
-**Depends on:** R00 and every row in section 11.2<br>
+**Depends on:** R00, R11 and every row in section 11.2<br>
 **Environment:** independent release adjudication, not a source edit<br>
+**Pre-release prerequisite:** the R10 playbook has a current passing exercise
+receipt.<br>
 
 Implementation:
 
@@ -4269,7 +4312,10 @@ source archive, checksums, SBOM, license notices and provenance. Build twice whe
 reproducibility is promised; compare direct versus sdist-rebuilt wheels only under
 their declared equivalence rule. Install and run the mandatory corpus from staged
 artifacts. Sign checksum/subject manifests and create verified OIDC/SLSA and
-CycloneDX attestations with pinned workflows/actions.
+CycloneDX attestations with pinned workflows/actions. Follow GitHub's current
+[artifact-attestation verification guidance](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)
+and retain the exact action revisions, subject names and verification command; a
+workflow badge is not an attestation receipt.
 
 Acceptance: artifact manifest is a closed exact set; all hashes/signatures/
 attestations verify independently; archives contain no secret/absolute path/cache/
@@ -4389,9 +4435,19 @@ Via GitHub API/CLI, capture before/after JSON and verify exact description, home
 topics, default branch, security policy, issue/PR templates, CODEOWNERS, branch/tag
 rulesets, required checks, signed-tag protection, environments and least-privilege
 workflow permissions. Do not enable a control that has not been tested for the
-repository/plan. Commit README/doc changes on `main` after the tag as a clearly
+repository/plan. At execution, record the API version and revalidate GitHub's
+current official rules for [repository topics](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics),
+[rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets),
+and [protected deployment environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments),
+because account-plan and platform capabilities can change. Commit README/doc
+changes on `main` after the tag as a clearly
 post-release documentation commit; never move the tag to include them. Push
 `docs: present NCP 1.0.0 as the current stable release`.
+
+Acceptance: the public API state, README and rendered documentation agree with the
+published release; all install/verification links and quick starts pass from clean
+hosts; section 9 passes; required repository controls are tested and evidenced;
+the immutable release tag is unchanged.
 
 Ten-lens record:
 
@@ -4532,6 +4588,12 @@ light/dark/reduced-motion/pixel/text/link/accessibility audit; inspect every sel
 work letter and edge at supported viewports. Commit only intended source/generated
 paths and push `docs: reflect the NCP 1.0 ecosystem release`.
 
+Acceptance: GitHub API before/after receipts match every approved description and
+topic; the profile generator is idempotent; every card, edge, label, link and
+accessibility check passes at all registered viewports; public/private and
+qualified/unqualified boundaries remain exact; unrelated worktree files are
+untouched.
+
 Ten-lens record:
 
 1. **L1:** every description/card/edge states exact repository and role status.
@@ -4549,7 +4611,9 @@ Ten-lens record:
 #### R09 — run post-publication installs and emergency-revocation exercise
 
 **Status:** `OPEN`<br>
-**Depends on:** R05 immediately; R06–R08 may run in parallel where safe<br>
+**Depends on:** R05<br>
+**Timing:** start immediately after publication; R06 through R08 may run in
+parallel where safe.<br>
 **Environment:** clean public-network install hosts and isolated revocation lab.
 
 Within the preregistered operational window, install every artifact from public
@@ -4563,6 +4627,11 @@ A failure does not retroactively claim the initial release was never published. 
 sets post-publication validation `FAIL`, opens an incident and invokes R10. Commit
 and push public evidence only after redaction/verification as
 `evidence: record NCP 1.0 post-publication validation`.
+
+Acceptance: every published artifact installs and verifies from its public origin
+on every supported clean environment; the emergency-revocation exercise rejects
+the old subject, preserves ESTOP and restores only newly authorized operation; all
+results, propagation delays and incidents are retained without hidden skips.
 
 Ten-lens record:
 
@@ -4580,7 +4649,8 @@ Ten-lens record:
 #### R10 — execute rollback, withdrawal, revocation, and incident response
 
 **Status:** `OPEN` until exercised; incident instances have unique IDs<br>
-**Depends on:** documented/tested before R02; invoked by any qualifying event<br>
+**Depends on:** none; invoked by any qualifying event<br>
+**Pre-release prerequisite:** document and exercise this response before R02.<br>
 
 Trigger on signing/private-key compromise, signature/admission bypass, authority
 split brain, unsafe actuation or malformed safety-path acceptance, stable-core/
@@ -4616,6 +4686,12 @@ Response:
 10. publish a factual timeline, affected subjects, user actions, evidence limits and
     resolution when disclosure permits.
 
+Acceptance: the pre-release exercise and every real incident instance have a
+time-stamped ID, exact subject scope, tested containment/recovery path, preserved
+evidence, named owners and independently reviewed closure; no tag or published
+artifact is rewritten and every affected consumer receives an enforceable deny or
+replacement path.
+
 Ten-lens record:
 
 1. **L1:** affected contract/artifact/version scope is exact and history immutable.
@@ -4635,7 +4711,8 @@ Ten-lens record:
 #### R11 — establish durable 1.0 stewardship without pretending software is eternal
 
 **Status:** `OPEN`<br>
-**Depends on:** N10; policy approved before R02 and operated after R05<br>
+**Depends on:** N10<br>
+**Timing:** approve the policy before R02 and operate it continuously after R05.<br>
 **Repositories:** NCP and ecosystem governance/support surfaces.
 
 No engineering process can prove that version 1.0 will be the last version ever
@@ -4653,6 +4730,11 @@ namespace review, errata rules, consumer-receipt expiry/renewal, periodic fault/
 revocation exercises, deprecation and end-of-support notice. Do not invent a support
 duration the owner has not committed to. Maintain immutable 0.8 and 1.0 release
 baselines and signed revocation/errata records separately.
+
+Acceptance: an owner-approved, public and versioned policy names every listed
+support/security/stewardship responsibility, cadence, evidence lifetime and
+succession path; R02 verifies the policy digest; post-publication operations retain
+current receipts without redefining stable 1.0 semantics.
 
 Ten-lens record:
 
@@ -4695,7 +4777,7 @@ release completion.
 |---|---|---|---|
 | P0 | mandated NCP documents and boundary | `LOCAL_PASS` | source cut and digest recorded above |
 | P1 | archive, local consumers, and public metadata inventory | `LOCAL_PASS` | archive digest and mutable snapshot recorded above |
-| P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings F01–F17 above; implementation remains open |
+| P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings D01–D17 above; implementation remains open |
 | P3 | target 1.0 architecture and normative decision records | `LOCAL_PASS` | target laws, messages, security, extensions, and ADR gates in section 7; ADRs remain unratified |
 | P4 | formal, executable, statistical, security, and fault verification program | `LOCAL_PASS` | layered program, models, invariants, refinement, security/fault/fuzz and statistical rules in section 8; all new executions remain `NOT_RUN` |
 | P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V10 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |
