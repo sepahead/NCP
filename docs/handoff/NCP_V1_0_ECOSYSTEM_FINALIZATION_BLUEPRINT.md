@@ -321,8 +321,9 @@ domain-separated, end-to-end signed canonical payload using a tightly profiled J
 representation and an enrolled key manifest, while retaining TLS 1.3 and
 default-deny ACLs for hop confidentiality and route minimization. The profile must:
 
-- allow exactly one pinned signature algorithm in the first release (Ed25519 via
-  JOSE `EdDSA`), never accept `none`, caller-selected algorithms, unprotected
+- allow exactly one pinned, fully specified signature algorithm in the first
+  release (JOSE `Ed25519`), never accept deprecated polymorphic `EdDSA`, `none`,
+  caller-selected algorithms, unprotected
   security headers, remote key URLs, or algorithm/key confusion;
 - sign the exact canonical NCP payload and protected context containing the exact
   route, message class, stable-core digest, security-state digest, key epoch,
@@ -349,6 +350,7 @@ Primary standards and substrate references:
 
 - [RFC 7515: JSON Web Signature](https://www.rfc-editor.org/info/rfc7515/)
 - [RFC 8037: EdDSA for JOSE](https://www.rfc-editor.org/info/rfc8037/)
+- [RFC 9864: fully specified JOSE algorithms](https://www.rfc-editor.org/info/rfc9864/)
 - [RFC 8725: algorithm, issuer, audience, and cross-type validation guidance](https://www.rfc-editor.org/info/rfc8725/)
 - [RFC 8446: TLS 1.3](https://www.rfc-editor.org/info/rfc8446/)
 - [Zenoh `Sample` API](https://docs.rs/zenoh/latest/zenoh/sample/index.html)
@@ -464,6 +466,39 @@ requirement. Change source comments to “introduced in 0.8; retained/required i
 1.0” where historically relevant, regenerate all derived artifacts, and keep
 frozen 0.8 baselines untouched.
 
+### F15 — required authority leases have no stable wire lifecycle
+
+The Rust authority machine can acquire, renew, transfer, reconnect, and retire a
+lease, but the stable wire exposes no RPC that requests or returns those
+transitions. A host can inject a process-local `AuthorityLease`; an independent
+commander and body cannot establish one using only the advertised stable protocol.
+Possession of self-constructed lease bytes must never become the missing protocol.
+
+Add body/service-issued acquire, renew, transfer, release, and status operations.
+The requester asks for authority and a bounded duration; the authoritative session
+body chooses the term, lease identifier, enforcement deadline, and result. A
+transfer needs the current holder or an enrolled overriding operator, but the body
+still issues the replacement. Every operation is authenticated, idempotent, bound
+to the exact session/transcript/security epoch, and returns a body-issued receipt.
+An open session begins non-actuating; opening alone does not create authority.
+
+### F16 — the security-state digest binds paths, not installed public trust state
+
+The current projection hashes configured CA/certificate/private-key path strings
+but deliberately not the file bytes. Avoiding private-key serialization is correct;
+using a path as the negotiated identity of public trust material is not sufficient.
+Two machines can share `/etc/ncp/ca.pem` while holding different trust anchors, and
+one path can change after preflight.
+
+Redefine the semantic security-state projection to bind public trust-anchor and
+leaf-certificate DER fingerprints, enrolled signing public-key fingerprints and
+epochs, authority/ACL/audience manifest digests, revocation-set digest and epoch,
+endpoint/service identity, profile, and downgrade policy. Never hash or expose a
+private key. Retain file paths only as local deployment evidence, reopen material
+with race-resistant handles where supported, and revalidate identity/validity at
+use. A changed public trust state requires a controlled security-epoch transition
+or fail-safe session retirement; it cannot inherit the old digest.
+
 ## 6. Ecosystem-specific audit conclusions
 
 ### 6.1 Engram / Paper2Brain
@@ -563,7 +598,631 @@ may be shown as an optional/read-only extension consumer only with that boundary
 visible. Every repository card should distinguish research intent, implemented
 surface, and certification status.
 
-## 7. Blueprint progress index
+## 7. Required target architecture
+
+This section is the implementation target discovered by the audit. It is not
+normative until the corresponding ADRs are reviewed, the canonical sources are
+changed together, and the candidate is rebaselined. An ADR may refine a name or
+encoding, but it may not remove an invariant below without recording an equally
+strong alternative and repeating all dependent reviews.
+
+### 7.1 Architectural laws
+
+The stable 1.0 design must obey these laws:
+
+1. **One meaning per message.** Simulation-service lifecycle and plant-control
+   lifecycle are distinct typed protocols over a shared session substrate.
+2. **The responder issues incarnation.** The simulator service or plant body issues
+   `SessionRef.generation`; no caller or observed frame chooses it.
+3. **The body grants action.** The session responder issues and enforces authority
+   leases. A commander proposes; it does not self-authorize.
+4. **Authentication precedes interpretation.** Production input is bounded, its
+   signature and protected route context are verified, and its enrolled actor is
+   established before payload identity or semantic fields can authorize anything.
+5. **Routes are part of the message context.** A payload valid on one exact route,
+   plane, session, message class, or audience is invalid on another.
+6. **Negotiation is transcript-bound.** Contract, roles, session type, channels,
+   profiles, plant, extensions, and security state cannot change between discovery,
+   open, attach, stream declaration, authority, and receipt without an explicit
+   revision transition.
+7. **Streams are declared.** No data frame creates or rotates a stream epoch.
+8. **Unknown never grants.** Unknown/default session types, roles, planes,
+   capabilities, security algorithms, disposition states, authority states,
+   extensions, and lifecycle states are non-authorizing or rejected as specified.
+9. **The plant remains final authority.** A well-formed command is only a proposal
+   to the plant governor. NCP cannot certify physical response or universal safety.
+10. **Stable core and extensions do not share keyspace.** Project payloads cannot
+    masquerade as stable NCP by using a stable route.
+11. **Every mutation is idempotent and receipted.** Open, close, step, run, stream,
+    authority, observer, rekey, and disposition-query transitions have bounded
+    idempotency and explicit unknown-outcome behavior.
+12. **Resource admission is pre-allocation.** Every encoding layer, signature
+    wrapper, payload, collection, queue, store, retry, trace, and decompression path
+    has a finite checked budget before semantic allocation or side effects.
+
+### 7.2 Stable identity hierarchy
+
+Replace the current overloaded identity signals with a hierarchy whose members have
+separate purposes:
+
+| Identity | Construction | Wire role | Compatibility rule |
+|---|---|---|---|
+| `wire_version` | literal `1.0` | major stable protocol selector | exact match |
+| `stable_core_digest_sha256` | SHA-256 over a generated manifest of every stable wire-semantic source | hard native-1.0 compatibility identity | exact match before session success |
+| `normative_release_digest_sha256` | current complete normative manifest digest | release/citation identity | exact in certified artifact sets; diagnostic during explicitly labelled development only |
+| `corpus_digest_sha256` | mandatory conformance manifest/corpus | proves tested expectation set | exact in conformance and certification reports |
+| `compact_proto_hash` | existing FNV proto hash | short diagnostic and migration aid | never sufficient to authorize compatibility |
+| extension digest | SHA-256 of one extension manifest and schemas | optional feature identity | exact for an accepted extension |
+| package build identity | immutable source/tag/attestation subject | installed implementation identity | retained in evidence, not used as protocol authority |
+
+`stable_core_digest_sha256` must be generated, not typed into multiple files. Its
+input manifest must include at least the stable proto, message schemas, canonical
+encoding rules, typed digest projections, key grammar, planes/QoS, limits, closed
+registries, security envelope/profile, authority/lifecycle/idempotency rules,
+plant-profile rules, and mandatory behavioral requirements. It must exclude
+candidate gate status, generated copies, informative prose, performance results,
+and package metadata. The generator records ordered paths and individual SHA-256
+digests so two implementations can reproduce it.
+
+After stable `v1.0.0`, those core inputs are immutable. Errata that change behavior
+require a new major wire; explanatory text can change only outside the stable-core
+input. A vulnerability may deprecate or revoke 1.0 without silently redefining it.
+
+### 7.3 Shared session substrate
+
+Introduce these closed core types. Names are proposed and should be preserved
+unless an ADR proves a clearer unambiguous alternative.
+
+#### `SessionType`
+
+```text
+unknown              non-authorizing; invalid for open success
+simulation_service   neural/model simulation lifecycle
+plant_control        controller-to-plant closed-loop lifecycle
+```
+
+No “generic” success value is permitted. Future session types are extensions or a
+new major core; an old implementation does not reinterpret them.
+
+#### `ContractIdentity`
+
+Required members:
+
+```text
+wire_version
+stable_core_digest_sha256
+normative_release_digest_sha256
+corpus_digest_sha256
+compact_proto_hash
+```
+
+All digests use lowercase fixed-length hexadecimal with exact validation. A missing
+member cannot inherit the local value.
+
+#### `InitiationContext`
+
+Pre-session operations need idempotency without fabricating a generation:
+
+```text
+operation_id                 canonical UUIDv4, selected once by caller
+request_digest_sha256        typed digest of immutable request semantics
+deadline_utc_ms              positive JSON-safe integer
+retry                        false initially; true only on exact retry
+```
+
+The responder keys pre-session idempotency by authenticated principal,
+`operation_id`, exact request kind, and request digest. A duplicate exact request
+replays the exact terminal response; a conflicting digest fails; an ambiguous
+boundary returns `outcome_unknown` and never opens a second generation by guess.
+Stores are bounded and durably snapshotted for production.
+
+#### `SessionDescriptor`
+
+A successful open and observer attachment return the same bounded authoritative
+descriptor shape:
+
+```text
+session                       {session_id, server-issued generation}
+session_type                  closed SessionType
+descriptor_revision           positive JSON-safe integer, starts at 1
+state_version                 positive JSON-safe mutation state
+responder_identity            verified body/simulator IdentityClaim
+commander_identity            verified enrolled commander IdentityClaim
+contract_identity             exact ContractIdentity
+security_binding              profile, semantic state digest, security epoch,
+                              authority-manifest digest, audience id
+negotiation_transcript_digest SHA-256 typed transcript digest
+plant_profile_digest          required only for plant_control
+simulation_provenance_policy  required only for simulation_service
+selected_capabilities         sorted, unique closed stable IDs
+selected_extensions           sorted exact ExtensionManifestRefs
+sensor_channels               selected ChannelSpecs
+command_channels              selected ChannelSpecs
+observation_channels          selected ChannelSpecs
+created_at_utc_ms             responder clock, diagnostic/audit
+status                        non-authorizing lifecycle value at issue
+```
+
+The mutually exclusive session-type fields are schema- and semantics-enforced.
+Unknown fields remain bounded forward-compatible metadata only and are excluded
+from all authorization unless a registered digest projection explicitly includes
+them. The descriptor is signed/authenticated as a control-plane response.
+
+### 7.4 Split lifecycle messages
+
+Replace overloaded `open_session` with two request/response pairs.
+
+#### Simulation service
+
+`OpenSimulationSession` on
+`{realm}/rpc/open_simulation_session` contains:
+
+- envelope version/kind, `InitiationContext`, `ContractIdentity`, authenticated
+  commander identity, security binding, and offered capabilities/extensions;
+- requested logical `session_id`;
+- current `NetworkRef`, `RecordSpec`, `StimulusSpec`, `SimConfig`, and entity
+  bindings; and
+- an explicit provenance/non-claim policy that can only select
+  `calibrated_posterior=false`, `is_simulation_output=true`, and
+  `advisory_only=true` in stable 1.0.
+
+`SimulationSessionOpened` returns success/error, `SessionDescriptor`, resolved
+simulation configuration, `SimProvenance`, and a responder receipt. Failure returns
+no live `SessionRef`. `StepRequest`, `RunRequest`, `StimulusFrame`, and
+`ObservationFrame` are accepted only for this session type. Their exact
+authorization and idempotency semantics remain session-scoped.
+
+#### Plant control
+
+`OpenPlantSession` on `{realm}/rpc/open_plant_session` contains:
+
+- the common initiation, identity, security, contract, capability, and extension
+  offers;
+- requested logical `session_id` and exact intended body entity/audience;
+- required and optional sensor, command, status, and disposition `ChannelSpec`
+  offers;
+- requested rates/deadlines/queue profile within protocol limits; and
+- the commander's expected plant-profile digest, or an explicit request for the
+  body's descriptor without authority to actuate.
+
+`PlantSessionOpened` is issued by the body and returns the common descriptor, exact
+body-owned plant-profile digest, selected channels/rates/QoS, initial non-actuating
+state, and receipt. A mismatch in a required channel, unit, arity, profile,
+stable-core digest, security state, audience, or capability fails before creating a
+live session. Opening never grants an authority lease.
+
+#### Shared close and type-specific operations
+
+`CloseSession` can remain shared because it carries exact `SessionRef`, transcript,
+operation context, authenticated commander, and live authority. Its responder
+validates the stored session type. `Step` and `Run` reject plant sessions.
+Plant-frame publication rejects simulation sessions. An ESTOP reset remains
+body-local or separately authenticated out-of-band in 1.0 and always retires the
+generation; there is no remote reset RPC.
+
+### 7.5 Capability negotiation and transcript
+
+Replace the controller-specific `Capabilities` ambiguity with typed offer and
+selection records:
+
+```text
+PeerCapabilityOffer
+  identity
+  intended_session_type
+  role
+  stable_capabilities[]
+  extension_offers[]
+  channel_offers[]
+  limits_offer
+  contract_identity
+  security_binding
+
+CapabilitySelection
+  exact accepted stable capabilities
+  accepted/rejected extension refs with closed reason
+  exact selected channels and limits
+  responder identity
+```
+
+Stable capabilities are closed, sorted, unique, and role/session-type scoped.
+Unknown required capability fails. Unknown optional extension is explicitly
+rejected in the response without enabling its behavior. Capability absence never
+selects a default that grants a channel, mode, security profile, or authority.
+
+The typed negotiation transcript is the closed canonical projection of:
+
+```text
+request kind and initiation request digest
+both verified identities and roles
+session type and logical session id
+ContractIdentity from both parties
+security binding and audience
+complete offers and exact selection
+plant profile or simulation provenance policy
+channel names, kinds, units, arities, requirements and limits
+extension manifest refs and decisions
+responder-issued SessionRef and descriptor revision
+```
+
+Hash with a registered domain separator. Both parties retain the exact canonical
+projection. All session-scoped mutations, leases, declarations, observer
+attachments, frames, security transitions, dispositions, and receipts carry or
+derive the exact transcript digest. Tests mutate every member independently.
+
+### 7.6 Observer attachment
+
+Add `AttachObserver` on `{realm}/rpc/attach_observer`. Its pre-session idempotency
+context is bound to the observer principal, target logical `session_id`, intended
+responder/body, requested planes/channels, and audience. The observer does not
+supply a generation; the authenticated body resolves the current live generation.
+
+`ObserverAttached` returns:
+
+- exact `SessionDescriptor` and current descriptor revision;
+- an `ObserverGrant` with random grant ID, observer principal/entity, permitted
+  exact route set or closed route templates, planes/channels, issued/expiry times,
+  security epoch, and revocation epoch;
+- all currently active `StreamDescriptor` objects the observer may consume;
+- current high-water positions only as diagnostic starting points, never as proof
+  that earlier data was complete; and
+- a responder receipt.
+
+The grant is read-only and cannot be converted into authority, reset, publish,
+open, close, step, run, or stream-declaration rights. The transport ACL or trusted
+gateway enforces the same exact routes. Fleet discovery is a separate
+deployment-owned directory and cannot leak unauthorized descriptors. Attachment
+expiry/revocation stops new delivery and dataset admission but does not fabricate
+missing data or erase retained audit evidence.
+
+Add `DetachObserver` as an idempotent cleanup. Body-initiated revocation increments
+the revocation epoch and emits an authenticated control/audit event. Reattachment
+after session restart returns the new generation; the observer must discard all
+old stream admission state.
+
+### 7.7 Executable stream lifecycle
+
+Add these control-plane operations:
+
+```text
+DeclareStream  -> StreamDeclared
+RetireStream   -> StreamRetired
+```
+
+`DeclareStream` is sent by the enrolled publisher and includes exact session,
+transcript, descriptor revision, plane, exact route, message kind, proposed fresh
+UUIDv4 epoch, starting sequence `1`, complete channel/schema selection, QoS profile,
+publisher identity/key epoch, and idempotency context. The body/session authority
+validates the publisher role and route, records one immutable descriptor, and
+returns a receipt. A publisher may not declare another principal's stream.
+
+One `StreamDescriptor` contains:
+
+```text
+stream_id                     stable descriptor UUID, not a sequence
+session and session_type
+negotiation_transcript_digest
+descriptor_revision
+plane and exact route
+message_kind
+publisher principal/entity/role
+epoch
+first_seq = 1
+channel/schema selection
+qos and queue/loss policy
+security epoch and audience
+declared_at_utc_ms
+retired flag/reason when applicable
+```
+
+Receivers admit a frame only after exact descriptor lookup and signature/actor,
+route, session, epoch, kind, channel, transcript, and monotonic sequence checks.
+Expiry, silence, HOLD, and reconnect never reset the high-water mark. On process
+restart, sequence exhaustion, security transition, schema/channel change, or
+publisher change, retire the old descriptor and declare a fresh epoch. Attempting
+sequence `2^53-1` consumes it at most once; the publisher becomes silent before
+overflow and cannot auto-mint an epoch.
+
+`RetireStream` is authenticated/idempotent and records the final attempted and
+definitely published positions separately. It does not promise that subscribers
+received the final frame. Session close retires every stream. A retired stream
+cannot be reopened or refreshed.
+
+### 7.8 Body-issued authority protocol
+
+Add exact control routes and response kinds:
+
+| Request route | Success response | Purpose |
+|---|---|---|
+| `{realm}/rpc/acquire_authority` | `AuthorityGranted` | body grants a new strictly higher term to an enrolled commander |
+| `{realm}/rpc/renew_authority` | `AuthorityRenewed` | body extends an unexpired current holder under the same term/lease identity |
+| `{realm}/rpc/transfer_authority` | `AuthorityTransferred` | current holder or authorized operator asks body to issue a higher term to another enrolled commander |
+| `{realm}/rpc/release_authority` | `AuthorityReleased` | holder/operator asks body to retire current authority and enter/remain fail-safe |
+| `{realm}/rpc/query_authority` | `AuthorityStatus` | authenticated read of current non-secret authority state; no mutation |
+
+Every mutation contains exact session/transcript/security epoch, operation context,
+requester identity, requested holder where applicable, requested bounded duration,
+and reason code. The body samples its clocks, enforces maximum duration, chooses the
+term and random lease ID, records a monotonic enforcement deadline, and returns a
+signed receipted `AuthorityLease`. UTC issue/expiry fields are audit/interchange
+metadata; the body never relies on a remote clock to enforce expiry.
+
+Change `AuthorityLease` semantics so its issuer is the authoritative session body,
+not a self-asserting commander. It binds body issuer, holder principal/entity,
+session generation, transcript, security epoch, term, lease ID, issued/expiry UTC,
+and maximum duration. The plant/simulator retains the local monotonic deadline and
+state version used to issue it. The holder cannot lengthen, rewrite, or transfer
+the lease bytes.
+
+Safety rules:
+
+- initial open state is HOLD/INIT without authority;
+- only one unexpired holder exists per session generation and authority plane;
+- acquisition requires a term greater than every current/retired term;
+- renewal at equality with the enforcement deadline fails and transitions to HOLD;
+- transfer/release retires the old lease before the new holder can act;
+- an operator may request override only with an explicit manifest bit; the body
+  decides and records it;
+- reconnect proves the same live lease and security state and cannot extend time;
+- revocation, body restart without durable clock/state continuity, ESTOP reset, or
+  generation retirement invalidates authority;
+- an Active command and Step/Run/Close mutation require the exact current lease;
+- authenticated same-session ESTOP may omit the lease only after full envelope,
+  route, actor, session, stream, and security admission; and
+- lease query/status is non-authorizing and cannot be replayed as a grant.
+
+### 7.9 Production authenticated envelope
+
+For `production-secure`, carry every stable NCP JSON payload in the flattened JWS
+JSON Serialization from RFC 7515. The outer object has exactly `protected`,
+`payload`, and `signature`; an unprotected `header` member is forbidden. Each value
+is bounded base64url without padding. The decoded payload must be the exact NCP
+canonical JSON bytes for the typed message; round-trip canonicalization must match
+byte-for-byte before semantic acceptance.
+
+The decoded protected header is also required to be exact canonical JSON with this
+closed profile:
+
+```text
+alg                  exactly `Ed25519` from RFC 9864; reject deprecated `EdDSA`
+kid                  bounded enrolled key id; never a URL or filesystem path
+typ                  exact NCP signed-envelope media/profile type
+cty                  exact canonical NCP JSON content type
+crit                 exact sorted set of all ncp_* protected members below
+ncp_profile          production-secure
+ncp_route            exact actual transport key/selector
+ncp_message_class    exact request/response/frame kind class
+ncp_stable_digest    exact stable_core_digest_sha256
+ncp_security_digest  exact semantic security-state digest
+ncp_security_epoch   exact current security epoch
+ncp_issuer           exact enrolled principal id
+ncp_audience         exact enrolled recipient or audience-group id
+ncp_key_epoch        positive registered key epoch
+```
+
+Do not accept `alg=none`, another algorithm, a key supplied by the message, `jku`,
+`jwk`, `x5u`, embedded certificate chains, omitted/unknown critical fields,
+unprotected security metadata, or permissive library defaults. Configure the JWS
+library with the one allowed algorithm and resolve `kid` only from the locally
+authenticated authority manifest. Validate media type, issuer, audience, message
+class, route, digests, epochs, key use, key validity, and revocation independently
+of signature success. Require the inner `IdentityClaim` to equal the manifest actor
+and protected issuer.
+
+The actual transport route is adapter input, never copied from the envelope. Exact
+equality with `ncp_route` is checked before payload semantics. RPC responses use the
+requester's principal as audience. Action uses the exact body principal. Pub/sub
+perception/observation uses a content-addressed audience group whose manifest
+enumerates readers; changing membership changes the security state/epoch and ACL.
+
+TLS 1.3 mutual authentication and default-deny ACLs remain mandatory for remote
+production transports to provide confidentiality, endpoint protection, and route
+minimization. End-to-end JWS supplies application-visible publisher provenance
+through routers; it does not make TLS optional. `dev-loopback-insecure` carries raw
+canonical JSON only on loopback/UDS, advertises unmistakable insecure state, and
+cannot negotiate, wrap, or downgrade into production.
+
+#### Semantic security-state projection
+
+The new projection must hash semantic public state:
+
+```text
+profile and exact endpoint/service identity
+TLS minimum/maximum and required mutual-auth policy
+sorted trust-anchor DER SHA-256 fingerprints
+local leaf public certificate DER fingerprint and identity
+sorted signing-key {kid, public-key fingerprint, algorithm, key epoch,
+                    principal/entity/role/planes, not-before/not-after, status}
+authority manifest digest
+audience-group manifest digest
+rendered effective ACL digest
+revocation-set digest and monotonic revocation epoch
+downgrade=false and insecure_status=false
+```
+
+Never include secret/private bytes. Configuration paths are recorded separately in
+local deployment provenance. Use handles/permissions/HSM or protected keystore as
+platform policy requires. At startup and rotation, validate certificate chains,
+service names, validity, public-key match, file/keystore protection, ACL equivalence,
+and digest before exposing a route.
+
+#### Rotation and revocation
+
+Add an idempotent `RebindSecurity` session operation. Planned rotation may advertise
+an overlap key already present in a new authenticated manifest. Both peers verify
+the old live context and the new key/security state, the body increments descriptor
+revision/security epoch, returns a new transcript-bound descriptor, retires old
+stream declarations, and requires redeclaration. The old key stops at the recorded
+boundary. Revocation is not an overlap transition: immediately deny the key, move
+affected authority to fail-safe, retire affected sessions/streams as policy
+requires, and never clear ESTOP.
+
+If a terminating-ingress alternative is selected by reviewed ADR, it must produce
+an equivalent signed/local attestation consumed through the same
+`AuthenticatedActor` API, preserve original actor and exact route, prevent
+multiplexing confusion, survive router topology, and meet the same rotation,
+revocation, replay, cross-language, and fault tests. Merely knowing that some client
+passed a router ACL is insufficient.
+
+### 7.10 Command disposition and stop evidence
+
+Add `CommandDisposition` as a body-published stable message on the named observation
+route:
+
+```text
+{realm}/session/{session_id}/observation/command-disposition
+```
+
+It contains:
+
+```text
+ncp_version and kind
+session and session_id
+negotiation_transcript_digest
+its own declared body stream position
+body identity
+command publisher stream position
+canonical command digest
+command mode
+closed disposition state and reason code
+body-local monotonic event time
+optional software/hardware boundary id from plant profile
+optional applied setpoint digest (never raw secret payload by default)
+state_version
+security epoch
+```
+
+Closed states and required semantics:
+
+| State | Meaning | Terminal for this boundary? |
+|---|---|---|
+| `received` | complete command reached the named software ingress | no |
+| `rejected` | body rejected it before application; closed reason required | yes |
+| `superseded` | a newer admitted command made it inapplicable | yes |
+| `expired` | TTL/watchdog made it inapplicable | yes |
+| `admitted` | plant governor accepted it for the named application boundary | no |
+| `applied` | the named boundary accepted/wrote the setpoint at the recorded instant | yes for that boundary |
+| `failed` | a definite boundary error prevented application | yes |
+| `unknown_after_boundary` | body cannot distinguish application from failure after an ambiguous boundary | yes; never promote later by guess |
+| `stop_latched` | named body-local stop latch entered | yes for the latch only |
+
+Unknown/default state is invalid and non-success. A state transition table forbids
+terminal contradiction and skips such as `received -> applied` only when the plant
+profile explicitly defines that boundary as atomic. Dispositions are authenticated,
+ordered on their own stream, retained in a bounded body journal, and queryable by
+exact session/command position/digest through an idempotent control request. A gap
+or absent disposition is unknown, never rejection or application.
+
+“Applied” and `stop_latched` explicitly do not prove actuator motion, physical
+effect, zero energy, hazard removal, or regulatory safety. Physical sensors,
+hardware interlocks, and application-specific certification remain outside NCP.
+
+### 7.11 Stable and extension keyspaces
+
+Revise stable key grammar to enumerate message classes rather than letting payloads
+borrow a neighboring route:
+
+```text
+{realm}/rpc/{registered_request_kind}
+{realm}/session/{session_id}/sensor[/{registered_name}]
+{realm}/session/{session_id}/command[/{registered_name}]
+{realm}/session/{session_id}/observation[/{registered_name}]
+```
+
+Each declared exact route has one stable message kind/schema. A wildcard subscriber
+may receive multiple declarations but dispatches only after descriptor lookup; the
+route does not infer a kind.
+
+Project-owned extensions live outside `/session`:
+
+```text
+{realm}/extension/{extension_id}/{manifest_digest}/{deployment_or_session_segment}/...
+```
+
+`extension_id` is an owned, registry-safe reverse-domain identifier or another
+reviewed collision-resistant namespace. Every extension has a bounded manifest with
+owner, version, digest, schemas, exact routes, encodings, security requirements,
+limits, QoS, lifecycle, compatibility, and deprecation. Core ACLs do not grant
+extension routes. Core fleet/session wildcards do not match them. An extension
+cannot claim NCP core conformance merely because it references a session or is
+listed in negotiation.
+
+For Galadriel, use an owned extension ID such as
+`org.sepahead.galadriel.observation.v1` only after its manifest and route are
+reviewed. If an adapter emits stable NCP, it publishes a separately declared
+standard frame; it does not wrap the project envelope on a core route.
+
+### 7.12 Plane, QoS, and backpressure contract
+
+Retain four authority planes but make subprofiles executable:
+
+| Plane | Publisher | Core queue | Required behavior |
+|---|---|---|---|
+| control | enrolled commander/body/observer for the exact request | bounded 128 default | reliable request/reply, explicit overload rejection, operation deadline and idempotency |
+| perception | enrolled body | capacity 1 per declared stream | replace latest; count overwritten positions and expose gaps, never synthesize |
+| action | current commander or enrolled operator for allowed fail-safe | capacity 1 per declared stream | severity priority, one allocator across Active/HOLD/ESTOP, consume ambiguous attempts, block Active after ambiguous fail-safe |
+| observation data | enrolled body | bounded 64 default | drop oldest and count; scientific consumers mark incomplete |
+| observation disposition subprofile | enrolled body | bounded journal plus bounded delivery queue | never silently drop retained terminal state; backpressure/replay query and explicit retention exhaustion |
+
+All capacities are negotiated only downward from protocol/deployment maxima; a
+remote offer cannot allocate. Each metric is bounded and low-cardinality. Sequence
+loss, local queue drop, transport rejection, retry, redelivery, and journal eviction
+are distinct counters. Control overload returns a registered error without partial
+state. A data-plane overload never refreshes TTL, lease, watchdog, or liveness.
+
+### 7.13 Extension and future-evolution rules
+
+To make stable 1.0 durable without pretending requirements never change:
+
+1. Freeze core messages, field meanings, keys, digest projections, error meanings,
+   and behavioral vectors after release.
+2. Permit additive unknown JSON fields only as bounded non-authorizing metadata;
+   old peers ignore them and no core decision depends on them.
+3. Add optional functionality through exact extension manifests and separate routes.
+4. Reject unknown required extensions; explicitly decline unknown optional ones.
+5. Never promote an extension into core under wire `1.0`; a future core change is a
+   new major wire with an explicit terminating gateway/migration.
+6. Keep 0.8 and later released baselines immutable. Gateways label both source and
+   target identities, terminate trust, reject ambiguous mappings, and never claim
+   transparent interoperability.
+7. Publish a deprecation/revocation record separately from immutable protocol
+   history. Security response can forbid deployment of an old wire without editing
+   what its messages meant.
+
+### 7.14 Required ADR set and ratification gates
+
+Create these ADRs before changing normative files. Each ADR must include considered
+alternatives, threat/hazard analysis, state-machine effects, compatibility, limits,
+wire examples, failure examples, formal properties, migration, rollback, and all
+ten lens decisions.
+
+| ADR | Decision | Required reviewers before `ACCEPTED` |
+|---|---|---|
+| ADR-001 | split simulation-service and plant-control sessions | NCP maintainer, Engram owner, Crebain body owner, independent protocol reviewer |
+| ADR-002 | stable-core/release/corpus identity hierarchy and extension freeze | protocol + release/supply-chain reviewers |
+| ADR-003 | production JWS authenticated envelope versus equivalent terminating ingress | two independent security/cryptography reviewers plus transport implementer |
+| ADR-004 | observer attach, grants, descriptors, privacy and revocation | Prisoma, Galadriel, security reviewers |
+| ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems + all stream consumer owners |
+| ADR-006 | body-issued authority operations and temporal model | safety, distributed-systems, Haldir, Crebain reviewers |
+| ADR-007 | command disposition states, boundary meanings, journal and query | plant/safety, Haldir, Crebain reviewers |
+| ADR-008 | extension namespace and Galadriel sidecar separation | protocol, Galadriel, Crebain reviewers |
+| ADR-009 | security-state semantic digest, key rotation and revocation | security, operations, supply-chain reviewers |
+| ADR-010 | exact per-plane QoS, retention and overload semantics | real-time/performance + consumer reviewers |
+
+Ratification is blocked until:
+
+- every named reviewer role has an identified human or independent team;
+- every open question has a recorded decision or explicit exclusion;
+- wire examples and negative examples can be represented in Rust and independent
+  TypeScript without consumer-specific assumptions;
+- the proposed formal models have no obvious counterexample under their declared
+  bounds;
+- resource estimates fit declared maxima and cryptographic deadlines in preliminary
+  benchmarks;
+- Engram, Haldir, Galadriel, Crebain, and Prisoma owners confirm their required use
+  case is expressible without a private core fork; and
+- the owner explicitly authorizes the deliberate pre-release wire rebaseline.
+
+## 8. Blueprint progress index
 
 This index tracks construction of the blueprint itself. It does not track NCP
 release completion.
@@ -573,7 +1232,7 @@ release completion.
 | P0 | mandated NCP documents and boundary | `LOCAL_PASS` | source cut and digest recorded above |
 | P1 | archive, local consumers, and public metadata inventory | `LOCAL_PASS` | archive digest and mutable snapshot recorded above |
 | P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings F01–F14 above; implementation remains open |
-| P3 | target 1.0 architecture and normative decision records | `IN_PROGRESS` | to be added |
+| P3 | target 1.0 architecture and normative decision records | `LOCAL_PASS` | target laws, messages, security, extensions, and ADR gates in section 7; ADRs remain unratified |
 | P4 | formal, executable, statistical, security, and fault verification program | `OPEN` | to be added |
 | P5 | exact implementation task DAG and per-repository file/runbook detail | `OPEN` | to be added |
 | P6 | release, package, documentation, GitHub, rollback, and incident runbook | `OPEN` | to be added |
