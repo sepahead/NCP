@@ -4793,7 +4793,7 @@ release completion.
 | P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V10 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |
 | P5 | exact implementation task DAG and per-repository file/runbook detail | `LOCAL_PASS` | dependency order, execution protocol, B/N/F provider tasks, all named consumer tasks, cross-ecosystem qualification and ten-lens records in section 10; implementation remains `OPEN`/`NOT_RUN` |
 | P6 | release, package, documentation, GitHub, rollback, and incident runbook | `LOCAL_PASS` | exact release state machine, gate matrix, signed authorization, tag/artifact/publication order, NCP/ecosystem/profile metadata, consumer repin, post-publication, incident and stewardship tasks in section 11; execution remains `OPEN`/`NOT_RUN` |
-| P7 | triple review, repository gate, commit, and push receipts | `IN_PROGRESS` | three review passes are recorded in section 12.1; exact final-tree repository gate and remote receipt remain pending |
+| P7 | triple review, repository gate, commit, and push receipts | `LOCAL_PASS` | three review passes, a clean committed-tree gate, the final handoff-tree gate, and the externally reported containing-commit/remote-ref receipt are recorded in section 12.1; this closes blueprint construction only |
 
 ### 12.1 Triple-review and render receipt
 
@@ -4803,6 +4803,17 @@ applied to this living document and must be included in the exact final-tree gat
 This receipt establishes blueprint quality only; it does not run or satisfy any
 NCP 1.0 implementation, formal, consumer, external or release gate.
 
+The first complete clean-tree run exposed stale generated audit evidence and
+failed closed. The evidence was regenerated only through
+`scripts/generate_audit_artifacts.py --write`, reviewed, checked with the
+generator's hostile self-test, committed, and pushed. A second complete run then
+started clean at commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree
+`89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, and exited zero. The final
+handoff-tree run was performed after this receipt and its generated audit evidence
+were updated. The containing Git commit ID and local/remote equality are reported
+outside this file because a commit cannot contain its own object ID without
+changing that ID.
+
 | Pass | Status | Exact local result |
 |---|---|---|
 | technical structure and cross-repository truth | `LOCAL_PASS` | 17 unique D01–D17 findings and 17/17 closure-map rows; 54 unique tasks; every task has status, acceptance and ten lenses; zero missing dependency IDs, cycles or forward level edges; R10 is intentionally event-triggered; archive SHA-256 rechecked; named local paths/remotes/roles and live GitHub metadata rechecked read-only |
@@ -4810,8 +4821,9 @@ NCP 1.0 implementation, formal, consumer, external or release gate.
 | prose, Markdown and rendered document | `LOCAL_PASS` | `codespell 2.4.1` zero findings; `cspell 10.0.1` zero findings after a manually reviewed repository/protocol-name allowlist; `proselint 0.14.0` zero findings after disabling only code-syntax/typography, intentional TODO-marker, technical compound and ASCII-name rules; `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0` zero findings with line-length disabled for tables/digests, `<br>` allowed only for task metadata, and compact-table style accepted; candidate link/anchor checks pass; all 17 external references returned HTTP 200 |
 | browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` exposed one H1, 12 H2, 78 H3, 74 H4, 21 tables and 29 code blocks with no browser error; a pinned temporary `marked 18.0.6` + Playwright `1.61.0` audit render at 1440×1000 and 768×1200 had document scroll width equal to viewport, zero overflowing heading/paragraph/list/blockquote/code/table containers and zero console errors; top, architecture, DAG, release and progress samples were read visually with no overlap, clipping, missing glyph or illegible text |
 | generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 10 tracked generated protocol diagrams current; this is byte freshness only and does not close V01–V10 or claim release visual acceptance |
-| exact final-tree `scripts/check.sh` | `NOT_RUN` | next step; no result may be inferred from the focused checks above |
-| final professional commit, push and remote-ref equality | `OPEN` | last step after the exact-tree full gate; the handoff reports the resulting commit externally because a Git commit cannot contain its own object ID |
+| clean committed-tree `scripts/check.sh` | `LOCAL_PASS` | from clean commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree `89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, the command exited zero with `NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN`; this run included the refreshed 18-threat, 139-occurrence, 100-requirement retained audit evidence |
+| exact final handoff-tree `scripts/check.sh` | `LOCAL_PASS` | after the receipt text and generated audit evidence reached their final bytes, the complete command was rerun and exited zero with the same explicit local-pass/external-not-run banner; no guard was omitted, skipped, downgraded, or replaced by a focused check |
+| final professional commit, push and remote-ref equality | `LOCAL_PASS` | the exact handoff tree was committed with a professional message, pushed to `origin/main`, and checked so local `HEAD` equalled `refs/heads/main`; the externally delivered handoff records the containing commit ID because embedding it here would change it |
 
 The implementation task IDs will use prefixes `B` (bookkeeping/decisions), `N`
 (canonical NCP), `F` (formal/verification), `E` (Engram), `H` (Haldir), `C`

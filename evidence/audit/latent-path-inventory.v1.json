@@ -1786,9 +1786,9 @@
       },
       {
         "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-        "bytes": 269057,
-        "sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
-        "git_blob_oid": "be9ff53f8690aed7a846949931436f98fffeedb8",
+        "bytes": 270534,
+        "sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
+        "git_blob_oid": "590c81bdefcd894a0615242b6377e423bb2d403a",
         "indexed": true
       },
       {
@@ -6379,7 +6379,7 @@
       "column": 87,
       "token_id": "M006",
       "line_sha256": "3ffca992441075de3d70872fcdcd06d2cdcb67f85cbc2f35786f717571d8cec4",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6393,7 +6393,7 @@
       "column": 17,
       "token_id": "M006",
       "line_sha256": "5fd337ead1550019b48083c45d9b9ef2680ea97e49c40b60fa59d1722266e6ab",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6407,7 +6407,7 @@
       "column": 40,
       "token_id": "M008",
       "line_sha256": "09e4c12969c4d57cacedecaa163512b93d0445647c157b5576a3715719a2aed4",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6421,7 +6421,7 @@
       "column": 70,
       "token_id": "M008",
       "line_sha256": "1a4215dfdfa9bab93485e6190f871acb4391f2d8b65ddeffe51d4a472a119b07",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6435,7 +6435,7 @@
       "column": 50,
       "token_id": "M008",
       "line_sha256": "c501d72fc4c4fb58395128e712bdd7a795eb27d6b61d6afe31803fc941d49845",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6449,7 +6449,7 @@
       "column": 39,
       "token_id": "M001",
       "line_sha256": "fa785bed767fc89e3f42888c5c51cb18fdb5324fa2ad5c8d8f49d6801585a2cc",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6463,7 +6463,7 @@
       "column": 44,
       "token_id": "M002",
       "line_sha256": "fa785bed767fc89e3f42888c5c51cb18fdb5324fa2ad5c8d8f49d6801585a2cc",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6477,7 +6477,7 @@
       "column": 13,
       "token_id": "M007",
       "line_sha256": "b62b8ab829d37fb51e39c9f20ec44ba56d7392526579e86f7677dcbc6fc5eb41",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6491,7 +6491,7 @@
       "column": 16,
       "token_id": "M007",
       "line_sha256": "bdd1bd47a88a01baf58a992d2fe4444f6a6e02ca3bc7268fd1fdeb2a3993314c",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -6499,13 +6499,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-6345029C2917FFB9AE80",
+      "id": "NCP-LATENT-3DB3B5B65B6A3535F70C",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 4810,
+      "line": 4821,
       "column": 273,
       "token_id": "M001",
       "line_sha256": "f2746ea617361fc7531b6ef64f4d7087d6cee38694c4fdefbc4dbac06dcabe62",
-      "file_sha256": "109efdd278322064de7125d647ab3c7cfae48eff88fde96ccf84d600ec8b4c1f",
+      "file_sha256": "447ed866094dad68e176637fd250e0457dd261b4bcbf99f1a4760611f6ac5261",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
