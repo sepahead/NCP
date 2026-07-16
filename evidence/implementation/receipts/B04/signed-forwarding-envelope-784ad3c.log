@@ -1,0 +1,60 @@
+Resolved 5 packages in 3ms
+Resolved 5 packages in 3ms
+Audited 4 packages in 0.72ms
+forwarding dependencies and protected source boundary verified
+13 files already formatted
+All checks passed!
+.......................
+----------------------------------------------------------------------
+Ran 23 tests in 0.901s
+
+OK
+{
+  "claim_boundary": {
+    "b04_complete": false,
+    "filesystem_rollback_protection_proved": false,
+    "independent_parser_gate_satisfied": false,
+    "ncp_authority_granted": false,
+    "plant_action_granted": false,
+    "production_security_proved": false,
+    "release_gate_satisfied": false
+  },
+  "crypto": {
+    "algorithm": "Ed25519",
+    "library": "PyNaCl",
+    "pynacl_version": "1.6.2",
+    "signing_input_uses_received_encoded_strings": true
+  },
+  "profiles": [
+    "command_frame",
+    "step_request"
+  ],
+  "replay": {
+    "begin_mode": "IMMEDIATE",
+    "commit_before_handoff": true,
+    "conditional_upsert": true,
+    "delivery_semantics": "at-most-once-with-explicit-crash-loss-window",
+    "filesystem_rollback_detected": false,
+    "journal_mode": "wal",
+    "recovery_epoch_signed": true,
+    "scope_capacity": 128,
+    "sqlite_version": "3.53.2",
+    "synchronous": "FULL"
+  },
+  "resources": {
+    "accepted_messages": 2,
+    "elapsed_microseconds_local": 17535,
+    "envelope_limit_bytes": 1500000,
+    "largest_envelope_bytes": 3479,
+    "largest_manifest_bytes": 494,
+    "largest_payload_bytes": 1204,
+    "largest_protected_bytes": 1307,
+    "largest_replay_database_bytes": 12288,
+    "manifest_limit_bytes": 65536,
+    "payload_limit_bytes": 1048576,
+    "protected_limit_bytes": 16384,
+    "replay_database_limit_bytes": 8388608
+  },
+  "schema": "ncp.prototype.signed-forwarding-result.v1",
+  "scope": "quarantined-local-feasibility"
+}

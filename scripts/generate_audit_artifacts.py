@@ -1936,6 +1936,15 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
         )
         if negative:
             return "NEGATIVE_POLICY_GUARD", "FAIL_CLOSED_REQUIREMENT", [path]
+        if path.startswith("prototypes/authenticated-ingress/"):
+            return (
+                "EXPLICIT_SCOPE_QUARANTINE",
+                "NO_SHIPPING_OR_AUTHORITY",
+                [
+                    "prototypes/authenticated-ingress/README.md",
+                    "docs/research/authenticated-ingress-feasibility.md",
+                ],
+            )
         if path in {"RATIONALE.md", "INTEGRATING.md"}:
             return "REVIEWED_DESIGN_EXPLANATION", "NO_AUTHORITY_WIDENING", [path]
     return "UNREVIEWED_ACTION_PATH", "BLOCKS_LOCAL_CLOSURE", ["KNOWN_LIMITATIONS.md"]
@@ -2149,6 +2158,17 @@ def self_test() -> None:
         raise AssertionError("latent scanner missed a hostile multi-token line")
     if any(item["disposition"] != "UNREVIEWED_ACTION_PATH" for item in hostile):
         raise AssertionError("unknown hostile markers did not remain unreviewed")
+    quarantined, is_text = _scan_content(
+        "prototypes/authenticated-ingress/example.md",
+        b"fallback\n",
+    )
+    if (
+        not is_text
+        or len(quarantined) != 1
+        or quarantined[0]["disposition"] != "EXPLICIT_SCOPE_QUARANTINE"
+        or quarantined[0]["claim_effect"] != "NO_SHIPPING_OR_AUTHORITY"
+    ):
+        raise AssertionError("authenticated-ingress quarantine classification regressed")
     if _scan_content("binary.bin", b"TODO\0fallback")[1]:
         raise AssertionError("binary input was treated as tracked text")
 

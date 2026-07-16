@@ -1,0 +1,230 @@
+{
+  "schema": "ncp-implementation-b04-signed-forwarding-envelope-receipt-v1",
+  "task_id": "B04",
+  "section": "quarantined-strict-signed-forwarding-envelope-prototype-b-reference",
+  "claim_boundary": "Bounded local prototype-B Python-reference feasibility evidence only. This receipt grants no transport identity transfer, NCP authority, session, lease, operation success, plant action, production-secure availability, independent parser or reviewer standing, release authorization, certification, interoperability, or external gate.",
+  "source": {
+    "repository": "NCP",
+    "branch": "main",
+    "commit": "784ad3cdeaab89e6bc362b687a7df3c92b6bb7bf",
+    "tree": "0403547611c4da4bf2f56c9445ae0736ba21aaed",
+    "candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "normative_contract_changed": false,
+    "shipping_package_changed": false,
+    "root_workspace_changed": false
+  },
+  "remote_verification": {
+    "remote": "origin",
+    "ref": "refs/heads/main",
+    "local_head": "784ad3cdeaab89e6bc362b687a7df3c92b6bb7bf",
+    "remote_tracking_object": "784ad3cdeaab89e6bc362b687a7df3c92b6bb7bf",
+    "remote_advertised_object": "784ad3cdeaab89e6bc362b687a7df3c92b6bb7bf",
+    "source_tracked_worktree_clean": true,
+    "verified_at_utc": "2026-07-16T14:49:16Z"
+  },
+  "reviewed_input": {
+    "python": "3.14.6",
+    "uv": "0.8.14",
+    "pynacl": {
+      "version": "1.6.2",
+      "sdist_sha256": "018494d6d696ae03c7e656e5e74cdfd8ea1326962cc401bcf018f1ed8436811c"
+    },
+    "cffi": {
+      "version": "2.1.0",
+      "sdist_sha256": "efc1cdd798b1aaf39b4610bba7aad28c9bea9b910f25c784ccf9ec1fa719d1f9"
+    },
+    "pycparser": {
+      "version": "3.0",
+      "sdist_sha256": "600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29"
+    },
+    "ruff": {
+      "version": "0.15.21",
+      "sdist_sha256": "d0cfc841c572283c36548f82664a54ce6565567f1b0d5b4cf2caac693d8b7500"
+    },
+    "uv_lock_sha256": "f8d7d3baf068c67fab3d2b319fffc5d10a1ec2c93b001c21330a611a4986c686",
+    "resolved_package_count_including_virtual_project": 5,
+    "registry_artifacts_have_sha256": true
+  },
+  "focused_validation": {
+    "command": "./prototypes/authenticated-ingress/signed-forwarding-envelope/run.sh",
+    "command_output_artifact": "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.log",
+    "exit_code": 0,
+    "python_tests": {
+      "passed": 23,
+      "failed": 0
+    },
+    "exact_dependency_and_source_verifier": "PASS",
+    "format": "PASS",
+    "ruff_security_rules": "PASS",
+    "compileall": "PASS",
+    "live_result_verified": true,
+    "positive_payload_profiles": [
+      "command_frame",
+      "step_request"
+    ]
+  },
+  "live_result": {
+    "crypto_algorithm": "Ed25519",
+    "crypto_library": "PyNaCl",
+    "pynacl_version": "1.6.2",
+    "sqlite_version": "3.53.2",
+    "journal_mode": "wal",
+    "synchronous": "FULL",
+    "begin_mode": "IMMEDIATE",
+    "conditional_upsert": true,
+    "commit_before_handoff": true,
+    "delivery_semantics": "at-most-once-with-explicit-crash-loss-window",
+    "recovery_epoch_signed": true,
+    "filesystem_rollback_detected": false,
+    "scope_capacity": 128,
+    "accepted_messages": 2,
+    "elapsed_microseconds_local": 17535,
+    "largest_envelope_bytes": 3479,
+    "envelope_limit_bytes": 1500000,
+    "largest_manifest_bytes": 494,
+    "manifest_limit_bytes": 65536,
+    "largest_payload_bytes": 1204,
+    "payload_limit_bytes": 1048576,
+    "largest_protected_bytes": 1307,
+    "protected_limit_bytes": 16384,
+    "largest_replay_database_bytes": 12288,
+    "replay_database_limit_bytes": 8388608,
+    "ncp_authority_granted": false,
+    "plant_action_granted": false,
+    "production_security_proved": false,
+    "independent_parser_gate_satisfied": false,
+    "b04_complete": false,
+    "release_gate_satisfied": false
+  },
+  "supporting_checks": {
+    "pip_audit": {
+      "known_vulnerabilities": 0,
+      "mode": "fully pinned uv export, no dependency resolution, pip disabled",
+      "time_varying_local_observation_only": true
+    },
+    "implementation_ledger_self_test": "PASS",
+    "implementation_ledger_validation_before_receipt_update": "PASS",
+    "generated_recovery_views_equal_before_receipt_update": "PASS",
+    "markdown_link_and_anchor_check": "PASS",
+    "cspell_files_checked": 27,
+    "cspell_issues": 0,
+    "whitespace_check": "PASS",
+    "secret_and_local_path_scan": "PASS"
+  },
+  "artifacts": [
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/uv.lock",
+      "sha256": "f8d7d3baf068c67fab3d2b319fffc5d10a1ec2c93b001c21330a611a4986c686",
+      "bytes": 23094
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/pyproject.toml",
+      "sha256": "3f48c940baeb8bff88e236be9135e490e5782171bc9301207a6dd28352faeeba",
+      "bytes": 574
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/prototype/forwarding.py",
+      "sha256": "952d4afd007940992be5523ae75ee1a662e2d4e5df1c3f639a0b92c3ec2df237",
+      "bytes": 25121
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/prototype/replay.py",
+      "sha256": "f8468789141047de97a346872c4a6abdcc5ceb9792d7d9bf9d45678de6e11565",
+      "bytes": 29159
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/prototype/strict.py",
+      "sha256": "ec5791b680c76176dfce6603d1985c34aa1724a776e4611282500976516e986f",
+      "bytes": 16456
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_forwarding.py",
+      "sha256": "bb6235e76d6c0e49ecff4c16263d4dfe04f088369d690bf4dec59df6c4fdf475",
+      "bytes": 17461
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_replay.py",
+      "sha256": "d932d43e4642d7e788a228d6ba598113e45ac26653f806d313bcf0e0134dc19b",
+      "bytes": 17051
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_verifiers.py",
+      "sha256": "acce210e21194be96e5b39f752be8652ceece4baa4c99f026eadefcd263f5527",
+      "bytes": 5483
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/live_result.py",
+      "sha256": "d9acbb84d9a7e54a0cf8d1396a9bccd369cb43c99b5f67be343172f1d90307b0",
+      "bytes": 4272
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/verify_profile.py",
+      "sha256": "8b8dec2085c0015c6c99fea43b5691660e4164d5a8c47c76fff4f74ba0e67030",
+      "bytes": 5826
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/verify_result.py",
+      "sha256": "0393a696bbea17c89721c6fa693faec97866eafb6b958acc2678ad7b21c2d13d",
+      "bytes": 5601
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/run.sh",
+      "sha256": "8602723cb905de53c4d50fbea915893c45d0eae78b9c6d97e48ccec0f4e97ba4",
+      "bytes": 513
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/README.md",
+      "sha256": "cfff703b5b4272cf1ec17a62704a7c60c44ff316bf969364118adfb363d765d5",
+      "bytes": 7445
+    },
+    {
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/SECTION_REVIEW.md",
+      "sha256": "78ca56c31bdb47dceb12ccce69df03b8dbf71df3fa5b8ce4a0a8670d7b741964",
+      "bytes": 9081
+    },
+    {
+      "path": "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.log",
+      "sha256": "11036915a736cb6f7888d29490516d687bceb7b4b2bc7531150cc59f1192e484",
+      "bytes": 1786
+    }
+  ],
+  "security_observations": {
+    "identity_axes": "The simulated verified-A carrier remains forwarding-only and must differ from the manifest-enrolled Ed25519 signer at both principal and entity identity. The immutable handoff retains both identities, carrier role/profile, stable-core digest, security-state digest, and exact signed payload bytes.",
+    "envelope_profile": "The outer object is exactly flattened JWS protected/payload/signature with canonical unpadded base64url, literal Ed25519 algorithm and prototype type, crit=[ncp], no unprotected or remote key material, exact received encoded signing input, and a content-addressed current manifest key.",
+    "ncp_binding": "The signed context separates forwarding epoch/sequence and recovery epoch from canonical UUIDv4 NCP session generation, conditional stream position, and conditional operation id/request digest/expected state version. Full NCP session, lease, idempotency, lifecycle, safety, and plant admission remain downstream.",
+    "replay": "Replay uses an owner-only SQLite store, exact schema SQL, WAL plus synchronous FULL, BEGIN IMMEDIATE conditional high-water upsert, commit-before-handoff, bounded replay scopes, bounded main and sidecar files, and public API replay-key validation. Equal or lower sequences and every storage error reject.",
+    "recovery": "Initialization requires an absent path. Owner-signed recovery must advance by exactly one recovery epoch to a distinct store ID; the signed envelope recovery epoch fences every old envelope. A cooperative shared/exclusive advisory lock prevents replacement while another conforming local process is active.",
+    "known_limits": "Commit-before-handoff is honest at-most-once and can lose a handoff after commit. Filesystem snapshot rollback is not detected without an external monotonic anchor. Non-cooperating same-UID processes, shared filesystems, replicated state, owner-key custody, trusted time, disk-full, kill-during-COMMIT, WAL-aware backup/restore, duration fuzz, soak, performance, live composition with prototype A, and independent parser agreement are unproved."
+  },
+  "model_advice_boundary": {
+    "completed_exact_model_consultations": 6,
+    "model": "claude-fable-5",
+    "counted_as_reviewer_or_evidence": false,
+    "disposition": "The sixth narrow replay/recovery challenge identified the empty-store replay hole and commit-before-handoff crash-loss semantics. The signed recovery epoch and explicit at-most-once boundary were adopted. Model advice remains non-normative and cannot satisfy a parser, reviewer, proof, or gate."
+  },
+  "environment": {
+    "operating_system": "macOS 26.5.1 build 25F80",
+    "architecture": "arm64",
+    "python": "3.14.6",
+    "uv": "0.8.14",
+    "pynacl": "1.6.2",
+    "sqlite": "3.53.2",
+    "ruff": "0.15.21"
+  },
+  "three_lens_decision": {
+    "protocol_security_plant": "LOCAL_PASS_FOR_REFERENCE_PROFILE_ONLY",
+    "consumer_runtime": "LOCAL_PASS_FOR_ISOLATED_PYTHON_REFERENCE_ONLY",
+    "operations_science_evidence": "LOCAL_PASS_WITH_EXPLICIT_CRASH_AND_ROLLBACK_LIMITS",
+    "next_permitted_action": "Implement a native TypeScript/Node verifier with independent JSON and Ed25519/OpenSSL stacks, then run a shared public-only differential corpus with global reject on any disagreement. Do not alter the normative wire, ship this prototype, enable direct Zenoh production-secure, or change consumer repositories."
+  },
+  "gate_effect": {
+    "signed_forwarding_python_reference": "LOCAL_PASS",
+    "independent_typescript_parser": "NOT_RUN",
+    "differential_parser_gate": "NOT_RUN",
+    "b04_task": "IN_PROGRESS",
+    "ncp_release_authorized": false,
+    "external_release_gates": "NOT_RUN"
+  }
+}
