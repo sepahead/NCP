@@ -33,14 +33,14 @@ Dependency-ready open tasks: none.
 
 ### `B01` — Decide and ratify ADR-001 through ADR-011
 
-The exact PROPOSED ADR-001 through ADR-011 slice is pushed and remote-verified at `f1a5a3d17d1f158374816dcb29a99d5cdd445074`. The dirty-tree full preflight passed with output SHA-256 `8f98ad548c2b00c10362c45075a0d91191ab225b50d306e5dbe028defa34ea57`, and the focused parser/link/schema/audit replay passed with output SHA-256 `10eab894c1d380d2b3b0e27ebaf78f353a7768f12894d419b0d5cfe585d17388`. The first clean exact-commit replay correctly rejected stale audit inventory caused by the ADR files changing from untracked to indexed; this checkpoint regenerates that content-bound inventory without changing any ADR byte or status. Next: verify the clean checkpoint, run preliminary models/resource probes, and obtain qualifying same-digest owner and independent reviews. Do not write contract/decision-registry.v1.json, change normative wire sources, mark any ADR ACCEPTED, start B02/B03/N tasks, or infer release readiness.
+The proposal/checkpoint commits are pushed and remote-verified through `829859c85b4a8cf148a54e6c283bbb1f5c62b603`; its exact clean repository preflight passed with output SHA-256 `4d60c70b9c6f485422489447554b23c42131081835de8b9778e7cc5861d00a49`. A fourth exact `claude-fable-5` consultation (`end_turn`, response SHA-256 `356dcd46bcf4e1ad2bb11a878fe5bcaa75a3ae16fc58eb035c674aa08e286deb`) challenged the evidence runner after one incomplete maximum-effort attempt. Development runs explored 11,444 composition states and 35 deny states, killed 17 model and four SMT mutations, required a formerly valid stale command to reject while a fresh current command remained pending, rejected unauthenticated deny tightening, bound strict nested/Git/contract/tool identities, and detected seeded queue/parser/journal/real-Ed25519 resource faults. This slice commits only prototype sources and non-normative consultation/bookkeeping; next generate and verify an exact clean-source result, retain its hashed evidence, then obtain qualifying same-digest owner and independent reviews. Do not create the normative registry, alter ADR bytes or wire sources, start B02/B03/F01/N tasks, or infer release readiness.
 
 Current residual risks:
 
 - All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
-- Wire examples are draft JSON only. Two independent prototype-parser syntax replay, preliminary formal models, resource probes, and every downstream implementation remain open.
-- Exact Fable 5 consultations are non-normative challenge input only. Two staging attempts returned no answer, and no model response counts as review, proof, interoperability, or evidence.
+- Wire examples remain draft JSON only. Independent Python/Node syntax replay passes, and a quarantined preliminary model/resource prototype kills its development mutations, but its exact clean-source result, canonical formal work, refinement, and every downstream implementation remain open.
+- Four usable exact Fable 5 consultations are non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
 
 ## Three required review perspectives
@@ -130,7 +130,7 @@ satisfy the floor.
 |---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
 | `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
-| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `f1a5a3d17d1f` | 5 |
+| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `829859c85b4a` | 5 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
 | `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Reserve registries, namespaces, error codes, and owners | `B01` | NCP | `—` | 0 |
 | `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Establish the single normative source graph and identity projections | `B02`, `B03` | NCP | `—` | 0 |
