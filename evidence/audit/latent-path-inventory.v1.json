@@ -1849,16 +1849,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 11311,
-        "sha256": "38748ed7d43f9f3f1c8c416029a620d475ba347aa567885eedc87920f51a7a50",
-        "git_blob_oid": "14d611c951868c7cdacf8022da9e4550ed411c97",
+        "bytes": 11169,
+        "sha256": "f74f35e3ea623fc0283dcba0a964af2c5a1c59e6ef9e6826a05b978cde3c5344",
+        "git_blob_oid": "1748ef5748b7c1766b11c74107fff13504c9bbc8",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 20971,
-        "sha256": "bf811574f1e08dcfafeb5c0b8523d72cdea0906255fa3ed9a795fed28bc23179",
-        "git_blob_oid": "bc8735549aa5951651538de182027a3d32cf2b0b",
+        "bytes": 20829,
+        "sha256": "6a167367e835ee225b403a1c70503174cb5735b186f9682742fd940cb895f721",
+        "git_blob_oid": "22bdccf7f293bed0fc435a2233f029685f07e6dc",
         "indexed": true
       },
       {
@@ -2009,6 +2009,20 @@
         "indexed": true
       },
       {
+        "path": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.log",
+        "bytes": 1724,
+        "sha256": "34cfd542559494a69c54eb7fff36f5951bc60ee59edf4572bad9d7b3c2158cc3",
+        "git_blob_oid": "407dcaf716f0df8e1ceebf962c571e77f6a17c3d",
+        "indexed": true
+      },
+      {
+        "path": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.v1.json",
+        "bytes": 8664,
+        "sha256": "5c22126fbb38c3aaa004ed63ebf5e5fb1001effb2a15c1176c069261a0607a56",
+        "git_blob_oid": "579af631b554f63c18a5dad0d8710764c14601c6",
+        "indexed": true
+      },
+      {
         "path": "evidence/implementation/receipts/B04/zenoh-metadata-probe-b1dcf1b.v1.json",
         "bytes": 5869,
         "sha256": "cff99017299f8956378545ec1bb10a58412cc5f861033800b345e634487d4e87",
@@ -2024,9 +2038,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 93150,
-        "sha256": "81cb40afb64a8dd1c82585cc4d555c194d6cdfefd37ce22443e1905500801a60",
-        "git_blob_oid": "41fa94bebb49265921aefc2ccd5b659b7ccd5c38",
+        "bytes": 94084,
+        "sha256": "dd51800ff0f528c0de92620c5bcf890a75da8c50dfd4831b6e0162af940904c0",
+        "git_blob_oid": "070c910a40b01ba91d3dff7561058865eff0fdd8",
         "indexed": true
       },
       {
@@ -5370,9 +5384,9 @@
       },
       {
         "path": "prototypes/authenticated-ingress/README.md",
-        "bytes": 1240,
-        "sha256": "db4a1b9627e4e880f27b22b0a297d125f2b139983dc655ddc12b97df975d9074",
-        "git_blob_oid": "e0e1c99da22daff66a52ad3dcac2af5548b40ff6",
+        "bytes": 1249,
+        "sha256": "c111ee08fe5d04f778abeab438e7020cd289b65c89903c117978647098bc412f",
+        "git_blob_oid": "9104474742f3cc33fb0d7858a63bdc3ce28b57b2",
         "indexed": true
       },
       {
@@ -5380,6 +5394,83 @@
         "bytes": 212,
         "sha256": "870dfa7ea99c55b50bbcf13c941cce897525c8c3607934d61ec66ca86f8a6655",
         "git_blob_oid": "386316d14f72e9591293780b2fcfb9826e576390",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/.gitignore",
+        "bytes": 34,
+        "sha256": "2ffb0c6524a68f9ce2e72ff09c860489d15ad299c3b0e3a823fe6ee17a613f88",
+        "git_blob_oid": "1b8b8bd0b2a51b09955f80dc26c8c7878a6fb6f5",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/Cargo.lock",
+        "bytes": 20701,
+        "sha256": "b15ba2df24430fd4967f04c16df5796232d3474df72e2c1c34154bab38049de7",
+        "git_blob_oid": "d8bbe3a4242adc5d4738edd3f4c54ca0e8d4986c",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/Cargo.toml",
+        "bytes": 894,
+        "sha256": "32e74d612f859312a7a394e8d1cd87877142914dd3e5612b4eccab32f1528ef6",
+        "git_blob_oid": "e8312b2e63c7b4a958745f4d13c89a9fd258b4f9",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/README.md",
+        "bytes": 6174,
+        "sha256": "8410e942622b47925e23996ea1df7148cb92a5353880a6929bacb4a169f343ca",
+        "git_blob_oid": "d0ca829dca36d67e88ca7d8f7522872f5b3f0403",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/SECTION_REVIEW.md",
+        "bytes": 13405,
+        "sha256": "d26c4b47fc4d8c4ba50f321148901571f81c390dcde6d366ceb87172ebb6f9aa",
+        "git_blob_oid": "4587cba9149a08116707651753a85cd400676489",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/run.sh",
+        "bytes": 487,
+        "sha256": "7a8f5aa9e14f0d2bb95d3866995d44981acf7632b8d2637ad4d2ea803c70998a",
+        "git_blob_oid": "20950c0ff094bff167119ae1c3955fea4f5a3cff",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/src/lib.rs",
+        "bytes": 37224,
+        "sha256": "a672d162e64a90facb66813bd040ef04fbfd75a53c5232f671680174dfbd161c",
+        "git_blob_oid": "28044fa3faeb82ae26aa8288161d894b0d662ee4",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/tests/ingress.rs",
+        "bytes": 42688,
+        "sha256": "dc49dc448e4b9624930226e9e7d7bbaef2fc368f04da4f11f5c2a26f7061b709",
+        "git_blob_oid": "3698636f8671bc956f26f7537c1e2711c23056d9",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/tests/test_verifiers.py",
+        "bytes": 4391,
+        "sha256": "52dbdb45006f35a065859a2a4c021f8d237d1ba7c240d983ea7deb0a3dcf0cbf",
+        "git_blob_oid": "2487278b1b95218822193d16e17993f1c2ef1d25",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/verify_features.py",
+        "bytes": 7480,
+        "sha256": "78ecd4f4aa8399a11b72f58fd5289d5531478ee951c963bfcb9af4c599475937",
+        "git_blob_oid": "26404bbff4c141c818013919f7ea3b031172016c",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/tls-terminating-ingress/verify_result.py",
+        "bytes": 4304,
+        "sha256": "b63ceffae613d80e1c1887af16c6465d513ec2b1e7d590049d55e875f5a51bbc",
+        "git_blob_oid": "6e0091e94e1b5eeeb73a67fb18cf594c252ece57",
         "indexed": true
       },
       {
@@ -6084,7 +6175,7 @@
     ]
   },
   "counts": {
-    "text_files": 842,
+    "text_files": 855,
     "binary_or_non_utf8_files": 18,
     "occurrences": 142,
     "by_token_id": {
@@ -6111,7 +6202,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "4da24690016fdeb21932ecb119f9f72bdcdf26c94455be4e5426d8af985e6f80",
+  "scanned_path_set_sha256": "999e3b7d6f735819ed8d863aedc04b09b69d547afe423de9b997a1cd1071f8f8",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

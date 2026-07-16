@@ -1,0 +1,200 @@
+{
+  "schema": "ncp-implementation-b04-tls-terminating-ingress-receipt-v1",
+  "task_id": "B04",
+  "section": "quarantined-loopback-tls-1.3-terminating-ingress-prototype-a",
+  "claim_boundary": "Bounded local prototype-A feasibility evidence only. This receipt grants no runtime identity, NCP authority, session, lease, plant action, production-secure availability, release authorization, certification, independent interoperability, or external gate.",
+  "source": {
+    "repository": "NCP",
+    "branch": "main",
+    "commit": "08be80eb98da5cd6e60af457c94d1c33e6890343",
+    "tree": "99ea19d7f5f4f3d86f79586b64524949e3c7cd5a",
+    "candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "normative_contract_changed": false,
+    "shipping_package_changed": false,
+    "root_workspace_changed": false
+  },
+  "remote_verification": {
+    "remote": "origin",
+    "ref": "refs/heads/main",
+    "local_head": "08be80eb98da5cd6e60af457c94d1c33e6890343",
+    "remote_tracking_object": "08be80eb98da5cd6e60af457c94d1c33e6890343",
+    "remote_advertised_object": "08be80eb98da5cd6e60af457c94d1c33e6890343",
+    "source_tracked_worktree_clean": true,
+    "verified_at_utc": "2026-07-16T13:39:49Z"
+  },
+  "reviewed_input": {
+    "rustls": {
+      "version": "0.23.40",
+      "crates_io_checksum_sha256": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+      "upstream_commit_sha1": "b44c09fbca5172b3f5e5ed6ba2ffe6fcd934e07a"
+    },
+    "tokio_rustls": {
+      "version": "0.26.4",
+      "crates_io_checksum_sha256": "1729aa945f29d91ba541258c8df89027d5792d85a8841fb65e8bf0f4ede4ef61",
+      "upstream_commit_sha1": "0c14e1496ef50adade4ac7c7d1f0270dfb3cdda5"
+    },
+    "rcgen_test_only": {
+      "version": "0.14.8",
+      "crates_io_checksum_sha256": "57f6d249aad744e274e682777a50283a225a32705394ee6d5fcc01efa25e4055",
+      "upstream_commit_sha1": "a70f083fa21be1214de4aa3743cbf1ebfc62ddad"
+    },
+    "rustls_features": [
+      "ring",
+      "std"
+    ],
+    "tokio_rustls_features": [
+      "ring"
+    ],
+    "forbidden_resolved_tls_features_present": false
+  },
+  "focused_validation": {
+    "command": "./prototypes/authenticated-ingress/tls-terminating-ingress/run.sh",
+    "command_output_artifact": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.log",
+    "exit_code": 0,
+    "hostile_verifier_tests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "rust_integration_tests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "doc_tests": {
+      "passed": 0,
+      "failed": 0
+    },
+    "clippy_all_targets_all_features_warnings_denied": "PASS",
+    "clippy_performance_lints": "PASS",
+    "format": "PASS",
+    "documentation_build": "PASS",
+    "external_openssl_tls12_refusal": "PASS",
+    "external_openssl_tls13_no_session_ticket": "PASS",
+    "live_result_verified": true
+  },
+  "live_result": {
+    "manifest_bytes": 369,
+    "manifest_limit_bytes": 65536,
+    "payload_bytes": 583,
+    "frame_limit_bytes": 1048576,
+    "connections": 2,
+    "elapsed_microseconds_local": 6279,
+    "ingress_admitted_identical_messages": 2,
+    "duplicate_observations": [
+      false,
+      true
+    ],
+    "replay_probe_durable": false,
+    "replay_probe_affects_admission": false,
+    "production_security_proved": false,
+    "live_rotation_revocation_gate_satisfied": false,
+    "authorization_granted": false,
+    "plant_authority_granted": false,
+    "release_gate_satisfied": false
+  },
+  "supporting_checks": {
+    "cargo_audit": {
+      "vulnerabilities": 0,
+      "warnings": 0,
+      "lockfile_dependencies": 90,
+      "rustsec_database_commit": "9f3e138091487e69144f536d36976e427a7a3307"
+    },
+    "implementation_ledger_self_test": "PASS",
+    "implementation_ledger_validation": "PASS",
+    "generated_recovery_views_equal_before_receipt_update": "PASS",
+    "markdown_link_and_anchor_check": "PASS",
+    "secret_and_local_path_scan": "PASS"
+  },
+  "artifacts": [
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/Cargo.lock",
+      "sha256": "b15ba2df24430fd4967f04c16df5796232d3474df72e2c1c34154bab38049de7",
+      "bytes": 20701
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/Cargo.toml",
+      "sha256": "32e74d612f859312a7a394e8d1cd87877142914dd3e5612b4eccab32f1528ef6",
+      "bytes": 894
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/src/lib.rs",
+      "sha256": "a672d162e64a90facb66813bd040ef04fbfd75a53c5232f671680174dfbd161c",
+      "bytes": 37224
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/tests/ingress.rs",
+      "sha256": "dc49dc448e4b9624930226e9e7d7bbaef2fc368f04da4f11f5c2a26f7061b709",
+      "bytes": 42688
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/tests/test_verifiers.py",
+      "sha256": "52dbdb45006f35a065859a2a4c021f8d237d1ba7c240d983ea7deb0a3dcf0cbf",
+      "bytes": 4391
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/verify_features.py",
+      "sha256": "78ecd4f4aa8399a11b72f58fd5289d5531478ee951c963bfcb9af4c599475937",
+      "bytes": 7480
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/verify_result.py",
+      "sha256": "b63ceffae613d80e1c1887af16c6465d513ec2b1e7d590049d55e875f5a51bbc",
+      "bytes": 4304
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/run.sh",
+      "sha256": "7a8f5aa9e14f0d2bb95d3866995d44981acf7632b8d2637ad4d2ea803c70998a",
+      "bytes": 487
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/README.md",
+      "sha256": "8410e942622b47925e23996ea1df7148cb92a5353880a6929bacb4a169f343ca",
+      "bytes": 6174
+    },
+    {
+      "path": "prototypes/authenticated-ingress/tls-terminating-ingress/SECTION_REVIEW.md",
+      "sha256": "d26c4b47fc4d8c4ba50f321148901571f81c390dcde6d366ceb87172ebb6f9aa",
+      "bytes": 13405
+    },
+    {
+      "path": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.log",
+      "sha256": "34cfd542559494a69c54eb7fff36f5951bc60ee59edf4572bad9d7b3c2158cc3",
+      "bytes": 1724
+    }
+  ],
+  "security_observations": {
+    "tls_profile": "TLS 1.3, ring provider, mandatory initial client certificate, pinned ALPN, no session storage, zero tickets, no early data, no half-RTT data, and no secret extraction.",
+    "certificate_identity": "The exact verified first leaf DER SHA-256 is compared with one bounded default-deny manifest; certificate subject text and intermediates do not identify the actor.",
+    "manifest_publication": "Exact-byte digest, bounded shape, monotonic process-local generation, idempotent equal-byte republish, equivocation rejection, and one final immutable snapshot are local properties only; publisher authenticity and durable rollback protection are absent.",
+    "protected_handoff": "The safe-Rust affine pair prevents accidental external construction, mutation, serialization, and detachment, but possession is not an authority capability.",
+    "replay": "Duplicate authentication remains permitted and the disposable volatile observer is not replay protection or recovery authority.",
+    "known_eku_boundary": "An explicit server-only EKU rejects; an absent EKU is accepted as unrestricted by the pinned webpki behavior and is not claimed as explicit clientAuth enforcement."
+  },
+  "model_advice_boundary": {
+    "completed_exact_model_consultations": 5,
+    "model": "claude-fable-5",
+    "counted_as_reviewer_or_evidence": false,
+    "disposition": "Non-normative assumption challenges produced prototype corrections and future ADR falsification targets; incomplete, refused, or output-limited responses were not counted."
+  },
+  "environment": {
+    "operating_system": "macOS 26.5.1 build 25F80",
+    "architecture": "arm64",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "python": "3.14.6",
+    "openssl": "3.6.2"
+  },
+  "three_lens_decision": {
+    "protocol_security_plant": "LOCAL_PASS",
+    "consumer_runtime": "LOCAL_PASS_FOR_PROTOTYPE_A_ONLY",
+    "operations_science_evidence": "LOCAL_PASS",
+    "next_permitted_action": "Implement and falsify the quarantined strict signed-forwarding prototype B with durable atomic replay semantics; do not alter the normative wire, ship this crate, or enable direct Zenoh production-secure."
+  },
+  "gate_effect": {
+    "terminating_tls_ingress_prototype_a": "LOCAL_PASS",
+    "b04_task": "IN_PROGRESS",
+    "ncp_release_authorized": false,
+    "external_release_gates": "NOT_RUN"
+  }
+}

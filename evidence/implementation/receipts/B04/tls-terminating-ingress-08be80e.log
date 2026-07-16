@@ -1,0 +1,66 @@
+TLS-ingress dependency features and protected source boundary verified
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 18 tests
+..................
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+{
+  "binding": {
+    "context_serialized": false,
+    "exact_leaf_der_sha256": true,
+    "manifest_default_deny": true,
+    "manifest_generation": 1,
+    "payload_identity_exact_match": true,
+    "same_immutable_payload": true
+  },
+  "claim_boundary": {
+    "authorization_granted": false,
+    "live_rotation_revocation_gate_satisfied": false,
+    "plant_authority_granted": false,
+    "production_security_proved": false,
+    "release_gate_satisfied": false
+  },
+  "replay_probe": {
+    "affects_admission": false,
+    "duplicate_observations": [
+      false,
+      true
+    ],
+    "durable": false,
+    "ingress_admitted_identical_messages": 2
+  },
+  "resources": {
+    "connections": 2,
+    "elapsed_microseconds_local": 6279,
+    "frame_limit_bytes": 1048576,
+    "manifest_bytes": 369,
+    "manifest_limit_bytes": 65536,
+    "payload_bytes": 583
+  },
+  "schema": "ncp.prototype.tls-terminating-ingress-result.v1",
+  "scope": "quarantined-local-feasibility",
+  "tls": {
+    "alpn": "ncp-prototype-a/1",
+    "client_certificate_required": true,
+    "provider": "ring",
+    "resumption_accepted": false,
+    "tickets_sent": 0,
+    "version": "1.3",
+    "zero_rtt_accepted": false
+  }
+}
