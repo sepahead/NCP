@@ -837,7 +837,23 @@
     },
     {
       "adr_ids": [],
-      "artifacts": [],
+      "artifacts": [
+        "evidence/implementation/receipts/B04/zenoh-metadata-probe-b1dcf1b.v1.json",
+        "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.log",
+        "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.v1.json",
+        "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.log",
+        "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.v1.json",
+        "evidence/implementation/receipts/B04/focused-prototypes-3754635.log",
+        "evidence/implementation/receipts/B04/full-preflight-3754635.log.gz",
+        "evidence/implementation/receipts/B04/failed-preflight-repository-log-e37e5f8.log.gz",
+        "evidence/implementation/receipts/B04/failed-preflight-current-rustsec-fetch-e37e5f8.log.gz",
+        "evidence/implementation/receipts/B04/current-rustsec-gate-focused-e37e5f8.log.gz",
+        "evidence/implementation/receipts/B04/current-rustsec-shallow-advisories-e37e5f8.jsonl",
+        "evidence/implementation/receipts/B04/current-rustsec-full-advisories-e37e5f8.jsonl",
+        "evidence/implementation/receipts/B04/receipt-summary-3754635.v1.json",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/package-lock.json"
+      ],
       "changed_files": [
         "README.md",
         "docs/implementation/NCP_1_0_RESUMPTION.md",
@@ -852,6 +868,14 @@
         "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.v1.json",
         "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.log",
         "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.v1.json",
+        "evidence/implementation/receipts/B04/current-rustsec-full-advisories-e37e5f8.jsonl",
+        "evidence/implementation/receipts/B04/current-rustsec-gate-focused-e37e5f8.log.gz",
+        "evidence/implementation/receipts/B04/current-rustsec-shallow-advisories-e37e5f8.jsonl",
+        "evidence/implementation/receipts/B04/failed-preflight-current-rustsec-fetch-e37e5f8.log.gz",
+        "evidence/implementation/receipts/B04/failed-preflight-repository-log-e37e5f8.log.gz",
+        "evidence/implementation/receipts/B04/focused-prototypes-3754635.log",
+        "evidence/implementation/receipts/B04/full-preflight-3754635.log.gz",
+        "evidence/implementation/receipts/B04/receipt-summary-3754635.v1.json",
         "evidence/implementation/task-ledger.v1.json",
         "evidence/implementation/receipts/B04/zenoh-metadata-probe-b1dcf1b.v1.json",
         "evidence/implementation/receipts/B04/zenoh-probe-review-desktop-1440.png",
@@ -885,6 +909,28 @@
         "prototypes/authenticated-ingress/signed-forwarding-envelope/.gitignore",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/README.md",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/SECTION_REVIEW.md",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/README.md",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/generate_corpus.py",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/python_adapter.py",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/run.sh",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/run_differential.py",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/verify_corpus.py",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/README.md",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/package-lock.json",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/package.json",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/run.sh",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/cli.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/errors.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/strict-json.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/verifier.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/common.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/crypto-strict.test.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/strict-json.test.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/verifier.test.ts",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tsconfig.json",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/verify_profile.mjs",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/verify_profile.test.mjs",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/prototype/__init__.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/prototype/forwarding.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/prototype/replay.py",
@@ -897,15 +943,53 @@
         "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/replay_worker.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_forwarding.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_replay.py",
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_strict.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_verifiers.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/uv.lock",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/verify_profile.py",
         "prototypes/authenticated-ingress/signed-forwarding-envelope/verify_result.py",
+        "evidence/supply-chain/inventory.v1.json",
+        "scripts/README.md",
+        "scripts/check.sh",
         "scripts/check_implementation_ledger.py",
-        "scripts/generate_audit_artifacts.py"
+        "scripts/generate_audit_artifacts.py",
+        "scripts/prepare_current_advisory_database.py"
       ],
       "claim_tier": "COORDINATION_ONLY",
-      "commands": [],
+      "commands": [
+        {
+          "command": "Run the exact-cut Zenoh metadata probe, TLS-terminating ingress runner, and complete signed-forwarding Python, Node, and differential runner sequentially with fail-fast and pipefail",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B04/focused-prototypes-3754635.log",
+          "passed": 7,
+          "skipped": 0
+        },
+        {
+          "command": "./scripts/check.sh",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B04/full-preflight-3754635.log.gz",
+          "passed": 20,
+          "skipped": 0
+        },
+        {
+          "command": "Run the bounded current RustSec preparer self-test, same-commit shallow current cargo-deny scan, pinned replay, byte-equivalence proof, and supply-chain evidence validation",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B04/current-rustsec-gate-focused-e37e5f8.log.gz",
+          "passed": 6,
+          "skipped": 0
+        },
+        {
+          "command": "Verify local HEAD, origin/main tracking object, advertised refs/heads/main object, source tree, and clean tracked worktree",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B04/receipt-summary-3754635.v1.json",
+          "passed": 5,
+          "skipped": 0
+        }
+      ],
       "dependencies": [
         "B00"
       ],
@@ -913,25 +997,114 @@
       "id": "B04",
       "invalidates": [],
       "minimum_terminal_class": "LOCAL",
-      "perspective_reviews": [],
+      "perspective_reviews": [
+        {
+          "disposition": "PASS",
+          "id": "P1",
+          "rationale": "The exact Zenoh probe disproves application-visible transport identity, the TLS and signed-forwarding alternatives preserve distinct carrier and signer axes, and all accepted prototype results remain authentication evidence without NCP lease, lifecycle, operation, plant, or actuator authority.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "P2",
+          "rationale": "The quarantined Python/libsodium and native TypeScript/Node/OpenSSL implementations use distinct JSON and cryptographic stacks and agree on 31 public-only cases. Static profiles, explicit limits, exact dependencies, and global reject make implementation behavior visible without creating a consumer dependency or silent fork.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "P3",
+          "rationale": "The pushed source commit, section receipts, successful and failed command outputs, public corpus, environment, bounds, same-commit advisory proof, complete local preflight, non-claims, and residual risks support exactly LOCAL_PASS. Fable advice and the second implementation are not misclassified as independent review or external evidence.",
+          "reviewer": "primary implementation agent"
+        }
+      ],
       "repository": "NCP prototypes",
       "requirement_ids": [
         "B04-acceptance"
       ],
       "residual_risks": [
-        "The exact Zenoh 1.9.0 metadata boundary, isolated terminating TLS 1.3 ingress prototype A, and strict Python signed-forwarding reference now have retained local section passes, but no native TypeScript parser, differential global-reject result, or terminal B04 feasibility result exists yet.",
-        "No B04 prototype may change the normative contract, ship in an NCP package, grant runtime identity or authority, or count as live production-security evidence.",
-        "Two isolated native non-Rust implementations can demonstrate implementation diversity but do not create an independent human reviewer identity.",
-        "Fable advice is optional non-normative design input and cannot count as a parser, reviewer, proof, or gate result.",
-        "Ingress co-tenancy, authenticated manifest provenance, restart-spanning filesystem rollback protection, continuing revocation, non-cooperating or multi-host replay ownership, live A/B composition, and crypto/parser dependency independence remain unproved prototype falsification targets."
+        "Ingress trusted-computing-base isolation, co-tenancy, memory-corruption containment, authenticated manifest provenance, and live A-over-B composition remain unproved.",
+        "Live rotation, revocation, continuing authorization, trusted time, private-key custody, and exact multi-instance deployment behavior remain NOT RUN.",
+        "The Python replay store is cooperative same-host state; filesystem rollback, non-cooperating same-UID writers, shared filesystems, replicated ownership, multi-host replay, disk-full, kill-during-COMMIT, and WAL-aware recovery remain unproved.",
+        "The Node implementation proves parser and cryptographic implementation diversity but does not implement durable replay and is not an independent human review or installed peer.",
+        "Full-sized profile sweeps, combinatorial fuzzing, sanitizers, duration testing, soak, performance qualification, independent interoperability, and every external gate remain NOT RUN.",
+        "RUSTSEC-2026-0041 remains tracked and release-blocking; the bounded current advisory gate neither waives nor hides it."
       ],
-      "reviewer_comment": "B04 checkpoint 2026-07-16T14:49:16Z: the strict signed-forwarding Python reference is pushed and remote-equal at `784ad3cdeaab89e6bc362b687a7df3c92b6bb7bf`, tree `0403547611c4da4bf2f56c9445ae0736ba21aaed`. The isolated unpublished prototype pins PyNaCl 1.6.2 and an exact hashed uv graph. It verifies one bounded flattened JWS over the exact received encoded strings, selects a content-addressed Ed25519 key from a current default-deny manifest, requires distinct carrier/signer principal and entity identities, binds exact routing/security/session/stream-or-operation facts, and hands off immutable context plus the same signed payload without granting NCP authority. Replay uses exact-schema SQLite WAL/FULL, BEGIN IMMEDIATE conditional high water, commit-before-handoff, bounded scopes/files, cooperative process locks, absent-path initialization, owner-signed distinct-store recovery, and a signed recovery epoch. Twenty-three hostile/reference tests, Ruff, exact result verification, ledger/link/spelling checks, and a local pip-audit with no known vulnerabilities pass. Six exact Fable consultations remain non-normative advice, not review or evidence. Limits remain: honest at-most-once crash loss, filesystem rollback without an external anchor, non-cooperating or multi-host storage, disk-full and kill-during-COMMIT, trusted time/key custody, live A/B composition, and independent-parser agreement are unproved. Prototype B's Python section passes only its bounded local lenses; B04 remains IN_PROGRESS and external gates remain NOT RUN. On resume verify this receipt commit remotely, then implement the native TypeScript/Node verifier and shared public-only differential corpus. Do not change the wire, root workspace, shipping packages, direct-Zenoh fail-closed behavior, or consumer repositories.",
-      "reviewers": [],
-      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
-      "source_commit": "cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1",
-      "status": "IN_PROGRESS",
-      "target_commit": null,
-      "ten_lens_reviews": [],
+      "reviewer_comment": "B04 reached LOCAL_PASS from pushed source commit 3754635404f362bb700c324f4dba613a3b73b3eb, tree 5e4b0e8a455eae677cc922d417121caf2d1c35d9. The exact-cut run re-executed the pinned Zenoh source/live probe, TLS 1.3 prototype A, 26 Python signed-forwarding tests, 21 native Node/OpenSSL tests, and a 31-case process-isolated public-only differential corpus with zero negative acceptance. The complete 20-stage repository preflight passed and retained the tracked release-blocking advisory while all external gates remained NOT RUN. The Node implementation uses its own bounded JSON parser and OpenSSL stack, but supplies implementation diversity rather than independent human review, replay diversity, or installed interoperability. Eight exact claude-fable-5 consultations remain non-normative; the final gate challenge improved same-commit advisory equivalence and Git/resource isolation but did not raise evidence class. Direct Zenoh production-secure remains fail-closed, no stable wire or shipping package changed, and no identity, lease, operation, plant, safety, release, or certification claim follows. B01 is now dependency-ready, but its INDEPENDENT floor still requires qualifying non-owner review.",
+      "reviewers": [
+        {
+          "decision": "PASS",
+          "identity": "Codex primary implementation agent",
+          "implementation_owner": "Codex primary implementation agent",
+          "independent": false,
+          "role": "local prototype implementation and evidence reviewer"
+        }
+      ],
+      "rollback_or_recovery": "If the B04 local receipt or quarantined prototypes prove defective, reopen B04, bind the coordination receipt to the exact defect evidence, invalidate content-bound descendant receipts, revert only the affected B04 and gate-repair commits, preserve all retained failed/pass logs and unrelated repositories, and keep direct Zenoh production-secure disabled.",
+      "source_commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
+      "status": "LOCAL_PASS",
+      "target_commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
+      "ten_lens_reviews": [
+        {
+          "disposition": "PASS",
+          "id": "L1",
+          "rationale": "No proto, stable Rust type, JSON Schema, vector, compact hash, baseline, conformance manifest, or package surface changed; the outer ingress profiles and exact actor/route bytes remain quarantined and non-normative.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L2",
+          "rationale": "Payload and Zenoh source claims never self-authenticate. TLS derives a verified leaf mapping, signed forwarding retains distinct carrier and signer identities, and unknown, stale, ambiguous, downgraded, substituted, or mismatched inputs reject.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L3",
+          "rationale": "Default-deny exact grants cover only prototype route, plane, class, and role. Neither a certificate nor a signature creates an NCP lease, operation outcome, lifecycle transition, authority grant, or plant admission.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L4",
+          "rationale": "Direct Zenoh remains unavailable for production-secure use, A-direct and B-over-A profiles are statically distinct, and replay, restart, rotation, removal, recovery epoch, duplicate delivery, and crash-window behavior are explicit rather than negotiated from input.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L5",
+          "rationale": "Frame, JSON, header, payload, manifest, base64url, integer, node, member, depth, string, replay-scope, database, path, advisory-clone, command-output, and time limits are checked before or at the relevant boundary.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L6",
+          "rationale": "Python/PyNaCl and native TypeScript/Node/OpenSSL implementations share no parser or FFI and agree on the retained corpus; the receipt explicitly excludes replay diversity, installed-peer interoperability, and independent human review.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L7",
+          "rationale": "Exact key and certificate content addresses, manifest epochs, overlap and removal tests, signed recovery epochs, and staleness checks are local; provenance, custody, trusted time, continuing revocation, and multi-instance atomicity remain NOT RUN.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L8",
+          "rationale": "No network acceptance is described as physical safety, ESTOP certification, universal safe action, or actuator authority. Crebain and body-local final authority remain downstream and unchanged.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L9",
+          "rationale": "JavaScript-safe integers, literal ASCII routes, exact received signing strings, distinct parser and crypto stacks, public-only vectors, exact dependency locks, and global reject expose cross-language ambiguity without creating a consumer fork.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "PASS",
+          "id": "L10",
+          "rationale": "Exact commits, trees, remote objects, section receipts, successful and failed logs, corpus hashes, bounds, tool versions, same-commit RustSec outputs, rollback, residual risks, and all NOT RUN gates justify only LOCAL_PASS.",
+          "reviewer": "primary implementation agent"
+        }
+      ],
       "title": "Prove authenticated-ingress and independent-parser feasibility",
       "transitions": [
         {
@@ -941,6 +1114,252 @@
           "receipt": null,
           "timestamp_utc": "2026-07-16T09:18:11Z",
           "to": "IN_PROGRESS"
+        },
+        {
+          "correlation_id": "ncp-v1-finalization-20260716-b04-local-pass",
+          "from": "IN_PROGRESS",
+          "reason": "Promote only the quarantined feasibility task after the exact pushed cut passed all three prototype sections, two-language differential agreement, bounded current and pinned advisory checks, remote binding, three perspectives, ten lenses, and the complete local preflight with every external gate still NOT RUN.",
+          "receipt": {
+            "artifacts": [
+              {
+                "bytes": 5869,
+                "path": "evidence/implementation/receipts/B04/zenoh-metadata-probe-b1dcf1b.v1.json",
+                "sha256": "cff99017299f8956378545ec1bb10a58412cc5f861033800b345e634487d4e87",
+                "subject": "exact pinned Zenoh source and live negative-probe section receipt"
+              },
+              {
+                "bytes": 1724,
+                "path": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.log",
+                "sha256": "34cfd542559494a69c54eb7fff36f5951bc60ee59edf4572bad9d7b3c2158cc3",
+                "subject": "prototype A focused command output"
+              },
+              {
+                "bytes": 8664,
+                "path": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.v1.json",
+                "sha256": "5c22126fbb38c3aaa004ed63ebf5e5fb1001effb2a15c1176c069261a0607a56",
+                "subject": "prototype A terminating TLS ingress section receipt"
+              },
+              {
+                "bytes": 1786,
+                "path": "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.log",
+                "sha256": "11036915a736cb6f7888d29490516d687bceb7b4b2bc7531150cc59f1192e484",
+                "subject": "prototype B Python-reference focused command output"
+              },
+              {
+                "bytes": 11339,
+                "path": "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.v1.json",
+                "sha256": "4a2602fc2442f740d2ffe11cdc7b41561dfa9c47f48d1064843f57c22e4d1a7b",
+                "subject": "prototype B strict signed-forwarding Python-reference section receipt"
+              },
+              {
+                "bytes": 12931,
+                "path": "evidence/implementation/receipts/B04/focused-prototypes-3754635.log",
+                "sha256": "301fbf984c1825d13e5675459f9989e7238c8b3d9a24cc5cba96c7faa6bfe3a1",
+                "subject": "exact-cut Zenoh, TLS, Python, Node, and differential focused output"
+              },
+              {
+                "bytes": 56238,
+                "path": "evidence/implementation/receipts/B04/full-preflight-3754635.log.gz",
+                "sha256": "57036718d4e1599250cdbe1aff5b6163557d067b36100269e90a01a9ac243c68",
+                "subject": "exact-cut complete repository local preflight output"
+              },
+              {
+                "bytes": 23514,
+                "path": "evidence/implementation/receipts/B04/failed-preflight-repository-log-e37e5f8.log.gz",
+                "sha256": "e466665f6e4c860637be00f204a61afc2603e289f45102a0c1c03a0d84460ffe",
+                "subject": "retained failed preflight with repository-local live log, not promotion evidence"
+              },
+              {
+                "bytes": 35746,
+                "path": "evidence/implementation/receipts/B04/failed-preflight-current-rustsec-fetch-e37e5f8.log.gz",
+                "sha256": "974aae06292472bc0c0fce5f3db9e81f5a5ec995d8965072f785e23815779800",
+                "subject": "retained failed preflight with unbounded current RustSec fetch, not promotion evidence"
+              },
+              {
+                "bytes": 19167,
+                "path": "evidence/implementation/receipts/B04/current-rustsec-gate-focused-e37e5f8.log.gz",
+                "sha256": "62c0e655db9bfbc864bae7d18c44677ca901dd921d1fcd7c884d063008f8594b",
+                "subject": "bounded current and pinned RustSec focused gate output"
+              },
+              {
+                "bytes": 5482,
+                "path": "evidence/implementation/receipts/B04/current-rustsec-shallow-advisories-e37e5f8.jsonl",
+                "sha256": "019b43d343ff51aa6dcd3ead2971400ef8256a64f741b8f1e8fdda67cc9d3414",
+                "subject": "cargo-deny advisory JSON from the depth-one current database"
+              },
+              {
+                "bytes": 5482,
+                "path": "evidence/implementation/receipts/B04/current-rustsec-full-advisories-e37e5f8.jsonl",
+                "sha256": "019b43d343ff51aa6dcd3ead2971400ef8256a64f741b8f1e8fdda67cc9d3414",
+                "subject": "cargo-deny advisory JSON from the same-commit full database"
+              },
+              {
+                "bytes": 12414,
+                "path": "evidence/implementation/receipts/B04/receipt-summary-3754635.v1.json",
+                "sha256": "1fa861e0320c05241c2d32ccbbb29ec56f4d6f83976a0b8f60e5ae38a85b6bc6",
+                "subject": "terminal local evidence, remote binding, limitations, and gate summary"
+              },
+              {
+                "bytes": 241671,
+                "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json",
+                "sha256": "f89b19ce777d2ee0b8b51967053524ad500491ee3a15cecd899d5380339a197a",
+                "subject": "public-only two-language differential corpus"
+              },
+              {
+                "bytes": 1545,
+                "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/package-lock.json",
+                "sha256": "159addd86853fafecaee9dca1a46d20a645649a9cd6b8cb93b4f90f8fe8e2058",
+                "subject": "exact native Node verifier dependency lock with registry integrity"
+              }
+            ],
+            "branch": "main",
+            "commands": [
+              {
+                "command": "Run the exact-cut Zenoh metadata probe, TLS-terminating ingress runner, and complete signed-forwarding Python, Node, and differential runner sequentially with fail-fast and pipefail",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B04/focused-prototypes-3754635.log",
+                "passed": 7,
+                "skipped": 0
+              },
+              {
+                "command": "./scripts/check.sh",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B04/full-preflight-3754635.log.gz",
+                "passed": 20,
+                "skipped": 0
+              },
+              {
+                "command": "Run the bounded current RustSec preparer self-test, same-commit shallow current cargo-deny scan, pinned replay, byte-equivalence proof, and supply-chain evidence validation",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B04/current-rustsec-gate-focused-e37e5f8.log.gz",
+                "passed": 6,
+                "skipped": 0
+              },
+              {
+                "command": "Verify local HEAD, origin/main tracking object, advertised refs/heads/main object, source tree, and clean tracked worktree",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B04/receipt-summary-3754635.v1.json",
+                "passed": 5,
+                "skipped": 0
+              }
+            ],
+            "commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
+            "dependency_receipts": [
+              {
+                "receipt_sha256": "0c9219753071f0a4090b56b63c335a6a88295ce5d2c1a214318397b71b9dff4e",
+                "task_id": "B00"
+              }
+            ],
+            "environment": "Darwin 25.5.0 arm64; exact clean pushed NCP main implementation cut; isolated loopback Zenoh and TLS prototypes; Python, Node, SQLite, OpenSSL, package, advisory, and repository-local tests only; no external security, installed-peer, physical-safety, performance, or release qualification environment represented.",
+            "external_gates_not_run": [
+              "live-mtls-acl-rotation-revocation",
+              "two-independent-non-rust-live-peers",
+              "fault-backpressure-restart-soak",
+              "fuzz-sanitizer-duration",
+              "performance-resource-profile",
+              "installed-package-matrix",
+              "registry-namespace-ownership",
+              "consumer-certification",
+              "independent-clean-room-reproduction",
+              "signed-sbom-provenance"
+            ],
+            "external_gates_run": [],
+            "kind": "passing",
+            "normative_digest_after": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+            "normative_digest_before": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+            "push_object_kind": "branch",
+            "push_ref": "refs/heads/main",
+            "push_remote": "origin",
+            "pushed_object": "3754635404f362bb700c324f4dba613a3b73b3eb",
+            "remote_verification_artifact": "evidence/implementation/receipts/B04/receipt-summary-3754635.v1.json",
+            "remote_verified_at_utc": "2026-07-16T17:10:41Z",
+            "repository": "NCP",
+            "residual_risks": [
+              "Ingress trusted-computing-base isolation, co-tenancy, memory-corruption containment, authenticated manifest provenance, and live A-over-B composition remain unproved.",
+              "Live rotation, revocation, continuing authorization, trusted time, private-key custody, and exact multi-instance deployment behavior remain NOT RUN.",
+              "The Python replay store is cooperative same-host state; filesystem rollback, non-cooperating same-UID writers, shared filesystems, replicated ownership, multi-host replay, disk-full, kill-during-COMMIT, and WAL-aware recovery remain unproved.",
+              "The Node implementation proves parser and cryptographic implementation diversity but does not implement durable replay and is not an independent human review or installed peer.",
+              "Full-sized profile sweeps, combinatorial fuzzing, sanitizers, duration testing, soak, performance qualification, independent interoperability, and every external gate remain NOT RUN.",
+              "RUSTSEC-2026-0041 remains tracked and release-blocking; the bounded current advisory gate neither waives nor hides it."
+            ],
+            "reviewers": [
+              {
+                "decision": "PASS",
+                "identity": "Codex primary implementation agent",
+                "implementation_owner": "Codex primary implementation agent",
+                "independent": false,
+                "role": "local prototype implementation and evidence reviewer"
+              }
+            ],
+            "rollback_or_recovery": "If the B04 local receipt or quarantined prototypes prove defective, reopen B04, bind the coordination receipt to exact defect evidence, invalidate content-bound descendant receipts, revert only affected B04 and gate-repair commits, preserve retained logs and unrelated repositories, and keep direct Zenoh production-secure disabled.",
+            "source_commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
+            "source_tree": "5e4b0e8a455eae677cc922d417121caf2d1c35d9",
+            "timestamp_utc": "2026-07-16T17:12:34Z",
+            "toolchain": [
+              {
+                "name": "Python",
+                "version": "3.14.6"
+              },
+              {
+                "name": "uv",
+                "version": "0.8.14"
+              },
+              {
+                "name": "PyNaCl",
+                "version": "1.6.2"
+              },
+              {
+                "name": "SQLite",
+                "version": "3.53.2"
+              },
+              {
+                "name": "Node",
+                "version": "26.3.0"
+              },
+              {
+                "name": "OpenSSL",
+                "version": "3.6.2"
+              },
+              {
+                "name": "TypeScript",
+                "version": "5.9.2"
+              },
+              {
+                "name": "npm",
+                "version": "11.16.0"
+              },
+              {
+                "name": "rustc",
+                "version": "1.96.0 (ac68faa20 2026-05-25)"
+              },
+              {
+                "name": "cargo",
+                "version": "1.96.0 (30a34c682 2026-05-25)"
+              },
+              {
+                "name": "cargo-deny",
+                "version": "0.19.9"
+              },
+              {
+                "name": "buf",
+                "version": "1.71.0"
+              },
+              {
+                "name": "protoc",
+                "version": "35.0"
+              },
+              {
+                "name": "git",
+                "version": "2.50.1 (Apple Git-155)"
+              }
+            ]
+          },
+          "timestamp_utc": "2026-07-16T17:12:35Z",
+          "to": "LOCAL_PASS"
         }
       ]
     },

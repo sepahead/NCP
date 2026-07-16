@@ -485,6 +485,20 @@ commit crash tests and the signed replay scope already addressed its
 under-specified replay concern. This advice remains non-normative and has no
 reviewer or evidence standing.
 
+An eighth narrow exact-model challenge reviewed only the proposed repair for the
+current RustSec gate after `cargo-deny 0.19.9` attempted an unbounded full-history
+clone and then surfaced a misleading secondary `FETCH_HEAD` error. It returned
+model `claude-fable-5`, terminal `end_turn`, and raw SSE SHA-256
+`c04b9738fdabcd973074d327a2e8afab89fdecaccbd5799f23ee5a0a6f506f41`
+outside the repository. Its `REVISE` verdict accepted the bounded depth-one
+direction while challenging same-commit shallow/full equality, Git
+configuration and protocol isolation, before/after ref observation, atomic and
+resource bounds, and preservation of primary command errors. The implemented
+helper adopts those applicable challenges. A shallow and full database at the
+same commit produced byte-identical advisory JSON, and the complete local gate
+then passed with fetching disabled. This advice is still not a parser, reviewer,
+proof, security result, or release gate.
+
 ## Exact next actions
 
 1. Retain the Zenoh source/API matrix and build the live negative probe against
@@ -498,9 +512,11 @@ reviewer or evidence standing.
    a public-only differential corpus, and one full prototype runner.
 5. **Completed for the prototype slice:** re-run the three perspectives and ten
    lenses against the executable results.
-6. Retain the coherent prototype commit remotely, run the complete
-   `scripts/check.sh` preflight from that exact source, and bind its outputs and
+6. **Completed for B04 LOCAL_PASS:** retain the coherent prototype commit
+   remotely, run the complete `scripts/check.sh` preflight from exact source
+   commit `3754635404f362bb700c324f4dba613a3b73b3eb`, and bind its outputs and
    hashes into the terminal B04 local receipt.
-7. Do not begin B01 ADR ratification or normative implementation until that
-   reviewed exact-commit receipt passes; external and independent gates remain
-   **NOT RUN**.
+7. B01 is now dependency-ready for ADR drafting and ratification work, but its
+   `INDEPENDENT` evidence floor cannot be satisfied by these local prototypes,
+   either non-Rust implementation, or Fable advice. External and release gates
+   remain **NOT RUN**.

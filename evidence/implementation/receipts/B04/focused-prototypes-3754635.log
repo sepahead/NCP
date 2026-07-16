@@ -1,0 +1,339 @@
+OK exact Zenoh source matrix: 1.9.0 checksum=85e22d7002ac149ef17fe400bb40a267ebbba40a83413bab03da7762256fa94e upstream=81c6c933b6e41d72a05f04c4442ef57717ddc72b files=11
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.002s
+
+OK
+    Checking ncp-zenoh-metadata-probe v0.0.0 (/Users/torusprime/Development/sepahead-github/NCP/prototypes/authenticated-ingress/zenoh-metadata-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.97s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.21s
+     Running unittests src/main.rs (target/debug/deps/ncp_zenoh_metadata_probe-e86529e3da0483f9)
+
+running 1 test
+test tests::exact_zenoh_metadata_boundary_is_observed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+{
+  "schema": "ncp.prototype.zenoh-metadata-probe.v1",
+  "zenoh_version": "1.9.0",
+  "transport": "explicit-loopback-tcp-no-tls",
+  "observations": {
+    "explicit_tcp_peers_enumerate_each_other": true,
+    "pubsub_sender_chose_receiver_entity_id": true,
+    "pubsub_sender_chose_sequence": true,
+    "pubsub_omission_remained_none": true,
+    "query_sender_chose_receiver_entity_id": true,
+    "query_sender_chose_sequence": true,
+    "reply_sender_chose_requester_entity_id": true,
+    "reply_sender_chose_sequence": true,
+    "query_omission_remained_none": true,
+    "reply_omission_remained_none": true,
+    "reply_replier_id_was_present": true,
+    "liveliness_put_source_was_none": true,
+    "liveliness_query_source_was_none": true,
+    "liveliness_query_replier_id_was_none": true,
+    "liveliness_delete_source_was_none": true
+  },
+  "claim_boundary": {
+    "live_probe_proves_api_absence": false,
+    "source_info_authenticates_identity": false,
+    "zenoh_id_is_certificate_principal": false,
+    "production_secure_is_available": false,
+    "external_gate_satisfied": false
+  }
+}
+TLS-ingress dependency features and protected source boundary verified
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK
+   Compiling libc v0.2.186
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.46
+    Checking cfg-if v1.0.4
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling version_check v0.9.5
+    Checking typenum v1.20.1
+    Checking untrusted v0.9.0
+   Compiling serde_core v1.0.228
+    Checking zeroize v1.9.0
+   Compiling zmij v1.0.23
+   Compiling rustls v0.23.40
+   Compiling serde v1.0.228
+   Compiling getrandom v0.3.4
+   Compiling serde_json v1.0.150
+    Checking powerfmt v0.2.0
+    Checking rustls-pki-types v1.15.0
+    Checking itoa v1.0.18
+   Compiling cc v1.2.67
+    Checking deranged v0.5.8
+    Checking time-core v0.1.8
+    Checking memchr v2.8.3
+    Checking subtle v2.6.1
+   Compiling generic-array v0.14.7
+    Checking num-conv v0.2.2
+    Checking pin-project-lite v0.2.17
+    Checking bytes v1.12.1
+    Checking once_cell v1.21.4
+    Checking base64 v0.22.1
+    Checking static_assertions v1.1.0
+    Checking pem v3.0.6
+   Compiling ring v0.17.14
+    Checking time v0.3.47
+    Checking yasna v0.6.0
+   Compiling syn v2.0.119
+    Checking getrandom v0.2.17
+    Checking socket2 v0.6.5
+    Checking cpufeatures v0.2.17
+    Checking mio v1.2.2
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+   Compiling tokio-macros v2.7.0
+   Compiling serde_derive v1.0.228
+    Checking tokio v1.52.3
+    Checking rustls-webpki v0.103.13
+    Checking rcgen v0.14.8
+    Checking ncp-core v1.0.0-rc.1 (/Users/torusprime/Development/sepahead-github/NCP/ncp-core)
+    Checking tokio-rustls v0.26.4
+    Checking ncp-tls-terminating-ingress-prototype v0.0.0 (/Users/torusprime/Development/sepahead-github/NCP/prototypes/authenticated-ingress/tls-terminating-ingress)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.24s
+   Compiling cfg-if v1.0.4
+   Compiling typenum v1.20.1
+   Compiling untrusted v0.9.0
+   Compiling zeroize v1.9.0
+   Compiling powerfmt v0.2.0
+   Compiling libc v0.2.186
+   Compiling subtle v2.6.1
+   Compiling serde_core v1.0.228
+   Compiling zmij v1.0.23
+   Compiling num-conv v0.2.2
+   Compiling pin-project-lite v0.2.17
+   Compiling once_cell v1.21.4
+   Compiling time-core v0.1.8
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling bytes v1.12.1
+   Compiling base64 v0.22.1
+   Compiling rustls-pki-types v1.15.0
+   Compiling deranged v0.5.8
+   Compiling static_assertions v1.1.0
+   Compiling pem v3.0.6
+   Compiling getrandom v0.2.17
+   Compiling mio v1.2.2
+   Compiling socket2 v0.6.5
+   Compiling cpufeatures v0.2.17
+   Compiling getrandom v0.3.4
+   Compiling ring v0.17.14
+   Compiling generic-array v0.14.7
+   Compiling tokio v1.52.3
+   Compiling time v0.3.47
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling yasna v0.6.0
+   Compiling rustls-webpki v0.103.13
+   Compiling rcgen v0.14.8
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling rustls v0.23.40
+   Compiling ncp-core v1.0.0-rc.1 (/Users/torusprime/Development/sepahead-github/NCP/ncp-core)
+   Compiling tokio-rustls v0.26.4
+   Compiling ncp-tls-terminating-ingress-prototype v0.0.0 (/Users/torusprime/Development/sepahead-github/NCP/prototypes/authenticated-ingress/tls-terminating-ingress)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.46s
+     Running unittests src/lib.rs (target/debug/deps/ncp_tls_terminating_ingress_prototype-e9587c04eed4f91e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ingress.rs (target/debug/deps/ingress-5344b326c04a3493)
+
+running 18 tests
+test concurrent_publication_is_linearized_and_equivocation_is_deterministic ... ok
+test alpn_mismatch_and_plaintext_are_unavailable ... ok
+test debug_output_redacts_payload_bytes_and_retains_their_digest ... ok
+test absent_eku_is_observed_as_webpki_unrestricted_not_explicit_client_auth ... ok
+test accepts_exact_tls_manifest_and_payload_binding ... ok
+test fingerprints_the_verified_leaf_not_its_intermediate ... ok
+test manifest_digest_generation_and_shape_are_fail_closed ... ok
+test mandatory_client_certificate_and_explicit_server_only_eku_reject ... ok
+test live_result ... ok
+test false_inner_identity_and_wrong_endpoint_grant_reject ... ok
+test reconstructed_store_has_a_distinct_boot_epoch ... ok
+test malformed_duplicate_and_ambiguous_identity_payloads_reject ... ok
+test expired_not_yet_valid_and_wrong_ca_clients_reject ... ok
+test rotation_uses_one_current_snapshot_without_global_invalidation ... ok
+test duplicate_authentication_is_not_replay_authorization ... ok
+test external_openssl_tls12_client_cannot_negotiate ... ok
+test external_openssl_tls13_transcript_has_no_session_ticket ... ok
+test framing_rejects_oversize_truncation_trailing_and_timeout ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+   Doc-tests ncp_tls_terminating_ingress_prototype
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+ Documenting ncp-tls-terminating-ingress-prototype v0.0.0 (/Users/torusprime/Development/sepahead-github/NCP/prototypes/authenticated-ingress/tls-terminating-ingress)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.38s
+   Generated /Users/torusprime/Development/sepahead-github/NCP/prototypes/authenticated-ingress/tls-terminating-ingress/target/doc/ncp_tls_terminating_ingress_prototype/index.html
+{
+  "binding": {
+    "context_serialized": false,
+    "exact_leaf_der_sha256": true,
+    "manifest_default_deny": true,
+    "manifest_generation": 1,
+    "payload_identity_exact_match": true,
+    "same_immutable_payload": true
+  },
+  "claim_boundary": {
+    "authorization_granted": false,
+    "live_rotation_revocation_gate_satisfied": false,
+    "plant_authority_granted": false,
+    "production_security_proved": false,
+    "release_gate_satisfied": false
+  },
+  "replay_probe": {
+    "affects_admission": false,
+    "duplicate_observations": [
+      false,
+      true
+    ],
+    "durable": false,
+    "ingress_admitted_identical_messages": 2
+  },
+  "resources": {
+    "connections": 2,
+    "elapsed_microseconds_local": 6169,
+    "frame_limit_bytes": 1048576,
+    "manifest_bytes": 369,
+    "manifest_limit_bytes": 65536,
+    "payload_bytes": 583
+  },
+  "schema": "ncp.prototype.tls-terminating-ingress-result.v1",
+  "scope": "quarantined-local-feasibility",
+  "tls": {
+    "alpn": "ncp-prototype-a/1",
+    "client_certificate_required": true,
+    "provider": "ring",
+    "resumption_accepted": false,
+    "tickets_sent": 0,
+    "version": "1.3",
+    "zero_rtt_accepted": false
+  }
+}
+Resolved 5 packages in 3ms
+Resolved 5 packages in 3ms
+Audited 4 packages in 1ms
+forwarding dependencies and protected source boundary verified
+18 files already formatted
+All checks passed!
+..........................
+----------------------------------------------------------------------
+Ran 26 tests in 0.435s
+
+OK
+
+added 3 packages in 434ms
+
+> ncp-signed-forwarding-node-verifier-prototype@0.0.0 verify-profile
+> node verify_profile.mjs
+
+node verifier dependencies, runtime, and source boundary verified
+
+> ncp-signed-forwarding-node-verifier-prototype@0.0.0 build
+> tsc -p tsconfig.json
+
+
+> ncp-signed-forwarding-node-verifier-prototype@0.0.0 test
+> node --test verify_profile.test.mjs dist/tests/*.test.js
+
+✔ accepts the RFC 8032 empty-message known-answer vector (1.790917ms)
+✔ prechecks reject a construction Node/OpenSSL accepts natively (0.51125ms)
+✔ rejects every reviewed small-order public-key and R representative (0.622042ms)
+✔ rejects noncanonical points and scalar S plus the group order (0.154375ms)
+✔ JSON byte, depth, node, member, and string limits accept exact and reject above (2.506333ms)
+✔ integer boundary and ambiguous number grammars reject exactly (0.174542ms)
+✔ base64url accepts exact decoded bounds and rejects trailing-bit ambiguity (0.281709ms)
+✔ accepts both message profiles and returns facts without authority (7.582083ms)
+✔ rejects hostile JSON, encoding, and integer ambiguity (1.95675ms)
+✔ rejects algorithm, unprotected key, changed bytes, and noncanonical S (2.200958ms)
+✔ rejects manifest widening, extra fields, and small-order keys (1.099417ms)
+✔ rejects carrier/signer confusion, mismatched routing, clock, payload, and direct mode (2.822542ms)
+✔ key rotation overlap is exact and removed keys have no fallback (2.179334ms)
+✔ request, endpoint, carrier, header, and manifest fields are exact (1.056083ms)
+✔ route literals are ASCII rather than merely one-byte encoded (0.476333ms)
+✔ profile verifier accepts the exact reviewed boundary (1.975291ms)
+✔ profile verifier rejects dependency version drift (1.683875ms)
+✔ profile verifier rejects lock integrity drift (0.771708ms)
+✔ profile verifier rejects compiler strictness drift (0.392042ms)
+✔ profile verifier rejects removal of strict source checks (0.354208ms)
+✔ profile verifier rejects forbidden private-key selection (0.2045ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.877333
+verified 31 public-only differential cases
+Python/PyNaCl and Node/OpenSSL agree on 31 cases
+{
+  "claim_boundary": {
+    "b04_complete": false,
+    "filesystem_rollback_protection_proved": false,
+    "independent_parser_gate_satisfied": true,
+    "ncp_authority_granted": false,
+    "plant_action_granted": false,
+    "production_security_proved": false,
+    "release_gate_satisfied": false
+  },
+  "crypto": {
+    "algorithm": "Ed25519",
+    "library": "PyNaCl",
+    "pynacl_version": "1.6.2",
+    "signing_input_uses_received_encoded_strings": true
+  },
+  "profiles": [
+    "command_frame",
+    "step_request"
+  ],
+  "replay": {
+    "begin_mode": "IMMEDIATE",
+    "commit_before_handoff": true,
+    "conditional_upsert": true,
+    "delivery_semantics": "at-most-once-with-explicit-crash-loss-window",
+    "filesystem_rollback_detected": false,
+    "journal_mode": "wal",
+    "recovery_epoch_signed": true,
+    "scope_capacity": 128,
+    "sqlite_version": "3.53.2",
+    "synchronous": "FULL"
+  },
+  "resources": {
+    "accepted_messages": 2,
+    "elapsed_microseconds_local": 15633,
+    "envelope_limit_bytes": 1500000,
+    "largest_envelope_bytes": 3479,
+    "largest_manifest_bytes": 494,
+    "largest_payload_bytes": 1204,
+    "largest_protected_bytes": 1307,
+    "largest_replay_database_bytes": 12288,
+    "manifest_limit_bytes": 65536,
+    "payload_limit_bytes": 1048576,
+    "protected_limit_bytes": 16384,
+    "replay_database_limit_bytes": 8388608
+  },
+  "schema": "ncp.prototype.signed-forwarding-result.v1",
+  "scope": "quarantined-local-feasibility"
+}

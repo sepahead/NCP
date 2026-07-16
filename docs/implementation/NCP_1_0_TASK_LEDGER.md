@@ -18,30 +18,16 @@ separate, and publication tasks cannot start through a status edit.
 | Status | Count |
 |---|---:|
 | `OPEN` | 54 |
-| `IN_PROGRESS` | 1 |
+| `IN_PROGRESS` | 0 |
 | `BLOCKED` | 0 |
-| `LOCAL_PASS` | 1 |
+| `LOCAL_PASS` | 2 |
 | `EXTERNAL_PASS` | 0 |
 | `INDEPENDENT_PASS` | 0 |
 | `COMPLETE` | 0 |
 
-Active tasks: `B04`.
+Active tasks: none.
 
-Dependency-ready open tasks: none.
-
-## Active task recovery checkpoints
-
-### `B04` — Prove authenticated-ingress and independent-parser feasibility
-
-B04 checkpoint 2026-07-16T14:49:16Z: the strict signed-forwarding Python reference is pushed and remote-equal at `784ad3cdeaab89e6bc362b687a7df3c92b6bb7bf`, tree `0403547611c4da4bf2f56c9445ae0736ba21aaed`. The isolated unpublished prototype pins PyNaCl 1.6.2 and an exact hashed uv graph. It verifies one bounded flattened JWS over the exact received encoded strings, selects a content-addressed Ed25519 key from a current default-deny manifest, requires distinct carrier/signer principal and entity identities, binds exact routing/security/session/stream-or-operation facts, and hands off immutable context plus the same signed payload without granting NCP authority. Replay uses exact-schema SQLite WAL/FULL, BEGIN IMMEDIATE conditional high water, commit-before-handoff, bounded scopes/files, cooperative process locks, absent-path initialization, owner-signed distinct-store recovery, and a signed recovery epoch. Twenty-three hostile/reference tests, Ruff, exact result verification, ledger/link/spelling checks, and a local pip-audit with no known vulnerabilities pass. Six exact Fable consultations remain non-normative advice, not review or evidence. Limits remain: honest at-most-once crash loss, filesystem rollback without an external anchor, non-cooperating or multi-host storage, disk-full and kill-during-COMMIT, trusted time/key custody, live A/B composition, and independent-parser agreement are unproved. Prototype B's Python section passes only its bounded local lenses; B04 remains IN_PROGRESS and external gates remain NOT RUN. On resume verify this receipt commit remotely, then implement the native TypeScript/Node verifier and shared public-only differential corpus. Do not change the wire, root workspace, shipping packages, direct-Zenoh fail-closed behavior, or consumer repositories.
-
-Current residual risks:
-
-- The exact Zenoh 1.9.0 metadata boundary, isolated terminating TLS 1.3 ingress prototype A, and strict Python signed-forwarding reference now have retained local section passes, but no native TypeScript parser, differential global-reject result, or terminal B04 feasibility result exists yet.
-- No B04 prototype may change the normative contract, ship in an NCP package, grant runtime identity or authority, or count as live production-security evidence.
-- Two isolated native non-Rust implementations can demonstrate implementation diversity but do not create an independent human reviewer identity.
-- Fable advice is optional non-normative design input and cannot count as a parser, reviewer, proof, or gate result.
-- Ingress co-tenancy, authenticated manifest provenance, restart-spanning filesystem rollback protection, continuing revocation, non-cooperating or multi-host replay ownership, live A/B composition, and crypto/parser dependency independence remain unproved prototype falsification targets.
+Dependency-ready open tasks: `B01`.
 
 ## Three required review perspectives
 
@@ -129,7 +115,7 @@ satisfy the floor.
 | Task | Status | Claim tier | Required evidence class | Scope | Dependencies | Repository | Source commit | Residual risks |
 |---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
-| `B04` | `IN_PROGRESS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `cb8a22311ca7` | 5 |
+| `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
 | `B01` | `OPEN` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `—` | 0 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
 | `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Reserve registries, namespaces, error codes, and owners | `B01` | NCP | `—` | 0 |
@@ -192,6 +178,7 @@ satisfy the floor.
 | `B00` | `OPEN` | `IN_PROGRESS` | `2026-07-16T05:56:27Z` | `ncp-v1-finalization-20260716-b00` | initial start; receipt not required |
 | `B00` | `IN_PROGRESS` | `LOCAL_PASS` | `2026-07-16T08:59:26Z` | `ncp-v1-finalization-20260716-b00-local-pass` | passing receipt for commit `6381d2a7cc82` |
 | `B04` | `OPEN` | `IN_PROGRESS` | `2026-07-16T09:18:11Z` | `ncp-v1-finalization-20260716-b04` | initial start; receipt not required |
+| `B04` | `IN_PROGRESS` | `LOCAL_PASS` | `2026-07-16T17:12:35Z` | `ncp-v1-finalization-20260716-b04-local-pass` | passing receipt for commit `3754635404f3` |
 
 ## Update and verification
 

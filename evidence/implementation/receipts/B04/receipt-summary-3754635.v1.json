@@ -1,0 +1,238 @@
+{
+  "schema": "ncp-implementation-b04-terminal-local-receipt-summary-v1",
+  "task_id": "B04",
+  "claim_boundary": "This is bounded local feasibility evidence for quarantined authenticated-ingress prototypes and two non-Rust verification implementations. It does not ship an ingress profile, change the NCP wire, authenticate a live production peer, grant identity or authority, satisfy plant admission, prove interoperability, constitute independent human review, release or certify NCP 1.0, or satisfy any external release gate.",
+  "source": {
+    "repository": "NCP",
+    "branch": "main",
+    "commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
+    "tree": "5e4b0e8a455eae677cc922d417121caf2d1c35d9",
+    "candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "normative_contract_digest_sha256": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+    "normative_contract_changed": false,
+    "shipping_package_changed": false,
+    "direct_zenoh_production_secure_enabled": false
+  },
+  "remote_verification": {
+    "remote": "origin",
+    "ref": "refs/heads/main",
+    "local_head": "3754635404f362bb700c324f4dba613a3b73b3eb",
+    "remote_tracking_object": "3754635404f362bb700c324f4dba613a3b73b3eb",
+    "remote_advertised_object": "3754635404f362bb700c324f4dba613a3b73b3eb",
+    "source_tree": "5e4b0e8a455eae677cc922d417121caf2d1c35d9",
+    "source_tracked_worktree_clean": true,
+    "verified_at_utc": "2026-07-16T17:10:41Z"
+  },
+  "section_receipts": [
+    {
+      "section": "exact-zenoh-1.9.0-application-metadata-boundary",
+      "path": "evidence/implementation/receipts/B04/zenoh-metadata-probe-b1dcf1b.v1.json",
+      "sha256": "cff99017299f8956378545ec1bb10a58412cc5f861033800b345e634487d4e87",
+      "bytes": 5869,
+      "decision": "LOCAL_PASS_FOR_PREREQUISITE_ONLY"
+    },
+    {
+      "section": "quarantined-loopback-tls-1.3-terminating-ingress-prototype-a",
+      "path": "evidence/implementation/receipts/B04/tls-terminating-ingress-08be80e.v1.json",
+      "sha256": "5c22126fbb38c3aaa004ed63ebf5e5fb1001effb2a15c1176c069261a0607a56",
+      "bytes": 8664,
+      "decision": "LOCAL_PASS_FOR_PROTOTYPE_A_ONLY"
+    },
+    {
+      "section": "quarantined-strict-signed-forwarding-envelope-prototype-b-reference",
+      "path": "evidence/implementation/receipts/B04/signed-forwarding-envelope-784ad3c.v1.json",
+      "sha256": "4a2602fc2442f740d2ffe11cdc7b41561dfa9c47f48d1064843f57c22e4d1a7b",
+      "bytes": 11339,
+      "decision": "LOCAL_PASS_FOR_PYTHON_REFERENCE_ONLY"
+    }
+  ],
+  "exact_cut_focused_validation": {
+    "command": "run the Zenoh metadata probe, TLS-terminating ingress runner, and complete signed-forwarding runner sequentially with fail-fast and pipefail",
+    "started_at_utc": "2026-07-16T17:08:30Z",
+    "finished_at_utc": "2026-07-16T17:09:05Z",
+    "exit_code": 0,
+    "passed": true,
+    "output": {
+      "path": "evidence/implementation/receipts/B04/focused-prototypes-3754635.log",
+      "sha256": "301fbf984c1825d13e5675459f9989e7238c8b3d9a24cc5cba96c7faa6bfe3a1",
+      "bytes": 12931,
+      "lines": 339
+    },
+    "results": {
+      "zenoh_hostile_verifier_tests_passed": 7,
+      "zenoh_live_rust_tests_passed": 1,
+      "tls_hostile_verifier_tests_passed": 8,
+      "tls_integration_tests_passed": 18,
+      "python_signed_forwarding_tests_passed": 26,
+      "node_signed_forwarding_tests_passed": 21,
+      "differential_cases_agreed": 31,
+      "negative_vectors_accepted": 0,
+      "positive_message_profiles": [
+        "command_frame",
+        "step_request"
+      ]
+    }
+  },
+  "independent_implementation_boundary": {
+    "python_reference": {
+      "language": "Python 3.14.6",
+      "json_parser": "bounded strict Python implementation",
+      "cryptography": "PyNaCl 1.6.2 and libsodium",
+      "durable_replay": "SQLite 3.53.2 WAL, synchronous FULL, BEGIN IMMEDIATE, commit before handoff"
+    },
+    "node_verifier": {
+      "language": "TypeScript 5.9.2 on Node 26.3.0",
+      "json_parser": "independently written bounded recursive-descent parser",
+      "cryptography": "Node/OpenSSL 3.6.2 Ed25519 with explicit canonical point, small-order, and scalar prechecks",
+      "durable_replay": "not implemented; replay diversity remains outside the result"
+    },
+    "shared_parser_or_ffi": false,
+    "independent_human_reviewer": false,
+    "installed_peer_interoperability": false,
+    "global_reject_rule": "Any parser rejection, rejection-code disagreement, or accepted-projection disagreement makes the combined path reject.",
+    "native_crypto_counterexample_retained": "The pinned Node/OpenSSL runtime accepts an all-zero Ed25519 public key and signature for one retained message; the strict wrapper rejects it before the native call."
+  },
+  "public_differential_corpus": {
+    "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json",
+    "sha256": "f89b19ce777d2ee0b8b51967053524ad500491ee3a15cecd899d5380339a197a",
+    "bytes": 241671,
+    "cases": 31,
+    "private_keys_or_seeds_retained": false,
+    "accepted_projection_agreement": true,
+    "rejection_category_agreement": true
+  },
+  "complete_local_preflight": {
+    "command": "./scripts/check.sh",
+    "started_at_utc": "2026-07-16T16:54:30Z",
+    "finished_at_utc": "2026-07-16T17:06:35Z",
+    "exit_code": 0,
+    "stage_count": 20,
+    "passed": true,
+    "final_line": "NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN",
+    "log": {
+      "path": "evidence/implementation/receipts/B04/full-preflight-3754635.log.gz",
+      "sha256": "57036718d4e1599250cdbe1aff5b6163557d067b36100269e90a01a9ac243c68",
+      "bytes": 56238,
+      "decoded_sha256": "21283dd1f59c405db83482c2cf4795fc618c951f96a5c2e9dc8724f8596ff4bd",
+      "decoded_bytes": 519967,
+      "lines": 8773
+    }
+  },
+  "current_rustsec_gate": {
+    "reason_for_bounded_helper": "cargo-deny 0.19.9 attempted an unbounded full-history clone when the current advisory database was absent and reported a misleading secondary FETCH_HEAD error after the primary clone failed.",
+    "official_url": "https://github.com/RustSec/advisory-db",
+    "branch": "refs/heads/main",
+    "resolved_commit": "9f3e138091487e69144f536d36976e427a7a3307",
+    "resolved_tree": "c33f1047906505cabcec7e21f2d99db5c6de8852",
+    "depth": 1,
+    "cargo_deny_fetch_disabled": true,
+    "shallow_and_full_same_commit_outputs": {
+      "shallow_path": "evidence/implementation/receipts/B04/current-rustsec-shallow-advisories-e37e5f8.jsonl",
+      "full_path": "evidence/implementation/receipts/B04/current-rustsec-full-advisories-e37e5f8.jsonl",
+      "sha256": "019b43d343ff51aa6dcd3ead2971400ef8256a64f741b8f1e8fdda67cc9d3414",
+      "bytes_each": 5482,
+      "byte_identical": true
+    },
+    "focused_gate_log": {
+      "path": "evidence/implementation/receipts/B04/current-rustsec-gate-focused-e37e5f8.log.gz",
+      "sha256": "62c0e655db9bfbc864bae7d18c44677ca901dd921d1fcd7c884d063008f8594b",
+      "bytes": 19167,
+      "decoded_sha256": "eb277b1b34d6544709ae99f1f29d72da46b7acf91830a56cb5f8298c88dbe56c",
+      "decoded_bytes": 349847,
+      "lines": 5962
+    },
+    "release_blocking_advisory_preserved": "RUSTSEC-2026-0041"
+  },
+  "retained_failed_attempts": [
+    {
+      "reason": "The first whole-repository run correctly failed because its live log had been placed inside the audited repository tree.",
+      "used_for_promotion": false,
+      "path": "evidence/implementation/receipts/B04/failed-preflight-repository-log-e37e5f8.log.gz",
+      "sha256": "e466665f6e4c860637be00f204a61afc2603e289f45102a0c1c03a0d84460ffe",
+      "bytes": 23514,
+      "decoded_sha256": "041c40bbbcbdfd283d351cda8526ace84e42ad175648b68998511210a8fcfb61",
+      "decoded_bytes": 106527,
+      "lines": 1639
+    },
+    {
+      "reason": "The next whole-repository run reached the dependency gate and failed when cargo-deny attempted the unbounded current RustSec history clone.",
+      "used_for_promotion": false,
+      "path": "evidence/implementation/receipts/B04/failed-preflight-current-rustsec-fetch-e37e5f8.log.gz",
+      "sha256": "974aae06292472bc0c0fce5f3db9e81f5a5ec995d8965072f785e23815779800",
+      "bytes": 35746,
+      "decoded_sha256": "e37449e63545b52c9e407269065926372712f24e9b84ba374768ca2804470b6a",
+      "decoded_bytes": 168618,
+      "lines": 2775
+    }
+  ],
+  "model_advice_boundary": {
+    "completed_exact_model_consultations": 8,
+    "model": "claude-fable-5",
+    "counted_as_parser_reviewer_proof_or_evidence": false,
+    "seventh_raw_sse_sha256": "a5c58f4ad92076b502fd0c7c018e98058c20abc83432037a1bf6a15e74925797",
+    "eighth_raw_sse_sha256": "c04b9738fdabcd973074d327a2e8afab89fdecaccbd5799f23ee5a0a6f506f41",
+    "adopted_eighth_challenges": [
+      "prove same-commit shallow and full advisory evaluation equality",
+      "isolate Git configuration, credentials, protocol, and proxy inputs",
+      "observe the official ref before and after the bounded clone",
+      "bound command output, time, database bytes, entry count, path length, and path depth",
+      "surface primary command errors rather than relying on cargo-deny's secondary metadata error"
+    ],
+    "disposition": "Non-normative advice improved falsification coverage and the local gate mechanics but did not raise the evidence class."
+  },
+  "resource_observations": {
+    "signed_envelope_bytes": 3479,
+    "signed_envelope_limit_bytes": 1500000,
+    "protected_header_bytes": 1307,
+    "protected_header_limit_bytes": 16384,
+    "payload_bytes": 1204,
+    "payload_limit_bytes": 1048576,
+    "manifest_bytes": 494,
+    "manifest_limit_bytes": 65536,
+    "replay_database_bytes": 12288,
+    "replay_database_limit_bytes": 8388608,
+    "replay_scope_capacity": 128,
+    "classification": "machine-local resource observations, not performance or capacity qualification"
+  },
+  "environment": {
+    "operating_system": "macOS 26.5.1 build 25F80",
+    "architecture": "arm64",
+    "python": "3.14.6",
+    "uv": "0.8.14",
+    "pynacl": "1.6.2",
+    "sqlite": "3.53.2",
+    "node": "26.3.0",
+    "openssl": "3.6.2",
+    "typescript": "5.9.2",
+    "npm": "11.16.0",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "cargo_deny": "0.19.9",
+    "buf": "1.71.0",
+    "protoc": "35.0",
+    "git": "2.50.1 (Apple Git-155)"
+  },
+  "three_perspective_decision": {
+    "protocol_and_security_correctness": "LOCAL_PASS: exact actor, carrier, route, plane, class, digest, manifest, session, operation, and replay facts fail closed without transferring NCP or plant authority.",
+    "consumer_and_runtime_usability": "LOCAL_PASS_FOR_QUARANTINED_PROTOTYPES: two distinct non-Rust parser and crypto stacks agree locally; no consumer dependency, deployment topology, live A-over-B composition, or replay implementation diversity is claimed.",
+    "operational_and_scientific_evidence": "LOCAL_PASS: exact commits, tools, artifacts, failures, bounds, and non-claims are retained; performance, calibration, safety, interoperability, independent review, and release evidence remain absent."
+  },
+  "residual_risks": [
+    "Ingress trusted-computing-base isolation, co-tenancy, memory corruption containment, and authenticated manifest provenance remain unproved.",
+    "Live rotation, revocation, continuing authorization, trusted time, key custody, and live A-over-B congruence remain NOT RUN.",
+    "The Python replay store is cooperative same-host state; filesystem rollback, non-cooperating same-UID writers, shared filesystems, replicated ownership, multi-host replay, disk-full, kill-during-COMMIT, and WAL-aware recovery remain unproved.",
+    "The Node implementation proves parser and crypto implementation diversity but does not implement durable replay and is not an independent human review or installed peer.",
+    "Full-sized profile sweeps, combinatorial fuzzing, sanitizers, duration testing, soak, performance qualification, and external interoperability remain NOT RUN.",
+    "The tracked RUSTSEC-2026-0041 dependency advisory remains release-blocking and was neither waived nor hidden by this local pass."
+  ],
+  "gate_effect": {
+    "b04_task": "LOCAL_PASS",
+    "b01_dependency_ready": true,
+    "normative_wire_changed": false,
+    "direct_zenoh_production_secure_available": false,
+    "ncp_release_authorized": false,
+    "external_release_gates": "NOT_RUN"
+  }
+}
