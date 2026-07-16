@@ -13,8 +13,8 @@ The order is deliberate:
    application metadata boundary.
 2. [`tls-terminating-ingress`](tls-terminating-ingress/) tests the isolated,
    loopback-only TLS 1.3 boundary after the Zenoh-probe section.
-3. A signed forwarding envelope may start only after the TLS-ingress section has
-   its own recorded result and three-perspective review.
+3. [`signed-forwarding-envelope`](signed-forwarding-envelope/) tests the
+   forwarding-only flattened-JWS and durable replay boundary after prototype A.
 
 Passing a prototype proves only that one bounded implementation ran under the
 recorded local environment. Live mTLS/ACL/rotation/revocation, independent peers,

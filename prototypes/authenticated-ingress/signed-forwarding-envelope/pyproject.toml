@@ -1,0 +1,29 @@
+[project]
+name = "ncp-signed-forwarding-envelope-prototype"
+version = "0.0.0"
+description = "Quarantined strict NCP signed-forwarding envelope prototype"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+  "PyNaCl==1.6.2",
+]
+
+[dependency-groups]
+dev = [
+  "ruff==0.15.21",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "S", "UP"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_replay.py" = ["S603"]
+"tests/replay_worker.py" = ["E402"]
+"tests/live_result.py" = ["E402"]

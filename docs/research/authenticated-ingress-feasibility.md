@@ -243,9 +243,12 @@ The protected `ncp` object binds:
 - `kid` as the content address of the exact public-key bytes and a positive key
   epoch selected from that manifest;
 - issued-at and expiry bounds under an explicitly named clock policy;
-- session ID and positive generation;
-- stream epoch and positive safe-integer sequence;
-- operation ID and positive generation where the message class requires them;
+- session ID and the exact canonical UUIDv4 session generation used by NCP;
+- a separate forwarding epoch, positive safe-integer sequence, and positive
+  recovery epoch for outer-envelope replay fencing;
+- the exact payload stream epoch/sequence where the message class is streamed;
+- the exact operation ID, request digest, and non-negative expected state version
+  where the message class is idempotent; and
 - SHA-256 of the decoded payload bytes.
 
 The prototype does not rely on JSON canonicalization for signature validity. It
@@ -272,10 +275,15 @@ Zenoh wildcard or key-expression equivalence.
 8. Verification and consumption use the same immutable bytes and one manifest
    snapshot. No queue or file is re-read after verification.
 9. Replay high-water check and commit are atomic and durable per signer, receiver,
-   route, plane, class, session generation, stream epoch, and key epoch.
+   route, plane, class, session generation, forwarding epoch, key epoch, and
+   recovery epoch.
 10. Equal/lower sequences reject. Lost or corrupt replay state fails closed until
-    an explicitly authenticated owner authorizes an epoch bump; no in-band message
-    may self-authorize recovery.
+    an explicitly authenticated owner authorizes an epoch bump; the new recovery
+    epoch is itself signed in every accepted forwarding envelope, so all
+    pre-recovery envelopes reject. Initialization cannot overwrite an existing
+    path, recovery must advance to a distinct store identity, and a cooperating
+    active process prevents replacement through a shared/exclusive advisory lock.
+    No in-band message may self-authorize recovery.
 11. Manifest staleness, rollback, key removal, epoch mismatch, clock-policy
     failure, expired envelope, and wrong audience reject.
 12. TypeScript and Python implementations use distinct JSON and Ed25519 stacks.
@@ -289,9 +297,10 @@ Configuration pins one profile per endpoint, plane, and message class:
 - **A-direct:** an authenticated transport operation principal; any B envelope is
   an ambiguity and rejects.
 - **B-over-A forwarding:** A authenticates an authorized forwarder/carrier and B
-  authenticates the distinct operation signer. Both are mandatory. The forwarder
-  is allowed only the forwarding role for the exact route/plane/class; the signer
-  is checked under its separate manifest role. Transport-only, signer-only,
+  authenticates the distinct operation signer. The principal and entity identities
+  must both differ. Both authentication axes are mandatory. The forwarder is
+  allowed only the forwarding role for the exact route/plane/class; the signer is
+  checked under its separate manifest role. Transport-only, signer-only,
   signer-as-forwarder, wrong audience, or any inner/outer profile mismatch rejects.
 - No endpoint negotiates A-direct versus B-over-A from attacker-controlled input.
 
@@ -317,11 +326,11 @@ for a failure on the other axis.
 | B encoding | invalid UTF-8, BOM, surrogate, padded or noncanonical base64url | Both parsers reject before semantic use. |
 | B numeric | fraction, exponent, leading zero, negative zero, unsafe integer, wrap boundary | Both parsers reject. |
 | B cryptography | wrong algorithm/key/epoch, changed protected bytes or payload, RFC 8032 edge cases | Both verifiers reject. |
-| B replay | exact replay, lower sequence, concurrent duplicate, state loss, unauthorized epoch bump | At most one atomic acceptance; state loss and unauthorized recovery fail closed. |
+| B replay | exact replay, lower sequence, concurrent duplicate, state loss, initialization overwrite, active-process replacement, unauthorized epoch/store bump, schema or sidecar substitution | At most one atomic acceptance; state loss, schema drift, and unauthorized or unsafe recovery fail closed. |
 | B routing | wrong audience, route, plane, class, profile, digest, generation | Reject. |
 | Parser bounds | just-below, exact-limit, just-above, hostile width/depth/node/string sizes | Documented boundaries agree and remain bounded. |
 | Differential | one parser accepts or produces a different semantic value | Global reject, alarm, and retained minimized case. |
-| Cross-profile | B on A-direct, A-only or B-only on forwarding, signer equals carrier | Reject without fallback. |
+| Cross-profile | B on A-direct, A-only or B-only on forwarding, signer principal/entity equals carrier | Reject without fallback. |
 | Authority | valid TLS or JWS but no lease, session, idempotency, or plant admission | Ordinary NCP rejection remains unchanged. |
 
 ## Local gate decision
