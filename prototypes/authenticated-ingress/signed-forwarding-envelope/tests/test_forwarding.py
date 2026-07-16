@@ -106,6 +106,15 @@ class ForwardingTests(unittest.TestCase):
                 lower_context["forwarding_sequence"] = 1
                 with self.assertRaisesRegex(PrototypeError, "equal or lower"):
                     verify(value, store, resigned(value, lower_context))
+                changed_payload = value.payload + b" "
+                changed_context = copy.deepcopy(value.ncp_context)
+                changed_context["payload_sha256"] = sha256_hex(changed_payload)
+                with self.assertRaisesRegex(PrototypeError, "equal or lower"):
+                    verify(
+                        value,
+                        store,
+                        resigned(value, changed_context, changed_payload),
+                    )
                 other_context = copy.deepcopy(value.ncp_context)
                 other_context["forwarding_epoch"] = "40000000-0000-4000-8000-000000000004"
                 accepted = verify(value, store, resigned(value, other_context))

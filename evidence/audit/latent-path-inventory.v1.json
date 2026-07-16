@@ -1898,9 +1898,9 @@
       },
       {
         "path": "docs/research/authenticated-ingress-feasibility.md",
-        "bytes": 27413,
-        "sha256": "812c2f2053cbda2eea5caac72d51e67e04b34d9663fb42eaec36597c880d3ea9",
-        "git_blob_oid": "e3aa7f79dcbb11a13d8bf362312afb4f9b352e5b",
+        "bytes": 30450,
+        "sha256": "6912e6737ab9e437ea5717be02bb0caa4363e5290de6b0323355714947c13f06",
+        "git_blob_oid": "c68711e30891d8aa5f0e2a9825b42aef29c84ca7",
         "indexed": true
       },
       {
@@ -5398,37 +5398,191 @@
       },
       {
         "path": "prototypes/authenticated-ingress/README.md",
-        "bytes": 1264,
-        "sha256": "e24a302449bcde215a30c8ed8a1ed9bbf51fe65f8edeb56d0e4ed2a9bfb550f5",
-        "git_blob_oid": "0d56dcc41ab2ead6a546b27bb135cf33ee8ade8c",
+        "bytes": 1400,
+        "sha256": "618896683c51b7d12f9feb9b11bfb94988c76c41a5e599c7062909693ebf93c1",
+        "git_blob_oid": "1481e53b40094d969a05be45e96def08c9b593ea",
         "indexed": true
       },
       {
         "path": "prototypes/authenticated-ingress/cspell.json",
-        "bytes": 810,
-        "sha256": "1aa14fba35ec56e60b9ff12e093f4baf4b697f828cb480aac0d584098f919d05",
-        "git_blob_oid": "859be9d1b2f8e44d4fe99fb2c446a2d47f0e8319",
+        "bytes": 901,
+        "sha256": "3c65a68c9447f39d54649093d95fc6b5afc480b5f2b899b93255bc660898a1f2",
+        "git_blob_oid": "44c8be8fe47ce120134db6edbaec7b4464df6f0f",
         "indexed": true
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/.gitignore",
-        "bytes": 92,
-        "sha256": "7a5157fb03dab66d5ad7f05e8cdf51c61a77758b3afbf39f39e6cd3ab02475d7",
-        "git_blob_oid": "931d576a3c21160ffabe610c18940d937c1f0268",
+        "bytes": 112,
+        "sha256": "df0edfaf66c1dbef223c8e02ec19095f16392aeb03639a2fc18ffdf26d86e8a8",
+        "git_blob_oid": "68befc7e4646a67bd88692cf3791087c50e2e5ed",
         "indexed": true
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/README.md",
-        "bytes": 7445,
-        "sha256": "cfff703b5b4272cf1ec17a62704a7c60c44ff316bf969364118adfb363d765d5",
-        "git_blob_oid": "e5590920ca8b6852df8e3db7700b964d5005420b",
+        "bytes": 8832,
+        "sha256": "1b280036b242571aa20dd6139242658bb6f13fdf2ae2a8c81278e8bb8108dae7",
+        "git_blob_oid": "1f4b0d00a029106dc83262edefc9095d657fb864",
         "indexed": true
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/SECTION_REVIEW.md",
-        "bytes": 9081,
-        "sha256": "78ca56c31bdb47dceb12ccce69df03b8dbf71df3fa5b8ce4a0a8670d7b741964",
-        "git_blob_oid": "4604965d9d50dece66cf0bf336bb8620e52662c5",
+        "bytes": 11307,
+        "sha256": "05bc8d56f60113844aa8570f5b5eebb6555c3d2066690ae18cfb94ccd1ef8a5f",
+        "git_blob_oid": "2867c56cbe81dec986bdd42a88ba6a3fc6f4723d",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/README.md",
+        "bytes": 1227,
+        "sha256": "2aab0fbd3ed8dd22d197746e0e703b31229fe2a3955cfd5eaa81c8fe9932a37f",
+        "git_blob_oid": "7ae8f9d2402a162716b09d1b36cb7c705d12463c",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json",
+        "bytes": 241671,
+        "sha256": "f89b19ce777d2ee0b8b51967053524ad500491ee3a15cecd899d5380339a197a",
+        "git_blob_oid": "eb6564d3b5177a71eea60d0e867e3c0abfa4be8a",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/generate_corpus.py",
+        "bytes": 18862,
+        "sha256": "e8c423d972b044abe1aedde5e933ccedae0d0865aa5b676cf0354c09261cc758",
+        "git_blob_oid": "7928b3d29ba0b2390025b261f3fc7d46c60bb412",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/python_adapter.py",
+        "bytes": 10005,
+        "sha256": "b33871f11d822e4d891a7ff157bfe136b26b112090f305c3161a64c12a3a84cc",
+        "git_blob_oid": "db171124d073e54b09347fab36eb005b90e6ecce",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/run.sh",
+        "bytes": 267,
+        "sha256": "8e2cd273b4e97d26867ccc5d8ba8f3da258e087a2a0a0c8260c8f41fc293988c",
+        "git_blob_oid": "1d54c03ee6f17b9c57f1086aef5d3de270d7c6e6",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/run_differential.py",
+        "bytes": 3951,
+        "sha256": "6010dca518291f90c8d398c77366820cf988791ee00b6180714aed7d5aff2c54",
+        "git_blob_oid": "2d78309cc39ecd61fa7501d71e3198b56199f5ed",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/verify_corpus.py",
+        "bytes": 4049,
+        "sha256": "9757cc5b31ba622a7993868b7148cefb74afd3e1df87aff8e7c47488a32e262c",
+        "git_blob_oid": "6046ea36cf1296a175661ff6ac783fdd08db7bdc",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/README.md",
+        "bytes": 2649,
+        "sha256": "7ae6252480237ddfb958a5f3f9b6c5e3b35844a154baa86eb46eafb444b7c5ec",
+        "git_blob_oid": "12221ba5a9985d3d52da7f052c9728f14cab88b9",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/package-lock.json",
+        "bytes": 1545,
+        "sha256": "159addd86853fafecaee9dca1a46d20a645649a9cd6b8cb93b4f90f8fe8e2058",
+        "git_blob_oid": "75ae26b7495425997a9654ad51013abf9a0e327d",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/package.json",
+        "bytes": 424,
+        "sha256": "a7b27ab977e7a2424f9bc7f8facd06dbec98a370ae48a98513a0076baf465859",
+        "git_blob_oid": "463e07a5ff28f6c94bf26d7eb8e5d3d8e279a058",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/run.sh",
+        "bytes": 241,
+        "sha256": "1a6843ce44fa5ba49cc734d0507af16a6ba4230fdc13ede4aa1cfcf469598389",
+        "git_blob_oid": "b0c3609811fbf2143a35b4630cc7dab3cb3373dc",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/cli.ts",
+        "bytes": 1205,
+        "sha256": "4a769e7ddfe5e68c069ffb4a129d28ee383cb110e8098ee52b32d0dc47d4d851",
+        "git_blob_oid": "f5255c16e4b4f892616d50099b4bce70ac95f6fd",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/errors.ts",
+        "bytes": 391,
+        "sha256": "71b3bfca06462d0d03a33f84a93d474786cf2bad6d2d55ed3f0c360cc2a1d4c2",
+        "git_blob_oid": "35b428fbea7a63b3ae1a70aa81ec457e50520aff",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/strict-json.ts",
+        "bytes": 13411,
+        "sha256": "13b6246865dee247c4dbb8665aa5d87e784b3aad780bfbf50a8c0c6638068548",
+        "git_blob_oid": "b98c80caf35b5782efe56e83ef96e9767e9bbadd",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/src/verifier.ts",
+        "bytes": 30656,
+        "sha256": "b4ffb0e0475773dbaa4a8480c5f1b9f24b323be188db360c16584eadf1f24edf",
+        "git_blob_oid": "32b647ccdcc574c58795e402e7b6dae79fc7e2be",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/common.ts",
+        "bytes": 8065,
+        "sha256": "89aaaafba73efb605a842ff3d4eb32fa708261cb5cbb1983947f48aa5e265d2c",
+        "git_blob_oid": "bbd8b178b6df892a71ad17820a180f39195ad762",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/crypto-strict.test.ts",
+        "bytes": 3552,
+        "sha256": "c4a31b52308f5c32aedd5b8f76cf4b4944ff9667658c31cb78d67e036f5e5797",
+        "git_blob_oid": "b403794841ddad947022313f9c905da256982b2a",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/strict-json.test.ts",
+        "bytes": 2761,
+        "sha256": "46874d8b3e9b12abf770747da5108af51728389a9a552e0fa27db45eeb3ff141",
+        "git_blob_oid": "dfaebe40996c02a9a291e1f97ebc43ff9bc0ac41",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/verifier.test.ts",
+        "bytes": 10930,
+        "sha256": "7f866df62c2be4579f9885b9061dd667f101daf8405dc3ec64083e9030772bdf",
+        "git_blob_oid": "4b72e411d353316a8bd40bf2a5f80f2ec7726491",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tsconfig.json",
+        "bytes": 580,
+        "sha256": "23481dc924d82a940ba8f5e8dd857bc8b5f3d218eaa591528a469b1fd47c0a1d",
+        "git_blob_oid": "d1ebe25c0b4069f0296c17ab007244dccdca980b",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/verify_profile.mjs",
+        "bytes": 4004,
+        "sha256": "d4ceddd537f5f28c572dc9bc2011868a9ad1f819d9a5a06071ceea45e9b5793a",
+        "git_blob_oid": "710cb2fbaf350429aba22caca39480c96c031a09",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/verify_profile.test.mjs",
+        "bytes": 1918,
+        "sha256": "d10e8f2f6949fbf1281749072c9155fc450ec73d811d35b1fd68a2cf6b741c58",
+        "git_blob_oid": "c7ff3960bfb582f4b6ce8d47d12b9e5ce1c915e5",
         "indexed": true
       },
       {
@@ -5468,9 +5622,9 @@
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/run.sh",
-        "bytes": 513,
-        "sha256": "8602723cb905de53c4d50fbea915893c45d0eae78b9c6d97e48ccec0f4e97ba4",
-        "git_blob_oid": "5a8932f764633f1d8c0462600c5f1d0289bc1eaf",
+        "bytes": 571,
+        "sha256": "b4c74b776a6f30acfb894142db368fd60296de7e588313b07b6e60b6ab16c377",
+        "git_blob_oid": "b1999e50a877b1f996313eed2370066a44a56f99",
         "indexed": true
       },
       {
@@ -5489,9 +5643,9 @@
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/live_result.py",
-        "bytes": 4272,
-        "sha256": "d9acbb84d9a7e54a0cf8d1396a9bccd369cb43c99b5f67be343172f1d90307b0",
-        "git_blob_oid": "123f4519a90962f94268e3b43c48e2a05eee8e06",
+        "bytes": 4271,
+        "sha256": "6940feef4956d81d9dd10dad6b6627dded400b7669b8c14fba3f8b634c282495",
+        "git_blob_oid": "ca435fc19184975cb8382b5828ed872d152c511b",
         "indexed": true
       },
       {
@@ -5503,9 +5657,9 @@
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_forwarding.py",
-        "bytes": 17461,
-        "sha256": "bb6235e76d6c0e49ecff4c16263d4dfe04f088369d690bf4dec59df6c4fdf475",
-        "git_blob_oid": "1449ceb5a8d2a6295ccafa0c88732a6f4703e1f8",
+        "bytes": 17929,
+        "sha256": "5d25c5f19a3564df67f34995050ec5390e31a57fa56557d227c706c34c870f2f",
+        "git_blob_oid": "5fc55d3d3a00738cb2348d0f4e738f32091c4baf",
         "indexed": true
       },
       {
@@ -5516,10 +5670,17 @@
         "indexed": true
       },
       {
+        "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_strict.py",
+        "bytes": 3121,
+        "sha256": "e1dd03985bb82731ec83f3827eb5ad630da79ceecd7ce341a68d0440732aaba3",
+        "git_blob_oid": "968c695d90f295c6dd0f714c160268d5d117975e",
+        "indexed": true
+      },
+      {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/tests/test_verifiers.py",
-        "bytes": 5483,
-        "sha256": "acce210e21194be96e5b39f752be8652ceece4baa4c99f026eadefcd263f5527",
-        "git_blob_oid": "a38aa82328ced1cd56b740fa0e086b523d069147",
+        "bytes": 5482,
+        "sha256": "97fcb763db5f91e086d6e61798d129a3b2d1419ab40ed6a2ed3142baa9ee44d1",
+        "git_blob_oid": "23b032fc0b34a4c67032992809784cfeb395ebc0",
         "indexed": true
       },
       {
@@ -5538,9 +5699,9 @@
       },
       {
         "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/verify_result.py",
-        "bytes": 5601,
-        "sha256": "0393a696bbea17c89721c6fa693faec97866eafb6b958acc2678ad7b21c2d13d",
-        "git_blob_oid": "51e646e336e4c6f06ff3d8cafeea18e09455a45d",
+        "bytes": 5596,
+        "sha256": "342e2bb2137dd1680294447e790e941f580ac1dc00c27f1e7c846860f906a760",
+        "git_blob_oid": "07443a996a58318ffbe4e294916f3686a0a3b972",
         "indexed": true
       },
       {
@@ -6322,9 +6483,9 @@
     ]
   },
   "counts": {
-    "text_files": 876,
+    "text_files": 899,
     "binary_or_non_utf8_files": 18,
-    "occurrences": 145,
+    "occurrences": 148,
     "by_token_id": {
       "M001": 5,
       "M002": 3,
@@ -6333,7 +6494,7 @@
       "M005": 5,
       "M006": 6,
       "M007": 71,
-      "M008": 52
+      "M008": 55
     },
     "by_disposition": {
       "AUDIT_CONTROL_TEXT": 40,
@@ -6343,13 +6504,13 @@
       "GENERATED_MIRROR": 10,
       "HANDOFF_OPEN_EVIDENCE": 32,
       "HISTORICAL_OR_INFORMATIVE": 12,
-      "NEGATIVE_POLICY_GUARD": 9,
+      "NEGATIVE_POLICY_GUARD": 12,
       "NEUTRAL_ROUTING_DEFAULT": 1,
       "REVIEWED_DESIGN_EXPLANATION": 1,
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "081b7dc1aa9bd1b9ac6328ca645c962e2039c72987a3259bfe501ac7e4e9ae0b",
+  "scanned_path_set_sha256": "f6027fc81b887277470886fc6bfa46d2ff317f1b7394fda4ed7321667b521fde",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -7320,7 +7481,7 @@
       "column": 122,
       "token_id": "M008",
       "line_sha256": "dbcfbd34b7f34cd0032e69e25ee9a8e8595559fbd863c301b4f458bc6d28b2c7",
-      "file_sha256": "812c2f2053cbda2eea5caac72d51e67e04b34d9663fb42eaec36597c880d3ea9",
+      "file_sha256": "6912e6737ab9e437ea5717be02bb0caa4363e5290de6b0323355714947c13f06",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -7328,13 +7489,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-503EB7F0006774F54258",
+      "id": "NCP-LATENT-295C543D5A704092809C",
       "path": "docs/research/authenticated-ingress-feasibility.md",
-      "line": 356,
+      "line": 393,
       "column": 12,
       "token_id": "M008",
       "line_sha256": "b417c9007a13c721c7f65f33e86bdc4fbcfecbcd176bbe7b85cde1f18b3fb5d4",
-      "file_sha256": "812c2f2053cbda2eea5caac72d51e67e04b34d9663fb42eaec36597c880d3ea9",
+      "file_sha256": "6912e6737ab9e437ea5717be02bb0caa4363e5290de6b0323355714947c13f06",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -8053,18 +8214,60 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9AE8F829AA0BD22CECD0",
+      "id": "NCP-LATENT-E2B5E240902D19311544",
       "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/SECTION_REVIEW.md",
-      "line": 48,
+      "line": 49,
       "column": 3,
       "token_id": "M008",
       "line_sha256": "c6e8f7d267b5cb85f94f1f065f556fc8da2c5201f9c1dfc5dfe4a5cafdd14efa",
-      "file_sha256": "78ca56c31bdb47dceb12ccce69df03b8dbf71df3fa5b8ce4a0a8670d7b741964",
+      "file_sha256": "05bc8d56f60113844aa8570f5b5eebb6555c3d2066690ae18cfb94ccd1ef8a5f",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NO_SHIPPING_OR_AUTHORITY",
       "evidence_paths": [
         "prototypes/authenticated-ingress/README.md",
         "docs/research/authenticated-ingress-feasibility.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-F2027D9328CC70D5F39F",
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json",
+      "line": 1,
+      "column": 233521,
+      "token_id": "M008",
+      "line_sha256": "0969c33bc973e7dad95a88f7e51f40c5208593648d384f52a9a48963d338ce02",
+      "file_sha256": "f89b19ce777d2ee0b8b51967053524ad500491ee3a15cecd899d5380339a197a",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/corpus.v1.json"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-D9FD369C500A83F95508",
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/generate_corpus.py",
+      "line": 516,
+      "column": 29,
+      "token_id": "M008",
+      "line_sha256": "8f161b16a28dfc7e42c1d60cc7a4c9d9184df153f12fa294dd05d1f5fb1ce3f1",
+      "file_sha256": "e8c423d972b044abe1aedde5e933ccedae0d0865aa5b676cf0354c09261cc758",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/differential/generate_corpus.py"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-81377ECB57BD1BD70735",
+      "path": "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/verifier.test.ts",
+      "line": 233,
+      "column": 62,
+      "token_id": "M008",
+      "line_sha256": "3c7087c7782f2415fc4b7c291320a8a22eed7a1cc6bc1ca74653f82aad54a5cb",
+      "file_sha256": "7f866df62c2be4579f9885b9061dd667f101daf8405dc3ec64083e9030772bdf",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier/tests/verifier.test.ts"
       ]
     },
     {

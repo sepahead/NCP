@@ -28,11 +28,14 @@
     "lz4",
     "middleboxes",
     "nonadvancing",
+    "nonascii",
     "noncanonical",
     "OCSP",
     "overclaim",
     "PyNaCl",
     "pycparser",
+    "plánt",
+    "prechecks",
     "rcgen",
     "RDONLY",
     "RDWR",
@@ -51,6 +54,8 @@
   ],
   "ignorePaths": [
     "**/Cargo.lock",
+    "**/dist/**",
+    "**/node_modules/**",
     "**/target/**"
   ]
 }

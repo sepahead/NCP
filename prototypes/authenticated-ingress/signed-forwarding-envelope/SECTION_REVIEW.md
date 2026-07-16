@@ -1,9 +1,10 @@
 # Signed-forwarding prototype section review
 
-> **Decision:** local prototype-B reference section pass; proceed only to the
-> independent TypeScript verifier and differential corpus. This is not a B04
-> terminal pass and not evidence for production security, interoperability,
-> authorization, plant action, release, or NCP 1.0 publication.
+> **Decision:** local prototype-B implementation-diversity section pass; proceed
+> only to the terminal B04 exact-commit whole-repository gate and receipt. This
+> is not yet a B04 terminal pass and is not evidence for production security,
+> independent human review, interoperability, authorization, plant action,
+> release, or NCP 1.0 publication.
 
 Review date: 2026-07-16.
 
@@ -63,19 +64,28 @@ invalidates all old envelopes and forces senders to reissue under the new epoch.
   resets state, so the signed recovery epoch must fence every prior envelope.
 - **A simulated carrier context proves A-over-B composition.** Rejected. A live
   authenticated prototype-A context is not wired into this reference harness.
-- **One Python implementation is parser diversity.** Rejected. The TypeScript
-  implementation and differential decision are still absent.
+- **A successful native Ed25519 call is the strict profile.** Rejected. On Node
+  26.3.0/OpenSSL 3.6.2, an all-zero public key and signature verify for at least
+  the ASCII message `protected.payload`. The independent wrapper performs
+  canonical point/scalar and reviewed small-order checks before the native call.
+- **Two implementations written here are independent review.** Rejected. The
+  native Node parser/crypto stack provides implementation diversity only. It
+  supplies neither a second human identity nor installed-peer interoperability.
 
 ## Executed falsification
 
-The deterministic runner executes eight hostile verifier self-tests plus fifteen
-forwarding/replay tests:
+The deterministic runner executes eight hostile Python verifier self-tests,
+fifteen Python forwarding/replay tests, three focused Python boundary tests,
+twenty-one native Node tests (including six boundary-verifier mutants), and a
+thirty-one-case process-isolated differential corpus:
 
 - positive `command_frame` and `step_request` acceptance;
 - strict outer/protected member sets, duplicate names, UTF-8/BOM/surrogate,
   base64url, integer, compact/general/unprotected and remote-key negatives;
 - fixed Ed25519 selection, wrong key, changed protected/payload bytes,
-  noncanonical scalar, small-order public key, and signature length checks;
+  RFC 8032 known-answer verification, noncanonical scalar/point, seven reviewed
+  small-order representatives on both sign encodings, native zero-key
+  counterexample, and signature length checks;
 - manifest digest, unknown member, wildcard, duplicate identity/epoch, exact
   grants, key overlap, epoch match and removed-key negatives;
 - wrong carrier role/profile/route, signer-equals-carrier,
@@ -89,7 +99,12 @@ forwarding/replay tests:
   active-process recovery rejection, bounded authorization bytes, old-envelope
   rejection after recovery, and new-envelope acceptance; and
 - subprocess death before commit, which permits retry, versus death after commit,
-  which loses consumer handoff and rejects retry.
+  which loses consumer handoff and rejects retry; and
+- Python/Node equality for accepted authentication projections and exact
+  rejection categories across both message profiles, manifest rotation/removal,
+  exact/adjacent numeric and base64url edges, parser ambiguity, key/algorithm
+  mutation, carrier/signer confusion, routing/time/profile mismatch, and payload
+  semantic mismatch.
 
 The machine-local result exercises two accepted messages. Its largest observations
 are a 3,479-byte envelope, 1,307-byte protected header, 1,204-byte NCP payload,
@@ -107,20 +122,25 @@ observations under one runtime, not performance or capacity qualifications.
   epoch, recovery epoch, session, payload context and payload digest are exact.
 - The immutable handoff retains both signer/carrier identities, the carrier
   role/profile, and the exact stable-core and security-state digests.
-- Unknown, missing, stale, ambiguous, replayed, downgraded, or mismatched input
-  cannot construct the verified result.
+- Unknown, missing, stale, ambiguous, replayed, downgraded, mismatched, or
+  implementation-divergent input cannot construct the verified result.
 - The result is authentication evidence only. Crebain/body-local final actuator
   authority and every ordinary NCP lease, idempotency, safety, lifecycle and
   operation check remain unchanged.
 
-Result: bounded local profile and replay invariants pass without identity or
-authority transfer.
+Result: bounded local profile, replay, and implementation-diversity invariants
+pass without identity or authority transfer.
 
 ### Consumer and runtime
 
-- The Python reference is isolated and unpublished; no consumer depends on it.
+- The Python and Node implementations are isolated and unpublished; no consumer
+  depends on them.
 - PyNaCl 1.6.2, cffi 2.1.0, pycparser 3.0 and Ruff 0.15.21 are exact in `uv.lock`
   with registry artifact SHA-256 values.
+- Node 26.3.0, OpenSSL 3.6.2, TypeScript 5.9.2, `@types/node` 26.1.1, and
+  `undici-types` 8.3.0 are pinned or checked, with exact npm registry integrity
+  values. A local npm audit reported no known vulnerabilities; like the Python
+  audit, this is a time-varying observation rather than frozen evidence.
 - A local `pip-audit` run with the fully pinned exported graph, no dependency
   resolution, and pip disabled reported no known vulnerabilities. This is a
   time-varying local observation, not a frozen supply-chain gate.
@@ -131,32 +151,44 @@ authority transfer.
   shared filesystems, replicated state and multi-instance ownership remain
   outside the result.
 
-Result: the reference implementation is executable and bounded, while deployment
-topology and the second implementation remain open.
+Result: both verification stacks are executable and bounded, while replay
+diversity, deployment topology, and live composition remain open.
 
 ### Operations, science, and evidence
 
 - Runtime private signing and recovery keys exist only in test process memory.
   No private key, secret seed, credential path, or local absolute path is retained.
-- A sixth completed exact-model `claude-fable-5` consultation challenged only the
-  replay/recovery design. Its recovery-epoch correction is adopted. Model advice
-  is non-normative and counts as neither reviewer, parser, proof, nor gate.
-- Kill-during-commit, disk-full, WAL-aware backup/restore, filesystem rollback,
-  trusted-time operations, owner-key custody, multi-host behavior, duration fuzz,
-  soak, performance, independent interoperability and external gates are not run.
+- The committed 241,671-byte differential corpus retains public keys and signed
+  requests only. Regeneration creates new runtime keys and is a reviewed corpus
+  replacement rather than a deterministic build step.
+- Six earlier completed exact-model `claude-fable-5` consultations remain
+  non-normative; the sixth replay/recovery challenge produced the adopted signed
+  recovery epoch. A seventh exact `claude-fable-5`/`end_turn` challenge, raw SSE
+  SHA-256
+  `a5c58f4ad92076b502fd0c7c018e98058c20abc83432037a1bf6a15e74925797`,
+  found no blocker to the narrow local pass and prompted the focused boundary,
+  full sign-bit, and same-sequence/different-payload replay negatives. It counts
+  as neither reviewer, parser, proof, nor gate.
+- Focused exact/above JSON byte, depth, node, member, string, safe-integer and
+  base64url bounds execute in both suites. Full-sized profile-limit sweeps,
+  combinatorial boundary fuzz, kill-during-COMMIT, disk-full, WAL-aware
+  backup/restore, filesystem rollback, trusted-time operations, owner-key
+  custody, multi-host behavior, duration fuzz, soak, performance, independent
+  interoperability and external gates are **NOT RUN**.
 - No simulation, posterior, calibration, paper-reproduction, safety,
   certification, scale, performance, release or publication claim is derived.
 
-Result: local evidence is proportional to a reference B verifier and preserves
-every unproved operational boundary.
+Result: local evidence is proportional to two prototype B verification stacks
+and preserves every unproved operational boundary.
 
 ## Next permitted boundary
 
-The next dependency-ready work is the native TypeScript/Node verifier using the
-Node Ed25519/OpenSSL and JSON stacks, followed by a shared public-only fixture
-corpus and differential global-reject decision. It must not share Python parsing
-or FFI, and neither implementation may be called an independent human reviewer.
+The next dependency-ready work is the terminal B04 exact-commit local gate:
+retain the coherent prototype commit remotely, run the complete
+`scripts/check.sh` preflight from that exact source, bind the outputs and hashes
+in a B04 receipt, and update the generated coordination views through their JSON
+source. Any failure keeps B04 `IN_PROGRESS`.
 
-B04 remains `IN_PROGRESS`. B01 ADR ratification, stable implementation, consumer
-repository changes, shipping packages and all external/release gates remain
-blocked.
+Until that terminal receipt passes, B01 ADR ratification, stable implementation,
+consumer repository changes, shipping packages and all external/release gates
+remain blocked.

@@ -1,5 +1,7 @@
 .venv/
 .ruff_cache/
+node_modules/
+dist/
 __pycache__/
 *.pyc
 *.sqlite3

@@ -39,6 +39,28 @@ The prototype's carrier context is simulated input, not output from a live
 prototype-A connection. It proves local congruence logic only, not an end-to-end
 B-over-A trusted boundary.
 
+## Independent verifier and global reject
+
+The Python/PyNaCl reference is paired with a native
+[TypeScript/Node verifier](node-verifier/README.md) that uses an independent
+recursive-descent JSON parser and Node/OpenSSL Ed25519 stack. The Node verifier
+does not share Python code or FFI and does not implement replay storage.
+
+Node 26.3.0/OpenSSL 3.6.2 natively accepts at least one small-order construction:
+an all-zero Ed25519 public key and signature verify for the ASCII message
+`protected.payload`. The Node profile therefore performs explicit canonical
+point/scalar and reviewed small-order checks before native verification. This is
+a concrete runtime counterexample, not a claim that every message or OpenSSL
+version has the same result.
+
+The [public differential corpus](differential/README.md) retains no private
+material. It contains thirty-one Python-generated exact requests covering both
+positive message profiles, key overlap/removal, and hostile syntax, encoding,
+cryptographic, identity, routing, clock, manifest, and payload cases. Python and
+Node run in separate processes. Any decision, rejection-code, or accepted
+projection difference fails the gate; operational composition must treat either
+rejection as a global rejection.
+
 ## Exact envelope profile
 
 The outer object contains exactly `protected`, `payload`, and `signature`. The
@@ -132,9 +154,11 @@ Run:
 ./run.sh
 ```
 
-The runner checks the exact uv lock, dependency hashes, source invariants,
-formatting, security-focused Ruff rules, compilation, twenty-three tests, and a
-machine-local live result. Tests cover syntax/encoding/numeric ambiguity,
+The runner checks the exact uv and npm locks, dependency hashes, Node/OpenSSL
+runtime, source invariants, formatting, security-focused Ruff rules, Python and
+TypeScript compilation, twenty-six Python tests, twenty-one Node tests, the
+thirty-one-case process-isolated differential corpus, and a machine-local live
+result. Tests cover syntax/encoding/numeric ambiguity,
 algorithm and remote-key substitution, signature mutation and noncanonical
 Ed25519 scalar, small-order key rejection, manifest failures, carrier/signer and
 route confusion, direct/forwarding exclusivity, both NCP contexts, key

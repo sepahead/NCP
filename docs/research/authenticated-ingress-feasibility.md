@@ -15,10 +15,10 @@ ratified or any stable source changes. It answers one narrow prerequisite:
 > boundary without trusting payload identity or weakening the current
 > fail-closed policy?
 
-The answer is provisionally **yes** through a distinct TLS-terminating ingress,
-and provisionally **yes, but deferred** through a strictly profiled signed outer
-envelope when a forwarder is unavoidable. Both answers are hypotheses that the
-prototypes must try to falsify. They do not make the current Zenoh adapter secure.
+The local prototype answer is **yes** through a distinct TLS-terminating ingress,
+and **yes under a strict forwarding-only profile** through a signed outer
+envelope when a forwarder is unavoidable. These are bounded feasibility results,
+not shipping decisions. They do not make the current Zenoh adapter secure.
 
 This work deliberately does not:
 
@@ -333,6 +333,43 @@ for a failure on the other axis.
 | Cross-profile | B on A-direct, A-only or B-only on forwarding, signer principal/entity equals carrier | Reject without fallback. |
 | Authority | valid TLS or JWS but no lease, session, idempotency, or plant admission | Ordinary NCP rejection remains unchanged. |
 
+## Executed implementation-diversity result
+
+The Python/PyNaCl reference and native TypeScript/Node verifier now execute
+against a committed public-only thirty-one-case corpus in separate processes.
+The Node implementation uses its own recursive-descent JSON parser and
+Node/OpenSSL Ed25519 API; it shares no Python parser or FFI. Decisions,
+rejection categories, and accepted authentication projections agree on every
+retained case.
+
+The result exposed a concrete native-crypto edge case. On Node 26.3.0 with
+OpenSSL 3.6.2, an all-zero Ed25519 public key and signature verify for at least
+the ASCII message `protected.payload`. The Node profile therefore rejects
+noncanonical points, the seven reviewed small-order compressed representatives
+on both sign encodings, and scalar `S >= L` before invoking native verification.
+The regression retains the native acceptance and wrapper rejection. This does
+not generalize to every input or runtime, and it does not replace future
+cryptographic review.
+
+The differential corpus retains no private key or seed. It covers both positive
+NCP message profiles, the maximum safe forwarding integer, exact key overlap and
+removal, duplicate/escaped names, UTF-8/BOM/base64url trailing bits, unsafe,
+negative-zero, fractional and exponent number forms, non-ASCII route rejection,
+algorithm/key/signature mutation, carrier/signer identity collision,
+route/time/profile mismatch, and session/stream payload mismatch. Either
+verifier rejecting is the combined global-reject result. The Node implementation
+does not duplicate durable replay;
+the Python reference commits every evaluated valid case to a fresh owner-pinned
+store, while the separate replay suite remains the evidence for ordering,
+recovery, and crash semantics.
+
+This is implementation diversity, not independent human review or installed-peer
+interoperability. Focused exact/above JSON byte, depth, node, member, string,
+safe-integer and base64url bounds now execute in both language suites. Full-sized
+profile-limit sweeps, combinatorial boundary fuzz, live A/B composition,
+multi-host replay, filesystem rollback protection, trusted time/key custody,
+duration fuzz, soak, performance and every external gate remain **NOT RUN**.
+
 ## Local gate decision
 
 `B04` can reach `LOCAL_PASS` only if all of the following are retained and bound to
@@ -436,6 +473,18 @@ or cryptographic dependencies. The response explicitly preserved direct Zenoh
 fail-closed and all `NOT RUN` gates. This advice cannot count as a reviewer,
 evidence source, proof, or gate result.
 
+A seventh narrow exact-model challenge later returned model
+`claude-fable-5`, terminal `end_turn`, and verdict `LOCAL_PASS` for only the
+explicitly quarantined tested envelope. Its raw SSE SHA-256 was
+`a5c58f4ad92076b502fd0c7c018e98058c20abc83432037a1bf6a15e74925797`
+outside the repository. It prioritized exact boundary mechanics, both
+small-order sign encodings, replay-key/order scrutiny, and evidence symmetry.
+The focused boundary tests, full sign-bit coverage, and same-sequence
+different-signed-payload replay negative were added. Existing before/after
+commit crash tests and the signed replay scope already addressed its
+under-specified replay concern. This advice remains non-normative and has no
+reviewer or evidence standing.
+
 ## Exact next actions
 
 1. Retain the Zenoh source/API matrix and build the live negative probe against
@@ -443,12 +492,15 @@ evidence source, proof, or gate result.
 2. Build A as a quarantined loopback-only executable test boundary with ephemeral
    CA/server/client material, exact TLS and manifest checks, hostile connection
    cases, and a non-constructible in-process context.
-3. Build B as a quarantined fixture/test harness. Use Node's Ed25519/OpenSSL stack
-   for TypeScript and a distinct Python/libsodium stack. Generate private test keys
-   only in temporary runtime storage; commit no private key.
-4. Add boundary and differential measurements, minimized hostile cases, exact
-   dependency metadata, and one command that runs the full B04 prototype suite.
-5. Re-run the three perspectives and ten lenses against results, not intentions.
-6. Update the implementation ledger after each coherent checkpoint and push it.
-7. Do not begin B01 ADR ratification or normative implementation until B04 has a
-   reviewed exact-commit local receipt and the complete local preflight passes.
+3. **Completed locally:** build B with native Node/OpenSSL and Python/libsodium
+   stacks, runtime-only private keys, and no committed private material.
+4. **Completed locally:** retain exact dependencies, minimized hostile cases,
+   a public-only differential corpus, and one full prototype runner.
+5. **Completed for the prototype slice:** re-run the three perspectives and ten
+   lenses against the executable results.
+6. Retain the coherent prototype commit remotely, run the complete
+   `scripts/check.sh` preflight from that exact source, and bind its outputs and
+   hashes into the terminal B04 local receipt.
+7. Do not begin B01 ADR ratification or normative implementation until that
+   reviewed exact-commit receipt passes; external and independent gates remain
+   **NOT RUN**.

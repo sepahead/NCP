@@ -92,7 +92,7 @@ class ResultVerifierTests(unittest.TestCase):
                 "plant_action_granted": False,
                 "production_security_proved": False,
                 "filesystem_rollback_protection_proved": False,
-                "independent_parser_gate_satisfied": False,
+                "independent_parser_gate_satisfied": True,
                 "b04_complete": False,
                 "release_gate_satisfied": False,
             },
