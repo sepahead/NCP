@@ -1719,105 +1719,105 @@
         "bytes": 8426,
         "sha256": "c379fd8d4d69c47dd7744a36da142164a0012279b2b3dafa0c230bba860c904b",
         "git_blob_oid": "641b3fbd21c7abfa0f41bbd53cb0ace2a9557227",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
         "bytes": 7374,
         "sha256": "cd00a501f10d444eb23c7d8076de4f08862c3225c662ae9b0571fa8e4cd0f103",
         "git_blob_oid": "d493156e8bd8f7803a7eb12eccd6c386c502c422",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0003-authenticated-production-ingress.md",
         "bytes": 7238,
         "sha256": "8aac232e1c60a74eb0875885fd84641f1186e4bfbf72b192787e02c83aa44545",
         "git_blob_oid": "b28ef27f1bc34fce7992882574948b6ad90f8a11",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
         "bytes": 6282,
         "sha256": "cba3960513a4d40d1f4692580c3b4927bea57979f4703aab3c188f260b4a9656",
         "git_blob_oid": "e299a25b777993ff837056f64f67c7de45b684ec",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0005-declared-stream-lifecycle.md",
         "bytes": 5916,
         "sha256": "6760b9e545ccee75a2f8864d652603cd4b2e0d1e261fa89e56c319b7de56820e",
         "git_blob_oid": "ba6780f945479b1a7cd4ef6e9db337ceff27c6c0",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0006-body-issued-authority-and-time.md",
         "bytes": 8074,
         "sha256": "486501f2711aabf9addcc8b9fd4db2baaa49e125593591fbf8674f7220076053",
         "git_blob_oid": "c49bb4c0b43fcdb0ed82ac4571db01ef9ac04aef",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0007-command-disposition-journal.md",
         "bytes": 6722,
         "sha256": "c5411a4379ea8ae65887a7006ec233bae01f2279d026421c6ac366dde9406373",
         "git_blob_oid": "2d55709c7d296a053a31046aeb7ec909fa365416",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
         "bytes": 7040,
         "sha256": "3ffc70087c449ec487d543e954cf7d9792c0e774ddac7058458c94366757d897",
         "git_blob_oid": "72eb234ccc59228aff835ca6eca0df3491b037d0",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
         "bytes": 6067,
         "sha256": "9adea1e3ad1a3a902860440ad2d3d88863e7eec7e1bd64ac50a048898a6c336a",
         "git_blob_oid": "2dd49da0e341b62608e31a442514e1439d344139",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
         "bytes": 6144,
         "sha256": "9f67034f1b45a74ccbdd7726a387e58a411db5e5817f3a2042a20a1db94f213e",
         "git_blob_oid": "5594bd60de031e1702cea8dbb425c076455ad4bb",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
         "bytes": 12406,
         "sha256": "582e1df6a7b72e50ad5250202c15ce51b5e2f8453d9788e682147348d53efc3c",
         "git_blob_oid": "594518d6b901750974320f2bfa7f1fc1b2545b13",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/README.md",
         "bytes": 6921,
         "sha256": "b0423eb6a460de8b62c5126fabb01b598181022d0d4351607e65546ba1f33b76",
         "git_blob_oid": "9c70b10565bd908246ed18d91c1d5149c9b56adf",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/decision-registry.proposed.schema.v1.json",
         "bytes": 3745,
         "sha256": "16732304f35855627f612491c8c26febb85eed44a5bfa848794270fe685e9939",
         "git_blob_oid": "4121a1673f036386b3b7670a485a32db273f1ec0",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/decision-registry.proposed.v1.json",
         "bytes": 6986,
         "sha256": "21b5355ebaf4e64699a9e7c7ed7dd87b306d17950b8dbd1a757e913476e893da",
         "git_blob_oid": "887a5173bf5394acb49c7bd49f6522ad942b3f02",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/adr/decision-registry.source.v1.json",
         "bytes": 5348,
         "sha256": "b47ac59235e9cac3388f790c532f0393c216a85f86913d1425df58a8679967c3",
         "git_blob_oid": "c7f0b219f3ab59f976becfb7dd260926f35ee506",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/diagrams/ecosystem-dark.svg",
@@ -1954,16 +1954,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 10019,
-        "sha256": "3b679db45f4e5851a0cee1e740a3f082458c8a03a5e8f95fb30231b925d8eaa7",
-        "git_blob_oid": "0b8d2275434057e6200b3f2b146a133235e18c14",
+        "bytes": 10161,
+        "sha256": "8e35daa44d44ae36e8edc474beae0d8ea0b9c660bc5a2f7df23faf6ce935539d",
+        "git_blob_oid": "80c27d43c6edc40c2a7e4b471a66b2c83de5c010",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 19998,
-        "sha256": "f2131ba51f373ca3e7d50215030c0d4866ea1ba3e0bb81b3a1740cc3ded2b26f",
-        "git_blob_oid": "3918329db6fbb10ba31131ba556757c1e51d4996",
+        "bytes": 20140,
+        "sha256": "0723f41c606f4b860f07820eac5e805cd852287c5c61915a66138c8dea21a88c",
+        "git_blob_oid": "f4196c75c67cc2047a9aeb7a9ea4d9673cad90ea",
         "indexed": true
       },
       {
@@ -2013,7 +2013,7 @@
         "bytes": 6344,
         "sha256": "3a06890f2a6a1e4d8ee05f96e39b020a1691cef2ec6cac984bc61be4a8be2ba6",
         "git_blob_oid": "fc106806f9f880213c98f98abbe0cff914471691",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "docs/wire-0.8-capture-migration.md",
@@ -2192,9 +2192,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 124648,
-        "sha256": "b1ef8c5302fb4ed80a5e3bc76c4d7b5528f0385be5609d32bf6942839a20c150",
-        "git_blob_oid": "69273193eb77ab05b1952e208134d8a659513d63",
+        "bytes": 124790,
+        "sha256": "41a53e727f8d5ae2d8f3b74903a0b54015148850a5349d09c0de50d08b1a9277",
+        "git_blob_oid": "527c28ab8255be9224f3674a3bebf32e29f1e7bc",
         "indexed": true
       },
       {
@@ -6192,7 +6192,7 @@
         "bytes": 6539,
         "sha256": "4447694c4dec0c5f9d95189a3bcb4d91f18feb33fb00ba9f62932d69406a4314",
         "git_blob_oid": "a71a16f67a0abd0240925af71bec22d9c570d1f3",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "scripts/check_audit_artifacts.py",
@@ -6374,7 +6374,7 @@
         "bytes": 15932,
         "sha256": "73226dc7173d0aa5c0001056e080780d39422601403329168f5a8e68c811f033",
         "git_blob_oid": "e534af3ad94837841340891df7eb21302d8f58ff",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "scripts/generate_file_review_ledger.py",

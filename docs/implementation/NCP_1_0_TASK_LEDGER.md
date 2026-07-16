@@ -33,7 +33,7 @@ Dependency-ready open tasks: none.
 
 ### `B01` — Decide and ratify ADR-001 through ADR-011
 
-B01 started from clean pushed commit `9aaf667e2aecdc3c5b898e6430e9b33a5d7e76a1`. The current slice drafts ADR-001 through ADR-011, adds a hash-bound non-normative proposed registry and hostile generator, and extends generated threat/requirement traceability for six composition risks. The drafts explicitly reject ordered UUID epochs and keep Prisoma, pid-rs, and Cortexel outside the command path. Next: run focused parser/link/schema/audit checks, inspect all decisions through the three perspectives and ten lenses, commit/push this coherent PROPOSED slice, then obtain qualifying same-digest owner and independent reviews. Do not write contract/decision-registry.v1.json, change normative wire sources, mark any ADR ACCEPTED, start B02/B03/N tasks, or infer release readiness.
+The exact PROPOSED ADR-001 through ADR-011 slice is pushed and remote-verified at `f1a5a3d17d1f158374816dcb29a99d5cdd445074`. The dirty-tree full preflight passed with output SHA-256 `8f98ad548c2b00c10362c45075a0d91191ab225b50d306e5dbe028defa34ea57`, and the focused parser/link/schema/audit replay passed with output SHA-256 `10eab894c1d380d2b3b0e27ebaf78f353a7768f12894d419b0d5cfe585d17388`. The first clean exact-commit replay correctly rejected stale audit inventory caused by the ADR files changing from untracked to indexed; this checkpoint regenerates that content-bound inventory without changing any ADR byte or status. Next: verify the clean checkpoint, run preliminary models/resource probes, and obtain qualifying same-digest owner and independent reviews. Do not write contract/decision-registry.v1.json, change normative wire sources, mark any ADR ACCEPTED, start B02/B03/N tasks, or infer release readiness.
 
 Current residual risks:
 
@@ -130,7 +130,7 @@ satisfy the floor.
 |---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
 | `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
-| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `9aaf667e2aec` | 5 |
+| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `f1a5a3d17d1f` | 5 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
 | `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Reserve registries, namespaces, error codes, and owners | `B01` | NCP | `—` | 0 |
 | `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Establish the single normative source graph and identity projections | `B02`, `B03` | NCP | `—` | 0 |
