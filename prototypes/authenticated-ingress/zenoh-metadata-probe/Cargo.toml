@@ -1,0 +1,16 @@
+[package]
+name = "ncp-zenoh-metadata-probe"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+description = "Quarantined local probe for callback-visible metadata in exact Zenoh 1.9.0"
+license = "MIT OR Apache-2.0"
+
+[workspace]
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+tokio = { version = "=1.52.3", features = ["macros", "rt-multi-thread", "time"] }
+zenoh = { version = "=1.9.0", default-features = false, features = ["transport_tcp", "unstable"] }

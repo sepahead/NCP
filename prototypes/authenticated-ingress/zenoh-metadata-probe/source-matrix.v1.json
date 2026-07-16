@@ -1,0 +1,118 @@
+{
+  "schema": "ncp.prototype.zenoh-source-matrix.v1",
+  "claim_boundary": "Exact-source and local-feasibility input only; no authentication, authorization, interoperability, certification, or release evidence.",
+  "crate": {
+    "name": "zenoh",
+    "version": "1.9.0",
+    "crates_io_checksum_sha256": "85e22d7002ac149ef17fe400bb40a267ebbba40a83413bab03da7762256fa94e",
+    "upstream_commit_sha1": "81c6c933b6e41d72a05f04c4442ef57717ddc72b",
+    "path_in_vcs": "zenoh"
+  },
+  "files": [
+    {
+      "path": "src/api/sample.rs",
+      "sha256": "027d6814ac63cfdc139f0f000de662b7af3120b78cc7a64b3209e4fe74431d78",
+      "required_fragments": [
+        "pub struct SourceInfo",
+        "pub(crate) source_id: EntityGlobalId",
+        "pub(crate) source_sn: SourceSn",
+        "pub fn source_info(&self) -> Option<&SourceInfo>"
+      ],
+      "reviewed_conclusion": "Unstable SourceInfo contains a Zenoh EntityGlobalId and sequence number; Sample has no certificate-principal field."
+    },
+    {
+      "path": "src/api/builders/sample.rs",
+      "sha256": "29fe9cbc443229312b221185230555891b717b81898e755252feb09396c893ba",
+      "required_fragments": [
+        "Sets an optional [`SourceInfo`](crate::sample::SourceInfo) to be sent along with the publication.",
+        "source_info: source_info.into()"
+      ],
+      "reviewed_conclusion": "The sending sample builder can choose the SourceInfo carried with a publication."
+    },
+    {
+      "path": "src/api/builders/query.rs",
+      "sha256": "38d4db2fa4a1080b867b6dbcac26d695fc29df9fd9db16ae4a3bc3a26a42e82e",
+      "required_fragments": [
+        "Sets an optional [`SourceInfo`](crate::sample::SourceInfo) to be sent along with the request/query.",
+        "source_info: source_info.into()"
+      ],
+      "reviewed_conclusion": "The query sender can choose the SourceInfo carried with a request."
+    },
+    {
+      "path": "src/api/builders/reply.rs",
+      "sha256": "8ce528cdc09580ae7813335a8ccd27ba7f5523f0970afe11cb81f8fdba782d05",
+      "required_fragments": [
+        "source_info: Option<SourceInfo>",
+        "let sample = sample.source_info(self.source_info)"
+      ],
+      "reviewed_conclusion": "The query responder can choose sample SourceInfo for a reply."
+    },
+    {
+      "path": "src/api/queryable.rs",
+      "sha256": "e66a067d056c1ed9a95cca955c3ecbcfd9bcb7194e6108bbfdc8aed0e4a66133",
+      "required_fragments": [
+        "pub struct Query",
+        "pub fn source_info(&self) -> Option<&SourceInfo>",
+        "pub fn attachment(&self) -> Option<&ZBytes>"
+      ],
+      "reviewed_conclusion": "Queryable callbacks expose request content and optional sender-supplied SourceInfo, not a verified certificate principal."
+    },
+    {
+      "path": "src/api/query.rs",
+      "sha256": "ae8bfe1c706b6480d688700fedeebc25e74cbd9ac2910647b6ff0b8b3d184e8e",
+      "required_fragments": [
+        "pub(crate) replier_id: Option<EntityGlobalIdProto>",
+        "Gets the ID of the zenoh instance that answered this reply.",
+        "pub fn replier_id(&self) -> Option<EntityGlobalId>"
+      ],
+      "reviewed_conclusion": "Reply may expose a Zenoh replier entity ID; this is not documented as a verified certificate principal."
+    },
+    {
+      "path": "src/api/session.rs",
+      "sha256": "a4399548e042c6681151dbeddd68f0446c1145f86f0773d315881da3ad67c856",
+      "required_fragments": [
+        "source_info: None",
+        "replier_id: None",
+        "state.remote_tokens.entry(m.id)"
+      ],
+      "reviewed_conclusion": "Liveliness construction supplies no source or replier information."
+    },
+    {
+      "path": "src/api/info.rs",
+      "sha256": "13fce9c4686941bbb3285aded040d313e516412f3d91b782701a3a0afa8e9f67",
+      "required_fragments": [
+        "pub fn peers_zid(&self) -> PeersZenohIdBuilder<'_>",
+        "pub fn routers_zid(&self) -> RoutersZenohIdBuilder<'_>"
+      ],
+      "reviewed_conclusion": "SessionInfo exposes connected Zenoh IDs, not per-delivery certificate attribution."
+    },
+    {
+      "path": "src/api/builders/info.rs",
+      "sha256": "8410fd12ee193f09f018f0208d840be1b4d92141da211359d339f0d835e613e8",
+      "required_fragments": [
+        "type To = Box<dyn Iterator<Item = ZenohId> + Send + Sync>",
+        "self.runtime.get_zids(WhatAmI::Peer)"
+      ],
+      "reviewed_conclusion": "The peer-info builder enumerates Zenoh IDs at session scope."
+    },
+    {
+      "path": "tests/source_info.rs",
+      "sha256": "feeee1dfda5c4c16f1f6093da04318708f1178f7be40422d9587413b18d51ae0",
+      "required_fragments": [
+        "publisher.put(\"data\").source_info(SourceInfo::new(id, sn))",
+        "session1.get(ke).source_info(SourceInfo::new(id, sn))",
+        "query.reply(ke, \"data\").source_info(SourceInfo::new(id, sn))"
+      ],
+      "reviewed_conclusion": "Upstream tests intentionally set and observe sender-selected source IDs and sequence numbers."
+    },
+    {
+      "path": "tests/liveliness.rs",
+      "sha256": "68c2d28757f6aa74d008e4de27ec3f8cbd062d0a18de53472293bc9bd3bfb4e5",
+      "required_fragments": [
+        "peer1.liveliness().declare_subscriber(LIVELINESS_KEYEXPR)",
+        "peer2.liveliness().get(LIVELINESS_KEYEXPR)"
+      ],
+      "reviewed_conclusion": "Upstream live tests cover subscriber and query liveliness paths whose construction is source-less in session.rs."
+    }
+  ]
+}

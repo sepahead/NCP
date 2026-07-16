@@ -1,0 +1,29 @@
+{
+  "schema": "ncp.prototype.zenoh-metadata-probe.v1",
+  "zenoh_version": "1.9.0",
+  "transport": "explicit-loopback-tcp-no-tls",
+  "observations": {
+    "explicit_tcp_peers_enumerate_each_other": true,
+    "pubsub_sender_chose_receiver_entity_id": true,
+    "pubsub_sender_chose_sequence": true,
+    "pubsub_omission_remained_none": true,
+    "query_sender_chose_receiver_entity_id": true,
+    "query_sender_chose_sequence": true,
+    "reply_sender_chose_requester_entity_id": true,
+    "reply_sender_chose_sequence": true,
+    "query_omission_remained_none": true,
+    "reply_omission_remained_none": true,
+    "reply_replier_id_was_present": true,
+    "liveliness_put_source_was_none": true,
+    "liveliness_query_source_was_none": true,
+    "liveliness_query_replier_id_was_none": true,
+    "liveliness_delete_source_was_none": true
+  },
+  "claim_boundary": {
+    "live_probe_proves_api_absence": false,
+    "source_info_authenticates_identity": false,
+    "zenoh_id_is_certificate_principal": false,
+    "production_secure_is_available": false,
+    "external_gate_satisfied": false
+  }
+}

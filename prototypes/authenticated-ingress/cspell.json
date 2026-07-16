@@ -1,0 +1,16 @@
+{
+  "version": "0.2",
+  "language": "en-GB,en",
+  "words": [
+    "clippy",
+    "Crebain",
+    "Haldir",
+    "lz4",
+    "RUSTSEC",
+    "Zenoh"
+  ],
+  "ignorePaths": [
+    "**/Cargo.lock",
+    "**/target/**"
+  ]
+}
