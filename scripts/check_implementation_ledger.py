@@ -1739,6 +1739,7 @@ def self_test(data: dict[str, Any]) -> None:
     )
 
     mutant = copy.deepcopy(data)
+    mutant["tasks"][1]["dirty_state_disposition"] = "NOT_EVALUATED"
     mutant["tasks"][1]["status"] = "LOCAL_PASS"
     _must_fail(lambda: validate(mutant), "optimistic status", "dirty or unevaluated")
     historical_external = {

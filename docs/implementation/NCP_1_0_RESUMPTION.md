@@ -59,9 +59,22 @@ Can this ledger grant release authorization? **false**.
 
 | Task | State | Repository | Resume condition |
 |---|---|---|---|
-| — | no active or blocked task | — | start only a dependency-ready task |
+| `B04` | `IN_PROGRESS` | NCP prototypes | Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work. |
 
-Dependency-ready open tasks: `B04`.
+### Active recovery checkpoint
+
+#### `B04` — Prove authenticated-ingress and independent-parser feasibility
+
+B04 checkpoint 2026-07-16T09:23:28Z: B00 is LOCAL_PASS and `cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1` is the verified clean `origin/main` object. Starting B04 legitimately changed its dirty-state disposition and exposed a checker self-test that had implicitly assumed task index 1 would always be unevaluated. The mutant now establishes its own hostile `NOT_EVALUATED` precondition, removing that coupling without weakening any guard; Ruff, byte compilation, hostile checker tests, generated equality, JSON Schema, pinned supply-chain, semantic audit, links, and diff checks pass. On resume first determine whether this B04 start checkpoint is already the verified clean `origin/main` object; commit/push/verify it only if needed. Next inspect the pinned Zenoh 1.9.0 source and official API for callback/query/liveliness/router actor and route metadata; retain a source-bound live negative probe; request a narrow exact-model Fable 5 max review as non-evidence; document a feasibility/threat matrix; then implement quarantined executable prototypes for a TLS-authenticated terminating ingress and a flattened Ed25519 JWS envelope plus isolated native TypeScript and Python bounded parsers. Measure bounds, preserve positive and hostile cases, and change no stable wire field. Review through protocol/security/plant, consumer/runtime, and operations/science/evidence perspectives before any B01 ADR decision.
+
+Current residual risks:
+
+- B04 has started but no authenticated-ingress, independent-parser, performance, or feasibility result exists yet.
+- No B04 prototype may change the normative contract, ship in an NCP package, grant runtime identity or authority, or count as live production-security evidence.
+- Two isolated native non-Rust implementations can demonstrate implementation diversity but do not create an independent human reviewer identity.
+- Fable advice is optional non-normative design input and cannot count as a parser, reviewer, proof, or gate result.
+
+Dependency-ready open tasks: none.
 
 Do not start a descendant merely because its files are convenient. Provider changes
 land and pass first; consumers then bind exact immutable provider commits. Cross-repo

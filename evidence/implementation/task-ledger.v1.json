@@ -174,7 +174,7 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "1beca294c42e9cf47e5e71d6ffb2964912bc2fbe8e34385a5d943c417b7fa17a"
+      "sha256": "8efb9b7c47ad4306137017381c1d39cacf4bce0b87a20746fe325667c7b664e6"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
@@ -838,13 +838,15 @@
     {
       "adr_ids": [],
       "artifacts": [],
-      "changed_files": [],
+      "changed_files": [
+        "scripts/check_implementation_ledger.py"
+      ],
       "claim_tier": "COORDINATION_ONLY",
       "commands": [],
       "dependencies": [
         "B00"
       ],
-      "dirty_state_disposition": "NOT_EVALUATED",
+      "dirty_state_disposition": "ACCEPTED_CLEAN",
       "id": "B04",
       "invalidates": [],
       "minimum_terminal_class": "LOCAL",
@@ -853,16 +855,30 @@
       "requirement_ids": [
         "B04-acceptance"
       ],
-      "residual_risks": [],
-      "reviewer_comment": null,
+      "residual_risks": [
+        "B04 has started but no authenticated-ingress, independent-parser, performance, or feasibility result exists yet.",
+        "No B04 prototype may change the normative contract, ship in an NCP package, grant runtime identity or authority, or count as live production-security evidence.",
+        "Two isolated native non-Rust implementations can demonstrate implementation diversity but do not create an independent human reviewer identity.",
+        "Fable advice is optional non-normative design input and cannot count as a parser, reviewer, proof, or gate result."
+      ],
+      "reviewer_comment": "B04 checkpoint 2026-07-16T09:23:28Z: B00 is LOCAL_PASS and `cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1` is the verified clean `origin/main` object. Starting B04 legitimately changed its dirty-state disposition and exposed a checker self-test that had implicitly assumed task index 1 would always be unevaluated. The mutant now establishes its own hostile `NOT_EVALUATED` precondition, removing that coupling without weakening any guard; Ruff, byte compilation, hostile checker tests, generated equality, JSON Schema, pinned supply-chain, semantic audit, links, and diff checks pass. On resume first determine whether this B04 start checkpoint is already the verified clean `origin/main` object; commit/push/verify it only if needed. Next inspect the pinned Zenoh 1.9.0 source and official API for callback/query/liveliness/router actor and route metadata; retain a source-bound live negative probe; request a narrow exact-model Fable 5 max review as non-evidence; document a feasibility/threat matrix; then implement quarantined executable prototypes for a TLS-authenticated terminating ingress and a flattened Ed25519 JWS envelope plus isolated native TypeScript and Python bounded parsers. Measure bounds, preserve positive and hostile cases, and change no stable wire field. Review through protocol/security/plant, consumer/runtime, and operations/science/evidence perspectives before any B01 ADR decision.",
       "reviewers": [],
       "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
-      "source_commit": null,
-      "status": "OPEN",
+      "source_commit": "cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1",
+      "status": "IN_PROGRESS",
       "target_commit": null,
       "ten_lens_reviews": [],
       "title": "Prove authenticated-ingress and independent-parser feasibility",
-      "transitions": []
+      "transitions": [
+        {
+          "correlation_id": "ncp-v1-finalization-20260716-b04",
+          "from": "OPEN",
+          "reason": "Begin bounded non-normative feasibility work for authenticated ingress and two isolated native non-Rust parsers before ADR ratification or wire changes.",
+          "receipt": null,
+          "timestamp_utc": "2026-07-16T09:18:11Z",
+          "to": "IN_PROGRESS"
+        }
+      ]
     },
     {
       "adr_ids": [

@@ -17,17 +17,30 @@ separate, and publication tasks cannot start through a status edit.
 
 | Status | Count |
 |---|---:|
-| `OPEN` | 55 |
-| `IN_PROGRESS` | 0 |
+| `OPEN` | 54 |
+| `IN_PROGRESS` | 1 |
 | `BLOCKED` | 0 |
 | `LOCAL_PASS` | 1 |
 | `EXTERNAL_PASS` | 0 |
 | `INDEPENDENT_PASS` | 0 |
 | `COMPLETE` | 0 |
 
-Active tasks: none.
+Active tasks: `B04`.
 
-Dependency-ready open tasks: `B04`.
+Dependency-ready open tasks: none.
+
+## Active task recovery checkpoints
+
+### `B04` — Prove authenticated-ingress and independent-parser feasibility
+
+B04 checkpoint 2026-07-16T09:23:28Z: B00 is LOCAL_PASS and `cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1` is the verified clean `origin/main` object. Starting B04 legitimately changed its dirty-state disposition and exposed a checker self-test that had implicitly assumed task index 1 would always be unevaluated. The mutant now establishes its own hostile `NOT_EVALUATED` precondition, removing that coupling without weakening any guard; Ruff, byte compilation, hostile checker tests, generated equality, JSON Schema, pinned supply-chain, semantic audit, links, and diff checks pass. On resume first determine whether this B04 start checkpoint is already the verified clean `origin/main` object; commit/push/verify it only if needed. Next inspect the pinned Zenoh 1.9.0 source and official API for callback/query/liveliness/router actor and route metadata; retain a source-bound live negative probe; request a narrow exact-model Fable 5 max review as non-evidence; document a feasibility/threat matrix; then implement quarantined executable prototypes for a TLS-authenticated terminating ingress and a flattened Ed25519 JWS envelope plus isolated native TypeScript and Python bounded parsers. Measure bounds, preserve positive and hostile cases, and change no stable wire field. Review through protocol/security/plant, consumer/runtime, and operations/science/evidence perspectives before any B01 ADR decision.
+
+Current residual risks:
+
+- B04 has started but no authenticated-ingress, independent-parser, performance, or feasibility result exists yet.
+- No B04 prototype may change the normative contract, ship in an NCP package, grant runtime identity or authority, or count as live production-security evidence.
+- Two isolated native non-Rust implementations can demonstrate implementation diversity but do not create an independent human reviewer identity.
+- Fable advice is optional non-normative design input and cannot count as a parser, reviewer, proof, or gate result.
 
 ## Three required review perspectives
 
@@ -115,7 +128,7 @@ satisfy the floor.
 | Task | Status | Claim tier | Required evidence class | Scope | Dependencies | Repository | Source commit | Residual risks |
 |---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
-| `B04` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `—` | 0 |
+| `B04` | `IN_PROGRESS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `cb8a22311ca7` | 4 |
 | `B01` | `OPEN` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `—` | 0 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
 | `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Reserve registries, namespaces, error codes, and owners | `B01` | NCP | `—` | 0 |
@@ -177,6 +190,7 @@ satisfy the floor.
 |---|---|---|---|---|---|
 | `B00` | `OPEN` | `IN_PROGRESS` | `2026-07-16T05:56:27Z` | `ncp-v1-finalization-20260716-b00` | initial start; receipt not required |
 | `B00` | `IN_PROGRESS` | `LOCAL_PASS` | `2026-07-16T08:59:26Z` | `ncp-v1-finalization-20260716-b00-local-pass` | passing receipt for commit `6381d2a7cc82` |
+| `B04` | `OPEN` | `IN_PROGRESS` | `2026-07-16T09:18:11Z` | `ncp-v1-finalization-20260716-b04` | initial start; receipt not required |
 
 ## Update and verification
 

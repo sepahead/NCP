@@ -1849,16 +1849,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 8209,
-        "sha256": "96da77f6e57300156e0cd6705de537da82168726526b2d34fb2df203f61ba4ff",
-        "git_blob_oid": "3c12bf3781ccd1660f3448f6b72d1b11f33444ac",
+        "bytes": 10378,
+        "sha256": "cff70094eae5d65a2119785c769273c1540b076868f81718ec7f259a7f0e822f",
+        "git_blob_oid": "60f50b805f77b74a9601385f0458542636d1c580",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 17797,
-        "sha256": "83a6a66f4297818f8471755c30222e041635dc51eeaa10edfeb1546b27f547a1",
-        "git_blob_oid": "74e675f2576874707cebe3e010e24b127117848c",
+        "bytes": 20038,
+        "sha256": "f2f65e89e960196914b107a2b6ec0c909a7ca719c64b6c14d26351c316420600",
+        "git_blob_oid": "eb8d0e0537aacecec866ea910ca2abb2f9942990",
         "indexed": true
       },
       {
@@ -1999,7 +1999,7 @@
         "bytes": 4637,
         "sha256": "93f588477cda4a551d1073eb8c25270f2a2d35ebf5b31b4436ecf31f3e20dd0f",
         "git_blob_oid": "69359646361dc31e901cb9cae88865007280d54b",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "evidence/implementation/task-ledger.schema.v1.json",
@@ -2010,9 +2010,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 87690,
-        "sha256": "0edb56c8bdbbe2c6cd48973ccb11d1cd646ada5bad3ba5f5cd8016addcc0d4da",
-        "git_blob_oid": "49d25573a6a55d4e1247f7c6d12dc949b87c3bdc",
+        "bytes": 90180,
+        "sha256": "8306f2976b51777a83d563a4614568fb6b5febd042c789b849907b72bae7431a",
+        "git_blob_oid": "2f9c9abe3a355856d166c51d117a36e9c2570dd5",
         "indexed": true
       },
       {
@@ -5594,9 +5594,9 @@
       },
       {
         "path": "scripts/check_implementation_ledger.py",
-        "bytes": 77233,
-        "sha256": "1beca294c42e9cf47e5e71d6ffb2964912bc2fbe8e34385a5d943c417b7fa17a",
-        "git_blob_oid": "ddc966248653c23bd3330c19ada9ce6a5d2dfa99",
+        "bytes": 77301,
+        "sha256": "8efb9b7c47ad4306137017381c1d39cacf4bce0b87a20746fe325667c7b664e6",
+        "git_blob_oid": "d36b9446ef92b79a96f5dab86c7bbbdcde78bed8",
         "indexed": true
       },
       {
@@ -5878,7 +5878,7 @@
         "bytes": 56414,
         "sha256": "c68796b52218a659cac4fd837200f2daa5006c07ec88d2cd8d7373ca07196cda",
         "git_blob_oid": "e844dd14e8ce7bb2f2ab876af3c0baffc69d5404",
-        "indexed": false,
+        "indexed": true,
         "reason": "NUL_BYTE"
       },
       {
@@ -5886,7 +5886,7 @@
         "bytes": 247328,
         "sha256": "d578c94fc97a017036eeefc1980de60a23bb655bd712e89f8762a2781fc16183",
         "git_blob_oid": "51f68885cddfc6b0d607e88d7c42aa9dc316500e",
-        "indexed": false,
+        "indexed": true,
         "reason": "NUL_BYTE"
       },
       {
@@ -5894,7 +5894,7 @@
         "bytes": 69856,
         "sha256": "7437bdc0e34b8e4a5b556a2ba728b228ecb1598c80a3bac7197e94d6c36babe3",
         "git_blob_oid": "00477290d8df190d5dbc0a4bba9318aa450f0379",
-        "indexed": false,
+        "indexed": true,
         "reason": "NUL_BYTE"
       },
       {
@@ -5902,7 +5902,7 @@
         "bytes": 69574,
         "sha256": "073f19261d775b7e638e57d5d1a1139926230ac9550e831dd45271e2225dc1c9",
         "git_blob_oid": "50a346aa03570b9ac15cf594776262e51c5dfa8a",
-        "indexed": false,
+        "indexed": true,
         "reason": "NUL_BYTE"
       },
       {
