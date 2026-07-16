@@ -1849,16 +1849,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 10640,
-        "sha256": "b75e3026bcc8006efdd3e73ea32a3fc0236c46ab9d5e0986131aa79922eceaf2",
-        "git_blob_oid": "ff0208c2040508a8357ef59f7a45fda1a41c62e7",
+        "bytes": 11311,
+        "sha256": "38748ed7d43f9f3f1c8c416029a620d475ba347aa567885eedc87920f51a7a50",
+        "git_blob_oid": "14d611c951868c7cdacf8022da9e4550ed411c97",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 20300,
-        "sha256": "fc4f116924e2230a4e235ff9fceb474e569c3bbb6aac318d1ec8a14883fdb2fd",
-        "git_blob_oid": "7f77b269376b33a27d052597ef2c31d886bdb8de",
+        "bytes": 20971,
+        "sha256": "bf811574f1e08dcfafeb5c0b8523d72cdea0906255fa3ed9a795fed28bc23179",
+        "git_blob_oid": "bc8735549aa5951651538de182027a3d32cf2b0b",
         "indexed": true
       },
       {
@@ -2009,6 +2009,13 @@
         "indexed": true
       },
       {
+        "path": "evidence/implementation/receipts/B04/zenoh-metadata-probe-b1dcf1b.v1.json",
+        "bytes": 5869,
+        "sha256": "cff99017299f8956378545ec1bb10a58412cc5f861033800b345e634487d4e87",
+        "git_blob_oid": "e89941e5aca02126e0d870d5051d01dc92da3bdd",
+        "indexed": true
+      },
+      {
         "path": "evidence/implementation/task-ledger.schema.v1.json",
         "bytes": 20720,
         "sha256": "a6b5cebd28e2acf05ee4626b4349c72eb96bf32f5200573c1647bedc3e934baa",
@@ -2017,9 +2024,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 90534,
-        "sha256": "efa544a880b69803945f5fd55df1b15feaa8dafc6017f90329afd7fd7da41560",
-        "git_blob_oid": "1e5286bcce63c0780b67d4d00277b309d3426c7f",
+        "bytes": 93150,
+        "sha256": "81cb40afb64a8dd1c82585cc4d555c194d6cdfefd37ce22443e1905500801a60",
+        "git_blob_oid": "41fa94bebb49265921aefc2ccd5b659b7ccd5c38",
         "indexed": true
       },
       {
@@ -5362,6 +5369,104 @@
         "indexed": true
       },
       {
+        "path": "prototypes/authenticated-ingress/README.md",
+        "bytes": 1240,
+        "sha256": "db4a1b9627e4e880f27b22b0a297d125f2b139983dc655ddc12b97df975d9074",
+        "git_blob_oid": "e0e1c99da22daff66a52ad3dcac2af5548b40ff6",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/cspell.json",
+        "bytes": 212,
+        "sha256": "870dfa7ea99c55b50bbcf13c941cce897525c8c3607934d61ec66ca86f8a6655",
+        "git_blob_oid": "386316d14f72e9591293780b2fcfb9826e576390",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/.gitignore",
+        "bytes": 22,
+        "sha256": "02e7b40893c74a993a139de7b0f85d8cf2eaea57d544effd576920a514872af4",
+        "git_blob_oid": "4d26375debcbee74e96f7324625366d938d810c5",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/Cargo.lock",
+        "bytes": 66462,
+        "sha256": "1942b20f7cc0c91779eba374483856fc5a25083fda0ce5b1631e405ab12d0c39",
+        "git_blob_oid": "07fe67e5dde2f71a4efcf6becd648919b8bd7061",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/Cargo.toml",
+        "bytes": 528,
+        "sha256": "fe89d547deabc879dd192a4025f5508d4927dc8bd42ab287ad176d5bf9c7a6a4",
+        "git_blob_oid": "0388e27b0fef1109cf157d403f4eaddc64f1c36d",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/README.md",
+        "bytes": 2233,
+        "sha256": "d87ae125ced6d295981a5ce04bf30c20515b30b0d1491be02169f186dbf4d23d",
+        "git_blob_oid": "d668fd7cab93da752224bad40ab63772ffe3ebe8",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/SECTION_REVIEW.md",
+        "bytes": 8752,
+        "sha256": "23b6c7ca5123c05d72a4126f5513595bd4b36bed15c939e543a53d9890f258c6",
+        "git_blob_oid": "813979b1b0487b1481e87107a8d60d86014f4e7e",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/expected-result.v1.json",
+        "bytes": 1093,
+        "sha256": "0cd9c0394dae13f38641c82d70e06173a7c809ce0bfda34c5ad7339af83b8360",
+        "git_blob_oid": "a4df34d82b41936ba95b21d04f6891b8dfb7cfb8",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/run.sh",
+        "bytes": 380,
+        "sha256": "001ccd68ac6c9e8f1f22c4906931627d3a1d905a90bcb0a5279f0176cb46226c",
+        "git_blob_oid": "0bec4107e710c028516a22f834e71f2c225451f2",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/source-matrix.v1.json",
+        "bytes": 5322,
+        "sha256": "e73e0b0ae7bad70baac7a9963341b00df551d6d3f0d95352d69f8b4d75a7a049",
+        "git_blob_oid": "7e614fe5018da12c602cf0c2543cfbb0950518b8",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/src/main.rs",
+        "bytes": 13354,
+        "sha256": "35106dc857dd47f811d1977be0bf449df66a4d40026863086fa66d11a8e572fe",
+        "git_blob_oid": "3a77cb1f86c8ae23715aca59b69729aa221bec78",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/tests/test_verifiers.py",
+        "bytes": 3468,
+        "sha256": "daec6f21d7581aa3bc900a2d5d1f776ed5105064a4db049f010b4c052d003b30",
+        "git_blob_oid": "3e2dc30c18f03749dbae04256dc870e88afb3327",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/verify_result.py",
+        "bytes": 1267,
+        "sha256": "1d23bcbbbf737975e861c09870a930424e778e1305b9cbdcd21f483d0a439bee",
+        "git_blob_oid": "e066be691d9033cf35bd8a07c08c99f53aa80a86",
+        "indexed": true
+      },
+      {
+        "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/verify_source_matrix.py",
+        "bytes": 7427,
+        "sha256": "89c296e26eae3806d56a2e6deb5ce41c312a4aecab74cf3bb43d18c065f379cb",
+        "git_blob_oid": "b3745cc697561df96ceae2f062db8e89fbfe0a5b",
+        "indexed": true
+      },
+      {
         "path": "schemas/README.md",
         "bytes": 1748,
         "sha256": "452922a47a664d9e2fbe9eb772c6b3626d47a2deff22cf938b4fe81de2025459",
@@ -5913,6 +6018,54 @@
         "reason": "NUL_BYTE"
       },
       {
+        "path": "evidence/implementation/receipts/B04/resumption-after-zenoh-desktop-1440.png",
+        "bytes": 1102797,
+        "sha256": "d4450a395a07e978d132e8230b79c1ce09dee64891ef01bd5f24d79f38b37511",
+        "git_blob_oid": "c213faac7a6e04e9f7254ec2b9d56e8e9f18d510",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B04/resumption-after-zenoh-mobile-390.png",
+        "bytes": 952915,
+        "sha256": "4930e887de28e467c8153451e875e1d02a4dd776108615b998b7224bc73688e6",
+        "git_blob_oid": "a0f9863ad45415a70d352cbee4bbf94f09331c24",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B04/resumption-after-zenoh-mobile-dark-390.png",
+        "bytes": 968650,
+        "sha256": "f1cb4b3f3e5278346eb3b70c070ff9fd3b1ddd99dad2403269bb66e5f11f3737",
+        "git_blob_oid": "e34644f26a7b260a2ee0a98e69831c39b5248ebf",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B04/zenoh-probe-review-desktop-1440.png",
+        "bytes": 764268,
+        "sha256": "197a51f160326e01340efc22de9d19b498ee2ca1210dda712382f6982f165b82",
+        "git_blob_oid": "39544abbdc9a61c80fd4acdc1aa5453865965620",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B04/zenoh-probe-review-mobile-390.png",
+        "bytes": 729744,
+        "sha256": "e6e23ea41a15c390dd318cdf1271774992ef8bdd9431c2096668a905dd32265a",
+        "git_blob_oid": "a74978ffe533606fa20063dec91550645373db3d",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B04/zenoh-probe-review-mobile-dark-390.png",
+        "bytes": 749035,
+        "sha256": "044cad7e9f40c4d3233332b897d6815f96bc8247512b320bf269263bf6a79d81",
+        "git_blob_oid": "bb3f22e5fd87f2bd59cd01e92d703918fb2242e0",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
         "path": "ncp-core/testdata/conformance/vectors/bulk_observation.bin",
         "bytes": 104,
         "sha256": "c5852cc66635307cda2ba6be1fc9d695ad6a961f4e77ab82ef1c76de5901df99",
@@ -5931,8 +6084,8 @@
     ]
   },
   "counts": {
-    "text_files": 827,
-    "binary_or_non_utf8_files": 12,
+    "text_files": 842,
+    "binary_or_non_utf8_files": 18,
     "occurrences": 142,
     "by_token_id": {
       "M001": 5,
@@ -5958,7 +6111,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "ba141ab8365dd49e461c8248e4efbdcaa624393f7b5a069ef7daff50e31d72d1",
+  "scanned_path_set_sha256": "4da24690016fdeb21932ecb119f9f72bdcdf26c94455be4e5426d8af985e6f80",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

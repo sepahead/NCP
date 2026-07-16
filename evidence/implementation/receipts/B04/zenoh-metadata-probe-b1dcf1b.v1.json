@@ -1,0 +1,151 @@
+{
+  "schema": "ncp-implementation-b04-zenoh-metadata-probe-receipt-v1",
+  "task_id": "B04",
+  "section": "exact-zenoh-1.9.0-application-metadata-boundary",
+  "claim_boundary": "Bounded local source review, counterexample, and visual-QA evidence only. This receipt grants no runtime identity, authority, plant action, production-secure availability, release authorization, certification, independent interoperability, or external gate.",
+  "source": {
+    "repository": "NCP",
+    "branch": "main",
+    "commit": "b1dcf1bf388f8223b4117fcd7b5dbb9f190286b0",
+    "tree": "35c88dcee025c85eab3008a79cca78c853941723",
+    "candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66",
+    "normative_contract_changed": false
+  },
+  "remote_verification": {
+    "remote": "origin",
+    "ref": "refs/heads/main",
+    "local_head": "b1dcf1bf388f8223b4117fcd7b5dbb9f190286b0",
+    "remote_tracking_object": "b1dcf1bf388f8223b4117fcd7b5dbb9f190286b0",
+    "remote_advertised_object": "b1dcf1bf388f8223b4117fcd7b5dbb9f190286b0",
+    "worktree_clean": true,
+    "verified_at_utc": "2026-07-16T10:53:53Z"
+  },
+  "reviewed_input": {
+    "crate": "zenoh",
+    "version": "1.9.0",
+    "crates_io_checksum_sha256": "85e22d7002ac149ef17fe400bb40a267ebbba40a83413bab03da7762256fa94e",
+    "upstream_commit_sha1": "81c6c933b6e41d72a05f04c4442ef57717ddc72b",
+    "source_files_bound": 11,
+    "transport_compression_enabled": false
+  },
+  "focused_validation": {
+    "command": "./prototypes/authenticated-ingress/zenoh-metadata-probe/run.sh",
+    "exit_code": 0,
+    "source_matrix": "PASS",
+    "hostile_verifier_tests": {
+      "passed": 7,
+      "failed": 0
+    },
+    "rust_test": {
+      "passed": 1,
+      "failed": 0
+    },
+    "clippy_warnings_denied": "PASS",
+    "format": "PASS",
+    "observed_result_structurally_equal_to_expected": true,
+    "direct_zenoh_production_secure_available": false,
+    "external_gate_satisfied": false
+  },
+  "supporting_checks": {
+    "markdownlint_cli2_0_23_0": "PASS",
+    "cspell_10_0_1": "PASS",
+    "codespell_2_4_1": "PASS",
+    "proselint_0_14_0": "PASS",
+    "ruff": "PASS",
+    "implementation_ledger_self_test": "PASS",
+    "generated_recovery_views_equal": "PASS",
+    "markdown_link_and_anchor_check": "PASS"
+  },
+  "artifacts": [
+    {
+      "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/Cargo.lock",
+      "sha256": "1942b20f7cc0c91779eba374483856fc5a25083fda0ce5b1631e405ab12d0c39",
+      "bytes": 66462
+    },
+    {
+      "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/source-matrix.v1.json",
+      "sha256": "e73e0b0ae7bad70baac7a9963341b00df551d6d3f0d95352d69f8b4d75a7a049",
+      "bytes": 5322
+    },
+    {
+      "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/expected-result.v1.json",
+      "sha256": "0cd9c0394dae13f38641c82d70e06173a7c809ce0bfda34c5ad7339af83b8360",
+      "bytes": 1093
+    },
+    {
+      "path": "prototypes/authenticated-ingress/zenoh-metadata-probe/SECTION_REVIEW.md",
+      "sha256": "23b6c7ca5123c05d72a4126f5513595bd4b36bed15c939e543a53d9890f258c6",
+      "bytes": 8752
+    },
+    {
+      "path": "evidence/implementation/receipts/B04/zenoh-probe-review-desktop-1440.png",
+      "sha256": "197a51f160326e01340efc22de9d19b498ee2ca1210dda712382f6982f165b82",
+      "bytes": 764268
+    },
+    {
+      "path": "evidence/implementation/receipts/B04/zenoh-probe-review-mobile-390.png",
+      "sha256": "e6e23ea41a15c390dd318cdf1271774992ef8bdd9431c2096668a905dd32265a",
+      "bytes": 729744
+    },
+    {
+      "path": "evidence/implementation/receipts/B04/zenoh-probe-review-mobile-dark-390.png",
+      "sha256": "044cad7e9f40c4d3233332b897d6815f96bc8247512b320bf269263bf6a79d81",
+      "bytes": 749035
+    }
+  ],
+  "visual_qa": {
+    "semantic_renderer": "agent-browser 0.27.2",
+    "screenshot_renderer": "Google Chrome 150.0.7871.116",
+    "document_structure": {
+      "h1": 1,
+      "h2": 5,
+      "h3": 3
+    },
+    "desktop": {
+      "viewport_width": 1440,
+      "document_width": 1440,
+      "document_height": 3377,
+      "overflow_elements": 0
+    },
+    "mobile": {
+      "viewport_width": 390,
+      "document_width": 390,
+      "document_height": 6685,
+      "overflow_elements": 0,
+      "light_and_dark_rendered": true
+    },
+    "page_errors": 0,
+    "console_errors": 0,
+    "manual_review": "PASS: hierarchy, wording, checksum wrapping, code identifiers, light contrast, dark contrast, exact 390-pixel wrapping, and full-document containment were visually inspected. An initially cropped mobile capture was rejected and replaced before this receipt."
+  },
+  "dependency_advisory_boundary": {
+    "local_rustsec_database_commit": "9f3e138091487e69144f536d36976e427a7a3307",
+    "local_rustsec_database_updated": "2026-07-13T19:31:41+02:00",
+    "advisory": "RUSTSEC-2026-0041",
+    "package": "lz4_flex 0.10.0",
+    "affected_calls_feature_gated_out": true,
+    "shipping_waiver_granted": false,
+    "disposition": "The exact non-shipping Zenoh graph retains the dependency, the verifier rejects transport_compression enablement, and the graph remains prohibited from NCP packages."
+  },
+  "environment": {
+    "operating_system": "macOS 26.5.1 build 25F80",
+    "architecture": "arm64",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "python": "3.14.6"
+  },
+  "three_lens_decision": {
+    "protocol_security_plant": "LOCAL_PASS",
+    "consumer_runtime": "LOCAL_PASS_FOR_PREREQUISITE_ONLY",
+    "operations_science_evidence": "LOCAL_PASS",
+    "next_permitted_action": "Implement and falsify quarantined prototype A; do not enable direct Zenoh production-secure."
+  },
+  "gate_effect": {
+    "zenoh_metadata_probe_section": "LOCAL_PASS",
+    "b04_task": "IN_PROGRESS",
+    "ncp_release_authorized": false,
+    "external_release_gates": "NOT_RUN"
+  }
+}
