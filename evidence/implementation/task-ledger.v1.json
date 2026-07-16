@@ -444,6 +444,8 @@
         "docs/handoff/README.md",
         "docs/implementation/NCP_1_0_TASK_LEDGER.md",
         "docs/implementation/NCP_1_0_RESUMPTION.md",
+        "evidence/audit/latent-path-inventory.v1.json",
+        "evidence/audit/manifest.v1.json",
         "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
         "scripts/README.md",
