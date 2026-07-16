@@ -192,6 +192,9 @@ baseline.
 - [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md): normative prose.
 - [`SECURITY.md`](SECURITY.md): profiles, trust boundary, and deployment checks.
 - [`RELEASE_READINESS.md`](RELEASE_READINESS.md): evidence ledger and blockers.
+- [`docs/research/authenticated-ingress-feasibility.md`](docs/research/authenticated-ingress-feasibility.md):
+  non-normative B04 source review, prototype decisions, hostile matrix, and explicit
+  local-versus-external evidence boundary; direct Zenoh remains fail-closed.
 - [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md): per-task local
   receipts and exact not-run acceptance gaps.
 - [`evidence/audit/README.md`](evidence/audit/README.md): generated, non-normative
