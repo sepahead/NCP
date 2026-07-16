@@ -1849,16 +1849,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 10423,
-        "sha256": "5d0edf7fe7941042e7c3f1fee18b03d2ad51d7d2a3317b7c94fb89618d0b1001",
-        "git_blob_oid": "6c4f97d692ec0f91a4ff085d8ac1c5fe1b0907ce",
+        "bytes": 8209,
+        "sha256": "96da77f6e57300156e0cd6705de537da82168726526b2d34fb2df203f61ba4ff",
+        "git_blob_oid": "3c12bf3781ccd1660f3448f6b72d1b11f33444ac",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 19761,
-        "sha256": "d749b6ba26f28c78f18d1c5fe32d3efe72fe2d7198255bf49a41fdd8031a28ed",
-        "git_blob_oid": "0eb69a58c6e586ac1ed307fb98c5bb01c4f379e8",
+        "bytes": 17797,
+        "sha256": "83a6a66f4297818f8471755c30222e041635dc51eeaa10edfeb1546b27f547a1",
+        "git_blob_oid": "74e675f2576874707cebe3e010e24b127117848c",
         "indexed": true
       },
       {
@@ -1995,6 +1995,13 @@
         "indexed": true
       },
       {
+        "path": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+        "bytes": 4637,
+        "sha256": "93f588477cda4a551d1073eb8c25270f2a2d35ebf5b31b4436ecf31f3e20dd0f",
+        "git_blob_oid": "69359646361dc31e901cb9cae88865007280d54b",
+        "indexed": false
+      },
+      {
         "path": "evidence/implementation/task-ledger.schema.v1.json",
         "bytes": 20720,
         "sha256": "a6b5cebd28e2acf05ee4626b4349c72eb96bf32f5200573c1647bedc3e934baa",
@@ -2003,9 +2010,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 74808,
-        "sha256": "9f0ed71c498c0310184e0b007a9bbd8064acd2f7126c45eeea291d2619097d9b",
-        "git_blob_oid": "e4cf4561ef31c429202a3792850fd84f4eb7e352",
+        "bytes": 87690,
+        "sha256": "0edb56c8bdbbe2c6cd48973ccb11d1cd646ada5bad3ba5f5cd8016addcc0d4da",
+        "git_blob_oid": "49d25573a6a55d4e1247f7c6d12dc949b87c3bdc",
         "indexed": true
       },
       {
@@ -5867,6 +5874,38 @@
         "reason": "NUL_BYTE"
       },
       {
+        "path": "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+        "bytes": 56414,
+        "sha256": "c68796b52218a659cac4fd837200f2daa5006c07ec88d2cd8d7373ca07196cda",
+        "git_blob_oid": "e844dd14e8ce7bb2f2ab876af3c0baffc69d5404",
+        "indexed": false,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B00/resumption-desktop-1440.png",
+        "bytes": 247328,
+        "sha256": "d578c94fc97a017036eeefc1980de60a23bb655bd712e89f8762a2781fc16183",
+        "git_blob_oid": "51f68885cddfc6b0d607e88d7c42aa9dc316500e",
+        "indexed": false,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B00/resumption-mobile-390.png",
+        "bytes": 69856,
+        "sha256": "7437bdc0e34b8e4a5b556a2ba728b228ecb1598c80a3bac7197e94d6c36babe3",
+        "git_blob_oid": "00477290d8df190d5dbc0a4bba9318aa450f0379",
+        "indexed": false,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "evidence/implementation/receipts/B00/resumption-mobile-dark-390.png",
+        "bytes": 69574,
+        "sha256": "073f19261d775b7e638e57d5d1a1139926230ac9550e831dd45271e2225dc1c9",
+        "git_blob_oid": "50a346aa03570b9ac15cf594776262e51c5dfa8a",
+        "indexed": false,
+        "reason": "NUL_BYTE"
+      },
+      {
         "path": "ncp-core/testdata/conformance/vectors/bulk_observation.bin",
         "bytes": 104,
         "sha256": "c5852cc66635307cda2ba6be1fc9d695ad6a961f4e77ab82ef1c76de5901df99",
@@ -5885,8 +5924,8 @@
     ]
   },
   "counts": {
-    "text_files": 825,
-    "binary_or_non_utf8_files": 8,
+    "text_files": 826,
+    "binary_or_non_utf8_files": 12,
     "occurrences": 140,
     "by_token_id": {
       "M001": 5,
@@ -5912,7 +5951,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "21dd63c525b67082cbb840614b7367262bf8dadfe56f03a1b2cf5b2a069deef4",
+  "scanned_path_set_sha256": "1af6855834626ac12bdfa5a62109b4d9d369b2aca9e4d0a407349ca384a8e16b",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

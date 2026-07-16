@@ -18,29 +18,16 @@ separate, and publication tasks cannot start through a status edit.
 | Status | Count |
 |---|---:|
 | `OPEN` | 55 |
-| `IN_PROGRESS` | 1 |
+| `IN_PROGRESS` | 0 |
 | `BLOCKED` | 0 |
-| `LOCAL_PASS` | 0 |
+| `LOCAL_PASS` | 1 |
 | `EXTERNAL_PASS` | 0 |
 | `INDEPENDENT_PASS` | 0 |
 | `COMPLETE` | 0 |
 
-Active tasks: `B00`.
+Active tasks: none.
 
-Dependency-ready open tasks: none.
-
-## Active task recovery checkpoints
-
-### `B00` — Create the live implementation and evidence ledger
-
-Recovery checkpoint 2026-07-16T08:38:10Z: the initial ledger commit `f3e5b257933fcb331afbd13229a43c7eb33a7897` was pushed. Its clean complete preflight failed at stale retained audit evidence. The audit evidence was regenerated through the approved generator and pushed at `6cbf5d6edfc20e265016aebecef98d4f31fdbe75`. A second clean complete preflight passed through extracted package tests but failed because `scripts/generate_implementation_ledger.py` was absent from the reviewed supply-chain generator inventory. The canonical output mapping has now been reviewed, the implementation views regenerated, the supply-chain inventory regenerated against the pinned advisory database, and the audit artifacts regenerated last. Focused ledger, schema, generator, supply-chain, audit, prose, spelling, link, repository-diff, and diagram-freshness checks pass. Desktop 1440-pixel and mobile 390-pixel light/dark recovery-view QA found no overflow outside its designated container, page error, console error, or malformed hierarchy. Resume by reviewing the current B00-only diff, committing and pushing the coherent recovery checkpoint, verifying the exact remote object and clean worktree, and then rerunning `scripts/check.sh` from that clean exact commit. Do not promote B00 from either failed run.
-
-Current residual risks:
-
-- B00 is in progress; no task has local, external, independent, or complete evidence.
-- All protocol, consumer, formal, live-security, release, publication, and certification gates remain open or not run.
-- The first clean B00 preflight failed closed on stale retained audit artifacts; the approved audit generator corrected and rechecked them before the next commit.
-- The second clean B00 preflight failed closed because the new implementation-ledger generator was absent from the reviewed supply-chain generator inventory; the mapping, generated inventory, focused validation, and recovery-view visual QA now pass, but commit/push verification and a fresh complete preflight remain required.
+Dependency-ready open tasks: `B04`.
 
 ## Three required review perspectives
 
@@ -127,7 +114,7 @@ satisfy the floor.
 
 | Task | Status | Claim tier | Required evidence class | Scope | Dependencies | Repository | Source commit | Residual risks |
 |---|---|---|---|---|---|---|---|---:|
-| `B00` | `IN_PROGRESS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6e8278366755` | 4 |
+| `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
 | `B04` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `—` | 0 |
 | `B01` | `OPEN` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `—` | 0 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
@@ -189,6 +176,7 @@ satisfy the floor.
 | Task | From | To | Timestamp (UTC) | Correlation ID | Receipt |
 |---|---|---|---|---|---|
 | `B00` | `OPEN` | `IN_PROGRESS` | `2026-07-16T05:56:27Z` | `ncp-v1-finalization-20260716-b00` | initial start; receipt not required |
+| `B00` | `IN_PROGRESS` | `LOCAL_PASS` | `2026-07-16T08:59:26Z` | `ncp-v1-finalization-20260716-b00-local-pass` | passing receipt for commit `6381d2a7cc82` |
 
 ## Update and verification
 

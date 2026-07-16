@@ -436,7 +436,13 @@
   "tasks": [
     {
       "adr_ids": [],
-      "artifacts": [],
+      "artifacts": [
+        "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+        "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+        "evidence/implementation/receipts/B00/resumption-desktop-1440.png",
+        "evidence/implementation/receipts/B00/resumption-mobile-390.png",
+        "evidence/implementation/receipts/B00/resumption-mobile-dark-390.png"
+      ],
       "changed_files": [
         ".gitignore",
         "AGENTS.md",
@@ -448,6 +454,11 @@
         "evidence/audit/manifest.v1.json",
         "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
+        "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+        "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+        "evidence/implementation/receipts/B00/resumption-desktop-1440.png",
+        "evidence/implementation/receipts/B00/resumption-mobile-390.png",
+        "evidence/implementation/receipts/B00/resumption-mobile-dark-390.png",
         "evidence/supply-chain/inventory.v1.json",
         "scripts/README.md",
         "scripts/check.sh",
@@ -456,7 +467,40 @@
         "scripts/generate_supply_chain_evidence.py"
       ],
       "claim_tier": "COORDINATION_ONLY",
-      "commands": [],
+      "commands": [
+        {
+          "command": "./scripts/check.sh",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+          "passed": 20,
+          "skipped": 0
+        },
+        {
+          "command": "B00 focused ledger, schema, generator, supply-chain, audit, prose, spelling, link, diff, and diagram checks",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+          "passed": 13,
+          "skipped": 0
+        },
+        {
+          "command": "B00 responsive light/dark recovery-view render and visual inspection",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+          "passed": 3,
+          "skipped": 0
+        },
+        {
+          "command": "verify local HEAD, origin/main, advertised refs/heads/main object, and clean worktree",
+          "exit_code": 0,
+          "failed": 0,
+          "output_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+          "passed": 4,
+          "skipped": 0
+        }
+      ],
       "dependencies": [],
       "dirty_state_disposition": "ACCEPTED_CLEAN",
       "id": "B00",
@@ -464,21 +508,21 @@
       "minimum_terminal_class": "LOCAL",
       "perspective_reviews": [
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "P1",
-          "rationale": "Perspective review remains pending retained acceptance evidence.",
+          "rationale": "The ledger is strict-schema and content-hash checked, hostile status/receipt mutations fail closed, credentials and absolute host paths are rejected, and the coordination claim boundary grants no identity, authority, plant action, certification, or release.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "P2",
-          "rationale": "Perspective review remains pending retained acceptance evidence.",
+          "rationale": "The generated task and resumption views expose the dependency DAG, preserved dirty state, exact consumer roles, recovery instructions, evidence floors, and the next dependency-ready task without requiring private state or optimistic inference.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "P3",
-          "rationale": "Perspective review remains pending retained acceptance evidence.",
+          "rationale": "The exact source, remote object, commands, full log, visual renders, reviewer decision, limitations, rollback, and ten external NOT_RUN gates are retained; scientific, physical-safety, interoperability, and release claims remain explicitly excluded.",
           "reviewer": "primary implementation agent"
         }
       ],
@@ -491,76 +535,84 @@
         "B00-content-bound-receipts"
       ],
       "residual_risks": [
-        "B00 is in progress; no task has local, external, independent, or complete evidence.",
-        "All protocol, consumer, formal, live-security, release, publication, and certification gates remain open or not run.",
-        "The first clean B00 preflight failed closed on stale retained audit artifacts; the approved audit generator corrected and rechecked them before the next commit.",
-        "The second clean B00 preflight failed closed because the new implementation-ledger generator was absent from the reviewed supply-chain generator inventory; the mapping, generated inventory, focused validation, and recovery-view visual QA now pass, but commit/push verification and a fresh complete preflight remain required."
+        "B00 has bounded local evidence only; it has no external or independent evidence and grants no release authorization.",
+        "All protocol implementation, consumer integration, formal qualification, live-security, physical-boundary, performance, publication, and certification work remains open in descendant tasks.",
+        "The complete local preflight preserves warnings about duplicate transitive dependencies and the tracked release-blocking RustSec advisory; neither was waived by this coordination-task pass.",
+        "The status/evidence commit that records this receipt is necessarily newer than the tested implementation cut; trust it only after its generated views and evidence hashes pass focused equality checks and its exact remote object is verified."
       ],
-      "reviewer_comment": "Recovery checkpoint 2026-07-16T08:38:10Z: the initial ledger commit `f3e5b257933fcb331afbd13229a43c7eb33a7897` was pushed. Its clean complete preflight failed at stale retained audit evidence. The audit evidence was regenerated through the approved generator and pushed at `6cbf5d6edfc20e265016aebecef98d4f31fdbe75`. A second clean complete preflight passed through extracted package tests but failed because `scripts/generate_implementation_ledger.py` was absent from the reviewed supply-chain generator inventory. The canonical output mapping has now been reviewed, the implementation views regenerated, the supply-chain inventory regenerated against the pinned advisory database, and the audit artifacts regenerated last. Focused ledger, schema, generator, supply-chain, audit, prose, spelling, link, repository-diff, and diagram-freshness checks pass. Desktop 1440-pixel and mobile 390-pixel light/dark recovery-view QA found no overflow outside its designated container, page error, console error, or malformed hierarchy. Resume by reviewing the current B00-only diff, committing and pushing the coherent recovery checkpoint, verifying the exact remote object and clean worktree, and then rerunning `scripts/check.sh` from that clean exact commit. Do not promote B00 from either failed run.",
-      "reviewers": [],
+      "reviewer_comment": "B00 reached LOCAL_PASS from the exact pushed implementation cut `6381d2a7cc82f442a538df7616758dd1348714e6`. The retained complete preflight passed all 20 local stages and ended with external release gates explicitly NOT RUN. Earlier runs at `f3e5b257933fcb331afbd13229a43c7eb33a7897` and `6cbf5d6edfc20e265016aebecef98d4f31fdbe75` remain failed evidence and were not used for promotion. On resume, first determine whether this receipt/status update is already the verified clean `origin/main` object: if not, validate, commit, push, and verify it; if so, start only dependency-ready B04. B04 must characterize authenticated ingress and an independent parser before ADR ratification or normative implementation. Do not infer that B00 changed the unreleased 1.0 wire, cleared a release gate, or completed any consumer integration.",
+      "reviewers": [
+        {
+          "decision": "PASS",
+          "identity": "Codex primary implementation agent",
+          "implementation_owner": "Codex primary implementation agent",
+          "independent": false,
+          "role": "local implementation and evidence reviewer"
+        }
+      ],
       "rollback_or_recovery": "Revert only the eventual coherent B00 commits if the ledger gate is defective; preserve the pushed audit baseline and every consumer worktree.",
-      "source_commit": "6e82783667554b8d8b433261e6b8ae588e94d89f",
-      "status": "IN_PROGRESS",
-      "target_commit": null,
+      "source_commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
+      "status": "LOCAL_PASS",
+      "target_commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
       "ten_lens_reviews": [
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L1",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "The checked catalog, dependency DAG, evidence class, source hashes, generated views, and status transitions agree; B00 is coordination-only and does not alter the normative contract.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L2",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Credentials, private keys, absolute local paths, malformed receipts, unbound pushes, and optimistic pass transitions are rejected; no ledger value grants runtime identity or authority.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L3",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "The claim boundary states that coordination evidence cannot authorize plant action, ESTOP certification, safe action, or physical safety; all plant work remains open.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L4",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Cross-repository work is represented as dependency-ordered, independently committed tasks with exact receipt binding, reopen invalidation, and preserved partial/dirty state.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L5",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Ledger depth, task count, string size, evidence file size, aggregate bytes, artifact references, command counts, and transition counts are explicitly bounded before semantic acceptance.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L6",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Nine consumer roles, repository baselines, provider-first ordering, pid-rs dependency direction, and exact immutable consumer pins are represented without claiming installed interoperability.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L7",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Simulation, calibration, paper reproduction, posterior, PID, and missing-evidence claims cannot be upgraded by ledger state; B00 records evidence provenance only.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L8",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Generated Markdown supplies readable status, recovery checkpoints, next tasks, rollback, preserved worktrees, and mandatory reading; desktop/mobile light/dark QA passed.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L9",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Hostile mutants, strict JSON Schema, generated equality, content hashes, exact Git objects, full local preflight, retained logs, and visual evidence support exactly LOCAL_PASS and no higher claim.",
           "reviewer": "primary implementation agent"
         },
         {
-          "disposition": "NOT_REVIEWED",
+          "disposition": "PASS",
           "id": "L10",
-          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "rationale": "Ownership, rollback, restart instructions, evidence floors, remote verification, release non-authorization, and all ten external NOT_RUN gates remain explicit and machine checked.",
           "reviewer": "primary implementation agent"
         }
       ],
@@ -573,6 +625,213 @@
           "receipt": null,
           "timestamp_utc": "2026-07-16T05:56:27Z",
           "to": "IN_PROGRESS"
+        },
+        {
+          "correlation_id": "ncp-v1-finalization-20260716-b00-local-pass",
+          "from": "IN_PROGRESS",
+          "reason": "Promote only the coordination ledger task after exact remote binding, focused validation, responsive visual QA, and the complete clean local preflight passed with external release gates still NOT RUN.",
+          "receipt": {
+            "artifacts": [
+              {
+                "bytes": 56414,
+                "path": "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+                "sha256": "c68796b52218a659cac4fd837200f2daa5006c07ec88d2cd8d7373ca07196cda",
+                "subject": "exact-commit complete local preflight log"
+              },
+              {
+                "bytes": 4637,
+                "path": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+                "sha256": "93f588477cda4a551d1073eb8c25270f2a2d35ebf5b31b4436ecf31f3e20dd0f",
+                "subject": "bounded local, remote, focused, and visual evidence summary"
+              },
+              {
+                "bytes": 247328,
+                "path": "evidence/implementation/receipts/B00/resumption-desktop-1440.png",
+                "sha256": "d578c94fc97a017036eeefc1980de60a23bb655bd712e89f8762a2781fc16183",
+                "subject": "desktop recovery-view visual evidence"
+              },
+              {
+                "bytes": 69856,
+                "path": "evidence/implementation/receipts/B00/resumption-mobile-390.png",
+                "sha256": "7437bdc0e34b8e4a5b556a2ba728b228ecb1598c80a3bac7197e94d6c36babe3",
+                "subject": "mobile light recovery-view visual evidence"
+              },
+              {
+                "bytes": 69574,
+                "path": "evidence/implementation/receipts/B00/resumption-mobile-dark-390.png",
+                "sha256": "073f19261d775b7e638e57d5d1a1139926230ac9550e831dd45271e2225dc1c9",
+                "subject": "mobile dark recovery-view visual evidence"
+              }
+            ],
+            "branch": "main",
+            "commands": [
+              {
+                "command": "./scripts/check.sh",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+                "passed": 20,
+                "skipped": 0
+              },
+              {
+                "command": "B00 focused ledger, schema, generator, supply-chain, audit, prose, spelling, link, diff, and diagram checks",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+                "passed": 13,
+                "skipped": 0
+              },
+              {
+                "command": "B00 responsive light/dark recovery-view render and visual inspection",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+                "passed": 3,
+                "skipped": 0
+              },
+              {
+                "command": "verify local HEAD, origin/main, advertised refs/heads/main object, and clean worktree",
+                "exit_code": 0,
+                "failed": 0,
+                "output_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+                "passed": 4,
+                "skipped": 0
+              }
+            ],
+            "commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
+            "dependency_receipts": [],
+            "environment": "Darwin 25.5.0 arm64; exact clean NCP main worktree; local build/test, loopback network, package archives, current-plus-pinned advisory replay, repo-less archived-source preflight, and responsive browser QA; no external qualification environment represented.",
+            "external_gates_not_run": [
+              "live-mtls-acl-rotation-revocation",
+              "two-independent-non-rust-live-peers",
+              "fault-backpressure-restart-soak",
+              "fuzz-sanitizer-duration",
+              "performance-resource-profile",
+              "installed-package-matrix",
+              "registry-namespace-ownership",
+              "consumer-certification",
+              "independent-clean-room-reproduction",
+              "signed-sbom-provenance"
+            ],
+            "external_gates_run": [],
+            "kind": "passing",
+            "normative_digest_after": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+            "normative_digest_before": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+            "push_object_kind": "branch",
+            "push_ref": "refs/heads/main",
+            "push_remote": "origin",
+            "pushed_object": "6381d2a7cc82f442a538df7616758dd1348714e6",
+            "remote_verification_artifact": "evidence/implementation/receipts/B00/receipt-summary-6381d2a.v1.json",
+            "remote_verified_at_utc": "2026-07-16T08:57:04Z",
+            "repository": "NCP",
+            "residual_risks": [
+              "B00 has bounded local evidence only; it has no external or independent evidence and grants no release authorization.",
+              "All protocol implementation, consumer integration, formal qualification, live-security, physical-boundary, performance, publication, and certification work remains open in descendant tasks.",
+              "The complete local preflight preserves warnings about duplicate transitive dependencies and the tracked release-blocking RustSec advisory; neither was waived by this coordination-task pass.",
+              "The status/evidence commit that records this receipt is necessarily newer than the tested implementation cut; its generated views and evidence hashes require focused equality checks before push."
+            ],
+            "reviewers": [
+              {
+                "decision": "PASS",
+                "identity": "Codex primary implementation agent",
+                "implementation_owner": "Codex primary implementation agent",
+                "independent": false,
+                "role": "local implementation and evidence reviewer"
+              }
+            ],
+            "rollback_or_recovery": "Revert only the B00 coordination commits if the ledger or generated recovery views prove defective; preserve consumer worktrees and retained failed/pass evidence, reopen B00 with a content-bound coordination receipt, and invalidate descendant receipts exactly as the checker requires.",
+            "source_commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
+            "source_tree": "6392664f6607bd399aeb7b4bd43658cba0fffd43",
+            "timestamp_utc": "2026-07-16T08:59:25Z",
+            "toolchain": [
+              {
+                "name": "Python",
+                "version": "3.14.6"
+              },
+              {
+                "name": "rustc",
+                "version": "1.96.0 (ac68faa20 2026-05-25)"
+              },
+              {
+                "name": "cargo",
+                "version": "1.96.0 (30a34c682 2026-05-25)"
+              },
+              {
+                "name": "node",
+                "version": "26.3.0"
+              },
+              {
+                "name": "npm",
+                "version": "11.16.0"
+              },
+              {
+                "name": "bun",
+                "version": "1.3.14"
+              },
+              {
+                "name": "buf",
+                "version": "1.71.0"
+              },
+              {
+                "name": "cargo-deny",
+                "version": "0.19.9"
+              },
+              {
+                "name": "protoc",
+                "version": "35.0"
+              },
+              {
+                "name": "clang++",
+                "version": "Apple clang 21.0.0 (clang-2100.1.1.101)"
+              },
+              {
+                "name": "git",
+                "version": "2.50.1 (Apple Git-155)"
+              },
+              {
+                "name": "ruff",
+                "version": "0.12.4"
+              },
+              {
+                "name": "check-jsonschema",
+                "version": "0.35.0"
+              },
+              {
+                "name": "cspell",
+                "version": "10.0.1"
+              },
+              {
+                "name": "codespell",
+                "version": "2.4.1"
+              },
+              {
+                "name": "proselint",
+                "version": "0.14.0"
+              },
+              {
+                "name": "markdownlint-cli2",
+                "version": "0.23.0 (markdownlint 0.41.0)"
+              },
+              {
+                "name": "marked",
+                "version": "18.0.6"
+              },
+              {
+                "name": "Chrome for Testing",
+                "version": "149.0.7827.55"
+              },
+              {
+                "name": "Playwright",
+                "version": "1.61.0-alpha-1781023400000"
+              },
+              {
+                "name": "agent-browser",
+                "version": "0.27.2"
+              }
+            ]
+          },
+          "timestamp_utc": "2026-07-16T08:59:26Z",
+          "to": "LOCAL_PASS"
         }
       ]
     },

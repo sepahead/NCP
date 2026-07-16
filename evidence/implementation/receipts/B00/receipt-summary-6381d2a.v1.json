@@ -1,0 +1,122 @@
+{
+  "schema": "ncp-implementation-b00-receipt-summary-v1",
+  "task_id": "B00",
+  "claim_boundary": "This is bounded local evidence for the implementation-ledger coordination task. It does not release or certify NCP 1.0 and does not satisfy any external, independent, live-security, installed-peer, physical-safety, performance, publication, or consumer qualification gate.",
+  "source": {
+    "repository": "NCP",
+    "branch": "main",
+    "commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
+    "tree": "6392664f6607bd399aeb7b4bd43658cba0fffd43",
+    "normative_contract_digest_sha256": "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90",
+    "candidate": "1.0.0-rc.1",
+    "wire_version": "1.0",
+    "compact_contract_hash": "163acc57d8a62b66"
+  },
+  "remote_verification": {
+    "remote": "origin",
+    "ref": "refs/heads/main",
+    "local_head": "6381d2a7cc82f442a538df7616758dd1348714e6",
+    "remote_tracking_object": "6381d2a7cc82f442a538df7616758dd1348714e6",
+    "remote_advertised_object": "6381d2a7cc82f442a538df7616758dd1348714e6",
+    "worktree_clean": true,
+    "verified_at_utc": "2026-07-16T08:57:04Z"
+  },
+  "complete_local_preflight": {
+    "command": "./scripts/check.sh",
+    "started_at_utc": "2026-07-16T08:42:26Z",
+    "finished_at_utc": "2026-07-16T08:53:39Z",
+    "exit_code": 0,
+    "stage_count": 20,
+    "passed": true,
+    "final_line": "NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN",
+    "log": {
+      "path": "evidence/implementation/receipts/B00/full-preflight-6381d2a.log.gz",
+      "sha256": "c68796b52218a659cac4fd837200f2daa5006c07ec88d2cd8d7373ca07196cda",
+      "bytes": 56414,
+      "decoded_sha256": "2f715761cc4a45399a47d7957eb7c8669c01caa3c21f17c24ae47b8af2a38310",
+      "decoded_bytes": 519748,
+      "lines": 8771
+    }
+  },
+  "focused_checks": {
+    "passed": true,
+    "checks": [
+      "Ruff format and lint for both changed generators",
+      "Python byte compilation",
+      "implementation-ledger hostile self-test and generated-view equality",
+      "JSON Schema validation with check-jsonschema 0.35.0",
+      "pinned RustSec supply-chain self-test and equality check",
+      "retained audit generator and semantic self-tests",
+      "diagram freshness",
+      "Markdown link and anchor self-tests",
+      "Git diff whitespace integrity",
+      "cspell 10.0.1",
+      "codespell 2.4.1",
+      "proselint 0.14.0",
+      "markdownlint-cli2 0.23.0 with markdownlint 0.41.0"
+    ]
+  },
+  "visual_qa": {
+    "passed": true,
+    "renderer": {
+      "marked": "18.0.6",
+      "chrome_for_testing": "149.0.7827.55",
+      "playwright": "1.61.0-alpha-1781023400000",
+      "agent_browser_semantic_audit": "0.27.2"
+    },
+    "document_structure": {
+      "h1": 1,
+      "h2": 8,
+      "h3": 1,
+      "h4": 1,
+      "tables": 2,
+      "preformatted_blocks": 1
+    },
+    "renders": [
+      {
+        "path": "evidence/implementation/receipts/B00/resumption-desktop-1440.png",
+        "sha256": "d578c94fc97a017036eeefc1980de60a23bb655bd712e89f8762a2781fc16183",
+        "bytes": 247328,
+        "viewport_width": 1440,
+        "document_width": 1440,
+        "document_height": 4544,
+        "color_scheme": "light",
+        "overflow_outside_designated_container": 0,
+        "page_errors": 0,
+        "console_errors": 0
+      },
+      {
+        "path": "evidence/implementation/receipts/B00/resumption-mobile-390.png",
+        "sha256": "7437bdc0e34b8e4a5b556a2ba728b228ecb1598c80a3bac7197e94d6c36babe3",
+        "bytes": 69856,
+        "viewport_width": 390,
+        "document_width": 390,
+        "document_height": 8697,
+        "color_scheme": "light",
+        "wide_tables_horizontally_scrollable": true,
+        "overflow_outside_designated_container": 0,
+        "page_errors": 0,
+        "console_errors": 0
+      },
+      {
+        "path": "evidence/implementation/receipts/B00/resumption-mobile-dark-390.png",
+        "sha256": "073f19261d775b7e638e57d5d1a1139926230ac9550e831dd45271e2225dc1c9",
+        "bytes": 69574,
+        "viewport_width": 390,
+        "document_width": 390,
+        "document_height": 8697,
+        "color_scheme": "dark",
+        "wide_tables_horizontally_scrollable": true,
+        "overflow_outside_designated_container": 0,
+        "page_errors": 0,
+        "console_errors": 0
+      }
+    ],
+    "manual_review": "PASS: recovery hierarchy, typography, code identifiers, tables, light contrast, dark contrast, wrapping, and mobile containment were visually inspected."
+  },
+  "gate_effect": {
+    "b00_local_evidence": "PASS",
+    "ncp_release_authorized": false,
+    "external_release_gates": "NOT_RUN"
+  }
+}

@@ -59,22 +59,9 @@ Can this ledger grant release authorization? **false**.
 
 | Task | State | Repository | Resume condition |
 |---|---|---|---|
-| `B00` | `IN_PROGRESS` | NCP | Revert only the eventual coherent B00 commits if the ledger gate is defective; preserve the pushed audit baseline and every consumer worktree. |
+| — | no active or blocked task | — | start only a dependency-ready task |
 
-### Active recovery checkpoint
-
-#### `B00` — Create the live implementation and evidence ledger
-
-Recovery checkpoint 2026-07-16T08:38:10Z: the initial ledger commit `f3e5b257933fcb331afbd13229a43c7eb33a7897` was pushed. Its clean complete preflight failed at stale retained audit evidence. The audit evidence was regenerated through the approved generator and pushed at `6cbf5d6edfc20e265016aebecef98d4f31fdbe75`. A second clean complete preflight passed through extracted package tests but failed because `scripts/generate_implementation_ledger.py` was absent from the reviewed supply-chain generator inventory. The canonical output mapping has now been reviewed, the implementation views regenerated, the supply-chain inventory regenerated against the pinned advisory database, and the audit artifacts regenerated last. Focused ledger, schema, generator, supply-chain, audit, prose, spelling, link, repository-diff, and diagram-freshness checks pass. Desktop 1440-pixel and mobile 390-pixel light/dark recovery-view QA found no overflow outside its designated container, page error, console error, or malformed hierarchy. Resume by reviewing the current B00-only diff, committing and pushing the coherent recovery checkpoint, verifying the exact remote object and clean worktree, and then rerunning `scripts/check.sh` from that clean exact commit. Do not promote B00 from either failed run.
-
-Current residual risks:
-
-- B00 is in progress; no task has local, external, independent, or complete evidence.
-- All protocol, consumer, formal, live-security, release, publication, and certification gates remain open or not run.
-- The first clean B00 preflight failed closed on stale retained audit artifacts; the approved audit generator corrected and rechecked them before the next commit.
-- The second clean B00 preflight failed closed because the new implementation-ledger generator was absent from the reviewed supply-chain generator inventory; the mapping, generated inventory, focused validation, and recovery-view visual QA now pass, but commit/push verification and a fresh complete preflight remain required.
-
-Dependency-ready open tasks: none.
+Dependency-ready open tasks: `B04`.
 
 Do not start a descendant merely because its files are convenient. Provider changes
 land and pass first; consumers then bind exact immutable provider commits. Cross-repo
