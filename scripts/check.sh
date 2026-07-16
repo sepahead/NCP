@@ -167,7 +167,13 @@ export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
 current_advisory_home="$tmp_dir/advisory-current-home"
 pinned_advisory_home="$tmp_dir/advisory-pinned-home"
 mkdir -p "$current_advisory_home" "$pinned_advisory_home"
-HOME="$current_advisory_home" cargo deny --locked --all-features check
+export NCP_CURRENT_ADVISORY_DB_PATH="$current_advisory_home/.cargo/advisory-dbs"
+python3 scripts/prepare_current_advisory_database.py --self-test
+python3 scripts/prepare_current_advisory_database.py \
+    --destination "$NCP_CURRENT_ADVISORY_DB_PATH" \
+    --receipt "$tmp_dir/current-advisory-database-receipt.v1.json"
+HOME="$current_advisory_home" \
+    cargo deny --locked --offline --all-features check --disable-fetch
 HOME="$current_advisory_home" \
     python3 scripts/generate_supply_chain_evidence.py \
         --validate-current-advisories

@@ -2067,8 +2067,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 125185,
-        "sha256": "b0a36ddf451fbb4fd176306633cdafd755e087878742462412c35f44b5e92a59",
-        "git_blob_oid": "17a57677a222f5bd950f246d5e2f60319893a6ca",
+        "sha256": "54b252a56493fd1152042d43d63cfac114dd9e0a66891632244cee24d5f8561c",
+        "git_blob_oid": "d74a6b69648a692b4a028ca686215b5c37735bf6",
         "indexed": true
       },
       {
@@ -5979,9 +5979,9 @@
       },
       {
         "path": "scripts/README.md",
-        "bytes": 12088,
-        "sha256": "055d9b5ea6080271c9493f99a7418cdc0a8a0b5896c41ed5cc62853242b226cf",
-        "git_blob_oid": "fdb10afa37ec20c2bd76a360b5c96834bfa0a272",
+        "bytes": 12416,
+        "sha256": "4ad45be436ce2d59d19f9375f18c72a3a4ea605173f19a632142a4fb1b295ba0",
+        "git_blob_oid": "2aae6380e757a2ea16309e036193e27b658cda3c",
         "indexed": true
       },
       {
@@ -6035,9 +6035,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 8226,
-        "sha256": "3141bb49be56219e97ef25573c01f174c49483d9f491d32bc8a0f85e12b704b8",
-        "git_blob_oid": "7a9cf855aa75669d2a87758511633abb03b41b29",
+        "bytes": 8578,
+        "sha256": "5819197d0e7d0d6b04d421eaeb100eb2386fbe92919a9b518bb40aecb87fad77",
+        "git_blob_oid": "7ea8174f0c0e755aeddf717fd64896a971cfba1e",
         "indexed": true
       },
       {
@@ -6272,6 +6272,13 @@
         "indexed": true
       },
       {
+        "path": "scripts/prepare_current_advisory_database.py",
+        "bytes": 23335,
+        "sha256": "ac1735ceb4b1fb09c16b43ec2265a71bdc149a27586cbd1a893f5f97ad808fd4",
+        "git_blob_oid": "6efa950a8dae3f06322cd74d763124ac79afd41c",
+        "indexed": true
+      },
+      {
         "path": "scripts/render_acl_template.py",
         "bytes": 4925,
         "sha256": "2b360188fa5e2b98317cc301b39a8b745efe101aed7bfb6109d9366094be5e09",
@@ -6483,7 +6490,7 @@
     ]
   },
   "counts": {
-    "text_files": 899,
+    "text_files": 900,
     "binary_or_non_utf8_files": 18,
     "occurrences": 148,
     "by_token_id": {
@@ -6510,7 +6517,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "f6027fc81b887277470886fc6bfa46d2ff317f1b7394fda4ed7321667b521fde",
+  "scanned_path_set_sha256": "13b403f14e54444fdc21315b56f97e1b3d3530ceda1826f6addc864690dc056f",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

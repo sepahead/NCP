@@ -51,6 +51,7 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `build_candidate_dossier.py --sdist-preflight REV` | build the exact Python sdist twice with Cargo network access disabled, require a prune-only two-crate lock, compare archive bytes, and revalidate the extracted source under `--locked --offline` |
 | `build_candidate_dossier.py --verify-dossier DIR --require-hosted-toolchain --subject-checksums PATH` | independently recompute a held dossier's checksums, identities, comparisons, toolchain policy, package subjects, and exact attestation-subject manifest without authorizing release |
 | `prepare_advisory_database.py --source-database DIR --destination DIR` | clone one current, verified RustSec database locally and rewind a disposable copy to the evidence-pinned revision for deterministic replay |
+| `prepare_current_advisory_database.py --destination DIR --receipt FILE` | resolve the official RustSec main ref twice, prepare one bounded depth-one current database in a fresh external Cargo home, verify its exact commit/tree/layout, and retain an ephemeral local-gate receipt before cargo-deny runs with fetching disabled |
 | `check-version-coherence.sh` | package/wire/compact-hash metadata coherence |
 | `../ncp-ts/scripts/build-release.mjs --source-revision REV --output DIR` | archive one exact 40-hex `HEAD`, inject and verify the shared Rust/TypeScript build identity, and emit smoke-tested root+nested npm tarballs plus a hash receipt; never publishes |
 
