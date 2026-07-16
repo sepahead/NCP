@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sepahead.github.io/NCP/schemas/proposed-decision-registry.v1.json",
+  "title": "NCP proposed decision registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "normative",
+    "candidate",
+    "wire_version",
+    "task",
+    "claim_boundary",
+    "generated_by",
+    "source",
+    "promotion_target",
+    "promotion_blocked",
+    "counts",
+    "decisions",
+    "review_records"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ncp.proposed-decision-registry.v1"
+    },
+    "normative": {
+      "const": false
+    },
+    "candidate": {
+      "const": "1.0.0-rc.1"
+    },
+    "wire_version": {
+      "const": "1.0"
+    },
+    "task": {
+      "const": "B01"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 1024
+    },
+    "generated_by": {
+      "const": "scripts/generate_decision_registry.py"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "path": {
+          "const": "docs/adr/decision-registry.source.v1.json"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "promotion_target": {
+      "const": "contract/decision-registry.v1.json"
+    },
+    "promotion_blocked": {
+      "const": true
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisions",
+        "proposed",
+        "accepted",
+        "review_records"
+      ],
+      "properties": {
+        "decisions": {
+          "const": 11
+        },
+        "proposed": {
+          "const": 11
+        },
+        "accepted": {
+          "const": 0
+        },
+        "review_records": {
+          "const": 0
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "$ref": "#/$defs/decision"
+      }
+    },
+    "review_records": {
+      "type": "array",
+      "maxItems": 0
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "path",
+        "status",
+        "content_sha256",
+        "bytes",
+        "required_review_roles",
+        "defect_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ADR-0(0[1-9]|1[01])$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 160
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^docs/adr/00(0[1-9]|1[01])-[a-z0-9-]+\\.md$"
+        },
+        "status": {
+          "const": "PROPOSED"
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 131072
+        },
+        "required_review_roles": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128
+          }
+        },
+        "defect_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^D(0[1-9]|1[0-7])$"
+          }
+        }
+      }
+    }
+  }
+}

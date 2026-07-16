@@ -11,20 +11,357 @@
     "normative_requirements": 13,
     "release_gates": 14,
     "surface_claims": 55,
-    "threat_controls": 18
+    "proposed_decisions": 11,
+    "threat_controls": 24
   },
   "counts": {
-    "requirements": 100,
-    "edges": 630,
+    "requirements": 117,
+    "edges": 750,
     "by_evidence_status": {
       "LOCAL_VERIFIED": 58,
       "NOT_CLAIMED": 6,
       "NOT_RUN_EXTERNAL": 11,
       "NOT_RUN_POST_PUBLICATION": 2,
-      "PARTIAL_LOCAL": 23
+      "PARTIAL_LOCAL": 40
     }
   },
   "requirements": [
+    {
+      "id": "NCP-ADR-001",
+      "kind": "decision-proposal",
+      "requirement": "ADR-001 (Separate simulation-service and plant-control sessions) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/0"
+      ],
+      "code_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-020",
+        "NCP-THREAT-024"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-002",
+      "kind": "decision-proposal",
+      "requirement": "ADR-002 (Separate contract identity and release authorization) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/1"
+      ],
+      "code_paths": [
+        "docs/adr/0002-contract-identity-and-release-authorization.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0002-contract-identity-and-release-authorization.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-019"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-003",
+      "kind": "decision-proposal",
+      "requirement": "ADR-003 (Authenticate production ingress before interpretation) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/2"
+      ],
+      "code_paths": [
+        "docs/adr/0003-authenticated-production-ingress.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0003-authenticated-production-ingress.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-004",
+      "kind": "decision-proposal",
+      "requirement": "ADR-004 (Attach observers with bounded grants and revocation) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/3"
+      ],
+      "code_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-023"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-005",
+      "kind": "decision-proposal",
+      "requirement": "ADR-005 (Declare and retire every stream explicitly) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/4"
+      ],
+      "code_paths": [
+        "docs/adr/0005-declared-stream-lifecycle.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0005-declared-stream-lifecycle.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-006",
+      "kind": "decision-proposal",
+      "requirement": "ADR-006 (Use body-issued authority and receiver-local time) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/5"
+      ],
+      "code_paths": [
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-021"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-007",
+      "kind": "decision-proposal",
+      "requirement": "ADR-007 (Journal body-issued command dispositions) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/6"
+      ],
+      "code_paths": [
+        "docs/adr/0007-command-disposition-journal.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0007-command-disposition-journal.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-008",
+      "kind": "decision-proposal",
+      "requirement": "ADR-008 (Separate stable routes from Galadriel extensions) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/7"
+      ],
+      "code_paths": [
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-022"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-009",
+      "kind": "decision-proposal",
+      "requirement": "ADR-009 (Bind semantic security state, rotation, and revocation) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/8"
+      ],
+      "code_paths": [
+        "docs/adr/0009-security-state-rotation-and-revocation.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0009-security-state-rotation-and-revocation.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-010",
+      "kind": "decision-proposal",
+      "requirement": "ADR-010 (Specify finite per-plane QoS and overload behavior) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/9"
+      ],
+      "code_paths": [
+        "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-ADR-011",
+      "kind": "decision-proposal",
+      "requirement": "ADR-011 (Fix ecosystem dependency direction and plant handover) must receive every required same-digest owner and independent review before normative implementation or candidate rebaseline.",
+      "source_refs": [
+        "docs/adr/decision-registry.proposed.v1.json#/decisions/10"
+      ],
+      "code_paths": [
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "scripts/generate_decision_registry.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "independent-review-required",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-020",
+        "NCP-THREAT-021",
+        "NCP-THREAT-022",
+        "NCP-THREAT-023",
+        "NCP-THREAT-024"
+      ],
+      "vector_ids": []
+    },
     {
       "id": "NCP-RELEASE-POST-POST-PUBLICATION-EMERGENCY-REVOCATION-EXERCISE",
       "kind": "post-release-gate",
@@ -3186,9 +3523,581 @@
         "NCP-THREAT-018"
       ],
       "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-019",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for a proposed decision silently enters the normative contract as specified by NCP-THREAT-019.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/18"
+      ],
+      "code_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/generate_contract_manifest.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/generate_contract_manifest.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/README.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/generate_contract_manifest.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-019"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-020",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for simulation and plant session authority domains are confused as specified by NCP-THREAT-020.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/19"
+      ],
+      "code_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-020"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-021",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for commander handover admits a delayed stale command as specified by NCP-THREAT-021.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/20"
+      ],
+      "code_paths": [
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "ncp-core/src/authority.rs"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-021"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-022",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for deny-only assessments widen permission through lifecycle as specified by NCP-THREAT-022.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/21"
+      ],
+      "code_paths": [
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-022"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-023",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for a read-only or research component enters the plant control path as specified by NCP-THREAT-023.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/22"
+      ],
+      "code_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "evidence_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/implementation/NCP_1_0_RESUMPTION.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-023"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-024",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for simulation provenance is treated as plant authorization or scientific validation as specified by NCP-THREAT-024.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/23"
+      ],
+      "code_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "ncp-core/src/messages.rs"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "ncp-core/tests/behavior_conformance.rs"
+      ],
+      "evidence_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "KNOWN_LIMITATIONS.md"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "cargo test -p ncp-core --locked"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-024"
+      ],
+      "vector_ids": []
     }
   ],
   "edges": [
+    {
+      "from": "NCP-ADR-001",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "implemented-by",
+      "to": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-020"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-024"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-001",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0002-contract-identity-and-release-authorization.md"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "implemented-by",
+      "to": "docs/adr/0002-contract-identity-and-release-authorization.md"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-019"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-002",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-003",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0003-authenticated-production-ingress.md"
+    },
+    {
+      "from": "NCP-ADR-003",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-003",
+      "relation": "implemented-by",
+      "to": "docs/adr/0003-authenticated-production-ingress.md"
+    },
+    {
+      "from": "NCP-ADR-003",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-003",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-003",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0004-observer-attach-grants-and-revocation.md"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "implemented-by",
+      "to": "docs/adr/0004-observer-attach-grants-and-revocation.md"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-023"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-004",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0005-declared-stream-lifecycle.md"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "implemented-by",
+      "to": "docs/adr/0005-declared-stream-lifecycle.md"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0006-body-issued-authority-and-time.md"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "implemented-by",
+      "to": "docs/adr/0006-body-issued-authority-and-time.md"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-021"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-006",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-007",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0007-command-disposition-journal.md"
+    },
+    {
+      "from": "NCP-ADR-007",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-007",
+      "relation": "implemented-by",
+      "to": "docs/adr/0007-command-disposition-journal.md"
+    },
+    {
+      "from": "NCP-ADR-007",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-007",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-007",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "implemented-by",
+      "to": "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-022"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-008",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-009",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0009-security-state-rotation-and-revocation.md"
+    },
+    {
+      "from": "NCP-ADR-009",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-009",
+      "relation": "implemented-by",
+      "to": "docs/adr/0009-security-state-rotation-and-revocation.md"
+    },
+    {
+      "from": "NCP-ADR-009",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-009",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-009",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0010-plane-qos-retention-and-overload.md"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "implemented-by",
+      "to": "docs/adr/0010-plane-qos-retention-and-overload.md"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "implemented-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-020"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-021"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-022"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-023"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-024"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
     {
       "from": "NCP-RELEASE-POST-POST-PUBLICATION-EMERGENCY-REVOCATION-EXERCISE",
       "relation": "evidenced-by",
@@ -6338,6 +7247,221 @@
       "from": "NCP-THREAT-REQ-018",
       "relation": "verified-by",
       "to": "scripts/test_consumer_pins.sh"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "evidenced-by",
+      "to": "docs/adr/README.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "implemented-by",
+      "to": "scripts/generate_contract_manifest.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "implemented-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-019"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "verified-by",
+      "to": "scripts/generate_contract_manifest.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-019",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "evidenced-by",
+      "to": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "implemented-by",
+      "to": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "implemented-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-020"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-020",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0006-body-issued-authority-and-time.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "evidenced-by",
+      "to": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "implemented-by",
+      "to": "docs/adr/0006-body-issued-authority-and-time.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "implemented-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "implemented-by",
+      "to": "ncp-core/src/authority.rs"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-021"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-021",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "evidenced-by",
+      "to": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "implemented-by",
+      "to": "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "implemented-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-022"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-022",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0004-observer-attach-grants-and-revocation.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_RESUMPTION.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "implemented-by",
+      "to": "docs/adr/0004-observer-attach-grants-and-revocation.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "implemented-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-023"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "verified-by",
+      "to": "scripts/check_adr_examples.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-023",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "evidenced-by",
+      "to": "KNOWN_LIMITATIONS.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "evidenced-by",
+      "to": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "implemented-by",
+      "to": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "implemented-by",
+      "to": "ncp-core/src/messages.rs"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-024"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "verified-by",
+      "to": "ncp-core/tests/behavior_conformance.rs"
+    },
+    {
+      "from": "NCP-THREAT-REQ-024",
+      "relation": "verified-by",
+      "to": "scripts/generate_decision_registry.py"
     }
   ]
 }

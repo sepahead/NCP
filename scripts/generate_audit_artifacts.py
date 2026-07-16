@@ -40,6 +40,7 @@ SURFACE = ROOT / "contract" / "surface.v1.json"
 RELEASE_GATES = ROOT / "contract" / "release-gates.v1.json"
 CONFORMANCE = ROOT / "conformance" / "manifest.v1.json"
 CONTRACT_MANIFEST = ROOT / "contract" / "manifest.v1.json"
+DECISION_REGISTRY = ROOT / "docs" / "adr" / "decision-registry.proposed.v1.json"
 
 SCHEMA_VERSION = "1"
 WIRE_VERSION = "1.0"
@@ -832,12 +833,256 @@ def threat_records() -> list[dict[str, Any]]:
             "All six installed-artifact and live consumer certifications remain NOT RUN.",
             True,
         ),
+        _threat(
+            19,
+            "A proposed decision silently enters the normative contract",
+            "governance",
+            "B01 draft records to complete normative contract digest",
+            "ratification integrity and deliberate candidate rebaseline",
+            "path-based manifest inclusion or optimistic status edit",
+            ["an ADR or registry remains proposed", "contract/*.v1.json is normative"],
+            "A PROPOSED decision registry is written under contract/ and changes the normative digest before required review and owner authorization.",
+            "Draft records remain outside contract/, bind exact ADR hashes, and promotion is one reviewed all-accepted rebaseline operation.",
+            "Any non-accepted registry under contract/, missing content hash, or status-only promotion fails the local gate.",
+            "Unreviewed architecture becomes normative and invalidates candidate identity and descendant evidence.",
+            ["decision-registry generator", "contract manifest diff", "B01 ledger state"],
+            [
+                "path-separated proposed registry",
+                "exact ADR content hashes",
+                "promotion hold until independent acceptance and B02 authorization",
+            ],
+            "Remove the premature normative file, restore the prior digest, and invalidate affected receipts.",
+            ["CF-04", "CF-08", "CF-09"],
+            ["NCP-ADR-002"],
+            [
+                "scripts/generate_decision_registry.py",
+                "scripts/generate_contract_manifest.py",
+            ],
+            [
+                "scripts/generate_decision_registry.py",
+                "scripts/generate_contract_manifest.py",
+            ],
+            [
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+                "python3 scripts/generate_contract_manifest.py --self-test",
+            ],
+            [
+                "docs/adr/README.md",
+                "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+            ],
+            "PARTIAL_LOCAL",
+            "The staging guard is local and the ADR set has no qualifying independent acceptance.",
+            True,
+        ),
+        _threat(
+            20,
+            "Simulation and plant session authority domains are confused",
+            "type-confusion",
+            "Engram simulation responder to Crebain plant-control session",
+            "non-fungible session semantics and authority",
+            "overloaded message kind, shared principal, store, endpoint, or feature",
+            ["one deployment enables simulation and plant integration"],
+            "Simulation configuration, receipts, or responder identity are accepted as plant session or action authority.",
+            "Typed simulation and plant requests, credentials, routes, stores, and grants are disjoint.",
+            "Cross-kind members, frames, grants, or same-principal role reuse reject before state allocation.",
+            "Simulation output or resource authority can be laundered into plant control.",
+            ["cross-kind vectors", "responder-only binary inspection", "role-manifest audit"],
+            [
+                "ADR-001 typed separation",
+                "disjoint build features and endpoints",
+                "Crebain-only plant lease issuance",
+            ],
+            "Reject the session or command and retire ambiguous state.",
+            ["CF-01", "CF-07", "CF-08"],
+            ["NCP-ADR-001", "NCP-ADR-011"],
+            [
+                "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+                "docs/adr/0011-ecosystem-topology-and-handover.md",
+            ],
+            [
+                "scripts/generate_decision_registry.py",
+                "scripts/check_adr_examples.py",
+            ],
+            [
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+                "python3 scripts/check_adr_examples.py --self-test",
+            ],
+            [
+                "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+                "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+            ],
+            "PARTIAL_LOCAL",
+            "The separation is proposed only; provider types and installed consumer evidence do not exist.",
+            True,
+        ),
+        _threat(
+            21,
+            "Commander handover admits a delayed stale command",
+            "distributed-authority",
+            "Engram/Haldir commander transition at the Crebain body",
+            "single live plant commander and exact body admission fence",
+            "overlapping leases, restart uncertainty, stale buffer, or wall-clock-only validity",
+            ["direct or gated mode changes", "old traffic can be delayed or replayed"],
+            "The new commander becomes active before old admission and stream state are durably retired, or an old unexpired command survives restart.",
+            "Crebain serializes HOLD/quiesce/revoke/higher-term/grant and checks exact generation, lease, holder, stream, and sequence state.",
+            "Old generation, term, lease ID, holder, epoch, sequence, or ambiguous recovery state rejects.",
+            "Two authority chains can actuate one plant or a revoked chain can revive.",
+            ["formal handover counterexample", "crash-point traces", "stale-buffer rejects"],
+            [
+                "body-issued strictly higher terms",
+                "exact equality fencing plus monotonic term/sequence",
+                "HOLD on uncertain recovery",
+            ],
+            "Enter HOLD, stop admission, query durable body state, and retire the generation if continuity is unprovable.",
+            ["CF-03", "CF-09", "CF-06"],
+            ["NCP-ADR-006", "NCP-ADR-011"],
+            [
+                "docs/adr/0006-body-issued-authority-and-time.md",
+                "docs/adr/0011-ecosystem-topology-and-handover.md",
+                "ncp-core/src/authority.rs",
+            ],
+            [
+                "scripts/generate_decision_registry.py",
+                "scripts/check_adr_examples.py",
+            ],
+            [
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+                "python3 scripts/check_adr_examples.py --self-test",
+            ],
+            [
+                "docs/adr/0006-body-issued-authority-and-time.md",
+                "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+            ],
+            "PARTIAL_LOCAL",
+            "The exact composed model, provider operations, Crebain migration, and live crash campaign remain open.",
+            True,
+        ),
+        _threat(
+            22,
+            "Deny-only assessments widen permission through lifecycle",
+            "authorization-composition",
+            "Galadriel assessment lifecycle to Haldir effective permission",
+            "authority-monotone optional advisory composition",
+            "expiry, disable, restart, replay, base-policy edit, or override",
+            ["each individual assessment message can only record or deny-tighten"],
+            "Applied deny state disappears or an older/weaker state wins, widening effective permission without an explicit authorized transition.",
+            "Every widening lifecycle/configuration transition is authenticated, monotonically versioned, audited, and follows a declared non-widening absence policy.",
+            "Arrival-order overwrite, silent deny loss, observer credential reuse, or implicit disable-to-ALLOW rejects or denies new missions.",
+            "A meet-only message format still composes into a permission grant.",
+            ["property tests", "restart/replay traces", "policy revision audit"],
+            [
+                "distinct assessor principal",
+                "durable/non-widening recovery",
+                "explicit Haldir widening transition",
+            ],
+            "Reject stale assessment state and preserve/deny permission until an authenticated policy transition resolves it.",
+            ["CF-03", "CF-08", "CF-09"],
+            ["NCP-ADR-008", "NCP-ADR-011"],
+            [
+                "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+                "docs/adr/0011-ecosystem-topology-and-handover.md",
+            ],
+            [
+                "scripts/generate_decision_registry.py",
+                "scripts/check_adr_examples.py",
+            ],
+            [
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+                "python3 scripts/check_adr_examples.py --self-test",
+            ],
+            [
+                "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+                "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+            ],
+            "PARTIAL_LOCAL",
+            "Haldir implementation, persistent policy state, owner review, and live monotonicity evidence remain absent.",
+            True,
+        ),
+        _threat(
+            23,
+            "A read-only or research component enters the plant control path",
+            "dependency-confusion",
+            "observer/research/visualization outputs to action admission",
+            "standalone-first acyclic dependencies and final body authority",
+            "convenience callback, reverse dependency, shared credential, or hidden startup service",
+            ["Galadriel, Prisoma, pid-rs, or Cortexel is enabled"],
+            "An observer, estimator, offline analysis, run log, or figure output becomes a command publisher, authority source, or mandatory control dependency.",
+            "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; Cortexel consumes labelled exports only.",
+            "Any publish, lease, mutation, ESTOP, disposition, control callback, or reverse dependency from these surfaces rejects review and qualification.",
+            "Unreviewed software or evidence can influence actuation, create cycles, or block fail-safe behavior.",
+            ["dependency graph", "API capability audit", "observer overload and credential negatives"],
+            [
+                "ADR-004 observer non-authority",
+                "ADR-011 prohibited edges",
+                "separate processes/features/credentials",
+            ],
+            "Disable the optional adapter, preserve gaps, and restore the last acyclic reviewed topology.",
+            ["CF-07", "CF-08", "CF-05"],
+            ["NCP-ADR-004", "NCP-ADR-011"],
+            [
+                "docs/adr/0004-observer-attach-grants-and-revocation.md",
+                "docs/adr/0011-ecosystem-topology-and-handover.md",
+            ],
+            [
+                "scripts/generate_decision_registry.py",
+                "scripts/check_adr_examples.py",
+            ],
+            [
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+                "python3 scripts/check_adr_examples.py --self-test",
+            ],
+            [
+                "docs/adr/0004-observer-attach-grants-and-revocation.md",
+                "docs/implementation/NCP_1_0_RESUMPTION.md",
+            ],
+            "PARTIAL_LOCAL",
+            "The topology is proposed and cross-repository dependency/API qualification remains open.",
+            True,
+        ),
+        _threat(
+            24,
+            "Simulation provenance is treated as plant authorization or scientific validation",
+            "provenance",
+            "simulation output to commander policy and plant admission",
+            "honest provenance without authority laundering",
+            "label stripping, shared credentials, or overclaiming a legitimate commander decision",
+            ["simulation output is consumed by another component"],
+            "A simulation label or receipt is stripped, called calibrated, or accepted as a plant lease; alternatively, a legitimate commander hides that simulation informed a new command.",
+            "Simulation provenance is integrity protected and non-authoritative; plant authority comes only from the commander's exact body lease, with application audit retaining advisory sources.",
+            "Simulation principals/routes/grants at plant admission, missing mandatory provenance on simulation output, or calibration promotion reject.",
+            "Plant action or scientific claims appear justified by protocol success rather than separate authority and evidence.",
+            ["provenance vectors", "credential/route separation tests", "application audit review"],
+            [
+                "mandatory SimProvenance non-claim fields",
+                "disjoint responder/commander security domains",
+                "Crebain-only action admission",
+            ],
+            "Reject authority substitution and narrow the scientific/physical claim; investigate provenance loss separately.",
+            ["CF-05", "CF-01", "CF-02"],
+            ["NCP-ADR-001", "NCP-ADR-011"],
+            [
+                "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+                "ncp-core/src/messages.rs",
+            ],
+            ["scripts/generate_decision_registry.py", "ncp-core/tests/behavior_conformance.rs"],
+            [
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+                "cargo test -p ncp-core --locked",
+            ],
+            [
+                "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+                "KNOWN_LIMITATIONS.md",
+            ],
+            "PARTIAL_LOCAL",
+            "Application-level lineage, deployment isolation, independent science review, and live plant evidence remain open.",
+            True,
+        ),
     ]
     if [entry["id"] for entry in records] != [
-        f"NCP-THREAT-{number:03d}" for number in range(1, 19)
+        f"NCP-THREAT-{number:03d}" for number in range(1, 25)
     ]:
         raise AuditGenerationError(
-            "threat identifiers must be exact ordered 001 through 018"
+            "threat identifiers must be exact ordered 001 through 024"
         )
     return records
 
@@ -1706,6 +1951,69 @@ def threat_requirement_nodes(threats: list[dict[str, Any]]) -> list[dict[str, An
     return nodes
 
 
+def proposed_decision_nodes(
+    registry: dict[str, Any], threats: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if (
+        registry.get("schema") != "ncp.proposed-decision-registry.v1"
+        or registry.get("normative") is not False
+        or registry.get("promotion_blocked") is not True
+    ):
+        raise AuditGenerationError(
+            "proposed decision registry is missing, optimistic, or normative"
+        )
+    decisions = registry.get("decisions")
+    if not isinstance(decisions, list) or len(decisions) != 11:
+        raise AuditGenerationError(
+            "proposed decision registry must contain exactly eleven decisions"
+        )
+    linked: dict[str, list[str]] = {}
+    for threat in threats:
+        for requirement_id in threat["requirement_ids"]:
+            linked.setdefault(requirement_id, []).append(threat["id"])
+    nodes: list[dict[str, Any]] = []
+    for index, decision in enumerate(decisions):
+        identifier = f"NCP-{decision['id']}"
+        if decision.get("status") != "PROPOSED":
+            raise AuditGenerationError(
+                f"{decision.get('id')} is not safely staged as PROPOSED"
+            )
+        nodes.append(
+            _node(
+                identifier,
+                "decision-proposal",
+                (
+                    f"{decision['id']} ({decision['title']}) must receive every "
+                    "required same-digest owner and independent review before "
+                    "normative implementation or candidate rebaseline."
+                ),
+                [
+                    "docs/adr/decision-registry.proposed.v1.json"
+                    f"#/decisions/{index}"
+                ],
+                [decision["path"], "scripts/generate_decision_registry.py"],
+                [
+                    "scripts/generate_decision_registry.py",
+                    "scripts/check_adr_examples.py",
+                ],
+                [
+                    decision["path"],
+                    "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+                ],
+                [
+                    "python3 scripts/generate_decision_registry.py "
+                    "--self-test --check",
+                    "python3 scripts/check_adr_examples.py --self-test",
+                ],
+                "PARTIAL_LOCAL",
+                "independent-review-required",
+                "release-blocking-open",
+                sorted(linked.get(identifier, [])),
+            )
+        )
+    return nodes
+
+
 def _edges(requirements: list[dict[str, Any]]) -> list[dict[str, str]]:
     edges: list[dict[str, str]] = []
     relations = (
@@ -1734,6 +2042,9 @@ def build_traceability(
         "normative_requirements": normative_nodes(conformance, threats),
         "release_gates": release_gate_nodes(release_gates, threats),
         "surface_claims": surface_nodes(surface),
+        "proposed_decisions": proposed_decision_nodes(
+            load_json(DECISION_REGISTRY), threats
+        ),
         "threat_controls": threat_requirement_nodes(threats),
     }
     requirements = sorted(
@@ -1859,6 +2170,12 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
             "RETAINED_EVIDENCE_CONTROL",
             "NON_RUNTIME_AUDIT",
             ["RELEASE_READINESS.md"],
+        )
+    if path.startswith("evidence/implementation/receipts/"):
+        return (
+            "RETAINED_IMPLEMENTATION_EVIDENCE",
+            "NON_RUNTIME_AUDIT",
+            ["docs/implementation/NCP_1_0_TASK_LEDGER.md"],
         )
     if path.startswith("docs/handoff/"):
         return (
@@ -2076,6 +2393,7 @@ def build_manifest(candidate: str, artifacts: dict[str, bytes]) -> dict[str, Any
         RELEASE_GATES,
         CONFORMANCE,
         CONTRACT_MANIFEST,
+        DECISION_REGISTRY,
         ROOT / "Cargo.lock",
         ROOT / "bun.lock",
         ROOT / "evidence" / "supply-chain" / "vulnerability-report.v1.json",

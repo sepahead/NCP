@@ -10,6 +10,8 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check.sh` | complete local Rust/Python/C++/TypeScript/proto/schema/profile/package preflight; never release authorization |
 | `check_implementation_ledger.py [--self-test]` | validate the exact 56-task implementation DAG, current-generation evidence floors, content-addressed artifacts, dependency receipts, typed reopen invalidations, review independence, and no-release boundary |
 | `generate_implementation_ledger.py [--check\|--write]` | generate the reviewed task-ledger view and mandatory cross-repository resumption brief from the checked JSON source; never edit the generated Markdown directly |
+| `generate_decision_registry.py [--self-test] [--check\|--write]` | generate the non-normative B01 registry from exact PROPOSED ADR bytes, reject optimistic acceptance or premature `contract/` promotion, and retain the independent-review/rebaseline hold |
+| `check_adr_examples.py [--self-test]` | replay every proposed ADR JSON fence through the independent B04 Python and Node bounded parsers; syntax-only draft evidence, never semantic implementation or acceptance |
 | `generate_contract_manifest.py [--write]` | exact normative source list and complete SHA-256 digest |
 | `generate_conformance_manifest.py [--write]` | mandatory vector inventory, clauses, applicability, source hashes, corpus digest |
 | `check_proto_schema_parity.py` | protobuf ↔ JSON Schema fields/types/enums |

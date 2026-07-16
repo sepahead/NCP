@@ -9,7 +9,7 @@ release. No DOI or archive-deposition claim is recorded here.
 ## Artifacts
 
 - threat-register.v1.json records the current system dimensions, trust
-  boundaries, ten mandatory counterfactuals, and 18 threat, misuse, failure, and
+  boundaries, ten mandatory counterfactuals, and 24 threat, misuse, failure, and
   unusual-input cases. Every risk remains explicitly OPEN, with accepted and
   rejected cases, controls, tests, evidence paths, and residual gaps.
 - latent-path-inventory.v1.json inventories configured deferred-work,
@@ -20,10 +20,10 @@ release. No DOI or archive-deposition claim is recorded here.
   has a reviewed disposition, claim effect, and evidence link. A newly
   unreviewed action path fails the checker.
 - requirement-traceability.v1.json covers the exact union of conformance
-  requirements, phased release gates, complete contract-surface claims, and
-  threat-control requirements. Every node links source, implementation, test,
-  retained evidence, verification command, claim tier, status, and explicit
-  graph edges.
+  requirements, phased release gates, complete contract-surface claims, all
+  eleven proposed B01 decisions, and threat-control requirements. Every node
+  links source, implementation, test, retained evidence, verification command,
+  claim tier, status, and explicit graph edges.
 - manifest.v1.json binds those three generated records and their primary source
   inputs by SHA-256 and byte count.
 

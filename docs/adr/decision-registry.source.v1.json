@@ -1,0 +1,189 @@
+{
+  "schema": "ncp.proposed-decision-registry-source.v1",
+  "normative": false,
+  "candidate": "1.0.0-rc.1",
+  "wire_version": "1.0",
+  "task": "B01",
+  "claim_boundary": "This source describes proposed architecture decisions only. It cannot change the normative contract, authorize a rebaseline or release, satisfy independent review, or certify an implementation or deployment.",
+  "promotion_target": "contract/decision-registry.v1.json",
+  "promotion_blocked_until_all_accepted": true,
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "title": "Separate simulation-service and plant-control sessions",
+      "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "NCP maintainer",
+        "Engram owner",
+        "Crebain body owner",
+        "independent protocol reviewer"
+      ],
+      "defect_ids": [
+        "D01"
+      ]
+    },
+    {
+      "id": "ADR-002",
+      "title": "Separate contract identity and release authorization",
+      "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "protocol reviewer",
+        "release and supply-chain reviewer"
+      ],
+      "defect_ids": [
+        "D04",
+        "D13",
+        "D17"
+      ]
+    },
+    {
+      "id": "ADR-003",
+      "title": "Authenticate production ingress before interpretation",
+      "path": "docs/adr/0003-authenticated-production-ingress.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "independent security and cryptography reviewer 1",
+        "independent security and cryptography reviewer 2",
+        "transport implementer"
+      ],
+      "defect_ids": [
+        "D06",
+        "D10"
+      ]
+    },
+    {
+      "id": "ADR-004",
+      "title": "Attach observers with bounded grants and revocation",
+      "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "Prisoma owner",
+        "Galadriel owner",
+        "security reviewer"
+      ],
+      "defect_ids": [
+        "D02",
+        "D05"
+      ]
+    },
+    {
+      "id": "ADR-005",
+      "title": "Declare and retire every stream explicitly",
+      "path": "docs/adr/0005-declared-stream-lifecycle.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "distributed-systems reviewer",
+        "Engram stream owner",
+        "Haldir stream owner",
+        "Galadriel stream owner",
+        "Crebain stream owner",
+        "Prisoma stream owner"
+      ],
+      "defect_ids": [
+        "D03"
+      ]
+    },
+    {
+      "id": "ADR-006",
+      "title": "Use body-issued authority and receiver-local time",
+      "path": "docs/adr/0006-body-issued-authority-and-time.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "safety reviewer",
+        "distributed-systems reviewer",
+        "Haldir owner",
+        "Crebain owner"
+      ],
+      "defect_ids": [
+        "D08",
+        "D15"
+      ]
+    },
+    {
+      "id": "ADR-007",
+      "title": "Journal body-issued command dispositions",
+      "path": "docs/adr/0007-command-disposition-journal.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "plant and safety reviewer",
+        "Haldir owner",
+        "Crebain owner"
+      ],
+      "defect_ids": [
+        "D07"
+      ]
+    },
+    {
+      "id": "ADR-008",
+      "title": "Separate stable routes from Galadriel extensions",
+      "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "protocol reviewer",
+        "Galadriel owner",
+        "Crebain owner"
+      ],
+      "defect_ids": [
+        "D09"
+      ]
+    },
+    {
+      "id": "ADR-009",
+      "title": "Bind semantic security state, rotation, and revocation",
+      "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "security reviewer",
+        "operations reviewer",
+        "supply-chain reviewer"
+      ],
+      "defect_ids": [
+        "D16"
+      ]
+    },
+    {
+      "id": "ADR-010",
+      "title": "Specify finite per-plane QoS and overload behavior",
+      "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "real-time and performance reviewer",
+        "Engram consumer reviewer",
+        "Haldir consumer reviewer",
+        "Galadriel consumer reviewer",
+        "Crebain consumer reviewer",
+        "Prisoma consumer reviewer"
+      ],
+      "defect_ids": [
+        "D14"
+      ]
+    },
+    {
+      "id": "ADR-011",
+      "title": "Fix ecosystem dependency direction and plant handover",
+      "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+      "status": "PROPOSED",
+      "required_review_roles": [
+        "Engram owner",
+        "Haldir owner",
+        "Galadriel owner",
+        "Crebain owner",
+        "Prisoma owner",
+        "Cortexel owner",
+        "pid-rs owner",
+        "independent security and distributed-systems reviewer",
+        "Crebain plant and safety reviewer"
+      ],
+      "defect_ids": [
+        "D01",
+        "D08",
+        "D09",
+        "D11",
+        "D12"
+      ]
+    }
+  ],
+  "review_records": []
+}

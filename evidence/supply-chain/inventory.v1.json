@@ -2215,7 +2215,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "541daa2bd6778fa7fdbeeba06b59fdfc4f7a07dda0943a3ccb5bf7251320912f"
+      "sha256": "77c78bab24efef9b8e4db9255259f3dcdd41e9129039275d2270104b87b2235c"
     },
     {
       "outputs": [
@@ -2237,6 +2237,13 @@
       ],
       "path": "scripts/generate_convergence_manifest.py",
       "sha256": "b66149192e5b217b92afdde6000eb31e388e282a1f7ec6a97b344230fce810d7"
+    },
+    {
+      "outputs": [
+        "docs/adr/decision-registry.proposed.v1.json"
+      ],
+      "path": "scripts/generate_decision_registry.py",
+      "sha256": "73226dc7173d0aa5c0001056e080780d39422601403329168f5a8e68c811f033"
     },
     {
       "outputs": [
@@ -2273,7 +2280,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "43e7a392a462a047af8e4dccc78ec1349ac629bdc20dee250ffc82955d912232"
+      "sha256": "8457024b7ee4fdc3e6fe82d64019b51a50fa2900ac9a9ce1a2984dd2a0a75b06"
     },
     {
       "outputs": [

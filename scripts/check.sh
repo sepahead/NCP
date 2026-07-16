@@ -34,6 +34,7 @@ python3 scripts/gen_diagrams.py --check
 step "NCP 1.0 implementation ledger + mandatory resumption views"
 python3 scripts/check_implementation_ledger.py --self-test
 python3 scripts/generate_implementation_ledger.py --check
+python3 scripts/generate_decision_registry.py --self-test --check
 
 step "bounded pure-Python line ingress + runner status"
 python3 -m unittest -v e2e.test_bounded_json e2e.test_runner_status
@@ -41,7 +42,8 @@ python3 -m py_compile \
     e2e/bounded_json.py e2e/nest_five_networks.py \
     e2e/run_cross_language_e2e.py e2e/test_bounded_json.py \
     e2e/test_runner_status.py scripts/check_implementation_ledger.py \
-    scripts/generate_implementation_ledger.py
+    scripts/generate_implementation_ledger.py \
+    scripts/generate_decision_registry.py scripts/check_adr_examples.py
 
 step "workspace clippy (warnings denied; Python links in its dedicated gate)"
 cargo clippy --workspace --exclude ncp-python --all-targets --locked -- -D warnings

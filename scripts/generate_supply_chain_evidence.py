@@ -68,6 +68,9 @@ GENERATOR_OUTPUTS = {
         "evidence/convergence/local-convergence.v1.json"
     ],
     "scripts/generate_contract_manifest.py": ["contract/manifest.v1.json"],
+    "scripts/generate_decision_registry.py": [
+        "docs/adr/decision-registry.proposed.v1.json"
+    ],
     "scripts/generate_file_review_ledger.py": [
         "docs/handoff/max-effort-file-review.v2.csv",
         "docs/handoff/max-effort-file-review-manifest.v2.json",

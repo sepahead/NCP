@@ -17,17 +17,31 @@ separate, and publication tasks cannot start through a status edit.
 
 | Status | Count |
 |---|---:|
-| `OPEN` | 54 |
-| `IN_PROGRESS` | 0 |
+| `OPEN` | 53 |
+| `IN_PROGRESS` | 1 |
 | `BLOCKED` | 0 |
 | `LOCAL_PASS` | 2 |
 | `EXTERNAL_PASS` | 0 |
 | `INDEPENDENT_PASS` | 0 |
 | `COMPLETE` | 0 |
 
-Active tasks: none.
+Active tasks: `B01`.
 
-Dependency-ready open tasks: `B01`.
+Dependency-ready open tasks: none.
+
+## Active task recovery checkpoints
+
+### `B01` — Decide and ratify ADR-001 through ADR-011
+
+B01 started from clean pushed commit `9aaf667e2aecdc3c5b898e6430e9b33a5d7e76a1`. The current slice drafts ADR-001 through ADR-011, adds a hash-bound non-normative proposed registry and hostile generator, and extends generated threat/requirement traceability for six composition risks. The drafts explicitly reject ordered UUID epochs and keep Prisoma, pid-rs, and Cortexel outside the command path. Next: run focused parser/link/schema/audit checks, inspect all decisions through the three perspectives and ten lenses, commit/push this coherent PROPOSED slice, then obtain qualifying same-digest owner and independent reviews. Do not write contract/decision-registry.v1.json, change normative wire sources, mark any ADR ACCEPTED, start B02/B03/N tasks, or infer release readiness.
+
+Current residual risks:
+
+- All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.
+- The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
+- Wire examples are draft JSON only. Two independent prototype-parser syntax replay, preliminary formal models, resource probes, and every downstream implementation remain open.
+- Exact Fable 5 consultations are non-normative challenge input only. Two staging attempts returned no answer, and no model response counts as review, proof, interoperability, or evidence.
+- The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
 
 ## Three required review perspectives
 
@@ -116,7 +130,7 @@ satisfy the floor.
 |---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
 | `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
-| `B01` | `OPEN` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `—` | 0 |
+| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B00`, `B04` | NCP | `9aaf667e2aec` | 5 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
 | `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Reserve registries, namespaces, error codes, and owners | `B01` | NCP | `—` | 0 |
 | `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Establish the single normative source graph and identity projections | `B02`, `B03` | NCP | `—` | 0 |
@@ -179,6 +193,7 @@ satisfy the floor.
 | `B00` | `IN_PROGRESS` | `LOCAL_PASS` | `2026-07-16T08:59:26Z` | `ncp-v1-finalization-20260716-b00-local-pass` | passing receipt for commit `6381d2a7cc82` |
 | `B04` | `OPEN` | `IN_PROGRESS` | `2026-07-16T09:18:11Z` | `ncp-v1-finalization-20260716-b04` | initial start; receipt not required |
 | `B04` | `IN_PROGRESS` | `LOCAL_PASS` | `2026-07-16T17:12:35Z` | `ncp-v1-finalization-20260716-b04-local-pass` | passing receipt for commit `3754635404f3` |
+| `B01` | `OPEN` | `IN_PROGRESS` | `2026-07-16T17:53:20Z` | `ncp-v1-finalization-20260716-b01` | initial start; receipt not required |
 
 ## Update and verification
 

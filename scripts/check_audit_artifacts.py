@@ -25,6 +25,7 @@ THREAT_REGISTER = ROOT / "evidence" / "audit" / "threat-register.v1.json"
 LATENT_INVENTORY = ROOT / "evidence" / "audit" / "latent-path-inventory.v1.json"
 TRACEABILITY = ROOT / "evidence" / "audit" / "requirement-traceability.v1.json"
 MANIFEST = ROOT / "evidence" / "audit" / "manifest.v1.json"
+DECISION_REGISTRY = ROOT / "docs" / "adr" / "decision-registry.proposed.v1.json"
 
 ARTIFACTS = {
     "evidence/audit/threat-register.v1.json": THREAT_REGISTER,
@@ -65,6 +66,7 @@ EVIDENCE_STATUSES = {
 }
 TRACE_KINDS = {
     "candidate-status-claim",
+    "decision-proposal",
     "explicit-non-claim",
     "extension-policy-claim",
     "normative-precedence-claim",
@@ -125,6 +127,40 @@ def _slug(value: str) -> str:
     if not result:
         raise AuditArtifactError(f"cannot form identifier from {value!r}")
     return result
+
+
+def _proposed_decisions() -> list[dict[str, Any]]:
+    registry = load_json(DECISION_REGISTRY)
+    _require(
+        registry.get("schema") == "ncp.proposed-decision-registry.v1",
+        "proposed decision registry schema is invalid",
+    )
+    _require(
+        registry.get("normative") is False
+        and registry.get("promotion_blocked") is True,
+        "proposed decision registry is normative or promotion is not blocked",
+    )
+    decisions = registry.get("decisions")
+    _require(
+        isinstance(decisions, list) and len(decisions) == 11,
+        "proposed decision registry must contain eleven decisions",
+    )
+    expected = [f"ADR-{number:03d}" for number in range(1, 12)]
+    _require(
+        [decision.get("id") for decision in decisions] == expected,
+        "proposed decision registry IDs are incomplete or out of order",
+    )
+    for decision in decisions:
+        _require(
+            decision.get("status") == "PROPOSED",
+            f"{decision.get('id')} is not safely staged as PROPOSED",
+        )
+        _require(
+            isinstance(decision.get("content_sha256"), str)
+            and re.fullmatch(r"[0-9a-f]{64}", decision["content_sha256"]) is not None,
+            f"{decision.get('id')} lacks an exact content digest",
+        )
+    return decisions
 
 
 def _require(condition: bool, message: str) -> None:
@@ -252,7 +288,7 @@ def validate_threat_register(value: dict[str, Any]) -> None:
 
     threats = value.get("threats")
     _require(isinstance(threats, list), "T004 threats must be an array")
-    expected_ids = [f"NCP-THREAT-{number:03d}" for number in range(1, 19)]
+    expected_ids = [f"NCP-THREAT-{number:03d}" for number in range(1, 25)]
     _require(
         [item.get("id") for item in threats] == expected_ids,
         "T004 threat IDs are not exact",
@@ -671,6 +707,11 @@ def _expected_source_refs(threats: dict[str, Any]) -> dict[str, list[str]]:
         expected[threat["control_requirement_id"]] = [
             f"evidence/audit/threat-register.v1.json#/threats/{index}"
         ]
+    decisions = _proposed_decisions()
+    for index, decision in enumerate(decisions):
+        expected[f"NCP-{decision['id']}"] = [
+            f"docs/adr/decision-registry.proposed.v1.json#/decisions/{index}"
+        ]
     return expected
 
 
@@ -707,12 +748,15 @@ def _expected_trace_ids(threats: dict[str, Any]) -> tuple[set[str], dict[str, in
     normative = {entry["id"] for entry in conformance["normative_requirements"]}
     release = set(_release_ids(release_gates))
     surface_ids = _surface_ids(surface)
+    decisions = _proposed_decisions()
+    proposed = {f"NCP-{entry['id']}" for entry in decisions}
     controls = {entry["control_requirement_id"] for entry in threats["threats"]}
-    union = normative | release | surface_ids | controls
+    union = normative | release | surface_ids | proposed | controls
     counts = {
         "normative_requirements": len(normative),
         "release_gates": len(release),
         "surface_claims": len(surface_ids),
+        "proposed_decisions": len(proposed),
         "threat_controls": len(controls),
     }
     _require(sum(counts.values()) == len(union), "trace source universes overlap")
@@ -863,6 +907,20 @@ def validate_traceability(value: dict[str, Any], threats: dict[str, Any]) -> Non
                 == (expected_tier, expected_effect),
                 f"{context} claim tier disagrees with its threat disposition",
             )
+        if requirement["kind"] == "decision-proposal":
+            _require(
+                (
+                    status,
+                    requirement["claim_tier"],
+                    requirement["release_effect"],
+                )
+                == (
+                    "PARTIAL_LOCAL",
+                    "independent-review-required",
+                    "release-blocking-open",
+                ),
+                f"{context} overstates proposed decision evidence",
+            )
         relations = (
             ("code_paths", "implemented-by"),
             ("test_paths", "verified-by"),
@@ -956,6 +1014,7 @@ def validate_manifest(
         "contract/release-gates.v1.json",
         "conformance/manifest.v1.json",
         "contract/manifest.v1.json",
+        "docs/adr/decision-registry.proposed.v1.json",
         "Cargo.lock",
         "bun.lock",
         "evidence/supply-chain/vulnerability-report.v1.json",

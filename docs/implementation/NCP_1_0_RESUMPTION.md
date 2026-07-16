@@ -59,9 +59,23 @@ Can this ledger grant release authorization? **false**.
 
 | Task | State | Repository | Resume condition |
 |---|---|---|---|
-| — | no active or blocked task | — | start only a dependency-ready task |
+| `B01` | `IN_PROGRESS` | NCP | Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work. |
 
-Dependency-ready open tasks: `B01`.
+### Active recovery checkpoint
+
+#### `B01` — Decide and ratify ADR-001 through ADR-011
+
+B01 started from clean pushed commit `9aaf667e2aecdc3c5b898e6430e9b33a5d7e76a1`. The current slice drafts ADR-001 through ADR-011, adds a hash-bound non-normative proposed registry and hostile generator, and extends generated threat/requirement traceability for six composition risks. The drafts explicitly reject ordered UUID epochs and keep Prisoma, pid-rs, and Cortexel outside the command path. Next: run focused parser/link/schema/audit checks, inspect all decisions through the three perspectives and ten lenses, commit/push this coherent PROPOSED slice, then obtain qualifying same-digest owner and independent reviews. Do not write contract/decision-registry.v1.json, change normative wire sources, mark any ADR ACCEPTED, start B02/B03/N tasks, or infer release readiness.
+
+Current residual risks:
+
+- All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.
+- The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
+- Wire examples are draft JSON only. Two independent prototype-parser syntax replay, preliminary formal models, resource probes, and every downstream implementation remain open.
+- Exact Fable 5 consultations are non-normative challenge input only. Two staging attempts returned no answer, and no model response counts as review, proof, interoperability, or evidence.
+- The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
+
+Dependency-ready open tasks: none.
 
 Do not start a descendant merely because its files are convenient. Provider changes
 land and pass first; consumers then bind exact immutable provider commits. Cross-repo

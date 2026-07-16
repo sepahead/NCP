@@ -117,9 +117,9 @@
     }
   ],
   "counts": {
-    "threats": 18,
-    "open_risks": 18,
-    "release_blocking": 16
+    "threats": 24,
+    "open_risks": 24,
+    "release_blocking": 22
   },
   "threats": [
     {
@@ -1137,6 +1137,350 @@
       "risk_status": "OPEN",
       "release_blocking": true,
       "residual_risk": "All six installed-artifact and live consumer certifications remain NOT RUN."
+    },
+    {
+      "id": "NCP-THREAT-019",
+      "control_requirement_id": "NCP-THREAT-REQ-019",
+      "title": "A proposed decision silently enters the normative contract",
+      "category": "governance",
+      "boundary": "B01 draft records to complete normative contract digest",
+      "asset_or_claim": "ratification integrity and deliberate candidate rebaseline",
+      "actor_or_trigger": "path-based manifest inclusion or optimistic status edit",
+      "preconditions": [
+        "an ADR or registry remains proposed",
+        "contract/*.v1.json is normative"
+      ],
+      "misuse_or_failure": "A PROPOSED decision registry is written under contract/ and changes the normative digest before required review and owner authorization.",
+      "accepted_case": "Draft records remain outside contract/, bind exact ADR hashes, and promotion is one reviewed all-accepted rebaseline operation.",
+      "rejected_case": "Any non-accepted registry under contract/, missing content hash, or status-only promotion fails the local gate.",
+      "impact": "Unreviewed architecture becomes normative and invalidates candidate identity and descendant evidence.",
+      "detection": [
+        "decision-registry generator",
+        "contract manifest diff",
+        "B01 ledger state"
+      ],
+      "prevention": [
+        "path-separated proposed registry",
+        "exact ADR content hashes",
+        "promotion hold until independent acceptance and B02 authorization"
+      ],
+      "failure_response": "Remove the premature normative file, restore the prior digest, and invalidate affected receipts.",
+      "counterfactual_ids": [
+        "CF-04",
+        "CF-08",
+        "CF-09"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-002",
+        "NCP-THREAT-REQ-019"
+      ],
+      "code_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/generate_contract_manifest.py"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/generate_contract_manifest.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/generate_contract_manifest.py --self-test"
+      ],
+      "evidence_paths": [
+        "docs/adr/README.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The staging guard is local and the ADR set has no qualifying independent acceptance."
+    },
+    {
+      "id": "NCP-THREAT-020",
+      "control_requirement_id": "NCP-THREAT-REQ-020",
+      "title": "Simulation and plant session authority domains are confused",
+      "category": "type-confusion",
+      "boundary": "Engram simulation responder to Crebain plant-control session",
+      "asset_or_claim": "non-fungible session semantics and authority",
+      "actor_or_trigger": "overloaded message kind, shared principal, store, endpoint, or feature",
+      "preconditions": [
+        "one deployment enables simulation and plant integration"
+      ],
+      "misuse_or_failure": "Simulation configuration, receipts, or responder identity are accepted as plant session or action authority.",
+      "accepted_case": "Typed simulation and plant requests, credentials, routes, stores, and grants are disjoint.",
+      "rejected_case": "Cross-kind members, frames, grants, or same-principal role reuse reject before state allocation.",
+      "impact": "Simulation output or resource authority can be laundered into plant control.",
+      "detection": [
+        "cross-kind vectors",
+        "responder-only binary inspection",
+        "role-manifest audit"
+      ],
+      "prevention": [
+        "ADR-001 typed separation",
+        "disjoint build features and endpoints",
+        "Crebain-only plant lease issuance"
+      ],
+      "failure_response": "Reject the session or command and retire ambiguous state.",
+      "counterfactual_ids": [
+        "CF-01",
+        "CF-07",
+        "CF-08"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-001",
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-020"
+      ],
+      "code_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The separation is proposed only; provider types and installed consumer evidence do not exist."
+    },
+    {
+      "id": "NCP-THREAT-021",
+      "control_requirement_id": "NCP-THREAT-REQ-021",
+      "title": "Commander handover admits a delayed stale command",
+      "category": "distributed-authority",
+      "boundary": "Engram/Haldir commander transition at the Crebain body",
+      "asset_or_claim": "single live plant commander and exact body admission fence",
+      "actor_or_trigger": "overlapping leases, restart uncertainty, stale buffer, or wall-clock-only validity",
+      "preconditions": [
+        "direct or gated mode changes",
+        "old traffic can be delayed or replayed"
+      ],
+      "misuse_or_failure": "The new commander becomes active before old admission and stream state are durably retired, or an old unexpired command survives restart.",
+      "accepted_case": "Crebain serializes HOLD/quiesce/revoke/higher-term/grant and checks exact generation, lease, holder, stream, and sequence state.",
+      "rejected_case": "Old generation, term, lease ID, holder, epoch, sequence, or ambiguous recovery state rejects.",
+      "impact": "Two authority chains can actuate one plant or a revoked chain can revive.",
+      "detection": [
+        "formal handover counterexample",
+        "crash-point traces",
+        "stale-buffer rejects"
+      ],
+      "prevention": [
+        "body-issued strictly higher terms",
+        "exact equality fencing plus monotonic term/sequence",
+        "HOLD on uncertain recovery"
+      ],
+      "failure_response": "Enter HOLD, stop admission, query durable body state, and retire the generation if continuity is unprovable.",
+      "counterfactual_ids": [
+        "CF-03",
+        "CF-09",
+        "CF-06"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-006",
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-021"
+      ],
+      "code_paths": [
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "ncp-core/src/authority.rs"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_paths": [
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The exact composed model, provider operations, Crebain migration, and live crash campaign remain open."
+    },
+    {
+      "id": "NCP-THREAT-022",
+      "control_requirement_id": "NCP-THREAT-REQ-022",
+      "title": "Deny-only assessments widen permission through lifecycle",
+      "category": "authorization-composition",
+      "boundary": "Galadriel assessment lifecycle to Haldir effective permission",
+      "asset_or_claim": "authority-monotone optional advisory composition",
+      "actor_or_trigger": "expiry, disable, restart, replay, base-policy edit, or override",
+      "preconditions": [
+        "each individual assessment message can only record or deny-tighten"
+      ],
+      "misuse_or_failure": "Applied deny state disappears or an older/weaker state wins, widening effective permission without an explicit authorized transition.",
+      "accepted_case": "Every widening lifecycle/configuration transition is authenticated, monotonically versioned, audited, and follows a declared non-widening absence policy.",
+      "rejected_case": "Arrival-order overwrite, silent deny loss, observer credential reuse, or implicit disable-to-ALLOW rejects or denies new missions.",
+      "impact": "A meet-only message format still composes into a permission grant.",
+      "detection": [
+        "property tests",
+        "restart/replay traces",
+        "policy revision audit"
+      ],
+      "prevention": [
+        "distinct assessor principal",
+        "durable/non-widening recovery",
+        "explicit Haldir widening transition"
+      ],
+      "failure_response": "Reject stale assessment state and preserve/deny permission until an authenticated policy transition resolves it.",
+      "counterfactual_ids": [
+        "CF-03",
+        "CF-08",
+        "CF-09"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-008",
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-022"
+      ],
+      "code_paths": [
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_paths": [
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Haldir implementation, persistent policy state, owner review, and live monotonicity evidence remain absent."
+    },
+    {
+      "id": "NCP-THREAT-023",
+      "control_requirement_id": "NCP-THREAT-REQ-023",
+      "title": "A read-only or research component enters the plant control path",
+      "category": "dependency-confusion",
+      "boundary": "observer/research/visualization outputs to action admission",
+      "asset_or_claim": "standalone-first acyclic dependencies and final body authority",
+      "actor_or_trigger": "convenience callback, reverse dependency, shared credential, or hidden startup service",
+      "preconditions": [
+        "Galadriel, Prisoma, pid-rs, or Cortexel is enabled"
+      ],
+      "misuse_or_failure": "An observer, estimator, offline analysis, run log, or figure output becomes a command publisher, authority source, or mandatory control dependency.",
+      "accepted_case": "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; Cortexel consumes labelled exports only.",
+      "rejected_case": "Any publish, lease, mutation, ESTOP, disposition, control callback, or reverse dependency from these surfaces rejects review and qualification.",
+      "impact": "Unreviewed software or evidence can influence actuation, create cycles, or block fail-safe behavior.",
+      "detection": [
+        "dependency graph",
+        "API capability audit",
+        "observer overload and credential negatives"
+      ],
+      "prevention": [
+        "ADR-004 observer non-authority",
+        "ADR-011 prohibited edges",
+        "separate processes/features/credentials"
+      ],
+      "failure_response": "Disable the optional adapter, preserve gaps, and restore the last acyclic reviewed topology.",
+      "counterfactual_ids": [
+        "CF-07",
+        "CF-08",
+        "CF-05"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-004",
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-023"
+      ],
+      "code_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "scripts/check_adr_examples.py"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "python3 scripts/check_adr_examples.py --self-test"
+      ],
+      "evidence_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/implementation/NCP_1_0_RESUMPTION.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The topology is proposed and cross-repository dependency/API qualification remains open."
+    },
+    {
+      "id": "NCP-THREAT-024",
+      "control_requirement_id": "NCP-THREAT-REQ-024",
+      "title": "Simulation provenance is treated as plant authorization or scientific validation",
+      "category": "provenance",
+      "boundary": "simulation output to commander policy and plant admission",
+      "asset_or_claim": "honest provenance without authority laundering",
+      "actor_or_trigger": "label stripping, shared credentials, or overclaiming a legitimate commander decision",
+      "preconditions": [
+        "simulation output is consumed by another component"
+      ],
+      "misuse_or_failure": "A simulation label or receipt is stripped, called calibrated, or accepted as a plant lease; alternatively, a legitimate commander hides that simulation informed a new command.",
+      "accepted_case": "Simulation provenance is integrity protected and non-authoritative; plant authority comes only from the commander's exact body lease, with application audit retaining advisory sources.",
+      "rejected_case": "Simulation principals/routes/grants at plant admission, missing mandatory provenance on simulation output, or calibration promotion reject.",
+      "impact": "Plant action or scientific claims appear justified by protocol success rather than separate authority and evidence.",
+      "detection": [
+        "provenance vectors",
+        "credential/route separation tests",
+        "application audit review"
+      ],
+      "prevention": [
+        "mandatory SimProvenance non-claim fields",
+        "disjoint responder/commander security domains",
+        "Crebain-only action admission"
+      ],
+      "failure_response": "Reject authority substitution and narrow the scientific/physical claim; investigate provenance loss separately.",
+      "counterfactual_ids": [
+        "CF-05",
+        "CF-01",
+        "CF-02"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-001",
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-024"
+      ],
+      "code_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "ncp-core/src/messages.rs"
+      ],
+      "test_paths": [
+        "scripts/generate_decision_registry.py",
+        "ncp-core/tests/behavior_conformance.rs"
+      ],
+      "verification_commands": [
+        "python3 scripts/generate_decision_registry.py --self-test --check",
+        "cargo test -p ncp-core --locked"
+      ],
+      "evidence_paths": [
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "KNOWN_LIMITATIONS.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "Application-level lineage, deployment isolation, independent science review, and live plant evidence remain open."
     }
   ]
 }
