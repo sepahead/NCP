@@ -1849,16 +1849,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 10378,
-        "sha256": "cff70094eae5d65a2119785c769273c1540b076868f81718ec7f259a7f0e822f",
-        "git_blob_oid": "60f50b805f77b74a9601385f0458542636d1c580",
+        "bytes": 11022,
+        "sha256": "56cf65c51d8598fb6c111e3c0c6401c69288c615a9309847df1a50cda569886b",
+        "git_blob_oid": "751d512943b2ebbb28e9bc75aa63aee7de364348",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 20038,
-        "sha256": "f2f65e89e960196914b107a2b6ec0c909a7ca719c64b6c14d26351c316420600",
-        "git_blob_oid": "eb8d0e0537aacecec866ea910ca2abb2f9942990",
+        "bytes": 20682,
+        "sha256": "c81378cab70b75c47fcf598959d8675c8bf69c2710d8f7cc28eae00f0bbe8c3c",
+        "git_blob_oid": "476d5829f92b3fcf90e5072bcb4e1ebcf561171b",
         "indexed": true
       },
       {
@@ -2010,9 +2010,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 90180,
-        "sha256": "8306f2976b51777a83d563a4614568fb6b5febd042c789b849907b72bae7431a",
-        "git_blob_oid": "2f9c9abe3a355856d166c51d117a36e9c2570dd5",
+        "bytes": 90824,
+        "sha256": "ac62e6cdacfa64afd19053eb0d2553eb1ce5f49c181e66bf55d4a1a646ca3a34",
+        "git_blob_oid": "705777bd0544e4f1fc228b4987e7838fa62cca70",
         "indexed": true
       },
       {
