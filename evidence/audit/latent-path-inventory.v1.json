@@ -1954,16 +1954,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 10595,
-        "sha256": "228b2598b7000cf895ff03663efc7f00bdbaf6fcc7a2cc02bf0bd05280e6273f",
-        "git_blob_oid": "6a262123945cfc45d3ff0f33492f6b21f9d557e3",
+        "bytes": 10706,
+        "sha256": "3fcf37d29bf666b7921cbd8c248342322ba18ed5ad9edf41494b7200e3937fb6",
+        "git_blob_oid": "04237ab48ea3c6b43ffe0c52f63e08b147373c92",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 20574,
-        "sha256": "18f28f59fb25e28986214c9102d3738154e90d0e9def4a62d0b4cf94999e16dc",
-        "git_blob_oid": "4a32de2bd6b6e634498ca6dceb45614d5f85d4a2",
+        "bytes": 20685,
+        "sha256": "fe8a4f707625dde16ed30506fc3d7a1c6dfb914973344b4d9b99a73f736fcd6d",
+        "git_blob_oid": "3ff41618680bdddc3bdbe0e9aab8848be307a9ce",
         "indexed": true
       },
       {
@@ -2192,9 +2192,16 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 124704,
-        "sha256": "f7ea39d4a8fda80ffc8478e25628fcb077b4baeed57ac9020de4ee0e43a64df3",
-        "git_blob_oid": "ae2664505f4ce7cbf7142a29bcc9772c39ee2172",
+        "bytes": 124062,
+        "sha256": "39bac15799c94b63b0dea8aa9def150f8d6a34ef36045cba3c7e8eb1463789b5",
+        "git_blob_oid": "2ded167c06204b3717919ddd6d1845f7fd724cd4",
+        "indexed": true
+      },
+      {
+        "path": "evidence/implementation/working/B01/preliminary-architecture-541e1e7.v1.json",
+        "bytes": 15244,
+        "sha256": "e42f4b89d679102f8101c248d9882cf591f307937eb2380a5eeac375b40ecde4",
+        "git_blob_oid": "285c036ed84ef3ef93fd88d0b4892dcd48a49f79",
         "indexed": true
       },
       {
@@ -6749,6 +6756,14 @@
         "reason": "NUL_BYTE"
       },
       {
+        "path": "evidence/implementation/working/B01/preliminary-architecture-541e1e7.log.gz",
+        "bytes": 4894,
+        "sha256": "3aaaf4384afe267290de3961704b74ccf0e5dbd62c83f719f31c5a856941ffbe",
+        "git_blob_oid": "190bffb3da0bc2fff5f9ede6a5ab9fda8680399c",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
         "path": "ncp-core/testdata/conformance/vectors/bulk_observation.bin",
         "bytes": 104,
         "sha256": "c5852cc66635307cda2ba6be1fc9d695ad6a961f4e77ab82ef1c76de5901df99",
@@ -6767,8 +6782,8 @@
     ]
   },
   "counts": {
-    "text_files": 935,
-    "binary_or_non_utf8_files": 22,
+    "text_files": 936,
+    "binary_or_non_utf8_files": 23,
     "occurrences": 153,
     "by_token_id": {
       "M001": 6,
@@ -6795,7 +6810,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "c1487d1eead244e2b5de0081622575278ed4dc473b948ef5bdaba099db19d39d",
+  "scanned_path_set_sha256": "75d5984904e658698f37f5166e05c8611b6ead1bca58718f87b074b93debe82a",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
