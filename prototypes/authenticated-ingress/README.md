@@ -11,8 +11,8 @@ The order is deliberate:
 
 1. [`zenoh-metadata-probe`](zenoh-metadata-probe/) checks the exact pinned Zenoh
    application metadata boundary.
-2. A terminating TLS 1.3 ingress may start only after the Zenoh-probe section has
-   a recorded result and three-perspective review.
+2. [`tls-terminating-ingress`](tls-terminating-ingress/) tests the isolated,
+   loopback-only TLS 1.3 boundary after the Zenoh-probe section.
 3. A signed forwarding envelope may start only after the TLS-ingress section has
    its own recorded result and three-perspective review.
 
