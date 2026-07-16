@@ -2248,6 +2248,14 @@
     },
     {
       "outputs": [
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+        "docs/implementation/NCP_1_0_RESUMPTION.md"
+      ],
+      "path": "scripts/generate_implementation_ledger.py",
+      "sha256": "9cda40bfb62b24a00430716f7a6b36638ee3ddf088d6d0cf2d76899be3ddbf94"
+    },
+    {
+      "outputs": [
         "docs/handoff/max-effort-source-index.v2.json"
       ],
       "path": "scripts/generate_max_effort_handoff_index.py",
@@ -2265,7 +2273,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "4c6b5bd1f31128bfa0916967cd39e366ad678297cbfbd47c026c2894c5a37efc"
+      "sha256": "43e7a392a462a047af8e4dccc78ec1349ac629bdc20dee250ffc82955d912232"
     },
     {
       "outputs": [

@@ -1849,16 +1849,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 8306,
-        "sha256": "499a56067809dd0821a44a738de8c8404e1db0f0e2d2814535a05e4ee5c4f527",
-        "git_blob_oid": "198f1b97cc156281c9a94518e31d56d9e1837ccc",
+        "bytes": 10423,
+        "sha256": "5d0edf7fe7941042e7c3f1fee18b03d2ad51d7d2a3317b7c94fb89618d0b1001",
+        "git_blob_oid": "6c4f97d692ec0f91a4ff085d8ac1c5fe1b0907ce",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 17640,
-        "sha256": "824255457b3572f8a0785a609c6081f196233398b71bf931750907a7fc4e1356",
-        "git_blob_oid": "c9532c2790fb12e2b86e9c03367a2e50f9bac824",
+        "bytes": 19761,
+        "sha256": "d749b6ba26f28c78f18d1c5fe32d3efe72fe2d7198255bf49a41fdd8031a28ed",
+        "git_blob_oid": "0eb69a58c6e586ac1ed307fb98c5bb01c4f379e8",
         "indexed": true
       },
       {
@@ -2003,9 +2003,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 72903,
-        "sha256": "ee1098aaee706339f089f60dd6715641d47c237432e6135560fe7e4c3e6cd62f",
-        "git_blob_oid": "0be6dfbacbc57898532a324648a181b61c747fb9",
+        "bytes": 74808,
+        "sha256": "9f0ed71c498c0310184e0b007a9bbd8064acd2f7126c45eeea291d2619097d9b",
+        "git_blob_oid": "e4cf4561ef31c429202a3792850fd84f4eb7e352",
         "indexed": true
       },
       {
@@ -2017,9 +2017,9 @@
       },
       {
         "path": "evidence/supply-chain/inventory.v1.json",
-        "bytes": 124896,
-        "sha256": "e969b44d6ee6e6c0646a94fd09e72f89007df43b82bd8c48172a6dbd3f35294e",
-        "git_blob_oid": "fa518588fb6c3a5038adbf7096c2c8b4c8cab03d",
+        "bytes": 125185,
+        "sha256": "b0a36ddf451fbb4fd176306633cdafd755e087878742462412c35f44b5e92a59",
+        "git_blob_oid": "17a57677a222f5bd950f246d5e2f60319893a6ca",
         "indexed": true
       },
       {
@@ -5713,9 +5713,9 @@
       },
       {
         "path": "scripts/generate_implementation_ledger.py",
-        "bytes": 19834,
-        "sha256": "d697485c4221af458fdec0b2b03bd315e3b9d6109fd33e04e84d4ef85f91848c",
-        "git_blob_oid": "ea9034530a4b137025fe306949261dfa2938260b",
+        "bytes": 21390,
+        "sha256": "9cda40bfb62b24a00430716f7a6b36638ee3ddf088d6d0cf2d76899be3ddbf94",
+        "git_blob_oid": "97f95eccba1fb5c9c3112b24490870b74398e98c",
         "indexed": true
       },
       {
@@ -5734,9 +5734,9 @@
       },
       {
         "path": "scripts/generate_supply_chain_evidence.py",
-        "bytes": 98483,
-        "sha256": "4c6b5bd1f31128bfa0916967cd39e366ad678297cbfbd47c026c2894c5a37efc",
-        "git_blob_oid": "004f336e7100c51d185140045dd9060c04a7dc34",
+        "bytes": 98648,
+        "sha256": "43e7a392a462a047af8e4dccc78ec1349ac629bdc20dee250ffc82955d912232",
+        "git_blob_oid": "25214078fdc55e17e87f63a0a261ce41ce062aa5",
         "indexed": true
       },
       {

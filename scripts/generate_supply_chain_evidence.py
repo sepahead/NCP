@@ -72,6 +72,10 @@ GENERATOR_OUTPUTS = {
         "docs/handoff/max-effort-file-review.v2.csv",
         "docs/handoff/max-effort-file-review-manifest.v2.json",
     ],
+    "scripts/generate_implementation_ledger.py": [
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+        "docs/implementation/NCP_1_0_RESUMPTION.md",
+    ],
     "scripts/generate_max_effort_handoff_index.py": [
         "docs/handoff/max-effort-source-index.v2.json"
     ],

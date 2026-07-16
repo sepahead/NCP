@@ -72,7 +72,10 @@ def render_ledger(data: dict[str, object]) -> str:
             "COMPLETE",
         )
     }
-    active = [task["id"] for task in tasks if task["status"] == "IN_PROGRESS"]
+    active_tasks = [
+        task for task in tasks if task["status"] in {"IN_PROGRESS", "BLOCKED"}
+    ]
+    active = [task["id"] for task in active_tasks]
     lines = [
         "# NCP 1.0 implementation task ledger",
         "",
@@ -101,6 +104,29 @@ def render_ledger(data: dict[str, object]) -> str:
             f"Active tasks: {', '.join(f'`{task}`' for task in active) if active else 'none'}.",
             "",
             f"Dependency-ready open tasks: {', '.join(f'`{task}`' for task in _next_tasks(data)) or 'none'}.",
+        ]
+    )
+    if active_tasks:
+        lines.extend(["", "## Active task recovery checkpoints"])
+        for task in active_tasks:
+            checkpoint = task["reviewer_comment"] or (
+                "No detailed checkpoint is recorded; inspect the task transition history and "
+                "repository status before resuming."
+            )
+            lines.extend(
+                [
+                    "",
+                    f"### `{task['id']}` — {task['title']}",
+                    "",
+                    checkpoint,
+                    "",
+                    "Current residual risks:",
+                    "",
+                ]
+            )
+            lines.extend(f"- {risk}" for risk in task["residual_risks"])
+    lines.extend(
+        [
             "",
             "## Three required review perspectives",
             "",
@@ -323,6 +349,25 @@ def render_resumption(data: dict[str, object]) -> str:
         lines.append(
             "| — | no active or blocked task | — | start only a dependency-ready task |"
         )
+    if active:
+        lines.extend(["", "### Active recovery checkpoint"])
+        for task in active:
+            checkpoint = task["reviewer_comment"] or (
+                "No detailed checkpoint is recorded; inspect the task transition history and "
+                "repository status before resuming."
+            )
+            lines.extend(
+                [
+                    "",
+                    f"#### `{task['id']}` — {task['title']}",
+                    "",
+                    checkpoint,
+                    "",
+                    "Current residual risks:",
+                    "",
+                ]
+            )
+            lines.extend(f"- {risk}" for risk in task["residual_risks"])
     lines.extend(
         [
             "",
