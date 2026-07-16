@@ -13,6 +13,9 @@ __pycache__/
 *.pyc
 
 # Deployment identity material (never commit real mTLS credentials)
+.env
+.env.*
+!.env.example
 deploy/certs/
 *.pem
 *.crt

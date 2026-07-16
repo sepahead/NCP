@@ -29,6 +29,7 @@ reviewed ecosystem is:
 - `sepahead/crebain` (the old `sepehrmn/crebain` URL redirects here);
 - the local Crebain Galadriel-producer branch/worktree;
 - `sepahead/prisoma`; and
+- `sepahead/pid-rs`; and
 - the public `sepahead` profile/selected-work presentation.
 
 “Final” cannot honestly mean that no future defect, cryptographic transition,
@@ -72,9 +73,8 @@ to every later commit. Re-run and rebind evidence after any normative change.
 
 ### 2.2 Supplied Engram review archive
 
-The supplied archive was found at
-`/Users/torusprime/Downloads/engram-review-20260715-1504.zip` and inspected from a
-safe extraction under `/tmp`. Its review identity is:
+The owner-supplied `engram-review-20260715-1504.zip` archive was inspected through a
+safe, non-repository extraction. Its review identity is:
 
 | Axis | Value |
 |---|---|
@@ -99,19 +99,20 @@ the final NCP source is committed and pushed.
 
 ### 2.3 Mutable ecosystem snapshot
 
-The following was sampled at 2026-07-15 20:14:05 UTC. Other agents are actively
-working outside NCP; every migration task must refresh this table before editing and
-must preserve unrelated work.
+The following was refreshed at 2026-07-16 07:24:27 UTC after the user stopped the
+other agents. Their worktrees remain inherited state, not abandoned files; every
+migration task must refresh this table before editing and preserve unrelated work.
 
 | Project | Local branch | Initial commit | Initial tracked/untracked changes | NCP state |
 |---|---|---|---:|---|
-| NCP | `main` | `8ce57bbd28b0f252dab1275f50a72861a60cbeec` | 0 | unreleased wire-1.0 candidate |
+| NCP | `main` | `6e82783667554b8d8b433261e6b8ae588e94d89f` | 10 B00 paths | unreleased wire-1.0 candidate; implementation ledger in progress |
 | Engram / Paper2Brain | `main` | `92853d2fe6e8ced7e98e2f272a34bfc0067dce57` | 168 | active dirty native-1.0 work; stale NCP mirror |
 | Haldir | `wip/current-file-review-ledger` | `bb6c0a7b27bbc57fe9935f80e22d06ca3b60e8ba` | 0 | exact immutable `v0.8.0` adapter |
 | Galadriel | `main` | `f541f3eda7cfdc81a3277c3d6fecc91245179f24` | 0 | exact `v0.8.0`; optional sidecar/tap |
 | Crebain | `main` | `3e3ee5d0b75269b8f5f634485871069c89a9a474` | 0 | exact `v0.8.0`; dormant bridge |
 | Crebain producer clone | `feat/galadriel-integration-refresh` | `113ee70d5660daf90bb373bd7857d4b3f2f56784` | 0 | exact `v0.8.0`; duplicated producer work |
 | Prisoma | `main` | `b0185d98aea8bb6512926d9a8365ba8140fd07c0` | 0 | exact `v0.8.0`; workspace-excluded observer |
+| pid-rs | `main` | `1410c8808f1b4e51c76fef395360976e715d2df6` | 0 | GitHub-only `0.9.0` source-review prerelease; protocol-neutral estimator/run-log library; no NCP dependency |
 | sepahead profile | `main` | `80a5c1d5af3a7b85d2a683921dd31e2bdf0406ce` | 2 | generated selected-work presentation; preserve dirty state |
 
 The current NCP consumer-pin scan correctly fails because Engram is on the 1.0
@@ -247,6 +248,12 @@ Both can reuse bounded session references, identity, security, lifecycle,
 idempotency, and receipts, but their request kinds, required fields, capabilities,
 and authorization rules must be mutually exclusive. A frame from one session type
 must never be accepted in the other merely because the `session_id` matches.
+The simulation responder owns its mutable simulation resource, but simulation
+authority is non-fungible with plant authority and must never be called a plant or
+body lease. An Engram deployment that enables both responder and commander roles
+must use distinct types, state stores, build features, transport principals,
+manifests, routes and endpoints. A responder-only artifact must not link command
+publication code, and simulation success must never create plant authority.
 
 ### D02 — observers have no authenticated attach protocol
 
@@ -381,15 +388,25 @@ latch but cannot certify a universal physical zero-safe condition.
 
 The authority lease model is strong locally, but the specification still admits
 unresolved “who steps when” and multi-writer coordination. Stable 1.0 must define a
-single current authority term per session generation and plane, deterministic
-transfer/revocation, exact holder identity, and what happens to in-flight commands
-and lifecycle operations at the boundary. A controller cannot acquire action
-authority merely because it can publish a valid frame.
+single current authority term per plant, session generation and plane;
+deterministic transfer/revocation; exact holder identity; and what happens to
+in-flight commands and lifecycle operations at the boundary. A controller cannot
+acquire action authority merely because it can publish a valid frame.
+
+Direct and gated modes are mutually exclusive. In direct mode Engram may be the
+enrolled commander. In gated mode Engram supplies a Haldir-local signed intent,
+Haldir creates a new NCP command under Haldir's principal, and Haldir is the only
+NCP commander. A transition must revoke the old lease, advance a crash-monotonic
+body epoch, quiesce at the plant-profile HOLD/safe boundary, and issue a new bounded
+lease. It cannot be a configuration toggle or credential swap. The body rejects
+stale `(plant, session, epoch, lease, sequence, idempotency)` tuples and returns the
+original receipt for an exact duplicate within the same scope.
 
 The formal model and implementation must prove that two distinct principals cannot
-both hold live action authority for the same session/term under the modeled clock
-and fault assumptions. If plant and simulation sessions have separate authority,
-their terms and operations must remain disjoint.
+both hold live action authority for the same plant/session/term under the modeled
+clock, crash, persistence and fault assumptions. If plant and simulation sessions
+have separate authority, their terms, credentials, operations, receipts, stores and
+namespaces remain disjoint.
 
 ### D09 — extension traffic currently occupies stable NCP routes
 
@@ -406,6 +423,17 @@ write a narrow adapter that emits a valid standard `SensorFrame` or
 `ObservationFrame` with negotiated named channels, live session generation,
 declared stream, exact units/schema, and authenticated producer. Do not add
 Galadriel-specific scientific fields or kinds to the generic NCP core.
+
+A distinct optional Galadriel-to-Haldir assessment route may be specified only as a
+default-off registered extension. It uses a separate assessor principal, never the
+read-only observer credential, and its closed effect type contains only
+`RECORD_ONLY` and `DENY_TIGHTEN`. Haldir composes it with local policy using a meet
+operation, so it can preserve or remove permission but cannot grant or widen it.
+Unknown, malformed, stale, replayed or unauthenticated assessments are rejected and
+alarmed; policy may treat absence as record-only or deny-new-missions, never as a
+new ALLOW. Galadriel remains outside actuation and permission granting, but it is
+not falsely described as outside every control consequence when it can remove
+permission.
 
 ### D10 — one Crebain ESTOP path bypasses full envelope validation
 
@@ -482,13 +510,16 @@ transitions. A host can inject a process-local `AuthorityLease`; an independent
 commander and body cannot establish one using only the advertised stable protocol.
 Possession of self-constructed lease bytes must never become the missing protocol.
 
-Add body/service-issued acquire, renew, transfer, release, and status operations.
-The requester asks for authority and a bounded duration; the authoritative session
-body chooses the term, lease identifier, enforcement deadline, and result. A
-transfer needs the current holder or an enrolled overriding operator, but the body
-still issues the replacement. Every operation is authenticated, idempotent, bound
-to the exact session/transcript/security epoch, and returns a body-issued receipt.
-An open session begins non-actuating; opening alone does not create authority.
+Add distinct simulator-issued simulation-mutation and body-issued plant-action
+acquire, renew, release, and status operations; plant authority also supports the
+ratified handover/transfer. The requester asks for a bounded duration and the
+authoritative responder chooses the term, lease identifier, enforcement deadline,
+domain and result. A plant transfer needs the current holder or an enrolled
+overriding operator, but the body still performs revoke/epoch/quiesce/replacement.
+Every operation is authenticated, idempotent, bound to the exact session,
+authority domain, transcript and security epoch, and returns a responder-issued
+receipt. An open session creates neither simulation mutation nor plant action
+authority.
 
 ### D16 — the security-state digest binds paths, not installed public trust state
 
@@ -636,7 +667,35 @@ variables are excluded, never zero-filled. Transport integrity is not delivery
 completeness, PID validity, causal identification, calibration, or application
 validity. Existing SMT proofs apply only to their encoded publication semantics.
 
-### 6.6 Public repositories and selected work
+### 6.6 pid-rs
+
+Keep pid-rs a standalone, protocol-neutral estimator and run-log library. Its
+workspace contains `pid-core`, `pid-runlog`, and Python bindings; it has no NCP,
+Galadriel, Prisoma, Crebain, Haldir, Engram, Zenoh, identity, authority or actuator
+dependency. That direction is an architectural boundary, not an integration gap.
+Do not add `pid-rs-ncp`, NCP feature flags, NCP route types, transport clients,
+application policy, commander terminology, or authority-bearing result fields.
+
+Galadriel may consume `pid-core` behind its independently optional `pid` feature,
+and Prisoma may consume `pid-core`/`pid-runlog` through its pinned submodule and
+local adapter crates. Those consumer-owned adapters translate verified NCP capture
+into protocol-neutral matrices, estimator calls and run-log events after applying
+their own provenance, missingness, units, support, feature and resource contracts.
+An NCP observer may write a pid-rs run log, but a run log digest is not transport
+authentication and a PID result cannot grant, preserve, transfer or widen NCP or
+Haldir authority.
+
+The reviewed dependency cuts are not currently one compatibility claim: pid-rs
+main is a GitHub-only `0.9.0` source-review prerelease, Galadriel pins an older
+ancestor whose manifest declared `1.0.0`, and Prisoma's submodule is older again.
+G01 and P01 must refresh and test their exact pins rather than assuming semver or
+shared history proves compatibility. Galadriel's `pid` and `ncp` features remain
+orthogonal and default-off; enabling both composes two consumer adapters but does
+not create a pid-rs-to-NCP wire contract. Prisoma's NCP observer remains excluded
+from its default workspace and control path. No pid-rs source change is required
+unless its own audit finds a protocol or authority leak.
+
+### 6.7 Public repositories and selected work
 
 The public `sepahead/engram` repository is a placeholder distinct from the active
 private `Paper2Brain` implementation. Public profile text must not imply that the
@@ -668,8 +727,10 @@ The stable 1.0 design must obey these laws:
    lifecycle are distinct typed protocols over a shared session substrate.
 2. **The responder issues incarnation.** The simulator service or plant body issues
    `SessionRef.generation`; no caller or observed frame chooses it.
-3. **The body grants action.** The session responder issues and enforces authority
-   leases. A commander proposes; it does not self-authorize.
+3. **The responder grants mutation; only the plant body grants action.** A
+   simulator issues bounded simulation-operation authority and a plant body issues
+   bounded plant-action authority. The domains use non-convertible types/routes;
+   a requester proposes and never self-authorizes.
 4. **Authentication precedes interpretation.** Production input is bounded, its
    signature and protected route context are verified, and its enrolled actor is
    established before payload identity or semantic fields can authorize anything.
@@ -693,6 +754,21 @@ The stable 1.0 design must obey these laws:
 12. **Resource admission is pre-allocation.** Every encoding layer, signature
     wrapper, payload, collection, queue, store, retry, trace, and decompression path
     has a finite checked budget before semantic allocation or side effects.
+13. **Integration is optional and standalone-first.** Engram, Haldir, Galadriel,
+    Crebain, Prisoma and pid-rs retain useful documented standalone modes; no
+    adapter may silently become a default build, startup or runtime dependency.
+14. **One plant has one commander term.** Direct Engram and Haldir-gated command
+    publication are mutually exclusive for a plant/session; handover is a
+    body-coordinated revoke, epoch fence, quiesce and reacquire transition.
+15. **Advisory evidence is authority-monotone.** An optional Galadriel assessment
+    may preserve or remove Haldir permission, never create or widen it, and is never
+    an actuator or permission-granting principal.
+16. **Observer failure is control-neutral.** Observer absence, slowness, restart,
+    revocation or overload cannot block watchdogs, fail-safe behavior, command
+    admission or dispositions. Missing evidence remains visible rather than filled.
+17. **Estimators remain below protocol and policy.** pid-rs has no NCP-facing API or
+    downstream application dependency. Consumer adapters own translation and no
+    estimator value, report or log grants identity, capability or authority.
 
 ### 7.2 Stable identity hierarchy
 
@@ -848,8 +924,10 @@ live session. Opening never grants an authority lease.
 #### Shared close and type-specific operations
 
 `CloseSession` can remain shared because it carries exact `SessionRef`, transcript,
-operation context, authenticated commander, and live authority. Its responder
-validates the stored session type. `Step` and `Run` reject plant sessions.
+operation context, authenticated requester, and the live type-specific mutation
+authority. Its responder validates the stored session type and rejects a simulation
+grant on a plant session or a plant lease on a simulation session. `Step` and `Run`
+reject plant sessions.
 Plant-frame publication rejects simulation sessions. An ESTOP reset remains
 body-local or separately authenticated out-of-band in 1.0 and always retires the
 generation; there is no remote reset RPC.
@@ -981,17 +1059,39 @@ definitely published positions separately. It does not promise that subscribers
 received the final frame. Session close retires every stream. A retired stream
 cannot be reopened or refreshed.
 
-### 7.8 Body-issued authority protocol
+### 7.8 Responder-issued mutation authority and plant body-issued action authority
 
-Add exact control routes and response kinds:
+Do not overload one serializable lease across simulation and plant domains. Add
+distinct request/response kinds, route families and high-level types. Shared helper
+fields may use one internal source definition, but public conversion between the
+two is forbidden.
+
+Simulation-service operations use:
 
 | Request route | Success response | Purpose |
 |---|---|---|
-| `{realm}/rpc/acquire_authority` | `AuthorityGranted` | body grants a new strictly higher term to an enrolled commander |
-| `{realm}/rpc/renew_authority` | `AuthorityRenewed` | body extends an unexpired current holder under the same term/lease identity |
-| `{realm}/rpc/transfer_authority` | `AuthorityTransferred` | current holder or authorized operator asks body to issue a higher term to another enrolled commander |
-| `{realm}/rpc/release_authority` | `AuthorityReleased` | holder/operator asks body to retire current authority and enter/remain fail-safe |
-| `{realm}/rpc/query_authority` | `AuthorityStatus` | authenticated read of current non-secret authority state; no mutation |
+| `{realm}/rpc/acquire_simulation_authority` | `SimulationAuthorityGranted` | simulator grants bounded mutation of its own session state to an enrolled client |
+| `{realm}/rpc/renew_simulation_authority` | `SimulationAuthorityRenewed` | simulator extends the current unexpired client grant |
+| `{realm}/rpc/release_simulation_authority` | `SimulationAuthorityReleased` | client/operator retires simulation mutation authority |
+| `{realm}/rpc/query_simulation_authority` | `SimulationAuthorityStatus` | authenticated non-authorizing status query |
+
+The returned `SimulationAuthorityLease` binds simulator issuer, client principal,
+simulation `SessionRef`, transcript/security epoch, term, random lease ID, bounded
+duration and simulation-operation set. It can authorize only the named Step, Run,
+Stimulus and Close mutations. It cannot declare an action stream, satisfy a plant
+command, name a plant profile, transfer to a plant principal or appear in a plant
+disposition. A responder-only Engram artifact may implement this family while
+containing no plant-authority/command publisher code.
+
+Plant-control action uses:
+
+| Request route | Success response | Purpose |
+|---|---|---|
+| `{realm}/rpc/acquire_plant_authority` | `PlantAuthorityGranted` | body grants a new strictly higher term to an enrolled commander |
+| `{realm}/rpc/renew_plant_authority` | `PlantAuthorityRenewed` | body extends an unexpired current holder under the same term/lease identity |
+| `{realm}/rpc/transfer_plant_authority` | `PlantAuthorityTransferred` | current holder or authorized operator asks body to perform the ratified revoke/epoch/quiesce/grant handover |
+| `{realm}/rpc/release_plant_authority` | `PlantAuthorityReleased` | holder/operator asks body to retire current authority and enter/remain fail-safe |
+| `{realm}/rpc/query_plant_authority` | `PlantAuthorityStatus` | authenticated read of current non-secret authority state; no mutation |
 
 Every mutation contains exact session/transcript/security epoch, operation context,
 requester identity, requested holder where applicable, requested bounded duration,
@@ -1000,7 +1100,7 @@ term and random lease ID, records a monotonic enforcement deadline, and returns 
 signed receipted `AuthorityLease`. UTC issue/expiry fields are audit/interchange
 metadata; the body never relies on a remote clock to enforce expiry.
 
-Change `AuthorityLease` semantics so its issuer is the authoritative session body,
+Define `PlantAuthorityLease` so its issuer is the authoritative session body,
 not a self-asserting commander. It binds body issuer, holder principal/entity,
 session generation, transcript, security epoch, term, lease ID, issued/expiry UTC,
 and maximum duration. The plant/simulator retains the local monotonic deadline and
@@ -1019,10 +1119,17 @@ Safety rules:
 - reconnect proves the same live lease and security state and cannot extend time;
 - revocation, body restart without durable clock/state continuity, ESTOP reset, or
   generation retirement invalidates authority;
-- an Active command and Step/Run/Close mutation require the exact current lease;
+- every Active command and Step/Run/Close mutation requires the exact current
+  lease for its stored session/authority domain;
 - authenticated same-session ESTOP may omit the lease only after full envelope,
   route, actor, session, stream, and security admission; and
 - lease query/status is non-authorizing and cannot be replayed as a grant.
+
+The “current lease” rule is domain-specific: Active/HOLD/ESTOP command admission
+uses `PlantAuthorityLease` as specified, while Step/Run and simulation Close use
+`SimulationAuthorityLease`. Plant Close uses the exact plant lease unless a
+ratified body-local/operator retirement rule authorizes a narrower non-actuating
+close. Unknown domains and cross-domain bytes reject before mutation.
 
 ### 7.9 Production authenticated envelope
 
@@ -1261,6 +1368,7 @@ ten lens decisions.
 | ADR-008 | extension namespace and Galadriel sidecar separation | protocol, Galadriel, Crebain reviewers |
 | ADR-009 | security-state semantic digest, key rotation and revocation | security, operations, supply-chain reviewers |
 | ADR-010 | exact per-plane QoS, retention and overload semantics | real-time/performance + consumer reviewers |
+| ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | every named consumer owner, pid-rs owner, independent security/distributed-systems reviewer, and Crebain plant/safety reviewer |
 
 Ratification is blocked until:
 
@@ -1274,7 +1382,248 @@ Ratification is blocked until:
   benchmarks;
 - Engram, Haldir, Galadriel, Crebain, and Prisoma owners confirm their required use
   case is expressible without a private core fork; and
+- pid-rs and consumer owners confirm that PID remains a one-way, protocol-neutral
+  library dependency with no authority semantics or hidden runtime service; and
 - the owner explicitly authorizes the deliberate pre-release wire rebaseline.
+
+### 7.15 Ecosystem dependency and deployment topology
+
+This topology is the proposed input to ADR-011, not an accepted normative decision.
+Implementation remains blocked until the named human/independent reviewers accept
+the same content digest. It was derived from repository manifests, runtime surfaces
+and trust boundaries, then challenged from three required perspectives:
+
+- **P1 — protocol/security/plant:** no identity laundering, authority creation,
+  split brain, route confusion, downgrade, stale epoch or observer actuation;
+- **P2 — consumer/runtime:** every project remains usable standalone, optional
+  features are explicit, startup failures are diagnosable, and recovery is finite;
+- **P3 — operations/science/evidence:** exact gaps, provenance, non-calibration,
+  release/certification boundaries and `NOT RUN` gates remain visible.
+
+#### Dependency and trust matrix
+
+“None” means no dependency is intended, not that interoperability was proved.
+Optional build dependencies must be behind separate features/crates and absent from
+default artifacts. Startup dependencies apply only when that mode is explicitly
+configured.
+
+| Surface | Build-time | Startup-time | Runtime/dataflow | Trust and authority | Evidence boundary |
+|---|---|---|---|---|---|
+| NCP core/provider | no consumer application | no consumer application | supplies typed contract, conformance and optional transport SDKs | grants nothing by package presence; runtime actor comes from verified transport principal plus manifest | local provider tests cannot certify any consumer or deployment |
+| Engram core | no Crebain, Haldir, Galadriel, Prisoma or pid-rs requirement for basic simulation | none for standalone simulation | standalone neural simulation | owns only its simulation state; simulation output has no plant authority | always `is_simulation_output=true`, `calibrated_posterior=false` |
+| Engram simulation adapter | optional NCP responder-only types; no plant commander linkage | responder principal, manifest, bounded resource policy | authorized clients request simulation operations | Engram issues simulation-scoped operation grants; these are non-fungible with plant leases | independent responder interop and real-backend evidence remain separate |
+| Engram commander adapter | optional NCP commander types; optional separate Haldir-intent adapter | exact plant descriptor, commander principal and either direct or gated mode | direct NCP commands to Crebain **or** Haldir-local intents, never both for one live plant term | direct mode holds only a bounded Crebain-issued lease; gated mode holds no NCP plant lease | command usefulness, plant effect and science are not inferred from protocol success |
+| Haldir core/Gate | no NCP or Galadriel requirement for standalone signed-intent decisions | local policy, signer roots, anti-replay state; fail closed | signed local intents in, immutable local decisions/receipts out | owns local ALLOW/DENY only; cannot delegate payload identity | decision evidence is not plant execution or PID validity |
+| Haldir NCP commander | optional NCP adapter | Haldir commander principal, default-deny manifest, fresh Crebain lease | creates new NCP commands after a local ALLOW | Crebain remains sole admission/application/disposition authority | installed Haldir plus independent body tests required |
+| Haldir Galadriel receiver | optional default-off registered-extension adapter; not Galadriel app code | distinct assessor trust root/principal and explicit absence policy | push-only advisory assessment in | meet composition can preserve/remove permission only; Haldir owns final local policy | monotonicity/property/fuzz/live freshness evidence required; no calibration claim |
+| Galadriel core | no NCP; optional pid-core in a separate default-off crate/feature | none for standalone replay/synthetic monitor | local cross-sensor analysis | estimator/anomaly output has zero identity or authority | synthetic/component evidence is not field validation |
+| Galadriel NCP observer | optional NCP read-only adapter | observer principal and exact bounded grant | reads declared standard observations/dispositions | no publish, authority, lifecycle mutation or ESTOP | read-only API, manifest and live revocation negatives required |
+| Galadriel assessor | optional registered-extension producer with a principal distinct from observer | extension manifest, Haldir audience and freshness policy | push-only `RECORD_ONLY`/`DENY_TIGHTEN` assessment | cannot encode ALLOW or command; cannot reuse observer credentials | missing coverage, stale/replay/drop counters and non-calibration label are mandatory |
+| Crebain core | no NCP, Engram, Haldir, Galadriel, Prisoma or pid-rs requirement | local plant profile, watchdog and local safety boundary | standalone local research/body behavior | owns local actuator boundary regardless of NCP | not certified physical safety or deployment readiness |
+| Crebain NCP body | optional NCP body adapter | content-addressed plant profile, armed local watchdog, verified safe-action path, manifest and body principal | issues epochs/leases, admits commands, applies at named boundary, emits dispositions | sole software body and final actuator authority for the NCP plant session | live physical/safety/security gates remain `NOT RUN` until exact artifacts exist |
+| Crebain telemetry/extension producer | optional standard-frame and Galadriel-extension producer | exact extension manifest/schema and producer principal | non-blocking publish to observers; never waits for them | publication grants observers no control; Galadriel schema stays outside NCP core | stall/load/gap/source-correlation evidence required |
+| Prisoma core | optional pid-core/pid-runlog via exact submodule; no NCP in default workspace | none for standalone/offline research | offline analysis and run-log verification | owns research records, no protocol or plant authority | population/measure/estimator/application gates remain independent |
+| Prisoma NCP observer | optional workspace-excluded NCP adapter plus pid-runlog sink | read-only principal/grant and bounded storage | exact capture then offline translation | no publish, lease, command or mutation API; gaps are recorded, not filled | capture integrity is not delivery completeness, calibration or causal proof |
+| pid-rs | no NCP or downstream application; ordinary numerical dependencies only | none; it is a library/CLI workspace | called in consumer processes; optional protocol-neutral run-log serialization | reports/logs grant no identity, capability, permission or authority | numerical/scientific gates apply only to exact estimands and reviewed source |
+
+#### Directed edge classification
+
+Mode-mandatory edges exist only while their named mode is active:
+
+| Edge | Payload/operation | Boundary owner |
+|---|---|---|
+| authorized client → Engram simulation responder | typed simulation open/step/run/close | Engram owns simulation state and issues simulation-scoped receipts |
+| Engram commander → Crebain body | NCP command under current direct-mode lease | Crebain admits/applies/disposes; Engram only proposes |
+| Engram Haldir adapter → Haldir Gate | Haldir-local signed intent, not an NCP command | Haldir authenticates signer and owns local decision |
+| Haldir commander → Crebain body | newly constructed NCP command under current gated-mode lease | Crebain admits/applies/disposes; Haldir never becomes actuator authority |
+| Crebain body → current commander | lease status, revocation and command receipts | Crebain is authoritative; reply loss is resolved by idempotent query |
+| Crebain body → attached observers | declared standard frames/dispositions | Crebain owns publication; each grant bounds reader scope |
+
+Optional edges are:
+
+| Edge | Condition | Constraint |
+|---|---|---|
+| Galadriel assessor → Haldir receiver | ADR-011 accepts the registered extension and deployment enables it | push-only, distinct principal, fresh/replay-safe, record-only or deny-tightening |
+| Crebain extension producer → Galadriel | exact Galadriel-owned extension manifest is enabled | extension keyspace, bounded non-blocking queue, explicit gaps |
+| Galadriel/Prisoma → pid-rs library | consumer explicitly enables estimator/research features | in-process protocol-neutral values; consumer owns validation and provenance |
+| Prisoma observer → pid-runlog | exact verified capture is translated offline | missingness/gaps retained; log hash is not authentication |
+
+The following edges are prohibited unless a later major-wire/ADR explicitly
+reopens them with equivalent safeguards:
+
+- NCP core/provider → any consumer application dependency;
+- pid-rs → NCP, Zenoh, Engram, Haldir, Galadriel, Crebain or Prisoma;
+- Galadriel or Prisoma → command publication, authority operations, plant lifecycle
+  mutation, ESTOP, watchdog or disposition creation;
+- an observer credential → the Galadriel assessment route, or an assessor
+  credential → NCP observer/core mutation routes;
+- Haldir forwarding/re-signing Engram bytes as if identity or authority transferred;
+- Haldir issuing body leases, dispositions or actuator-success claims;
+- Engram responder principal/socket/state store → plant command publication;
+- direct Engram commands and Haldir commands concurrently accepted for the same
+  plant/session/term;
+- Haldir querying Engram simulation during an authorization decision until a
+  separate ADR specifies its trust, latency, failure and evidence semantics;
+- application-specific Galadriel/PID fields on stable NCP core routes; and
+- observer backpressure, disconnect or analysis failure influencing the local
+  watchdog or preventing a body fail-safe action.
+
+#### Composable deployment state
+
+A single flat mode list would incorrectly imply that simulation service,
+observation and plant command cannot coexist. Model deployment as a product of
+orthogonal axes, then constrain the illegal combinations:
+
+```text
+simulation_axis = OFF | SERVICE
+plant_axis      = OFF | OBSERVE_ONLY | DIRECT_ENGRAM | GATED_HALDIR |
+                  HANDOVER_QUIESCE | DEGRADED_SAFE_HOLD | LOCKDOWN
+observer_set    = any subset of {GALADRIEL_NCP, GALADRIEL_EXTENSION, PRISOMA}
+assessment_axis = OFF | ADVISORY | REQUIRED_FOR_NEW_PERMISSION
+```
+
+`SERVICE` may coexist with any plant axis only because its types, principals,
+stores, operation grants and routes are disjoint. Observers may coexist with every
+plant axis and have no transition authority. `DIRECT_ENGRAM` and `GATED_HALDIR`
+are mutually exclusive. `ASSESSMENT_REQUIRED_FOR_NEW_PERMISSION` is legal only
+with `GATED_HALDIR`; absence or staleness denies new permission and cannot alter the
+body's local fail-safe behavior. The all-standalone deployment is every axis off.
+
+Entry to either active plant commander state requires the exact body descriptor,
+stable/security/plant-profile identities, a default-deny manifest granting only
+the chosen principal, an armed local watchdog, a locally verified safe-action path,
+a crash-monotonic epoch, one bounded lease and a working receipt/query path.
+Opening or observing a session never satisfies these guards.
+
+Handover is the only `DIRECT_ENGRAM ↔ GATED_HALDIR` path:
+
+1. an enrolled operator or ratified body policy requests the target mode with an
+   idempotency key; neither commander can appoint itself;
+2. Crebain stops admitting new commands from the old term and resolves or marks
+   every in-flight command with a bounded disposition;
+3. Crebain durably revokes the old lease and records a queryable receipt;
+4. Crebain durably advances the plant/session epoch before acknowledging the cut;
+5. the plant enters the profile-defined HOLD/safe boundary for its required dwell;
+6. only then may Crebain issue one new bounded lease to the target principal; and
+7. the new commander resynchronizes descriptor, epoch, stream and receipts before
+   publication. The old commander halts on any fencing reject and never blind-retries.
+
+If the old commander is unreachable, TTL expiry performs step 3 without waiting for
+an acknowledgement. A Crebain restart voids leases, restores a monotonic epoch and
+enters safe hold before the NCP adapter can issue authority. If continuity storage
+is corrupt, the NCP active-control surface refuses service; the standalone UI or
+diagnostic surface may remain available only if it cannot actuate. A commander
+restart discards buffered commands from the prior process incarnation and queries
+receipts before any retry. Duplicate idempotency within the same epoch/lease returns
+the original receipt; cross-epoch reuse is invalid.
+
+Observer queues are bounded, non-blocking and separated from watchdog/control work.
+They expose source loss, local drop, transport gap, revocation gap and storage gap
+as distinct events. Disconnect/restart resubscribes from a fresh descriptor/grant;
+Prisoma never interpolates the gap and Galadriel never treats missing input as a
+fresh safe assessment.
+
+#### Galadriel-to-Haldir extension and monotonicity proof obligation
+
+ADR-011 should accept a direct connection only if a registered, Galadriel-owned,
+transport-authenticated extension makes permission widening unrepresentable. The
+placeholder ID must be replaced through B03's registry process; no code may assume
+an unallocated name. Its minimum canonical fields are:
+
+```text
+extension_id, schema_version, manifest_digest
+plant_id, session_ref, observed_body_epoch
+assessor_instance_id, assessor_sequence
+issued_at, expires_at, bounded_scope
+effect = RECORD_ONLY | DENY_TIGHTEN
+calibrated_posterior = false
+source_capture_digests[]
+```
+
+The protected envelope additionally binds actual route, Galadriel assessor
+principal, Haldir audience, security/key epoch and stable/extension identities.
+Any payload signature is provenance only unless it is the ratified authenticated
+envelope; a payload `producer_id` never authenticates itself. The schema has no
+ALLOW, SAFE, CLEAR_DENY or authority field. Unknown enum values and unknown required
+fields fail strict parsing. Bounds apply before allocation.
+
+Let Haldir's order be `DENY ≤ ALLOW`. Map `RECORD_ONLY` to the identity element and
+`DENY_TIGHTEN` to `DENY`; compute `final = local ∧ extension`. Therefore
+`final ≤ local` for every accepted value. Rejected/missing input becomes either the
+identity element in explicitly advisory mode or `DENY` for new permissions in
+required mode, so failure also cannot widen. Property tests must enumerate the
+finite lattice and mutation/fuzz tests must prove that no decoded value escapes the
+codomain. An accepted deny-tightening assessment latches until bounded expiry or an
+authenticated operator clear; a later assessment cannot rewrite an issued decision.
+
+The transport is push-only. Haldir never calls Galadriel during decision execution,
+which prevents a hidden synchronous availability dependency. Freshness uses bounded
+clock-skew policy plus `(assessor_instance_id, assessor_sequence)` replay state;
+restart changes the instance ID. Haldir exposes last-fresh-assessment age, coverage,
+reject, replay, expiry and rate-limit counters. Malformed/flooded input is dropped
+and alarmed. Extension failure never changes an in-flight plant fail-safe action.
+
+#### pid-rs boundary triple-check
+
+The dependency graph, manifest topology and authority semantics all select the same
+answer: no pid-rs/NCP adapter crate is justified.
+
+1. **Dependency lens:** current pid-rs manifests contain no NCP/downstream
+   dependency. Adding one would invert the stable library direction and couple its
+   release cadence to a wire protocol.
+2. **Runtime lens:** pid-core is called in-process and pid-runlog serializes
+   protocol-neutral scientific provenance. Galadriel and Prisoma already own the
+   locations where verified capture becomes estimator input; a pid-rs transport
+   client would duplicate and confuse those adapters.
+3. **Authority/evidence lens:** PID output is data with estimand/support/uncertainty
+   limits. Putting NCP command, identity, lease or policy types beside it would make
+   a scientifically invalid authority inference easier, not safer.
+
+Consumer pin rules follow: use immutable 40-hex commits or a genuinely published
+immutable tag plus verified commit/archive; make manifest version requirements
+match the pinned source; retain a source-review/compatibility receipt; keep
+Galadriel `pid` and `ncp` features independently default-off; keep Prisoma's NCP
+observer workspace-excluded; and never require both features merely to run either
+project standalone. pid-rs need not share the NCP 1.0 version number or release date.
+
+#### Mandatory topology failure campaign
+
+At minimum ADR-011, the formal composition model, consumer tests and X02 must cover:
+
+| Failure | Required safe result |
+|---|---|
+| body epoch regresses after crash | active NCP control refuses service; no stale lease validates |
+| old commander partitions during handover | TTL revocation, epoch fence and safe hold precede new lease |
+| old commands arrive after new lease | stale epoch/lease rejection; no application |
+| handover reply is lost | idempotent query returns durable original receipt |
+| Engram responder uses commander credentials | manifest/role/route rejection before semantic effects |
+| Engram emits direct command in gated mode | Crebain rejects non-holder; Engram adapter reports mode violation |
+| Haldir forwards intent bytes unchanged | conversion/provenance test rejects identity laundering |
+| Galadriel observer credential posts assessment | route/audience/principal rejection |
+| Galadriel assessment encodes unknown or ALLOW-like value | strict parse rejection; alarm; no widening |
+| assessment expires or clock skew exceeds bound | advisory absence or deny-new-permission per explicit mode |
+| assessment replays after assessor restart | instance/sequence rejection and coverage warning |
+| assessment deny oscillates | bounded latch/hysteresis prevents retry feedback storm |
+| Galadriel/Prisoma stalls or disconnects | control/watchdog latency unaffected; explicit observation gap |
+| telemetry queue saturates | bounded drop policy and gap count; no control backpressure |
+| pid-rs returns NaN/error/resource refusal | consumer records failure; no fabricated assessment or authority |
+| pid-rs pin/version declaration disagrees | build/coherence gate fails before integration evidence |
+| simulation and plant reuse an ID | typed route/principal/state separation rejects cross-use |
+| Haldir policy or replay state is missing after restart | fail closed for new permission |
+| body disposition is absent/ambiguous | remains unknown; commander cannot claim application |
+| production security configuration downgrades | startup/hot-reload rejects; no fallback to insecure remote mode |
+
+#### External-advisor disposition
+
+An exact `claude-fable-5` Messages API review on 2026-07-16 returned `end_turn` and
+recommended **REVISE**, not acceptance or certification. Its useful findings were
+mapped to existing D01/D08/D09 and ADR-001/004/006/008/009/010 plus new ADR-011:
+exclusive handover, role/principal separation, telemetry isolation, simulation
+resource authority and a typed deny-only seam. This blueprint further corrected
+the advisor's flat deployment state list into the orthogonal product above, because
+simulation service and read-only observation may safely coexist with either plant
+commander mode when their trust/state domains are disjoint. The model response is
+non-normative, not an independent reviewer, and satisfies no evidence floor.
 
 ## 8. Verification, formal methods, and evidence program
 
@@ -1389,23 +1738,30 @@ Required invariants:
 
 #### `NcpAuthority`
 
-Model body-issued terms, lease IDs, holder, requester/operator, UTC metadata,
-body-local monotonic deadline, lifecycle, transfer, renewal, release, reconnect,
-revocation, restart, and Active/Step/Run/Close admission.
+Model responder-issued terms and closed authority domain, distinct simulation and
+plant lease types, lease IDs, plant/session key, direct/gated mode, holder,
+requester/operator, UTC metadata, responder-local monotonic deadline, lifecycle,
+handover quiescence, transfer, renewal, release, reconnect, revocation, restart,
+and Active/Step/Run/Close admission.
 
 Finite constants include two commanders, an operator, one body, terms `0..3`,
 clock `0..4`, two leases, two security epochs, and both session types.
 
 Required invariants:
 
-- `LeaseIssuerIsBody`;
-- `AtMostOneLiveHolderPerSessionAndPlane`;
+- `PlantLeaseIssuerIsBody`;
+- `SimulationLeaseIssuerIsSimulator`;
+- `SimulationAndPlantLeasesAreNonFungible`;
+- `AtMostOneLiveHolderPerPlantSessionAndPlane`;
 - `ActiveImpliesCurrentGenerationAndUnexpiredLease`;
 - `MutationImpliesCurrentLeaseAndIdempotencyContext`;
 - `TermStrictlyIncreasesOnAcquireOrTransfer`;
 - `RenewalNeverChangesHolderTermOrLeaseId`;
 - `ExpiredLeaseNeverRevives`;
 - `OldHolderCannotActAfterTransfer`;
+- `DirectAndGatedCommanderNeverOverlap`;
+- `HandoverRevokesThenAdvancesEpochThenQuiescesBeforeGrant`;
+- `CrashAtAnyHandoverCutNeverRestoresOldAuthority`;
 - `ReleaseAndRevocationEnterNonActuatingState`;
 - `ReconnectNeverExtendsDeadline`;
 - `BodyRestartWithoutContinuityInvalidatesLease`;
@@ -1515,15 +1871,30 @@ Required invariants:
 
 #### `NcpComposition`
 
-Compose the smaller models with reduced constants. This is the critical place to
-find bugs that disappear in isolated proofs: open/authority reply loss, transfer
-during stream rollover, observer attach during restart, revocation during ambiguous
-Active/HOLD/ESTOP publication, security rotation with pending idempotent operation,
-close with missing disposition, and session-type confusion.
+Compose the smaller models with reduced constants. Include the orthogonal ADR-011
+simulation, plant-mode, observer-set and assessment axes. This is the critical place
+to find bugs that disappear in isolated proofs: open/authority reply loss,
+direct-to-gated and gated-to-direct handover at every crash cut, old-commander
+partition, transfer during stream rollover, observer attach during restart,
+revocation during ambiguous Active/HOLD/ESTOP publication, security rotation with
+pending idempotent operation, Galadriel deny flapping, extension replay/expiry,
+observer backpressure, close with missing disposition, and session-type confusion.
 
 Composition invariants include every safety property whose variables cross two
 modules. Do not claim the conjunction of isolated model results proves the
 composition.
+
+Required cross-module properties include:
+
+- `SimulationGrantCannotSatisfyPlantAuthority`;
+- `ResponderPrincipalCannotPublishPlantCommand`;
+- `HaldirCommandHasHaldirPrincipalAndIntentOnlyAsProvenance`;
+- `FinalHaldirDecisionNeverExceedsLocalDecision`;
+- `ObserverOrAssessorNeverGrantsPermissionOrActuation`;
+- `ObserverFailureDoesNotBlockWatchdogOrFailSafe`;
+- `ExtensionRouteNeverSatisfiesCoreAdmission`;
+- `OnlyCrebainTransitionsPlantCommanderMode`; and
+- `PidResultIsAbsentFromIdentityAuthorityAndAdmissionState`.
 
 ### 8.4 Liveness and fairness boundary
 
@@ -1587,10 +1958,12 @@ Required initial obligations:
 | File | Expected result and claim boundary |
 |---|---|
 | `authority_inductive.smt2` | `unsat` counterexample to one-step preservation of single live body-issued authority under encoded guards |
+| `authority_handover.smt2` | `unsat` overlap of direct Engram and gated Haldir live authority across revoke/epoch/quiesce/grant and modeled crash cuts |
 | `session_type_isolation.smt2` | `unsat` possibility that a typed plant operation is admitted to a simulation session or inverse |
 | `operation_at_most_once.smt2` | `unsat` second semantic execution for the same encoded operation key/digest |
 | `disposition_terminal.smt2` | `unsat` contradictory transition after an encoded terminal disposition; `sat` witnesses for every legal state |
 | `observer_non_authority.smt2` | `unsat` derivation of mutation/publish right from an observer grant |
+| `assessment_monotonicity.smt2` | `unsat` case where any accepted, absent or rejected Galadriel assessment widens Haldir's local decision under either configured absence mode; `sat` witness for each legal effect |
 | `security_admission_order.smt2` | `unsat` semantic callback/latch before bounds, signature, manifest actor, route, audience, digest, session and stream checks in the abstract pipeline |
 | `typed_digest_prefix_free.smt2` | `unsat` ambiguous parse for the bounded typed canonical projection grammar; explicitly assumes SHA-256 collision resistance rather than proving it |
 | `queue_bounds.smt2` | `unsat` capacity excess under each encoded overflow transition; `sat` witness for every overflow branch |
@@ -1612,11 +1985,13 @@ Add Kani harnesses for:
 
 - session type dispatch and failed-open non-allocation;
 - authority acquire/renew/transfer/release with arbitrary bounded terms/clocks;
+- direct/gated handover with arbitrary crash cuts and stale old-holder commands;
 - operation reservation/commit/retry and snapshot validation;
 - stream sequence allocation at `0`, `1`, maximum-1, and maximum;
 - action queue severity and ambiguous fail-safe blockade;
 - command disposition transition table;
 - observer-grant subset and expiry checks;
+- Galadriel assessment parsing, replay/freshness and deny-only composition;
 - typed digest projections and length-prefix bounds;
 - JWS/base64 decoded-length arithmetic before allocation; and
 - FFI pointer/length/ownership state where Kani supports the used features.
@@ -2159,9 +2534,13 @@ accepted outputs. Until then the exact status is `NOT_RUN` or `FAIL`, never
 
 ## 10. Dependency-ordered implementation DAG
 
-Every task below starts `OPEN`. The task status describes implementation, not this
-blueprint's completeness. An implementer must not mark a task `LOCAL_PASS` merely
-because the instructions exist.
+Every task originally started `OPEN`. After B00 exists,
+[`../../evidence/implementation/task-ledger.v1.json`](../../evidence/implementation/task-ledger.v1.json)
+is the machine-checkable status and receipt authority; the status labels retained
+in this blueprint are navigation aids that must be updated with the same coherent
+change. Task status describes implementation, not this blueprint's completeness.
+An implementer must not mark a task `LOCAL_PASS` merely because the instructions
+exist.
 
 ### 10.1 Execution and repository-change protocol
 
@@ -2213,35 +2592,37 @@ are frozen.
 
 ```text
 L0  B00
-L1  B01
-L2  B02, B03
-L3  N01
-L4  N02
-L5  N03, N04
-L6  N05, F01
-L7  N06, F02
-L8  N07
-L9  N08, N09
-L10 N10, F03
-L11 R01, R11
-L12 E01, H01, G01, C01, P01
-L13 E02, H02, G02, C02, P02
-L14 E03, C03
-L15 E04, C04, X01
-L16 X02
-L17 E05, H03, G03, P03, F04
-L18 C05
-L19 X03
-L20 X04
-L21 F05
-L22 R00
-L23 R02
-L24 R03
-L25 R04
-L26 R05
-L27 R06, R07, R09
-L28 R08
-triggered at any applicable state: R10
+L1  B04
+L2  B01
+L3  B02, B03
+L4  N01
+L5  N02
+L6  N03, N04
+L7  X00, N05, F01
+L8  N06, F02
+L9  N07
+L10 N08, N09
+L11 N10, F03
+L12 R01, R11
+L13 E01, H01, G01, C01, P01
+L14 E02, H02, G02, C02, P02
+L15 E03, C03
+L16 E04, C04
+L17 X01
+L18 X02
+L19 E05, H03, G03, P03, F04
+L20 C05, R10
+L21 X03
+L22 X04
+L23 F05
+L24 R00
+L25 R02
+L26 R03
+L27 R04
+L28 R05
+L29 R06, R07, R09
+L30 R08
+incident-triggered invocation remains available at any state: R10
 ```
 
 Stop the DAG immediately if an accepted ADR changes, a stable-core projection is
@@ -2255,13 +2636,16 @@ of invalidated descendants.
 
 #### B00 — create the live implementation and evidence ledger
 
-**Status:** `OPEN`<br>
+**Status:** `IN_PROGRESS`<br>
 **Depends on:** none<br>
 **Repository:** NCP<br>
 **Create/update:** `docs/implementation/NCP_1_0_TASK_LEDGER.md`,
+`docs/implementation/NCP_1_0_RESUMPTION.md`,
 `evidence/implementation/task-ledger.v1.json`,
+`evidence/implementation/task-ledger.schema.v1.json`,
 `scripts/generate_implementation_ledger.py`, `scripts/check_implementation_ledger.py`,
-`scripts/check.sh`, `scripts/README.md`, this blueprint.
+`scripts/check.sh`, `scripts/README.md`, `AGENTS.md`, `.gitignore`, handoff index,
+this blueprint.
 
 Implementation:
 
@@ -2275,6 +2659,25 @@ Implementation:
   comment field; reject hand-edited generated status/content;
 - allow only the transitions in section 3.2 and require a receipt before every
   transition other than `OPEN` to `IN_PROGRESS`;
+- assign every task a minimum `LOCAL`, `EXTERNAL`, or `INDEPENDENT` evidence
+  class and a checked claim tier; a lower class cannot unlock a descendant or a
+  release task, and task status cannot expand the root non-claim boundary;
+- recompute every retained artifact's size and SHA-256, bind every passing receipt
+  to the exact latest dependency receipts, and bind the checker, generator and
+  schema hashes;
+- retain structured tool versions, passing command results, bounded aggregate
+  evidence references/bytes, and a content-checked remote-ref verification artifact
+  for every passing receipt;
+- require exact named gate IDs for external evidence floors and a task-specific
+  minimum number of distinct non-owner identities for independent evidence floors;
+- reset the evidence class whenever a passing task reopens, and record exact
+  descendant task/receipt-digest invalidations so historical external or
+  independent evidence cannot upgrade a changed local implementation;
+- allow reduced coordination receipts for blockers and invalidation/reopen events
+  without pretending an unavailable push exists; reserve annotated-tag receipts
+  for the signed-tag task only;
+- map D01–D17 explicitly to closure tasks and require the defect IDs in those task
+  records so architecture findings cannot disappear through a status edit;
 - reject unknown task IDs, missing dependencies, cycles, optimistic status,
   self-review where independence is required, non-40-hex commits, mutable refs,
   dirty evidence, missing output, duplicate artifact subjects, and secrets or
@@ -2303,12 +2706,61 @@ Ten-lens record:
 10. **L10:** CODEOWNERS, retention, supersession, schema versioning and incident
     correction are explicit.
 
-#### B01 — decide and ratify ADR-001 through ADR-010
+#### B04 — prove authenticated-ingress and independent-parser feasibility
 
 **Status:** `OPEN`<br>
 **Depends on:** B00<br>
+**Repository/environments:** NCP prototypes; pinned Zenoh API; isolated native
+TypeScript and Python parsers<br>
+
+Before ADR ratification, execute bounded, disposable prototypes for the two hardest
+assumptions rather than deciding them from prose:
+
+- prove exactly what authenticated peer/route identity the pinned Zenoh callback,
+  query, liveliness and router APIs expose to application code, with source/API
+  citations and a live negative probe; do not infer payload identity from TLS;
+- prototype both viable alternatives for D06: a terminating authenticated ingress
+  that supplies a verified principal, and a flattened per-message JWS envelope with
+  protected route, plane, session, stream, operation and semantic-content binding;
+- use exact Ed25519 algorithm/profile identifiers, explicit key/manifest epochs,
+  bounded protected-header parsing, unknown-key rejection, replay negatives and no
+  fallback algorithm;
+- implement two tiny, non-Rust, independently written parsers over proposed
+  identity/session examples to expose ambiguity before stable-core fields freeze;
+- retain source/toolchain/API versions, prototype bytes, results and limitations;
+  delete or quarantine prototypes from shipped packages unless an ADR adopts them;
+  and
+- record Fable/model advice only as optional non-normative input. It cannot count
+  as the independent parser, reviewer, security evidence or decision authority.
+
+Acceptance: the pinned transport capability is source- and live-probe-bound; both
+security alternatives have executable positive/hostile cases and measured bounds;
+two non-Rust parsers agree on the proposed examples without Rust FFI; B01 receives
+an explicit feasibility matrix and no wire field is changed. Commit/push
+`research: prove NCP authenticated-ingress feasibility`.
+
+Ten-lens record:
+
+1. **L1:** prototypes make proposed bytes and actor/route semantics unambiguous.
+2. **L2:** payload claims never authenticate themselves; downgrade and algorithm
+   substitution fail closed.
+3. **L3:** prototypes are non-actuating and cannot grant plant authority.
+4. **L4:** replay, reorder, restart, key rotation and ambiguous delivery are tested.
+5. **L5:** header, key, manifest, parser, queue and verification work are bounded.
+6. **L6:** two independent non-Rust parsers reveal implementability problems early.
+7. **L7:** no simulation, calibration or scientific status changes.
+8. **L8:** operator configuration, diagnostics, rotation and recovery costs appear
+   in the feasibility matrix.
+9. **L9:** exact probes, negative vectors and limitations are retained; advice is
+   labelled non-evidence.
+10. **L10:** ADR owners decide from evidence and own cryptographic/transport change.
+
+#### B01 — decide and ratify ADR-001 through ADR-011
+
+**Status:** `OPEN`<br>
+**Depends on:** B00, B04<br>
 **Repository:** NCP<br>
-**Create/update:** `docs/adr/0001-*.md` through `docs/adr/0010-*.md`,
+**Create/update:** `docs/adr/0001-*.md` through `docs/adr/0011-*.md`,
 `docs/adr/README.md`, `contract/decision-registry.v1.json`, threat/hazard and
 traceability generator sources, B00 ledger.
 
@@ -2325,6 +2777,9 @@ Implementation:
   polymorphic `EdDSA`, if the JOSE profile is accepted;
 - record the exact stable-core membership and whether any functionality moves to a
   separately versioned required extension; and
+- ratify the section 7.15 dependency matrix, orthogonal deployment state,
+  direct/gated handover, simulation-resource separation, Galadriel deny-only
+  extension and pid-rs boundary without adding consumer-specific core fields; and
 - keep every ADR `PROPOSED` until all required roles sign the same content digest.
 
 Acceptance: decision registry/schema check, link/anchor check, threat and
@@ -2540,7 +2995,7 @@ Ten-lens record:
 10. **L10:** lifecycle ownership, retention, close/reset privileges and extension
     evolution are registered.
 
-#### N03 — implement declared streams, body authority, and command disposition
+#### N03 — implement declared streams, domain-separated authority, and command disposition
 
 **Status:** `OPEN`<br>
 **Depends on:** N01, N02<br>
@@ -2559,10 +3014,14 @@ Implementation:
 - consume a sequence number before an attempted publish and never reuse it after an
   ambiguous result; at exhaustion require explicit retirement/redeclaration—no
   silent epoch rollover or receiver adoption from an arbitrary frame;
-- add body-issued `AcquireAuthority`, `RenewAuthority`, `TransferAuthority`,
-  `ReleaseAuthority`, `QueryAuthority` and receipts with monotonically increasing
-  term and body-monotonic deadline; serialized lease fields are evidence, not bearer
-  capability;
+- add distinct simulator-issued simulation-authority and body-issued plant-authority
+  acquire/renew/release/query request/receipt families; add plant-only
+  transfer/handover with monotonically increasing term, body epoch and
+  responder-local monotonic deadline; serialized lease fields are evidence, not
+  bearer capability;
+- make `SimulationAuthorityLease` and `PlantAuthorityLease` closed,
+  non-convertible public types with disjoint routes, operations, issuer roles,
+  manifests and negative vectors; opening either session grants neither lease;
 - require current generation, transcript, security epoch, exact actor/plane,
   unexpired live lease, operation context and plant gates for mutating/active paths;
   keep ESTOP full admission while allowing the narrowly ratified lease exception;
@@ -2573,17 +3032,20 @@ Implementation:
   also cannot cross session/actor boundaries.
 
 Acceptance: transition tables and vectors; Loom/property/concurrency tests;
-sequence maximum/ambiguous publish; two-commanders transfer; restart/clock/expiry;
+sequence maximum/ambiguous publish; cross-domain lease rejection; two-commanders
+handover and every crash cut; restart/clock/expiry;
 disposition terminality and missing evidence; TLA authority/stream/disposition
 traces replay. Commit/push in reviewable units such as `core: add declared stream
-lifecycle`, `core: add body-issued authority lifecycle`, and `core: add command
+lifecycle`, `core: separate simulation and plant authority`, and `core: add command
 disposition receipts`.
 
 Ten-lens record:
 
-1. **L1:** stream, lease and disposition state machines match prose/proto/code.
-2. **L2:** only the body issues authority/disposition; leases are checked against
-   authenticated live state, never trusted from payload possession.
+1. **L1:** stream, domain-specific lease and disposition state machines match
+   prose/proto/code.
+2. **L2:** only the simulator issues simulation authority and only the body issues
+   plant authority/disposition; leases are checked against authenticated live state,
+   never trusted from payload possession or cross-domain conversion.
 3. **L3:** ambiguity/expiry/revocation/restart enters profile-declared non-actuating
    behavior; disposition never claims physical zero.
 4. **L4:** loss, duplication, reorder, partition, rollover, transfer and journal
@@ -2754,7 +3216,7 @@ Ten-lens record:
 #### N07 — regenerate and harden all supported language/package surfaces
 
 **Status:** `OPEN`<br>
-**Depends on:** N05, N06<br>
+**Depends on:** N05, N06, X00<br>
 **Repository:** NCP<br>
 **Update/create:** `ncp-core/src/bin/gen-schemas.rs`, `schemas/`,
 `ncp-core/bindings/`, `ncp-ts/src/generated/`, `ncp-ts/src/*.ts`, `ncp-ts/dist/`,
@@ -3152,6 +3614,7 @@ The required role allocation is:
 | Crebain canonical repository | plant body, final software actuator authority, sensor publisher and command-disposition publisher | not certified physical safety; NCP ESTOP is not universal zero-safe |
 | Galadriel | authenticated read-only observer of standard observations plus its own advisory extension | extension payload is not a standard NCP sensor/frame and cannot authorize control |
 | Prisoma | authenticated read-only research observer and offline evidence producer | capture integrity is not delivery completeness, PID validity, calibration or causal proof |
+| pid-rs | protocol-neutral estimator and content-addressed run-log library consumed only through consumer-owned optional adapters | not an NCP peer, transport, policy engine, authority source or shared runtime service |
 | Crebain Galadriel-producer integration surface | extension producer running inside the Crebain/body deployment | not a separate canonical repository or a second body identity unless explicitly deployed as one |
 
 #### E01 — establish Engram's clean native-1.0 integration baseline
@@ -3214,13 +3677,17 @@ Implementation:
 - replace Engram's development copies of overloaded `OpenSession`/`SessionOpened`
   with generated/faithful `OpenSimulationSession` and simulation result types;
 - keep NEST/network configuration, stimuli, step/run and simulation provenance only
-  in the simulation-service lifecycle; the responder issues generation and durable
-  operation receipts;
+  in the simulation-service lifecycle; the responder issues generation,
+  `SimulationAuthorityLease` and durable operation receipts;
 - add a separate plant-control client/commander facade that consumes
   `OpenPlantSession`, body-issued descriptor/generation, declared streams, authority
   and disposition; it must not reuse the simulation backend's responder state;
 - use disjoint Python classes, factories, route builders and test fixtures so a
   wrong-session operation is not representable through the high-level API;
+- use distinct build extras/features, transport principals, manifests, endpoints,
+  state stores and entry points; a responder-only installation cannot import or
+  link plant command publication, and a simulation lease cannot be serialized into
+  a plant lease field;
 - preserve `is_simulation_output=true` and `calibrated_posterior=false` on every
   NEST-derived output and retain complete backend/network/seed/numerical provenance;
 - delete stale hard-coded candidate digests only after they are generated/validated
@@ -3291,19 +3758,30 @@ Ten-lens record:
 9. **L9:** KAT, corpus, concurrency and live fault receipts remain distinct.
 10. **L10:** key/manifest/route owners and dependency/security update policy are set.
 
-#### E04 — implement Engram authority, operation, disposition, and plant fail-safe use
+#### E04 — implement Engram direct and Haldir-gated plant integration
 
 **Status:** `OPEN`<br>
-**Depends on:** E02, E03, N03, Crebain C02 interface fixture<br>
+**Depends on:** E02, E03, N03, Crebain C02 interface fixture, H01 Haldir-local
+intent contract<br>
 **Repository:** Engram<br>
 **Update:** `backend/neurocontrol/loop.py`, `resilience.py`, `session.py`, `service.py`,
 `transport.py`, `profiles.py`, Crebain client example/tests and documentation.
 
 Implementation:
 
-- make the plant client request/renew/transfer/release authority from the body and
-  use the body's monotonic-deadline receipt; never mint or self-renew plant authority
-  in Engram;
+- make the direct-mode plant client request/renew/release authority from the body
+  and use the body's monotonic-deadline receipt; it may request but never execute a
+  transfer, mint or self-renew plant authority in Engram;
+- define a closed configured `DIRECT_ENGRAM` versus `GATED_HALDIR` connection mode
+  bound to the body descriptor/authority term. Direct mode may request a Crebain
+  plant lease and publish NCP commands; gated mode holds no NCP plant lease and can
+  emit only a Haldir-local signed intent through a separate optional adapter;
+- in gated mode consume Haldir's local decision receipt as policy evidence, never
+  as a body disposition. Haldir creates the NCP command under Haldir's principal;
+  Engram must not forward a prebuilt NCP command or delegate its identity;
+- on a mode mismatch or fencing rejection, halt output and resynchronize. Engram
+  cannot appoint Haldir or itself; only Crebain's ratified handover and new receipt
+  can establish the target commander term;
 - require current plant generation, transcript/security epoch, declared command
   stream, live lease and operation context before active command publication;
 - allocate sequence before attempted publish and treat ambiguous publish as consumed;
@@ -3315,10 +3793,11 @@ Implementation:
 - correct the architecture text that maps absent Prisoma `L` to a zero vector:
   absent/empty L causes explicit exclusion and counting, matching Prisoma.
 
-Acceptance: Engram↔Crebain contract fixtures; two-commanders conflict/transfer;
-lease expiry/restart; publish ambiguity; disposition terminal/query/eviction; ESTOP
-and reset generation cut; missing-L exclusion docs/tests. Commit/push
-`neurocontrol: consume body authority and command dispositions`.
+Acceptance: Engram↔Crebain and Engram↔Haldir contract fixtures; direct/gated
+feature/config exclusivity; identity-laundering negatives; two-commanders conflict
+and both handover directions; lease expiry/restart; publish ambiguity; disposition
+terminal/query/eviction; ESTOP and reset generation cut; missing-L exclusion
+docs/tests. Commit/push `neurocontrol: separate direct and gated plant control`.
 
 Ten-lens record:
 
@@ -3349,9 +3828,12 @@ commander against reference/Crebain body, security negatives, faults, resource
 bounds and clean-room reproduction. Verify the synchronized mirror is unused as
 runtime proof except where explicitly intended. Only after success update the
 descriptor/pin and consumer receipt. Keep `production-secure` `NOT_RUN` if no real
-security campaign occurred.
+security campaign occurred. Issue separate installed role receipts for the
+simulation responder and plant commander; within the commander campaign exercise
+both direct and Haldir-gated configuration without allowing concurrent authority.
 
-Acceptance: exact installed commits/packages/configs and zero skips; all claim
+Acceptance: exact installed commits/packages/configs and zero skips; distinct
+responder and commander role receipts; direct/gated exclusivity; all claim
 boundaries; external evidence reviewed; provider consumer-pin checker matches.
 Commit/push `evidence: record Engram NCP 1.0 consumer certification`.
 
@@ -3411,7 +3893,7 @@ Ten-lens record:
 #### H02 — integrate body-issued authority and dispositions into Haldir Gate
 
 **Status:** `OPEN`<br>
-**Depends on:** H01, N03<br>
+**Depends on:** H01, N03, G01 registered assessment contract<br>
 **Repository:** Haldir<br>
 **Update:** `crates/haldir-gate/src/{actor,live_service,publication_coordinator,
 startup,lib}.rs`, `haldir-contracts`, `haldir-state`, durable/evidence crates,
@@ -3421,6 +3903,10 @@ Implementation:
 
 - keep Haldir's local policy authorization distinct from NCP body authority: a
   policy allow may request/acquire/renew a body lease but cannot fabricate one;
+- accept upstream controller input only as a Haldir-local signed intent; after
+  local ALLOW, construct a new NCP command under Haldir's enrolled commander
+  principal and retain the intent digest as provenance data, never delegated
+  identity or authority;
 - bind every admitted active publication to Haldir decision digest, authenticated
   commander/operator, plant session/generation/transcript, body lease, operation and
   declared stream;
@@ -3432,11 +3918,20 @@ Implementation:
   restart, cease active publication, retire relevant stream/lease and request the
   profile-defined fail-safe path; never clear body ESTOP;
 - preserve Haldir's local CBOR/durable evidence as Haldir evidence, correlated to
-  but not substituted for NCP receipts.
+  but not substituted for NCP receipts;
+- optionally compile a separate default-off Galadriel assessment receiver from the
+  exact registered schema allocated in B03/G01; authenticate a distinct assessor
+  principal, enforce audience/session/epoch/freshness/replay/rate bounds, and apply
+  only `local_decision ∧ {identity, deny}`; and
+- expose assessment coverage/age/reject/replay status. In advisory mode absence is
+  identity; in explicitly required mode absence denies new missions. No accepted,
+  absent or malformed assessment can create ALLOW, a body lease or a command.
 
 Acceptance: two writers/operators; deny/error separation; transfer/revocation;
-reply loss; durable restart; disposition ambiguity; policy reload race; provider
-stateful vectors and Haldir audit verifiers. Commit/push
+reply loss; durable restart; disposition ambiguity; policy reload race; intent
+identity-laundering negatives; exhaustive assessment-lattice monotonicity;
+freshness/replay/flood/absence tests; provider stateful vectors and Haldir audit
+verifiers. Commit/push
 `gate: bind decisions to body-issued NCP authority`.
 
 Ten-lens record:
@@ -3455,7 +3950,7 @@ Ten-lens record:
 9. **L9:** concurrency/model traces, negative tests and durable receipts are retained.
 10. **L10:** policy/commander/operator/body owners and incident rules are explicit.
 
-#### H03 — certify Haldir's secure commander deployment
+#### H03 — qualify Haldir's secure commander and deny-only receiver roles
 
 **Status:** `OPEN`<br>
 **Depends on:** H02, C02, X01, X02<br>
@@ -3467,11 +3962,15 @@ final NCP envelope/routes/ACLs, then execute a real secure campaign with certifi
 identity, route binding, acquire/renew/transfer/release, command/disposition,
 revocation, reconnect, overload and fail-safe. Preserve existing v0.8 and Haldir
 0.9 evidence as historical; do not overwrite it. Update `.ncp-consumer` only after
-the installed-artifact campaign passes.
+the installed-artifact campaign passes. When the optional assessment receiver is
+enabled, run a separate live principal/route/audience/freshness/replay/flood/
+absence-mode campaign and emit a distinct role receipt; do not merge it with the
+commander receipt.
 
 Acceptance: exact installed commits/configs, live evidence, no callback identity
-assumption, full Haldir gates, clean-room build and provider pin match. Commit/push
-`evidence: certify Haldir as an NCP 1.0 commander`.
+assumption, full Haldir gates, clean-room build and provider pin match; separate
+commander and optional deny-only receiver receipts. Commit/push
+`evidence: qualify Haldir's NCP 1.0 integration roles`.
 
 Ten-lens record:
 
@@ -3501,6 +4000,9 @@ Implementation:
   migration input; add a clearly separate native-1.0 crate/feature until retirement;
 - pin exact candidate NCP artifacts and consume `AttachObserver`, descriptor and
   bounded read-only grants; never infer session generation from the first sensor;
+- refresh the optional pid-core pin to an exact reviewed pid-rs source whose
+  declared version matches the manifest requirement; keep `pid` and `ncp`
+  independently default-off and prove each builds without the other;
 - move `SidecarEnvelope` and `MonitorEnvelope` off
   `{realm}/session/{id}/sensor/{name}` to the registered Galadriel extension keys;
   they are not NCP `SensorFrame`s and must not use stable core routes;
@@ -3508,12 +4010,17 @@ Implementation:
   actual route, plant session/generation, security epoch and source correlation;
 - keep standard `ObservationFrame` ingestion separate; translate only where a
   Galadriel value has a semantically valid NCP standard representation;
-- preserve read-only/advisory types and prohibit any command, authority or mutation
-  API from the adapter.
+- preserve the NCP observer as read-only and prohibit command, authority, lifecycle
+  mutation and ESTOP APIs from that adapter; and
+- define a second Galadriel-owned assessment extension contract for the optional
+  Haldir edge. It contains no ALLOW/command/lease field, requires
+  `calibrated_posterior=false`, and is generated/distributed from one
+  content-addressed schema/manifest rather than copied application types.
 
 Acceptance: route and extension registry vectors; observer attach/revocation;
 wrong route/schema/producer/session/source rejects; v0.8 and v1.0 builds cannot mix;
-no core sensor route carries sidecar bytes. Commit/push
+no core sensor route carries sidecar bytes; pid-only/NCP-only/both/neither feature
+matrix; assessment schema cannot encode permission widening. Commit/push
 `ncp: add Galadriel's NCP 1.0 observer extension`.
 
 Ten-lens record:
@@ -3551,11 +4058,19 @@ Implementation:
 - preserve bounded serialized ingress, reorder/gap deadlines, fail-stop first fault
   and immutable emitted evidence; grant expiry/revocation terminates delivery;
 - distinguish missing delivery, rejected evidence, monitor failure and an advisory
-  anomaly; none becomes a plant command.
+  anomaly; none becomes a plant command;
+- in a distinct optional assessor module/principal, map a completed immutable
+  monitor record only to `RECORD_ONLY` or scoped `DENY_TIGHTEN`, bind exact source
+  capture digests and short expiry, use a process-incarnation ID plus monotonic
+  sequence, and push to Haldir without a synchronous query path; and
+- treat estimator errors, NaN/non-finite data, unsupported population contracts,
+  resource refusal, missing input and incomplete capture as explicit unavailable or
+  record-only evidence. Never synthesize a safe/ALLOW assessment from them.
 
 Acceptance: attach/start atomicity; pre-grant injection; grant expiry/revocation;
 route swaps; gaps/reorder/duplicates/restart; queue capacity; fail-stop recovery;
-real signed transport later. Commit/push
+assessment expiry/replay/restart/rate/latch vectors; pid error/resource/non-finite
+cases; real signed transport later. Commit/push
 `observer: bind Galadriel monitoring to NCP grants`.
 
 Ten-lens record:
@@ -3571,31 +4086,39 @@ Ten-lens record:
 9. **L9:** property/fault/live tests and exact receipts cover each state.
 10. **L10:** grant/extension/monitor/evidence owners and retention are explicit.
 
-#### G03 — certify Galadriel's installed read-only integration
+#### G03 — qualify Galadriel's installed observer and deny-only assessor roles
 
 **Status:** `OPEN`<br>
 **Depends on:** G01, G02, C03, X01, X02<br>
 **Repository/environment:** Galadriel and isolated observer deployment<br>
 **Update:** claims/security/producer/deploy docs, release evidence, `.ncp-consumer`.
 
-Run all default/all-feature Galadriel gates, JSONL and live extension corpora,
+Run all default/pid-only/NCP-only/combined-feature Galadriel gates, JSONL and live
+extension corpora,
 installed NCP artifacts, Crebain producer, signature/ACL/grant negatives,
 gap/reorder/overload/revocation faults and clean-room reproduction. Demonstrate by
 API and ACL that Galadriel cannot publish core frames, acquire authority or mutate a
-session. Update the pin only after success.
+session. Qualify the optional assessor separately against Haldir: prove its distinct
+credential cannot use observer/core mutation routes, its type cannot encode ALLOW,
+and exhaustive/fuzz/live cases never widen Haldir's local decision. Update pins only
+after success.
 
-Acceptance: exact artifacts/configs, zero unexplained skips, live read-only proof,
-scientific claim audit and independent receipt. Commit/push
-`evidence: certify Galadriel's NCP 1.0 read-only adapter`.
+Acceptance: exact artifacts/configs, zero unexplained skips, a read-only observer
+receipt, a separate deny-only assessor receipt when enabled, scientific claim audit
+and independent review. Commit/push
+`evidence: qualify Galadriel's NCP 1.0 integration roles`.
 
 Ten-lens record:
 
 1. **L1:** installed extension/observer/docs match provider identity.
-2. **L2:** read-only manifest and negative mutation/authority tests execute.
-3. **L3:** no path from advisory observation to actuation exists.
+2. **L2:** observer and assessor manifests/principals are disjoint; negative
+   mutation, credential-swap and authority tests execute.
+3. **L3:** advisory output can only preserve/remove Haldir permission; no path to
+   permission grant, NCP command, lease, watchdog or actuation exists.
 4. **L4:** live gaps/reorder/restarts/revocation/overload are tested.
 5. **L5:** declared resource/latency bounds are measured.
-6. **L6:** installed Galadriel and Crebain/provider peers agree.
+6. **L6:** installed Galadriel, Haldir, Crebain and provider peers agree on their
+   separate standard/extension roles.
 7. **L7:** claims/evidence retain advisory and statistical limitations.
 8. **L8:** deployment, faults, detach/recovery and docs are executable.
 9. **L9:** exact corpus/live/claim receipts support only named role.
@@ -3653,7 +4176,13 @@ Implementation:
 
 - make plant-authority the sole software body for session generation, authority
   terms/deadlines, command admission, disposition journal and stream declarations;
-- acquire/renew/transfer/release through durable, monotonic, single-holder state;
+- key acquire/renew/transfer/release by exact plant and session generation through
+  durable, monotonic, single-holder state; direct Engram and Haldir command terms
+  are mutually exclusive;
+- implement ADR-011 handover as body-coordinated stop-admission, bounded in-flight
+  resolution, durable revoke, crash-monotonic epoch advance, profile HOLD/safe
+  quiescence, then one new lease. A config flip or credential replacement cannot
+  transfer authority;
   restart without proved continuity invalidates sessions/leases and enters the
   profile-defined non-actuating state;
 - verify full signed envelope, actual route, manifest, session, declared stream,
@@ -3673,8 +4202,10 @@ Implementation:
 
 Acceptance: malformed/raw ESTOP rejects before state; a valid fully admitted
 same-session ESTOP has priority with or without a lease exactly as ratified;
-active/hold/expiry/revocation/restart/transfer; disposition journal/query; profile
-mutation; deadline and apply-boundary tests; non-actuating hardware/mock campaign.
+active/hold/expiry/revocation/restart/transfer; direct-to-gated and gated-to-direct
+crash-point handover; old-commander partition and stale-buffer rejection;
+disposition journal/query; profile mutation; deadline and apply-boundary tests;
+non-actuating hardware/mock campaign.
 Commit in units, including `plant: remove unauthenticated NCP ESTOP
 bypass` and `plant: issue NCP authority and command dispositions`, pushing each.
 
@@ -3713,8 +4244,9 @@ Implementation:
 - bind producer identity to the Crebain body deployment/manifest, exact plant
   session generation, declared extension stream and security epoch;
 - preserve Galadriel advisory output as observation/evidence; it cannot enter
-  plant-authority command admission unless a separately specified, human-approved
-  policy consumes it with its own safety evidence—and no such path is implied here;
+  plant-authority command admission. The optional Galadriel-to-Haldir deny-only
+  extension terminates at Haldir local policy and creates no direct
+  Galadriel-to-Crebain control edge;
 - handle extension subscriber absence/backpressure without blocking or weakening
   control/fail-safe planes; expose dropped/late/incomplete evidence.
 
@@ -3822,6 +4354,9 @@ Implementation:
 
 - preserve `crates/ncp-observer/` and its wire-0.8 semantics as historical; create a
   separate native-1.0 crate/binaries until migration is certified;
+- refresh Prisoma's pid-rs submodule to an exact reviewed source only after
+  pid-core/pid-runlog compatibility tests pass; keep the submodule and
+  consumer-owned adapters one-way so pid-rs never depends on Prisoma or NCP;
 - pin exact candidate NCP artifacts and use authenticated `AttachObserver`, body
   descriptor/generation, route grant and declared stream state;
 - subscribe only to granted sensor/command/observation/disposition routes; expose no
@@ -3830,10 +4365,14 @@ Implementation:
 - bind full session generation, stream/source positions, grant/security epoch and
   producer identities; never let the first sensor self-authorize a generation;
 - preserve bounded buffers, FIFO/explicit eviction, immutable emitted rows,
-  conflicting-evidence invalidation and receipt-last publication.
+  conflicting-evidence invalidation and receipt-last publication; and
+- translate verified capture into pid-runlog only after capture finalization.
+  Preserve protocol/source/grant/gap provenance as consumer-owned fields or
+  content-addressed attachments without importing NCP types into pid-rs.
 
 Acceptance: 0.8 unchanged; 1.0 attach/grant/revoke/restart/route/stream tests;
-read-only API/ACL negative tests; exact provider corpus/pin. Commit/push
+read-only API/ACL negative tests; exact provider and pid-rs source/pin coherence;
+default Prisoma operation without NCP; pid-rs tests remain NCP-free. Commit/push
 `ncp: add Prisoma's native-1.0 read-only observer`.
 
 Ten-lens record:
@@ -3925,10 +4464,50 @@ Ten-lens record:
 
 ### 10.7 Cross-ecosystem qualification tasks
 
+#### X00 — prototype an early independent non-Rust draft peer
+
+**Status:** `OPEN`<br>
+**Depends on:** N02, N03, N04<br>
+**Environment:** a reviewer/implementer independent of the Rust implementation,
+using a native TypeScript or Python stack without Rust FFI<br>
+
+Freeze a draft contract identity and mandatory positive/negative subset at the
+exact N02–N04 provider commit, then have an independent implementer build a minimal
+parser/validator/state-transition peer before package and documentation work hardens
+around Rust assumptions. It must cover typed session open/attach, contract identity,
+authenticated envelope, stream declaration, authority acquisition, disposition and
+unknown/default rejection. The peer is a draft ambiguity detector, not the final
+installed two-peer qualification and not a release artifact.
+
+Any byte, error, ordering or state disagreement reopens the owning ADR/provider
+task before N07. Preserve the independent source, package graph, author/reviewer
+identity, corpus results and exact ambiguity report. Do not import or call Rust,
+copy generated decision code, or count Fable/model review as implementation
+independence.
+
+Acceptance: one independent native non-Rust draft peer passes the frozen subset
+with zero skips; every discrepancy has a provider/ADR disposition; N07 depends on
+the resulting receipt. Commit/push `evidence: exercise an early independent NCP
+draft peer`.
+
+Ten-lens record:
+
+1. **L1:** independent parsing exposes ambiguous fields, bytes and errors early.
+2. **L2:** actor, signature, manifest, lease and unknown-value negatives are native.
+3. **L3:** all plant cases use a non-actuating reference body.
+4. **L4:** retry, replay, reorder, close and restart traces are compared.
+5. **L5:** the independent parser enforces the same pre-allocation bounds.
+6. **L6:** native non-Rust source proves draft implementability without shared FFI.
+7. **L7:** the prototype grants no scientific or calibration claim.
+8. **L8:** packaging, diagnostics and recovery friction is reported before freeze.
+9. **L9:** source, corpus, results and discrepancy dispositions are retained.
+10. **L10:** independence, ownership, licensing and later replacement by X01 are
+    explicit.
+
 #### X01 — qualify two genuinely independent installed non-Rust peers
 
 **Status:** `OPEN`<br>
-**Depends on:** N07, N08, E03<br>
+**Depends on:** N07, N08, E03, X00<br>
 **Repositories/environments:** NCP TypeScript package plus independent Engram Python
 or another clean-room non-Rust implementation.
 
@@ -3959,18 +4538,30 @@ Ten-lens record:
 #### X02 — run the composed ecosystem and multi-writer campaign
 
 **Status:** `OPEN`<br>
-**Depends on:** at least E04, H02, G02, C03, P02, X01<br>
+**Depends on:** at least E04, H02, G02, C03, C04, P02, X01<br>
 **Environment:** isolated router and non-actuating reference/Crebain body.
 
 Execute compositions, not only pairs:
 
 - Engram simulation responder with an independent client;
-- Engram commander and Haldir commander contending for one Crebain body, including
-  acquire/conflict/transfer/expiry/restart and disposition query;
+- Engram simulation service concurrently with observation and each plant commander
+  mode, proving its principal/grants/state never enter plant authority;
+- direct Engram commander and gated Haldir commander contending for one Crebain
+  body, including acquire/conflict, both handover directions, quiesce, crash at
+  every transition boundary, old-commander partition, TTL expiry, restart, stale
+  buffered commands and disposition query;
+- Engram-to-Haldir local signed intent, proving Haldir constructs a new command and
+  never launders Engram identity/authority;
 - Galadriel and Prisoma attaching read-only during operation, restart, key rotation
   and grant revocation;
+- the optional Galadriel assessor pushing fresh/stale/replayed/malformed/flooded
+  assessments to Haldir under a distinct principal, with exhaustive proof that
+  advisory and required-coverage modes never widen a local decision;
 - Galadriel extension publication under control/data pressure without starving
   fail-safe/control traffic;
+- Galadriel pid-only, NCP-only, combined and estimator-failure paths plus Prisoma
+  pid-runlog capture, proving pid-rs remains protocol-neutral and off every control
+  path;
 - close/reset/reopen while commands, observations and dispositions are in flight;
 - old 0.8 and superseded RC peers attempting connection and failing closed, plus an
   explicitly terminating migration gateway if one is shipped.
@@ -3993,24 +4584,29 @@ Ten-lens record:
 9. **L9:** model-to-live scenario map and exact multi-repo receipts are retained.
 10. **L10:** cross-repo incident/upgrade/rollback/support coordination is exercised.
 
-#### X03 — issue six exact consumer-role certification receipts
+#### X03 — issue nine exact consumer and extension role qualification receipts
 
 **Status:** `OPEN`<br>
 **Depends on:** E05, H03, G03, C05, P03, X02, F04<br>
-**Subjects:** Engram; Haldir; Galadriel; Crebain body; Crebain Galadriel-producer
-surface; Prisoma.
+**Subjects:** Engram simulation responder; Engram plant commander; Haldir NCP
+commander; Haldir Galadriel-assessment receiver; Galadriel NCP observer; Galadriel
+deny-only assessor; Crebain body; Crebain Galadriel-producer surface; Prisoma NCP
+observer.
 
-For each subject issue a distinct receipt binding repository/commit/tree, installed
+For each role subject issue a distinct receipt binding repository/commit/tree, installed
 artifact hashes, NCP identities, configuration/security/plant/extension profiles,
 role, tests/scenarios/counts/skips, external campaign IDs, reviewer, limitations,
-expiry and revocation. The Crebain producer is a separate role receipt, not falsely
-described as a separate repository or independent body. A failure in one receipt
-does not get averaged into fleet success.
+expiry and revocation. Multiple roles in one repository never share a receipt. The
+Crebain producer is a separate role receipt, not falsely described as a separate
+repository or independent body. pid-rs receives no NCP role receipt because it is
+not an NCP peer; its exact consumer compatibility evidence is attached to the
+Galadriel/Prisoma receipts. A failure in one receipt does not get averaged into
+fleet success.
 
-Acceptance: all six exact subjects pass their mandatory role gates with no critical
+Acceptance: all nine exact role subjects pass their mandatory role gates with no critical
 open finding or unexplained skip; provider validates signatures/schema/subjects;
 receipts cannot be replayed for later commits/configs. Commit/push
-`evidence: record six NCP 1.0 consumer role receipts`.
+`evidence: record nine NCP 1.0 ecosystem role receipts`.
 
 Ten-lens record:
 
@@ -4019,7 +4615,7 @@ Ten-lens record:
 3. **L3:** plant versus observer/simulation boundaries remain distinct.
 4. **L4:** required lifecycle/fault scenarios are subject-specific and complete.
 5. **L5:** platform/resource/deadline scope is explicit.
-6. **L6:** all six pass individually; no copied pin or aggregate inference.
+6. **L6:** all nine pass individually; no copied pin or aggregate inference.
 7. **L7:** subject claim tiers and scientific exclusions are explicit.
 8. **L8:** install/operate/recover/support evidence is attached.
 9. **L9:** commands/counts/skips/artifacts/review make each result auditable.
@@ -4082,7 +4678,7 @@ Ten-lens record:
 3. **L3:** safety/hazard/plant limitations and evidence are visible.
 4. **L4:** faults, rollback and incident states have passed qualification.
 5. **L5:** supported resource/performance bounds are evidenced.
-6. **L6:** installed peers and six consumer subjects are exact.
+6. **L6:** installed peers and nine consumer/extension role subjects are exact.
 7. **L7:** scientific/benchmark claims remain properly scoped.
 8. **L8:** release/operator/support/documentation inputs are executable.
 9. **L9:** every gate receipt is current, independent where required and zero-skip.
@@ -4158,7 +4754,7 @@ The final authorization bundle must contain one current receipt for every row:
 | performance/resource profile | F05 | every declared platform/workload meets preregistered bounds/confidence; all outliers/failures visible |
 | installed package matrix | N07, N09, X01, X04 | exact crates/wheel/sdist/npm/C++ artifacts install and pass applicable behavior on supported platforms |
 | registry namespace ownership | N09 | every final distribution name is controlled, verified and collision-free before upload |
-| six consumer-role certifications | E05, H03, G03, C05, P03, X03 | six exact role receipts, including separate Crebain body and producer surfaces; no aggregate substitution |
+| nine consumer/extension-role qualifications | E05, H03, G03, C05, P03, X03 | nine exact role receipts: Engram responder/commander, Haldir commander/assessment receiver, Galadriel observer/assessor, Crebain body/producer, and Prisoma observer; pid-rs compatibility remains consumer evidence because it is not an NCP peer; no aggregate substitution |
 | independent clean-room reproduction | X04 | at least two independent builders from public inputs; promised byte/semantic reproduction succeeds |
 | signed SBOM/provenance | N09, X04 | complete subjects, licenses/advisories, publisher signatures/attestations and independent verification |
 | formal/evidence claim boundary | F01–F03 | all required models/obligations/refinements pass under disclosed bounds and no broad proof claim |
@@ -4231,7 +4827,7 @@ and every certification receipt must bind R01 or a later fully recut replacement
 #### R02 — issue the signed release-authorization bundle
 
 **Status:** `OPEN`<br>
-**Depends on:** R00, R11 and every row in section 11.2<br>
+**Depends on:** R00, R10, R11 and every row in section 11.2<br>
 **Environment:** independent release adjudication, not a source edit<br>
 **Pre-release prerequisite:** the R10 playbook has a current passing exercise
 receipt.<br>
@@ -4435,7 +5031,7 @@ zenoh
 Update `README.md` from source/generators with: released/version badges linked to
 the exact release; two-minute simulation, plant and observer quick starts; package
 matrix and verification commands; architecture/session/security diagrams; stable
-identity values; supported platforms; 0.8 migration; six scoped consumer receipts;
+identity values; supported platforms; 0.8 migration; nine scoped role receipts;
 security/safety/science limitations; docs map; support/security contacts; citation
 and license. Remove candidate warnings only where the tag/publication makes them
 false; keep warnings about unnamed consumers, physical certification and
@@ -4479,7 +5075,8 @@ Ten-lens record:
 **Depends on:** R05, all consumer repositories available cleanly on authorized main
 branches<br>
 **Repositories:** Engram, Haldir, Galadriel, canonical Crebain, Prisoma; producer
-surface remains within canonical Crebain.
+surface remains within canonical Crebain. pid-rs is explicitly not an NCP consumer
+and receives no NCP pin.
 
 Implementation:
 
@@ -4499,7 +5096,7 @@ Implementation:
 - make one professional commit and push per repository, then run NCP's fleet pin
   checker against the exact roots and retain remote-ref receipts.
 
-Acceptance: all descriptors/manifests/locks/mirror/runtime identities agree; six
+Acceptance: all descriptors/manifests/locks/mirror/runtime identities agree; nine
 role receipts reference the tag/published hashes or a signed equivalence supplement;
 no consumer work lost. Suggested commit: `build: pin NCP v1.0.0 release artifacts`.
 
@@ -4511,7 +5108,8 @@ Ten-lens record:
 4. **L4:** coordinated locks/rollback and concurrent-repo refusal prevent partial
    hidden mutation.
 5. **L5:** lock/install/package resource bounds and scripts are controlled.
-6. **L6:** six consumers use the public immutable anchor without forks.
+6. **L6:** all five NCP consumer repositories and nine qualified roles use the
+   public immutable anchor without forks; pid-rs remains outside the NCP pin set.
 7. **L7:** stable pin changes no scientific status.
 8. **L8:** professional per-repo commits, clear PRs and recovery are provided.
 9. **L9:** full consumer tests and fleet checker receipts are retained.
@@ -4521,8 +5119,9 @@ Ten-lens record:
 
 **Status:** `OPEN`<br>
 **Depends on:** R06, R07; exact role receipt for each statement<br>
-**Repositories/GitHub:** Haldir, Galadriel, Crebain, Prisoma, public Engram placeholder,
-private implementation as authorized, and `sepahead/sepahead` profile source.
+**Repositories/GitHub:** Haldir, Galadriel, Crebain, Prisoma, pid-rs, public Engram
+placeholder, private implementation as authorized, and `sepahead/sepahead` profile
+source.
 
 The live GitHub metadata snapshot at 2026-07-15 showed:
 
@@ -4531,6 +5130,9 @@ The live GitHub metadata snapshot at 2026-07-15 showed:
 - Haldir's description is evidence-aware but it has no topics;
 - Galadriel, Crebain and Prisoma descriptions correctly preserve research/advisory
   scope and should not be replaced with production language;
+- pid-rs correctly documents a GitHub-only `0.9.0` source-review prerelease and a
+  standalone protocol-neutral boundary; consumption by Galadriel/Prisoma is not a
+  reason to add an NCP peer or authority claim;
 - public `sepahead/engram` is a computational-neuroscience placeholder, while the
   reviewed active implementation is private; do not expose private source or make
   the public placeholder look like its certified artifact;
@@ -4545,10 +5147,11 @@ final truth differs:
 
 | Repository | Target description |
 |---|---|
-| Haldir | `Experimental fail-closed NCP commander-side mission-authorization reference monitor: signed intents, deterministic policy, body-issued authority integration, and decision receipts. Rust; not production-ready or airworthy.` |
-| Galadriel | `Experimental read-only cross-sensor consistency monitor for NCP: NIS/CUSUM, signed correlation, and optional PID evidence. Safe Rust; synthetic/component evidence, not field validation.` |
+| Haldir | `Experimental fail-closed NCP commander-side mission-authorization reference monitor: signed intents, body-issued authority, receipts, and an optional deny-only Galadriel evidence receiver. Not production-ready or airworthy.` |
+| Galadriel | `Experimental cross-sensor consistency monitor: read-only NCP observation plus an optional deny-tightening Haldir advisory extension and PID evidence. Synthetic/component evidence, not field validation.` |
 | Crebain | `Research-only Tauri/React/Rust spatial-visualization, sensor-fusion, drone-simulation, and NCP reference-body prototype with ROS/Gazebo integration; not certified for deployment.` |
 | Prisoma | `Auditable experiment semantics and read-only NCP capture for intervention-grounded diagnosis of embodied policies; PID remains a gated optional diagnostic.` |
+| pid-rs | preserve the exact current release/source-review status; describe it as a standalone safe-Rust PID/MI estimator and run-log library, never an NCP peer or authority component |
 | public Engram placeholder | keep its public-placeholder description unless its own source is actually published; do not mention private certification as public code |
 | private Engram implementation | update only within authorized private visibility, naming its exact NCP simulation/commander role and non-reproduction boundary |
 
@@ -4557,8 +5160,9 @@ exists. Haldir may add `access-control`, `authorization`, `ncp`, `policy-engine`
 `reference-monitor`, `robotics`, `rust`, `security`, `signed-data`, `zenoh`.
 Galadriel may add `ncp`, `nis`, `cusum`, `read-only` to its existing topics.
 Crebain may add `ncp` and `cyber-physical-systems`; Prisoma may add `ncp`,
-`provenance`, `reproducible-research`. Keep existing accurate topics and remain
-under the GitHub limit.
+`provenance`, `reproducible-research`. Do not add `ncp` to pid-rs merely because
+consumer adapters use it; keep its estimator/information-theory topics. Keep
+existing accurate topics and remain under the GitHub limit.
 
 In the profile repository, edit only canonical `scripts/data.mjs` semantic source
 and any graph relationship source—not generated `README.md`, SVG cards, HTML,
@@ -4575,7 +5179,10 @@ The longer summary must name the packages and exact scope without saying every
 consumer/platform is certified. Update Haldir/Galadriel/Crebain/Prisoma summaries
 only with their exact role-receipt links and limitations. Keep the Engram card
 linked to the public repository and labelled placeholder until public source
-actually changes. Update the ecosystem graph edges/legend only after X03: distinguish
+actually changes. Add or update pid-rs in selected work only through the canonical
+profile source: Galadriel/Prisoma may point to it as an optional library dependency,
+while no edge points from pid-rs to NCP or an application. Update the ecosystem
+graph edges/legend only after X03: distinguish
 stable protocol, certified exact role, historical 0.8, advisory extension and
 intended/unqualified relationship by both text and shape; never label the whole
 ecosystem “production.”
@@ -4659,7 +5266,8 @@ Ten-lens record:
 #### R10 — execute rollback, withdrawal, revocation, and incident response
 
 **Status:** `OPEN` until exercised; incident instances have unique IDs<br>
-**Depends on:** none; invoked by any qualifying event<br>
+**Depends on for planned pre-release completion:** N10, F04; an actual qualifying
+incident invokes the response immediately regardless of DAG state<br>
 **Pre-release prerequisite:** document and exercise this response before R02.<br>
 
 Trigger on signing/private-key compromise, signature/admission bypass, authority
@@ -4689,8 +5297,8 @@ Response:
 7. patch as `1.0.x` only when stable-core meaning remains identical. If security or
    safety repair requires changing core semantics, use an explicit new major wire
    or terminating gateway; do not reinterpret 1.0;
-8. update all six consumer revocation/deny records and profile/public metadata with
-   exact impact; do not delete history;
+8. update all nine role revocation/deny records, affected pid-rs compatibility
+   receipts, and profile/public metadata with exact impact; do not delete history;
 9. perform root-cause, counterexample/vector/test/model additions and independent
    review before replacement; and
 10. publish a factual timeline, affected subjects, user actions, evidence limits and
@@ -4797,33 +5405,36 @@ release completion.
 
 ### 12.1 Triple-review and render receipt
 
-The review sequence began from pushed NCP commit
-`2f742144f959a592dfdba8bc87c35026576c00de`. Corrections found by each pass were
-applied to this living document and must be included in the exact final-tree gate.
-This receipt establishes blueprint quality only; it does not run or satisfy any
-NCP 1.0 implementation, formal, consumer, external or release gate.
+The original review sequence began from pushed NCP commit
+`2f742144f959a592dfdba8bc87c35026576c00de`. Its first complete clean-tree run
+exposed stale generated audit evidence and failed closed. The evidence was
+regenerated only through `scripts/generate_audit_artifacts.py --write`, reviewed,
+checked with the generator's hostile self-test, committed, and pushed. A second
+complete run then started clean at commit
+`fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree
+`89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, and exited zero.
 
-The first complete clean-tree run exposed stale generated audit evidence and
-failed closed. The evidence was regenerated only through
-`scripts/generate_audit_artifacts.py --write`, reviewed, checked with the
-generator's hostile self-test, committed, and pushed. A second complete run then
-started clean at commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree
-`89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, and exited zero. The final
-handoff-tree run was performed after this receipt and its generated audit evidence
-were updated. The containing Git commit ID and local/remote equality are reported
-outside this file because a commit cannot contain its own object ID without
-changing that ID.
+On 2026-07-16 this living document was materially extended with the machine-checked
+implementation ledger and provisional ADR-011 ecosystem topology. The earlier
+commit receipts remain valid only for their historical bytes. The current revision
+was reviewed again and is bound by B00 in
+[`task-ledger.v1.json`](../../evidence/implementation/task-ledger.v1.json). Its
+containing Git commit, complete current-tree gate, push, and remote-ref equality are
+recorded in that task's content-bound transition receipt and the external handoff;
+a commit cannot embed its own object ID without changing that ID. This section
+establishes blueprint and coordination-artifact quality only. It does not satisfy
+an NCP 1.0 protocol, formal, consumer, live-security, physical-safety, scientific,
+external, publication, or release gate.
 
 | Pass | Status | Exact local result |
 |---|---|---|
-| technical structure and cross-repository truth | `LOCAL_PASS` | 17 unique D01–D17 findings and 17/17 closure-map rows; 54 unique tasks; every task has status, acceptance and ten lenses; zero missing dependency IDs, cycles or forward level edges; R10 is intentionally event-triggered; archive SHA-256 rechecked; named local paths/remotes/roles and live GitHub metadata rechecked read-only |
-| security, safety, science and release claims | `LOCAL_PASS` | removed identifier ambiguity and nonexistent task reference; repaired ESTOP lease/admission and R03/R04 boundaries; current candidate remains `NO_GO`, external/formal work remains `NOT_RUN`; no positive current release/certification/perfection pattern; live RustSec, registry/package-name and GitHub conditional-metadata claims rechecked |
-| prose, Markdown and rendered document | `LOCAL_PASS` | `codespell 2.4.1` zero findings; `cspell 10.0.1` zero findings after a manually reviewed repository/protocol-name allowlist; `proselint 0.14.0` zero findings after disabling only code-syntax/typography, intentional TODO-marker, technical compound and ASCII-name rules; `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0` zero findings with line-length disabled for tables/digests, `<br>` allowed only for task metadata, and compact-table style accepted; candidate link/anchor checks pass; all 17 external references returned HTTP 200 |
-| browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` exposed one H1, 12 H2, 78 H3, 74 H4, 21 tables and 29 code blocks with no browser error; a pinned temporary `marked 18.0.6` + Playwright `1.61.0` audit render at 1440×1000 and 768×1200 had document scroll width equal to viewport, zero overflowing heading/paragraph/list/blockquote/code/table containers and zero console errors; top, architecture, DAG, release and progress samples were read visually with no overlap, clipping, missing glyph or illegible text |
+| technical structure and cross-repository truth | `LOCAL_PASS` | 17 unique D01–D17 findings and 17/17 closure-map rows; 56 unique dependency-ordered tasks; 9 exact intake repositories/worktrees including the protocol-neutral pid-rs boundary; 11 proposed ADRs; 9 distinct future NCP role receipts; every task has status, evidence floor, acceptance, rollback, residual risk, three perspectives and ten lenses; the hostile checker rejects missing repositories, optimistic status, stale hashes, invalid dependencies and insufficient evidence |
+| security, safety, science and release claims | `LOCAL_PASS` | the revision separates simulation-resource authority from body-issued plant authority, makes direct Engram and Haldir-gated command mutually exclusive, gives only Crebain body authority over handover, makes Galadriel-to-Haldir input deny-only, keeps pid-rs protocol-neutral, and preserves standalone modes; the candidate remains `NO_GO`, implementation and external/formal work remain open or `NOT_RUN`, and no local/model result is promoted to release, certification, physical safety, posterior calibration, paper reproduction, perfection or permanence |
+| prose and Markdown | `LOCAL_PASS` | `codespell 2.4.1`, `cspell 10.0.1`, `proselint 0.14.0`, `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0`, candidate-link/anchor checks, JSON parsing and `git diff --check` report zero current findings under the narrow reviewed technical-name/Markdown configuration recorded by B00; long lines remain allowed only where tables, commands or digests require them |
+| browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` and direct pinned Chrome-for-Testing `149.0.7827.55` inspection of a temporary `marked 18.0.6` render exposed one H1, 12 H2, 80 H3, 83 H4, 26 tables and 31 code blocks in the blueprint; Playwright `1.61.0-alpha-1781023400000` sampled blueprint topology/receipt, ledger tasks and the resumption boundary at 1440×1000 and 390×844 with document scroll width equal to viewport, all table/code overflow confined to labelled scroll containers, zero page/console errors and no observed overlap, clipping, missing glyph or illegible text |
 | generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 10 tracked generated protocol diagrams current; this is byte freshness only and does not close V01–V10 or claim release visual acceptance |
-| clean committed-tree `scripts/check.sh` | `LOCAL_PASS` | from clean commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree `89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, the command exited zero with `NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN`; this run included the refreshed 18-threat, 139-occurrence, 100-requirement retained audit evidence |
-| exact final handoff-tree `scripts/check.sh` | `LOCAL_PASS` | after the receipt text and generated audit evidence reached their final bytes, the complete command was rerun and exited zero with the same explicit local-pass/external-not-run banner; no guard was omitted, skipped, downgraded, or replaced by a focused check |
-| final professional commit, push and remote-ref equality | `LOCAL_PASS` | the exact handoff tree was committed with a professional message, pushed to `origin/main`, and checked so local `HEAD` equalled `refs/heads/main`; the externally delivered handoff records the containing commit ID because embedding it here would change it |
+| historical clean committed-tree `scripts/check.sh` | `LOCAL_PASS` | from clean commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree `89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, the command exited zero with `NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN`; this receipt is historical and does not cover the 2026-07-16 revision |
+| current revision gate, commit, push and remote-ref equality | `LOCAL_PASS` | B00's transition receipt binds the exact checked source/target commits, artifact digests, commands, local-only evidence class, professional push and remote-ref equality; the external handoff reports the containing ledger-status commit because embedding it here would change it; no protocol, consumer, formal, live-security, release or publication gate is inferred |
 
 The implementation task IDs will use prefixes `B` (bookkeeping/decisions), `N`
 (canonical NCP), `F` (formal/verification), `E` (Engram), `H` (Haldir), `C`

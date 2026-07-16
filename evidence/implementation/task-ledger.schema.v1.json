@@ -1,0 +1,906 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sepahead/NCP/evidence/implementation/task-ledger.schema.v1.json",
+  "title": "NCP 1.0 implementation task ledger",
+  "description": "Non-normative, release-ineligible evidence bookkeeping for the NCP 1.0 finalization DAG.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "claim_boundary",
+    "ledger_grants_release_authorization",
+    "blueprint",
+    "implementation_tools",
+    "defect_traceability",
+    "limits",
+    "perspective_mapping",
+    "lens_mapping",
+    "toolchain",
+    "repositories",
+    "tasks"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ncp.implementation-task-ledger.v1"
+    },
+    "claim_boundary": {
+      "$ref": "#/$defs/nonemptyString"
+    },
+    "ledger_grants_release_authorization": {
+      "const": false
+    },
+    "blueprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "const": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "implementation_tools": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "defect_traceability": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "task_ids",
+          "closure_rule"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^D(?:0[1-9]|1[0-7])$"
+          },
+          "task_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+            }
+          },
+          "closure_rule": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_file_bytes",
+        "max_depth",
+        "max_tasks",
+        "max_string_bytes",
+        "max_evidence_references",
+        "max_evidence_referenced_bytes"
+      ],
+      "properties": {
+        "max_file_bytes": {
+          "const": 2000000
+        },
+        "max_depth": {
+          "const": 32
+        },
+        "max_tasks": {
+          "const": 64
+        },
+        "max_string_bytes": {
+          "const": 4096
+        },
+        "max_evidence_references": {
+          "const": 1024
+        },
+        "max_evidence_referenced_bytes": {
+          "const": 536870912
+        }
+      }
+    },
+    "perspective_mapping": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/perspective"
+      }
+    },
+    "lens_mapping": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/lensMapping"
+      }
+    },
+    "toolchain": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/nonemptyString"
+          },
+          "version": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        }
+      }
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "$ref": "#/$defs/repository"
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 56,
+      "maxItems": 56,
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    }
+  },
+  "$defs": {
+    "nonemptyString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "status": {
+      "enum": [
+        "OPEN",
+        "IN_PROGRESS",
+        "BLOCKED",
+        "LOCAL_PASS",
+        "EXTERNAL_PASS",
+        "INDEPENDENT_PASS",
+        "COMPLETE"
+      ]
+    },
+    "perspective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "lens_ids",
+        "required_question"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "P1",
+            "P2",
+            "P3"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "lens_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^L(?:10|[1-9])$"
+          }
+        },
+        "required_question": {
+          "$ref": "#/$defs/nonemptyString"
+        }
+      }
+    },
+    "lensMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "max_effort_lenses",
+        "stricter_rule"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^L(?:10|[1-9])$"
+        },
+        "name": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "max_effort_lenses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^L(?:0[1-9]|1[0-9]|20)$"
+          }
+        },
+        "stricter_rule": {
+          "$ref": "#/$defs/nonemptyString"
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "remote",
+        "branch",
+        "head",
+        "tree",
+        "dirty",
+        "changed_paths",
+        "intake_disposition"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "remote": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "branch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "head": {
+          "$ref": "#/$defs/commit"
+        },
+        "tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "changed_paths": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "intake_disposition": {
+          "$ref": "#/$defs/nonemptyString"
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "disposition",
+        "rationale",
+        "reviewer"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 3
+        },
+        "disposition": {
+          "enum": [
+            "NOT_REVIEWED",
+            "PASS",
+            "FAIL",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "rationale": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "reviewer": {
+          "$ref": "#/$defs/nonemptyString"
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "role",
+        "independent",
+        "implementation_owner",
+        "decision"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "role": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "independent": {
+          "type": "boolean"
+        },
+        "implementation_owner": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "decision": {
+          "const": "PASS"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "exit_code",
+        "output_artifact",
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "properties": {
+        "command": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "exit_code": {
+          "type": "integer"
+        },
+        "output_artifact": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coordinationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_commit",
+        "source_tree",
+        "evidence",
+        "timestamp_utc"
+      ],
+      "properties": {
+        "kind": {
+          "const": "coordination"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "timestamp_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "passingReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "repository",
+        "branch",
+        "source_commit",
+        "source_tree",
+        "normative_digest_before",
+        "normative_digest_after",
+        "commands",
+        "artifacts",
+        "environment",
+        "toolchain",
+        "reviewers",
+        "external_gates_run",
+        "external_gates_not_run",
+        "residual_risks",
+        "rollback_or_recovery",
+        "commit",
+        "push_remote",
+        "push_ref",
+        "push_object_kind",
+        "pushed_object",
+        "remote_verification_artifact",
+        "remote_verified_at_utc",
+        "dependency_receipts",
+        "timestamp_utc"
+      ],
+      "properties": {
+        "kind": {
+          "const": "passing"
+        },
+        "repository": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "branch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "normative_digest_before": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "normative_digest_after": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "commands": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/command"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "environment": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "toolchain": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/nonemptyString"
+              },
+              "version": {
+                "$ref": "#/$defs/nonemptyString"
+              }
+            }
+          }
+        },
+        "reviewers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/reviewer"
+          }
+        },
+        "external_gates_run": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "external_gates_not_run": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "residual_risks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "rollback_or_recovery": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "push_remote": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "push_ref": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "push_object_kind": {
+          "enum": [
+            "branch",
+            "annotated_tag"
+          ]
+        },
+        "pushed_object": {
+          "$ref": "#/$defs/commit"
+        },
+        "remote_verification_artifact": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "remote_verified_at_utc": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "dependency_receipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_id",
+              "receipt_sha256"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string",
+                "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+              },
+              "receipt_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "timestamp_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "timestamp_utc",
+        "correlation_id",
+        "reason",
+        "receipt"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/status"
+        },
+        "to": {
+          "$ref": "#/$defs/status"
+        },
+        "timestamp_utc": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "reason": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/coordinationReceipt"
+            },
+            {
+              "$ref": "#/$defs/passingReceipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "status",
+        "claim_tier",
+        "minimum_terminal_class",
+        "dependencies",
+        "repository",
+        "source_commit",
+        "target_commit",
+        "dirty_state_disposition",
+        "changed_files",
+        "requirement_ids",
+        "adr_ids",
+        "perspective_reviews",
+        "ten_lens_reviews",
+        "commands",
+        "artifacts",
+        "reviewers",
+        "residual_risks",
+        "rollback_or_recovery",
+        "invalidates",
+        "transitions",
+        "reviewer_comment"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+        },
+        "title": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "claim_tier": {
+          "enum": [
+            "COORDINATION_ONLY",
+            "IMPLEMENTATION_ONLY",
+            "QUALIFICATION_REQUIRED",
+            "GOVERNANCE_OPERATION",
+            "RELEASE_OPERATION"
+          ]
+        },
+        "minimum_terminal_class": {
+          "enum": [
+            "LOCAL",
+            "EXTERNAL",
+            "INDEPENDENT"
+          ]
+        },
+        "dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+          }
+        },
+        "repository": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "source_commit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_commit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dirty_state_disposition": {
+          "enum": [
+            "NOT_EVALUATED",
+            "ACCEPTED_CLEAN",
+            "PRESERVED_DIRTY",
+            "REFUSED_DIRTY"
+          ]
+        },
+        "changed_files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "requirement_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "adr_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "perspective_reviews": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/review"
+          }
+        },
+        "ten_lens_reviews": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/review"
+          }
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/command"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reviewer"
+          }
+        },
+        "residual_risks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "rollback_or_recovery": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "invalidates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_id",
+              "receipt_sha256",
+              "reopen_correlation_id"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string",
+                "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+              },
+              "receipt_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "reopen_correlation_id": {
+                "$ref": "#/$defs/nonemptyString"
+              }
+            }
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        },
+        "reviewer_comment": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        }
+      }
+    }
+  }
+}

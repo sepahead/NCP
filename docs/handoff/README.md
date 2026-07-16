@@ -10,9 +10,19 @@ does not silently reinterpret the earlier standalone ledger.
 [`NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md`](NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md)
 is the living, non-normative implementation plan for resolving the candidate's
 remaining architecture decisions and migrating Engram, Haldir, Galadriel, Crebain,
-and Prisoma. Its task states require evidence receipts and do not close or replace
-either audit below, authorize publication, or turn a consumer worktree into
-installed interoperability evidence.
+Prisoma, and their one-way pid-rs library dependencies. pid-rs remains
+protocol-neutral and is not an NCP peer. The blueprint's task states require
+evidence receipts and do not close or replace either audit below, authorize
+publication, or turn a consumer worktree into installed interoperability evidence.
+
+Implementation status lives in the checked JSON
+[`task ledger`](../../evidence/implementation/task-ledger.v1.json). Its generated
+[`review view`](../implementation/NCP_1_0_TASK_LEDGER.md) and
+[`mandatory resumption brief`](../implementation/NCP_1_0_RESUMPTION.md) must be
+read before provider or consumer work resumes. These records preserve dependency,
+evidence-class, exact-receipt, stopped-worktree, and invalidation state; they still
+cannot authorize a tag, publication, runtime authority, physical safety, scientific
+claims, or external certification.
 
 ## Current max-effort handoff (schema 2.0)
 
@@ -136,7 +146,7 @@ it is review bookkeeping, not protocol evidence or a release gate.
 
 After exact-session ACL hardening, a second narrow invocation supplied only
 `scripts/check_acl_template.py`, `scripts/render_acl_template.py`, and
-`scripts/verify_acl_deployment.py`. It used the same exact-model, zero-tool,
+`scripts/verify_acl_deployment.py`. It used the same exact `claude-fable-5` model, zero-tool,
 zero-MCP, no-fallback policy and again exited with status 1 before advice. No
 finding was accepted. The owner-local failure receipt has SHA-256
 `cbf6578a94dcfd7e8e7c7e5457217a2bd6c48caccee8717dd6c9833f2e87ebcf`;

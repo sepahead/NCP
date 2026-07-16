@@ -22,6 +22,23 @@ artifact or live certification. Never infer migration from copied protocol files
 create a silent consumer-specific fork; update and verify the consumer's runtime,
 descriptor, fixtures, and transport behavior together.
 
+## Implementation coordination
+
+Before implementing any NCP 1.0 provider or consumer task, read the generated
+[`docs/implementation/NCP_1_0_RESUMPTION.md`](docs/implementation/NCP_1_0_RESUMPTION.md),
+the generated [`docs/implementation/NCP_1_0_TASK_LEDGER.md`](docs/implementation/NCP_1_0_TASK_LEDGER.md),
+and the complete
+[`docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md`](docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md).
+The JSON ledger is coordination and evidence bookkeeping, never runtime or release
+authority. Do not hand-edit either generated Markdown view.
+
+Start only a dependency-ready task. Reopening a passing task resets its evidence
+class and invalidates content-bound descendant receipts. A local result cannot
+satisfy an external or independent evidence floor. Retain exact command-output and
+artifact hashes, use one professional commit per coherent passing slice, push it,
+verify the remote object, and record the receipt without credentials or local
+absolute paths.
+
 ## Normative changes
 
 The precedence and complete source list are generated in
@@ -64,9 +81,11 @@ parity, exact mandatory manifest coverage, frozen candidate baseline, security a
 plant profiles, package archives, dependency policy, and Buf.
 
 External live mTLS/ACL/cert rotation/revocation, two installed independent non-Rust
-peers, fault/soak, duration fuzz/sanitizers, performance certification, signatures,
-SBOM/provenance, clean-room reproduction, and all six consumer certifications are
-distinct pre-release gates. Record them as **NOT RUN** until exact evidence exists.
+peers, fault/soak, duration fuzz/sanitizers, performance qualification, signatures,
+SBOM/provenance, clean-room reproduction, and all nine exact consumer/extension
+role qualifications are distinct pre-release gates. pid-rs is not an NCP peer and
+receives no NCP role receipt. Record every gate as **NOT RUN** until exact evidence
+exists.
 Publication follows those gates; post-publication install and emergency-revocation
 validations are a separate non-blocking phase.
 

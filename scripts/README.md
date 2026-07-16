@@ -8,6 +8,8 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | Script | Purpose |
 |---|---|
 | `check.sh` | complete local Rust/Python/C++/TypeScript/proto/schema/profile/package preflight; never release authorization |
+| `check_implementation_ledger.py [--self-test]` | validate the exact 56-task implementation DAG, current-generation evidence floors, content-addressed artifacts, dependency receipts, typed reopen invalidations, review independence, and no-release boundary |
+| `generate_implementation_ledger.py [--check\|--write]` | generate the reviewed task-ledger view and mandatory cross-repository resumption brief from the checked JSON source; never edit the generated Markdown directly |
 | `generate_contract_manifest.py [--write]` | exact normative source list and complete SHA-256 digest |
 | `generate_conformance_manifest.py [--write]` | mandatory vector inventory, clauses, applicability, source hashes, corpus digest |
 | `check_proto_schema_parity.py` | protobuf ↔ JSON Schema fields/types/enums |

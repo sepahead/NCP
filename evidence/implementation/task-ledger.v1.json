@@ -1,0 +1,2399 @@
+{
+  "blueprint": {
+    "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+    "sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5"
+  },
+  "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes; LOCAL_PASS cannot satisfy external or independent gates.",
+  "defect_traceability": [
+    {
+      "closure_rule": "Close only when distinct typed simulation and plant vectors plus live role tests pass.",
+      "id": "D01",
+      "task_ids": [
+        "N02",
+        "E02",
+        "C01"
+      ]
+    },
+    {
+      "closure_rule": "Close only when attach, grant, revoke, and observer non-authority negatives pass with authenticated principals.",
+      "id": "D02",
+      "task_ids": [
+        "N02",
+        "G01",
+        "G02",
+        "P01"
+      ]
+    },
+    {
+      "closure_rule": "Close only when declare, retire, exhaustion, restart vectors, and live stream traces pass.",
+      "id": "D03",
+      "task_ids": [
+        "N03",
+        "E03",
+        "C03",
+        "G02",
+        "P01"
+      ]
+    },
+    {
+      "closure_rule": "Close only when generated identity projections and independent exact-match and rejection results agree.",
+      "id": "D04",
+      "task_ids": [
+        "N01",
+        "N07",
+        "N08",
+        "X01"
+      ]
+    },
+    {
+      "closure_rule": "Close only when transcript-swap negatives and model-to-Rust refinement pass.",
+      "id": "D05",
+      "task_ids": [
+        "N02",
+        "N04",
+        "N08",
+        "F02"
+      ]
+    },
+    {
+      "closure_rule": "Close only when per-message actor and route provenance plus live rotation and revocation pass.",
+      "id": "D06",
+      "task_ids": [
+        "N04",
+        "N06",
+        "F04"
+      ]
+    },
+    {
+      "closure_rule": "Close only when body-issued dispositions, query and replay tests, and composed live traces pass.",
+      "id": "D07",
+      "task_ids": [
+        "N03",
+        "C02",
+        "C05",
+        "X02"
+      ]
+    },
+    {
+      "closure_rule": "Close only when acquire, conflict, transfer, expiry, restart, and multi-writer campaigns pass.",
+      "id": "D08",
+      "task_ids": [
+        "N03",
+        "E04",
+        "H02",
+        "C02",
+        "X02"
+      ]
+    },
+    {
+      "closure_rule": "Close only when the extension route is registered and disjoint, core-route rejection passes, and visuals are corrected.",
+      "id": "D09",
+      "task_ids": [
+        "B03",
+        "G01",
+        "C03",
+        "N10"
+      ]
+    },
+    {
+      "closure_rule": "Close only when the bypass is deleted and malformed and wrong-context ESTOP mutants fail at the latch boundary.",
+      "id": "D10",
+      "task_ids": [
+        "C01",
+        "C02",
+        "C05",
+        "F03"
+      ]
+    },
+    {
+      "closure_rule": "Close only when missingness mapping and independent statistical and scientific claim review pass.",
+      "id": "D11",
+      "task_ids": [
+        "E05",
+        "P02",
+        "P03"
+      ]
+    },
+    {
+      "closure_rule": "Close only when bounded models, witnesses, refinement, and mutation evidence are retained and reviewed.",
+      "id": "D12",
+      "task_ids": [
+        "F01",
+        "F02",
+        "F03"
+      ]
+    },
+    {
+      "closure_rule": "Close only when names are owned, clean installs and advisory resolution pass, and SBOM and publication receipts exist.",
+      "id": "D13",
+      "task_ids": [
+        "B03",
+        "N09",
+        "X04",
+        "R05"
+      ]
+    },
+    {
+      "closure_rule": "Close only when current surfaces are regenerated and frozen 0.8 byte identity remains unchanged.",
+      "id": "D14",
+      "task_ids": [
+        "N07",
+        "N08",
+        "N10"
+      ]
+    },
+    {
+      "closure_rule": "Close only when body-issued authority lifecycle and live distributed transition evidence pass.",
+      "id": "D15",
+      "task_ids": [
+        "N03",
+        "E04",
+        "H02",
+        "C02"
+      ]
+    },
+    {
+      "closure_rule": "Close only when semantic public-trust projection and live rebind and revoke tests pass.",
+      "id": "D16",
+      "task_ids": [
+        "N04",
+        "N06",
+        "F04"
+      ]
+    },
+    {
+      "closure_rule": "Close only when release identity is accepted and external exact-subject authorization passes.",
+      "id": "D17",
+      "task_ids": [
+        "B01",
+        "R01",
+        "R02"
+      ]
+    }
+  ],
+  "implementation_tools": [
+    {
+      "path": "scripts/check_implementation_ledger.py",
+      "sha256": "1beca294c42e9cf47e5e71d6ffb2964912bc2fbe8e34385a5d943c417b7fa17a"
+    },
+    {
+      "path": "scripts/generate_implementation_ledger.py",
+      "sha256": "d697485c4221af458fdec0b2b03bd315e3b9d6109fd33e04e84d4ef85f91848c"
+    },
+    {
+      "path": "evidence/implementation/task-ledger.schema.v1.json",
+      "sha256": "a6b5cebd28e2acf05ee4626b4349c72eb96bf32f5200573c1647bedc3e934baa"
+    }
+  ],
+  "ledger_grants_release_authorization": false,
+  "lens_mapping": [
+    {
+      "id": "L1",
+      "max_effort_lenses": [
+        "L02",
+        "L04",
+        "L13",
+        "L14"
+      ],
+      "name": "Contract and semantics",
+      "stricter_rule": "Both taxonomies must pass; disagreement across prose, types, schemas, wire, generated packages, or SemVer remains a failure."
+    },
+    {
+      "id": "L2",
+      "max_effort_lenses": [
+        "L06",
+        "L07",
+        "L08",
+        "L09"
+      ],
+      "name": "Security and authority",
+      "stricter_rule": "Identity, provenance, cryptography, authority, safety, and hostile-parser obligations all apply; an unknown or missing value grants nothing."
+    },
+    {
+      "id": "L3",
+      "max_effort_lenses": [
+        "L08",
+        "L11",
+        "L19",
+        "L20"
+      ],
+      "name": "Safety and plant boundary",
+      "stricter_rule": "Authority, lifecycle, human recovery, and counterfactual hazard review all pass; protocol ESTOP never becomes physical certification."
+    },
+    {
+      "id": "L4",
+      "max_effort_lenses": [
+        "L05",
+        "L11",
+        "L12",
+        "L18"
+      ],
+      "name": "Distributed systems",
+      "stricter_rule": "Ordering, replay, lifecycle, determinism, and ecosystem composition all pass across loss, partition, restart, concurrency, and partial commit."
+    },
+    {
+      "id": "L5",
+      "max_effort_lenses": [
+        "L09",
+        "L10",
+        "L15"
+      ],
+      "name": "Resource and real-time bounds",
+      "stricter_rule": "Parser, resource, deployment, queue, deadline, storage, and overload bounds are explicit before allocation and fail closed."
+    },
+    {
+      "id": "L6",
+      "max_effort_lenses": [
+        "L12",
+        "L13",
+        "L14",
+        "L18"
+      ],
+      "name": "Interoperability and migration",
+      "stricter_rule": "Reproducibility, API/FFI/SemVer, wire parity, and composition all pass in independent installed implementations without silent translation."
+    },
+    {
+      "id": "L7",
+      "max_effort_lenses": [
+        "L01",
+        "L03",
+        "L06",
+        "L17"
+      ],
+      "name": "Science and statistics",
+      "stricter_rule": "Claim scope, estimand/statistics, provenance, and evidence quality all pass; missing variables and simulations cannot be promoted."
+    },
+    {
+      "id": "L8",
+      "max_effort_lenses": [
+        "L13",
+        "L15",
+        "L16",
+        "L19"
+      ],
+      "name": "Implementation and operations",
+      "stricter_rule": "APIs, deployment, observability, recovery, accessibility, and human governance are executable and hard to misuse."
+    },
+    {
+      "id": "L9",
+      "max_effort_lenses": [
+        "L03",
+        "L12",
+        "L17",
+        "L20"
+      ],
+      "name": "Verification and evidence",
+      "stricter_rule": "Mathematical, reproducibility, evidence-quality, negative, and counterfactual obligations all pass at their stated abstraction only."
+    },
+    {
+      "id": "L10",
+      "max_effort_lenses": [
+        "L01",
+        "L06",
+        "L16",
+        "L18",
+        "L19"
+      ],
+      "name": "Lifecycle and governance",
+      "stricter_rule": "Claims, provenance, forensics, ecosystem ownership, human governance, revocation, support, and succession are explicit and current."
+    }
+  ],
+  "limits": {
+    "max_depth": 32,
+    "max_evidence_referenced_bytes": 536870912,
+    "max_evidence_references": 1024,
+    "max_file_bytes": 2000000,
+    "max_string_bytes": 4096,
+    "max_tasks": 64
+  },
+  "perspective_mapping": [
+    {
+      "id": "P1",
+      "lens_ids": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "name": "Protocol and security correctness",
+      "required_question": "Does the change preserve exact semantics, verified identity and authority, fail-closed behavior, and the plant safety boundary under hostile or ambiguous input?"
+    },
+    {
+      "id": "P2",
+      "lens_ids": [
+        "L4",
+        "L5",
+        "L6",
+        "L8"
+      ],
+      "name": "Consumer and runtime usability",
+      "required_question": "Can independent consumers implement, operate, observe, recover, migrate, and bound the behavior without private forks or unsafe defaults?"
+    },
+    {
+      "id": "P3",
+      "lens_ids": [
+        "L5",
+        "L7",
+        "L9",
+        "L10"
+      ],
+      "name": "Operational and scientific evidence",
+      "required_question": "Do retained evidence, statistics, non-claims, independent review, release governance, and lifecycle ownership justify exactly the stated status?"
+    }
+  ],
+  "repositories": [
+    {
+      "branch": "main",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "6e82783667554b8d8b433261e6b8ae588e94d89f",
+      "intake_disposition": "Clean provider intake at 6e82783667554b8d8b433261e6b8ae588e94d89f; B00 owns only the listed ledger, generated-view, instruction, and gate-wiring paths.",
+      "name": "NCP",
+      "remote": "git@github.com:sepahead/NCP.git",
+      "tree": "cbb9153e5499990851cf3754f5316297b1df1bb1"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 168,
+      "dirty": true,
+      "head": "92853d2fe6e8ced7e98e2f272a34bfc0067dce57",
+      "intake_disposition": "Preserve all 168 stopped-agent paths; do not stage, reset, clean, or bulk-format them during provider work.",
+      "name": "Engram / Paper2Brain",
+      "remote": "git@github.com:sepahead/Paper2Brain.git",
+      "tree": "1625378dcd2212be47014e3591b21958fc9935ab"
+    },
+    {
+      "branch": "wip/current-file-review-ledger",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "bb6c0a7b27bbc57fe9935f80e22d06ca3b60e8ba",
+      "intake_disposition": "Clean stopped-agent branch; do not change it before its dependency-ready H01 intake.",
+      "name": "Haldir",
+      "remote": "git@github.com:sepahead/haldir.git",
+      "tree": "2b472937b39346bd54c2d87ba8b2663f5cafc516"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "f541f3eda7cfdc81a3277c3d6fecc91245179f24",
+      "intake_disposition": "Clean main baseline; do not change it before dependency-ready G01.",
+      "name": "Galadriel",
+      "remote": "git@github.com:sepahead/galadriel.git",
+      "tree": "47aa9b75e988deb8e6f7e290365987a81db1fe9d"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "3e3ee5d0b75269b8f5f634485871069c89a9a474",
+      "intake_disposition": "Clean canonical body baseline; keep separate from the producer worktree.",
+      "name": "Crebain",
+      "remote": "https://github.com/sepahead/crebain.git",
+      "tree": "4be236496ef5ae8cf1574143a984bd8d81417b81"
+    },
+    {
+      "branch": "feat/galadriel-integration-refresh",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "113ee70d5660daf90bb373bd7857d4b3f2f56784",
+      "intake_disposition": "Clean feature worktree; reconcile only in C04 after canonical C01-C03.",
+      "name": "Crebain Galadriel producer",
+      "remote": "https://github.com/sepahead/crebain.git",
+      "tree": "55eb96da6d98e65f89b6b84fbb81ee8f53f6cde0"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "b0185d98aea8bb6512926d9a8365ba8140fd07c0",
+      "intake_disposition": "Clean main baseline; preserve v0.8 history while adding a parallel 1.0 observer.",
+      "name": "Prisoma",
+      "remote": "https://github.com/sepahead/prisoma",
+      "tree": "0d7287deb631b6f6c587d2b3aae9a9e7e56dbcbe"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "1410c8808f1b4e51c76fef395360976e715d2df6",
+      "intake_disposition": "Clean standalone estimator/run-log baseline; preserve its protocol-neutral dependency direction and refresh consumer pins only in dependency-ready Galadriel/Prisoma tasks.",
+      "name": "pid-rs",
+      "remote": "git@github.com:sepahead/pid-rs.git",
+      "tree": "516a2c9564946fbfa6f3d45788fa2afcf90a632f"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 2,
+      "dirty": true,
+      "head": "80a5c1d5af3a7b85d2a683921dd31e2bdf0406ce",
+      "intake_disposition": "Preserve the two unrelated untracked tool directories; edit only canonical sources when R08 is evidence-ready.",
+      "name": "sepahead profile",
+      "remote": "https://github.com/sepahead/sepahead.git",
+      "tree": "ed84f1da473e05958ae24987d8bff5f977037965"
+    }
+  ],
+  "schema": "ncp.implementation-task-ledger.v1",
+  "tasks": [
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [
+        ".gitignore",
+        "AGENTS.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+        "docs/handoff/README.md",
+        "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+        "docs/implementation/NCP_1_0_RESUMPTION.md",
+        "evidence/implementation/task-ledger.schema.v1.json",
+        "evidence/implementation/task-ledger.v1.json",
+        "scripts/README.md",
+        "scripts/check.sh",
+        "scripts/check_implementation_ledger.py",
+        "scripts/generate_implementation_ledger.py"
+      ],
+      "claim_tier": "COORDINATION_ONLY",
+      "commands": [],
+      "dependencies": [],
+      "dirty_state_disposition": "ACCEPTED_CLEAN",
+      "id": "B00",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "P1",
+          "rationale": "Perspective review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "P2",
+          "rationale": "Perspective review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "P3",
+          "rationale": "Perspective review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        }
+      ],
+      "repository": "NCP",
+      "requirement_ids": [
+        "B00-ledger-integrity",
+        "B00-no-optimistic-status",
+        "B00-resumption-control",
+        "B00-current-generation-evidence",
+        "B00-content-bound-receipts"
+      ],
+      "residual_risks": [
+        "B00 is in progress; no task has local, external, independent, or complete evidence.",
+        "All protocol, consumer, formal, live-security, release, publication, and certification gates remain open or not run."
+      ],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Revert only the eventual coherent B00 commits if the ledger gate is defective; preserve the pushed audit baseline and every consumer worktree.",
+      "source_commit": "6e82783667554b8d8b433261e6b8ae588e94d89f",
+      "status": "IN_PROGRESS",
+      "target_commit": null,
+      "ten_lens_reviews": [
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L1",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L2",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L3",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L4",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L5",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L6",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L7",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L8",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L9",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        },
+        {
+          "disposition": "NOT_REVIEWED",
+          "id": "L10",
+          "rationale": "Ten-lens review remains pending retained acceptance evidence.",
+          "reviewer": "primary implementation agent"
+        }
+      ],
+      "title": "Create the live implementation and evidence ledger",
+      "transitions": [
+        {
+          "correlation_id": "ncp-v1-finalization-20260716-b00",
+          "from": "OPEN",
+          "reason": "Create the missing machine-checkable evidence ledger and mandatory stopped-agent resumption control before implementation.",
+          "receipt": null,
+          "timestamp_utc": "2026-07-16T05:56:27Z",
+          "to": "IN_PROGRESS"
+        }
+      ]
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "COORDINATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B00"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "B04",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP prototypes",
+      "requirement_ids": [
+        "B04-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Prove authenticated-ingress and independent-parser feasibility",
+      "transitions": []
+    },
+    {
+      "adr_ids": [
+        "ADR-001",
+        "ADR-002",
+        "ADR-003",
+        "ADR-004",
+        "ADR-005",
+        "ADR-006",
+        "ADR-007",
+        "ADR-008",
+        "ADR-009",
+        "ADR-010",
+        "ADR-011"
+      ],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "COORDINATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B00",
+        "B04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "B01",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "B01-acceptance",
+        "D17"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Decide and ratify ADR-001 through ADR-011",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "COORDINATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "B02",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "B02-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Authorize and identify the deliberate pre-release rebaseline",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "COORDINATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "B03",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "B03-acceptance",
+        "D09",
+        "D13"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Reserve registries, namespaces, error codes, and owners",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B02",
+        "B03"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N01-acceptance",
+        "D04"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Establish the single normative source graph and identity projections",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N02-acceptance",
+        "D01",
+        "D02",
+        "D05"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement typed simulation, plant, and observer session lifecycles",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N01",
+        "N02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N03",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N03-acceptance",
+        "D03",
+        "D07",
+        "D08",
+        "D15"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement declared streams, domain-separated authority, and command disposition",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B01",
+        "N01",
+        "N02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N04",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N04-acceptance",
+        "D05",
+        "D06",
+        "D16"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement the production authenticated envelope and semantic security state",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "N02",
+        "N03",
+        "N04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "X00",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "independent draft-peer environment",
+      "requirement_ids": [
+        "X00-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Prototype an early independent non-Rust draft peer",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N02",
+        "N03",
+        "N04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N05",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N05-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Refactor critical Rust behavior into pure checked transition cores",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N04",
+        "N05"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N06",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N06-acceptance",
+        "D06",
+        "D16"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Integrate security and state machines into Zenoh without trusting callbacks",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N05",
+        "N06",
+        "X00"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N07",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N07-acceptance",
+        "D04",
+        "D14"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Regenerate and harden all supported language and package surfaces",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N02",
+        "N03",
+        "N04",
+        "N07"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N08",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N08-acceptance",
+        "D04",
+        "D05",
+        "D14"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Rebuild conformance, behavior, migration, and fixture coverage",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N06",
+        "N07"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N09",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N09-acceptance",
+        "D13"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Remove supply-chain and package-identity release blockers",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06",
+        "N07",
+        "N08",
+        "N09"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "N10",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "N10-acceptance",
+        "D09",
+        "D14"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Rewrite normative and user documentation and regenerate visuals",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N02",
+        "N03",
+        "N04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "F01",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "F01-acceptance",
+        "D12"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement and independently review the TLA+ model suite",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N01",
+        "N05",
+        "F01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "F02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "F02-acceptance",
+        "D05",
+        "D12"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement SMT, Kani, and model-to-Rust refinement checks",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N07",
+        "N08",
+        "F02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "F03",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "F03-acceptance",
+        "D10",
+        "D12"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement differential, property, fuzz, sanitizer, and mutation campaigns",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N10",
+        "F03"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "R01-acceptance",
+        "D17"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Create the final untagged 1.0.0 source cut and publication machinery",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "GOVERNANCE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "N10"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R11",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "NCP and ecosystem governance",
+      "requirement_ids": [
+        "R11-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Establish durable 1.0 stewardship without pretending software is eternal",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N07",
+        "N08",
+        "N09",
+        "R01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "E01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Engram",
+      "requirement_ids": [
+        "E01-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Establish Engram's clean native-1.0 integration baseline",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N07",
+        "N08",
+        "N09",
+        "R01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "H01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Haldir",
+      "requirement_ids": [
+        "H01-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Add a parallel haldir-ncp10 adapter without mutating v0.8 history",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B03",
+        "N07",
+        "N08",
+        "N09",
+        "R01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "G01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Galadriel",
+      "requirement_ids": [
+        "G01-acceptance",
+        "D02",
+        "D09"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Create Galadriel's native-1.0 observer and extension adapter",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N07",
+        "N08",
+        "N09",
+        "R01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "C01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Crebain",
+      "requirement_ids": [
+        "C01-acceptance",
+        "D01",
+        "D10"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Create Crebain's separate native-1.0 plant adapter and exact pins",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "N07",
+        "N08",
+        "N09",
+        "R01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "P01",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Prisoma",
+      "requirement_ids": [
+        "P01-acceptance",
+        "D02",
+        "D03"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Add a parallel native-1.0 Prisoma observer",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "E01",
+        "N02",
+        "N07"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "E02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Engram",
+      "requirement_ids": [
+        "E02-acceptance",
+        "D01"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Split Engram's simulation responder from plant commander types",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "H01",
+        "N03",
+        "G01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "H02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Haldir",
+      "requirement_ids": [
+        "H02-acceptance",
+        "D08",
+        "D15"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Integrate body-issued authority and dispositions into Haldir Gate",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "G01",
+        "N04",
+        "N06"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "G02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Galadriel",
+      "requirement_ids": [
+        "G02-acceptance",
+        "D02",
+        "D03"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Bind Galadriel lifecycle and monitoring to authenticated observer state",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "C01",
+        "N03",
+        "N04",
+        "N05",
+        "N06"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "C02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Crebain",
+      "requirement_ids": [
+        "C02-acceptance",
+        "D07",
+        "D08",
+        "D10",
+        "D15"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement Crebain as body-issued authority and disposition source",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "P01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "P02",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Prisoma",
+      "requirement_ids": [
+        "P02-acceptance",
+        "D11"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Preserve missing-variable and research-claim semantics in native capture",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "E02",
+        "N04",
+        "N06"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "E03",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Engram",
+      "requirement_ids": [
+        "E03-acceptance",
+        "D03"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement Engram's authenticated transport and declared streams",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "C02",
+        "G01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "C03",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Crebain",
+      "requirement_ids": [
+        "C03-acceptance",
+        "D03",
+        "D09"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Migrate Crebain sensor and Galadriel-extension publication",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "E02",
+        "E03",
+        "N03",
+        "C02",
+        "H01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "E04",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Engram",
+      "requirement_ids": [
+        "E04-acceptance",
+        "D08",
+        "D15"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement Engram direct and Haldir-gated plant integration",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "C01",
+        "C02",
+        "C03"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "C04",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Crebain and producer worktree",
+      "requirement_ids": [
+        "C04-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Reconcile and retire the separate Galadriel-producer work branch",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "N07",
+        "N08",
+        "E03",
+        "X00"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "X01",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "independent peer lab",
+      "requirement_ids": [
+        "X01-acceptance",
+        "D04"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Qualify two genuinely independent installed non-Rust peers",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "E04",
+        "H02",
+        "G02",
+        "C03",
+        "C04",
+        "P02",
+        "X01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "X02",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "isolated ecosystem lab",
+      "requirement_ids": [
+        "X02-acceptance",
+        "D07",
+        "D08"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Run the composed ecosystem and multi-writer campaign",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "E01",
+        "E02",
+        "E03",
+        "E04",
+        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "E05",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "Engram certification environment",
+      "requirement_ids": [
+        "E05-acceptance",
+        "D11"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Certify Engram's exact installed native-1.0 artifact",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "H02",
+        "C02",
+        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "H03",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "Haldir certification environment",
+      "requirement_ids": [
+        "H03-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Qualify Haldir's secure commander and deny-only receiver roles",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "G01",
+        "G02",
+        "C03",
+        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "G03",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "Galadriel certification environment",
+      "requirement_ids": [
+        "G03-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Qualify Galadriel's installed observer and deny-only assessor roles",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "P01",
+        "P02",
+        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "P03",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "Prisoma certification environment",
+      "requirement_ids": [
+        "P03-acceptance",
+        "D11"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Migrate the fault observatory and certify Prisoma's observer role",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "F03",
+        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "F04",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "cross-ecosystem lab",
+      "requirement_ids": [
+        "F04-acceptance",
+        "D06",
+        "D16"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Execute the live security, fault, soak, rotation, and revocation campaign",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "C02",
+        "C03",
+        "C04",
+        "E05",
+        "H03",
+        "G03",
+        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "C05",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "Crebain certification environment",
+      "requirement_ids": [
+        "C05-acceptance",
+        "D07",
+        "D10"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Certify Crebain body and producer integration separately",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "E05",
+        "H03",
+        "G03",
+        "C05",
+        "P03",
+        "X02",
+        "F04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "X03",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "cross-ecosystem adjudication",
+      "requirement_ids": [
+        "X03-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Issue nine exact consumer and extension role qualification receipts",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "X03",
+        "N09"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "X04",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "independent clean builders",
+      "requirement_ids": [
+        "X04-acceptance",
+        "D13"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Reproduce the provider and ecosystem from clean rooms",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "N10",
+        "F04",
+        "X03",
+        "X04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "F05",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "cross-ecosystem lab",
+      "requirement_ids": [
+        "F05-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Execute release-bound performance, resource, and final visual campaigns",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "N10",
+        "R01",
+        "X03",
+        "X04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R00",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "NCP",
+      "requirement_ids": [
+        "R00-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Hand the qualified candidate to the release runbook",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "GOVERNANCE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "N10",
+        "F04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R10",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "incident-response exercise",
+      "requirement_ids": [
+        "R10-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Execute rollback, withdrawal, revocation, and incident response",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R00",
+        "R10",
+        "R11"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R02",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "independent release adjudication",
+      "requirement_ids": [
+        "R02-acceptance",
+        "D17"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Issue the signed release-authorization bundle",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R03",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "NCP release environment",
+      "requirement_ids": [
+        "R03-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Create and verify the immutable signed tag and draft GitHub Release",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R03"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R04",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "protected release builders",
+      "requirement_ids": [
+        "R04-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Build, compare, sign, attest, and stage final artifacts",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R05",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "protected publication environment",
+      "requirement_ids": [
+        "R05-acceptance",
+        "D13"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Publish exact registry artifacts and the GitHub Release",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R05"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R06",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "NCP and GitHub",
+      "requirement_ids": [
+        "R06-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Update NCP README, GitHub description, topics, and repository controls",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R05"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R07",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "all consumer repositories",
+      "requirement_ids": [
+        "R07-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Repin and revalidate every consumer against the immutable tag",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R06",
+        "R07"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R08",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "ecosystem GitHub and profile",
+      "requirement_ids": [
+        "R08-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Update ecosystem repository metadata and the public selected-work profile",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "RELEASE_OPERATION",
+      "commands": [],
+      "dependencies": [
+        "R05"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "R09",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "public install hosts and revocation lab",
+      "requirement_ids": [
+        "R09-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Run post-publication installs and emergency-revocation exercise",
+      "transitions": []
+    }
+  ],
+  "toolchain": [
+    {
+      "name": "rustc",
+      "version": "1.96.0 (ac68faa20 2026-05-25)"
+    },
+    {
+      "name": "cargo",
+      "version": "1.96.0 (30a34c682 2026-05-25)"
+    },
+    {
+      "name": "Python",
+      "version": "3.14.6"
+    },
+    {
+      "name": "Bun",
+      "version": "1.3.14"
+    },
+    {
+      "name": "npm",
+      "version": "11.16.0"
+    },
+    {
+      "name": "Buf",
+      "version": "1.71.0"
+    },
+    {
+      "name": "Git",
+      "version": "2.50.1 (Apple Git-155)"
+    },
+    {
+      "name": "cargo-deny",
+      "version": "0.19.9"
+    }
+  ]
+}
