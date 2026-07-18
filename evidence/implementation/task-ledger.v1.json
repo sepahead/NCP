@@ -1,7 +1,7 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5"
+    "sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122"
   },
   "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes; LOCAL_PASS cannot satisfy external or independent gates.",
   "defect_traceability": [
@@ -1385,7 +1385,9 @@
         "evidence/audit/manifest.v1.json",
         "evidence/implementation/task-ledger.v1.json",
         "evidence/implementation/working/B01/preliminary-architecture-541e1e7.log.gz",
-        "evidence/implementation/working/B01/preliminary-architecture-541e1e7.v1.json"
+        "evidence/implementation/working/B01/preliminary-architecture-541e1e7.v1.json",
+        "evidence/implementation/working/B01/preliminary-architecture-8194195.log.gz",
+        "evidence/implementation/working/B01/preliminary-architecture-8194195.v1.json"
       ],
       "claim_tier": "COORDINATION_ONLY",
       "commands": [],
@@ -1423,13 +1425,13 @@
         "All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.",
         "The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.",
         "Wire examples remain draft JSON only. Independent Python/Node syntax replay and the exact clean-source preliminary model/resource run pass, but the retained result is bounded non-passing working evidence; canonical formal work, refinement, and every downstream implementation remain open.",
-        "Four usable exact Fable 5 consultations are non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
+        "Five usable exact Fable 5 consultations are non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
         "The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked."
       ],
-      "reviewer_comment": "The hardened preliminary probe source is pushed and remote-verified at `541e1e775537b8d83dd95d0bd1ea6df86d3312f5`. Its exact clean-source run bound tree `33286266778b3849e5239568146243db0251f843`, the unchanged normative digest `9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90`, the exact contract-manifest file, Z3 binary, 13 prototype sources, Git cleanliness, and the fourth exact `claude-fable-5` response. It explored 11,444 composition states and 35 deny states, killed all 17 registered model and four SMT mutations, passed nine SMT checks, and detected the registered queue/parser/journal/real-Ed25519 faults. The raw exact-source log SHA-256 is `ed9fe6be348a8025d7fd8712b24208ba3e2432b8134056e4383ca56dfa0cac30`; its retained deterministic gzip SHA-256 is `3aaaf4384afe267290de3961704b74ccf0e5dbd62c83f719f31c5a856941ffbe`, and the canonical retained result SHA-256 is `e42f4b89d679102f8101c248d9882cf591f307937eb2380a5eeac375b40ecde4`. These files are non-passing working evidence: current commands, artifacts, and reviewers remain empty, every ADR remains PROPOSED, and B01 stays IN_PROGRESS. Next obtain qualifying same-digest owner and independent reviews. Do not create the normative registry, alter ADR bytes or wire sources, start B02/B03/F01/N tasks, or infer release readiness.",
+      "reviewer_comment": "The strengthened preliminary probe source is pushed and remote-verified at `81941954f33078aa6a8dd85d70e392aae5469246`. Its exact clean-source run bound tree `dc2c433e5e09cce9f03e981d9cbed44f84e72d00`, the unchanged normative digest `9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90`, the exact contract-manifest file, Z3 binary, 13 prototype sources, Git cleanliness, and the fifth exact `claude-fable-5` response. It explored 11,444 composition states, 35 deny states, and 1,415 complete wire-cutover states; killed all 23 registered model and four SMT mutations; passed eleven SMT checks; and detected the registered queue/parser/journal/real-Ed25519 faults. ADR-008 is proposed at SHA-256 `1379477feebd886823d1511af5df0b7a7019795aef9ee8023147a4ef0a5f56b6` and ADR-011 at `96d243fd41868a70fc00c0f309a5f87e0058f6fce5308e2c98d147e18f76421f`. The raw exact-source log SHA-256 is `08ba5c52a42b505eb409734b218cf793380778c2f44cc9d151589e2364222c94`; its retained deterministic gzip SHA-256 is `eb885f3c430e41f3386a860fc9cd74e23b4a1244ed94d03db281d7565d371603`, and the canonical retained result SHA-256 is `3f140dad12147500048644899f69893c1dd985d0001c900ec66b18143be51fe7`. The earlier `541e1e7` working result is superseded by changed ADR/prototype bytes and grants no evidence. All retained files remain non-passing working evidence: current commands, artifacts, and reviewers remain empty, every ADR remains PROPOSED, and B01 stays IN_PROGRESS. Next publish the exact review packet and obtain qualifying same-digest owner and independent reviews. Do not create the normative registry, alter ADR bytes or wire sources, start B02/B03/F01/N tasks, or infer release readiness.",
       "reviewers": [],
       "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
-      "source_commit": "541e1e775537b8d83dd95d0bd1ea6df86d3312f5",
+      "source_commit": "81941954f33078aa6a8dd85d70e392aae5469246",
       "status": "IN_PROGRESS",
       "target_commit": null,
       "ten_lens_reviews": [],
