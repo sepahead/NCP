@@ -5,6 +5,11 @@ Every decision remains **PROPOSED**. None of these documents changes the current
 unreleased, release-blocked `1.0.0-rc.1` normative contract, compact proto hash,
 runtime authority, release status, or external evidence state.
 
+Human reviewers should use the exact identities, evidence links, counterexample
+focus, and response template in the
+[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md). The packet requests review; it is
+not itself a review or acceptance record.
+
 The current candidate remains wire `1.0` with compact proto contract hash
 `163acc57d8a62b66`. The immutable `v0.8.0` release remains a different wire and
 is not edited or silently translated by these records.
