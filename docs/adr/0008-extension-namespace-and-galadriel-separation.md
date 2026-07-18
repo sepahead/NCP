@@ -4,7 +4,8 @@
 - Task: `B01`
 - Candidate: unreleased, release-blocked `1.0.0-rc.1`
 - Normative effect while proposed: none
-- Required reviewers: protocol reviewer, Galadriel owner, Crebain owner
+- Required reviewers: protocol reviewer, Galadriel owner, Haldir owner, Crebain
+  owner
 
 ## Context
 
@@ -99,6 +100,13 @@ Assessment:
 
 `ABSENT -> RECEIVED -> VERIFIED -> RECORDED/APPLIED_DENY -> EXPIRED/RETRACTED`.
 
+Haldir returns an authenticated, bounded disposition for every verified
+assessment. The disposition binds the assessor principal, assessment sequence
+and digest, receiver policy revision, and exactly one closed outcome:
+`RECEIVED_REJECTED`, `RECORDED`, or `APPLIED_DENY`. Retry and deduplication use
+that identity; a missing disposition never lets Galadriel infer that a deny was
+applied. A disposition grants no NCP authority and cannot encode `ALLOW`.
+
 Per-message meet-only semantics are insufficient across lifecycle changes.
 Permission widening caused by deny retraction, expiry, assessment-mode disable,
 base-policy widening, or restart reconstruction requires an explicit
@@ -111,7 +119,9 @@ declared absence policy and cannot silently erase a deny into a new ALLOW.
 Manifest bytes, schema bytes, payload bytes, extension count, sequences, TTL,
 queue depth, CPU budget, log volume, and retained gaps are finite. Control/action
 capacity is reserved independently. Unknown extension bytes are rejected before
-semantic allocation.
+semantic allocation. Assessment and disposition rates, queues, retry windows,
+and overflow behavior are bounded; overflow produces an explicit gap or rejected
+outcome rather than an inferred applied deny.
 
 ## Threat and hazard analysis
 
@@ -129,6 +139,8 @@ deny-new-missions absence policy without creating permission.
 - No assessment transition directly creates an NCP command or body authority.
 - Observer/extension overload cannot delay plant fail-safe paths.
 - Effective permission never widens without an authenticated Haldir transition.
+- `APPLIED_DENY` is never reported without an authenticated disposition bound to
+  the exact assessment and Haldir policy revision.
 
 ## Migration
 

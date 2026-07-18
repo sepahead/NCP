@@ -104,7 +104,7 @@ def build_result() -> dict[str, Any]:
         "repository_status": repository_status.splitlines(),
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "fable_advice_response_sha256": (
-            "356dcd46bcf4e1ad2bb11a878fe5bcaa75a3ae16fc58eb035c674aa08e286deb"
+            "080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32"
         ),
         "normative_contract_sha256": EXPECTED_CONTRACT_SHA256,
         "contract_manifest_sha256": _sha256(manifest_bytes),

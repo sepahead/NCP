@@ -96,6 +96,12 @@ authenticated monotonically versioned Haldir policy transition and audit record.
 The configured absence posture may be record-only or deny-new-missions; it may
 not turn missing evidence into a new ALLOW.
 
+Haldir acknowledges each verified assessment with the authenticated bounded
+disposition defined by ADR-008. Galadriel may retry using the exact assessment
+identity, but missing, delayed, rejected, or overflowed disposition cannot be
+interpreted as `APPLIED_DENY`. The acknowledgement reports Haldir-owned policy
+state and creates no body authority.
+
 ### Read-only and indirect components
 
 Prisoma and Galadriel observers receive only bounded ADR-004 grants. They cannot
@@ -223,6 +229,17 @@ and commander roles separately; Haldir adds a native commander and separate
 assessment receiver; Galadriel adds observer and assessor roles; Crebain adds the
 body and separate producers; Prisoma adds read-only capture. pid-rs and Cortexel
 receive no NCP peer role or aggregate qualification receipt.
+
+The native cutover is a complete body-profile transition, never dual-stack
+admission. Crebain enters HOLD, closes the v0.8 admission plane, stops old
+listeners/publishers/principals, drains or rejects bounded in-flight queues, and
+persists terminal v0.8 deployment state before opening native 1.0 admission with
+a fresh session generation, security-state digest, stream epochs, and exactly
+one body lease. Rollback is another complete quiesced cut with a fresh compatible
+v0.8 session/stream incarnation; it never reopens pre-cutover listeners, replay
+state, queues, or traffic. Generation and epoch UUIDs are compared only for exact
+equality; persisted authority/deployment terms provide their separately defined
+ordering.
 
 ## Operational recovery
 

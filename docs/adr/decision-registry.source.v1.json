@@ -123,6 +123,7 @@
       "required_review_roles": [
         "protocol reviewer",
         "Galadriel owner",
+        "Haldir owner",
         "Crebain owner"
       ],
       "defect_ids": [

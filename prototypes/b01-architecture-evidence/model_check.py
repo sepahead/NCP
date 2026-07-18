@@ -26,6 +26,16 @@ RESTART = "HOLD_RESTART"
 EXPIRED = "HOLD_EXPIRED"
 ENGRAM = "engram"
 HALDIR = "haldir"
+V08_WIRE = "wire-0.8"
+V10_WIRE = "wire-1.0"
+V08_ACTIVE = "V08_ACTIVE"
+CUTOVER_TO_V10 = "QUIESCING_TO_V10"
+V10_ACTIVE = "V10_ACTIVE"
+ROLLBACK_TO_V08 = "QUIESCING_TO_V08"
+V08_ROLLBACK = "V08_ROLLBACK"
+V08_INCARNATIONS = ("v08-i2", "v08-i0", "v08-i1")
+V08_INCARNATION_RANK = {"v08-i0": 0, "v08-i1": 1, "v08-i2": 2}
+V10_INCARNATIONS = ("v10-i1", "v10-i0")
 
 
 class ModelError(RuntimeError):
@@ -86,6 +96,40 @@ class DenyState:
     @property
     def effective_allow(self) -> bool:
         return self.local_allow and not self.deny_active
+
+
+@dataclass(frozen=True, order=True, slots=True)
+class MigrationCommand:
+    command_id: int
+    origin: str
+    wire: str
+    incarnation: str
+
+
+@dataclass(frozen=True, slots=True)
+class MigrationState:
+    phase: str = V08_ACTIVE
+    deployment_term: int = 0
+    v08_incarnation_step: int = 0
+    v10_incarnation_step: int = 0
+    v08_admission_open: bool = True
+    v10_admission_open: bool = False
+    cutover_quiesced: bool = False
+    rollback_quiesced: bool = False
+    pending: tuple[MigrationCommand, ...] = ()
+    issued: int = 0
+    applied: tuple[int, ...] = ()
+    rejected: tuple[int, ...] = ()
+    cutover_done: bool = False
+    rollback_done: bool = False
+
+    @property
+    def v08_incarnation(self) -> str:
+        return V08_INCARNATIONS[self.v08_incarnation_step]
+
+    @property
+    def v10_incarnation(self) -> str:
+        return V10_INCARNATIONS[self.v10_incarnation_step]
 
 
 @dataclass(frozen=True, slots=True)
@@ -716,6 +760,367 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
     }
 
 
+def _migration_command(
+    state: MigrationState,
+    *,
+    origin: str,
+    wire: str,
+    incarnation: str,
+) -> MigrationCommand:
+    return MigrationCommand(
+        command_id=state.issued,
+        origin=origin,
+        wire=wire,
+        incarnation=incarnation,
+    )
+
+
+def _append_migration_command(
+    state: MigrationState,
+    command: MigrationCommand,
+) -> MigrationState:
+    return replace(
+        state,
+        pending=tuple(sorted((*state.pending, command))),
+        issued=state.issued + 1,
+    )
+
+
+def _migration_spec_admits(
+    state: MigrationState,
+    command: MigrationCommand,
+) -> bool:
+    if state.phase in {V08_ACTIVE, V08_ROLLBACK}:
+        return (
+            state.v08_admission_open
+            and not state.v10_admission_open
+            and command.wire == V08_WIRE
+            and command.incarnation == state.v08_incarnation
+        )
+    if state.phase == V10_ACTIVE:
+        return (
+            state.v10_admission_open
+            and not state.v08_admission_open
+            and command.wire == V10_WIRE
+            and command.incarnation == state.v10_incarnation
+        )
+    return False
+
+
+def _migration_implementation_admits(
+    state: MigrationState,
+    command: MigrationCommand,
+    mutation: str | None,
+) -> bool:
+    if (
+        mutation == "accept_v08_in_v10"
+        and state.phase == V10_ACTIVE
+        and command.wire == V08_WIRE
+    ):
+        return True
+    if state.phase in {V08_ACTIVE, V08_ROLLBACK}:
+        if mutation == "ordered_v08_incarnation":
+            incarnation_ok = (
+                V08_INCARNATION_RANK[command.incarnation]
+                >= V08_INCARNATION_RANK[state.v08_incarnation]
+            )
+        else:
+            incarnation_ok = command.incarnation == state.v08_incarnation
+        return (
+            state.v08_admission_open
+            and not state.v10_admission_open
+            and command.wire == V08_WIRE
+            and incarnation_ok
+        )
+    if state.phase == V10_ACTIVE:
+        return (
+            state.v10_admission_open
+            and not state.v08_admission_open
+            and command.wire == V10_WIRE
+            and command.incarnation == state.v10_incarnation
+        )
+    return False
+
+
+def _migration_edges(
+    state: MigrationState,
+    mutation: str | None,
+) -> Iterable[Edge]:
+    if state.issued < 4:
+        if state.phase == V08_ACTIVE:
+            command = _migration_command(
+                state,
+                origin="issue_v08_pre_cutover",
+                wire=V08_WIRE,
+                incarnation=state.v08_incarnation,
+            )
+            yield Edge(
+                "issue_v08_pre_cutover",
+                _append_migration_command(state, command),
+                {"created": command},
+            )
+        elif state.phase == V10_ACTIVE:
+            command = _migration_command(
+                state,
+                origin="issue_v10",
+                wire=V10_WIRE,
+                incarnation=state.v10_incarnation,
+            )
+            yield Edge(
+                "issue_v10",
+                _append_migration_command(state, command),
+                {"created": command},
+            )
+        elif state.phase == V08_ROLLBACK:
+            command = _migration_command(
+                state,
+                origin="issue_v08_rollback",
+                wire=V08_WIRE,
+                incarnation=state.v08_incarnation,
+            )
+            yield Edge(
+                "issue_v08_rollback",
+                _append_migration_command(state, command),
+                {"created": command},
+            )
+
+    if state.phase == V08_ACTIVE and not state.cutover_done:
+        yield Edge(
+            "begin_cutover",
+            replace(
+                state,
+                phase=CUTOVER_TO_V10,
+                v08_admission_open=mutation == "dual_stack_cutover",
+                v10_admission_open=mutation == "dual_stack_cutover",
+            ),
+            {},
+        )
+
+    if state.phase == CUTOVER_TO_V10 and not state.cutover_quiesced:
+        yield Edge(
+            "quiesce_cutover",
+            replace(state, cutover_quiesced=True),
+            {},
+        )
+
+    if state.phase == CUTOVER_TO_V10 and (
+        state.cutover_quiesced or mutation == "activate_v10_before_quiescence"
+    ):
+        yield Edge(
+            "activate_v10",
+            replace(
+                state,
+                phase=V10_ACTIVE,
+                deployment_term=state.deployment_term + 1,
+                v08_admission_open=False,
+                v10_admission_open=True,
+                cutover_done=True,
+            ),
+            {},
+        )
+
+    if state.phase == V10_ACTIVE and not state.rollback_done:
+        yield Edge(
+            "begin_rollback",
+            replace(
+                state,
+                phase=ROLLBACK_TO_V08,
+                v08_admission_open=False,
+                v10_admission_open=False,
+            ),
+            {},
+        )
+
+    if state.phase == ROLLBACK_TO_V08 and not state.rollback_quiesced:
+        yield Edge(
+            "quiesce_rollback",
+            replace(state, rollback_quiesced=True),
+            {},
+        )
+
+    if state.phase == ROLLBACK_TO_V08 and (
+        state.rollback_quiesced or mutation == "activate_v08_before_quiescence"
+    ):
+        next_step = (
+            state.v08_incarnation_step
+            if mutation == "rollback_reuses_v08_incarnation"
+            else state.v08_incarnation_step + 1
+        )
+        yield Edge(
+            "activate_v08_rollback",
+            replace(
+                state,
+                phase=V08_ROLLBACK,
+                deployment_term=state.deployment_term + 1,
+                v08_incarnation_step=next_step,
+                v08_admission_open=True,
+                v10_admission_open=False,
+                rollback_done=True,
+            ),
+            {},
+        )
+
+    for command in state.pending:
+        admitted = _migration_implementation_admits(state, command, mutation)
+        pending = tuple(item for item in state.pending if item != command)
+        target = replace(
+            state,
+            pending=pending,
+            applied=(
+                tuple(sorted((*state.applied, command.command_id)))
+                if admitted
+                else state.applied
+            ),
+            rejected=(
+                state.rejected
+                if admitted
+                else tuple(sorted((*state.rejected, command.command_id)))
+            ),
+        )
+        yield Edge(
+            f"deliver:{command.command_id}:{command.origin}",
+            target,
+            {
+                "admitted": admitted,
+                "spec_admitted": _migration_spec_admits(state, command),
+                "command": command,
+                "phase": state.phase,
+            },
+        )
+
+
+def _migration_invariant(state: MigrationState) -> str | None:
+    if state.v08_admission_open and state.v10_admission_open:
+        return "v0.8 and v1.0 admission were open simultaneously"
+    if state.phase == V08_ACTIVE and (
+        not state.v08_admission_open or state.v10_admission_open
+    ):
+        return "initial v0.8 phase lacked its exclusive admission plane"
+    if state.phase == V10_ACTIVE and (
+        state.v08_admission_open
+        or not state.v10_admission_open
+        or not state.cutover_quiesced
+        or not state.cutover_done
+    ):
+        return "v1.0 activated before a complete quiesced cut"
+    if state.phase == V08_ROLLBACK and (
+        not state.v08_admission_open
+        or state.v10_admission_open
+        or not state.rollback_quiesced
+        or not state.rollback_done
+    ):
+        return "v0.8 rollback activated before a complete quiesced cut"
+    if state.phase in {CUTOVER_TO_V10, ROLLBACK_TO_V08} and (
+        state.v08_admission_open or state.v10_admission_open
+    ):
+        return "a wire admission plane remained open during quiescence"
+    if state.phase == V08_ROLLBACK and state.v08_incarnation_step == 0:
+        return "rollback revived the pre-cutover v0.8 incarnation"
+    if len(state.applied) != len(set(state.applied)):
+        return "a migration command was applied more than once"
+    if set(state.applied) & set(state.rejected):
+        return "a migration command is both applied and rejected"
+    return None
+
+
+def check_migration_cutover(mutation: str | None = None) -> dict[str, Any]:
+    initial = MigrationState()
+    parents: dict[MigrationState, tuple[MigrationState | None, str]] = {
+        initial: (None, "")
+    }
+    depths = {initial: 0}
+    queue: deque[MigrationState] = deque([initial])
+    coverage: Counter[str] = Counter()
+    witnesses: set[str] = set()
+    transitions = 0
+    while queue:
+        state = queue.popleft()
+        if len(parents) > 100_000:
+            raise ModelError("migration state bound exceeded", _trace(parents, state))
+        for edge in _migration_edges(state, mutation):
+            transitions += 1
+            action_class = edge.action.split(":", 1)[0]
+            coverage[action_class] += 1
+            invariant = _migration_invariant(edge.next_state)
+            if invariant is not None:
+                raise ModelError(invariant, _trace(parents, state, edge.action))
+            metadata = edge.metadata
+            if "admitted" in metadata:
+                command: MigrationCommand = metadata["command"]
+                if metadata["admitted"] and not metadata["spec_admitted"]:
+                    raise ModelError(
+                        f"stale or cross-wire command {command.origin} was admitted",
+                        _trace(parents, state, edge.action),
+                    )
+                if metadata["admitted"] and metadata["spec_admitted"]:
+                    if command.origin == "issue_v10":
+                        witnesses.add("fresh_v10_command_applied")
+                    if command.origin == "issue_v08_rollback":
+                        witnesses.add("fresh_rollback_v08_command_applied")
+                if not metadata["admitted"] and not metadata["spec_admitted"]:
+                    if (
+                        command.origin == "issue_v08_pre_cutover"
+                        and metadata["phase"] == V10_ACTIVE
+                    ):
+                        witnesses.add("pre_cutover_v08_rejected_in_v10")
+                    if (
+                        command.origin == "issue_v08_pre_cutover"
+                        and metadata["phase"] == V08_ROLLBACK
+                    ):
+                        witnesses.add("pre_cutover_v08_rejected_after_rollback")
+            if edge.action == "quiesce_cutover":
+                witnesses.add("cutover_quiescence_reached")
+            if edge.action == "activate_v10":
+                witnesses.add("fresh_v10_incarnation_activated")
+            if edge.action == "quiesce_rollback":
+                witnesses.add("rollback_quiescence_reached")
+            if edge.action == "activate_v08_rollback":
+                witnesses.add("fresh_v08_rollback_incarnation_activated")
+            if edge.next_state not in parents:
+                parents[edge.next_state] = (state, edge.action)
+                depths[edge.next_state] = depths[state] + 1
+                queue.append(edge.next_state)
+
+    required_actions = {
+        "issue_v08_pre_cutover",
+        "begin_cutover",
+        "quiesce_cutover",
+        "activate_v10",
+        "issue_v10",
+        "begin_rollback",
+        "quiesce_rollback",
+        "activate_v08_rollback",
+        "issue_v08_rollback",
+        "deliver",
+    }
+    missing_actions = sorted(required_actions - set(coverage))
+    if missing_actions:
+        raise ModelError(f"migration actions were unreachable: {missing_actions}", [])
+    required_witnesses = {
+        "cutover_quiescence_reached",
+        "fresh_v10_incarnation_activated",
+        "pre_cutover_v08_rejected_in_v10",
+        "fresh_v10_command_applied",
+        "rollback_quiescence_reached",
+        "fresh_v08_rollback_incarnation_activated",
+        "pre_cutover_v08_rejected_after_rollback",
+        "fresh_rollback_v08_command_applied",
+    }
+    missing_witnesses = sorted(required_witnesses - witnesses)
+    if missing_witnesses:
+        raise ModelError(
+            f"migration non-vacuity witnesses were absent: {missing_witnesses}",
+            [],
+        )
+    return {
+        "states": len(parents),
+        "transitions": transitions,
+        "maximum_depth": max(depths.values()),
+        "action_counts": dict(sorted(coverage.items())),
+        "witnesses": sorted(witnesses),
+    }
+
+
 def _kill_mutations() -> list[dict[str, Any]]:
     mutations = {
         "composition": (
@@ -745,6 +1150,17 @@ def _kill_mutations() -> list[dict[str, Any]]:
                 "authenticated_widen_disabled",
             ),
         ),
+        "migration_cutover": (
+            check_migration_cutover,
+            (
+                "dual_stack_cutover",
+                "activate_v10_before_quiescence",
+                "activate_v08_before_quiescence",
+                "rollback_reuses_v08_incarnation",
+                "ordered_v08_incarnation",
+                "accept_v08_in_v10",
+            ),
+        ),
     }
     killed: list[dict[str, Any]] = []
     for model_name, (checker, names) in mutations.items():
@@ -772,6 +1188,7 @@ def _kill_mutations() -> list[dict[str, Any]]:
 def build_result() -> dict[str, Any]:
     composition = check_composition()
     deny = check_deny_lifecycle()
+    migration = check_migration_cutover()
     mutations = _kill_mutations()
     return {
         "schema": "ncp.b01-preliminary-model-result.v1",
@@ -783,9 +1200,10 @@ def build_result() -> dict[str, Any]:
         ),
         "composition": composition,
         "deny_lifecycle": deny,
+        "migration_cutover": migration,
         "mutation_kill_matrix": mutations,
         "counts": {
-            "models": 2,
+            "models": 3,
             "mutations_killed": len(mutations),
             "mutations_survived": 0,
         },
@@ -797,7 +1215,7 @@ def main() -> int:
     parser.add_argument("--self-test", action="store_true")
     parser.parse_args()
     result = build_result()
-    if result["counts"]["mutations_killed"] != 17:
+    if result["counts"]["mutations_killed"] != 23:
         raise ModelError("unexpected mutation count", [])
     print(json.dumps(result, sort_keys=True))
     return 0

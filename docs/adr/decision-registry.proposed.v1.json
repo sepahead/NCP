@@ -8,8 +8,8 @@
   "generated_by": "scripts/generate_decision_registry.py",
   "source": {
     "path": "docs/adr/decision-registry.source.v1.json",
-    "sha256": "b47ac59235e9cac3388f790c532f0393c216a85f86913d1425df58a8679967c3",
-    "bytes": 5348
+    "sha256": "e8ef574077b800f1c83fdf4349dfdf960eb4fc4e7ee2cc91885b34f6c73ac3c2",
+    "bytes": 5372
   },
   "promotion_target": "contract/decision-registry.v1.json",
   "promotion_blocked": true,
@@ -149,13 +149,14 @@
       "required_review_roles": [
         "protocol reviewer",
         "Galadriel owner",
+        "Haldir owner",
         "Crebain owner"
       ],
       "defect_ids": [
         "D09"
       ],
-      "content_sha256": "3ffc70087c449ec487d543e954cf7d9792c0e774ddac7058458c94366757d897",
-      "bytes": 7040
+      "content_sha256": "1379477feebd886823d1511af5df0b7a7019795aef9ee8023147a4ef0a5f56b6",
+      "bytes": 7827
     },
     {
       "id": "ADR-009",
@@ -215,8 +216,8 @@
         "D11",
         "D12"
       ],
-      "content_sha256": "582e1df6a7b72e50ad5250202c15ce51b5e2f8453d9788e682147348d53efc3c",
-      "bytes": 12406
+      "content_sha256": "96d243fd41868a70fc00c0f309a5f87e0058f6fce5308e2c98d147e18f76421f",
+      "bytes": 13481
     }
   ],
   "review_records": []

@@ -1765,9 +1765,9 @@
       },
       {
         "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-        "bytes": 7040,
-        "sha256": "3ffc70087c449ec487d543e954cf7d9792c0e774ddac7058458c94366757d897",
-        "git_blob_oid": "72eb234ccc59228aff835ca6eca0df3491b037d0",
+        "bytes": 7827,
+        "sha256": "1379477feebd886823d1511af5df0b7a7019795aef9ee8023147a4ef0a5f56b6",
+        "git_blob_oid": "fab99f7e0c85ec8033e6a92ce88a863fe7c50d6f",
         "indexed": true
       },
       {
@@ -1786,16 +1786,16 @@
       },
       {
         "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-        "bytes": 12406,
-        "sha256": "582e1df6a7b72e50ad5250202c15ce51b5e2f8453d9788e682147348d53efc3c",
-        "git_blob_oid": "594518d6b901750974320f2bfa7f1fc1b2545b13",
+        "bytes": 13481,
+        "sha256": "96d243fd41868a70fc00c0f309a5f87e0058f6fce5308e2c98d147e18f76421f",
+        "git_blob_oid": "72040e9b52a12bf368d3bd92986d8f5afb6e6d20",
         "indexed": true
       },
       {
         "path": "docs/adr/README.md",
-        "bytes": 6921,
-        "sha256": "b0423eb6a460de8b62c5126fabb01b598181022d0d4351607e65546ba1f33b76",
-        "git_blob_oid": "9c70b10565bd908246ed18d91c1d5149c9b56adf",
+        "bytes": 6917,
+        "sha256": "b80bdf1d9252ca0593926cdc921d0e5e7b63e9035111f8099bbfab9d7b705f41",
+        "git_blob_oid": "c27396b5912ee3c9fb60c427e27bfe4a1161cad1",
         "indexed": true
       },
       {
@@ -1807,16 +1807,16 @@
       },
       {
         "path": "docs/adr/decision-registry.proposed.v1.json",
-        "bytes": 6986,
-        "sha256": "21b5355ebaf4e64699a9e7c7ed7dd87b306d17950b8dbd1a757e913476e893da",
-        "git_blob_oid": "887a5173bf5394acb49c7bd49f6522ad942b3f02",
+        "bytes": 7010,
+        "sha256": "e44cf8ba4e47558fcd768ce39dd48d64dd9262d96ff1502ed4f25bfc9d6850ba",
+        "git_blob_oid": "7abdc77cebb9d8dc4ff3b307fb98e1d4a677883f",
         "indexed": true
       },
       {
         "path": "docs/adr/decision-registry.source.v1.json",
-        "bytes": 5348,
-        "sha256": "b47ac59235e9cac3388f790c532f0393c216a85f86913d1425df58a8679967c3",
-        "git_blob_oid": "c7f0b219f3ab59f976becfb7dd260926f35ee506",
+        "bytes": 5372,
+        "sha256": "e8ef574077b800f1c83fdf4349dfdf960eb4fc4e7ee2cc91885b34f6c73ac3c2",
+        "git_blob_oid": "5d6557f4e48be055b9f5278e0c77b83915d9efaa",
         "indexed": true
       },
       {
@@ -1891,9 +1891,9 @@
       },
       {
         "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-        "bytes": 316095,
-        "sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
-        "git_blob_oid": "15129a15086e39e760c39b87e7e858e5a9ca7908",
+        "bytes": 317940,
+        "sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
+        "git_blob_oid": "c509d573353738778b717a49f8c7b4f9bf89b57a",
         "indexed": true
       },
       {
@@ -2010,9 +2010,9 @@
       },
       {
         "path": "docs/research/b01-fable-architecture-consultations.md",
-        "bytes": 11741,
-        "sha256": "b7e9dda97209622ac464debd1228f905385234812d4b2a0002e041b540c2ae37",
-        "git_blob_oid": "eeca1c173a9acf47ec3cf269c4473f7fe8436775",
+        "bytes": 14330,
+        "sha256": "ca0598afcb9429e37a11f22051170b6f2bb41e6422ee64d926661c2650568a48",
+        "git_blob_oid": "817d830122527e189bc2f4caba383c6ab1ede7f1",
         "indexed": true
       },
       {
@@ -6014,16 +6014,16 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/README.md",
-        "bytes": 9309,
-        "sha256": "89977627fafa8ae5ab5340ca8dec9beaf00a4ba035c3ca97a03112f6cf05f739",
-        "git_blob_oid": "6617c429b89acf098a0937a16d8c3a28036a93ab",
+        "bytes": 10434,
+        "sha256": "c4164936bfad22d4c5c4dbe2e8eef6fa7f353dab44f56f608610a154c3017493",
+        "git_blob_oid": "25ca6b91023b5671573b49b544d4b9c5163b883e",
         "indexed": true
       },
       {
         "path": "prototypes/b01-architecture-evidence/SECTION_REVIEW.md",
-        "bytes": 11359,
-        "sha256": "03d6a7916006faf1703bfa25cd52ecd94f30f52e984792a2408e7107bfaef780",
-        "git_blob_oid": "571903697470e53d3efaa2c5b8c5355ce4722529",
+        "bytes": 13898,
+        "sha256": "d4a7869f87b235cf2e6bf2ddeb5eb240a24a308f716bcb4498fa4db157365d5f",
+        "git_blob_oid": "3fc7ef4d42afefb9af930b04a5fbf3a8af0ff561",
         "indexed": true
       },
       {
@@ -6035,9 +6035,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/model_check.py",
-        "bytes": 27135,
-        "sha256": "5c2271190238851b38aa15debcb96b7e26b3bfe11ecb425573fb91d621ec5777",
-        "git_blob_oid": "0f50568a1a45b15e35821d05a4cb813e71e9bd43",
+        "bytes": 41385,
+        "sha256": "12a7bd0f95968546725c8a86f8909efef539a6628fd98d5b6d102a8b8061810e",
+        "git_blob_oid": "90383727f50d877a0f33cfda65b16bf77d9d4461",
         "indexed": true
       },
       {
@@ -6057,22 +6057,22 @@
       {
         "path": "prototypes/b01-architecture-evidence/run_all.py",
         "bytes": 4706,
-        "sha256": "3512683768bb790b548a0baaf5f9d682bef83981c3b94da1aadb6fbf8e161a6b",
-        "git_blob_oid": "4ee1f5aee6a574e2bcb0a5871a0e22de9eb533c6",
+        "sha256": "a6739668260fb10d29ff2855677e751e292b22b98d29ed14dc6fd5147f3bcd10",
+        "git_blob_oid": "85bc5cde9d40df6e641120e914e998296c419d68",
         "indexed": true
       },
       {
         "path": "prototypes/b01-architecture-evidence/run_smt.py",
-        "bytes": 8881,
-        "sha256": "077bda44f6567a6b1d36e577d7328e5ad2fd52d7e8e4e0cdc5753c169bf4acfc",
-        "git_blob_oid": "cda4b1b052396b6b8d62476204dc6f51847e8568",
+        "bytes": 9082,
+        "sha256": "15ae31a8b692f31aa8f1a1bd16e5c66e735ba3c67d88fec96619445b9a145670",
+        "git_blob_oid": "fdc5d710c76a1a6521c0261b07ea5b912e029821",
         "indexed": true
       },
       {
         "path": "prototypes/b01-architecture-evidence/smt/assessment_monotonicity.smt2",
-        "bytes": 1285,
-        "sha256": "f9189df7e6ee2646f564441ec5dacbd260f35a16740d5f9433268a186da49fe7",
-        "git_blob_oid": "fd731143a29aa883ca8a908e3edfaebec0d6fecd",
+        "bytes": 1882,
+        "sha256": "b05d3947c0ceafce8c77f3a39028a7882f81b71438b085c85e0e21587c3d08b1",
+        "git_blob_oid": "4296c0520c8c08f31a382dec5b88c0d5fcbf4d12",
         "indexed": true
       },
       {
@@ -6098,9 +6098,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/verify_result.py",
-        "bytes": 36769,
-        "sha256": "a846d69c4f965fe5fbcd500beadcd8b9ff0753a8d2e615fe1169d7013ade390d",
-        "git_blob_oid": "ac08020eddb1691fd685c683097a696a0f9a3864",
+        "bytes": 38259,
+        "sha256": "accc7b3cef4942efecdee1f90c323e08e1b5c6079a947f8501b78efb0108644d",
+        "git_blob_oid": "91ffb686a5fc8aad4014ff2fb1409a3f7fdf0ada",
         "indexed": true
       },
       {
@@ -7341,13 +7341,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-69BFBC1DBA2A94A7B448",
+      "id": "NCP-LATENT-18A71744FF4261CBCB70",
       "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-      "line": 229,
+      "line": 246,
       "column": 58,
       "token_id": "M008",
       "line_sha256": "c4ce5b7d3a13569451fa9e6e60bb97a5530ffee885c4c4f076f26c0ed8800bfd",
-      "file_sha256": "582e1df6a7b72e50ad5250202c15ce51b5e2f8453d9788e682147348d53efc3c",
+      "file_sha256": "96d243fd41868a70fc00c0f309a5f87e0058f6fce5308e2c98d147e18f76421f",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -7361,7 +7361,7 @@
       "column": 87,
       "token_id": "M006",
       "line_sha256": "3ffca992441075de3d70872fcdcd06d2cdcb67f85cbc2f35786f717571d8cec4",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7375,7 +7375,7 @@
       "column": 17,
       "token_id": "M006",
       "line_sha256": "5fd337ead1550019b48083c45d9b9ef2680ea97e49c40b60fa59d1722266e6ab",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7383,13 +7383,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-99DEC81B376609FA9759",
+      "id": "NCP-LATENT-EA8D3A6C41579BE7453B",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 1614,
+      "line": 1633,
       "column": 81,
       "token_id": "M008",
       "line_sha256": "ca4bad450eb0a29c8503c03a6f69ab4d3fdfda9dd0f8ae4b2aa7009928fb5513",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7397,13 +7397,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9ED90095D31F4EE2910F",
+      "id": "NCP-LATENT-3CBAC133B1B18AE9D41A",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 2363,
+      "line": 2382,
       "column": 40,
       "token_id": "M008",
       "line_sha256": "09e4c12969c4d57cacedecaa163512b93d0445647c157b5576a3715719a2aed4",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7411,13 +7411,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-A2FC8AF047160ED06337",
+      "id": "NCP-LATENT-84387D1F9F17EBE1E31C",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 2396,
+      "line": 2415,
       "column": 70,
       "token_id": "M008",
       "line_sha256": "1a4215dfdfa9bab93485e6190f871acb4391f2d8b65ddeffe51d4a472a119b07",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7425,13 +7425,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9F34EF2AB888CDFD36DA",
+      "id": "NCP-LATENT-4B26DF009E1D70C9BAFC",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 2407,
+      "line": 2426,
       "column": 50,
       "token_id": "M008",
       "line_sha256": "c501d72fc4c4fb58395128e712bdd7a795eb27d6b61d6afe31803fc941d49845",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7439,13 +7439,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-3540731549AF38E21467",
+      "id": "NCP-LATENT-180743A608D9D96F569E",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 2503,
+      "line": 2522,
       "column": 39,
       "token_id": "M001",
       "line_sha256": "fa785bed767fc89e3f42888c5c51cb18fdb5324fa2ad5c8d8f49d6801585a2cc",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7453,13 +7453,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-AF182AE8C616B4CCDCE6",
+      "id": "NCP-LATENT-F03B85EFFCB8EAA9FDF7",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 2503,
+      "line": 2522,
       "column": 44,
       "token_id": "M002",
       "line_sha256": "fa785bed767fc89e3f42888c5c51cb18fdb5324fa2ad5c8d8f49d6801585a2cc",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7467,13 +7467,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-6764A4DD82EB985EDC05",
+      "id": "NCP-LATENT-C7B09D5C4BF1A536E7D7",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 2727,
+      "line": 2746,
       "column": 3,
       "token_id": "M008",
       "line_sha256": "6e48ade9569baf80f7cf80f095d7a2c6ca8e07124edebac2fb9249a6754864e3",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7481,13 +7481,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-B7F1E5B79CB5C3546BE6",
+      "id": "NCP-LATENT-B9EED0393C1B7551D371",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 5150,
+      "line": 5169,
       "column": 13,
       "token_id": "M007",
       "line_sha256": "d6c8d4ae37bf219b344616555d55020e90a1393a6074af1cb9fff8985e2775ea",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -7495,13 +7495,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-B91FACF01B191C0F46AE",
+      "id": "NCP-LATENT-550C9F0E5E71C23CC08A",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-      "line": 5151,
+      "line": 5170,
       "column": 16,
       "token_id": "M007",
       "line_sha256": "ee6ac2b0bf77b06b9a27301a4d4e80b11a67d0e64694b52cad3cd2af774a3cb4",
-      "file_sha256": "7bf9d689839b26c1c3c577097a8fe9713a4d0340170b2641b7e420d1039953d5",
+      "file_sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122",
       "disposition": "HANDOFF_OPEN_EVIDENCE",
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [

@@ -17,8 +17,12 @@ remain PROPOSED and retain their exact hash-bound review requirements.
   Galadriel assessments cannot substitute for the body lease.
 - Lifecycle removal of an applied Galadriel deny cannot widen permission until
   an authenticated Haldir policy revision executes.
+- Haldir cannot report an applied Galadriel deny without an authenticated
+  disposition bound to that outcome.
 - An unauthenticated assessor cannot apply even a deny-tightening restriction;
   monotonicity does not authorize denial of service.
+- v0.8 and native-1.0 body admission are mutually exclusive across cutover and
+  rollback; rollback uses a fresh opaque incarnation.
 - The prototype models software admission only. HOLD, ESTOP, disposition, or a
   green model makes no physical-safety claim.
 
@@ -29,6 +33,8 @@ remain PROPOSED and retain their exact hash-bound review requirements.
   the model does not obtain safety by making recovery impossible.
 - Restarts, stream replacement, expiry, hostile input, and reordering remain
   finite and diagnosable.
+- Complete wire cutover and rollback are reachable without making fresh commands
+  impossible in either active profile.
 - Queue isolation is structural: observation and extension overflow cannot
   consume the prototype control/action queues.
 - No optional consumer becomes a startup prerequisite or hidden runtime service.
@@ -68,6 +74,14 @@ The deny model assumes:
 - `RECORD_ONLY` is the meet identity;
 - Galadriel has no ALLOW action; and
 - absence posture cannot create a new ALLOW.
+
+The migration model assumes:
+
+- one bounded body deployment moves v0.8 to native 1.0 and then rolls back;
+- wire admission is closed during each bounded quiescence interval;
+- pre-cutover commands may remain delayed until either later active profile;
+- rollback creates a fresh v0.8 incarnation; and
+- opaque incarnation labels have equality meaning only.
 
 The SMT files assume their Boolean/integer abstractions correspond to the prose.
 They do not prove that correspondence. The resource screens assume one local
@@ -117,6 +131,19 @@ The coupled Haldir/Galadriel trace is:
 
 The correct model reaches both the blocked attempt and legitimate widening.
 
+The wire-migration trace is:
+
+1. a valid v0.8 command remains delayed;
+2. old v0.8 admission closes and quiesces before native 1.0 opens;
+3. the delayed command rejects under native 1.0 while a fresh 1.0 command applies;
+4. native 1.0 closes and quiesces before rollback opens; and
+5. rollback uses a fresh opaque v0.8 incarnation, so the pre-cutover command
+   still rejects while a fresh rollback command applies.
+
+Opening both admission planes, skipping either quiescence, reviving the old
+incarnation, ordering opaque labels, or accepting v0.8 under native 1.0 creates
+a detected counterexample.
+
 ## Mutation kill matrix
 
 The Python enumerator must detect:
@@ -137,13 +164,18 @@ The Python enumerator must detect:
 - record-only clearing;
 - assessor ALLOW;
 - unauthenticated deny tightening; and
-- removal of the legitimate authenticated-widening path.
+- removal of the legitimate authenticated-widening path;
+- dual-stack wire admission;
+- native-1.0 or rollback activation before quiescence;
+- rollback reuse of the pre-cutover v0.8 incarnation;
+- ordered comparison of opaque v0.8 incarnation labels; and
+- v0.8 admission during native 1.0.
 
 The SMT runner must detect guard removal from:
 
 - handover old-revocation ordering;
 - stale-generation admission;
-- authenticated widening monotonicity; and
+- authenticated widening and applied-disposition guards; and
 - body-lease necessity.
 
 It also rejects source-level output/control commands, mismatched `check-sat` or
@@ -245,6 +277,28 @@ Revised or rejected from that response:
   registry belong to later F01/F02. This preliminary runner records exact version,
   current executable hash, sources, commands, and stdout without promoting the
   result into the canonical formal program.
+
+The cutover/review-packet challenge later returned exact model
+`claude-fable-5`, terminal `end_turn`, raw response SHA-256
+`080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32`
+with 672 input, 2,156 output, and 69 thinking tokens.
+
+Retained from that response:
+
+- model old-plane shutdown and quiescence before opening a fresh native plane;
+- make rollback another complete cut that cannot revive pre-cutover traffic;
+- authenticate and bind the Haldir assessment disposition;
+- retain Crebain ownership of body state and Haldir ownership of local policy;
+  and
+- bind independent review to exact ADR/tree/contract/evidence identities and
+  explicit non-claims.
+
+Revised or rejected from that response:
+
+- Incarnation UUIDs are equality fences, not counters.
+- Crebain does not acquire or verify Haldir-owned policy as body authority.
+- Bit-identical builds and clean-room reproducibility remain later release
+  evidence, not a preliminary B01 claim.
 
 ## Open requirements
 

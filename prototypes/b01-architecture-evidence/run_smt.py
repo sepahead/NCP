@@ -67,6 +67,11 @@ CASES = (
                 "(assert (=> widened authenticated_widen))",
                 "(assert true)",
             ),
+            (
+                "(assert\n  (=>\n    deny_applied\n"
+                "    (and disposition_authenticated disposition_outcome_applied)))",
+                "(assert true)",
+            ),
         ),
     ),
     SmtCase(
@@ -259,7 +264,7 @@ def main() -> int:
     result = build_result()
     if result["counts"] != {
         "files": 4,
-        "checks": 9,
+        "checks": 11,
         "mutations_killed": 4,
         "mutations_survived": 0,
     }:

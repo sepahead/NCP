@@ -1365,7 +1365,7 @@ ten lens decisions.
 | ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems + all stream consumer owners |
 | ADR-006 | body-issued authority operations and temporal model | safety, distributed-systems, Haldir, Crebain reviewers |
 | ADR-007 | command disposition states, boundary meanings, journal and query | plant/safety, Haldir, Crebain reviewers |
-| ADR-008 | extension namespace and Galadriel sidecar separation | protocol, Galadriel, Crebain reviewers |
+| ADR-008 | extension namespace and Galadriel sidecar separation | protocol, Galadriel, Haldir, Crebain reviewers |
 | ADR-009 | security-state semantic digest, key rotation and revocation | security, operations, supply-chain reviewers |
 | ADR-010 | exact per-plane QoS, retention and overload semantics | real-time/performance + consumer reviewers |
 | ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | every named consumer owner, pid-rs owner, independent security/distributed-systems reviewer, and Crebain plant/safety reviewer |
@@ -1415,10 +1415,10 @@ configured.
 | Engram commander adapter | optional NCP commander types; optional separate Haldir-intent adapter | exact plant descriptor, commander principal and either direct or gated mode | direct NCP commands to Crebain **or** Haldir-local intents, never both for one live plant term | direct mode holds only a bounded Crebain-issued lease; gated mode holds no NCP plant lease | command usefulness, plant effect and science are not inferred from protocol success |
 | Haldir core/Gate | no NCP or Galadriel requirement for standalone signed-intent decisions | local policy, signer roots, anti-replay state; fail closed | signed local intents in, immutable local decisions/receipts out | owns local ALLOW/DENY only; cannot delegate payload identity | decision evidence is not plant execution or PID validity |
 | Haldir NCP commander | optional NCP adapter | Haldir commander principal, default-deny manifest, fresh Crebain lease | creates new NCP commands after a local ALLOW | Crebain remains sole admission/application/disposition authority | installed Haldir plus independent body tests required |
-| Haldir Galadriel receiver | optional default-off registered-extension adapter; not Galadriel app code | distinct assessor trust root/principal and explicit absence policy | push-only advisory assessment in | meet composition can preserve/remove permission only; Haldir owns final local policy | monotonicity/property/fuzz/live freshness evidence required; no calibration claim |
+| Haldir Galadriel receiver | optional default-off registered-extension adapter; not Galadriel app code | distinct assessor trust root/principal and explicit absence policy | push-only advisory assessment in; authenticated bounded assessment disposition out | meet composition can preserve/remove permission only; Haldir owns final local policy | monotonicity/property/fuzz/live freshness and disposition-binding evidence required; no calibration claim |
 | Galadriel core | no NCP; optional pid-core in a separate default-off crate/feature | none for standalone replay/synthetic monitor | local cross-sensor analysis | estimator/anomaly output has zero identity or authority | synthetic/component evidence is not field validation |
 | Galadriel NCP observer | optional NCP read-only adapter | observer principal and exact bounded grant | reads declared standard observations/dispositions | no publish, authority, lifecycle mutation or ESTOP | read-only API, manifest and live revocation negatives required |
-| Galadriel assessor | optional registered-extension producer with a principal distinct from observer | extension manifest, Haldir audience and freshness policy | push-only `RECORD_ONLY`/`DENY_TIGHTEN` assessment | cannot encode ALLOW or command; cannot reuse observer credentials | missing coverage, stale/replay/drop counters and non-calibration label are mandatory |
+| Galadriel assessor | optional registered-extension producer with a principal distinct from observer | extension manifest, Haldir audience and freshness policy | push-only `RECORD_ONLY`/`DENY_TIGHTEN` assessment; consumes authenticated bounded disposition | cannot encode ALLOW or command; cannot reuse observer credentials; missing disposition never implies application | missing coverage, stale/replay/drop/disposition counters and non-calibration label are mandatory |
 | Crebain core | no NCP, Engram, Haldir, Galadriel, Prisoma or pid-rs requirement | local plant profile, watchdog and local safety boundary | standalone local research/body behavior | owns local actuator boundary regardless of NCP | not certified physical safety or deployment readiness |
 | Crebain NCP body | optional NCP body adapter | content-addressed plant profile, armed local watchdog, verified safe-action path, manifest and body principal | issues epochs/leases, admits commands, applies at named boundary, emits dispositions | sole software body and final actuator authority for the NCP plant session | live physical/safety/security gates remain `NOT RUN` until exact artifacts exist |
 | Crebain telemetry/extension producer | optional standard-frame and Galadriel-extension producer | exact extension manifest/schema and producer principal | non-blocking publish to observers; never waits for them | publication grants observers no control; Galadriel schema stays outside NCP core | stall/load/gap/source-correlation evidence required |
@@ -1444,6 +1444,7 @@ Optional edges are:
 | Edge | Condition | Constraint |
 |---|---|---|
 | Galadriel assessor → Haldir receiver | ADR-011 accepts the registered extension and deployment enables it | push-only, distinct principal, fresh/replay-safe, record-only or deny-tightening |
+| Haldir receiver → Galadriel assessor | a verified assessment has a bounded outcome | authenticated disposition binds assessment identity/digest, Haldir policy revision and rejected/recorded/applied-deny outcome; grants no authority |
 | Crebain extension producer → Galadriel | exact Galadriel-owned extension manifest is enabled | extension keyspace, bounded non-blocking queue, explicit gaps |
 | Galadriel/Prisoma → pid-rs library | consumer explicitly enables estimator/research features | in-process protocol-neutral values; consumer owns validation and provenance |
 | Prisoma observer → pid-runlog | exact verified capture is translated offline | missingness/gaps retained; log hash is not authentication |
@@ -1458,7 +1459,8 @@ reopens them with equivalent safeguards:
 - an observer credential → the Galadriel assessment route, or an assessor
   credential → NCP observer/core mutation routes;
 - Haldir forwarding/re-signing Engram bytes as if identity or authority transferred;
-- Haldir issuing body leases, dispositions or actuator-success claims;
+- Haldir issuing body leases, body command dispositions or actuator-success
+  claims; Haldir-owned assessment dispositions are separate policy receipts;
 - Engram responder principal/socket/state store → plant command publication;
 - direct Engram commands and Haldir commands concurrently accepted for the same
   plant/session/term;
@@ -1517,6 +1519,14 @@ restart discards buffered commands from the prior process incarnation and querie
 receipts before any retry. Duplicate idempotency within the same epoch/lease returns
 the original receipt; cross-epoch reuse is invalid.
 
+Cross-wire migration is a separate complete body-profile cut. Crebain enters HOLD,
+closes and quiesces v0.8 admission/listeners/publishers/principals and drains or
+rejects bounded old queues before opening native 1.0 with fresh session, security,
+stream and lease incarnations. Rollback repeats the cut and creates a fresh
+compatible v0.8 incarnation; neither direction runs dual-stack admission or
+revives pre-cutover listeners, replay state, queues or traffic. UUID generations
+and epochs are equality fences, not ordered counters.
+
 Observer queues are bounded, non-blocking and separated from watchdog/control work.
 They expose source loss, local drop, transport gap, revocation gap and storage gap
 as distinct events. Disconnect/restart resubscribes from a fresh descriptor/grant;
@@ -1563,6 +1573,13 @@ restart changes the instance ID. Haldir exposes last-fresh-assessment age, cover
 reject, replay, expiry and rate-limit counters. Malformed/flooded input is dropped
 and alarmed. Extension failure never changes an in-flight plant fail-safe action.
 
+For every verified assessment, Haldir emits an authenticated bounded disposition
+that binds assessor principal, assessment instance/sequence and digest, Haldir
+policy revision, and exactly one rejected, recorded or applied-deny outcome.
+Galadriel retries and deduplicates on that identity. Missing, delayed, overflowed
+or unauthenticated disposition remains unknown and never implies `APPLIED_DENY`;
+the receipt cannot encode ALLOW, body authority or actuator success.
+
 #### pid-rs boundary triple-check
 
 The dependency graph, manifest topology and authority semantics all select the same
@@ -1604,6 +1621,8 @@ At minimum ADR-011, the formal composition model, consumer tests and X02 must co
 | assessment expires or clock skew exceeds bound | advisory absence or deny-new-permission per explicit mode |
 | assessment replays after assessor restart | instance/sequence rejection and coverage warning |
 | assessment deny oscillates | bounded latch/hysteresis prevents retry feedback storm |
+| applied-deny assessment disposition is missing, forged or mismatched | Galadriel records unknown/rejected outcome and never infers application; Haldir policy remains authoritative |
+| v0.8 traffic arrives during native 1.0 or after rollback | cross-wire or stale-incarnation rejection; no dual-stack admission or old-state revival |
 | Galadriel/Prisoma stalls or disconnects | control/watchdog latency unaffected; explicit observation gap |
 | telemetry queue saturates | bounded drop policy and gap count; no control backpressure |
 | pid-rs returns NaN/error/resource refusal | consumer records failure; no fabricated assessment or authority |

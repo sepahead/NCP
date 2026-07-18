@@ -195,6 +195,55 @@ verification, and whether another issue should block the preliminary checkpoint.
   hash, checked sources, normalized command, and exact stdout without calling
   that release evidence.
 
+## Consultation E — wire cutover and review packet
+
+- Exact returned model: `claude-fable-5`
+- Stop reason: `end_turn`
+- Response SHA-256:
+  `080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32`
+- Input tokens: 672
+- Output tokens: 2,156
+- Reported thinking tokens: 69
+- Evidence class: advice only
+
+The request asked five narrow questions about complete v0.8-to-native-1.0
+cutover and rollback, Galadriel assessment acknowledgement, distributed state
+ownership, the strongest remaining actuation race, and the minimum exact review
+packet.
+
+### Advice retained
+
+- A wire migration must close and quiesce the old admission plane, listeners,
+  principals, publishers, and bounded in-flight queues before a fresh native
+  session opens. Native cutover is never a dual-stack body profile.
+- Rollback is another complete compatible cut with a fresh incarnation; it does
+  not revive old listeners, replay state, queues, or pre-cutover traffic.
+- A verified assessment needs an authenticated, sequenced, bounded Haldir
+  disposition. Missing acknowledgement cannot let Galadriel infer that a deny
+  was applied, and overflow/absence behavior must be explicit.
+- Crebain owns body mode, lease, term, session exclusivity, and final admission;
+  Haldir owns its policy revision and applied deny state.
+- A review packet must bind the exact ADR bytes/digests, tree and contract
+  identity, 0.8/1.0 incompatibility, finite models, threat claims, verification
+  commands, evidence, and explicit non-claims.
+
+### Advice revised or rejected
+
+- The response again described generation and epoch as monotonic counters. NCP
+  generation and stream-epoch UUIDs remain opaque equality fences. Persisted
+  authority/deployment terms provide only their separately specified ordering.
+- The response proposed having Crebain verify Haldir's deny-policy revision on
+  lease renewal. Haldir-owned local policy cannot become a source of body
+  authority; the authenticated assessment disposition reports Haldir policy
+  state while Crebain continues to own lease and actuation admission.
+- Bit-identical builds and full artifact reproducibility remain later release
+  and clean-room evidence. B01 review binds exact ADR/source/tree digests and the
+  preliminary result without claiming that later evidence floor.
+- The actuation-time exact current-fence check, receiver-local expiry, old-term
+  rejection, and body-serialized handover were already explicit in ADR-006. The
+  new model challenges the previously under-specified cross-wire cut instead of
+  inventing a second authority mechanism.
+
 ## Failed consultation attempts
 
 These returned no usable advice and are not counted as consultations:
@@ -217,7 +266,7 @@ These returned no usable advice and are not counted as consultations:
   `6e446f7300bf24e482c87c49944f2308ac83be7af0fbbad516116882a2b88c37`.
 
 The usable retries kept the exact Fable 5 model with bounded narrow prompts,
-producing Consultations B and D.
+producing Consultations B, D, and E.
 
 ## Resulting draft changes
 

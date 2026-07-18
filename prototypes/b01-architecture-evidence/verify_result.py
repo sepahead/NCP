@@ -23,7 +23,7 @@ EXPECTED_CONTRACT_SHA256 = (
     "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90"
 )
 EXPECTED_FABLE_SHA256 = (
-    "356dcd46bcf4e1ad2bb11a878fe5bcaa75a3ae16fc58eb035c674aa08e286deb"
+    "080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32"
 )
 SOURCE_SUFFIXES = {".py", ".sh", ".smt2", ".md"}
 MAX_RESULT_AGE = timedelta(hours=1)
@@ -256,6 +256,7 @@ def _verify_model(value: Any) -> None:
             "claim_boundary",
             "composition",
             "deny_lifecycle",
+            "migration_cutover",
             "mutation_kill_matrix",
             "counts",
         },
@@ -333,10 +334,37 @@ def _verify_model(value: Any) -> None:
         },
         minimum_states=20,
     )
+    _verify_exploration(
+        value["migration_cutover"],
+        label="model.migration_cutover",
+        expected_actions={
+            "activate_v08_rollback",
+            "activate_v10",
+            "begin_cutover",
+            "begin_rollback",
+            "deliver",
+            "issue_v08_pre_cutover",
+            "issue_v08_rollback",
+            "issue_v10",
+            "quiesce_cutover",
+            "quiesce_rollback",
+        },
+        expected_witnesses={
+            "cutover_quiescence_reached",
+            "fresh_rollback_v08_command_applied",
+            "fresh_v08_rollback_incarnation_activated",
+            "fresh_v10_command_applied",
+            "fresh_v10_incarnation_activated",
+            "pre_cutover_v08_rejected_after_rollback",
+            "pre_cutover_v08_rejected_in_v10",
+            "rollback_quiescence_reached",
+        },
+        minimum_states=1_000,
+    )
     counts = value["counts"]
     if counts != {
-        "models": 2,
-        "mutations_killed": 17,
+        "models": 3,
+        "mutations_killed": 23,
         "mutations_survived": 0,
     }:
         raise ResultError("bounded model mutation matrix is incomplete")
@@ -358,6 +386,12 @@ def _verify_model(value: Any) -> None:
         ("deny_lifecycle", "assessor_allows"),
         ("deny_lifecycle", "unauthenticated_deny_applies"),
         ("deny_lifecycle", "authenticated_widen_disabled"),
+        ("migration_cutover", "dual_stack_cutover"),
+        ("migration_cutover", "activate_v10_before_quiescence"),
+        ("migration_cutover", "activate_v08_before_quiescence"),
+        ("migration_cutover", "rollback_reuses_v08_incarnation"),
+        ("migration_cutover", "ordered_v08_incarnation"),
+        ("migration_cutover", "accept_v08_in_v10"),
     }
     mutations = value["mutation_kill_matrix"]
     if not isinstance(mutations, list) or len(mutations) != len(expected_mutations):
@@ -414,6 +448,11 @@ def _verify_smt(value: Any) -> None:
     expected_checks = {
         "smt/assessment_monotonicity.smt2": [
             ("authenticated_deny_removal_witness", "sat"),
+            ("authenticated_applied_disposition_witness", "sat"),
+            (
+                "applied_deny_without_authenticated_applied_disposition",
+                "unsat",
+            ),
             ("assessor_tightening_witness", "sat"),
             ("unauthenticated_widening", "unsat"),
         ],
@@ -493,7 +532,7 @@ def _verify_smt(value: Any) -> None:
     counts = value["counts"]
     if counts != {
         "files": 4,
-        "checks": 9,
+        "checks": 11,
         "mutations_killed": 4,
         "mutations_survived": 0,
     }:

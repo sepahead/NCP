@@ -51,7 +51,7 @@ content-hash verification is the boundary.
 | [ADR-005](0005-declared-stream-lifecycle.md) | Declare, retire, and redeclare every stream; exhaustion never rotates implicitly. | Distributed-systems reviewer, all stream consumer owners |
 | [ADR-006](0006-body-issued-authority-and-time.md) | Make plant authority body-issued, term-fenced, bounded, and monotonic-time enforced. | Safety reviewer, distributed-systems reviewer, Haldir owner, Crebain owner |
 | [ADR-007](0007-command-disposition-journal.md) | Add body-issued bounded command dispositions, durable query, and explicit ambiguity. | Plant/safety reviewer, Haldir owner, Crebain owner |
-| [ADR-008](0008-extension-namespace-and-galadriel-separation.md) | Separate stable NCP routes from registered Galadriel extension routes and credentials. | Protocol reviewer, Galadriel owner, Crebain owner |
+| [ADR-008](0008-extension-namespace-and-galadriel-separation.md) | Separate stable NCP routes from registered Galadriel extension routes and credentials. | Protocol reviewer, Galadriel owner, Haldir owner, Crebain owner |
 | [ADR-009](0009-security-state-rotation-and-revocation.md) | Bind semantic security state, key rotation, revocation, and reattachment explicitly. | Security reviewer, operations reviewer, supply-chain reviewer |
 | [ADR-010](0010-plane-qos-retention-and-overload.md) | Specify finite per-plane QoS, retention, priority, overload, and observer isolation. | Real-time/performance reviewer, consumer reviewers |
 | [ADR-011](0011-ecosystem-topology-and-handover.md) | Ratify standalone-first dependency direction, exclusive commander modes, body-coordinated handover, deny-only assessment, and pid-rs neutrality. | Every named consumer owner, pid-rs owner, independent security/distributed-systems reviewer, Crebain plant/safety reviewer |
@@ -74,12 +74,11 @@ Exact Fable 5 consultations used to challenge the drafts are recorded only as
 non-normative design inputs in
 [`../research/b01-fable-architecture-consultations.md`](../research/b01-fable-architecture-consultations.md):
 
-- architecture challenge response SHA-256
-  `3b570327b7f34941bf72ddb747741a16cdfd38dd7507d4dc87480c30d1f26a1`;
-- staging challenge response SHA-256
-  `dea58c92c924263285386492903d806925401c130d880eb6b8e1799cd37e156f`;
-- two exact-model staging attempts returned no text after exhausting their
-  reasoning budgets and are failed consultations, not advice.
+- five usable exact-model consultations are recorded, ending with the cutover
+  and review-packet challenge response SHA-256
+  `080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32`;
+- five other exact-model or configuration attempts failed or returned incomplete
+  text and are recorded as failed consultations, not advice.
 
 The drafts accept useful counterexamples but reject suggestions that conflict
 with current NCP semantics. In particular, `SessionRef.generation` and
