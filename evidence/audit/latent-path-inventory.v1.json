@@ -2209,7 +2209,7 @@
         "bytes": 17538,
         "sha256": "3f140dad12147500048644899f69893c1dd985d0001c900ec66b18143be51fe7",
         "git_blob_oid": "2c5b31941af7b75d998b7d4acc8b954e2b7343be",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "evidence/supply-chain/README.md",
@@ -6775,7 +6775,7 @@
         "bytes": 5326,
         "sha256": "eb885f3c430e41f3386a860fc9cd74e23b4a1244ed94d03db281d7565d371603",
         "git_blob_oid": "af72645c9bee6e94d111e7949247a1323bc369f4",
-        "indexed": false,
+        "indexed": true,
         "reason": "NUL_BYTE"
       },
       {
