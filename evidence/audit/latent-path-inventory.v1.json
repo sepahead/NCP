@@ -127,9 +127,9 @@
       },
       {
         "path": "AGENTS.md",
-        "bytes": 5213,
-        "sha256": "f36f5e4902ef95f477ee1ffbfeea40b998c6604bbc5b1163369e848e41a12c8b",
-        "git_blob_oid": "c77e5cf9c2df9d8d15e92322c4f85fba7ecb2ab4",
+        "bytes": 7328,
+        "sha256": "03b188b3cd8456ac4ae2fa446b04b377158f8dca87b49c98bbe67f3a479140d5",
+        "git_blob_oid": "59093798a5be45cc6fee7cda947ceec3f5b1b06f",
         "indexed": true
       },
       {
@@ -148,9 +148,9 @@
       },
       {
         "path": "CLAUDE.md",
-        "bytes": 1165,
-        "sha256": "6d4d52c9400a001b2e2e740c1ce57e7a100d474d1bc3b1fa2b794dc396acc576",
-        "git_blob_oid": "86788428322f2090d2fa1a4c02b0e275fc30be53",
+        "bytes": 2567,
+        "sha256": "f7e4cdf142b0317fd3835697cba37a2bba456f2db753ebe1235a3a13e90d7fa3",
+        "git_blob_oid": "77faa647e0d9e4684f4fac3961e280cab07d06ec",
         "indexed": true
       },
       {
@@ -162,9 +162,9 @@
       },
       {
         "path": "CONTRIBUTING.md",
-        "bytes": 3367,
-        "sha256": "bfe1115384beda3ca0f03e12d4293bb806471cb7ddc84cb41e552c9b0c52b3ac",
-        "git_blob_oid": "4fc12277720ff49f3c8e915d2b9ab88e73c28f26",
+        "bytes": 4225,
+        "sha256": "1b6ab4eac32071bc566b33b0e8c848a70e4ee4c21ff3c4845025f9ac95926338",
+        "git_blob_oid": "bdee2a3030c1617eb688afc97208bafe339ab6cb",
         "indexed": true
       },
       {
@@ -179,6 +179,13 @@
         "bytes": 2056,
         "sha256": "c283946aaa19f4d42bdc67becb1e715be7cdfe07bdbb41b3e974ee3cb50bd386",
         "git_blob_oid": "464e03597b7a5bd6305f62d4fad2a4cfdb49b9d9",
+        "indexed": true
+      },
+      {
+        "path": "DOCUMENTATION_STYLE.md",
+        "bytes": 4766,
+        "sha256": "37b66fa34bc4ef5380b3171b5bf42bdb5cf9c338fd7d0fedd5fdefc2334fe2f0",
+        "git_blob_oid": "fe325859d8efbe58b8f29215d33f589e724862ec",
         "indexed": true
       },
       {
@@ -260,9 +267,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 12314,
-        "sha256": "05b093e03e6117a8b0ea067765af6efca544f170bf1904131c85e0d2ae219a84",
-        "git_blob_oid": "8b745da4c5477477e31bd26d60bfcab0b0ea39ea",
+        "bytes": 12432,
+        "sha256": "300c577dc4948dd6877ab426755b09425eb9ac86ec581838af927eda5a8553b0",
+        "git_blob_oid": "b566c5cc8501217a20293f7585e6c853ca21979a",
         "indexed": true
       },
       {
@@ -6812,7 +6819,7 @@
     ]
   },
   "counts": {
-    "text_files": 938,
+    "text_files": 939,
     "binary_or_non_utf8_files": 25,
     "occurrences": 153,
     "by_token_id": {
@@ -6840,7 +6847,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "51b0f542131c352c25f19ba49936c3000a858e962cb0e373df02465fc20627f3",
+  "scanned_path_set_sha256": "24d35e9a5bab5b672e7c8e0d3e537045b768520724cd000f9b4349495714c305",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -6886,13 +6893,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-12327079428457062128",
+      "id": "NCP-LATENT-CBAA49300AA8ECBC0F35",
       "path": "CONTRIBUTING.md",
-      "line": 34,
-      "column": 64,
+      "line": 55,
+      "column": 66,
       "token_id": "M007",
-      "line_sha256": "7cdab6419449222edfee20c0566ebeee514970cfd8c14a81de9dc37a98099169",
-      "file_sha256": "bfe1115384beda3ca0f03e12d4293bb806471cb7ddc84cb41e552c9b0c52b3ac",
+      "line_sha256": "39d514fa09c83213d17781361747a5b014ecb45b6146a1aaccbd43758e5a5c38",
+      "file_sha256": "1b6ab4eac32071bc566b33b0e8c848a70e4ee4c21ff3c4845025f9ac95926338",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -7112,7 +7119,7 @@
       "column": 1,
       "token_id": "M007",
       "line_sha256": "9b39703b9a754b869e0837a0f735d906cd5a8b2857bde0282918c16b96f5e965",
-      "file_sha256": "05b093e03e6117a8b0ea067765af6efca544f170bf1904131c85e0d2ae219a84",
+      "file_sha256": "300c577dc4948dd6877ab426755b09425eb9ac86ec581838af927eda5a8553b0",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -7127,7 +7134,7 @@
       "column": 76,
       "token_id": "M007",
       "line_sha256": "4c4930c003353c2d9990a18932684aaec634e4812d367b8eb6f5cc60e258a4f1",
-      "file_sha256": "05b093e03e6117a8b0ea067765af6efca544f170bf1904131c85e0d2ae219a84",
+      "file_sha256": "300c577dc4948dd6877ab426755b09425eb9ac86ec581838af927eda5a8553b0",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

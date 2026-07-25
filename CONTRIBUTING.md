@@ -1,42 +1,72 @@
 # Contributing to NCP
 
-Repository HEAD is the unreleased, release-blocked NCP `1.0.0-rc.1` candidate
-(wire `1.0`, compact proto hash `163acc57d8a62b66`). The latest immutable annotated
-source tag is `v0.8.0` and is wire-incompatible. Contributions are welcome under the
+Repository HEAD is the unreleased and release-blocked NCP `1.0.0-rc.1` candidate.
+Its wire is `1.0`. Its compact proto hash is `163acc57d8a62b66`.
+
+The latest immutable release is `v0.8.0`. It uses a different wire.
+
+Contributions are welcome under the
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
-Read [`AGENTS.md`](AGENTS.md),
-[`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md),
-[`SECURITY.md`](SECURITY.md), and
-[`RELEASE_READINESS.md`](RELEASE_READINESS.md) first.
+## Before you start
+
+Read these files first:
+
+- [`AGENTS.md`](AGENTS.md)
+- [`DOCUMENTATION_STYLE.md`](DOCUMENTATION_STYLE.md)
+- [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`RELEASE_READINESS.md`](RELEASE_READINESS.md)
+
+For an NCP 1.0 implementation task, also read the generated resumption brief and
+task ledger. Then read the complete finalization blueprint.
+
+Start only a dependency-ready task. Preserve unrelated work in each repository.
 
 ## Contract changes
 
-The normative precedence and exact source set are generated in
-[`contract/manifest.v1.json`](contract/manifest.v1.json). Open an issue/design note
-for any semantic change and identify affected messages, field numbers, schemas,
-limits, registries, state transitions, packages, transports, persisted data,
-consumers, migration, and claims.
+[`contract/manifest.v1.json`](contract/manifest.v1.json) generates the normative
+precedence and exact source set.
 
-A complete wire change updates, in one review:
+Open an issue or design record before a semantic change. Identify each affected
+message, field, schema, limit, registry, transition, package, transport, consumer,
+migration, and claim.
 
-- registries and normative prose;
-- `proto/ncp.proto` with reserved numbers/names as needed;
-- Rust reference types and semantic validation;
-- generated JSON Schemas and TypeScript declarations/dist;
-- canonical, behavior, limit, and migration vectors;
-- mandatory conformance and complete contract manifests;
-- Python/C/C++ binding fixtures and package-local testdata;
-- compact proto hash, candidate baseline, changelog, integration guide, and every
-  affected current document.
+A complete wire change can require updates to these items:
 
-Never hand-edit generated artifacts, add an optimistic default, branch on a
-consumer, weaken a resource/security/safety guard, or label an experimental feature
-stable by implication. Unknown values cannot authorize action.
+- registries and normative prose
+- `proto/ncp.proto`, including reserved names and numbers
+- Rust reference types and semantic validation
+- generated JSON Schemas and TypeScript outputs
+- canonical, behavior, limit, and migration vectors
+- conformance and contract manifests
+- Python, C, and C++ fixtures
+- package-local test data
+- the compact proto hash
+- the candidate baseline
+- the changelog and integration guide
+- each affected current document
+
+Change the source before you run its generator. Do not hand-edit a generated file.
+
+Do not add an optimistic default or consumer-specific branch. Do not weaken a
+resource, security, or safety guard.
+
+An unknown value must not authorize an operation. Do not mark an experimental
+feature as stable by implication.
+
+## Documentation changes
+
+Use the STE-aligned profile in
+[`DOCUMENTATION_STYLE.md`](DOCUMENTATION_STYLE.md). Preserve exact normative terms
+and historical values.
+
+Do not rewrite generated files or frozen history only to change their style. Run
+the link checker and inspect the rendered document.
 
 ## Build and test
 
-Use focused tests during development, then run the complete local matrix:
+Run focused tests during development. Then run the complete local matrix.
 
 ```bash
 cargo fmt --all -- --check
@@ -48,31 +78,45 @@ python3 scripts/generate_contract_manifest.py
 scripts/check.sh
 ```
 
-`scripts/check.sh` requires Rust 1.88+, Python 3, C++17, Bun/npm, Buf, and
-`cargo-deny`. Missing required tools or skipped applicable vectors are failures.
+`scripts/check.sh` requires Rust 1.88 or later, Python 3, C++17, Bun or npm, Buf,
+and `cargo-deny`.
+
+Treat a missing required tool or a skipped applicable vector as a failure.
 
 ## Evidence and claims
 
-Tests must include valid, malformed, boundary, stale/replay, identity/plane,
-interruption/restart, concurrency, and resource cases appropriate to the change.
-Retain exact source/toolchain/config/environment digests for campaigns.
+Add the valid, malformed, boundary, stale, replay, restart, concurrency, and
+resource tests that apply to the change.
 
-Local green tests do not close live security, independent-peer, fault/soak,
-fuzz/sanitizer, performance, supply-chain, clean-room, publication, or consumer
-gates. Mark them **NOT RUN** until exact evidence exists. Model-generated review is
-optional advice and never certification.
+Keep exact source, toolchain, configuration, environment, and artifact identities
+for an evidence campaign.
 
-Scientific and physical-safety boundaries are binding: simulation output is not a
-paper reproduction or calibrated posterior; protocol ESTOP is not a certified
-physical emergency stop; the body and consumer safety case remain final.
+Local tests do not close a live-security, independent-peer, fault, soak, fuzz,
+sanitizer, performance, supply chain, clean-room, publication, or consumer gate.
 
-## Pull requests
+Keep each unexecuted gate at **NOT RUN**. Model-generated review is optional advice.
+It is not certification.
 
-Keep changes reviewable, explain the failure being closed, add characterization
-before implementation where practical, and include commands/results plus explicit
-not-run gates. Preserve unrelated work and historical 0.8 documents. Engram's
-native-1.0 migration is explicit and in progress; never copy candidate files alone
-and call that a complete or certified migration.
+Simulation output is not a paper reproduction or a calibrated posterior. Protocol
+ESTOP is not a certified physical emergency stop. The body and consumer safety
+case remain final.
 
-Contributions are accepted under the repository's dual MIT/Apache-2.0 license unless
-explicitly stated otherwise.
+## Pull requests and commits
+
+Keep each change small enough for a complete review. Explain the failure or gap
+that the change closes.
+
+Add a characterization test before an accept-path change when practical. Add a
+positive test before a new fail-closed path when practical.
+
+Include the exact commands and results. List each gate that remains **NOT RUN**.
+
+Preserve unrelated work and historical wire-0.8 documents. Engram's native-1.0
+migration remains in progress. Copied candidate files do not complete or certify
+that migration.
+
+Use one professional commit for one coherent passing part. Push it to the
+authorized branch. Verify the remote object after the push.
+
+Contributions use the dual MIT or Apache-2.0 license unless a file states another
+license.

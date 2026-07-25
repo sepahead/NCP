@@ -209,6 +209,8 @@ baseline.
 - [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md): current residual risks.
 - [`VERSIONING.md`](VERSIONING.md): compatibility and release policy.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.
+- [`DOCUMENTATION_STYLE.md`](DOCUMENTATION_STYLE.md): STE-aligned technical writing
+  and documentation review rules.
 - [`CHANGELOG.md`](CHANGELOG.md): candidate and historical changes.
 
 ## License and citation
