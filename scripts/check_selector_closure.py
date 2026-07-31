@@ -153,9 +153,9 @@ EXPECTED_MODEL_ORIGIN_SIGNAL_ROW_COUNT = 2_607
 EXPECTED_MODEL_ORIGIN_SIGNAL_SHA256 = (
     "000603e4e80af52c30bbb3066db516e24a0f05d7e77944f3ffb80b7741afefd6"
 )
-EXPECTED_SEMANTIC_SHAPE_ENTRY_COUNT = 269_392
+EXPECTED_SEMANTIC_SHAPE_ENTRY_COUNT = 269_399
 EXPECTED_SEMANTIC_SHAPE_SHA256 = (
-    "975b8c6797898b0360cc36cf06cb706085e29ed3faafc75b2bc2cf0939a8e467"
+    "1d70f5f61a993d376d3ed15b5813462beeccdbc3fe6ad7d93e46254948cb03ea"
 )
 EXTERNAL_COMPARE_RESOURCES: frozenset[str] = frozenset()
 EXPECTED_RESOURCE_CLOSURE_PER_KIND_COUNTS = {
@@ -289,7 +289,10 @@ MAX_PROBE_INPUT_BYTES = (
 MAX_PROBE_OUTPUT_BYTES = 2 * 1024 * 1024
 MAX_PROBE_RSS_BYTES = 512 * 1024 * 1024
 MAX_PROBE_OPEN_FILES = 64
-PROBE_SELF_TEST_TIMEOUT_SECONDS = 60
+MAX_PROBE_CPU_SECONDS = 900
+MAX_PROBE_WALL_SECONDS = 1800
+PROBE_SELF_TEST_CPU_SECONDS = 60
+PROBE_SELF_TEST_WALL_SECONDS = 120
 PROBE_LOADER_SOURCE = f"""
 import os
 import resource
@@ -462,11 +465,15 @@ EXPECTED_PROBE_SOURCE_PATHS = {
     probe_id: shlex.split(command)[1]
     for probe_id, command in EXPECTED_PROBE_REVIEW_COMMANDS.items()
 }
-EXPECTED_PROBE_TIMEOUT_SECONDS = {
+EXPECTED_PROBE_CPU_SECONDS = {
     "freshness_acceptance_probe": 180,
     "observer_authorization_probe": 600,
     "observer_capture_probe": 900,
     "source_issuance_index_probe": 180,
+}
+EXPECTED_PROBE_WALL_SECONDS = {
+    probe_id: cpu_seconds * 2
+    for probe_id, cpu_seconds in EXPECTED_PROBE_CPU_SECONDS.items()
 }
 EXPECTED_PROBE_EXECUTION_PROFILE = {
     "claim_boundary": (
@@ -476,7 +483,7 @@ EXPECTED_PROBE_EXECUTION_PROFILE = {
     "environment": "FIXED_LAUNCH_THEN_CLEARED_BEFORE_BOUND_SOURCE",
     "kernel_limits": {
         "core_bytes": 0,
-        "cpu_seconds_by_probe": EXPECTED_PROBE_TIMEOUT_SECONDS,
+        "cpu_seconds_by_probe": EXPECTED_PROBE_CPU_SECONDS,
         "file_bytes": MAX_PROBE_OUTPUT_BYTES,
         "inherited_limit_policy": (
             "PRESERVE_OR_TIGHTEN_EACH_INHERITED_SOFT_AND_HARD_LIMIT"
@@ -512,7 +519,7 @@ EXPECTED_PROBE_EXECUTION_PROFILE = {
     "runtime_provenance": (
         "INTERPRETER_STANDARD_LIBRARY_KERNEL_AND_DYNAMIC_RUNTIME_NOT_CONTENT_BOUND"
     ),
-    "schema": "ncp.b01-bound-probe-execution-profile.v1",
+    "schema": "ncp.b01-bound-probe-execution-profile.v2",
     "source_limits": {
         "dependency_bytes_each": MAX_PROBE_DEPENDENCY_BYTES,
         "dependency_count": MAX_PROBE_DEPENDENCIES,
@@ -521,6 +528,13 @@ EXPECTED_PROBE_EXECUTION_PROFILE = {
         "output_bytes_each_channel": MAX_PROBE_OUTPUT_BYTES,
         "script_bytes": MAX_PROBE_SCRIPT_BYTES,
         "source_path_bytes": MAX_PROBE_SOURCE_PATH_BYTES,
+    },
+    "wall_clock_limits": {
+        "policy": (
+            "FINITE_EXACTLY_TWO_TIMES_CPU_FOR_SCHEDULER_SLACK_"
+            "WITHOUT_INCREASING_CPU_AUTHORITY"
+        ),
+        "seconds_by_probe": EXPECTED_PROBE_WALL_SECONDS,
     },
     "working_directory": "FRESH_EMPTY_TEMPORARY_DIRECTORY",
 }
@@ -20783,10 +20797,21 @@ def run_bound_probes(data: dict[str, Any]) -> int:
         "bound probe execution profile",
     )
     require_exact(
-        set(EXPECTED_PROBE_TIMEOUT_SECONDS),
+        set(EXPECTED_PROBE_CPU_SECONDS),
         set(EXPECTED_PROBE_REVIEW_COMMANDS),
-        "bound probe timeout set",
+        "bound probe CPU-limit set",
     )
+    require_exact(
+        set(EXPECTED_PROBE_WALL_SECONDS),
+        set(EXPECTED_PROBE_REVIEW_COMMANDS),
+        "bound probe wall-limit set",
+    )
+    for probe_id, cpu_seconds in EXPECTED_PROBE_CPU_SECONDS.items():
+        require_exact(
+            EXPECTED_PROBE_WALL_SECONDS[probe_id],
+            cpu_seconds * 2,
+            f"{probe_id}: scheduler-slack wall limit",
+        )
     shared_bindings = bindings.get("shared_source_bindings")
     require(
         isinstance(shared_bindings, dict),
@@ -20990,7 +21015,8 @@ def run_bound_probes(data: dict[str, Any]) -> int:
             probe_id=probe_id,
             script_path=script_path,
             dependencies=dependencies,
-            timeout_seconds=EXPECTED_PROBE_TIMEOUT_SECONDS[probe_id],
+            cpu_seconds=EXPECTED_PROBE_CPU_SECONDS[probe_id],
+            wall_seconds=EXPECTED_PROBE_WALL_SECONDS[probe_id],
         )
         _verify_probe_result(
             probe_id,
@@ -21030,7 +21056,7 @@ def _least_privilege_resource_limit(
     return min(requested_soft, bounded_hard), bounded_hard
 
 
-def _limit_probe_child_resources(*, timeout_seconds: int) -> None:
+def _limit_probe_child_resources(*, cpu_seconds: int) -> None:
     """Install portable kernel limits before the fixed probe loader starts."""
 
     def install(resource_id: int, soft: int, hard: int) -> None:
@@ -21061,8 +21087,8 @@ def _limit_probe_child_resources(*, timeout_seconds: int) -> None:
     )
     install(
         resource.RLIMIT_CPU,
-        timeout_seconds,
-        timeout_seconds + 1,
+        cpu_seconds,
+        cpu_seconds + 1,
     )
 
 
@@ -21158,17 +21184,57 @@ def _build_probe_frame(
     return bytes(frame)
 
 
+def _terminate_probe_process_group(process: subprocess.Popen[bytes]) -> None:
+    """Kill and reap the exact fresh-session probe group."""
+
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        if process.poll() is None:
+            process.kill()
+    process.communicate()
+
+
+def _communicate_with_probe_cleanup(
+    process: subprocess.Popen[bytes],
+    *,
+    frame: bytes,
+    probe_id: str,
+    cpu_seconds: int,
+    wall_seconds: int,
+) -> None:
+    """Communicate with one probe and reap its group on every exceptional exit."""
+
+    try:
+        process.communicate(input=frame, timeout=wall_seconds)
+    except subprocess.TimeoutExpired:
+        _terminate_probe_process_group(process)
+        fail(
+            f"{probe_id}: command exceeded {wall_seconds} wall-clock seconds "
+            f"with a {cpu_seconds}-second CPU limit"
+        )
+    except BaseException:
+        _terminate_probe_process_group(process)
+        raise
+
+
 def _run_probe_frame(
     frame: bytes,
     *,
     probe_id: str,
-    timeout_seconds: int,
+    cpu_seconds: int,
+    wall_seconds: int,
 ) -> tuple[int, bytes, bytes]:
     """Run one bounded raw frame in the fixed loader."""
 
     require(
-        type(timeout_seconds) is int and 0 < timeout_seconds <= 900,
-        f"{probe_id}: invalid bounded timeout",
+        type(cpu_seconds) is int and 0 < cpu_seconds <= MAX_PROBE_CPU_SECONDS,
+        f"{probe_id}: invalid bounded CPU limit",
+    )
+    require(
+        type(wall_seconds) is int
+        and cpu_seconds <= wall_seconds <= MAX_PROBE_WALL_SECONDS,
+        f"{probe_id}: invalid bounded wall limit",
     )
     require(
         type(probe_id) is str
@@ -21203,23 +21269,18 @@ def _run_probe_frame(
                         start_new_session=True,
                         preexec_fn=partial(
                             _limit_probe_child_resources,
-                            timeout_seconds=timeout_seconds,
+                            cpu_seconds=cpu_seconds,
                         ),
                     )
                 except (OSError, subprocess.SubprocessError) as error:
                     fail(f"{probe_id}: cannot start bounded probe: {error}")
-                try:
-                    process.communicate(
-                        input=frame,
-                        timeout=timeout_seconds,
-                    )
-                except subprocess.TimeoutExpired:
-                    try:
-                        os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        process.kill()
-                    process.communicate()
-                    fail(f"{probe_id}: command exceeded {timeout_seconds} seconds")
+                _communicate_with_probe_cleanup(
+                    process,
+                    frame=frame,
+                    probe_id=probe_id,
+                    cpu_seconds=cpu_seconds,
+                    wall_seconds=wall_seconds,
+                )
                 stdout_file.seek(0)
                 stderr_file.seek(0)
                 stdout = stdout_file.read(MAX_PROBE_OUTPUT_BYTES + 1)
@@ -21241,7 +21302,8 @@ def _run_bounded_probe(
     probe_id: str,
     script_path: str = "<bound-probe>",
     dependencies: tuple[tuple[str, str, bytes], ...] = (),
-    timeout_seconds: int = PROBE_SELF_TEST_TIMEOUT_SECONDS,
+    cpu_seconds: int = PROBE_SELF_TEST_CPU_SECONDS,
+    wall_seconds: int = PROBE_SELF_TEST_WALL_SECONDS,
 ) -> tuple[int, bytes, bytes]:
     """Execute exact bytes in a bounded loader without repository cwd access."""
 
@@ -21254,7 +21316,8 @@ def _run_bounded_probe(
     return _run_probe_frame(
         frame,
         probe_id=probe_id,
-        timeout_seconds=timeout_seconds,
+        cpu_seconds=cpu_seconds,
+        wall_seconds=wall_seconds,
     )
 
 
@@ -21262,6 +21325,24 @@ def _run_probe_loader_self_test() -> int:
     """Exercise framing, isolation, bounds, ordering, and least privilege."""
 
     checks = 0
+    for label, cpu_seconds, wall_seconds in (
+        ("zero-wall", 1, 0),
+        ("wall-below-cpu", 2, 1),
+        ("cpu-over-maximum", MAX_PROBE_CPU_SECONDS + 1, MAX_PROBE_WALL_SECONDS),
+        ("wall-over-maximum", 1, MAX_PROBE_WALL_SECONDS + 1),
+    ):
+        try:
+            _run_probe_frame(
+                b"invalid-limit-frame",
+                probe_id=f"{label}-loader-self-test",
+                cpu_seconds=cpu_seconds,
+                wall_seconds=wall_seconds,
+            )
+        except ClosureCheckError:
+            checks += 1
+        else:
+            fail(f"probe loader accepted an invalid {label} limit pair")
+
     infinity = resource.RLIM_INFINITY
     limit_cases = (
         ((64, 64, infinity, infinity), (64, 64)),
@@ -21419,7 +21500,8 @@ def _run_probe_loader_self_test() -> int:
         returncode, stdout, stderr = _run_probe_frame(
             frame,
             probe_id=f"{label}-frame-self-test",
-            timeout_seconds=PROBE_SELF_TEST_TIMEOUT_SECONDS,
+            cpu_seconds=PROBE_SELF_TEST_CPU_SECONDS,
+            wall_seconds=PROBE_SELF_TEST_WALL_SECONDS,
         )
         require(returncode != 0, f"probe loader accepted a {label} frame")
         require_exact(
@@ -21450,11 +21532,44 @@ def _run_probe_loader_self_test() -> int:
     )
     checks += 1
 
+    class InterruptedProbeProcess:
+        def communicate(self, *, input: bytes, timeout: int) -> None:
+            require_exact(input, b"interrupt", "interrupted probe frame")
+            require_exact(timeout, 2, "interrupted probe wall limit")
+            raise KeyboardInterrupt
+
+    interrupted_process = InterruptedProbeProcess()
+    cleaned_processes: list[object] = []
+    original_terminator = globals()["_terminate_probe_process_group"]
+    globals()["_terminate_probe_process_group"] = cleaned_processes.append
+    try:
+        try:
+            _communicate_with_probe_cleanup(
+                interrupted_process,  # type: ignore[arg-type]
+                frame=b"interrupt",
+                probe_id="interrupt-cleanup-self-test",
+                cpu_seconds=1,
+                wall_seconds=2,
+            )
+        except KeyboardInterrupt:
+            pass
+        else:
+            fail("probe communication swallowed caller interruption")
+    finally:
+        globals()["_terminate_probe_process_group"] = original_terminator
+    require_exact(
+        cleaned_processes,
+        [interrupted_process],
+        "interrupted probe process-group cleanup",
+    )
+    checks += 1
+
     try:
         timeout_returncode, _, _ = _run_bounded_probe(
             b"while True:\n    pass\n",
             probe_id="timeout-loader-self-test",
-            timeout_seconds=1,
+            cpu_seconds=1,
+            wall_seconds=2,
         )
     except ClosureCheckError:
         checks += 1
@@ -21854,7 +21969,8 @@ def run_hostile_self_test(source: Path) -> int:
             probe_id=f"{probe_id}-same-output-mutant",
             script_path=script_path.as_posix(),
             dependencies=dependency_sources,
-            timeout_seconds=EXPECTED_PROBE_TIMEOUT_SECONDS[probe_id],
+            cpu_seconds=EXPECTED_PROBE_CPU_SECONDS[probe_id],
+            wall_seconds=EXPECTED_PROBE_WALL_SECONDS[probe_id],
         )
         require_exact(
             returncode,

@@ -191,18 +191,19 @@ TASK_SUBJECT_FILE_LIMITS = FileSnapshotLimits(
     maximum_bytes=MAX_TASK_SUBJECT_JSON_BYTES,
 )
 EVIDENCE_REQUIREMENTS_INPUT_SHA256 = (
-    "52c2b94acf9eaa84698b5c4164054f0508b920f58e78a6538f412b39b3c1b4a4"
+    "4d345b09baba873c737123723c7f4e37aaa577121f54b39a05a39b880107faac"
 )
 EVIDENCE_REQUIREMENTS_LOCK_SHA256 = (
-    "b540eb4f736d82d96c981f7bce171743a5b58324a8ec4b45106159355d39427a"
+    "6983678a7a0afe1a128a143fe6840e805876fc10bbfd414b732facc9469665c8"
 )
-EVIDENCE_DIRECT_REQUIREMENTS = ("jsonschema==4.26.0",)
+EVIDENCE_DIRECT_REQUIREMENTS = ("jsonschema==4.26.0", "ruff==0.15.21")
 EVIDENCE_LOCKED_DISTRIBUTIONS = {
     "attrs": ("26.1.0", None),
     "jsonschema": ("4.26.0", None),
     "jsonschema-specifications": ("2025.9.1", None),
     "referencing": ("0.37.0", None),
     "rpds-py": ("2026.6.3", None),
+    "ruff": ("0.15.21", None),
     "typing-extensions": ("4.16.0", "python_full_version < '3.13'"),
 }
 EVIDENCE_ENVIRONMENT_BOOTSTRAP_DISTRIBUTIONS = frozenset({"pip", "setuptools"})
@@ -17594,17 +17595,21 @@ def _validate_evidence_requirements_contract(
     if locked != EVIDENCE_LOCKED_DISTRIBUTIONS:
         _fail(
             "scripts/requirements-evidence-schema.txt differs from the exact "
-            "six-distribution universal resolution"
+            "seven-distribution universal resolution"
         )
-    direct_name, direct_version = EVIDENCE_DIRECT_REQUIREMENTS[0].split("==", 1)
-    if locked.get(direct_name) != (direct_version, None):
+    for direct_requirement in EVIDENCE_DIRECT_REQUIREMENTS:
+        direct_name, direct_version = direct_requirement.split("==", 1)
+        if locked.get(direct_name) != (direct_version, None):
+            _fail(
+                "scripts/requirements-evidence-schema.txt does not resolve each "
+                "exact direct requirement from "
+                "scripts/requirements-evidence-schema.in"
+            )
+    if lock_text.count("    # via -r scripts/requirements-evidence-schema.in\n") != len(
+        EVIDENCE_DIRECT_REQUIREMENTS
+    ):
         _fail(
-            "scripts/requirements-evidence-schema.txt does not resolve the exact "
-            "direct requirement from scripts/requirements-evidence-schema.in"
-        )
-    if lock_text.count("    # via -r scripts/requirements-evidence-schema.in\n") != 1:
-        _fail(
-            "scripts/requirements-evidence-schema.txt must bind exactly one "
+            "scripts/requirements-evidence-schema.txt must bind every exact "
             "direct requirement to scripts/requirements-evidence-schema.in"
         )
     expected_compile_command = (
@@ -19443,6 +19448,17 @@ def _self_test_local_admission_and_receipt_boundaries(
     )
     _must_fail(
         lambda: _validate_evidence_requirements_contract(
+            requirement_bytes.replace(
+                b"ruff==0.15.21",
+                b"ruff==0.15.20",
+            ),
+            lock_bytes,
+        ),
+        "changed direct formatter requirement",
+        "checked non-cryptographic direct requirement set",
+    )
+    _must_fail(
+        lambda: _validate_evidence_requirements_contract(
             requirement_bytes,
             lock_bytes
             + b"cryptography==46.0.0 \\\n"
@@ -19451,7 +19467,7 @@ def _self_test_local_admission_and_receipt_boundaries(
             + b"\n",
         ),
         "added transitive lock distribution",
-        "exact six-distribution universal resolution",
+        "exact seven-distribution universal resolution",
     )
     _must_fail(
         lambda: _validate_evidence_requirements_contract(
@@ -19462,7 +19478,7 @@ def _self_test_local_admission_and_receipt_boundaries(
             ),
         ),
         "detached direct requirement attribution",
-        "bind exactly one direct requirement",
+        "bind every exact direct requirement",
     )
     expected_installed = [
         (name, version)

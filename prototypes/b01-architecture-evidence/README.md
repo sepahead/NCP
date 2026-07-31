@@ -351,12 +351,16 @@ execution profile. The fixed loader validates the complete frame and compiles
 all sources before it executes the dependency order. It starts a fresh Python
 interpreter with isolated/no-site/no-bytecode/UTF-8 flags, an empty temporary
 directory, a cleared environment, monotone kernel limits, and a best-effort RSS
-watchdog. This is local exact-source evidence, not an OS sandbox. It does not
+watchdog. The kernel CPU limit stays separate from the wall-clock limit. The
+wall-clock limit is exactly twice the CPU limit to allow finite scheduler
+delay. This allowance does not increase the CPU limit. On a wall-clock timeout
+or an exceptional caller exit, the checker kills and reaps the fresh probe
+process group. This is local exact-source evidence, not an OS sandbox. It does not
 isolate the network, absolute filesystem paths, syscalls, or a new process
 session. Python, its standard library, the dynamic runtime, and the kernel are
 not content-bound. Launch assumes a single-threaded POSIX parent for
 `preexec_fn` limits. A descendant that creates another process session can
-escape process-group timeout termination.
+escape process-group termination.
 
 The shared validator also binds the trusted expected observer principal. It
 derives each history-request digest from the complete validated history scope.
@@ -412,8 +416,8 @@ domains. Int/string-key, base-type-subclass, tuple/list, bytes/mapping,
 artifact/mapping, root same-shape-type, and nested same-shape-type collision
 attempts are direct hostile controls.
 
-Its deterministic result contains 248 targeted cases: 185 lifecycle decisions
-(36 admitted and 149 rejected) plus 63 capture-action decisions. It executes and
+Its deterministic result contains 249 targeted cases: 186 lifecycle decisions
+(36 admitted and 150 rejected) plus 63 capture-action decisions. It executes and
 kills 10 logic mutants with zero survivors. It records 22 semantic contrasts
 without presenting them as mutants, rejects 444 hostile inputs, and reaches 73
 invariant witnesses. Prisoma estimation remains blocked before eligibility,

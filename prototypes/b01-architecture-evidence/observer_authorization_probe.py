@@ -14905,16 +14905,12 @@ def _run_hostile_tests(
     )
     _expect_rejection(
         "clock_mapping_zero_qualification_digest_rejected",
-        lambda: _validate_mapping(
-            replace(mapping, qualification_digest="0" * 64)
-        ),
+        lambda: _validate_mapping(replace(mapping, qualification_digest="0" * 64)),
         accepted,
     )
     _expect_rejection(
         "clock_mapping_zero_source_receipt_digest_rejected",
-        lambda: _validate_mapping(
-            replace(mapping, source_receipt_digest="0" * 64)
-        ),
+        lambda: _validate_mapping(replace(mapping, source_receipt_digest="0" * 64)),
         accepted,
     )
     _expect_rejection(

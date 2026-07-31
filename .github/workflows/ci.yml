@@ -40,7 +40,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Draft 2020-12 evidence schemas and implementation ledger
+      - name: Evidence schemas, B01 Python tools, and implementation ledger
         run: |
           python3 -m venv "${RUNNER_TEMP}/ncp-evidence-schema"
           evidence_schema_python="${RUNNER_TEMP}/ncp-evidence-schema/bin/python"
@@ -56,6 +56,10 @@ jobs:
       - name: B01 fail-closed review-candidate integrity (non-completion)
         run: |
           evidence_schema_python="${RUNNER_TEMP}/ncp-evidence-schema/bin/python"
+          "$evidence_schema_python" -m ruff format --check -- \
+            prototypes/b01-architecture-evidence/*.py
+          "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+            prototypes/b01-architecture-evidence/*.py
           "$evidence_schema_python" \
             prototypes/b01-architecture-evidence/bounded_canonical.py --self-test
           "$evidence_schema_python" \

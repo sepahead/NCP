@@ -221,7 +221,7 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "b4e079074063e624a5d34002afda4efffe51b423e21a5b4166d5bacafebcd5b8"
+      "sha256": "8e5e2ce69877dc35d5146b8c10f66a2e268f9b936e2efc6f74181c205f1eebb2"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
@@ -237,7 +237,7 @@
     },
     {
       "path": "scripts/requirements-evidence-schema.txt",
-      "sha256": "b540eb4f736d82d96c981f7bce171743a5b58324a8ec4b45106159355d39427a"
+      "sha256": "6983678a7a0afe1a128a143fe6840e805876fc10bbfd414b732facc9469665c8"
     }
   ],
   "ledger_grants_release_authorization": false,

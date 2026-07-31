@@ -98,7 +98,7 @@
             "utf8"
           ],
           "runtime_provenance": "INTERPRETER_STANDARD_LIBRARY_KERNEL_AND_DYNAMIC_RUNTIME_NOT_CONTENT_BOUND",
-          "schema": "ncp.b01-bound-probe-execution-profile.v1",
+          "schema": "ncp.b01-bound-probe-execution-profile.v2",
           "source_limits": {
             "dependency_bytes_each": 262144,
             "dependency_count": 3,
@@ -107,6 +107,15 @@
             "output_bytes_each_channel": 2097152,
             "script_bytes": 4194304,
             "source_path_bytes": 512
+          },
+          "wall_clock_limits": {
+            "policy": "FINITE_EXACTLY_TWO_TIMES_CPU_FOR_SCHEDULER_SLACK_WITHOUT_INCREASING_CPU_AUTHORITY",
+            "seconds_by_probe": {
+              "freshness_acceptance_probe": 360,
+              "observer_authorization_probe": 1200,
+              "observer_capture_probe": 1800,
+              "source_issuance_index_probe": 360
+            }
           },
           "working_directory": "FRESH_EMPTY_TEMPORARY_DIRECTORY"
         },
@@ -126,8 +135,8 @@
             "observer_read_capture_bridge"
           ],
           "review_command": "python3 prototypes/b01-architecture-evidence/observer_authorization_probe.py",
-        "script_byte_length": 714466,
-        "script_sha256": "ae0c751100a064ea387f2156b30238adffa62eeadfe28a98b382e6ed55c82166",
+        "script_byte_length": 714422,
+        "script_sha256": "7345d653f95cf8dc498afc8cacb5a81cf70ae8180d506847e43645125ef355d9",
           "source_path": "prototypes/b01-architecture-evidence/observer_authorization_probe.py",
         "stdout_byte_length": 78260,
         "stdout_sha256": "64bc2ca24e5e153aac34c189db371b910d81371468ff8f84f1048add8cfd8107"
@@ -138,19 +147,19 @@
             "observer_read_capture_bridge"
           ],
           "review_command": "python3 prototypes/b01-architecture-evidence/observer_capture_probe.py",
-        "script_byte_length": 2059452,
-        "script_sha256": "f28f1815b7219aec37145f712d01633a3571268b6a0344b3c8a851cd5623a770",
+        "script_byte_length": 2060031,
+        "script_sha256": "279f2195003321eac34e69db1141e403dba47c51da9ebbda03a51f1c397f59c8",
           "source_path": "prototypes/b01-architecture-evidence/observer_capture_probe.py",
         "stdout_byte_length": 208647,
         "stdout_sha256": "42cc755e15e0e302837bea146759b66186b1e6171983aa5da87fa9bf6dd0f81e"
         },
         "shared_source_bindings": {
           "bounded_canonical": {
-          "byte_length": 115298,
+          "byte_length": 115312,
             "dependency_ids": [],
             "module": "bounded_canonical",
             "path": "prototypes/b01-architecture-evidence/bounded_canonical.py",
-          "sha256": "045f12528b894b29d7d5edaafb18fc32759f0689f04eebd92cff5888cf2d3dbc"
+          "sha256": "4a2d04738c8518cf5350ed551a6020c4899680457605e5360002793502c143fa"
           },
           "bounded_json": {
             "byte_length": 50898,

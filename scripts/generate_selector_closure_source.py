@@ -92,7 +92,7 @@ AUTHORING_SCHEMA_URL = (
     "https://sepahead.github.io/ncp/schemas/b01-selector-closure-authoring.v1.json"
 )
 AUTHORING_SCHEMA_SHA256 = (
-    "54f99aef4acdf88760f4923bbcdaf6f42f1bce529ebfd9644a43da795242a61d"
+    "81eafc4e6f672653806980e56121ae0cfcd25c898eb17743b10e416d5998874f"
 )
 CANONICAL_SOURCE_SCHEMA_FILE = "selector-closure.source.schema.v1.json"
 CANONICAL_SOURCE_SCHEMA_ID = "ncp.b01-selector-closure-source.v1"
@@ -345,71 +345,59 @@ V2_EMPTY_MIGRATION_TARGET_SCHEMA_SHA256 = (
 # The one-use combined migration is an exact maintained cut, not a semantic
 # compatibility path. These identities are regenerated only when the reviewed
 # predecessor or intended successor changes as one coherent source update.
-EXACT_COMBINED_MIGRATION_AUTHORING_SCHEMA_BYTE_LENGTH = 82_874
+EXACT_COMBINED_MIGRATION_AUTHORING_SCHEMA_BYTE_LENGTH = 83_271
 EXACT_COMBINED_MIGRATION_AUTHORING_SCHEMA_SHA256 = (
-    "54f99aef4acdf88760f4923bbcdaf6f42f1bce529ebfd9644a43da795242a61d"
+    "81eafc4e6f672653806980e56121ae0cfcd25c898eb17743b10e416d5998874f"
 )
 EXACT_PROBE_REPIN_PREDECESSOR_BINDING_BYTE_LENGTH = 4_427
 EXACT_PROBE_REPIN_PREDECESSOR_BINDING_SHA256 = (
-    "1fccdc19d75abd98b509fd5221911051bbaabb3d05ff08893aebe8dec8bfb9b1"
-)
-EXACT_PROBE_REPIN_TARGET_BINDING_BYTE_LENGTH = 4_427
-EXACT_PROBE_REPIN_TARGET_BINDING_SHA256 = (
     "c9a37eb6e1fc1605e5b50ed92989b6f59d2a2d18e807ddbdbff43384852fe2d4"
+)
+EXACT_PROBE_REPIN_TARGET_BINDING_BYTE_LENGTH = 4_696
+EXACT_PROBE_REPIN_TARGET_BINDING_SHA256 = (
+    "2631e7e918b59bd4fc93e5bfff20b26ba366ff3e7348d3a058b956b2a782bd71"
 )
 EXACT_PROBE_REPIN_PREDECESSOR_OVERRIDES = (
     (
+        "execution_profile",
+        "schema",
+        "ncp.b01-bound-probe-execution-profile.v1",
+    ),
+    (
         "observer_authorization_probe",
         "script_byte_length",
-        711_690,
+        714_466,
     ),
     (
         "observer_authorization_probe",
         "script_sha256",
-        "70914583e5c8c3ec136e30dccc3add7712012df2f9bdaa80d537e199b49583d8",
-    ),
-    (
-        "observer_authorization_probe",
-        "stdout_byte_length",
-        77_917,
-    ),
-    (
-        "observer_authorization_probe",
-        "stdout_sha256",
-        "980807788d7622b6822c4abbafcbc0b463840ad7488de333fd942b435ada2cee",
+        "ae0c751100a064ea387f2156b30238adffa62eeadfe28a98b382e6ed55c82166",
     ),
     (
         "observer_capture_probe",
         "script_byte_length",
-        2_058_744,
+        2_059_452,
     ),
     (
         "observer_capture_probe",
         "script_sha256",
-        "f9aca9625de4e237533745fccb67163938461ecd125c417e7f09bf7b17721dd3",
-    ),
-    (
-        "observer_capture_probe",
-        "stdout_byte_length",
-        208_408,
-    ),
-    (
-        "observer_capture_probe",
-        "stdout_sha256",
-        "b30a32fd60ff9b7212c4b8d085871184d3bd39613f8b96bbe5852e733f9ef772",
+        "f28f1815b7219aec37145f712d01633a3571268b6a0344b3c8a851cd5623a770",
     ),
     (
         "shared_source_bindings",
-        "observer_read_capture_bridge",
+        "bounded_canonical",
         "byte_length",
-        235_902,
+        115_298,
     ),
     (
         "shared_source_bindings",
-        "observer_read_capture_bridge",
+        "bounded_canonical",
         "sha256",
-        "90f678364aab61655684d7ef3c12ab440547ab22fb08d7b6f3b55ef876995b92",
+        "045f12528b894b29d7d5edaafb18fc32759f0689f04eebd92cff5888cf2d3dbc",
     ),
+)
+EXACT_PROBE_REPIN_PREDECESSOR_REMOVALS = (
+    ("execution_profile", "wall_clock_limits"),
 )
 EXACT_COMBINED_MIGRATION_PREDECESSOR_AUTHORING_BYTE_LENGTH = 12_858_110
 EXACT_COMBINED_MIGRATION_PREDECESSOR_AUTHORING_SHA256 = (
@@ -419,13 +407,13 @@ EXACT_COMBINED_MIGRATION_PREDECESSOR_INVENTORY_BYTE_LENGTH = 11_343
 EXACT_COMBINED_MIGRATION_PREDECESSOR_INVENTORY_SHA256 = (
     "775071457e2dff09bfb07ee4ddeb840fdc930fefc4cf8b7ba67cdb4d26b08a0b"
 )
-EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_BYTE_LENGTH = 12_896_881
+EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_BYTE_LENGTH = 12_897_150
 EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_SHA256 = (
-    "fff01b161810187bb128900e78884da974a0c683b09a50010528b4a11a09a53a"
+    "bee71fed784bb34f68934cd0856317ffe4c9df4c501d2d35a43b501f00eec711"
 )
 EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_BYTE_LENGTH = 42_642
 EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_SHA256 = (
-    "25a051159fb4ee15f630ce24e2de20b7b7be3520bffc89675d192a4bc504d817"
+    "44b1b2c0b58840adea3ffc22bc23c1291d4d9075b49f1a94c7d7b8d3186c94fd"
 )
 V2_EMPTY_MIGRATION_DOCUMENT_ROW_COMMITMENT = {
     "algorithm": "SHA256",
@@ -1738,6 +1726,15 @@ def _run_exact_adversarial_probe_binding_repin_self_test(
         for key in path[:-1]:
             cursor = cursor[key]
         cursor[path[-1]] = value
+    for *path, key in EXACT_PROBE_REPIN_PREDECESSOR_REMOVALS:
+        cursor = predecessor
+        for part in path:
+            cursor = cursor[part]
+        _require(
+            key in cursor,
+            "adversarial probe repin predecessor removal fixture differs",
+        )
+        cursor.pop(key)
     _require(
         _probe_binding_commitment(predecessor)
         == (

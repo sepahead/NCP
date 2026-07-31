@@ -1,3 +1,4 @@
-# Isolated build-time validator for coordination/evidence JSON.
+# Isolated build-time validators for coordination/evidence JSON and B01 Python.
 # Keep this dependency outside every shipped NCP package surface.
 jsonschema==4.26.0
+ruff==0.15.21

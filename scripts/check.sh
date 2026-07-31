@@ -32,7 +32,7 @@ cargo fmt --all -- --check
 git diff --check
 python3 scripts/gen_diagrams.py --check
 
-step "pinned Draft 2020-12 evidence-schema validator"
+step "pinned evidence-schema and B01 Python toolchain"
 evidence_schema_venv="$tmp_dir/evidence-schema-venv"
 python3 -m venv "$evidence_schema_venv"
 evidence_schema_python="$evidence_schema_venv/bin/python"
@@ -48,6 +48,12 @@ step "NCP 1.0 implementation ledger + mandatory resumption views"
 
 step "B01 fail-closed review-candidate integrity (non-completion)"
 selector_closure_status=0
+"$evidence_schema_python" -m ruff format --check -- \
+    prototypes/b01-architecture-evidence/*.py \
+    || selector_closure_status=1
+"$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+    prototypes/b01-architecture-evidence/*.py \
+    || selector_closure_status=1
 "$evidence_schema_python" \
     prototypes/b01-architecture-evidence/bounded_canonical.py --self-test \
     || selector_closure_status=1

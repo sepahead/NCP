@@ -767,9 +767,9 @@ def _verify_observer_capture_probe(value: Any) -> None:
     ):
         raise ResultError("observer capture probe failed deterministic semantic replay")
     if value.get("counts") != {
-        "targeted_cases": 248,
+        "targeted_cases": 249,
         "targeted_case_components": {
-            "grant_lifecycle_decision_cases": 185,
+            "grant_lifecycle_decision_cases": 186,
             "capture_action_decision_cases": 63,
         },
         "logic_mutants_executed": 10,
@@ -785,10 +785,10 @@ def _verify_observer_capture_probe(value: Any) -> None:
     lifecycle = value.get("grant_lifecycle")
     if (
         not isinstance(lifecycle, dict)
-        or lifecycle.get("case_count") != 185
+        or lifecycle.get("case_count") != 186
         or lifecycle.get("admitted") != 36
-        or lifecycle.get("rejected") != 149
-        or lifecycle.get("hostile_input_count") != 149
+        or lifecycle.get("rejected") != 150
+        or lifecycle.get("hostile_input_count") != 150
     ):
         raise ResultError("observer capture lifecycle counts drifted")
     bridge = lifecycle.get("observer_read_capture_bridge")

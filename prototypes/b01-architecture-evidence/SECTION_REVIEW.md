@@ -86,7 +86,7 @@ remain PROPOSED and retain their exact hash-bound review requirements.
 - The capture canonicalizer rejects key and runtime-type coercion. It binds all
   262 declared dataclass types to explicit, one-to-one stable digest domains.
   Its typed encoder separates artifact, mapping, tuple, list, and byte domains.
-- The capture result reconciles 185 lifecycle decisions and 63 capture-action
+- The capture result reconciles 186 lifecycle decisions and 63 capture-action
   decisions. It executes and kills 10 logic mutants, reports 22 semantic
   contrasts separately, rejects 444 hostile inputs, and reaches 73 invariant
   witnesses.

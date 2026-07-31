@@ -31,11 +31,13 @@ import json
 import math
 from collections.abc import Mapping
 from dataclasses import (
-    FrozenInstanceError,
     Field,
+    FrozenInstanceError,
     dataclass,
-    field as dataclass_field,
     make_dataclass,
+)
+from dataclasses import (
+    field as dataclass_field,
 )
 from types import (
     CellType,
@@ -2589,7 +2591,7 @@ def run_self_test() -> None:
         == (
             '{"$bridge_kind":"artifact","fields":[["alpha",7],'
             '["omega","é"]],"type_ref":"selftest.ValidSlotArtifact@1"}'
-        ).encode("utf-8"),
+        ).encode(),
         "valid slot artifact bytes",
     )
     require(
@@ -3131,7 +3133,7 @@ def run_self_test() -> None:
             limits=limits,
             type_ids=FrozenTypeRegistry(()),
         )
-        == '{"a":"é","z":1}'.encode("utf-8"),
+        == '{"a":"é","z":1}'.encode(),
         "exact map order and Unicode scalar encoding",
     )
     expect_failure(

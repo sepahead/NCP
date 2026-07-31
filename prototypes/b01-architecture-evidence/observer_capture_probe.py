@@ -40596,9 +40596,7 @@ def build_grant_lifecycle_result() -> dict[str, Any]:
 
     def reject_zero_version_currentness_cut() -> None:
         try:
-            validate_expected_grant_currentness_state_cut(
-                zero_version_currentness_cut
-            )
+            validate_expected_grant_currentness_state_cut(zero_version_currentness_cut)
         except BridgeValidationError as error:
             raise CaptureError(str(error)) from error
 
@@ -50726,6 +50724,33 @@ def _self_test_authority_receipt_authentication() -> None:
             raise CaptureError("forged authority receipt passed fixture authentication")
 
 
+def _validate_exact_count_baseline(result: dict[str, Any]) -> None:
+    lifecycle = result["grant_lifecycle"]
+    _require(
+        result["counts"]
+        == {
+            "targeted_cases": 249,
+            "targeted_case_components": {
+                "grant_lifecycle_decision_cases": 186,
+                "capture_action_decision_cases": 63,
+            },
+            "logic_mutants_executed": 10,
+            "logic_mutants_killed": 10,
+            "logic_mutants_survived": 0,
+            "semantic_contrasts_reached": 22,
+            "hostile_inputs_rejected": 444,
+            "bridge_commitment_mutations_executed": 672,
+            "bridge_commitment_mutations_rejected": 672,
+            "invariant_witnesses_reached": 73,
+        }
+        and lifecycle["case_count"] == 186
+        and lifecycle["admitted"] == 36
+        and lifecycle["rejected"] == 150
+        and lifecycle["hostile_input_count"] == 150,
+        "observer/capture exact count baseline drifted",
+    )
+
+
 def self_test(result: dict[str, Any]) -> None:
     _self_test_content_store_hardening()
     _self_test_authority_receipt_authentication()
@@ -50761,25 +50786,7 @@ def self_test(result: dict[str, Any]) -> None:
         == sum(capture["fail_safe_targeted_case_components"].values()),
         "capture targeted-action case arithmetic does not reconcile",
     )
-    _require(
-        result["counts"]
-        == {
-            "targeted_cases": 248,
-            "targeted_case_components": {
-                "grant_lifecycle_decision_cases": 185,
-                "capture_action_decision_cases": 63,
-            },
-            "logic_mutants_executed": 10,
-            "logic_mutants_killed": 10,
-            "logic_mutants_survived": 0,
-            "semantic_contrasts_reached": 22,
-            "hostile_inputs_rejected": 444,
-            "bridge_commitment_mutations_executed": 672,
-            "bridge_commitment_mutations_rejected": 672,
-            "invariant_witnesses_reached": 73,
-        },
-        "observer/capture exact count baseline drifted",
-    )
+    _validate_exact_count_baseline(result)
     _require(
         result["shared_bridge_commitment"]["profile_mutation_report"][
             "total_mutations_executed"
@@ -50805,6 +50812,10 @@ def main() -> int:
     parser.add_argument("--self-test", action="store_true")
     arguments = parser.parse_args()
     result = build_result()
+    # The selector-closure gate invokes the probe without --self-test. Keep the
+    # exact coverage baseline on that normal output path as well, so adding or
+    # removing a case cannot leave the focused runner as the only detector.
+    _validate_exact_count_baseline(result)
     if arguments.self_test:
         self_test(result)
     print(json.dumps(result, sort_keys=True))
