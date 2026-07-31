@@ -5,13 +5,84 @@ on:
   pull_request:
 
 env:
+  BUN_VERSION: "1.3.14"
   CARGO_TERM_COLOR: always
+  NODE_VERSION: "24.18.0"
 
 # Default-deny the workflow token. Every job in this workflow is read-only.
 permissions:
   contents: read
 
 jobs:
+  evidence-integrity:
+    name: evidence integrity + B01 portability
+    runs-on: ubuntu-latest
+    # The generator hostile suite and the three deliberately separate bound-probe
+    # executions have a declared worst-case envelope above two hours.
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+          # The local review and proposal boundaries resolve exact commits,
+          # trees, and source sets. A shallow checkout would change their evidence
+          # model instead of only making CI faster.
+          fetch-depth: 0
+
+      - name: Set up Python for evidence-schema validation
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up exact Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Draft 2020-12 evidence schemas and implementation ledger
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/ncp-evidence-schema"
+          evidence_schema_python="${RUNNER_TEMP}/ncp-evidence-schema/bin/python"
+          "$evidence_schema_python" -m pip install \
+            --disable-pip-version-check --require-hashes --only-binary=:all: \
+            -r scripts/requirements-evidence-schema.txt
+          "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
+          "$evidence_schema_python" scripts/check_implementation_ledger.py --self-test
+          "$evidence_schema_python" scripts/generate_implementation_ledger.py --check
+          "$evidence_schema_python" scripts/generate_decision_registry.py \
+            --self-test --check
+
+      - name: B01 fail-closed review-candidate integrity (non-completion)
+        run: |
+          evidence_schema_python="${RUNNER_TEMP}/ncp-evidence-schema/bin/python"
+          "$evidence_schema_python" \
+            prototypes/b01-architecture-evidence/bounded_canonical.py --self-test
+          "$evidence_schema_python" \
+            scripts/generate_selector_closure_source.py --self-test
+          "$evidence_schema_python" \
+            scripts/selector_allocation_inventory.py --self-test
+          "$evidence_schema_python" \
+            scripts/selector_allocation_review.py --self-test
+          "$evidence_schema_python" scripts/selector_resource_closure.py
+          "$evidence_schema_python" scripts/selector_allocation_inventory.py
+          "$evidence_schema_python" scripts/check_selector_closure.py --self-test
+          "$evidence_schema_python" scripts/generate_selector_closure_source.py \
+            --review-candidate --check
+          "$evidence_schema_python" \
+            scripts/check_selector_closure.py --review-candidate
+          "$evidence_schema_python" scripts/check_selector_closure.py --probes-only
+          "$evidence_schema_python" \
+            scripts/generate_selector_closure_matrix.py --self-test
+          "$evidence_schema_python" \
+            scripts/generate_selector_closure_matrix.py --check
+          "$evidence_schema_python" \
+            scripts/generate_selector_allocation_proposal.py --self-test
+          "$evidence_schema_python" \
+            scripts/generate_selector_allocation_proposal.py --check
+          node scripts/verify_selector_allocation_portability.mjs --self-test
+          node scripts/verify_selector_allocation_portability.mjs
+
   build-test:
     name: fmt + clippy + test
     runs-on: ubuntu-latest
@@ -26,6 +97,11 @@ jobs:
           # makes that offline invariant untestable and previously failed the
           # suite before any assertion could report why.
           fetch-depth: 0
+
+      - name: Set up exact Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       # Pinned to the workspace rust-version (Cargo.toml: rust-version = "1.88.0").
       # 1.88 is the floor: transitive deps in Cargo.lock (darling, time/time-core,
@@ -176,8 +252,14 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
+      - name: Set up exact Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
       - name: Install build + test deps
         run: pip install maturin==1.14.1 pytest==9.1.1
       - name: Prefetch exact locked graph for offline Python builds
@@ -285,8 +367,14 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
+      - name: Set up exact Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
       # The published @sepahead/ncp package ships the prebuilt ncp-ts/dist (it is
       # git-tracked). Rebuild it from source and fail if it drifts from what was
       # committed — so a source change (e.g. a wire-version bump) that wasn't

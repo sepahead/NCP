@@ -24,6 +24,7 @@ require_tool python3
 require_tool c++
 require_tool bun
 require_tool npm
+require_tool node
 require_tool buf
 
 step "format + whitespace integrity"
@@ -31,10 +32,62 @@ cargo fmt --all -- --check
 git diff --check
 python3 scripts/gen_diagrams.py --check
 
+step "pinned Draft 2020-12 evidence-schema validator"
+evidence_schema_venv="$tmp_dir/evidence-schema-venv"
+python3 -m venv "$evidence_schema_venv"
+evidence_schema_python="$evidence_schema_venv/bin/python"
+"$evidence_schema_python" -m pip install \
+    --disable-pip-version-check --require-hashes --only-binary=:all: \
+    -r scripts/requirements-evidence-schema.txt
+"$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
+
 step "NCP 1.0 implementation ledger + mandatory resumption views"
-python3 scripts/check_implementation_ledger.py --self-test
-python3 scripts/generate_implementation_ledger.py --check
-python3 scripts/generate_decision_registry.py --self-test --check
+"$evidence_schema_python" scripts/check_implementation_ledger.py --self-test
+"$evidence_schema_python" scripts/generate_implementation_ledger.py --check
+"$evidence_schema_python" scripts/generate_decision_registry.py --self-test --check
+
+step "B01 fail-closed review-candidate integrity (non-completion)"
+selector_closure_status=0
+"$evidence_schema_python" \
+    prototypes/b01-architecture-evidence/bounded_canonical.py --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/generate_selector_closure_source.py --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/selector_allocation_inventory.py --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/selector_allocation_review.py --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/selector_resource_closure.py \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/selector_allocation_inventory.py \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/check_selector_closure.py --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" \
+    scripts/generate_selector_closure_source.py --review-candidate --check \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/check_selector_closure.py --review-candidate \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/check_selector_closure.py --probes-only \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/generate_selector_closure_matrix.py --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/generate_selector_closure_matrix.py --check \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/generate_selector_allocation_proposal.py \
+    --self-test \
+    || selector_closure_status=1
+"$evidence_schema_python" scripts/generate_selector_allocation_proposal.py \
+    --check \
+    || selector_closure_status=1
+node scripts/verify_selector_allocation_portability.mjs --self-test \
+    || selector_closure_status=1
+node scripts/verify_selector_allocation_portability.mjs \
+    || selector_closure_status=1
+if [[ "$selector_closure_status" != "0" ]]; then
+    printf 'B01 fail-closed review-candidate integrity check failed; see each individual result above\n' >&2
+    exit 1
+fi
 
 step "bounded pure-Python line ingress + runner status"
 python3 -m unittest -v e2e.test_bounded_json e2e.test_runner_status
@@ -43,7 +96,17 @@ python3 -m py_compile \
     e2e/run_cross_language_e2e.py e2e/test_bounded_json.py \
     e2e/test_runner_status.py scripts/check_implementation_ledger.py \
     scripts/generate_implementation_ledger.py \
-    scripts/generate_decision_registry.py scripts/check_adr_examples.py
+    scripts/generate_decision_registry.py scripts/validate_evidence_schemas.py \
+    scripts/check_adr_examples.py \
+    scripts/selector_closure_codec.py \
+    scripts/selector_allocation_inventory.py \
+    scripts/selector_allocation_review.py \
+    scripts/selector_resource_closure.py \
+    scripts/generate_selector_closure_source.py \
+    scripts/check_selector_closure.py \
+    scripts/generate_selector_closure_matrix.py \
+    scripts/generate_selector_allocation_proposal.py
+node --check scripts/verify_selector_allocation_portability.mjs
 
 step "workspace clippy (warnings denied; Python links in its dedicated gate)"
 cargo clippy --workspace --exclude ncp-python --all-targets --locked -- -D warnings

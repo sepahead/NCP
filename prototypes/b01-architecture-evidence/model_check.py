@@ -24,6 +24,18 @@ ACTIVE = "ACTIVE"
 TRANSFER = "HOLD_TRANSFER"
 RESTART = "HOLD_RESTART"
 EXPIRED = "HOLD_EXPIRED"
+TRANSFER_NONE = "NONE"
+TRANSFER_REQUESTED = "REQUESTED"
+TRANSFER_QUIESCED = "QUIESCED"
+TRANSFER_RETIRED = "RETIRED"
+TRANSFER_TERM_PERSISTED = "TERM_PERSISTED"
+TRANSFER_COMPLETE = "COMPLETE"
+IN_PROGRESS_TRANSFER_PHASES = (
+    TRANSFER_REQUESTED,
+    TRANSFER_QUIESCED,
+    TRANSFER_RETIRED,
+    TRANSFER_TERM_PERSISTED,
+)
 ENGRAM = "engram"
 HALDIR = "haldir"
 V08_WIRE = "wire-0.8"
@@ -70,6 +82,12 @@ class CompositionState:
     applied: tuple[int, ...] = ()
     rejected: tuple[int, ...] = ()
     handover_done: bool = False
+    transfer_phase: str = TRANSFER_NONE
+    transfer_source: str | None = None
+    transfer_target: str | None = None
+    transfer_base_generation_step: int | None = None
+    transfer_base_term: int | None = None
+    transfer_base_stream_step: int | None = None
 
     @property
     def generation(self) -> str:
@@ -88,7 +106,9 @@ class CompositionState:
 class DenyState:
     local_allow: bool = True
     deny_active: bool = False
+    qualified_profile_active: bool = False
     removal_requested: bool = False
+    recovery_dwell_complete: bool = False
     policy_revision: int = 0
     blocked_attempt_seen: bool = False
     authenticated_widen_seen: bool = False
@@ -229,6 +249,183 @@ def _implementation_admits(
     )
 
 
+def _opposite_holder(holder: str) -> str:
+    return HALDIR if holder == ENGRAM else ENGRAM
+
+
+def _holder_mode(holder: str) -> str:
+    return DIRECT if holder == ENGRAM else GATED
+
+
+def _begin_transfer(state: CompositionState) -> CompositionState:
+    source = state.expected_holder
+    return replace(
+        state,
+        phase=TRANSFER,
+        holders=(),
+        transfer_phase=TRANSFER_REQUESTED,
+        transfer_source=source,
+        transfer_target=_opposite_holder(source),
+        transfer_base_generation_step=state.generation_step,
+        transfer_base_term=state.term,
+        transfer_base_stream_step=state.stream_step,
+    )
+
+
+def _complete_transfer(
+    state: CompositionState,
+    *,
+    holder: str | None = None,
+    overlap: bool = False,
+) -> CompositionState:
+    target = state.transfer_target
+    source = state.transfer_source
+    if target is None or source is None:
+        raise ModelError("transfer completion lacks durable source or target", [])
+    completed_holder = target if holder is None else holder
+    holders = (
+        tuple(sorted((source, completed_holder))) if overlap else (completed_holder,)
+    )
+    return replace(
+        state,
+        phase=ACTIVE,
+        mode=_holder_mode(completed_holder),
+        stream_step=state.stream_step + 1,
+        holders=holders,
+        handover_done=True,
+        transfer_phase=TRANSFER_COMPLETE,
+    )
+
+
+def _mutated_restart(
+    state: CompositionState,
+    mutation: str | None,
+) -> CompositionState:
+    target = replace(
+        state,
+        phase=RESTART,
+        generation_step=(
+            state.generation_step
+            if state.transfer_phase in IN_PROGRESS_TRANSFER_PHASES
+            else state.generation_step + 1
+        ),
+        holders=(),
+    )
+    if mutation == "restart_loses_requested_latch" and (
+        state.transfer_phase == TRANSFER_REQUESTED
+    ):
+        return replace(
+            target,
+            transfer_phase=TRANSFER_NONE,
+            transfer_source=None,
+            transfer_target=None,
+            transfer_base_generation_step=None,
+            transfer_base_term=None,
+            transfer_base_stream_step=None,
+        )
+    if mutation == "restart_loses_quiesced_latch" and (
+        state.transfer_phase == TRANSFER_QUIESCED
+    ):
+        return replace(target, transfer_phase=TRANSFER_REQUESTED)
+    if mutation == "restart_loses_retired_latch" and (
+        state.transfer_phase == TRANSFER_RETIRED
+    ):
+        return replace(target, transfer_phase=TRANSFER_QUIESCED)
+    if mutation == "restart_loses_term_persisted_latch" and (
+        state.transfer_phase == TRANSFER_TERM_PERSISTED
+    ):
+        return replace(
+            target,
+            term=state.transfer_base_term
+            if state.transfer_base_term is not None
+            else state.term,
+            transfer_phase=TRANSFER_RETIRED,
+        )
+    return target
+
+
+def _composition_transition_error(
+    state: CompositionState,
+    edge: Edge,
+) -> str | None:
+    target = edge.next_state
+    if edge.action == "begin_handover":
+        if (
+            state.phase != ACTIVE
+            or state.transfer_phase != TRANSFER_NONE
+            or target != _begin_transfer(state)
+        ):
+            return "handover request did not durably bind its exact source and target"
+    elif edge.action == "quiesce_handover":
+        if (
+            state.phase != TRANSFER
+            or state.transfer_phase != TRANSFER_REQUESTED
+            or target != replace(state, transfer_phase=TRANSFER_QUIESCED)
+        ):
+            return "handover advanced without completing requested-phase quiescence"
+    elif edge.action == "retire_handover":
+        if (
+            state.phase != TRANSFER
+            or state.transfer_phase != TRANSFER_QUIESCED
+            or target != replace(state, transfer_phase=TRANSFER_RETIRED)
+        ):
+            return "handover retired authority before exact quiescence"
+    elif edge.action == "persist_handover_term":
+        if (
+            state.phase != TRANSFER
+            or state.transfer_phase != TRANSFER_RETIRED
+            or target
+            != replace(
+                state,
+                term=state.term + 1,
+                transfer_phase=TRANSFER_TERM_PERSISTED,
+            )
+        ):
+            return "handover term was not persisted strictly after retirement"
+    elif edge.action == "finish_handover":
+        if (
+            state.phase != TRANSFER
+            or state.transfer_phase != TRANSFER_TERM_PERSISTED
+            or target != _complete_transfer(state)
+        ):
+            return "handover completed prematurely or under the wrong holder"
+    elif edge.action == "restart_body":
+        expected = replace(
+            state,
+            phase=RESTART,
+            generation_step=(
+                state.generation_step
+                if state.transfer_phase in IN_PROGRESS_TRANSFER_PHASES
+                else state.generation_step + 1
+            ),
+            holders=(),
+        )
+        if target != expected:
+            return "body restart lost or rolled back durable transfer state"
+    elif edge.action == "resume_transfer":
+        if (
+            state.phase != RESTART
+            or state.transfer_phase not in IN_PROGRESS_TRANSFER_PHASES
+            or target != replace(state, phase=TRANSFER, holders=())
+        ):
+            return "body restart did not resume the exact latched transfer phase"
+    elif edge.action == "recover_body":
+        if (
+            state.phase not in {RESTART, EXPIRED}
+            or state.transfer_phase not in {TRANSFER_NONE, TRANSFER_COMPLETE}
+            or target
+            != replace(
+                state,
+                phase=ACTIVE,
+                term=state.term + 1,
+                stream_step=state.stream_step + 1,
+                holders=(state.expected_holder,),
+            )
+        ):
+            return "ordinary recovery reactivated authority during a latched transfer"
+    return None
+
+
 def _composition_edges(
     state: CompositionState,
     mutation: str | None,
@@ -318,51 +515,89 @@ def _composition_edges(
     if (
         state.phase == ACTIVE
         and not state.handover_done
+        and state.transfer_phase == TRANSFER_NONE
         and state.term < 3
         and state.stream_step < len(STREAM_LABELS) - 1
     ):
         yield Edge(
             "begin_handover",
-            replace(state, phase=TRANSFER, holders=()),
+            _begin_transfer(state),
             {},
         )
 
-    if state.phase == TRANSFER:
-        new_mode = GATED if state.mode == DIRECT else DIRECT
-        new_holder = HALDIR if new_mode == GATED else ENGRAM
-        holders = (
-            tuple(sorted((state.expected_holder, new_holder)))
-            if mutation == "overlap_handover"
-            else (new_holder,)
+    if state.phase == TRANSFER and state.transfer_phase == TRANSFER_REQUESTED:
+        yield Edge(
+            "quiesce_handover",
+            replace(state, transfer_phase=TRANSFER_QUIESCED),
+            {},
+        )
+    if state.phase == TRANSFER and state.transfer_phase == TRANSFER_QUIESCED:
+        yield Edge(
+            "retire_handover",
+            replace(state, transfer_phase=TRANSFER_RETIRED),
+            {},
+        )
+    if state.phase == TRANSFER and state.transfer_phase == TRANSFER_RETIRED:
+        yield Edge(
+            "persist_handover_term",
+            replace(
+                state,
+                term=state.term + 1,
+                transfer_phase=TRANSFER_TERM_PERSISTED,
+            ),
+            {},
+        )
+    if state.phase == TRANSFER and state.transfer_phase == TRANSFER_TERM_PERSISTED:
+        completed_holder = (
+            state.transfer_source
+            if mutation == "complete_to_old_holder"
+            else state.transfer_target
         )
         yield Edge(
             "finish_handover",
-            replace(
+            _complete_transfer(
                 state,
-                phase=ACTIVE,
-                mode=new_mode,
-                term=state.term + 1,
-                stream_step=state.stream_step + 1,
-                holders=holders,
-                handover_done=True,
+                holder=completed_holder,
+                overlap=mutation == "overlap_handover",
             ),
+            {},
+        )
+
+    premature_phase = {
+        "complete_from_requested": TRANSFER_REQUESTED,
+        "complete_from_quiesced": TRANSFER_QUIESCED,
+        "complete_from_retired": TRANSFER_RETIRED,
+    }.get(mutation)
+    if state.phase == TRANSFER and state.transfer_phase == premature_phase:
+        premature = state
+        if state.transfer_base_term is not None:
+            premature = replace(
+                state,
+                term=state.transfer_base_term + 1,
+            )
+        yield Edge(
+            "finish_handover",
+            _complete_transfer(premature),
             {},
         )
 
     if state.generation_step < len(GENERATION_LABELS) - 1:
         yield Edge(
             "restart_body",
-            replace(
-                state,
-                phase=RESTART,
-                generation_step=state.generation_step + 1,
-                holders=(),
-            ),
+            _mutated_restart(state, mutation),
+            {},
+        )
+
+    if state.phase == RESTART and state.transfer_phase in IN_PROGRESS_TRANSFER_PHASES:
+        yield Edge(
+            "resume_transfer",
+            replace(state, phase=TRANSFER, holders=()),
             {},
         )
 
     if (
         state.phase in {RESTART, EXPIRED}
+        and state.transfer_phase in {TRANSFER_NONE, TRANSFER_COMPLETE}
         and state.term < 3
         and state.stream_step < len(STREAM_LABELS) - 1
     ):
@@ -422,6 +657,64 @@ def _composition_edges(
 
 
 def _composition_invariant(state: CompositionState) -> str | None:
+    transfer_fields = (
+        state.transfer_source,
+        state.transfer_target,
+        state.transfer_base_generation_step,
+        state.transfer_base_term,
+        state.transfer_base_stream_step,
+    )
+    if state.transfer_phase == TRANSFER_NONE:
+        if transfer_fields != (None, None, None, None, None) or state.handover_done:
+            return "empty transfer state retained a latch or completion claim"
+    elif state.transfer_phase in {
+        *IN_PROGRESS_TRANSFER_PHASES,
+        TRANSFER_COMPLETE,
+    }:
+        if (
+            state.transfer_source not in {ENGRAM, HALDIR}
+            or state.transfer_target not in {ENGRAM, HALDIR}
+            or state.transfer_source == state.transfer_target
+            or state.transfer_base_generation_step is None
+            or state.transfer_base_term is None
+            or state.transfer_base_stream_step is None
+            or not 0 <= state.transfer_base_generation_step < len(GENERATION_LABELS)
+            or state.transfer_base_term < 0
+            or not 0 <= state.transfer_base_stream_step < len(STREAM_LABELS) - 1
+        ):
+            return "durable transfer latch has an invalid source, target, or base fence"
+    else:
+        return "transfer phase is unknown"
+    if state.transfer_phase in IN_PROGRESS_TRANSFER_PHASES:
+        expected_term = (
+            state.transfer_base_term + 1
+            if state.transfer_phase == TRANSFER_TERM_PERSISTED
+            else state.transfer_base_term
+        )
+        if (
+            state.phase not in {TRANSFER, RESTART}
+            or state.expected_holder != state.transfer_source
+            or state.generation_step != state.transfer_base_generation_step
+            or state.term != expected_term
+            or state.stream_step != state.transfer_base_stream_step
+            or state.handover_done
+        ):
+            return "in-progress transfer lost its source, phase, or exact fences"
+    if state.transfer_phase == TRANSFER_COMPLETE:
+        if (
+            state.phase == TRANSFER
+            or state.expected_holder != state.transfer_target
+            or state.term < state.transfer_base_term + 1
+            or state.stream_step < state.transfer_base_stream_step + 1
+            or not state.handover_done
+        ):
+            return (
+                "completed transfer did not activate the exact target and higher term"
+            )
+    if state.phase == TRANSFER and (
+        state.transfer_phase not in IN_PROGRESS_TRANSFER_PHASES
+    ):
+        return "transfer lifecycle has no in-progress durable phase"
     if len(state.holders) > 1:
         return "more than one live holder exists"
     if state.phase == ACTIVE and state.holders != (state.expected_holder,):
@@ -456,6 +749,12 @@ def check_composition(mutation: str | None = None) -> dict[str, Any]:
             transitions += 1
             action_class = edge.action.split(":", 1)[0]
             coverage[action_class] += 1
+            transition_error = _composition_transition_error(state, edge)
+            if transition_error is not None:
+                raise ModelError(
+                    transition_error,
+                    _trace(parents, state, edge.action),
+                )
             invariant = _composition_invariant(edge.next_state)
             if invariant is not None:
                 raise ModelError(invariant, _trace(parents, state, edge.action))
@@ -494,8 +793,27 @@ def check_composition(mutation: str | None = None) -> dict[str, Any]:
                 witnesses.add("two_commands_in_flight")
             if edge.action == "finish_handover" and edge.next_state.mode == GATED:
                 witnesses.add("direct_to_gated_handover_completed")
+            if (
+                edge.action == "restart_body"
+                and state.phase == TRANSFER
+                and state.transfer_phase in IN_PROGRESS_TRANSFER_PHASES
+            ):
+                witnesses.add(
+                    f"restart_preserved_{state.transfer_phase.lower()}_transfer"
+                )
+            if (
+                edge.action == "resume_transfer"
+                and state.transfer_phase in IN_PROGRESS_TRANSFER_PHASES
+            ):
+                witnesses.add(
+                    f"restart_resumed_{state.transfer_phase.lower()}_transfer"
+                )
             if edge.action == "recover_body":
                 witnesses.add("restart_or_expiry_recovered")
+                if state.phase == RESTART and state.transfer_phase == TRANSFER_NONE:
+                    witnesses.add("clean_restart_recovered_current_holder")
+                if state.phase == RESTART and state.transfer_phase == TRANSFER_COMPLETE:
+                    witnesses.add("completed_transfer_restart_recovered_current_holder")
             if edge.next_state not in parents:
                 parents[edge.next_state] = (state, edge.action)
                 depths[edge.next_state] = depths[state] + 1
@@ -510,8 +828,12 @@ def check_composition(mutation: str | None = None) -> dict[str, Any]:
         "inject_wrong_generation",
         "inject_wrong_epoch",
         "begin_handover",
+        "quiesce_handover",
+        "retire_handover",
+        "persist_handover_term",
         "finish_handover",
         "restart_body",
+        "resume_transfer",
         "recover_body",
         "restart_stream",
         "expire_lease",
@@ -535,6 +857,16 @@ def check_composition(mutation: str | None = None) -> dict[str, Any]:
         "two_commands_in_flight",
         "direct_to_gated_handover_completed",
         "restart_or_expiry_recovered",
+        "restart_preserved_requested_transfer",
+        "restart_resumed_requested_transfer",
+        "restart_preserved_quiesced_transfer",
+        "restart_resumed_quiesced_transfer",
+        "restart_preserved_retired_transfer",
+        "restart_resumed_retired_transfer",
+        "restart_preserved_term_persisted_transfer",
+        "restart_resumed_term_persisted_transfer",
+        "clean_restart_recovered_current_holder",
+        "completed_transfer_restart_recovered_current_holder",
     }
     missing_witnesses = sorted(required_witnesses - witnesses)
     if missing_witnesses:
@@ -552,24 +884,145 @@ def check_composition(mutation: str | None = None) -> dict[str, Any]:
 
 
 def _deny_edges(state: DenyState, mutation: str | None) -> Iterable[Edge]:
-    if not state.deny_active:
+    if not state.qualified_profile_active and state.policy_revision < 2:
         yield Edge(
-            "apply_deny", replace(state, deny_active=True), {"authenticated": True}
+            "install_qualified_haldir_profile",
+            replace(
+                state,
+                qualified_profile_active=True,
+                policy_revision=state.policy_revision + 1,
+            ),
+            {
+                "authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+            },
         )
 
-    unauthenticated_target = state
-    if mutation == "unauthenticated_deny_applies" and not state.deny_active:
-        unauthenticated_target = replace(state, deny_active=True)
-    yield Edge(
-        "unauthenticated_deny_attempt",
-        unauthenticated_target,
-        {"authenticated": False},
+    hostile_deny_attempts = (
+        (
+            "producer_requested_deny",
+            "producer_request_applies",
+            {
+                "authenticated": True,
+                "profile_authenticated": False,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+                "evidence_eligible": True,
+                "causally_later": True,
+            },
+        ),
+        (
+            "assessor_profile_attempt",
+            "assessor_profile_applies",
+            {
+                "authenticated": True,
+                "profile_authenticated": True,
+                "independent_profile_issuer": False,
+                "qualification_valid": True,
+                "evidence_eligible": True,
+                "causally_later": True,
+            },
+        ),
+        (
+            "missing_qualification_attempt",
+            "missing_qualification_applies",
+            {
+                "authenticated": True,
+                "profile_authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": False,
+                "evidence_eligible": True,
+                "causally_later": True,
+            },
+        ),
+        (
+            "ineligible_verdict_attempt",
+            "ineligible_verdict_applies",
+            {
+                "authenticated": True,
+                "profile_authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+                "evidence_eligible": False,
+                "causally_later": True,
+            },
+        ),
+        (
+            "abstained_evidence_attempt",
+            "abstention_applies",
+            {
+                "authenticated": True,
+                "profile_authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+                "evidence_eligible": False,
+                "causally_later": True,
+            },
+        ),
+        (
+            "same_causal_revision_attempt",
+            "same_causal_revision_applies",
+            {
+                "authenticated": True,
+                "profile_authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+                "evidence_eligible": True,
+                "causally_later": False,
+            },
+        ),
+        (
+            "unauthenticated_deny_attempt",
+            "unauthenticated_deny_applies",
+            {
+                "authenticated": False,
+                "profile_authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+                "evidence_eligible": True,
+                "causally_later": True,
+            },
+        ),
     )
+    for action, mutant, metadata in hostile_deny_attempts:
+        target = state
+        if mutation == mutant and not state.deny_active:
+            target = replace(state, deny_active=True)
+        yield Edge(action, target, metadata)
+
+    if state.qualified_profile_active and not state.deny_active:
+        yield Edge(
+            "apply_profile_admitted_deny",
+            replace(
+                state,
+                deny_active=True,
+                removal_requested=False,
+                recovery_dwell_complete=False,
+            ),
+            {
+                "authenticated": True,
+                "profile_authenticated": True,
+                "independent_profile_issuer": True,
+                "qualification_valid": True,
+                "evidence_eligible": True,
+                "causally_later": True,
+            },
+        )
 
     record_target = state
     if mutation == "record_only_clears" and state.deny_active:
-        record_target = replace(state, deny_active=False, removal_requested=False)
-    yield Edge("record_only", record_target, {"authenticated": False})
+        record_target = replace(
+            state,
+            deny_active=False,
+            removal_requested=False,
+            recovery_dwell_complete=False,
+        )
+    yield Edge(
+        "record_only",
+        record_target,
+        {"authenticated": False},
+    )
 
     if state.deny_active:
         for action, mutant in (
@@ -578,28 +1031,73 @@ def _deny_edges(state: DenyState, mutation: str | None) -> Iterable[Edge]:
             ("disable", "disable_clears"),
         ):
             target = (
-                replace(state, deny_active=False, removal_requested=False)
+                replace(
+                    state,
+                    deny_active=False,
+                    removal_requested=False,
+                    recovery_dwell_complete=False,
+                )
                 if mutation == mutant
-                else replace(state, removal_requested=True)
+                else replace(
+                    state,
+                    removal_requested=True,
+                    recovery_dwell_complete=False,
+                )
             )
             yield Edge(action, target, {"authenticated": False})
 
         target = (
-            replace(state, deny_active=False, removal_requested=False)
+            replace(
+                state,
+                deny_active=False,
+                removal_requested=False,
+                recovery_dwell_complete=False,
+            )
             if mutation == "restart_drops"
             else state
         )
         yield Edge("restart", target, {"authenticated": False})
 
         target = (
-            replace(state, deny_active=False, removal_requested=False)
+            replace(
+                state,
+                deny_active=False,
+                removal_requested=False,
+                recovery_dwell_complete=False,
+            )
             if mutation == "unauthenticated_clear"
             else replace(state, blocked_attempt_seen=True)
         )
         yield Edge("unauthenticated_clear", target, {"authenticated": False})
 
+        if state.removal_requested and not state.recovery_dwell_complete:
+            early_target = state
+            if mutation == "recovery_dwell_bypass":
+                early_target = replace(
+                    state,
+                    deny_active=False,
+                    removal_requested=False,
+                    recovery_dwell_complete=False,
+                    policy_revision=state.policy_revision + 1,
+                    authenticated_widen_seen=True,
+                )
+            yield Edge(
+                "early_authenticated_recovery_attempt",
+                early_target,
+                {
+                    "authenticated": True,
+                    "recovery_dwell_complete": False,
+                },
+            )
+            yield Edge(
+                "complete_recovery_dwell",
+                replace(state, recovery_dwell_complete=True),
+                {"authenticated": True},
+            )
+
         if (
             state.removal_requested
+            and state.recovery_dwell_complete
             and state.policy_revision < 2
             and mutation != "authenticated_widen_disabled"
         ):
@@ -609,10 +1107,14 @@ def _deny_edges(state: DenyState, mutation: str | None) -> Iterable[Edge]:
                     state,
                     deny_active=False,
                     removal_requested=False,
+                    recovery_dwell_complete=False,
                     policy_revision=state.policy_revision + 1,
                     authenticated_widen_seen=True,
                 ),
-                {"authenticated": True},
+                {
+                    "authenticated": True,
+                    "recovery_dwell_complete": True,
+                },
             )
 
     if state.local_allow:
@@ -660,12 +1162,21 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
             coverage[edge.action] += 1
             before = state.effective_allow
             after = edge.next_state.effective_allow
-            if (
-                edge.action == "unauthenticated_deny_attempt"
-                and edge.next_state != state
+            deny_activated = not state.deny_active and edge.next_state.deny_active
+            if deny_activated and not all(
+                edge.metadata.get(field) is True
+                for field in (
+                    "authenticated",
+                    "profile_authenticated",
+                    "independent_profile_issuer",
+                    "qualification_valid",
+                    "evidence_eligible",
+                    "causally_later",
+                )
             ):
                 raise ModelError(
-                    "unauthenticated assessor changed applied deny state",
+                    "raw producer evidence changed policy without exact independent "
+                    "Haldir admission",
                     _trace(parents, state, edge.action),
                 )
             if not before and after:
@@ -679,13 +1190,40 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
                         "policy transition",
                         _trace(parents, state, edge.action),
                     )
-            if edge.action == "apply_deny" and edge.next_state.deny_active:
-                witnesses.add("authenticated_deny_applied")
+                if (
+                    state.deny_active
+                    and not edge.next_state.deny_active
+                    and edge.metadata.get("recovery_dwell_complete") is not True
+                ):
+                    raise ModelError(
+                        "applied deny widened before authenticated recovery dwell",
+                        _trace(parents, state, edge.action),
+                    )
             if (
-                edge.action == "unauthenticated_deny_attempt"
+                edge.action == "install_qualified_haldir_profile"
+                and edge.next_state.qualified_profile_active
+                and edge.next_state.policy_revision > state.policy_revision
+            ):
+                witnesses.add("independent_qualified_profile_installed")
+            if (
+                edge.action == "apply_profile_admitted_deny"
+                and edge.next_state.deny_active
+            ):
+                witnesses.add("profile_admitted_deny_applied")
+            if (
+                edge.action
+                in {
+                    "producer_requested_deny",
+                    "assessor_profile_attempt",
+                    "missing_qualification_attempt",
+                    "ineligible_verdict_attempt",
+                    "abstained_evidence_attempt",
+                    "same_causal_revision_attempt",
+                    "unauthenticated_deny_attempt",
+                }
                 and edge.next_state == state
             ):
-                witnesses.add("unauthenticated_deny_tightening_blocked")
+                witnesses.add(f"{edge.action}_blocked")
             if (
                 edge.action in {"expire", "retract", "disable"}
                 and edge.next_state.deny_active
@@ -710,13 +1248,30 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
                 witnesses.add("authenticated_base_widen_succeeded")
             if edge.action == "record_only" and edge.next_state == state:
                 witnesses.add("record_only_is_identity")
+            if (
+                edge.action == "early_authenticated_recovery_attempt"
+                and edge.next_state == state
+            ):
+                witnesses.add("early_recovery_blocked")
+            if (
+                edge.action == "complete_recovery_dwell"
+                and edge.next_state.recovery_dwell_complete
+            ):
+                witnesses.add("recovery_dwell_completed")
             if edge.next_state not in parents:
                 parents[edge.next_state] = (state, edge.action)
                 depths[edge.next_state] = depths[state] + 1
                 queue.append(edge.next_state)
 
     required_actions = {
-        "apply_deny",
+        "install_qualified_haldir_profile",
+        "apply_profile_admitted_deny",
+        "producer_requested_deny",
+        "assessor_profile_attempt",
+        "missing_qualification_attempt",
+        "ineligible_verdict_attempt",
+        "abstained_evidence_attempt",
+        "same_causal_revision_attempt",
         "unauthenticated_deny_attempt",
         "record_only",
         "expire",
@@ -724,6 +1279,8 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
         "disable",
         "restart",
         "unauthenticated_clear",
+        "early_authenticated_recovery_attempt",
+        "complete_recovery_dwell",
         "authenticated_widen",
         "base_policy_deny",
         "authenticated_base_widen",
@@ -734,8 +1291,15 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
     if missing_actions:
         raise ModelError(f"deny actions were unreachable: {missing_actions}", [])
     required_witnesses = {
-        "authenticated_deny_applied",
-        "unauthenticated_deny_tightening_blocked",
+        "independent_qualified_profile_installed",
+        "profile_admitted_deny_applied",
+        "producer_requested_deny_blocked",
+        "assessor_profile_attempt_blocked",
+        "missing_qualification_attempt_blocked",
+        "ineligible_verdict_attempt_blocked",
+        "abstained_evidence_attempt_blocked",
+        "same_causal_revision_attempt_blocked",
+        "unauthenticated_deny_attempt_blocked",
         "expire_remains_non_widening",
         "retract_remains_non_widening",
         "disable_remains_non_widening",
@@ -744,6 +1308,8 @@ def check_deny_lifecycle(mutation: str | None = None) -> dict[str, Any]:
         "authenticated_deny_removal_succeeded",
         "authenticated_base_widen_succeeded",
         "record_only_is_identity",
+        "early_recovery_blocked",
+        "recovery_dwell_completed",
     }
     missing_witnesses = sorted(required_witnesses - witnesses)
     if missing_witnesses:
@@ -1134,6 +1700,14 @@ def _kill_mutations() -> list[dict[str, Any]]:
                 "simulation_as_plant",
                 "wrong_haldir_principal",
                 "overlap_handover",
+                "restart_loses_requested_latch",
+                "restart_loses_quiesced_latch",
+                "restart_loses_retired_latch",
+                "restart_loses_term_persisted_latch",
+                "complete_from_requested",
+                "complete_from_quiesced",
+                "complete_from_retired",
+                "complete_to_old_holder",
             ),
         ),
         "deny_lifecycle": (
@@ -1147,6 +1721,13 @@ def _kill_mutations() -> list[dict[str, Any]]:
                 "record_only_clears",
                 "assessor_allows",
                 "unauthenticated_deny_applies",
+                "producer_request_applies",
+                "assessor_profile_applies",
+                "missing_qualification_applies",
+                "ineligible_verdict_applies",
+                "abstention_applies",
+                "same_causal_revision_applies",
+                "recovery_dwell_bypass",
                 "authenticated_widen_disabled",
             ),
         ),
@@ -1191,7 +1772,7 @@ def build_result() -> dict[str, Any]:
     migration = check_migration_cutover()
     mutations = _kill_mutations()
     return {
-        "schema": "ncp.b01-preliminary-model-result.v1",
+        "schema": "ncp.b01-preliminary-model-result.v2",
         "scope": "bounded-pre-ratification-counterexample-discovery",
         "claim_boundary": (
             "No counterexample was found only within this finite abstraction. "
@@ -1215,7 +1796,7 @@ def main() -> int:
     parser.add_argument("--self-test", action="store_true")
     parser.parse_args()
     result = build_result()
-    if result["counts"]["mutations_killed"] != 23:
+    if result["counts"]["mutations_killed"] != 38:
         raise ModelError("unexpected mutation count", [])
     print(json.dumps(result, sort_keys=True))
     return 0

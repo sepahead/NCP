@@ -1,0 +1,1738 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sepahead.github.io/ncp/schemas/b01-selector-allocation-review.v1.json",
+  "title": "NCP B01 local-only selector-allocation review authorization",
+  "description": "Closed schema for a content-addressed local-only authorization manifest and reviewer receipt. Hashes provide content integrity only. Reviewer identifiers and assertions are unauthenticated. This document cannot apply a transition or grant external, independent, protocol, release, certification, or publication authority.",
+  "type": "object",
+  "maxProperties": 11,
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "authority_class",
+    "authorization_manifest",
+    "authorization_manifest_commitment",
+    "claim_boundary",
+    "external_authority",
+    "independent_authority",
+    "release_authority",
+    "review_receipt",
+    "review_receipt_commitment",
+    "schema"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "selector-allocation.review.schema.v1.json"
+    },
+    "authority_class": {
+      "const": "LOCAL_ONLY"
+    },
+    "authorization_manifest": {
+      "$ref": "#/$defs/authorizationManifest"
+    },
+    "authorization_manifest_commitment": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/contentCommitment"
+        },
+        {
+          "properties": {
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e7265766965772d617574686f72697a6174696f6e2d6d616e69666573742e763100"
+            }
+          }
+        }
+      ]
+    },
+    "claim_boundary": {
+      "const": "LOCAL_ONLY_EXACT_SELECTOR_ALLOCATION_PROVENANCE_REVIEW_AUTHORIZATION_NO_EXTERNAL_INDEPENDENT_PROTOCOL_RELEASE_OR_CERTIFICATION_AUTHORITY"
+    },
+    "external_authority": {
+      "const": false
+    },
+    "independent_authority": {
+      "const": false
+    },
+    "release_authority": {
+      "const": false
+    },
+    "review_receipt": {
+      "$ref": "#/$defs/reviewReceipt"
+    },
+    "review_receipt_commitment": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/contentCommitment"
+        },
+        {
+          "properties": {
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e7265766965772d726563656970742e763100"
+            }
+          }
+        }
+      ]
+    },
+    "schema": {
+      "const": "ncp.b01-selector-allocation-review.v1"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "identity": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._@+-]{2,127}$"
+    },
+    "uuidV4": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "contentCommitment": {
+      "type": "object",
+      "maxProperties": 7,
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "byte_length",
+        "canonicalization",
+        "domain_hex",
+        "framing",
+        "scalar_domain",
+        "sha256"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "SHA256"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "canonicalization": {
+          "const": "NCP_PRINTABLE_ASCII_SAFE_INTEGER_JSON_V1"
+        },
+        "domain_hex": {
+          "type": "string",
+          "pattern": "^[0-9a-f]+00$"
+        },
+        "framing": {
+          "const": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES"
+        },
+        "scalar_domain": {
+          "const": "NULL_BOOLEAN_SIGNED_INTEGER_ABS_LE_9007199254740991_PRINTABLE_ASCII_STRING_ONLY"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "reviewGenerationState": {
+      "type": "object",
+      "maxProperties": 9,
+      "additionalProperties": false,
+      "required": [
+        "active_assignment_sha256",
+        "active_inventory_sha256",
+        "authority_class",
+        "current_receipt_sha256",
+        "last_consumed_receipt_sha256",
+        "next_review_generation",
+        "prior_state_sha256",
+        "schema",
+        "state_version"
+      ],
+      "properties": {
+        "active_assignment_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "active_inventory_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "authority_class": {
+          "const": "LOCAL_ONLY"
+        },
+        "current_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "last_consumed_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "next_review_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "prior_state_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "schema": {
+          "const": "ncp.b01-selector-allocation-review-generation-state.v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "sourceBlob": {
+      "type": "object",
+      "maxProperties": 6,
+      "additionalProperties": false,
+      "required": [
+        "byte_length",
+        "git_blob",
+        "mode",
+        "path",
+        "role",
+        "sha256"
+      ],
+      "properties": {
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20971520
+        },
+        "git_blob": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "mode": {
+          "enum": [
+            "100644",
+            "100755"
+          ]
+        },
+        "path": {
+          "enum": [
+            "docs/adr/selector-allocation.authoring.v1.json",
+            "docs/adr/selector-allocation.authoring.schema.v1.json",
+            "docs/adr/selector-closure.authoring.v1.json",
+            "docs/adr/selector-closure.authoring.schema.v1.json",
+            "docs/adr/selector-closure.source.v1.json",
+            "docs/adr/selector-closure.source.schema.v1.json",
+            "scripts/selector_allocation_inventory.py",
+            "scripts/generate_selector_closure_source.py",
+            "scripts/check_selector_closure.py",
+            "scripts/selector_closure_codec.py",
+            "scripts/selector_resource_closure.py",
+            "scripts/selector_allocation_review.py",
+            "docs/adr/selector-allocation.review-state.v1.json",
+            "docs/adr/selector-allocation.review-state.schema.v1.json",
+            "docs/adr/selector-allocation.review.schema.v1.json",
+            "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+            "docs/adr/0002-contract-identity-and-release-authorization.md",
+            "docs/adr/0003-authenticated-production-ingress.md",
+            "docs/adr/0004-observer-attach-grants-and-revocation.md",
+            "docs/adr/0005-declared-stream-lifecycle.md",
+            "docs/adr/0006-body-issued-authority-and-time.md",
+            "docs/adr/0007-command-disposition-journal.md",
+            "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+            "docs/adr/0009-security-state-rotation-and-revocation.md",
+            "docs/adr/0010-plane-qos-retention-and-overload.md",
+            "docs/adr/0011-ecosystem-topology-and-handover.md",
+            "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
+            "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
+          ]
+        },
+        "role": {
+          "enum": [
+            "allocation_inventory",
+            "allocation_schema",
+            "semantic_authoring_source",
+            "semantic_authoring_schema",
+            "semantic_compact_source",
+            "semantic_compact_schema",
+            "allocation_boundary_implementation",
+            "semantic_generator",
+            "semantic_checker",
+            "semantic_codec",
+            "resource_closure_projection",
+            "review_boundary_implementation",
+            "review_generation_state",
+            "review_generation_state_schema",
+            "review_document_schema",
+            "adr_001_source",
+            "adr_002_source",
+            "adr_003_source",
+            "adr_004_source",
+            "adr_005_source",
+            "adr_006_source",
+            "adr_007_source",
+            "adr_008_source",
+            "adr_009_source",
+            "adr_010_source",
+            "adr_011_source",
+            "adr_004_module_001",
+            "adr_009_module_001"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "sourceCut": {
+      "type": "object",
+      "maxProperties": 7,
+      "additionalProperties": false,
+      "required": [
+        "blobs",
+        "branch",
+        "commit",
+        "object_format",
+        "repository",
+        "tree",
+        "worktree_requirement"
+      ],
+      "properties": {
+        "blobs": {
+          "type": "array",
+          "minItems": 28,
+          "maxItems": 28,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 4194304
+                },
+                "path": {
+                  "const": "docs/adr/selector-allocation.authoring.v1.json"
+                },
+                "role": {
+                  "const": "allocation_inventory"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 65536
+                },
+                "path": {
+                  "const": "docs/adr/selector-allocation.authoring.schema.v1.json"
+                },
+                "role": {
+                  "const": "allocation_schema"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 16777216
+                },
+                "path": {
+                  "const": "docs/adr/selector-closure.authoring.v1.json"
+                },
+                "role": {
+                  "const": "semantic_authoring_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 1048576
+                },
+                "path": {
+                  "const": "docs/adr/selector-closure.authoring.schema.v1.json"
+                },
+                "role": {
+                  "const": "semantic_authoring_schema"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 4194304
+                },
+                "path": {
+                  "const": "docs/adr/selector-closure.source.v1.json"
+                },
+                "role": {
+                  "const": "semantic_compact_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 1048576
+                },
+                "path": {
+                  "const": "docs/adr/selector-closure.source.schema.v1.json"
+                },
+                "role": {
+                  "const": "semantic_compact_schema"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 2097152
+                },
+                "path": {
+                  "const": "scripts/selector_allocation_inventory.py"
+                },
+                "role": {
+                  "const": "allocation_boundary_implementation"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 4194304
+                },
+                "path": {
+                  "const": "scripts/generate_selector_closure_source.py"
+                },
+                "role": {
+                  "const": "semantic_generator"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 8388608
+                },
+                "path": {
+                  "const": "scripts/check_selector_closure.py"
+                },
+                "role": {
+                  "const": "semantic_checker"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 2097152
+                },
+                "path": {
+                  "const": "scripts/selector_closure_codec.py"
+                },
+                "role": {
+                  "const": "semantic_codec"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 2097152
+                },
+                "path": {
+                  "const": "scripts/selector_resource_closure.py"
+                },
+                "role": {
+                  "const": "resource_closure_projection"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 2097152
+                },
+                "path": {
+                  "const": "scripts/selector_allocation_review.py"
+                },
+                "role": {
+                  "const": "review_boundary_implementation"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 16384
+                },
+                "path": {
+                  "const": "docs/adr/selector-allocation.review-state.v1.json"
+                },
+                "role": {
+                  "const": "review_generation_state"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 65536
+                },
+                "path": {
+                  "const": "docs/adr/selector-allocation.review-state.schema.v1.json"
+                },
+                "role": {
+                  "const": "review_generation_state_schema"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 524288
+                },
+                "path": {
+                  "const": "docs/adr/selector-allocation.review.schema.v1.json"
+                },
+                "role": {
+                  "const": "review_document_schema"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+                },
+                "role": {
+                  "const": "adr_001_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0002-contract-identity-and-release-authorization.md"
+                },
+                "role": {
+                  "const": "adr_002_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0003-authenticated-production-ingress.md"
+                },
+                "role": {
+                  "const": "adr_003_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0004-observer-attach-grants-and-revocation.md"
+                },
+                "role": {
+                  "const": "adr_004_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0005-declared-stream-lifecycle.md"
+                },
+                "role": {
+                  "const": "adr_005_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0006-body-issued-authority-and-time.md"
+                },
+                "role": {
+                  "const": "adr_006_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0007-command-disposition-journal.md"
+                },
+                "role": {
+                  "const": "adr_007_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+                },
+                "role": {
+                  "const": "adr_008_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0009-security-state-rotation-and-revocation.md"
+                },
+                "role": {
+                  "const": "adr_009_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0010-plane-qos-retention-and-overload.md"
+                },
+                "role": {
+                  "const": "adr_010_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/0011-ecosystem-topology-and-handover.md"
+                },
+                "role": {
+                  "const": "adr_011_source"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
+                },
+                "role": {
+                  "const": "adr_004_module_001"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
+                },
+                "role": {
+                  "const": "adr_009_module_001"
+                }
+              }
+            }
+          ],
+          "items": false
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"
+        },
+        "commit": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "object_format": {
+          "enum": [
+            "sha1",
+            "sha256"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^(?!.*\\.\\.)(?!.*//)(?!.*(?:^|/)\\.(?:/|$))[A-Za-z0-9][A-Za-z0-9._/-]{1,126}[A-Za-z0-9._-]$"
+        },
+        "tree": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "worktree_requirement": {
+          "const": "HEAD_EQUALS_COMMIT_AND_ENTIRE_WORKTREE_CLEAN"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "object_format"
+            ],
+            "properties": {
+              "object_format": {
+                "const": "sha1"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "commit": {
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "tree": {
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "blobs": {
+                "items": {
+                  "properties": {
+                    "git_blob": {
+                      "pattern": "^[0-9a-f]{40}$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "object_format"
+            ],
+            "properties": {
+              "object_format": {
+                "const": "sha256"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "commit": {
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "tree": {
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "blobs": {
+                "items": {
+                  "properties": {
+                    "git_blob": {
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "reviewerAuthorization": {
+      "type": "object",
+      "maxProperties": 6,
+      "additionalProperties": false,
+      "required": [
+        "authorization_issuer_identity",
+        "implementation_owner_identities",
+        "reviewer_identity",
+        "reviewer_role",
+        "scope",
+        "separation_rule"
+      ],
+      "properties": {
+        "authorization_issuer_identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "implementation_owner_identities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identity"
+          }
+        },
+        "reviewer_identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "reviewer_role": {
+          "const": "SELECTOR_ALLOCATION_PROVENANCE_REVIEWER"
+        },
+        "scope": {
+          "const": "EXACT_SEMANTIC_SUBJECT_ASSIGNMENT_TAXONOMY_PROJECTIONS_SCHEMAS_AND_SOURCE_CUT"
+        },
+        "separation_rule": {
+          "const": "REVIEWER_IDENTIFIER_DIFFERS_FROM_ISSUER_AND_ALL_IMPLEMENTATION_OWNER_IDENTIFIERS"
+        }
+      }
+    },
+    "allocationIdentityCommitmentSuite": {
+      "const": {
+        "algorithm": "SHA256",
+        "canonicalization": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE",
+        "evidence_ordering": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES",
+        "evidence_ordering_fields": [
+          "evidence_kind",
+          "semantic_location"
+        ],
+        "evidence_row_fields": [
+          "evidence_kind",
+          "semantic_location"
+        ],
+        "evidence_row_shape": "JSON_OBJECT",
+        "evidence_scalar_domain": "TRIMMED_NONEMPTY_PRINTABLE_ASCII_U+0020_THROUGH_U+007E",
+        "evidence_uniqueness": "EXACT_EVIDENCE_KIND_SEMANTIC_LOCATION_PAIR_UNIQUE_PER_ARRAY",
+        "fixed_vectors": {
+          "schema": "ncp.b01-selector-allocation-identity-fixed-vectors.v1",
+          "unit_model_origin": {
+            "expected_identity_projection": [
+              "TYPE",
+              "SampleType",
+              "sample-type::SampleType",
+              "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+            ],
+            "expected_model_projection_sha256": "045fe6a71fdc4f995b9af1d68cc42aadadbd19ffb9920892929e7fb27af7635f",
+            "expected_origin_signal_row_count": 1,
+            "expected_origin_signal_sha256": "6d44f8227c9ec96c38afea4f02f9b42b2cded6d82bc699be0d531cd901461268",
+            "expected_unit_id": "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf",
+            "identity_input": [
+              "TYPE",
+              "SampleType",
+              "sample-type::SampleType"
+            ],
+            "model_projection_input": [
+              [
+                "TYPE",
+                "SampleType",
+                "sample-type::SampleType",
+                "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+              ]
+            ],
+            "origin_signal_projection_input": [
+              {
+                "exact_name": "SampleType",
+                "kind": "TYPE",
+                "origins": [
+                  {
+                    "evidence_kind": "ARTIFACT_REGISTRY_ENTRY",
+                    "semantic_location": "artifact-ref::sample-type::SampleType"
+                  }
+                ],
+                "semantic_ref": "sample-type::SampleType",
+                "signals": [],
+                "unit_id": "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+              }
+            ]
+          }
+        },
+        "framing": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES",
+        "identity_evidence_rule": "ORIGINS_AND_SIGNALS_EXCLUDED_FROM_UNIT_ID_MODEL_PROJECTION_EQUALITY_AND_HASHING",
+        "identity_excluded_fields": [
+          "origins",
+          "signals"
+        ],
+        "identity_fields": [
+          "kind",
+          "exact_name",
+          "semantic_ref"
+        ],
+        "identity_scalar_domain": "PRINTABLE_ASCII_CLOSED_BY_KIND_GRAMMAR",
+        "identity_shape": "JSON_ARRAY",
+        "model_projection_domain_hex": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e6d6f64656c2d70726f6a656374696f6e2e763400",
+        "model_projection_ordering": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES",
+        "model_projection_ordering_fields": [
+          "kind",
+          "exact_name",
+          "semantic_ref",
+          "unit_id"
+        ],
+        "model_projection_row_fields": [
+          "kind",
+          "exact_name",
+          "semantic_ref",
+          "unit_id"
+        ],
+        "model_projection_row_shape": "JSON_ARRAY",
+        "model_projection_shape": "JSON_ARRAY_OF_JSON_ARRAY_ROWS",
+        "model_projection_uniqueness": "EXACT_ROW_UNIQUE_AND_UNIT_ID_UNIQUE",
+        "origin_kinds": [
+          "ARTIFACT_REGISTRY_ENTRY",
+          "DECLARED_EVENT",
+          "RESOURCE_DECLARATION",
+          "SELECTOR_DECLARATION",
+          "STATE_DECLARATION",
+          "STRUCTURAL_PROFILE_DEFINITION",
+          "SUBORDINATE_EVENT_DECLARATION"
+        ],
+        "origin_requirement": "ONE_OR_MORE_CLOSED_MECHANICAL_ORIGINS_PER_UNIT",
+        "origin_signal_projection_domain_hex": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e6f726967696e2d7369676e616c2d70726f6a656374696f6e2e763100",
+        "origin_signal_projection_ordering": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES",
+        "origin_signal_projection_ordering_fields": [
+          "kind",
+          "exact_name",
+          "semantic_ref",
+          "unit_id"
+        ],
+        "origin_signal_projection_row_fields": [
+          "exact_name",
+          "kind",
+          "origins",
+          "semantic_ref",
+          "signals",
+          "unit_id"
+        ],
+        "origin_signal_projection_row_shape": "JSON_OBJECT",
+        "origin_signal_projection_shape": "JSON_ARRAY_OF_JSON_OBJECT_ROWS",
+        "origin_signal_projection_uniqueness": "UNIT_ID_UNIQUE",
+        "schema": "ncp.b01-selector-allocation-identity-commitment-suite.v1",
+        "signal_authority": "ZERO_OR_MORE_CLOSED_NONAUTHORITATIVE_SIGNALS_NEVER_SELECT_IDENTITY_OR_ADR_ASSIGNMENT",
+        "signal_kinds": [
+          "RESOURCE_BACKING",
+          "SELECTOR_USAGE",
+          "STRUCTURAL_PROFILE_REFERENCE"
+        ],
+        "unit_id_domain_hex": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e756e69742d69642e763100",
+        "unit_id_output": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+      }
+    },
+    "semanticShapeCommitmentSuite": {
+      "const": {
+        "algorithm": "SHA256",
+        "array_index_treatment": "UNPADDED_BASE10_NONNEGATIVE_INTEGER_SEGMENT_WITH_ZERO_AS_0_ORDERED_BY_COMPLETE_POINTER_ASCII_BYTES",
+        "bounds_application": "REJECT_BEFORE_DIGEST_SUCCESS_IF_ANY_BOUND_EXCEEDED",
+        "canonicalization": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE",
+        "domain_hex": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e73656d616e7469632d73686170652d70726f6a656374696f6e2e763300",
+        "fixed_vectors": {
+          "nesting_depth_boundary": {
+            "construction": "ROOT_OBJECT_MEMBER_X_WITH_NULL_WRAPPED_IN_N_SINGLETON_ARRAYS",
+            "expected_accepted_entry_count": 65,
+            "expected_accepted_projection_byte_length": 5006,
+            "expected_accepted_sha256": "ffdf1822c36f52e46e9ede5e4880b02a47fdeb5936540a8fdb23f447afc6c325",
+            "first_rejected_array_wrapper_count": 64,
+            "maximum_accepted_array_wrapper_count": 63,
+            "root_depth": 0
+          },
+          "representative_types_and_escaping": {
+            "expected_entry_count": 7,
+            "expected_projection_byte_length": 121,
+            "expected_projection_rows": [
+              [
+                "",
+                "object"
+              ],
+              [
+                "/",
+                "null"
+              ],
+              [
+                "/~0",
+                "string"
+              ],
+              [
+                "/~1",
+                "array"
+              ],
+              [
+                "/~1/0",
+                "boolean"
+              ],
+              [
+                "/~1/1",
+                "integer"
+              ],
+              [
+                "/~1/2",
+                "integer"
+              ]
+            ],
+            "expected_sha256": "4a24a885fe8a123556ff83f27ab7389f4c498044420fe6afa27be3d60e7a2325",
+            "source_canonical_utf8_byte_length": 63,
+            "source_canonical_utf8_hex": "7b22223a6e756c6c2c222f223a5b747275652c2d393030373139393235343734303939312c393030373139393235343734303939315d2c227e223a2278227d"
+          },
+          "schema": "ncp.b01-selector-allocation-semantic-shape-fixed-vectors.v3"
+        },
+        "framing": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES",
+        "maximum_entries": 1000000,
+        "maximum_nesting_depth": 64,
+        "maximum_pointer_characters": 8192,
+        "maximum_projection_bytes": 33554432,
+        "nesting_depth_counting": "DOCUMENT_ROOT_IS_DEPTH_0_EACH_ARRAY_OR_OBJECT_CHILD_INCREMENTS_BY_1",
+        "object_member_ordering": "LEXICOGRAPHIC_ASCENDING_BY_RFC6901_ESCAPED_MEMBER_TOKEN_ASCII_BYTES",
+        "output": "LOWERCASE_HEXADECIMAL_64_CHARACTERS",
+        "pointer_root_token": "",
+        "pointer_scalar_domain": "EMPTY_DOCUMENT_ROOT_OR_SLASH_PREFIXED_PRINTABLE_ASCII_RFC6901_SEGMENTS",
+        "pointer_segment_escaping": "REPLACE_TILDE_WITH_~0_THEN_REPLACE_SLASH_WITH_~1",
+        "pointer_syntax": "RFC6901_JSON_POINTER",
+        "projection_shape": "JSON_ARRAY_OF_JSON_ARRAY_ROWS",
+        "row_fields": [
+          "json_pointer",
+          "type_token"
+        ],
+        "row_ordering": "LEXICOGRAPHIC_ASCENDING_BY_STORED_RFC6901_JSON_POINTER_ASCII_BYTES",
+        "row_shape": "JSON_ARRAY_OF_EXACTLY_TWO_STRINGS",
+        "row_uniqueness": "JSON_POINTER_UNIQUE",
+        "root_depth": 0,
+        "scalar_domain": "NULL_EXACT_BOOLEAN_CANONICAL_SIGNED_SAFE_INTEGER_ABS_LE_9007199254740991_EMPTY_OR_PRINTABLE_ASCII_STRING",
+        "schema": "ncp.b01-selector-allocation-semantic-shape-commitment-suite.v3",
+        "source_member_name_domain": "EMPTY_OR_PRINTABLE_ASCII_U+0020_THROUGH_U+007E",
+        "source_shape": "JSON_OBJECT",
+        "stream_projection": "OPEN_BRACKET_THEN_CANONICAL_ROWS_COMMA_SEPARATED_THEN_CLOSE_BRACKET",
+        "type_token_mapping": {
+          "array": "JSON_ARRAY",
+          "boolean": "JSON_LITERAL_TRUE_OR_FALSE",
+          "integer": "CANONICAL_SIGNED_INTEGER_TOKEN_ABS_LE_9007199254740991_NEGATIVE_ZERO_FORBIDDEN",
+          "null": "JSON_LITERAL_NULL",
+          "object": "JSON_OBJECT",
+          "string": "EMPTY_OR_PRINTABLE_ASCII_JSON_STRING"
+        },
+        "type_tokens": [
+          "array",
+          "boolean",
+          "integer",
+          "null",
+          "object",
+          "string"
+        ]
+      }
+    },
+    "allocationReviewProfile": {
+      "type": "object",
+      "maxProperties": 19,
+      "additionalProperties": false,
+      "required": [
+        "allocation_identity_commitment_suite",
+        "allocation_schema_byte_length",
+        "allocation_schema_id",
+        "allocation_schema_sha256",
+        "model_allocation_count",
+        "model_allocation_sha256",
+        "model_origin_signal_projection_schema",
+        "model_origin_signal_row_count",
+        "model_origin_signal_sha256",
+        "model_projection_schema",
+        "required_kinds",
+        "resource_closure_row_count",
+        "resource_closure_schema",
+        "resource_closure_sha256",
+        "schema",
+        "semantic_shape_commitment_suite",
+        "semantic_shape_entry_count",
+        "semantic_shape_projection_schema",
+        "semantic_shape_sha256"
+      ],
+      "properties": {
+        "allocation_identity_commitment_suite": {
+          "$ref": "#/$defs/allocationIdentityCommitmentSuite"
+        },
+        "allocation_schema_byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "allocation_schema_id": {
+          "const": "ncp.b01-selector-allocation-authoring.v1"
+        },
+        "allocation_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_allocation_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "model_allocation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_origin_signal_projection_schema": {
+          "const": "ncp.b01-selector-allocation-origin-signal-projection.v1"
+        },
+        "model_origin_signal_row_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "model_origin_signal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_projection_schema": {
+          "const": "ncp.b01-selector-allocation-model-projection.v4"
+        },
+        "required_kinds": {
+          "$ref": "#/$defs/requiredKinds"
+        },
+        "resource_closure_row_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "resource_closure_schema": {
+          "const": "ncp.b01-resource-closure.v2"
+        },
+        "resource_closure_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "schema": {
+          "const": "ncp.b01-selector-allocation-review-profile.v4"
+        },
+        "semantic_shape_commitment_suite": {
+          "$ref": "#/$defs/semanticShapeCommitmentSuite"
+        },
+        "semantic_shape_entry_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "semantic_shape_projection_schema": {
+          "const": "ncp.b01-selector-allocation-semantic-shape-projection.v3"
+        },
+        "semantic_shape_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "requiredKinds": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        {
+          "const": "EVENT"
+        },
+        {
+          "const": "PROFILE"
+        },
+        {
+          "const": "RESOURCE"
+        },
+        {
+          "const": "SELECTOR"
+        },
+        {
+          "const": "STATE"
+        },
+        {
+          "const": "TYPE"
+        }
+      ],
+      "items": false
+    },
+    "semanticReviewSubject": {
+      "type": "object",
+      "maxProperties": 21,
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "byte_length",
+        "canonicalization",
+        "claim_boundary",
+        "domain_hex",
+        "excluded_top_level_keys",
+        "fixed_vectors",
+        "framing",
+        "integer_encoding",
+        "list_ordering",
+        "maximum_canonical_bytes",
+        "maximum_nesting_depth",
+        "nesting_depth_counting",
+        "object_member_ordering",
+        "output",
+        "projection_rule",
+        "projection_shape",
+        "root_depth",
+        "scalar_domain",
+        "sha256",
+        "string_escaping"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "SHA256"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "canonicalization": {
+          "const": "NCP_PRINTABLE_ASCII_SAFE_INTEGER_JSON_V1"
+        },
+        "claim_boundary": {
+          "const": "EXACT_CANONICAL_EXPANDED_SEMANTIC_PAYLOAD_EXCLUDING_ALLOCATION_ORACLE_DERIVED_COMMITMENTS_GENERATOR_METADATA_AND_EXECUTABLE_PROBE_BINDINGS"
+        },
+        "domain_hex": {
+          "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e73656d616e7469632d7265766965772d7375626a6563742e763200"
+        },
+        "excluded_top_level_keys": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "prefixItems": [
+            {
+              "const": "adr_allocation_oracle"
+            },
+            {
+              "const": "adversarial_probe_bindings"
+            },
+            {
+              "const": "closure_commitments"
+            },
+            {
+              "const": "generated_by"
+            },
+            {
+              "const": "generated_view"
+            }
+          ],
+          "items": false
+        },
+        "fixed_vectors": {
+          "const": {
+            "nesting_depth_boundary": {
+              "construction": "ROOT_OBJECT_MEMBER_X_WITH_NULL_WRAPPED_IN_N_SINGLETON_ARRAYS",
+              "expected_accepted_canonical_utf8_byte_length": 136,
+              "expected_accepted_canonical_utf8_hex": "7b2278223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b6e756c6c5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d7d",
+              "expected_accepted_sha256": "27007f10558810346f9ca729d79e19a327d6d5174991f8a5944d2babb870bf7f",
+              "first_rejected_array_wrapper_count": 64,
+              "maximum_accepted_array_wrapper_count": 63,
+              "root_depth": 0
+            },
+            "schema": "ncp.b01-selector-allocation-semantic-subject-fixed-vectors.v2",
+            "semantic_model": {
+              "expected_byte_length": 50,
+              "expected_canonical_utf8_hex": "7b2273656d616e7469635f6d6f64656c223a7b226272616e63685f6964223a224649525354222c226c696d6974223a317d7d",
+              "expected_projection": {
+                "semantic_model": {
+                  "branch_id": "FIRST",
+                  "limit": 1
+                }
+              },
+              "expected_sha256": "15c7b92ff8ad2fcd9f928b603d4c7e143dc2eb9e2df3c4a3f8ee83ada34da19d",
+              "input": {
+                "adr_allocation_oracle": {},
+                "semantic_model": {
+                  "branch_id": "FIRST",
+                  "limit": 1
+                }
+              }
+            }
+          }
+        },
+        "framing": {
+          "const": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES"
+        },
+        "integer_encoding": {
+          "const": "MINUS_ONLY_WHEN_NEGATIVE_THEN_UNPADDED_BASE10_DIGITS_WITH_ZERO_AS_0"
+        },
+        "list_ordering": {
+          "const": "PRESERVE_SOURCE_ARRAY_ORDER"
+        },
+        "maximum_canonical_bytes": {
+          "const": 16777216
+        },
+        "maximum_nesting_depth": {
+          "const": 64
+        },
+        "nesting_depth_counting": {
+          "const": "DOCUMENT_ROOT_IS_DEPTH_0_EACH_ARRAY_OR_OBJECT_CHILD_INCREMENTS_BY_1"
+        },
+        "object_member_ordering": {
+          "const": "RECURSIVE_LEXICOGRAPHIC_ASCENDING_BY_MEMBER_NAME_ASCII_BYTES"
+        },
+        "output": {
+          "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+        },
+        "projection_rule": {
+          "const": "EXACT_TOP_LEVEL_OBJECT_AFTER_EXCLUDING_DECLARED_TOP_LEVEL_KEYS_NO_OTHER_FIELD_ELISION"
+        },
+        "projection_shape": {
+          "const": "JSON_OBJECT"
+        },
+        "root_depth": {
+          "const": 0
+        },
+        "scalar_domain": {
+          "const": "NULL_BOOLEAN_SIGNED_INTEGER_ABS_LE_9007199254740991_PRINTABLE_ASCII_STRING_ONLY"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "string_escaping": {
+          "const": "BACKSLASH_AS_DOUBLE_BACKSLASH_DOUBLE_QUOTE_AS_BACKSLASH_DOUBLE_QUOTE_NO_OTHER_ESCAPES"
+        }
+      }
+    },
+    "reviewSubject": {
+      "type": "object",
+      "maxProperties": 7,
+      "additionalProperties": false,
+      "required": [
+        "allocation_review_profile",
+        "allocation_schema_binding",
+        "assignment_commitment_suite",
+        "model_projection",
+        "provenance_assignment_sha256",
+        "semantic_review_subject",
+        "taxonomy"
+      ],
+      "properties": {
+        "allocation_review_profile": {
+          "$ref": "#/$defs/allocationReviewProfile"
+        },
+        "allocation_schema_binding": {
+          "type": "object",
+          "maxProperties": 3,
+          "additionalProperties": false,
+          "required": [
+            "byte_length",
+            "schema_id",
+            "sha256"
+          ],
+          "properties": {
+            "byte_length": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "schema_id": {
+              "const": "ncp.b01-selector-allocation-authoring.v1"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "assignment_commitment_suite": {
+          "const": {
+            "algorithm": "SHA256",
+            "allocation_ordering_fields": [
+              "adr_id",
+              "source_anchor",
+              "kind",
+              "exact_name",
+              "semantic_ref",
+              "unit_id"
+            ],
+            "canonicalization": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE",
+            "claim_boundary": "EXACT_SEMANTIC_REVIEW_SUBJECT_ADR_AND_ANCHOR_ASSIGNMENT_REVIEW_ONLY_NOT_PROTOCOL_RELEASE_OR_EXTERNAL_EVIDENCE",
+            "document_ordering": "LEXICOGRAPHIC_ASCENDING_BY_ADR_ID_ASCII_BYTES",
+            "document_source_set_row_fields": [
+              "adr_id",
+              "allocation_anchor_id",
+              "source_set"
+            ],
+            "document_source_set_row_shape": "JSON_OBJECT",
+            "domain_hex": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f76656e616e63652d7265766965772e763500",
+            "exclusion_ordering_fields": [
+              "adr_id",
+              "source_anchor",
+              "exact_name",
+              "classification"
+            ],
+            "fixed_vectors": {
+              "minimal_assignment": {
+                "expected_projection": {
+                  "allocation_review_profile": {
+                    "schema": "sample"
+                  },
+                  "allocations": [],
+                  "document_source_sets": [
+                    {
+                      "adr_id": "ADR-001",
+                      "allocation_anchor_id": "ncp-b01-selector-allocation-adr-001-v1",
+                      "source_set": {
+                        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+                      }
+                    }
+                  ],
+                  "exclusions": [],
+                  "semantic_review_subject": {
+                    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                  }
+                },
+                "expected_sha256": "8ae4d48b5a67be5e34321ccca0c96118e0e112af6da3fec833d2d816ec16ca28",
+                "input": {
+                  "allocation_review_profile": {
+                    "schema": "sample"
+                  },
+                  "allocations": [],
+                  "documents": [
+                    {
+                      "adr_id": "ADR-001",
+                      "allocation_anchor_id": "ncp-b01-selector-allocation-adr-001-v1",
+                      "source_set": {
+                        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+                      }
+                    }
+                  ],
+                  "exclusions": [],
+                  "semantic_review_subject": {
+                    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                  }
+                }
+              },
+              "schema": "ncp.b01-selector-allocation-provenance-review-fixed-vectors.v1"
+            },
+            "framing": "DOMAIN_BYTES_THEN_CANONICAL_PROJECTION_BYTES",
+            "output": "LOWERCASE_HEXADECIMAL_64_CHARACTERS",
+            "projection_fields": [
+              "allocation_review_profile",
+              "allocations",
+              "document_source_sets",
+              "exclusions",
+              "semantic_review_subject"
+            ],
+            "projection_shape": "JSON_OBJECT",
+            "row_ordering": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES",
+            "scalar_domain": "NULL_BOOLEAN_SIGNED_INTEGER_ABS_LE_9007199254740991_PRINTABLE_ASCII_STRING_ONLY"
+          }
+        },
+        "model_projection": {
+          "type": "object",
+          "maxProperties": 13,
+          "additionalProperties": false,
+          "required": [
+            "model_allocation_count",
+            "model_allocation_sha256",
+            "model_origin_signal_projection_schema",
+            "model_origin_signal_row_count",
+            "model_origin_signal_sha256",
+            "model_projection_schema",
+            "resource_closure_row_count",
+            "resource_closure_schema",
+            "resource_closure_sha256",
+            "schema",
+            "semantic_shape_entry_count",
+            "semantic_shape_projection_schema",
+            "semantic_shape_sha256"
+          ],
+          "properties": {
+            "model_allocation_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "model_allocation_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "model_origin_signal_projection_schema": {
+              "const": "ncp.b01-selector-allocation-origin-signal-projection.v1"
+            },
+            "model_origin_signal_row_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "model_origin_signal_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "model_projection_schema": {
+              "const": "ncp.b01-selector-allocation-model-projection.v4"
+            },
+            "resource_closure_row_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "resource_closure_schema": {
+              "const": "ncp.b01-resource-closure.v2"
+            },
+            "resource_closure_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "schema": {
+              "const": "ncp.b01-selector-allocation-reviewed-model-projection.v4"
+            },
+            "semantic_shape_entry_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "semantic_shape_projection_schema": {
+              "const": "ncp.b01-selector-allocation-semantic-shape-projection.v3"
+            },
+            "semantic_shape_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "provenance_assignment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "semantic_review_subject": {
+          "$ref": "#/$defs/semanticReviewSubject"
+        },
+        "taxonomy": {
+          "type": "object",
+          "maxProperties": 2,
+          "additionalProperties": false,
+          "required": [
+            "required_kinds",
+            "schema"
+          ],
+          "properties": {
+            "required_kinds": {
+              "$ref": "#/$defs/requiredKinds"
+            },
+            "schema": {
+              "const": "ncp.b01-selector-allocation-taxonomy.v1"
+            }
+          }
+        }
+      }
+    },
+    "authorizationManifest": {
+      "type": "object",
+      "maxProperties": 11,
+      "additionalProperties": false,
+      "required": [
+        "authority_class",
+        "authorization_id",
+        "claim_boundary",
+        "expected_review_state",
+        "expected_review_state_commitment",
+        "identity_assurance",
+        "review_generation",
+        "review_subject",
+        "reviewer_authorization",
+        "schema",
+        "source_cut"
+      ],
+      "properties": {
+        "authority_class": {
+          "const": "LOCAL_ONLY"
+        },
+        "authorization_id": {
+          "$ref": "#/$defs/uuidV4"
+        },
+        "claim_boundary": {
+          "const": "LOCAL_ONLY_EXACT_SELECTOR_ALLOCATION_PROVENANCE_REVIEW_AUTHORIZATION_NO_EXTERNAL_INDEPENDENT_PROTOCOL_RELEASE_OR_CERTIFICATION_AUTHORITY"
+        },
+        "expected_review_state": {
+          "$ref": "#/$defs/reviewGenerationState"
+        },
+        "expected_review_state_commitment": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/contentCommitment"
+            },
+            {
+              "properties": {
+                "domain_hex": {
+                  "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e7265766965772d67656e65726174696f6e2d73746174652e763100"
+                }
+              }
+            }
+          ]
+        },
+        "identity_assurance": {
+          "const": "CALLER_SUPPLIED_LOCAL_POLICY_ONLY_NO_SIGNATURE_OR_EXTERNAL_IDENTITY_PROOF"
+        },
+        "review_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "review_subject": {
+          "$ref": "#/$defs/reviewSubject"
+        },
+        "reviewer_authorization": {
+          "$ref": "#/$defs/reviewerAuthorization"
+        },
+        "schema": {
+          "const": "ncp.b01-selector-allocation-review-authorization-manifest.v1"
+        },
+        "source_cut": {
+          "$ref": "#/$defs/sourceCut"
+        }
+      }
+    },
+    "reviewReceipt": {
+      "type": "object",
+      "maxProperties": 16,
+      "additionalProperties": false,
+      "required": [
+        "authority_class",
+        "authorization_id",
+        "authorization_manifest_byte_length",
+        "authorization_manifest_sha256",
+        "claim_boundary",
+        "disposition",
+        "expected_review_state_sha256",
+        "prohibited_authority_claims",
+        "review_generation",
+        "review_id",
+        "reviewed_assignment_sha256",
+        "reviewer_attestation",
+        "reviewer_identity",
+        "reviewer_role",
+        "schema",
+        "semantic_review_subject_sha256"
+      ],
+      "properties": {
+        "authority_class": {
+          "const": "LOCAL_ONLY"
+        },
+        "authorization_id": {
+          "$ref": "#/$defs/uuidV4"
+        },
+        "authorization_manifest_byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "authorization_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "claim_boundary": {
+          "const": "LOCAL_ONLY_EXACT_SELECTOR_ALLOCATION_PROVENANCE_REVIEW_AUTHORIZATION_NO_EXTERNAL_INDEPENDENT_PROTOCOL_RELEASE_OR_CERTIFICATION_AUTHORITY"
+        },
+        "disposition": {
+          "const": "AUTHORIZE_EXACT_REVIEWED_PROMOTION"
+        },
+        "expected_review_state_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "prohibited_authority_claims": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "const": "EXTERNAL_AUTHORITY"
+            },
+            {
+              "const": "INDEPENDENT_AUTHORITY"
+            },
+            {
+              "const": "PROTOCOL_OR_RELEASE_AUTHORITY"
+            },
+            {
+              "const": "CERTIFICATION_OR_PUBLICATION_AUTHORITY"
+            }
+          ],
+          "items": false
+        },
+        "review_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "review_id": {
+          "$ref": "#/$defs/uuidV4"
+        },
+        "reviewed_assignment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewer_attestation": {
+          "const": "CALLER_ASSERTS_EXACT_BOUND_SUBJECT_REVIEW_FOR_LOCAL_PROVENANCE_ONLY_NO_IDENTITY_PROOF"
+        },
+        "reviewer_identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "reviewer_role": {
+          "const": "SELECTOR_ALLOCATION_PROVENANCE_REVIEWER"
+        },
+        "schema": {
+          "const": "ncp.b01-selector-allocation-review-receipt.v1"
+        },
+        "semantic_review_subject_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

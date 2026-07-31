@@ -30,6 +30,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "evidence" / "supply-chain"
+ADVISORY_DB_PATH_ENV = "NCP_ADVISORY_DB_PATH"
+DEFAULT_ADVISORY_DB_SETTING = 'db-path = "${HOME}/.cargo/advisory-dbs"'
+MAX_DENY_CONFIG_BYTES = 64 * 1024
 OUTPUTS = {
     "inventory.v1.json": "ncp.supply-chain-inventory.v1",
     "sbom.cdx.json": "CycloneDX",
@@ -84,6 +87,15 @@ GENERATOR_OUTPUTS = {
     ],
     "scripts/generate_max_effort_review_template.py": [
         "docs/handoff/max-effort-task-review.v2.json"
+    ],
+    "scripts/generate_selector_allocation_proposal.py": [
+        "docs/adr/selector-allocation.proposal.v1.json"
+    ],
+    "scripts/generate_selector_closure_matrix.py": [
+        "docs/adr/B01_SELECTOR_CLOSURE_MATRIX.md"
+    ],
+    "scripts/generate_selector_closure_source.py": [
+        "docs/adr/selector-closure.source.v1.json"
     ],
     "scripts/generate_supply_chain_evidence.py": ["evidence/supply-chain/*.json"],
     "scripts/plot_perf.py": ["docs/plots/*.svg"],
@@ -1110,6 +1122,34 @@ def _validate_reviewed_advisory_findings(findings: object) -> None:
 
 
 def _cargo_advisories() -> dict[str, Any]:
+    configured_database_root: Path | None = None
+    configured = os.environ.get(ADVISORY_DB_PATH_ENV)
+    if configured is not None:
+        if not configured or "\x00" in configured:
+            raise EvidenceError(f"{ADVISORY_DB_PATH_ENV} is empty or contains NUL")
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise EvidenceError(f"{ADVISORY_DB_PATH_ENV} must be absolute")
+        try:
+            candidate_mode = candidate.lstat().st_mode
+            configured_database_root = candidate.resolve(strict=True)
+        except OSError as error:
+            raise EvidenceError(
+                f"cannot inspect {ADVISORY_DB_PATH_ENV}: {error}"
+            ) from error
+        if stat.S_ISLNK(candidate_mode) or not stat.S_ISDIR(candidate_mode):
+            raise EvidenceError(
+                f"{ADVISORY_DB_PATH_ENV} must name a plain directory"
+            )
+        repository_root = ROOT.resolve()
+        if (
+            configured_database_root == repository_root
+            or repository_root in configured_database_root.parents
+        ):
+            raise EvidenceError(
+                f"{ADVISORY_DB_PATH_ENV} must be outside the repository"
+            )
+
     command = [
         "cargo",
         "deny",
@@ -1125,6 +1165,43 @@ def _cargo_advisories() -> dict[str, Any]:
         "--disable-fetch",
         "--audit-compatible-output",
     ]
+    temporary_config: tempfile.TemporaryDirectory[str] | None = None
+    if configured_database_root is not None:
+        deny_path = ROOT / "deny.toml"
+        try:
+            deny_bytes = deny_path.read_bytes()
+        except OSError as error:
+            raise EvidenceError(f"cannot read deny.toml: {error}") from error
+        if len(deny_bytes) > MAX_DENY_CONFIG_BYTES or b"\x00" in deny_bytes:
+            raise EvidenceError("deny.toml exceeds its bounded config profile")
+        try:
+            deny_text = deny_bytes.decode("utf-8", "strict")
+        except UnicodeError as error:
+            raise EvidenceError("deny.toml is not UTF-8") from error
+        if deny_text.count(DEFAULT_ADVISORY_DB_SETTING) != 1:
+            raise EvidenceError("deny.toml advisory database setting drifted")
+        database_setting = (
+            "db-path = "
+            + json.dumps(configured_database_root.as_posix(), ensure_ascii=True)
+        )
+        derived_config = deny_text.replace(
+            DEFAULT_ADVISORY_DB_SETTING,
+            database_setting,
+            1,
+        )
+        temporary_config = tempfile.TemporaryDirectory(
+            prefix="ncp-cargo-deny-config-"
+        )
+        config_path = Path(temporary_config.name) / "deny.toml"
+        try:
+            config_path.write_text(derived_config, encoding="utf-8")
+        except OSError as error:
+            temporary_config.cleanup()
+            raise EvidenceError(f"cannot write derived deny config: {error}") from error
+        command[command.index("check") + 1 : command.index("check") + 1] = [
+            "--config",
+            str(config_path),
+        ]
     try:
         process = subprocess.run(
             command,
@@ -1135,6 +1212,9 @@ def _cargo_advisories() -> dict[str, Any]:
         )
     except OSError as error:
         raise EvidenceError(f"cannot execute cargo-deny: {error}") from error
+    finally:
+        if temporary_config is not None:
+            temporary_config.cleanup()
     if process.returncode != 0:
         detail = process.stderr.decode("utf-8", "replace").strip()
         raise EvidenceError(f"{' '.join(command)} failed: {detail}")
@@ -1161,6 +1241,13 @@ def _cargo_advisories() -> dict[str, Any]:
     database_path = Path(next(iter(database_paths))).resolve()
     if not database_path.is_dir():
         raise EvidenceError("cargo-deny advisory database path is not a directory")
+    if (
+        configured_database_root is not None
+        and database_path.parent != configured_database_root
+    ):
+        raise EvidenceError(
+            "cargo-deny did not open the configured advisory database root"
+        )
     database_revision = (
         _run(
             ["git", "-C", str(database_path), "rev-parse", "--verify", "HEAD^{commit}"]

@@ -1,0 +1,1231 @@
+{
+  "$defs": {
+    "adrId": {
+      "enum": [
+        "ADR-001",
+        "ADR-002",
+        "ADR-003",
+        "ADR-004",
+        "ADR-005",
+        "ADR-006",
+        "ADR-007",
+        "ADR-008",
+        "ADR-009",
+        "ADR-010",
+        "ADR-011"
+      ],
+      "type": "string"
+    },
+    "adrIdArray": {
+      "items": {
+        "$ref": "#/$defs/adrId"
+      },
+      "maxItems": 11,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "adrSource": {
+      "additionalProperties": false,
+      "properties": {
+        "adr_id": {
+          "$ref": "#/$defs/adrId"
+        },
+        "allocation_anchor_id": {
+          "$ref": "#/$defs/sourceAnchor"
+        },
+        "main": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "modules": {
+          "items": {
+            "$ref": "#/$defs/contentIdentity"
+          },
+          "maxItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "adr_id",
+        "allocation_anchor_id",
+        "main",
+        "modules"
+      ],
+      "type": "object"
+    },
+    "ambiguityCount": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "enum": [
+            "MULTIPLE_ACCEPTED_PROSE_MATCHES",
+            "MULTIPLE_DECLARING_SELECTORS",
+            "MULTIPLE_PROSE_MENTIONS",
+            "MULTIPLE_SELECTOR_USAGE_SIGNALS",
+            "NO_ACCEPTED_PROSE_MATCH",
+            "NO_DECLARING_SELECTOR",
+            "RESOURCE_BACKING_SIGNAL_PRESENT",
+            "SELECTOR_USAGE_SIGNAL_PRESENT",
+            "STRUCTURAL_PROFILE_REFERENCE_SIGNAL_PRESENT",
+            "SUGGESTED_ADR_DIFFERS_FROM_ACCEPTED_PROSE",
+            "UNMAPPED_SHARED"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "maximum": 720896,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "class",
+        "count"
+      ],
+      "type": "object"
+    },
+    "ambiguityFlag": {
+      "enum": [
+        "MULTIPLE_ACCEPTED_PROSE_MATCHES",
+        "MULTIPLE_DECLARING_SELECTORS",
+        "MULTIPLE_PROSE_MENTIONS",
+        "MULTIPLE_SELECTOR_USAGE_SIGNALS",
+        "NO_ACCEPTED_PROSE_MATCH",
+        "NO_DECLARING_SELECTOR",
+        "RESOURCE_BACKING_SIGNAL_PRESENT",
+        "SELECTOR_USAGE_SIGNAL_PRESENT",
+        "STRUCTURAL_PROFILE_REFERENCE_SIGNAL_PRESENT",
+        "SUGGESTED_ADR_DIFFERS_FROM_ACCEPTED_PROSE",
+        "UNMAPPED_SHARED"
+      ],
+      "type": "string"
+    },
+    "classSummaryBase": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "SHA256_DOMAIN_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_JSON"
+        },
+        "canonicalization": {
+          "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+        },
+        "counts": {
+          "type": "array"
+        },
+        "domain_hex": {
+          "pattern": "^[0-9a-f]+$",
+          "type": "string"
+        },
+        "projection_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "counts",
+        "domain_hex",
+        "projection_sha256"
+      ],
+      "type": "object"
+    },
+    "contentIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "maximum": 16777216,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "byte_length",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "compilerSource": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "maximum": 2097152,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "path": {
+          "enum": [
+            "scripts/check_selector_closure.py",
+            "scripts/generate_selector_allocation_proposal.py",
+            "scripts/selector_allocation_inventory.py",
+            "scripts/selector_closure_codec.py",
+            "scripts/selector_resource_closure.py"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "byte_length",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "count": {
+      "maximum": 65536,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "destination": {
+      "enum": [
+        "ADR-001",
+        "ADR-002",
+        "ADR-003",
+        "ADR-004",
+        "ADR-005",
+        "ADR-006",
+        "ADR-007",
+        "ADR-008",
+        "ADR-009",
+        "ADR-010",
+        "ADR-011",
+        "UNMAPPED_SHARED"
+      ],
+      "type": "string"
+    },
+    "destinationCount": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/destination"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "class",
+        "count"
+      ],
+      "type": "object"
+    },
+    "exactName": {
+      "maxLength": 1024,
+      "pattern": "^[A-Za-z][A-Za-z0-9_.]*$",
+      "type": "string"
+    },
+    "originCount": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "enum": [
+            "ARTIFACT_REGISTRY_ENTRY",
+            "DECLARED_EVENT",
+            "RESOURCE_DECLARATION",
+            "SELECTOR_DECLARATION",
+            "STATE_DECLARATION",
+            "STRUCTURAL_PROFILE_DEFINITION",
+            "SUBORDINATE_EVENT_DECLARATION"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "maximum": 4194304,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "class",
+        "count"
+      ],
+      "type": "object"
+    },
+    "originEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_kind": {
+          "enum": [
+            "ARTIFACT_REGISTRY_ENTRY",
+            "DECLARED_EVENT",
+            "RESOURCE_DECLARATION",
+            "SELECTOR_DECLARATION",
+            "STATE_DECLARATION",
+            "STRUCTURAL_PROFILE_DEFINITION",
+            "SUBORDINATE_EVENT_DECLARATION"
+          ],
+          "type": "string"
+        },
+        "semantic_location": {
+          "$ref": "#/$defs/semanticLocation"
+        }
+      },
+      "required": [
+        "evidence_kind",
+        "semantic_location"
+      ],
+      "type": "object"
+    },
+    "proposalRow": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-001"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-001-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-002"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-002-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-003"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-003-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-004"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-004-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-005"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-005-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-006"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-006-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-007"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-007-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-008"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-008-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-009"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-009-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-010"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-010-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "ADR-011"
+                },
+                "suggested_source_anchor": {
+                  "const": "ncp-b01-selector-allocation-adr-011-v1"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            },
+            {
+              "properties": {
+                "suggested_adr_id": {
+                  "const": "UNMAPPED_SHARED"
+                },
+                "suggested_source_anchor": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "suggested_adr_id",
+                "suggested_source_anchor"
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "accepted_prose_adr_ids": {
+          "$ref": "#/$defs/adrIdArray"
+        },
+        "ambiguity_flags": {
+          "items": {
+            "$ref": "#/$defs/ambiguityFlag"
+          },
+          "maxItems": 11,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "declaring_selector_ids": {
+          "items": {
+            "$ref": "#/$defs/selectorId"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "exact_name": {
+          "$ref": "#/$defs/exactName"
+        },
+        "kind": {
+          "enum": [
+            "EVENT",
+            "PROFILE",
+            "RESOURCE",
+            "SELECTOR",
+            "STATE",
+            "TYPE"
+          ],
+          "type": "string"
+        },
+        "origin_evidence": {
+          "items": {
+            "$ref": "#/$defs/originEvidence"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "prose_adr_ids": {
+          "$ref": "#/$defs/adrIdArray"
+        },
+        "route_basis_values": {
+          "items": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "pattern": "^[ -~]+$",
+            "type": "string"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "route_rule_class": {
+          "enum": [
+            "BODY_ACCEPTED_PROSE_RULE",
+            "BODY_DECLARATION_PARTITION_RULE",
+            "DECLARING_SELECTOR_REGISTRY_RULE",
+            "NO_TOTAL_RULE",
+            "SEMANTIC_REFERENCE_RULE",
+            "STRUCTURAL_PROFILE_RULE"
+          ],
+          "type": "string"
+        },
+        "semantic_ref": {
+          "$ref": "#/$defs/semanticRef"
+        },
+        "signal_evidence": {
+          "items": {
+            "$ref": "#/$defs/signalEvidence"
+          },
+          "maxItems": 256,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "suggested_adr_id": {
+          "$ref": "#/$defs/destination"
+        },
+        "suggested_source_anchor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sourceAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit_id": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "accepted_prose_adr_ids",
+        "ambiguity_flags",
+        "declaring_selector_ids",
+        "exact_name",
+        "kind",
+        "origin_evidence",
+        "prose_adr_ids",
+        "route_basis_values",
+        "route_rule_class",
+        "semantic_ref",
+        "signal_evidence",
+        "suggested_adr_id",
+        "suggested_source_anchor",
+        "unit_id"
+      ],
+      "type": "object"
+    },
+    "repositoryPath": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "pattern": "^(?!.*(?:^|/)\\.\\.?(?:/|$))[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$",
+      "type": "string"
+    },
+    "routeCount": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "enum": [
+            "BODY_ACCEPTED_PROSE_RULE",
+            "BODY_DECLARATION_PARTITION_RULE",
+            "DECLARING_SELECTOR_REGISTRY_RULE",
+            "NO_TOTAL_RULE",
+            "SEMANTIC_REFERENCE_RULE",
+            "STRUCTURAL_PROFILE_RULE"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "class",
+        "count"
+      ],
+      "type": "object"
+    },
+    "selectorId": {
+      "maxLength": 128,
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "type": "string"
+    },
+    "semanticLocation": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:/~-]+$",
+      "type": "string"
+    },
+    "semanticRef": {
+      "maxLength": 1024,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9_.:/~-]+$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "signalCount": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "enum": [
+            "RESOURCE_BACKING",
+            "SELECTOR_USAGE",
+            "STRUCTURAL_PROFILE_REFERENCE"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "maximum": 16777216,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "class",
+        "count"
+      ],
+      "type": "object"
+    },
+    "signalEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_kind": {
+          "enum": [
+            "RESOURCE_BACKING",
+            "SELECTOR_USAGE",
+            "STRUCTURAL_PROFILE_REFERENCE"
+          ],
+          "type": "string"
+        },
+        "semantic_location": {
+          "$ref": "#/$defs/semanticLocation"
+        }
+      },
+      "required": [
+        "evidence_kind",
+        "semantic_location"
+      ],
+      "type": "object"
+    },
+    "sourceAnchor": {
+      "enum": [
+        "ncp-b01-selector-allocation-adr-001-v1",
+        "ncp-b01-selector-allocation-adr-002-v1",
+        "ncp-b01-selector-allocation-adr-003-v1",
+        "ncp-b01-selector-allocation-adr-004-v1",
+        "ncp-b01-selector-allocation-adr-005-v1",
+        "ncp-b01-selector-allocation-adr-006-v1",
+        "ncp-b01-selector-allocation-adr-007-v1",
+        "ncp-b01-selector-allocation-adr-008-v1",
+        "ncp-b01-selector-allocation-adr-009-v1",
+        "ncp-b01-selector-allocation-adr-010-v1",
+        "ncp-b01-selector-allocation-adr-011-v1"
+      ],
+      "type": "string"
+    }
+  },
+  "$id": "https://sepahead.github.io/ncp/schemas/b01-selector-allocation-proposal.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Closed structural schema for an owner-free, local-only B01 allocation review proposal. Schema validity is not semantic validity. The maintained compiler must recompile every unit, evidence row, route, source relationship, and digest from the exact bound bytes. This artifact grants no allocation, ownership, review, protocol, release, external, independent, certification, or publication authority.",
+  "properties": {
+    "$schema": {
+      "const": "selector-allocation.proposal.schema.v1.json"
+    },
+    "authority_boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "allocation_effect": {
+          "const": "NO_ASSIGNMENT_OR_ACCEPTANCE_AUTHORITY"
+        },
+        "evidence_effect": {
+          "const": "MECHANICAL_ORIGIN_AND_SIGNAL_DISCLOSURE_ONLY"
+        },
+        "proposal_effect": {
+          "const": "NO_RUNTIME_PROTOCOL_REVIEW_RELEASE_EXTERNAL_OR_INDEPENDENT_AUTHORITY"
+        },
+        "unmapped_effect": {
+          "const": "FAIL_CLOSED_REQUIRES_EXPLICIT_REVIEW"
+        },
+        "usage_effect": {
+          "const": "SIGNAL_ONLY_NEVER_OWNERSHIP_OR_ROUTE_AUTHORITY"
+        }
+      },
+      "required": [
+        "allocation_effect",
+        "evidence_effect",
+        "proposal_effect",
+        "unmapped_effect",
+        "usage_effect"
+      ],
+      "type": "object"
+    },
+    "candidate": {
+      "const": "1.0.0-rc.1"
+    },
+    "claim_boundary": {
+      "const": "LOCAL_DETERMINISTIC_OWNER_FREE_REVIEW_PROPOSAL_ONLY_NOT_ALLOCATION_AUTHORITY_ADR_ACCEPTANCE_PROTOCOL_RELEASE_EXTERNAL_OR_INDEPENDENT_EVIDENCE"
+    },
+    "normative": {
+      "const": false
+    },
+    "rows": {
+      "items": {
+        "$ref": "#/$defs/proposalRow"
+      },
+      "maxItems": 65536,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schema": {
+      "const": "ncp.b01-selector-allocation-proposal.v1"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "adr_corpus": {
+          "additionalProperties": false,
+          "properties": {
+            "adr_count": {
+              "const": 11
+            },
+            "adr_sources": {
+              "items": {
+                "$ref": "#/$defs/adrSource"
+              },
+              "maxItems": 11,
+              "minItems": 11,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "algorithm": {
+              "const": "SHA256_DOMAIN_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_JSON"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d6164722d636f727075732e763100"
+            },
+            "projection_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "adr_count",
+            "adr_sources",
+            "algorithm",
+            "canonicalization",
+            "domain_hex",
+            "projection_sha256"
+          ],
+          "type": "object"
+        },
+        "compact_source": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "expanded_source": {
+          "additionalProperties": false,
+          "properties": {
+            "canonical_byte_length": {
+              "maximum": 16777216,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "schema": {
+              "const": "ncp.b01-selector-closure-source.v1"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "canonical_byte_length",
+            "schema",
+            "sha256"
+          ],
+          "type": "object"
+        },
+        "model_projection": {
+          "additionalProperties": false,
+          "properties": {
+            "allocation_count": {
+              "maximum": 65536,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "allocation_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "origin_signal_row_count": {
+              "maximum": 65536,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "origin_signal_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "origin_signal_schema": {
+              "const": "ncp.b01-selector-allocation-origin-signal-projection.v1"
+            },
+            "schema": {
+              "const": "ncp.b01-selector-allocation-model-projection.v4"
+            }
+          },
+          "required": [
+            "allocation_count",
+            "allocation_sha256",
+            "origin_signal_row_count",
+            "origin_signal_sha256",
+            "origin_signal_schema",
+            "schema"
+          ],
+          "type": "object"
+        },
+        "proposal_compiler": {
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "const": "SHA256_DOMAIN_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_JSON"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d636f6d70696c65722d736f757263652d7365742e763100"
+            },
+            "entrypoint": {
+              "const": "scripts/generate_selector_allocation_proposal.py"
+            },
+            "projection_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "source_count": {
+              "const": 5
+            },
+            "sources": {
+              "items": false,
+              "prefixItems": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/compilerSource"
+                    },
+                    {
+                      "properties": {
+                        "path": {
+                          "const": "scripts/check_selector_closure.py"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/compilerSource"
+                    },
+                    {
+                      "properties": {
+                        "path": {
+                          "const": "scripts/generate_selector_allocation_proposal.py"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/compilerSource"
+                    },
+                    {
+                      "properties": {
+                        "path": {
+                          "const": "scripts/selector_allocation_inventory.py"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/compilerSource"
+                    },
+                    {
+                      "properties": {
+                        "path": {
+                          "const": "scripts/selector_closure_codec.py"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/compilerSource"
+                    },
+                    {
+                      "properties": {
+                        "path": {
+                          "const": "scripts/selector_resource_closure.py"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ],
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "algorithm",
+            "canonicalization",
+            "domain_hex",
+            "entrypoint",
+            "projection_sha256",
+            "source_count",
+            "sources"
+          ],
+          "type": "object"
+        },
+        "proposal_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "byte_length": {
+              "maximum": 131072,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "id": {
+              "const": "ncp.b01-selector-allocation-proposal.v1"
+            },
+            "path": {
+              "const": "docs/adr/selector-allocation.proposal.schema.v1.json"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "byte_length",
+            "id",
+            "path",
+            "sha256"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "adr_corpus",
+        "compact_source",
+        "expanded_source",
+        "model_projection",
+        "proposal_compiler",
+        "proposal_schema"
+      ],
+      "type": "object"
+    },
+    "summary": {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguity_flag_summary": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/classSummaryBase"
+            },
+            {
+              "properties": {
+                "counts": {
+                  "items": {
+                    "$ref": "#/$defs/ambiguityCount"
+                  },
+                  "maxItems": 11,
+                  "minItems": 11,
+                  "uniqueItems": true
+                },
+                "domain_hex": {
+                  "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d616d626967756974792d666c6167732e763200"
+                }
+              }
+            }
+          ]
+        },
+        "candidate_route_counts": {
+          "items": {
+            "$ref": "#/$defs/destinationCount"
+          },
+          "maxItems": 12,
+          "minItems": 12,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "model_allocation_count": {
+          "maximum": 65536,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "model_allocation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_kind_counts": {
+          "additionalProperties": false,
+          "properties": {
+            "EVENT": {
+              "$ref": "#/$defs/count"
+            },
+            "PROFILE": {
+              "$ref": "#/$defs/count"
+            },
+            "RESOURCE": {
+              "$ref": "#/$defs/count"
+            },
+            "SELECTOR": {
+              "$ref": "#/$defs/count"
+            },
+            "STATE": {
+              "$ref": "#/$defs/count"
+            },
+            "TYPE": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "required": [
+            "EVENT",
+            "PROFILE",
+            "RESOURCE",
+            "SELECTOR",
+            "STATE",
+            "TYPE"
+          ],
+          "type": "object"
+        },
+        "model_origin_signal_row_count": {
+          "maximum": 65536,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "model_origin_signal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "origin_kind_summary": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/classSummaryBase"
+            },
+            {
+              "properties": {
+                "counts": {
+                  "items": {
+                    "$ref": "#/$defs/originCount"
+                  },
+                  "maxItems": 7,
+                  "minItems": 7,
+                  "uniqueItems": true
+                },
+                "domain_hex": {
+                  "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d6f726967696e2d6b696e64732e763100"
+                }
+              }
+            }
+          ]
+        },
+        "proposal_row_count": {
+          "maximum": 65536,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "proposal_rows_commitment": {
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "const": "SHA256_DOMAIN_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_JSON"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d726f77732e763200"
+            },
+            "projection_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "algorithm",
+            "canonicalization",
+            "domain_hex",
+            "projection_sha256"
+          ],
+          "type": "object"
+        },
+        "prose_signal_commitment": {
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "const": "SHA256_DOMAIN_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_JSON"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d70726f73652d7369676e616c732e763200"
+            },
+            "projection_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "algorithm",
+            "canonicalization",
+            "domain_hex",
+            "projection_sha256"
+          ],
+          "type": "object"
+        },
+        "route_rule_summary": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/classSummaryBase"
+            },
+            {
+              "properties": {
+                "counts": {
+                  "items": {
+                    "$ref": "#/$defs/routeCount"
+                  },
+                  "maxItems": 6,
+                  "minItems": 6,
+                  "uniqueItems": true
+                },
+                "domain_hex": {
+                  "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d726f7574652d636c61737365732e763200"
+                }
+              }
+            }
+          ]
+        },
+        "rows_with_ambiguity_count": {
+          "$ref": "#/$defs/count"
+        },
+        "signal_kind_summary": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/classSummaryBase"
+            },
+            {
+              "properties": {
+                "counts": {
+                  "items": {
+                    "$ref": "#/$defs/signalCount"
+                  },
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "uniqueItems": true
+                },
+                "domain_hex": {
+                  "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f706f73616c2d7369676e616c2d6b696e64732e763100"
+                }
+              }
+            }
+          ]
+        },
+        "unmapped_shared_row_count": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "required": [
+        "ambiguity_flag_summary",
+        "candidate_route_counts",
+        "model_allocation_count",
+        "model_allocation_sha256",
+        "model_kind_counts",
+        "model_origin_signal_row_count",
+        "model_origin_signal_sha256",
+        "origin_kind_summary",
+        "proposal_row_count",
+        "proposal_rows_commitment",
+        "prose_signal_commitment",
+        "route_rule_summary",
+        "rows_with_ambiguity_count",
+        "signal_kind_summary",
+        "unmapped_shared_row_count"
+      ],
+      "type": "object"
+    },
+    "task": {
+      "const": "B01"
+    }
+  },
+  "required": [
+    "$schema",
+    "authority_boundary",
+    "candidate",
+    "claim_boundary",
+    "normative",
+    "rows",
+    "schema",
+    "source",
+    "summary",
+    "task"
+  ],
+  "title": "NCP B01 owner-free selector-allocation review proposal",
+  "type": "object"
+}

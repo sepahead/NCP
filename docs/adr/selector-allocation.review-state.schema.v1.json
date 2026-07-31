@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sepahead.github.io/ncp/schemas/b01-selector-allocation-review-state.v1.json",
+  "title": "NCP B01 local-only selector-allocation review-generation state",
+  "description": "Closed persisted replay state for local-only selector-allocation review receipts. This state authenticates no reviewer and grants no external, independent, protocol, release, certification, or publication authority. The checker additionally enforces the exact reachable genesis, active, and reopened generation equations.",
+  "type": "object",
+  "maxProperties": 9,
+  "additionalProperties": false,
+  "required": [
+    "active_assignment_sha256",
+    "active_inventory_sha256",
+    "authority_class",
+    "current_receipt_sha256",
+    "last_consumed_receipt_sha256",
+    "next_review_generation",
+    "prior_state_sha256",
+    "schema",
+    "state_version"
+  ],
+  "properties": {
+    "active_assignment_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "active_inventory_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "authority_class": {
+      "const": "LOCAL_ONLY"
+    },
+    "current_receipt_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "last_consumed_receipt_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "next_review_generation": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "prior_state_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "schema": {
+      "const": "ncp.b01-selector-allocation-review-generation-state.v1"
+    },
+    "state_version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

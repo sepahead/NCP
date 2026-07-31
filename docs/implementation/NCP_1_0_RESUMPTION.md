@@ -8,7 +8,7 @@
 ## What the prior work actually established
 
 The prior pass produced a deep, implementation-grade audit and dependency DAG. It
-did **not** implement the 17 identified architectural defects, migrate the consumers,
+did **not** implement the 20 identified architectural defects, migrate the consumers,
 or make NCP 1.0 releasable. Treating blueprint completion as product completion was the
 central imperfection. The live ledger now makes that distinction executable.
 
@@ -30,6 +30,12 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
 
 - NCP is a project-neutral protocol/provider, not an application orchestrator and not
   a dependency on any consumer application.
+- X05 is proposed protocol infrastructure, not a tenth X03 role receipt. Signature,
+  identity, revocation, and currentness requirements remain non-authorizing blueprint
+  material. This repository-local checker has no X05 acceptance parser, cryptographic
+  dependency, or trust-root configuration path and cannot admit X05 or any other
+  external/independent pass. X05 stays OPEN until a separately authenticated,
+  independently qualified verifier boundary is implemented and explicitly integrated.
 - Crebain remains standalone and is the sole plant body/actuator authority when its
   optional NCP adapter is enabled. It issues epochs, leases and dispositions.
 - Engram's simulation responder and plant commander are separate optional roles with
@@ -39,8 +45,10 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
   plant/session term. In gated mode Engram sends a Haldir-local signed intent; Haldir
   creates a new NCP command under its own principal and obtains Crebain's lease.
 - Galadriel's NCP observer is read-only. A separate default-off registered assessor
-  extension may push only record-only or deny-tightening evidence to Haldir under a
-  distinct principal. It can remove permission, never grant it or actuate.
+  extension may push raw advisory evidence with `RECORD_ONLY` or
+  `REQUEST_DENY_TIGHTEN` under a distinct principal. Only a separately authenticated,
+  Haldir-owned admission profile can derive an applied bounded `DENY_TIGHTEN` effect.
+  The result can remove permission, never grant it or actuate.
 - Prisoma is a workspace-excluded read-only capture/offline-analysis consumer and is
   never in the control path. Missing evidence is recorded, never interpolated.
 - pid-rs remains a protocol-neutral leaf library. Galadriel/Prisoma may depend on it
@@ -53,11 +61,11 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122`.
+Blueprint SHA-256: `6717f2f4ef03a119065df93b9c9d230d241169c5519008c5cbc5e86be2406f66`.
 
 Can this ledger grant release authorization? **false**.
 
-| Task | State | Repository | Resume condition |
+| Task | State | Repository | Rollback or recovery |
 |---|---|---|---|
 | `B01` | `IN_PROGRESS` | NCP | Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work. |
 
@@ -65,14 +73,16 @@ Can this ledger grant release authorization? **false**.
 
 #### `B01` — Decide and ratify ADR-001 through ADR-011
 
-Strengthened B01 source is pushed and remote-verified at `81941954f33078aa6a8dd85d70e392aae5469246` (tree `dc2c433e5e09cce9f03e981d9cbed44f84e72d00`). Its exact clean result binds the unchanged normative digest, contract-manifest bytes, Z3 binary, 13 sources, Git cleanliness, and Fable E response `080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32`. It explored 11,444 composition, 35 deny, and 1,415 wire-cutover states; killed 23 model and four SMT mutations; passed eleven SMT checks; and detected every resource-probe fault. ADR-008 is proposed at `1379477feebd886823d1511af5df0b7a7019795aef9ee8023147a4ef0a5f56b6` and ADR-011 at `96d243fd41868a70fc00c0f309a5f87e0058f6fce5308e2c98d147e18f76421f`. Canonical result SHA-256 is `3f140dad12147500048644899f69893c1dd985d0001c900ec66b18143be51fe7`; raw/deterministic-gzip log SHA-256 values are `08ba5c52a42b505eb409734b218cf793380778c2f44cc9d151589e2364222c94`/`eb885f3c430e41f3386a860fc9cd74e23b4a1244ed94d03db281d7565d371603`. The earlier `541e1e7` result is superseded. The complete clean local gate passed at remote-verified `a9e0f48520649becc5507fc7d0ba069e4e20af92`; raw/gzip log SHA-256 values are `8dcba99800e4af9ea7f672a51cadc8e91edbee1d5b9ff94cb5a2b18f38620daf`/`11042f9980566d0dbc5687957c2045f6dc902e7a2d212d9769dbc9d834e4b67a`. The exact packet requests human same-digest review at `https://github.com/sepahead/NCP/issues/21`; responses count only with the required role, digest, independence, and disposition fields. These remain non-passing working files: commands, artifacts, and reviewers are empty; all ADRs are PROPOSED; B01 is IN_PROGRESS. Next obtain qualifying reviews. Do not create the normative registry, alter ADR/wire bytes, start dependent tasks, or infer release readiness.
+ADR-004, ADR-005, ADR-007, ADR-011, the D18 per-surface migration model, the D19 ratification/promotion state machine, and consumer task scopes are being amended after cross-repository review. Hostile replay additionally requires receiver admission before grant expiry, exact authenticated disposition causality before body-boundary application, strict decode and recomputation from delivered disposition bytes, and authenticated externally current per-stream high-water state for queued live-frame replay rejection. Earlier source commits, issue requests, preliminary model results, and clean gates bind superseded bytes only. They remain historical non-passing working evidence. Any focused result must be recomputed at the final source cut; no dirty-worktree count is retained as task evidence. The Ed25519 resource screen uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The screen records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. It runs actual result-validator mutations. Local results do not satisfy B01's independent evidence floor and are not retained here as passing task evidence. This coordination entry intentionally has no task source commit, same-digest request, owner review, independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. After a clean amended source commit, rerun the bounded challenge and complete local gates, publish a new exact review packet, and obtain qualifying same-digest reviews. Do not create the normative registry, start descendants, or infer release readiness.
 
 Current residual risks:
 
 - All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
-- Wire examples remain draft JSON only. Independent Python/Node syntax replay and the exact clean-source preliminary model/resource run pass, but the retained result is bounded non-passing working evidence; canonical formal work, refinement, and every downstream implementation remain open.
-- Five usable exact Fable 5 consultations are non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
+- Wire examples remain draft JSON only. Prior Python/Node replay and preliminary model/resource results bind superseded ADR bytes and remain historical non-passing working evidence. The amended decision subject has no retained passing clean-model or complete-gate receipt; canonical formal work, refinement, and every downstream implementation remain open.
+- The surface-inventory and scanner-receipt rules are bounded synthetic B01 fixtures only. Current sibling descriptors remain legacy inputs, actual trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 implementation remains open.
+- The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.
+- Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
 
 Dependency-ready open tasks: none.

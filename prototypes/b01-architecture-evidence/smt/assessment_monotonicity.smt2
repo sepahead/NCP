@@ -5,10 +5,18 @@
 (declare-const deny_before Bool)
 (declare-const deny_after Bool)
 (declare-const authenticated_widen Bool)
+(declare-const recovery_dwell_complete Bool)
 (declare-const effective_before Bool)
 (declare-const effective_after Bool)
 (declare-const widened Bool)
 (declare-const deny_applied Bool)
+(declare-const producer_requested_deny Bool)
+(declare-const evidence_authenticated Bool)
+(declare-const profile_authenticated Bool)
+(declare-const profile_issuer_independent Bool)
+(declare-const qualification_valid Bool)
+(declare-const evidence_eligible Bool)
+(declare-const causally_later Bool)
 (declare-const disposition_authenticated Bool)
 (declare-const disposition_outcome_applied Bool)
 
@@ -19,11 +27,26 @@
   (=>
     (not authenticated_widen)
     (and (= local_after local_before) (=> deny_before deny_after))))
-(assert (=> widened authenticated_widen))
-(assert
-  (=>
-    deny_applied
-    (and disposition_authenticated disposition_outcome_applied)))
+(assert (=> (and deny_before (not deny_after)) recovery_dwell_complete))
+(assert (=> deny_applied evidence_authenticated))
+(assert (=> deny_applied profile_authenticated))
+(assert (=> deny_applied profile_issuer_independent))
+(assert (=> deny_applied qualification_valid))
+(assert (=> deny_applied evidence_eligible))
+(assert (=> deny_applied causally_later))
+(assert (=> deny_applied disposition_authenticated))
+(assert (=> deny_applied disposition_outcome_applied))
+
+; EXPECT: unsat unauthenticated_local_policy_change_without_widening
+(push)
+(assert (not local_before))
+(assert local_after)
+(assert deny_before)
+(assert deny_after)
+(assert (not authenticated_widen))
+(assert (not widened))
+(check-sat)
+(pop)
 
 ; EXPECT: sat authenticated_deny_removal_witness
 (push)
@@ -32,6 +55,7 @@
 (assert local_after)
 (assert (not deny_after))
 (assert authenticated_widen)
+(assert recovery_dwell_complete)
 (assert widened)
 (check-sat)
 (pop)
@@ -39,6 +63,12 @@
 ; EXPECT: sat authenticated_applied_disposition_witness
 (push)
 (assert deny_applied)
+(assert evidence_authenticated)
+(assert profile_authenticated)
+(assert profile_issuer_independent)
+(assert qualification_valid)
+(assert evidence_eligible)
+(assert causally_later)
 (assert disposition_authenticated)
 (assert disposition_outcome_applied)
 (check-sat)
@@ -51,14 +81,67 @@
 (check-sat)
 (pop)
 
-; EXPECT: sat assessor_tightening_witness
+; EXPECT: sat qualified_profile_tightening_witness
 (push)
 (assert local_before)
 (assert (not deny_before))
 (assert local_after)
 (assert deny_after)
+(assert deny_applied)
+(assert evidence_authenticated)
+(assert profile_authenticated)
+(assert profile_issuer_independent)
+(assert qualification_valid)
+(assert evidence_eligible)
+(assert causally_later)
+(assert disposition_authenticated)
+(assert disposition_outcome_applied)
 (assert (not authenticated_widen))
 (assert (not widened))
+(check-sat)
+(pop)
+
+; EXPECT: unsat unauthenticated_raw_evidence
+(push)
+(assert deny_applied)
+(assert (not evidence_authenticated))
+(check-sat)
+(pop)
+
+; EXPECT: unsat producer_requested_deny_without_profile
+(push)
+(assert producer_requested_deny)
+(assert deny_applied)
+(assert (not profile_authenticated))
+(check-sat)
+(pop)
+
+; EXPECT: unsat assessor_self_admitted_profile
+(push)
+(assert deny_applied)
+(assert profile_authenticated)
+(assert (not profile_issuer_independent))
+(check-sat)
+(pop)
+
+; EXPECT: unsat missing_profile_qualification
+(push)
+(assert deny_applied)
+(assert (not qualification_valid))
+(check-sat)
+(pop)
+
+; EXPECT: unsat abstained_or_ineligible_evidence
+(push)
+(assert deny_applied)
+(assert (not evidence_eligible))
+(check-sat)
+(pop)
+
+; EXPECT: unsat same_causal_revision_effect
+(push)
+(assert deny_applied)
+(assert (not causally_later))
 (check-sat)
 (pop)
 
@@ -69,6 +152,18 @@
 (assert local_after)
 (assert (not deny_after))
 (assert (not authenticated_widen))
+(assert widened)
+(check-sat)
+(pop)
+
+; EXPECT: unsat deny_recovery_before_dwell
+(push)
+(assert local_before)
+(assert deny_before)
+(assert local_after)
+(assert (not deny_after))
+(assert authenticated_widen)
+(assert (not recovery_dwell_complete))
 (assert widened)
 (check-sat)
 (pop)

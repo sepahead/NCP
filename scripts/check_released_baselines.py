@@ -505,7 +505,16 @@ def _self_test() -> int:
 
     def run(repo: Path, *args: str) -> str:
         result = subprocess.run(
-            ["git", "-C", str(repo), *args],
+            [
+                "git",
+                "-c",
+                "commit.gpgSign=false",
+                "-c",
+                "tag.gpgSign=false",
+                "-C",
+                str(repo),
+                *args,
+            ],
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -527,6 +536,8 @@ def _self_test() -> int:
     with tempfile.TemporaryDirectory(prefix="ncp-released-baselines-") as directory:
         repo = Path(directory)
         run(repo, "init", "-q", "--object-format=sha1")
+        run(repo, "config", "commit.gpgSign", "true")
+        run(repo, "config", "tag.gpgSign", "true")
         baseline = repo / "conformance" / "baseline" / "v0.1.0"
         baseline.mkdir(parents=True)
         artifact = baseline / "artifact.bin"

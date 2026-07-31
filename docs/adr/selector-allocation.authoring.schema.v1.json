@@ -1,0 +1,1352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sepahead.github.io/ncp/schemas/b01-selector-allocation-authoring.v1.json",
+  "title": "NCP B01 selector-allocation authoring inventory",
+  "description": "Strict preflight schema for the external, non-normative, release-blocked B01 allocation inventory. The selector checker independently proves model coverage, stable main-ADR anchor presence, exact ordered main-and-module source sets, per-anchor row commitments, and status parity.",
+  "type": "object",
+  "maxProperties": 19,
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "allocation_review_profile",
+    "allocations",
+    "candidate",
+    "claim_boundary",
+    "document_row_commitment",
+    "documents",
+    "exclusions",
+    "model_allocation_count",
+    "model_allocation_sha256",
+    "normative",
+    "provenance_review",
+    "required_kinds",
+    "schema",
+    "semantic_review_subject",
+    "semantic_shape_entry_count",
+    "semantic_shape_sha256",
+    "status",
+    "task"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "selector-allocation.authoring.schema.v1.json"
+    },
+    "allocation_review_profile": {
+      "description": "Exact local review taxonomy, projection algorithms, model metrics, and allocation-schema provenance. A reviewed assignment digest includes this complete object.",
+      "type": "object",
+      "maxProperties": 19,
+      "additionalProperties": false,
+      "required": [
+        "allocation_identity_commitment_suite",
+        "allocation_schema_byte_length",
+        "allocation_schema_id",
+        "allocation_schema_sha256",
+        "model_allocation_count",
+        "model_allocation_sha256",
+        "model_origin_signal_projection_schema",
+        "model_origin_signal_row_count",
+        "model_origin_signal_sha256",
+        "model_projection_schema",
+        "required_kinds",
+        "resource_closure_row_count",
+        "resource_closure_schema",
+        "resource_closure_sha256",
+        "schema",
+        "semantic_shape_commitment_suite",
+        "semantic_shape_entry_count",
+        "semantic_shape_projection_schema",
+        "semantic_shape_sha256"
+      ],
+      "properties": {
+        "allocation_identity_commitment_suite": {
+          "description": "Closed, language-neutral byte contract for unit identity, the v4 model projection, and the separate origin/signal projection. Evidence cannot select identity or an ADR assignment.",
+          "type": "object",
+          "maxProperties": 36,
+          "additionalProperties": false,
+          "required": [
+            "algorithm",
+            "canonicalization",
+            "evidence_ordering",
+            "evidence_ordering_fields",
+            "evidence_row_fields",
+            "evidence_row_shape",
+            "evidence_scalar_domain",
+            "evidence_uniqueness",
+            "fixed_vectors",
+            "framing",
+            "identity_evidence_rule",
+            "identity_excluded_fields",
+            "identity_fields",
+            "identity_scalar_domain",
+            "identity_shape",
+            "model_projection_domain_hex",
+            "model_projection_ordering",
+            "model_projection_ordering_fields",
+            "model_projection_row_fields",
+            "model_projection_row_shape",
+            "model_projection_shape",
+            "model_projection_uniqueness",
+            "origin_kinds",
+            "origin_requirement",
+            "origin_signal_projection_domain_hex",
+            "origin_signal_projection_ordering",
+            "origin_signal_projection_ordering_fields",
+            "origin_signal_projection_row_fields",
+            "origin_signal_projection_row_shape",
+            "origin_signal_projection_shape",
+            "origin_signal_projection_uniqueness",
+            "schema",
+            "signal_authority",
+            "signal_kinds",
+            "unit_id_domain_hex",
+            "unit_id_output"
+          ],
+          "properties": {
+            "algorithm": {
+              "const": "SHA256"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "evidence_ordering": {
+              "const": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES"
+            },
+            "evidence_ordering_fields": {
+              "const": [
+                "evidence_kind",
+                "semantic_location"
+              ]
+            },
+            "evidence_row_fields": {
+              "const": [
+                "evidence_kind",
+                "semantic_location"
+              ]
+            },
+            "evidence_row_shape": {
+              "const": "JSON_OBJECT"
+            },
+            "evidence_scalar_domain": {
+              "const": "TRIMMED_NONEMPTY_PRINTABLE_ASCII_U+0020_THROUGH_U+007E"
+            },
+            "evidence_uniqueness": {
+              "const": "EXACT_EVIDENCE_KIND_SEMANTIC_LOCATION_PAIR_UNIQUE_PER_ARRAY"
+            },
+            "fixed_vectors": {
+              "const": {
+                "schema": "ncp.b01-selector-allocation-identity-fixed-vectors.v1",
+                "unit_model_origin": {
+                  "expected_identity_projection": [
+                    "TYPE",
+                    "SampleType",
+                    "sample-type::SampleType",
+                    "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+                  ],
+                  "expected_model_projection_sha256": "045fe6a71fdc4f995b9af1d68cc42aadadbd19ffb9920892929e7fb27af7635f",
+                  "expected_origin_signal_row_count": 1,
+                  "expected_origin_signal_sha256": "6d44f8227c9ec96c38afea4f02f9b42b2cded6d82bc699be0d531cd901461268",
+                  "expected_unit_id": "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf",
+                  "identity_input": [
+                    "TYPE",
+                    "SampleType",
+                    "sample-type::SampleType"
+                  ],
+                  "model_projection_input": [
+                    [
+                      "TYPE",
+                      "SampleType",
+                      "sample-type::SampleType",
+                      "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+                    ]
+                  ],
+                  "origin_signal_projection_input": [
+                    {
+                      "exact_name": "SampleType",
+                      "kind": "TYPE",
+                      "origins": [
+                        {
+                          "evidence_kind": "ARTIFACT_REGISTRY_ENTRY",
+                          "semantic_location": "artifact-ref::sample-type::SampleType"
+                        }
+                      ],
+                      "semantic_ref": "sample-type::SampleType",
+                      "signals": [],
+                      "unit_id": "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+                    }
+                  ]
+                }
+              }
+            },
+            "framing": {
+              "const": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES"
+            },
+            "identity_evidence_rule": {
+              "const": "ORIGINS_AND_SIGNALS_EXCLUDED_FROM_UNIT_ID_MODEL_PROJECTION_EQUALITY_AND_HASHING"
+            },
+            "identity_excluded_fields": {
+              "const": [
+                "origins",
+                "signals"
+              ]
+            },
+            "identity_fields": {
+              "const": [
+                "kind",
+                "exact_name",
+                "semantic_ref"
+              ]
+            },
+            "identity_scalar_domain": {
+              "const": "PRINTABLE_ASCII_CLOSED_BY_KIND_GRAMMAR"
+            },
+            "identity_shape": {
+              "const": "JSON_ARRAY"
+            },
+            "model_projection_domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e6d6f64656c2d70726f6a656374696f6e2e763400"
+            },
+            "model_projection_ordering": {
+              "const": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES"
+            },
+            "model_projection_ordering_fields": {
+              "const": [
+                "kind",
+                "exact_name",
+                "semantic_ref",
+                "unit_id"
+              ]
+            },
+            "model_projection_row_fields": {
+              "const": [
+                "kind",
+                "exact_name",
+                "semantic_ref",
+                "unit_id"
+              ]
+            },
+            "model_projection_row_shape": {
+              "const": "JSON_ARRAY"
+            },
+            "model_projection_shape": {
+              "const": "JSON_ARRAY_OF_JSON_ARRAY_ROWS"
+            },
+            "model_projection_uniqueness": {
+              "const": "EXACT_ROW_UNIQUE_AND_UNIT_ID_UNIQUE"
+            },
+            "origin_kinds": {
+              "const": [
+                "ARTIFACT_REGISTRY_ENTRY",
+                "DECLARED_EVENT",
+                "RESOURCE_DECLARATION",
+                "SELECTOR_DECLARATION",
+                "STATE_DECLARATION",
+                "STRUCTURAL_PROFILE_DEFINITION",
+                "SUBORDINATE_EVENT_DECLARATION"
+              ]
+            },
+            "origin_requirement": {
+              "const": "ONE_OR_MORE_CLOSED_MECHANICAL_ORIGINS_PER_UNIT"
+            },
+            "origin_signal_projection_domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e6f726967696e2d7369676e616c2d70726f6a656374696f6e2e763100"
+            },
+            "origin_signal_projection_ordering": {
+              "const": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES"
+            },
+            "origin_signal_projection_ordering_fields": {
+              "const": [
+                "kind",
+                "exact_name",
+                "semantic_ref",
+                "unit_id"
+              ]
+            },
+            "origin_signal_projection_row_fields": {
+              "const": [
+                "exact_name",
+                "kind",
+                "origins",
+                "semantic_ref",
+                "signals",
+                "unit_id"
+              ]
+            },
+            "origin_signal_projection_row_shape": {
+              "const": "JSON_OBJECT"
+            },
+            "origin_signal_projection_shape": {
+              "const": "JSON_ARRAY_OF_JSON_OBJECT_ROWS"
+            },
+            "origin_signal_projection_uniqueness": {
+              "const": "UNIT_ID_UNIQUE"
+            },
+            "schema": {
+              "const": "ncp.b01-selector-allocation-identity-commitment-suite.v1"
+            },
+            "signal_authority": {
+              "const": "ZERO_OR_MORE_CLOSED_NONAUTHORITATIVE_SIGNALS_NEVER_SELECT_IDENTITY_OR_ADR_ASSIGNMENT"
+            },
+            "signal_kinds": {
+              "const": [
+                "RESOURCE_BACKING",
+                "SELECTOR_USAGE",
+                "STRUCTURAL_PROFILE_REFERENCE"
+              ]
+            },
+            "unit_id_domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e756e69742d69642e763100"
+            },
+            "unit_id_output": {
+              "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+            }
+          }
+        },
+        "allocation_schema_byte_length": {
+          "type": "integer"
+        },
+        "allocation_schema_id": {
+          "const": "ncp.b01-selector-allocation-authoring.v1"
+        },
+        "allocation_schema_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_allocation_count": {
+          "type": "integer"
+        },
+        "model_allocation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_origin_signal_projection_schema": {
+          "const": "ncp.b01-selector-allocation-origin-signal-projection.v1"
+        },
+        "model_origin_signal_row_count": {
+          "type": "integer"
+        },
+        "model_origin_signal_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_projection_schema": {
+          "const": "ncp.b01-selector-allocation-model-projection.v4"
+        },
+        "required_kinds": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "EVENT",
+              "PROFILE",
+              "RESOURCE",
+              "SELECTOR",
+              "STATE",
+              "TYPE"
+            ]
+          }
+        },
+        "resource_closure_row_count": {
+          "type": "integer"
+        },
+        "resource_closure_schema": {
+          "const": "ncp.b01-resource-closure.v2"
+        },
+        "resource_closure_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "schema": {
+          "const": "ncp.b01-selector-allocation-review-profile.v4"
+        },
+        "semantic_shape_commitment_suite": {
+          "description": "Closed, language-neutral byte contract for the domain-separated v3 recursive JSON-pointer/type commitment. The scalar domain excludes every floating-point, exponent-form, negative-zero, unsafe-integer, control-string, and Unicode-string value.",
+          "type": "object",
+          "maxProperties": 31,
+          "additionalProperties": false,
+          "required": [
+            "algorithm",
+            "array_index_treatment",
+            "bounds_application",
+            "canonicalization",
+            "domain_hex",
+            "fixed_vectors",
+            "framing",
+            "maximum_entries",
+            "maximum_nesting_depth",
+            "maximum_pointer_characters",
+            "maximum_projection_bytes",
+            "nesting_depth_counting",
+            "object_member_ordering",
+            "output",
+            "pointer_root_token",
+            "pointer_scalar_domain",
+            "pointer_segment_escaping",
+            "pointer_syntax",
+            "projection_shape",
+            "row_fields",
+            "row_ordering",
+            "row_shape",
+            "row_uniqueness",
+            "root_depth",
+            "scalar_domain",
+            "schema",
+            "source_shape",
+            "source_member_name_domain",
+            "stream_projection",
+            "type_token_mapping",
+            "type_tokens"
+          ],
+          "properties": {
+            "algorithm": {
+              "const": "SHA256"
+            },
+            "array_index_treatment": {
+              "const": "UNPADDED_BASE10_NONNEGATIVE_INTEGER_SEGMENT_WITH_ZERO_AS_0_ORDERED_BY_COMPLETE_POINTER_ASCII_BYTES"
+            },
+            "bounds_application": {
+              "const": "REJECT_BEFORE_DIGEST_SUCCESS_IF_ANY_BOUND_EXCEEDED"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "domain_hex": {
+              "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e73656d616e7469632d73686170652d70726f6a656374696f6e2e763300"
+            },
+            "fixed_vectors": {
+              "const": {
+                "nesting_depth_boundary": {
+                  "construction": "ROOT_OBJECT_MEMBER_X_WITH_NULL_WRAPPED_IN_N_SINGLETON_ARRAYS",
+                  "expected_accepted_entry_count": 65,
+                  "expected_accepted_projection_byte_length": 5006,
+                  "expected_accepted_sha256": "ffdf1822c36f52e46e9ede5e4880b02a47fdeb5936540a8fdb23f447afc6c325",
+                  "first_rejected_array_wrapper_count": 64,
+                  "maximum_accepted_array_wrapper_count": 63,
+                  "root_depth": 0
+                },
+                "representative_types_and_escaping": {
+                  "expected_entry_count": 7,
+                  "expected_projection_byte_length": 121,
+                  "expected_projection_rows": [
+                    [
+                      "",
+                      "object"
+                    ],
+                    [
+                      "/",
+                      "null"
+                    ],
+                    [
+                      "/~0",
+                      "string"
+                    ],
+                    [
+                      "/~1",
+                      "array"
+                    ],
+                    [
+                      "/~1/0",
+                      "boolean"
+                    ],
+                    [
+                      "/~1/1",
+                      "integer"
+                    ],
+                    [
+                      "/~1/2",
+                      "integer"
+                    ]
+                  ],
+                  "expected_sha256": "4a24a885fe8a123556ff83f27ab7389f4c498044420fe6afa27be3d60e7a2325",
+                  "source_canonical_utf8_byte_length": 63,
+                  "source_canonical_utf8_hex": "7b22223a6e756c6c2c222f223a5b747275652c2d393030373139393235343734303939312c393030373139393235343734303939315d2c227e223a2278227d"
+                },
+                "schema": "ncp.b01-selector-allocation-semantic-shape-fixed-vectors.v3"
+              }
+            },
+            "framing": {
+              "const": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES"
+            },
+            "maximum_entries": {
+              "const": 1000000
+            },
+            "maximum_nesting_depth": {
+              "const": 64
+            },
+            "maximum_pointer_characters": {
+              "const": 8192
+            },
+            "maximum_projection_bytes": {
+              "const": 33554432
+            },
+            "nesting_depth_counting": {
+              "const": "DOCUMENT_ROOT_IS_DEPTH_0_EACH_ARRAY_OR_OBJECT_CHILD_INCREMENTS_BY_1"
+            },
+            "object_member_ordering": {
+              "const": "LEXICOGRAPHIC_ASCENDING_BY_RFC6901_ESCAPED_MEMBER_TOKEN_ASCII_BYTES"
+            },
+            "output": {
+              "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+            },
+            "pointer_root_token": {
+              "const": ""
+            },
+            "pointer_scalar_domain": {
+              "const": "EMPTY_DOCUMENT_ROOT_OR_SLASH_PREFIXED_PRINTABLE_ASCII_RFC6901_SEGMENTS"
+            },
+            "pointer_segment_escaping": {
+              "const": "REPLACE_TILDE_WITH_~0_THEN_REPLACE_SLASH_WITH_~1"
+            },
+            "pointer_syntax": {
+              "const": "RFC6901_JSON_POINTER"
+            },
+            "projection_shape": {
+              "const": "JSON_ARRAY_OF_JSON_ARRAY_ROWS"
+            },
+            "row_fields": {
+              "const": [
+                "json_pointer",
+                "type_token"
+              ]
+            },
+            "row_ordering": {
+              "const": "LEXICOGRAPHIC_ASCENDING_BY_STORED_RFC6901_JSON_POINTER_ASCII_BYTES"
+            },
+            "row_shape": {
+              "const": "JSON_ARRAY_OF_EXACTLY_TWO_STRINGS"
+            },
+            "row_uniqueness": {
+              "const": "JSON_POINTER_UNIQUE"
+            },
+            "root_depth": {
+              "const": 0
+            },
+            "scalar_domain": {
+              "const": "NULL_EXACT_BOOLEAN_CANONICAL_SIGNED_SAFE_INTEGER_ABS_LE_9007199254740991_EMPTY_OR_PRINTABLE_ASCII_STRING"
+            },
+            "schema": {
+              "const": "ncp.b01-selector-allocation-semantic-shape-commitment-suite.v3"
+            },
+            "source_shape": {
+              "const": "JSON_OBJECT"
+            },
+            "source_member_name_domain": {
+              "const": "EMPTY_OR_PRINTABLE_ASCII_U+0020_THROUGH_U+007E"
+            },
+            "stream_projection": {
+              "const": "OPEN_BRACKET_THEN_CANONICAL_ROWS_COMMA_SEPARATED_THEN_CLOSE_BRACKET"
+            },
+            "type_token_mapping": {
+              "const": {
+                "array": "JSON_ARRAY",
+                "boolean": "JSON_LITERAL_TRUE_OR_FALSE",
+                "integer": "CANONICAL_SIGNED_INTEGER_TOKEN_ABS_LE_9007199254740991_NEGATIVE_ZERO_FORBIDDEN",
+                "null": "JSON_LITERAL_NULL",
+                "object": "JSON_OBJECT",
+                "string": "EMPTY_OR_PRINTABLE_ASCII_JSON_STRING"
+              }
+            },
+            "type_tokens": {
+              "const": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "object",
+                "string"
+              ]
+            }
+          }
+        },
+        "semantic_shape_entry_count": {
+          "type": "integer"
+        },
+        "semantic_shape_projection_schema": {
+          "const": "ncp.b01-selector-allocation-semantic-shape-projection.v3"
+        },
+        "semantic_shape_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "allocations": {
+      "description": "Structural preflight only. The allocation checker recomputes each owner-free unit ID from the exact kind, name, and semantic reference, then enforces ADR-anchor, ordering, coverage, and provenance rules.",
+      "type": "array",
+      "maxItems": 65536,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "maxProperties": 6,
+        "additionalProperties": false,
+        "required": [
+          "adr_id",
+          "exact_name",
+          "kind",
+          "semantic_ref",
+          "source_anchor",
+          "unit_id"
+        ],
+        "properties": {
+          "adr_id": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]{3}$"
+          },
+          "exact_name": {
+            "description": "Exact identifier. RESOURCE rows use the stricter uppercase dotted namespace that the allocation checker enforces.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)*$"
+          },
+          "kind": {
+            "description": "Closed allocation taxonomy. The allocation checker applies a distinct semantic rule to each value.",
+            "enum": [
+              "EVENT",
+              "PROFILE",
+              "RESOURCE",
+              "SELECTOR",
+              "STATE",
+              "TYPE"
+            ]
+          },
+          "semantic_ref": {
+            "description": "Stable semantic identity reference. It does not contain a usage-inferred or reviewed owner. Its required syntax depends on kind and is enforced by the allocation checker.",
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1024
+          },
+          "source_anchor": {
+            "type": "string",
+            "pattern": "^ncp-b01-selector-allocation-adr-[0-9]{3}-v1$"
+          },
+          "unit_id": {
+            "description": "Derived SHA-256 unit ID over the domain-separated [kind, exact_name, semantic_ref] projection. The checker recomputes this value.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "candidate": {
+      "const": "1.0.0-rc.1"
+    },
+    "claim_boundary": {
+      "const": "NON_NORMATIVE_B01_SEMANTIC_ALLOCATION_PROVENANCE_ONLY"
+    },
+    "document_row_commitment": {
+      "type": "object",
+      "maxProperties": 14,
+      "additionalProperties": false,
+      "required": [
+        "allocation_row_fields",
+        "algorithm",
+        "canonicalization",
+        "domain_hex",
+        "exclusion_row_fields",
+        "fixed_vectors",
+        "framing",
+        "output",
+        "row_kind_encoding",
+        "row_kinds",
+        "row_ordering",
+        "row_projection",
+        "row_selection",
+        "row_shape"
+      ],
+      "properties": {
+        "allocation_row_fields": {
+          "const": [
+            "adr_id",
+            "exact_name",
+            "kind",
+            "semantic_ref",
+            "source_anchor",
+            "unit_id"
+          ]
+        },
+        "algorithm": {
+          "const": "SHA256"
+        },
+        "canonicalization": {
+          "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+        },
+        "domain_hex": {
+          "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e646f63756d656e742d726f77732e763100"
+        },
+        "exclusion_row_fields": {
+          "const": [
+            "adr_id",
+            "classification",
+            "exact_name",
+            "reason",
+            "source_anchor"
+          ]
+        },
+        "fixed_vectors": {
+          "const": {
+            "empty_allocations": {
+              "expected_sha256": "761748e85c96b94054fe41918f2d8adda17c771563fb6db431a8016531e2bad2",
+              "row_kind": "allocations",
+              "rows": []
+            },
+            "empty_exclusions": {
+              "expected_sha256": "603dda71edd252684ce5e51750df30b801bfec0763a799b8c4e4a3a3afeddd05",
+              "row_kind": "exclusions",
+              "rows": []
+            },
+            "nonempty_allocation": {
+              "expected_canonical_rows_byte_length": 237,
+              "expected_canonical_rows_utf8_hex": "5b7b226164725f6964223a224144522d303031222c2265786163745f6e616d65223a2253616d706c6554797065222c226b696e64223a2254595045222c2273656d616e7469635f726566223a2273616d706c652d747970653a3a53616d706c6554797065222c22736f757263655f616e63686f72223a226e63702d6230312d73656c6563746f722d616c6c6f636174696f6e2d6164722d3030312d7631222c22756e69745f6964223a2264653663653839303331633164303464343737363238396166353832643836323337323938616534306137363138336362323966666430653533646538636266227d5d",
+              "expected_sha256": "4c4b49955e674d54ab5cafcd5ec5309925513ff55e5b4981ee576a91a49758f7",
+              "row_kind": "allocations",
+              "rows": [
+                {
+                  "adr_id": "ADR-001",
+                  "exact_name": "SampleType",
+                  "kind": "TYPE",
+                  "semantic_ref": "sample-type::SampleType",
+                  "source_anchor": "ncp-b01-selector-allocation-adr-001-v1",
+                  "unit_id": "de6ce89031c1d04d4776289af582d86237298ae40a76183cb29ffd0e53de8cbf"
+                }
+              ]
+            },
+            "nonempty_exclusion": {
+              "expected_canonical_rows_byte_length": 171,
+              "expected_canonical_rows_utf8_hex": "5b7b226164725f6964223a224144522d303031222c22636c617373696669636174696f6e223a22454e554d5f4f525f4252414e43485f56414c5545222c2265786163745f6e616d65223a2253616d706c65416c696173222c22726561736f6e223a22466978656420766563746f722e222c22736f757263655f616e63686f72223a226e63702d6230312d73656c6563746f722d616c6c6f636174696f6e2d6164722d3030312d7631227d5d",
+              "expected_sha256": "117399630910a085ff8713f4913d98c728d92035ddb652b2a21a3f06501eb957",
+              "row_kind": "exclusions",
+              "rows": [
+                {
+                  "adr_id": "ADR-001",
+                  "classification": "ENUM_OR_BRANCH_VALUE",
+                  "exact_name": "SampleAlias",
+                  "reason": "Fixed vector.",
+                  "source_anchor": "ncp-b01-selector-allocation-adr-001-v1"
+                }
+              ]
+            },
+            "schema": "ncp.b01-selector-allocation-document-row-fixed-vectors.v1"
+          }
+        },
+        "framing": {
+          "const": "DOMAIN_BYTES_THEN_ASCII_ROW_KIND_THEN_NUL_THEN_CANONICAL_ROWS_BYTES"
+        },
+        "output": {
+          "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+        },
+        "row_kind_encoding": {
+          "const": "LOWERCASE_ASCII_EXACT_TOKEN"
+        },
+        "row_kinds": {
+          "const": [
+            "allocations",
+            "exclusions"
+          ]
+        },
+        "row_ordering": {
+          "const": "PRESERVE_CANONICAL_PROVENANCE_ROW_ORDER"
+        },
+        "row_projection": {
+          "const": "EXACT_STORED_TOP_LEVEL_ROW_OBJECTS_NO_FIELD_ELISION"
+        },
+        "row_selection": {
+          "const": "FILTER_TOP_LEVEL_ROWS_BY_EXACT_ADR_ID_PRESERVING_TOP_LEVEL_ORDER"
+        },
+        "row_shape": {
+          "const": "JSON_ARRAY_OF_JSON_OBJECT_ROWS"
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "maxProperties": 11,
+        "additionalProperties": false,
+        "required": [
+          "adr_id",
+          "allocation_anchor_id",
+          "allocation_row_count",
+          "allocation_rows_sha256",
+          "byte_length",
+          "exclusion_row_count",
+          "exclusion_rows_sha256",
+          "modules",
+          "path",
+          "sha256",
+          "source_set"
+        ],
+        "properties": {
+          "adr_id": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]{3}$"
+          },
+          "allocation_anchor_id": {
+            "type": "string",
+            "pattern": "^ncp-b01-selector-allocation-adr-[0-9]{3}-v1$"
+          },
+          "allocation_row_count": {
+            "type": "integer"
+          },
+          "allocation_rows_sha256": {
+            "description": "Domain-separated SHA-256 of the canonical allocation rows for this ADR and stable anchor.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "byte_length": {
+            "type": "integer"
+          },
+          "exclusion_row_count": {
+            "type": "integer"
+          },
+          "exclusion_rows_sha256": {
+            "description": "Domain-separated SHA-256 of the canonical exclusion rows for this ADR and stable anchor.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "modules": {
+            "description": "Ordered companion sources for this ADR. The stable allocation anchor remains in the main ADR.",
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "maxProperties": 3,
+              "additionalProperties": false,
+              "required": [
+                "byte_length",
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "byte_length": {
+                  "type": "integer"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "source_set": {
+            "description": "Domain-separated commitment to the main source followed by the ordered module sources.",
+            "type": "object",
+            "maxProperties": 13,
+            "additionalProperties": false,
+            "required": [
+              "canonicalization",
+              "digest_algorithm",
+              "domain_hex",
+              "fixed_vectors",
+              "framing",
+              "output",
+              "projection_fields",
+              "projection_shape",
+              "schema",
+              "sha256",
+              "source_ordering",
+              "source_row_fields",
+              "source_row_shape"
+            ],
+            "properties": {
+              "canonicalization": {
+                "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+              },
+              "digest_algorithm": {
+                "const": "SHA256"
+              },
+              "domain_hex": {
+                "const": "6e63702e6230312d6164722d736f757263652d7365742e763100"
+              },
+              "fixed_vectors": {
+                "const": {
+                  "main_with_two_modules": {
+                    "expected_projection": {
+                      "decision_id": "ADR-004",
+                      "schema": "ncp.b01-adr-source-set.v1",
+                      "sources": [
+                        {
+                          "bytes": 1,
+                          "kind": "main",
+                          "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+                          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+                        },
+                        {
+                          "bytes": 1,
+                          "kind": "module",
+                          "path": "docs/adr/modules/first.md",
+                          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                        },
+                        {
+                          "bytes": 1,
+                          "kind": "module",
+                          "path": "docs/adr/modules/second.md",
+                          "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+                        }
+                      ]
+                    },
+                    "expected_sha256": "c196f117c10d961d952eb0ca1bfc368772f56a378fa96355e1e769e6fd1e5d50",
+                    "input": {
+                      "byte_length": 1,
+                      "decision_id": "ADR-004",
+                      "modules": [
+                        {
+                          "byte_length": 1,
+                          "path": "docs/adr/modules/first.md",
+                          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                        },
+                        {
+                          "byte_length": 1,
+                          "path": "docs/adr/modules/second.md",
+                          "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+                        }
+                      ],
+                      "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+                      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+                    }
+                  },
+                  "schema": "ncp.b01-adr-source-set-fixed-vectors.v1"
+                }
+              },
+              "framing": {
+                "const": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES"
+              },
+              "output": {
+                "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+              },
+              "projection_fields": {
+                "const": [
+                  "decision_id",
+                  "schema",
+                  "sources"
+                ]
+              },
+              "projection_shape": {
+                "const": "JSON_OBJECT"
+              },
+              "schema": {
+                "const": "ncp.b01-adr-source-set.v1"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_ordering": {
+                "const": "MAIN_SOURCE_THEN_DECLARED_MODULE_ORDER"
+              },
+              "source_row_fields": {
+                "const": [
+                  "bytes",
+                  "kind",
+                  "path",
+                  "sha256"
+                ]
+              },
+              "source_row_shape": {
+                "const": "JSON_OBJECT"
+              }
+            }
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "maxItems": 65536,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "maxProperties": 5,
+        "additionalProperties": false,
+        "required": [
+          "adr_id",
+          "classification",
+          "exact_name",
+          "reason",
+          "source_anchor"
+        ],
+        "properties": {
+          "adr_id": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]{3}$"
+          },
+          "classification": {
+            "enum": [
+              "CROSS_ADR_REFERENCE_NONDEFINING",
+              "ENUM_OR_BRANCH_VALUE",
+              "HISTORICAL_OR_REJECTED_ALIAS",
+              "MODEL_OMISSION_FAIL_CLOSED",
+              "PROFILE_OR_INVARIANT_IDENTIFIER"
+            ]
+          },
+          "exact_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "source_anchor": {
+            "type": "string",
+            "pattern": "^ncp-b01-selector-allocation-adr-[0-9]{3}-v1$"
+          }
+        }
+      }
+    },
+    "model_allocation_count": {
+      "description": "Maintained count of owner-free semantic units derived from the expanded model.",
+      "type": "integer"
+    },
+    "model_allocation_sha256": {
+      "description": "Domain-separated SHA-256 of the canonical sorted owner-free model-unit projection.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "normative": {
+      "const": false
+    },
+    "provenance_review": {
+      "type": "object",
+      "maxProperties": 17,
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "allocation_ordering_fields",
+        "canonicalization",
+        "claim_boundary",
+        "document_ordering",
+        "document_source_set_row_fields",
+        "document_source_set_row_shape",
+        "domain_hex",
+        "exclusion_ordering_fields",
+        "fixed_vectors",
+        "framing",
+        "output",
+        "projection_fields",
+        "projection_shape",
+        "reviewed_assignment_sha256",
+        "row_ordering",
+        "status"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "SHA256"
+        },
+        "allocation_ordering_fields": {
+          "const": [
+            "adr_id",
+            "source_anchor",
+            "kind",
+            "exact_name",
+            "semantic_ref",
+            "unit_id"
+          ]
+        },
+        "canonicalization": {
+          "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+        },
+        "claim_boundary": {
+          "const": "EXACT_SEMANTIC_REVIEW_SUBJECT_ADR_AND_ANCHOR_ASSIGNMENT_REVIEW_ONLY_NOT_PROTOCOL_RELEASE_OR_EXTERNAL_EVIDENCE"
+        },
+        "document_ordering": {
+          "const": "LEXICOGRAPHIC_ASCENDING_BY_ADR_ID_ASCII_BYTES"
+        },
+        "document_source_set_row_fields": {
+          "const": [
+            "adr_id",
+            "allocation_anchor_id",
+            "source_set"
+          ]
+        },
+        "document_source_set_row_shape": {
+          "const": "JSON_OBJECT"
+        },
+        "domain_hex": {
+          "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e70726f76656e616e63652d7265766965772e763500"
+        },
+        "exclusion_ordering_fields": {
+          "const": [
+            "adr_id",
+            "source_anchor",
+            "exact_name",
+            "classification"
+          ]
+        },
+        "fixed_vectors": {
+          "const": {
+            "minimal_assignment": {
+              "expected_projection": {
+                "allocation_review_profile": {
+                  "schema": "sample"
+                },
+                "allocations": [],
+                "document_source_sets": [
+                  {
+                    "adr_id": "ADR-001",
+                    "allocation_anchor_id": "ncp-b01-selector-allocation-adr-001-v1",
+                    "source_set": {
+                      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+                    }
+                  }
+                ],
+                "exclusions": [],
+                "semantic_review_subject": {
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                }
+              },
+              "expected_sha256": "8ae4d48b5a67be5e34321ccca0c96118e0e112af6da3fec833d2d816ec16ca28",
+              "input": {
+                "allocation_review_profile": {
+                  "schema": "sample"
+                },
+                "allocations": [],
+                "documents": [
+                  {
+                    "adr_id": "ADR-001",
+                    "allocation_anchor_id": "ncp-b01-selector-allocation-adr-001-v1",
+                    "source_set": {
+                      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+                    }
+                  }
+                ],
+                "exclusions": [],
+                "semantic_review_subject": {
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                }
+              }
+            },
+            "schema": "ncp.b01-selector-allocation-provenance-review-fixed-vectors.v1"
+          }
+        },
+        "framing": {
+          "const": "DOMAIN_BYTES_THEN_CANONICAL_PROJECTION_BYTES"
+        },
+        "output": {
+          "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+        },
+        "projection_fields": {
+          "const": [
+            "allocation_review_profile",
+            "allocations",
+            "document_source_sets",
+            "exclusions",
+            "semantic_review_subject"
+          ]
+        },
+        "projection_shape": {
+          "const": "JSON_OBJECT"
+        },
+        "reviewed_assignment_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "row_ordering": {
+          "const": "LEXICOGRAPHIC_ASCENDING_BY_DECLARED_FIELD_ORDER_OVER_ASCII_BYTES"
+        },
+        "status": {
+          "enum": [
+            "NOT_REVIEWED",
+            "REVIEWED"
+          ]
+        }
+      }
+    },
+    "required_kinds": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "EVENT",
+          "PROFILE",
+          "RESOURCE",
+          "SELECTOR",
+          "STATE",
+          "TYPE"
+        ]
+      }
+    },
+    "schema": {
+      "const": "ncp.b01-selector-allocation-authoring.v1"
+    },
+    "semantic_review_subject": {
+      "description": "Domain-separated commitment to every canonical expanded semantic-model scalar. The exact portable codec admits only null, booleans, signed safe integers, and printable ASCII strings; orders object keys by unsigned ASCII bytes; emits no insignificant whitespace; and frames the bytes with the domain and an unsigned 64-bit big-endian length. It excludes only the embedded allocation oracle, derived commitments, generator metadata, and executable probe bindings so that allocation review is acyclic but cannot survive a semantic rename.",
+      "type": "object",
+      "maxProperties": 21,
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "byte_length",
+        "canonicalization",
+        "claim_boundary",
+        "domain_hex",
+        "excluded_top_level_keys",
+        "fixed_vectors",
+        "framing",
+        "integer_encoding",
+        "list_ordering",
+        "maximum_canonical_bytes",
+        "maximum_nesting_depth",
+        "nesting_depth_counting",
+        "object_member_ordering",
+        "output",
+        "projection_rule",
+        "projection_shape",
+        "root_depth",
+        "scalar_domain",
+        "sha256",
+        "string_escaping"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "SHA256"
+        },
+        "byte_length": {
+          "type": "integer"
+        },
+        "canonicalization": {
+          "const": "NCP_PRINTABLE_ASCII_SAFE_INTEGER_JSON_V1"
+        },
+        "claim_boundary": {
+          "const": "EXACT_CANONICAL_EXPANDED_SEMANTIC_PAYLOAD_EXCLUDING_ALLOCATION_ORACLE_DERIVED_COMMITMENTS_GENERATOR_METADATA_AND_EXECUTABLE_PROBE_BINDINGS"
+        },
+        "domain_hex": {
+          "const": "6e63702e6230312e73656c6563746f722d616c6c6f636174696f6e2e73656d616e7469632d7265766965772d7375626a6563742e763200"
+        },
+        "excluded_top_level_keys": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "adr_allocation_oracle",
+              "adversarial_probe_bindings",
+              "closure_commitments",
+              "generated_by",
+              "generated_view"
+            ]
+          }
+        },
+        "fixed_vectors": {
+          "const": {
+            "nesting_depth_boundary": {
+              "construction": "ROOT_OBJECT_MEMBER_X_WITH_NULL_WRAPPED_IN_N_SINGLETON_ARRAYS",
+              "expected_accepted_canonical_utf8_byte_length": 136,
+              "expected_accepted_canonical_utf8_hex": "7b2278223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b6e756c6c5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d7d",
+              "expected_accepted_sha256": "27007f10558810346f9ca729d79e19a327d6d5174991f8a5944d2babb870bf7f",
+              "first_rejected_array_wrapper_count": 64,
+              "maximum_accepted_array_wrapper_count": 63,
+              "root_depth": 0
+            },
+            "schema": "ncp.b01-selector-allocation-semantic-subject-fixed-vectors.v2",
+            "semantic_model": {
+              "expected_byte_length": 50,
+              "expected_canonical_utf8_hex": "7b2273656d616e7469635f6d6f64656c223a7b226272616e63685f6964223a224649525354222c226c696d6974223a317d7d",
+              "expected_projection": {
+                "semantic_model": {
+                  "branch_id": "FIRST",
+                  "limit": 1
+                }
+              },
+              "expected_sha256": "15c7b92ff8ad2fcd9f928b603d4c7e143dc2eb9e2df3c4a3f8ee83ada34da19d",
+              "input": {
+                "adr_allocation_oracle": {},
+                "semantic_model": {
+                  "branch_id": "FIRST",
+                  "limit": 1
+                }
+              }
+            }
+          }
+        },
+        "framing": {
+          "const": "DOMAIN_BYTES_THEN_UINT64_BE_CANONICAL_BYTE_LENGTH_THEN_CANONICAL_BYTES"
+        },
+        "integer_encoding": {
+          "const": "MINUS_ONLY_WHEN_NEGATIVE_THEN_UNPADDED_BASE10_DIGITS_WITH_ZERO_AS_0"
+        },
+        "list_ordering": {
+          "const": "PRESERVE_SOURCE_ARRAY_ORDER"
+        },
+        "maximum_canonical_bytes": {
+          "const": 16777216
+        },
+        "maximum_nesting_depth": {
+          "const": 64
+        },
+        "nesting_depth_counting": {
+          "const": "DOCUMENT_ROOT_IS_DEPTH_0_EACH_ARRAY_OR_OBJECT_CHILD_INCREMENTS_BY_1"
+        },
+        "object_member_ordering": {
+          "const": "RECURSIVE_LEXICOGRAPHIC_ASCENDING_BY_MEMBER_NAME_ASCII_BYTES"
+        },
+        "output": {
+          "const": "LOWERCASE_HEXADECIMAL_64_CHARACTERS"
+        },
+        "projection_rule": {
+          "const": "EXACT_TOP_LEVEL_OBJECT_AFTER_EXCLUDING_DECLARED_TOP_LEVEL_KEYS_NO_OTHER_FIELD_ELISION"
+        },
+        "projection_shape": {
+          "const": "JSON_OBJECT"
+        },
+        "root_depth": {
+          "const": 0
+        },
+        "scalar_domain": {
+          "const": "NULL_BOOLEAN_SIGNED_INTEGER_ABS_LE_9007199254740991_PRINTABLE_ASCII_STRING_ONLY"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "string_escaping": {
+          "const": "BACKSLASH_AS_DOUBLE_BACKSLASH_DOUBLE_QUOTE_AS_BACKSLASH_DOUBLE_QUOTE_NO_OTHER_ESCAPES"
+        }
+      }
+    },
+    "semantic_shape_entry_count": {
+      "description": "Maintained count of deterministic recursive JSON-pointer and JSON-type rows for the complete expanded model.",
+      "type": "integer"
+    },
+    "semantic_shape_sha256": {
+      "description": "Domain-separated SHA-256 of the length-framed bounded deterministic recursive shape row array.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "status": {
+      "enum": [
+        "COMPLETE",
+        "INCOMPLETE_FAIL_CLOSED"
+      ]
+    },
+    "task": {
+      "const": "B01"
+    }
+  }
+}

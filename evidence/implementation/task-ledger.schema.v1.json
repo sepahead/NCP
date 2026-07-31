@@ -47,8 +47,8 @@
     },
     "implementation_tools": {
       "type": "array",
-      "minItems": 3,
-      "maxItems": 3,
+      "minItems": 5,
+      "maxItems": 5,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -68,8 +68,8 @@
     },
     "defect_traceability": {
       "type": "array",
-      "minItems": 17,
-      "maxItems": 17,
+      "minItems": 20,
+      "maxItems": 20,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -81,7 +81,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^D(?:0[1-9]|1[0-7])$"
+            "pattern": "^D(?:0[1-9]|1[0-9]|20)$"
           },
           "task_ids": {
             "type": "array",
@@ -177,8 +177,8 @@
     },
     "tasks": {
       "type": "array",
-      "minItems": 56,
-      "maxItems": 56,
+      "minItems": 60,
+      "maxItems": 60,
       "items": {
         "$ref": "#/$defs/task"
       }
@@ -210,8 +210,6 @@
         "IN_PROGRESS",
         "BLOCKED",
         "LOCAL_PASS",
-        "EXTERNAL_PASS",
-        "INDEPENDENT_PASS",
         "COMPLETE"
       ]
     },
@@ -401,7 +399,7 @@
         },
         "bytes": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "maximum": 67108864
         }
       }
@@ -429,15 +427,183 @@
         },
         "passed": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         },
         "failed": {
           "type": "integer",
           "minimum": 0
         },
         "skipped": {
-          "type": "integer",
-          "minimum": 0
+          "const": 0
+        }
+      }
+    },
+    "localTransitionSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "receipt_kind",
+        "task_id",
+        "from",
+        "to",
+        "requirement_acceptance_sha256",
+        "repository",
+        "branch",
+        "source_commit",
+        "source_tree",
+        "evidence_commit",
+        "evidence_tree",
+        "dependency_receipts",
+        "task_subject_sha256",
+        "correlation_id"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.local-transition-subject.v1"
+        },
+        "receipt_kind": {
+          "enum": [
+            "start",
+            "coordination",
+            "passing"
+          ]
+        },
+        "task_id": {
+          "type": "string",
+          "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+        },
+        "from": {
+          "$ref": "#/$defs/status"
+        },
+        "to": {
+          "$ref": "#/$defs/status"
+        },
+        "requirement_acceptance_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "repository": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "branch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "source_commit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_tree": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_commit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_tree": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dependency_receipts": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_id",
+              "receipt_sha256"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string",
+                "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+              },
+              "receipt_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "task_subject_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/nonemptyString"
+        }
+      }
+    },
+    "startReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "dependency_receipts",
+        "transition_subject",
+        "timestamp_utc"
+      ],
+      "properties": {
+        "kind": {
+          "const": "start"
+        },
+        "dependency_receipts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_id",
+              "receipt_sha256"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string",
+                "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+              },
+              "receipt_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "transition_subject": {
+          "$ref": "#/$defs/localTransitionSubject"
+        },
+        "timestamp_utc": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
         }
       }
     },
@@ -446,19 +612,37 @@
       "additionalProperties": false,
       "required": [
         "kind",
+        "repository",
+        "branch",
         "source_commit",
         "source_tree",
+        "evidence_commit",
+        "evidence_tree",
         "evidence",
+        "dependency_receipts",
+        "transition_subject",
         "timestamp_utc"
       ],
       "properties": {
         "kind": {
           "const": "coordination"
         },
+        "repository": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "branch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
         "source_commit": {
           "$ref": "#/$defs/commit"
         },
         "source_tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "evidence_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "evidence_tree": {
           "$ref": "#/$defs/commit"
         },
         "evidence": {
@@ -469,9 +653,294 @@
             "$ref": "#/$defs/artifact"
           }
         },
+        "dependency_receipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_id",
+              "receipt_sha256"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string",
+                "pattern": "^[BEHNFGCPXR][0-9]{2}$"
+              },
+              "receipt_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "transition_subject": {
+          "$ref": "#/$defs/localTransitionSubject"
+        },
         "timestamp_utc": {
           "type": "string",
-          "format": "date-time"
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    },
+    "b01TaskSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "registry_path",
+        "registry_sha256",
+        "decision_set_sha256",
+        "review_policy_sha256",
+        "review_packet_path",
+        "review_packet_sha256",
+        "source_commit",
+        "source_tree",
+        "accepted_adr_ids",
+        "qualifying_review_ids",
+        "role_coverage_sha256",
+        "adjudication_artifacts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-ledger-ratification-subject.v1"
+        },
+        "registry_path": {
+          "const": "docs/adr/decision-registry.proposed.v1.json"
+        },
+        "registry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "decision_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_packet_path": {
+          "const": "docs/adr/B01_REVIEW_PACKET.md"
+        },
+        "review_packet_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "accepted_adr_ids": {
+          "const": [
+            "ADR-001",
+            "ADR-002",
+            "ADR-003",
+            "ADR-004",
+            "ADR-005",
+            "ADR-006",
+            "ADR-007",
+            "ADR-008",
+            "ADR-009",
+            "ADR-010",
+            "ADR-011"
+          ]
+        },
+        "qualifying_review_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonemptyString"
+          }
+        },
+        "role_coverage_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "adjudication_artifacts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        }
+      }
+    },
+    "b02TaskSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "registry_path",
+        "registry_sha256",
+        "decision_set_sha256",
+        "review_policy_sha256",
+        "review_packet_path",
+        "review_packet_sha256",
+        "source_commit",
+        "source_tree",
+        "b01_ratification_receipt_sha256",
+        "authorization_artifact"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b02-rebaseline-authorization-subject.v1"
+        },
+        "registry_path": {
+          "const": "docs/adr/decision-registry.proposed.v1.json"
+        },
+        "registry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "decision_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_packet_path": {
+          "const": "docs/adr/B01_REVIEW_PACKET.md"
+        },
+        "review_packet_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "b01_ratification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authorization_artifact": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "b03TaskSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "decision_set_sha256",
+        "b02_authorization_receipt_sha256",
+        "registry_set_sha256",
+        "allocations_artifact"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b03-allocation-subject.v1"
+        },
+        "decision_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "b02_authorization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "registry_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "allocations_artifact": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "n01TaskSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "decision_set_sha256",
+        "b02_authorization_receipt_sha256",
+        "b03_allocation_receipt_sha256",
+        "staging_registry_sha256",
+        "promoted_registry_path",
+        "promoted_registry_sha256",
+        "promotion_generator",
+        "promoted_registry_schema",
+        "contract_manifest_path",
+        "contract_manifest_sha256",
+        "normative_digest_before",
+        "normative_digest_after"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.n01-promotion-subject.v1"
+        },
+        "decision_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "b02_authorization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "b03_allocation_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "staging_registry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "promoted_registry_path": {
+          "const": "contract/decision-registry.v1.json"
+        },
+        "promoted_registry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "promotion_generator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "path": {
+              "const": "scripts/promote_decision_registry.py"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 67108864
+            }
+          }
+        },
+        "promoted_registry_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "path": {
+              "const": "contract/decision-registry.schema.v1.json"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 67108864
+            }
+          }
+        },
+        "contract_manifest_path": {
+          "const": "contract/manifest.v1.json"
+        },
+        "contract_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "normative_digest_before": {
+          "$ref": "#/$defs/sha256"
+        },
+        "normative_digest_after": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
@@ -484,6 +953,8 @@
         "branch",
         "source_commit",
         "source_tree",
+        "evidence_commit",
+        "evidence_tree",
         "normative_digest_before",
         "normative_digest_after",
         "commands",
@@ -503,6 +974,8 @@
         "remote_verification_artifact",
         "remote_verified_at_utc",
         "dependency_receipts",
+        "task_subject",
+        "transition_subject",
         "timestamp_utc"
       ],
       "properties": {
@@ -519,6 +992,12 @@
           "$ref": "#/$defs/commit"
         },
         "source_tree": {
+          "$ref": "#/$defs/commit"
+        },
+        "evidence_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "evidence_tree": {
           "$ref": "#/$defs/commit"
         },
         "normative_digest_before": {
@@ -655,9 +1134,31 @@
             }
           }
         },
+        "task_subject": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/b01TaskSubject"
+            },
+            {
+              "$ref": "#/$defs/b02TaskSubject"
+            },
+            {
+              "$ref": "#/$defs/b03TaskSubject"
+            },
+            {
+              "$ref": "#/$defs/n01TaskSubject"
+            }
+          ]
+        },
+        "transition_subject": {
+          "$ref": "#/$defs/localTransitionSubject"
+        },
         "timestamp_utc": {
           "type": "string",
-          "format": "date-time"
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
         }
       }
     },
@@ -689,9 +1190,12 @@
         "reason": {
           "$ref": "#/$defs/nonemptyString"
         },
-        "receipt": {
-          "oneOf": [
-            {
+      "receipt": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/startReceipt"
+          },
+          {
               "$ref": "#/$defs/coordinationReceipt"
             },
             {

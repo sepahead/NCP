@@ -9,7 +9,6 @@ import json
 import re
 import shutil
 import subprocess
-import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +31,7 @@ class SmtError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class SmtCase:
     path: Path
-    mutations: tuple[tuple[str, str], ...]
+    mutations: tuple[tuple[str, str, str], ...]
 
 
 CASES = (
@@ -40,6 +39,7 @@ CASES = (
         SMT / "authority_handover.smt2",
         (
             (
+                "omit_old_revocation",
                 "(and old_revoked (not old_admission_open) quiesced higher_term)",
                 "(and (not old_admission_open) quiesced higher_term)",
             ),
@@ -49,6 +49,7 @@ CASES = (
         SMT / "stale_admission.smt2",
         (
             (
+                "omit_generation_fence",
                 "      (= command_generation current_generation)\n"
                 "      (= command_epoch current_epoch)",
                 "      true\n      (= command_epoch current_epoch)",
@@ -59,17 +60,55 @@ CASES = (
         SMT / "assessment_monotonicity.smt2",
         (
             (
+                "omit_unauthenticated_state_preservation",
                 "(assert\n  (=>\n    (not authenticated_widen)\n"
                 "    (and (= local_after local_before) (=> deny_before deny_after))))",
                 "(assert true)",
             ),
             (
-                "(assert (=> widened authenticated_widen))",
+                "omit_recovery_dwell",
+                "(assert (=> (and deny_before (not deny_after)) "
+                "recovery_dwell_complete))",
                 "(assert true)",
             ),
             (
-                "(assert\n  (=>\n    deny_applied\n"
-                "    (and disposition_authenticated disposition_outcome_applied)))",
+                "omit_evidence_authentication",
+                "(assert (=> deny_applied evidence_authenticated))",
+                "(assert true)",
+            ),
+            (
+                "omit_profile_authentication",
+                "(assert (=> deny_applied profile_authenticated))",
+                "(assert true)",
+            ),
+            (
+                "omit_profile_issuer_independence",
+                "(assert (=> deny_applied profile_issuer_independent))",
+                "(assert true)",
+            ),
+            (
+                "omit_profile_qualification",
+                "(assert (=> deny_applied qualification_valid))",
+                "(assert true)",
+            ),
+            (
+                "omit_evidence_eligibility",
+                "(assert (=> deny_applied evidence_eligible))",
+                "(assert true)",
+            ),
+            (
+                "omit_causal_separation",
+                "(assert (=> deny_applied causally_later))",
+                "(assert true)",
+            ),
+            (
+                "omit_disposition_authentication",
+                "(assert (=> deny_applied disposition_authenticated))",
+                "(assert true)",
+            ),
+            (
+                "omit_applied_outcome",
+                "(assert (=> deny_applied disposition_outcome_applied))",
                 "(assert true)",
             ),
         ),
@@ -78,6 +117,7 @@ CASES = (
         SMT / "non_authority_inputs.smt2",
         (
             (
+                "observer_can_replace_body_lease",
                 "(and body_lease plant_session current_commander core_route)",
                 "(and true plant_session current_commander core_route)",
             ),
@@ -141,10 +181,11 @@ def _solve(path: Path, source: str) -> dict[str, object]:
     if z3 is None:
         raise SmtError("z3 is unavailable")
     completed = subprocess.run(  # noqa: S603
-        [z3, "-T:5", str(path)],
+        [z3, "-T:5", "-in"],
         check=False,
         capture_output=True,
         text=True,
+        input=source,
         timeout=10,
     )
     elapsed = time.monotonic_ns() - started
@@ -176,16 +217,16 @@ def _solve(path: Path, source: str) -> dict[str, object]:
             for item, result in zip(expected, actual, strict=True)
         ],
         "stdout_sha256": _sha256(completed.stdout.encode("utf-8")),
-        "command": ["z3", "-T:5", "<obligation>"],
+        "command": ["z3", "-T:5", "-in"],
     }
 
 
-def _mutate(source: str, replacements: tuple[tuple[str, str], ...]) -> str:
+def _mutate(source: str, replacement: tuple[str, str, str]) -> str:
+    _, old, new = replacement
     output = source
-    for old, new in replacements:
-        if output.count(old) != 1:
-            raise SmtError(f"mutation anchor count is not exactly one: {old!r}")
-        output = output.replace(old, new)
+    if output.count(old) != 1:
+        raise SmtError(f"mutation anchor count is not exactly one: {old!r}")
+    output = output.replace(old, new)
     return output
 
 
@@ -199,15 +240,15 @@ def build_result() -> dict[str, object]:
         obligation["path"] = case.path.relative_to(ROOT).as_posix()
         obligations.append(obligation)
 
-        mutant = _mutate(source, case.mutations)
-        with tempfile.TemporaryDirectory(prefix="ncp-b01-smt-") as directory:
-            mutant_path = Path(directory) / case.path.name
-            mutant_path.write_text(mutant, encoding="utf-8")
+        for replacement in case.mutations:
+            mutation_id = replacement[0]
+            mutant = _mutate(source, replacement)
             try:
-                _solve(mutant_path, mutant)
+                _solve(case.path, mutant)
             except SmtError as error:
                 killed.append(
                     {
+                        "mutation_id": mutation_id,
                         "path": case.path.relative_to(ROOT).as_posix(),
                         "detected": True,
                         "reason": str(error),
@@ -215,9 +256,11 @@ def build_result() -> dict[str, object]:
                     }
                 )
             else:
-                raise SmtError(f"SMT mutation survived for {case.path.name}")
+                raise SmtError(
+                    f"SMT mutation {mutation_id!r} survived for {case.path.name}"
+                )
     return {
-        "schema": "ncp.b01-preliminary-smt-result.v1",
+        "schema": "ncp.b01-preliminary-smt-result.v2",
         "scope": "narrow-pre-ratification-obligations",
         "z3_version": version,
         "z3_binary_sha256": binary_sha256,
@@ -264,8 +307,8 @@ def main() -> int:
     result = build_result()
     if result["counts"] != {
         "files": 4,
-        "checks": 11,
-        "mutations_killed": 4,
+        "checks": 19,
+        "mutations_killed": 13,
         "mutations_survived": 0,
     }:
         raise SmtError("unexpected registered SMT count")

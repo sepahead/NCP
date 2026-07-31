@@ -109,13 +109,13 @@ normative source set; it describes that set but is not itself one of its inputs.
 |---|---|---|
 | [`ncp-core`](ncp-core/) | Rust reference types, validators, limits, authority, idempotency, safety | reference |
 | [`ncp-zenoh`](ncp-zenoh/) | stable Zenoh wire/QoS binding; production peer-identity binding unavailable | Rust reference |
-| [`@sepahead/ncp`](ncp-ts/) | independent TypeScript validator/client and experimental WebSocket binding | independent decision code; live external certification not run |
+| [`@sepahead/ncp`](ncp-ts/) | independent TypeScript validator/client and experimental WebSocket binding | independent decision code; live external certification **NOT RUN** |
 | [`ncp-python`](ncp-python/) | Python/PyO3 interface | Rust FFI, not independent |
 | [`ncp-cpp`](ncp-cpp/) | C ABI and C++ header | Rust FFI, not independent |
 | [`ncp-gateway`](ncp-gateway/) | same-wire Rust-to-Python lifecycle edge | requires a native wire-1.0 `SessionService`; not the 0.8 migration gateway |
 
 All manifests currently identify `1.0.0-rc.1`. These artifacts are candidates and
-have not been published. The 0.8-to-1.0 translator is a separate, labelled,
+have not been published. The 0.8-to-1.0 translator is a separate, labeled,
 authenticated terminating-gateway API in `ncp-core::migration`; it rejects any
 mapping that would require inventing identity, authority, security, plant, or
 channel-requirement context.
@@ -130,8 +130,8 @@ non-certifying sentinel, not a source revision or release provenance claim.
 
 ## Build and verify
 
-Required local tools are Rust 1.88+, Python 3, a C++17 compiler, Bun/npm, Buf, and
-`cargo-deny`.
+Required local tools are Rust 1.88+, Python 3, Node.js, a C++17 compiler, Bun,
+npm, Buf, and `cargo-deny`. Hosted CI pins Node.js 24.18.0 and Bun 1.3.14.
 
 ```bash
 scripts/check.sh
@@ -167,21 +167,31 @@ Local green tests do not satisfy the external pre-release gates. A transport-vis
 authenticated-principal binding must first be implemented before the live
 mTLS/ACL/certificate rotation and revocation campaign can run. Two independently
 installed non-Rust peers, fault/soak, duration fuzzing and sanitizers, performance
-certification, signed SBOM/provenance, clean-room reproduction, and downstream
-consumer certification also remain required and are explicitly **NOT RUN** for this
-candidate. Publication follows those gates; the separate post-publication install
-smoke and emergency-revocation exercise then validate the published artifacts and do
-not retroactively serve as prerequisites for their own publication.
+qualification, signed SBOM/provenance, and clean-room reproduction remain
+required. All nine exact consumer and extension role qualifications are also
+required. These gates are explicitly **NOT RUN** for this candidate. Publication
+follows those gates. The separate post-publication checks validate the published
+artifacts and cannot be prerequisites for their own publication.
 
 ## Downstream compatibility
 
-The known consumers are Engram, crebain, crebain-galadriel-producer, galadriel,
-haldir, and prisoma. Engram has an explicit local native-1.0 migration in progress,
-but has not passed installed-artifact or live-transport certification; the other
-five remain on wire 0.8. None is 1.0-certified. The frozen v0.8 Engram inventory is
-historical migration input, not a claim about the mutable migration worktree. No
-consumer may claim native 1.0 support until it passes the installed-artifact and
-live-transport matrix.
+The candidate registry retains a historical six-project inventory: `Engram`,
+`crebain`, `crebain-galadriel-producer`, `galadriel`, `haldir`, and `prisoma`. Release
+authorization requires these nine exact role subjects:
+
+- Engram responder and commander
+- Haldir commander and assessment receiver
+- Galadriel observer and assessor
+- Crebain body and producer
+- Prisoma observer
+
+A project entry is not a role receipt. Engram has an explicit local native-1.0
+migration in progress. Its installed roles and live transport are not qualified.
+The other five historical project surfaces remain on wire 0.8. None of the nine
+roles is qualified for 1.0. The frozen v0.8 Engram inventory is historical
+migration input. It does not describe the mutable migration worktree. A consumer
+cannot claim native 1.0 support before its exact installed role and live-transport
+matrix passes.
 
 See [`INTEGRATING.md`](INTEGRATING.md) for the breaking migration checklist and
 [`docs/0.8-current-baseline.md`](docs/0.8-current-baseline.md) for the frozen legacy

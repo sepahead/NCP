@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import io
 import json
@@ -12,6 +13,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+import sysconfig
 import time
 import tracemalloc
 from collections import deque
@@ -39,6 +41,12 @@ JOURNAL_MAX_ENTRIES = 128
 JOURNAL_MAX_BYTES = 65_536
 PARSER_PEAK_BUDGET_BYTES = 24 * 1024 * 1024
 PARSER_LOCAL_BUDGET_US = 2_000_000
+CLAIM_BOUNDARY = (
+    "These probes exercise explicit prototype bounds and one local machine. "
+    "They do not select normative capacities, prove production deadlines, "
+    "qualify performance, establish durability, certify safety, or close any "
+    "external release gate."
+)
 
 
 class ResourceProbeError(RuntimeError):
@@ -56,6 +64,29 @@ def _canonical_json(value: Any) -> bytes:
 
 def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _outer_runtime_identity() -> dict[str, Any]:
+    executable = Path(sys.executable).resolve(strict=True)
+    content = executable.read_bytes()
+    soabi = sysconfig.get_config_var("SOABI")
+    if not isinstance(soabi, str) or not soabi:
+        raise ResourceProbeError("outer Python SOABI is unavailable")
+    return {
+        "implementation": platform.python_implementation(),
+        "version": platform.python_version(),
+        "build": sys.version,
+        "cache_tag": sys.implementation.cache_tag,
+        "soabi": soabi,
+        "isolated": sys.flags.isolated == 1,
+        "no_user_site": sys.flags.no_user_site == 1,
+        "safe_path": bool(sys.flags.safe_path),
+        "executable": {
+            "filename": executable.name,
+            "sha256": _sha256(content),
+            "bytes": len(content),
+        },
+    }
 
 
 def _percentile(values: list[int], numerator: int, denominator: int) -> int:
@@ -406,7 +437,7 @@ def journal_probe() -> dict[str, Any]:
     return {
         "limits": {
             "max_entries": JOURNAL_MAX_ENTRIES,
-            "max_encoded_entry_bytes": JOURNAL_MAX_BYTES,
+            "max_encoded_bytes": JOURNAL_MAX_BYTES,
         },
         "retained_entries": len(journal.entries),
         "encoded_entry_bytes": journal.encoded_bytes,
@@ -426,6 +457,19 @@ def crypto_probe() -> dict[str, Any]:
     uv = shutil.which("uv")
     if uv is None:
         raise ResourceProbeError("uv is unavailable")
+    uv_version = subprocess.run(  # noqa: S603
+        [uv, "--version"],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if (
+        uv_version.returncode != 0
+        or uv_version.stderr
+        or not uv_version.stdout.startswith("uv ")
+    ):
+        raise ResourceProbeError("uv identity query failed or emitted diagnostics")
     completed = subprocess.run(  # noqa: S603
         [
             uv,
@@ -435,6 +479,7 @@ def crypto_probe() -> dict[str, Any]:
             "--project",
             str(project),
             "python",
+            "-I",
             str(ROOT / "crypto_probe.py"),
             "--self-test",
         ],
@@ -454,36 +499,247 @@ def crypto_probe() -> dict[str, Any]:
     value = json.loads(completed.stdout)
     if (
         value.get("algorithm") != "Ed25519"
-        or value.get("deadline_detector_self_tested") is not True
+        or value.get("schema") != "ncp.b01-preliminary-ed25519-resource-result.v4"
+        or value.get("measurement_clocks")
+        != {
+            "budget": ["thread_time_ns", "process_time_ns"],
+            "observational": "perf_counter_ns",
+        }
+        or value.get("cpu_p95_budget_detector_self_tested") is not True
+        or value.get("result_validator_self_tested") is not True
     ):
         raise ResourceProbeError("Ed25519 probe result is incomplete")
+    value["runner"] = {
+        "tool": "uv",
+        "version": uv_version.stdout.strip(),
+        "executable_sha256": _sha256(Path(uv).read_bytes()),
+        "invocation": [
+            "run",
+            "--offline",
+            "--locked",
+            "--project",
+            "prototypes/authenticated-ingress/signed-forwarding-envelope",
+            "python",
+            "-I",
+            "prototypes/b01-architecture-evidence/crypto_probe.py",
+            "--self-test",
+        ],
+    }
+    return value
+
+
+def _current_crypto_environment() -> dict[str, Any]:
+    project = REPOSITORY / "prototypes/authenticated-ingress/signed-forwarding-envelope"
+    uv = shutil.which("uv")
+    if uv is None:
+        raise ResourceProbeError("uv is unavailable")
+    completed = subprocess.run(  # noqa: S603
+        [
+            uv,
+            "run",
+            "--offline",
+            "--locked",
+            "--project",
+            str(project),
+            "python",
+            "-I",
+            str(ROOT / "crypto_probe.py"),
+            "--runtime-identity",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if (
+        completed.returncode != 0
+        or completed.stderr
+        or len(completed.stdout.encode("utf-8")) > 65_536
+    ):
+        raise ResourceProbeError("Ed25519 runtime identity query failed")
+    value = json.loads(completed.stdout)
+    if not isinstance(value, dict) or set(value) != {
+        "clock_metadata",
+        "runtime_identity",
+    }:
+        raise ResourceProbeError("Ed25519 runtime identity query drifted")
     return value
 
 
 def build_result() -> dict[str, Any]:
     return {
-        "schema": "ncp.b01-preliminary-resource-result.v1",
+        "schema": "ncp.b01-preliminary-resource-result.v2",
         "scope": "deterministic-structure-and-machine-local-screen",
         "python": platform.python_version(),
         "platform": platform.platform(),
+        "outer_runtime_identity": _outer_runtime_identity(),
         "queue_isolation": queue_probe(),
         "bounded_parser": parser_probe(),
         "bounded_journal": journal_probe(),
         "ed25519": crypto_probe(),
-        "claim_boundary": (
-            "These probes exercise explicit prototype bounds and one local machine. "
-            "They do not select normative capacities, prove production deadlines, "
-            "qualify performance, establish durability, certify safety, or close any "
-            "external release gate."
-        ),
+        "claim_boundary": CLAIM_BOUNDARY,
     }
+
+
+def validate_result(value: Any) -> None:
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "schema",
+            "scope",
+            "python",
+            "platform",
+            "outer_runtime_identity",
+            "queue_isolation",
+            "bounded_parser",
+            "bounded_journal",
+            "ed25519",
+            "claim_boundary",
+        }
+        or value["schema"] != "ncp.b01-preliminary-resource-result.v2"
+        or value["scope"] != "deterministic-structure-and-machine-local-screen"
+        or value["claim_boundary"] != CLAIM_BOUNDARY
+        or value["python"] != platform.python_version()
+        or value["platform"] != platform.platform()
+        or value["outer_runtime_identity"] != _outer_runtime_identity()
+    ):
+        raise ResourceProbeError("resource result identity or claim boundary drifted")
+    queue = value["queue_isolation"]
+    if (
+        not isinstance(queue, dict)
+        or queue.get("capacities")
+        != {
+            "control": CONTROL_CAPACITY,
+            "observation": OBSERVATION_CAPACITY,
+            "extension": EXTENSION_CAPACITY,
+            "action": ACTION_CAPACITY,
+        }
+        or queue.get("control_rejections") != 0
+        or queue.get("action_state_preserved") is not True
+        or queue.get("shared_budget_mutation_detected") is not True
+    ):
+        raise ResourceProbeError("queue-isolation result drifted")
+    bounded_parser = value["bounded_parser"]
+    if (
+        not isinstance(bounded_parser, dict)
+        or bounded_parser.get("limits")
+        != {
+            "max_frame_bytes": MAX_FRAME_BYTES,
+            "max_nesting_depth": MAX_NESTING_DEPTH,
+            "preliminary_peak_traced_budget_bytes": PARSER_PEAK_BUDGET_BYTES,
+            "preliminary_local_budget_us": PARSER_LOCAL_BUDGET_US,
+        }
+        or any(
+            bounded_parser.get(field) is not True
+            for field in (
+                "exact_depth_accepted",
+                "over_depth_rejected",
+                "oversized_frame_rejected_before_semantics",
+                "duplicate_decoded_key_rejected",
+                "unterminated_frame_rejected",
+                "unbounded_parser_mutation_detected",
+            )
+        )
+    ):
+        raise ResourceProbeError("bounded-parser result drifted")
+    journal = value["bounded_journal"]
+    if (
+        not isinstance(journal, dict)
+        or journal.get("limits")
+        != {
+            "max_entries": JOURNAL_MAX_ENTRIES,
+            "max_encoded_bytes": JOURNAL_MAX_BYTES,
+        }
+        or any(
+            journal.get(field) is not True
+            for field in (
+                "restart_replay_exact",
+                "truncated_snapshot_rejected",
+                "duplicate_snapshot_key_rejected",
+                "silent_eviction_mutation_detected",
+            )
+        )
+    ):
+        raise ResourceProbeError("bounded-journal result drifted")
+    ed25519 = value["ed25519"]
+    expected_environment = _current_crypto_environment()
+    uv = shutil.which("uv")
+    if (
+        not isinstance(ed25519, dict)
+        or ed25519.get("schema") != "ncp.b01-preliminary-ed25519-resource-result.v4"
+        or ed25519.get("cpu_p95_budget_detector_self_tested") is not True
+        or ed25519.get("result_validator_self_tested") is not True
+        or ed25519.get("python")
+        != expected_environment["runtime_identity"]["python"]["version"]
+        or ed25519.get("platform") != value["platform"]
+        or ed25519.get("runtime_identity") != expected_environment["runtime_identity"]
+        or ed25519.get("clock_metadata") != expected_environment["clock_metadata"]
+        or not isinstance(ed25519.get("runner"), dict)
+        or ed25519["runner"].get("tool") != "uv"
+        or uv is None
+        or ed25519["runner"].get("executable_sha256") != _sha256(Path(uv).read_bytes())
+        or ed25519["runner"].get("invocation")
+        != [
+            "run",
+            "--offline",
+            "--locked",
+            "--project",
+            "prototypes/authenticated-ingress/signed-forwarding-envelope",
+            "python",
+            "-I",
+            "prototypes/b01-architecture-evidence/crypto_probe.py",
+            "--self-test",
+        ]
+    ):
+        raise ResourceProbeError("Ed25519 resource result drifted")
+
+
+def self_test(value: dict[str, Any]) -> None:
+    validate_result(value)
+    mutations: tuple[tuple[tuple[str, ...], Any], ...] = (
+        (("queue_isolation", "shared_budget_mutation_detected"), False),
+        (("bounded_parser", "over_depth_rejected"), False),
+        (("bounded_journal", "silent_eviction_mutation_detected"), False),
+        (("ed25519", "result_validator_self_tested"), False),
+        (("python",), "FORGED"),
+        (
+            ("outer_runtime_identity", "executable", "sha256"),
+            "0" * 64,
+        ),
+        (("ed25519", "python"), "FORGED"),
+        (
+            ("ed25519", "runtime_identity", "python", "executable", "sha256"),
+            "0" * 64,
+        ),
+        (
+            ("ed25519", "clock_metadata", "thread_time", "implementation"),
+            "FORGED",
+        ),
+    )
+    for path, replacement in mutations:
+        hostile = copy.deepcopy(value)
+        cursor: Any = hostile
+        for member in path[:-1]:
+            cursor = cursor[member]
+        cursor[path[-1]] = replacement
+        try:
+            validate_result(hostile)
+        except ResourceProbeError:
+            continue
+        raise ResourceProbeError(
+            f"resource result-validator mutation survived: {'.'.join(path)}"
+        )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--self-test", action="store_true")
-    parser.parse_args()
-    print(json.dumps(build_result(), sort_keys=True))
+    arguments = parser.parse_args()
+    result = build_result()
+    if arguments.self_test:
+        self_test(result)
+    print(json.dumps(result, sort_keys=True))
     return 0
 
 

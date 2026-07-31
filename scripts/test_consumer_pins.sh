@@ -62,8 +62,9 @@ init_git_repo() {
   git -C "$physical" symbolic-ref HEAD refs/heads/main
   git -C "$physical" config user.name "NCP Test"
   git -C "$physical" config user.email "ncp-test@example.invalid"
+  git -C "$physical" config commit.gpgSign true
   git -C "$physical" add -- .
-  git -C "$physical" commit -qm "test fixture"
+  git -c commit.gpgSign=false -C "$physical" commit -qm "test fixture"
 }
 
 prepare_repin_base() {
@@ -1057,7 +1058,7 @@ printf '%s\n' \
   'set -eu' \
   'printf "%s\n" "$1" > .mirror-ref' \
   'git add -- .mirror-ref' \
-  'git commit -qm "concurrent fixture commit"' \
+  'git -c commit.gpgSign=false commit -qm "concurrent fixture commit"' \
   'exit 1' \
   > "$tmp/head-drift-base/consumer/scripts/repin.sh"
 chmod +x "$tmp/head-drift-base/consumer/scripts/repin.sh"

@@ -1,0 +1,1980 @@
+{
+  "$id": "https://sepahead.github.io/ncp/schemas/b01-selector-closure-authoring.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Preflight schema for the expanded, non-normative, release-blocked B01 selector-closure authoring snapshot. canonical_source_metadata preserves the decoded compact payload metadata for an exact recovery round trip. adr_allocation_inventory_binding binds the exact external inventory and schema bytes that the generator injects into the self-contained canonical payload. The semantic checker applies the complete closed-model validation after generation.",
+  "maxProperties": 128,
+  "properties": {
+    "$schema": {
+      "const": "selector-closure.authoring.schema.v1.json"
+    },
+    "actor_profiles": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "actuation_authority_domain_registry_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "adr_allocation_inventory_binding": {
+      "additionalProperties": false,
+      "description": "Exact byte and schema provenance for the bounded external allocation inventory. The generator resolves only the two named sibling files and injects the validated oracle into the canonical compact payload.",
+      "maxProperties": 8,
+      "properties": {
+        "authoring_byte_length": {
+          "type": "integer"
+        },
+        "authoring_file": {
+          "const": "selector-allocation.authoring.v1.json"
+        },
+        "authoring_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "canonicalization": {
+          "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE_ONE_TRAILING_LF"
+        },
+        "schema_byte_length": {
+          "type": "integer"
+        },
+        "schema_file": {
+          "const": "selector-allocation.authoring.schema.v1.json"
+        },
+        "schema_id": {
+          "const": "ncp.b01-selector-allocation-authoring.v1"
+        },
+        "schema_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "authoring_byte_length",
+        "authoring_file",
+        "authoring_sha256",
+        "canonicalization",
+        "schema_byte_length",
+        "schema_file",
+        "schema_id",
+        "schema_sha256"
+      ],
+      "type": "object"
+    },
+    "adversarial_probe_bindings": {
+      "const": {
+        "claim_boundary": "LOCAL_DETERMINISTIC_MODEL_EVIDENCE_ONLY_NOT_EXTERNAL_QUALIFICATION_CERTIFICATION_RELEASE_OR_PRODUCTION_EVIDENCE",
+        "execution_profile": {
+          "claim_boundary": "REVIEWED_EXACT_SOURCE_LOCAL_EVIDENCE_ONLY_NOT_AN_OS_SANDBOX_RUNTIME_PROVENANCE_OR_EXTERNAL_QUALIFICATION",
+          "environment": "FIXED_LAUNCH_THEN_CLEARED_BEFORE_BOUND_SOURCE",
+          "kernel_limits": {
+            "core_bytes": 0,
+            "cpu_seconds_by_probe": {
+              "freshness_acceptance_probe": 180,
+              "observer_authorization_probe": 600,
+              "observer_capture_probe": 900,
+              "source_issuance_index_probe": 180
+            },
+            "file_bytes": 2097152,
+            "inherited_limit_policy": "PRESERVE_OR_TIGHTEN_EACH_INHERITED_SOFT_AND_HARD_LIMIT",
+            "open_files": 64
+          },
+          "loader": "FIXED_LENGTH_FRAMED_IN_MEMORY_MODULE_LOADER_V1",
+          "memory_boundary": {
+            "enforcement": "BEST_EFFORT_NORMALIZED_RU_MAXRSS_WATCHDOG_NOT_A_PROSPECTIVE_KERNEL_MEMORY_LIMIT",
+            "maximum_rss_bytes": 536870912
+          },
+          "process_boundary": {
+            "descendant_containment": "NO_PROCESS_CREATION_DENIAL_AND_NEW_SESSION_DESCENDANTS_CAN_ESCAPE_PROCESS_GROUP_TERMINATION",
+            "initial_child_session": "FRESH_PROCESS_SESSION",
+            "launch_precondition": "SINGLE_THREADED_POSIX_PARENT_FOR_PREEXEC_RESOURCE_LIMITS",
+            "same_process_integrity": "BOUND_CLASS_INSTANCE_MODULE_AND_CODE_STABILITY_IS_A_CALLER_OBLIGATION_WITH_NO_CONCURRENT_MUTATION",
+            "side_effect_isolation": "NO_NETWORK_FILESYSTEM_SYSCALL_OR_CHILD_PROCESS_SANDBOX"
+          },
+          "python_flags": [
+            "-I",
+            "-S",
+            "-B",
+            "-X",
+            "utf8"
+          ],
+          "runtime_provenance": "INTERPRETER_STANDARD_LIBRARY_KERNEL_AND_DYNAMIC_RUNTIME_NOT_CONTENT_BOUND",
+          "schema": "ncp.b01-bound-probe-execution-profile.v1",
+          "source_limits": {
+            "dependency_bytes_each": 262144,
+            "dependency_count": 3,
+            "framed_input_bytes": 4983223,
+            "module_name_bytes": 128,
+            "output_bytes_each_channel": 2097152,
+            "script_bytes": 4194304,
+            "source_path_bytes": 512
+          },
+          "working_directory": "FRESH_EMPTY_TEMPORARY_DIRECTORY"
+        },
+        "freshness_acceptance_probe": {
+          "dependency_ids": [],
+          "review_command": "python3 prototypes/b01-architecture-evidence/freshness_acceptance_probe.py",
+          "script_byte_length": 316246,
+          "script_sha256": "eeec3a61fd576cca23045ce577a257bc78be8d7058c19bd9f44e353ba77f7335",
+          "source_path": "prototypes/b01-architecture-evidence/freshness_acceptance_probe.py",
+          "stdout_byte_length": 44933,
+          "stdout_sha256": "ffa3517f2fba19b506d3eaf5db87bd9ee20b8510c66c5aac31cfe4853cb629dc"
+        },
+        "observer_authorization_probe": {
+          "dependency_ids": [
+            "bounded_canonical",
+            "bounded_json",
+            "observer_read_capture_bridge"
+          ],
+          "review_command": "python3 prototypes/b01-architecture-evidence/observer_authorization_probe.py",
+        "script_byte_length": 714466,
+        "script_sha256": "ae0c751100a064ea387f2156b30238adffa62eeadfe28a98b382e6ed55c82166",
+          "source_path": "prototypes/b01-architecture-evidence/observer_authorization_probe.py",
+        "stdout_byte_length": 78260,
+        "stdout_sha256": "64bc2ca24e5e153aac34c189db371b910d81371468ff8f84f1048add8cfd8107"
+        },
+        "observer_capture_probe": {
+          "dependency_ids": [
+            "bounded_canonical",
+            "observer_read_capture_bridge"
+          ],
+          "review_command": "python3 prototypes/b01-architecture-evidence/observer_capture_probe.py",
+        "script_byte_length": 2059452,
+        "script_sha256": "f28f1815b7219aec37145f712d01633a3571268b6a0344b3c8a851cd5623a770",
+          "source_path": "prototypes/b01-architecture-evidence/observer_capture_probe.py",
+        "stdout_byte_length": 208647,
+        "stdout_sha256": "42cc755e15e0e302837bea146759b66186b1e6171983aa5da87fa9bf6dd0f81e"
+        },
+        "shared_source_bindings": {
+          "bounded_canonical": {
+          "byte_length": 115298,
+            "dependency_ids": [],
+            "module": "bounded_canonical",
+            "path": "prototypes/b01-architecture-evidence/bounded_canonical.py",
+          "sha256": "045f12528b894b29d7d5edaafb18fc32759f0689f04eebd92cff5888cf2d3dbc"
+          },
+          "bounded_json": {
+            "byte_length": 50898,
+            "dependency_ids": [],
+            "module": "bounded_json",
+            "path": "scripts/bounded_json.py",
+            "sha256": "588eb98082955978dfc026bb70ebb22fe5a0e82aa96833201700230f2b2ac817"
+          },
+          "observer_read_capture_bridge": {
+          "byte_length": 235941,
+            "dependency_ids": [
+              "bounded_canonical"
+            ],
+            "module": "observer_read_capture_bridge",
+            "path": "prototypes/b01-architecture-evidence/observer_read_capture_bridge.py",
+          "sha256": "b805cec8e7066f3c4c4c3ff999ea33317e097976ced668e7867d8413964219bd"
+          }
+        },
+        "source_issuance_index_probe": {
+          "dependency_ids": [],
+          "review_command": "python3 prototypes/b01-architecture-evidence/source_issuance_index_probe.py",
+          "script_byte_length": 519897,
+          "script_sha256": "15c88f8def8323fc3465991a33b719ed951d8f2230ce936a7cf2cb92a8775412",
+          "source_path": "prototypes/b01-architecture-evidence/source_issuance_index_probe.py",
+          "stdout_byte_length": 614,
+          "stdout_sha256": "bd624fcb1dabb66c2d5aad76e6af9f0c1467ebd58d8870f6750a59f01b512be7"
+        }
+      }
+    },
+    "allocation_boundary": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "type": "string"
+    },
+    "artifacts": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 3,
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*::[A-Za-z0-9_]+$",
+        "type": "string"
+      },
+      "maxItems": 65536,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "authority_realm_enrollment_registry_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "authority_transaction_domain_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "body_actuation_arbiter_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "bulk_disposition_journal_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "candidate": {
+      "const": "1.0.0-rc.1"
+    },
+    "canonical_source_metadata": {
+      "additionalProperties": false,
+      "description": "Canonical payload metadata preserved without loss during compact-to-authoring recovery.",
+      "properties": {
+        "$schema": {
+          "const": "selector-closure.source.schema.v1.json"
+        },
+        "generated_by": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "ncp.b01-selector-closure-source.v1"
+        }
+      },
+      "required": [
+        "$schema",
+        "schema",
+        "generated_by"
+      ],
+      "type": "object"
+    },
+    "claim_boundary": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "type": "string"
+    },
+    "closed_event_profile_catalog": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "closure_commitments": {
+      "additionalProperties": false,
+      "description": "Maintained commitments for the generated canonical payload. The generator rejects a mismatch and never silently repairs these values.",
+      "properties": {
+        "algorithm": {
+          "const": "SHA-256"
+        },
+        "artifact_registry_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "canonicalization": {
+          "const": "UTF8_JSON_SORTED_KEYS_NO_INSIGNIFICANT_WHITESPACE"
+        },
+        "global_key_coordinate_registry_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "resource_closure": {
+          "additionalProperties": false,
+          "description": "Domain-separated commitment to the exact resource DEFINE, EFFECT, derived MUTATION, profile-binding, and joint-write-participant rows. This is derived local consistency evidence only.",
+          "maxProperties": 10,
+          "properties": {
+            "algorithm": {
+              "const": "SHA256"
+            },
+            "byte_length": {
+              "type": "integer"
+            },
+            "canonicalization": {
+              "const": "UTF8_JSON_ROWS_SORTED_BY_CANONICAL_BYTE_ORDER_NO_INSIGNIFICANT_WHITESPACE"
+            },
+            "claim_boundary": {
+              "const": "DERIVED_LOCAL_RESOURCE_DEFINITION_USE_AND_JOINT_PARTICIPANT_CLOSURE_ONLY_NOT_REVIEW_RELEASE_EXTERNAL_OR_INDEPENDENT_EVIDENCE"
+            },
+            "domain_hex": {
+              "const": "6e63702e6230312e7265736f757263652d636c6f737572652e763200"
+            },
+            "framing": {
+              "const": "DOMAIN_BYTES_THEN_UINT64_BE_PAYLOAD_BYTE_LENGTH_THEN_PAYLOAD_BYTES"
+            },
+            "per_kind_counts": {
+              "additionalProperties": false,
+              "maxProperties": 5,
+              "properties": {
+                "DEFINE": {
+                  "type": "integer"
+                },
+                "EFFECT": {
+                  "type": "integer"
+                },
+                "JTX_WRITE_PARTICIPANT": {
+                  "type": "integer"
+                },
+                "MUTATION_DERIVED": {
+                  "type": "integer"
+                },
+                "PROFILE_BINDING": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "DEFINE",
+                "EFFECT",
+                "JTX_WRITE_PARTICIPANT",
+                "MUTATION_DERIVED",
+                "PROFILE_BINDING"
+              ],
+              "type": "object"
+            },
+            "row_count": {
+              "type": "integer"
+            },
+            "schema": {
+              "const": "ncp.b01-resource-closure.v2"
+            },
+            "sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "algorithm",
+            "byte_length",
+            "canonicalization",
+            "claim_boundary",
+            "domain_hex",
+            "framing",
+            "per_kind_counts",
+            "row_count",
+            "schema",
+            "sha256"
+          ],
+          "type": "object"
+        },
+        "selector_semantic_digests": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "selector_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Z][A-Z0-9_]*$",
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "selector_id",
+              "sha256"
+            ],
+            "type": "object"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "structural_profiles_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "algorithm",
+        "artifact_registry_sha256",
+        "canonicalization",
+        "global_key_coordinate_registry_sha256",
+        "resource_closure",
+        "selector_semantic_digests",
+        "structural_profiles_sha256"
+      ],
+      "type": "object"
+    },
+    "common_operation_dag": {
+      "maxItems": 65536,
+      "type": "array"
+    },
+    "consumer_lifecycle_union_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "deadline_linearization_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "decision_relation_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "forwarding_replay_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "generated_by": {
+      "const": "scripts/generate_selector_closure_source.py --materialize-from-compact"
+    },
+    "generated_view": {
+      "const": "docs/adr/B01_SELECTOR_CLOSURE_MATRIX.md"
+    },
+    "global_key_coordinate_registry": {
+      "items": {
+        "type": "object"
+      },
+      "maxItems": 65536,
+      "minItems": 1,
+      "type": "array"
+    },
+    "joint_selector_transaction_profiles": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "maxProperties": 18,
+        "properties": {
+          "atomicity": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "candidate_rules": {
+            "items": {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "commit_receipt": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "coordinator_event": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "declared_writing_participant_count": {
+            "type": "integer"
+          },
+          "partial_commit_behavior": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "additionalProperties": false,
+              "maxProperties": 5,
+              "properties": {
+                "event_id": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[A-Z][A-Z0-9_]*$",
+                  "type": "string"
+                },
+                "expected_selector": {
+                  "maxLength": 512,
+                  "minLength": 3,
+                  "type": "string"
+                },
+                "generic_receipt": {
+                  "maxLength": 512,
+                  "minLength": 3,
+                  "type": "string"
+                },
+                "selector_id": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[A-Z][A-Z0-9_]*$",
+                  "type": "string"
+                },
+                "semantic_case_ids": {
+                  "items": {
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^[A-Z][A-Z0-9_]*$",
+                    "type": "string"
+                  },
+                  "maxItems": 65536,
+                  "minItems": 1,
+                  "type": "array",
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "event_id",
+                "expected_selector",
+                "generic_receipt",
+                "selector_id",
+                "semantic_case_ids"
+              ],
+              "type": "object"
+            },
+            "maxItems": 65536,
+            "minItems": 2,
+            "type": "array"
+          },
+          "profile_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "type": "string"
+          },
+          "receipt_rules": {
+            "items": {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "semantic_case_tuple_rule": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "semantic_case_tuples": {
+            "items": {
+              "additionalProperties": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^[A-Z][A-Z0-9_]*$",
+                "type": "string"
+              },
+              "maxProperties": 128,
+              "type": "object"
+            },
+            "maxItems": 65536,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "shared_operation_commitment": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "shared_pre_cas_facts": {
+            "items": {
+              "maxLength": 512,
+              "minLength": 3,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "subordinate_event": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "subordinate_events": {
+            "items": {
+              "maxLength": 512,
+              "minLength": 3,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "unknown_default_or_missing_participant": {
+            "const": "REJECT"
+          }
+        },
+        "required": [
+          "atomicity",
+          "candidate_rules",
+          "commit_receipt",
+          "declared_writing_participant_count",
+          "partial_commit_behavior",
+          "participants",
+          "profile_id",
+          "receipt_rules",
+          "shared_operation_commitment",
+          "unknown_default_or_missing_participant"
+        ],
+        "type": "object"
+      },
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "logical_session_generation_lineage_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "logical_session_namespace_registry_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "normative": {
+      "const": false
+    },
+    "observer_grant_request_target_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "observer_read_capture_bridge_profile": {
+      "const": {
+        "authority_chain": [
+          "LIVE_READ_CAPABILITY",
+          "VERIFIED_AUTHORIZATION_INGRESS_CONTEXT",
+          "SEALED_NONAUTHORIZING_READ_DECISION",
+          "QUALIFIED_CONSERVATIVE_DEADLINE_MAPPING",
+          "VERIFIED_GRANT_CURRENTNESS_STATE_CUT",
+          "VERIFIED_RELEASE_RECIPIENT_CONTEXT",
+          "VALIDATED_RELEASE_COUNTER_CAS_CANDIDATE",
+          "VALIDATED_RELEASE_CAS_RECEIPT",
+          "ATOMIC_RELEASE_COUNTER_AND_OUTBOX_COMMIT",
+          "FRESH_AUTHENTICATED_DISPATCH_CONTEXT",
+          "EXACT_DELIVERY",
+          "LOCAL_IMMUTABLE_ADMISSION",
+          "DETERMINISTIC_SEMANTIC_EXTRACTION"
+        ],
+        "authorization": {
+          "bounded_history_fixture_quota": {
+            "capacity_claim": "MAXIMUM_ONE_ONLY_NO_N_CAPACITY_ALLOCATOR_OR_CONCURRENCY_EXTRAPOLATION",
+            "maximum_releases": 1,
+            "scope": "EXACT_BOUNDED_SYNTHETIC_PROBE_FIXTURE_ONLY_NOT_A_PROTOCOL_DEFAULT_OR_UNIVERSAL_LIMIT"
+          },
+          "capability_authority": "BOUNDED_CURRENT_READ_AUTHORITY_ONLY",
+          "decision_authority_effect": "PREFLIGHT_ONLY_RELEASE_RECHECK_REQUIRED",
+          "decision_seal_evidence": "SYNTHETIC_HMAC_FIXTURE_ONLY_NOT_CRYPTOGRAPHIC_QUALIFICATION",
+          "ingress_context_binds": [
+            "OBSERVER_PRINCIPAL_AND_INSTANCE",
+            "AUTHORIZATION_AUDIENCE",
+            "PRODUCTION_SECURE_CONNECTION_INSTANCE",
+            "REPLAY_DOMAIN",
+            "DEFAULT_DENY_MANIFEST",
+            "SECURITY_STATE_AND_EPOCH",
+            "REVOCATION_EPOCH",
+            "COORDINATOR_CLOCK_INCARNATION",
+            "VERIFIED_AT_AND_EXCLUSIVE_NOT_AFTER"
+          ],
+          "ingress_provenance": "SYNTHETIC_VERIFIED_AUTHORIZATION_SERVER_INGRESS",
+          "release_recheck": "EXACT_CURRENT_PRINCIPAL_CONNECTION_SESSION_SECURITY_REVOCATION_MANIFEST_SCOPE_MEMBERSHIP_CURRENTNESS_AND_DEADLINE",
+          "subscription_history_authority": false
+        },
+        "canonical_commitment": {
+          "suite": {
+            "canonical_json": {
+              "allow_nan": false,
+              "encoding": "UTF-8_STRICT",
+              "ensure_ascii": false,
+              "integer_rendering": "BASE_10_MINIMAL_NO_PLUS_NO_LEADING_ZERO",
+              "json_literals": {
+                "false": "false",
+                "null": "null",
+                "true": "true"
+              },
+              "object_member_order": "ASCENDING_UNICODE_SCALAR_SEQUENCE",
+              "separators": {
+                "item": ",",
+                "key_value": ":"
+              },
+              "sort_keys": true,
+              "string_escaping": {
+                "backslash": "\\\\",
+                "control_short_escapes": {
+                  "U+0008": "\\b",
+                  "U+0009": "\\t",
+                  "U+000A": "\\n",
+                  "U+000C": "\\f",
+                  "U+000D": "\\r"
+                },
+                "other_u0000_through_u001f": "LOWERCASE_HEX_BACKSLASH_U00XX",
+                "quotation_mark": "\\\"",
+                "solidus": "UNESCAPED",
+                "u2028_and_u2029": "UNESCAPED_UTF8"
+              },
+              "trailing_newline": false,
+              "unicode_normalization": "NONE",
+              "whitespace_outside_strings": "NONE"
+            },
+            "claim_boundary": "SYNTHETIC_PRE_RATIFICATION_NON_NORMATIVE_NOT_WIRE_INTEROPERABILITY_CRYPTOGRAPHIC_QUALIFICATION_OR_RELEASE_EVIDENCE",
+            "domain_digest": {
+              "algorithm": "SHA-256",
+              "domain": {
+                "encoding": "ASCII_STRICT",
+                "exact_runtime_type": "str",
+                "maximum_octets": 128,
+                "regular_expression": "^ncp\\.b01\\.bridge\\.[A-Za-z][A-Za-z0-9]*(?:[._-][A-Za-z0-9]+)*@1$",
+                "version_suffix": "@1"
+              },
+              "frame_components_in_order": [
+                {
+                  "encoding": "LITERAL_OCTETS",
+                  "hex": "4e43502d4230312d4f425345525645522d524541442d434150545552452d4252494447452d5631",
+                  "name": "protocol_prefix",
+                  "octet_length": 39
+                },
+                {
+                  "encoding": "LITERAL_OCTETS",
+                  "hex": "00",
+                  "name": "prefix_domain_separator",
+                  "octet_length": 1
+                },
+                {
+                  "encoding": "ASCII_STRICT",
+                  "name": "domain"
+                },
+                {
+                  "encoding": "LITERAL_OCTETS",
+                  "hex": "00",
+                  "name": "domain_value_separator",
+                  "octet_length": 1
+                },
+                {
+                  "encoding": "CANONICAL_JSON_UTF8",
+                  "name": "normalized_value"
+                }
+              ],
+              "length_prefixes": "NONE",
+              "output": {
+                "alphabet": "LOWERCASE_HEXADECIMAL",
+                "octet_length_before_hex": 32,
+                "text_length": 64
+              },
+              "reference_vector": {
+                "canonical_input": {
+                  "input_entries": [
+                    [
+                      "a",
+                      1
+                    ]
+                  ],
+                  "input_kind": "EXACT_FROZEN_MAP"
+                },
+                "domain": "ncp.b01.bridge.ReferenceVector@1",
+                "frame_hex": "4e43502d4230312d4f425345525645522d524541442d434150545552452d4252494447452d5631006e63702e6230312e6272696467652e5265666572656e6365566563746f724031007b22246272696467655f6b696e64223a226d617070696e67222c22656e7472696573223a5b5b2261222c315d5d7d",
+                "sha256_lower_hex": "fc2967e5ecbbddf0ef55a43c67fe0a6823c796a7558d6b0f1fbb76e8a097003f"
+              }
+            },
+            "normalization": {
+              "alias_and_cycle_policy": {
+                "immutable_dag_alias": "ACCEPT",
+                "immutable_reference_cycle": "REJECT",
+                "mutable_alias_during_private_freeze": "REJECT_BY_DEFAULT",
+                "mutable_reference_cycle": "REJECT"
+              },
+              "artifact": {
+                "accepted_input": "EXACT_REGISTERED_FROZEN_DATACLASS_INSTANCE_NO_SUBCLASS",
+                "envelope": {
+                  "$bridge_kind": "artifact",
+                  "fields": "ARRAY_OF_TWO_ELEMENT_FIELD_NAME_AND_NORMALIZED_VALUE_ARRAYS",
+                  "type_ref": "CLOSED_STABLE_TYPE_REFERENCE"
+                },
+                "field_name_encoding": "EXACT_DECLARED_IDENTIFIER_STRING",
+                "field_order": "DATACLASS_DECLARATION_ORDER",
+                "maximum_fields": 128,
+                "type_registry": "EXACT_CLOSED_SUITE_TYPE_REGISTRY"
+              },
+              "bytes": {
+                "accepted_input": "EXACT_IMMUTABLE_BYTES_NO_SUBCLASS",
+                "envelope": {
+                  "$bridge_kind": "immutable_bytes",
+                  "hex": "TWO_LOWERCASE_HEX_DIGITS_PER_INPUT_OCTET"
+                },
+                "maximum_input_octets": 1048576,
+                "minimum_input_octets": 1
+              },
+              "dispatch_order": [
+                "EXACT_FROZEN_MAP",
+                "EXACT_FROZEN_LIST",
+                "EXACT_TUPLE",
+                "REJECT_EXACT_OR_SUBCLASSED_MUTABLE_DICT_OR_LIST",
+                "EXACT_REGISTERED_DATACLASS_INSTANCE",
+                "NULL",
+                "EXACT_BOOL",
+                "EXACT_PORTABLE_INTEGER",
+                "EXACT_NONEMPTY_IMMUTABLE_BYTES",
+                "EXACT_UNICODE_SCALAR_STRING",
+                "REJECT"
+              ],
+              "input_node_accounting": {
+                "artifact_field_names_count_as_nodes": false,
+                "collection_or_artifact_root_counts_as_one": true,
+                "mapping_keys_count_as_nodes": false,
+                "maximum_nodes_including_root": 16384,
+                "nested_values_each_count_as_one": true,
+                "synthetic_typed_profile_wrappers_count_as_nodes": false
+              },
+              "limits": {
+                "maximum_aggregate_scalar_utf8_and_payload_octets": 8388608,
+                "maximum_artifact_fields": 128,
+                "maximum_canonical_output_octets": 8388608,
+                "maximum_collection_items_or_mapping_entries": 4096,
+                "maximum_depth_inclusive": 64,
+                "maximum_immutable_payload_octets": 1048576,
+                "maximum_input_nodes": 16384,
+                "maximum_utf8_octets_per_string_or_mapping_key": 1048576,
+                "root_depth": 0
+              },
+              "list": {
+                "accepted_input": "EXACT_FROZEN_LIST_WITH_EXACT_TUPLE_BACKING_NO_SUBCLASS",
+                "envelope": {
+                  "$bridge_kind": "list",
+                  "items": "NORMALIZED_VALUES_IN_INPUT_ORDER"
+                }
+              },
+              "mapping": {
+                "accepted_input": "EXACT_FROZEN_MAP_WITH_EXACT_TUPLE_OF_EXACT_TWO_TUPLES",
+                "duplicate_key_policy": "REJECT",
+                "envelope": {
+                  "$bridge_kind": "mapping",
+                  "entries": "ARRAY_OF_TWO_ELEMENT_KEY_AND_NORMALIZED_VALUE_ARRAYS"
+                },
+                "key_order": "ASCENDING_UNICODE_SCALAR_SEQUENCE",
+                "keys": "EXACT_UNICODE_SCALAR_STRINGS_NO_SUBCLASS",
+                "snapshot_before_emit": "KEY_VALUE_AND_BOUNDED_KEY_LENGTH_SNAPSHOTTED_ONCE",
+                "unicode_normalization": "NONE"
+              },
+              "private_owned_authoring_conversion": {
+                "accepted_mutable_roots": "EXACT_DICT_OR_EXACT_LIST_ONLY",
+                "caller_obligation": "EXCLUSIVE_UNPUBLISHED_OWNERSHIP_NO_CONCURRENT_MUTATION",
+                "dataclass_policy": "ONLY_EXACT_FROZEN_CLASSES_IN_THE_CLOSED_TYPE_REGISTRY",
+                "result": "STRUCTURALLY_IMMUTABLE_FROZEN_MAP_OR_FROZEN_LIST_GRAPH_WITH_REGISTERED_ARTIFACT_STABILITY_AS_A_CALLER_OBLIGATION",
+                "shared_mutable_policy": "REJECT_BY_DEFAULT",
+                "synchronization_guarantee": "NONE"
+              },
+              "resource_failure_behavior": {
+                "hex_encoding": "BOUNDED_CHUNKED_LOWERCASE_HEX",
+                "normalized_object_tree_allocation": "NONE",
+                "partial_output_on_failure": "CLEARED",
+                "per_chunk_or_scalar_bound_check_before_allocation": true,
+                "string_utf8_and_json_lengths": "CHECKED_BEFORE_JSON_ENCODER_CALL",
+                "whole_graph_preflight": false
+              },
+              "scalar_domains": {
+                "boolean": {
+                  "accepted_input": "EXACT_BOOL",
+                  "outputs": {
+                    "false": false,
+                    "true": true
+                  }
+                },
+                "integer": {
+                  "accepted_input": "EXACT_INT_NO_BOOL_NO_SUBCLASS",
+                  "maximum_inclusive": 9007199254740991,
+                  "minimum_inclusive": -9007199254740991
+                },
+                "null": {
+                  "accepted_input": "EXACT_SINGLETON_NONE",
+                  "output": null
+                },
+                "string": {
+                  "accepted_input": "EXACT_STR_OF_UNICODE_SCALAR_VALUES_NO_SUBCLASS",
+                  "empty_allowed": true,
+                  "unicode_normalization": "NONE"
+                }
+              },
+              "tuple": {
+                "accepted_input": "EXACT_TUPLE_NO_SUBCLASS",
+                "envelope": {
+                  "$bridge_kind": "tuple",
+                  "items": "NORMALIZED_VALUES_IN_INPUT_ORDER"
+                }
+              },
+              "type_registry": {
+                "accepted_container": "EXACT_DICT_OR_FROZEN_TYPE_REGISTRY",
+                "class_identity": "EXACT_PLAIN_METACLASS_TYPE_IDENTITY",
+                "duplicate_class_or_stable_id": "REJECT",
+                "same_process_integrity_boundary": {
+                  "artifact_instance_state": "CALLER_MUST_KEEP_STABLE_THROUGH_CALL_RETURN",
+                  "artifact_snapshot": "REVALIDATE_EACH_REACHED_CLASS_BEFORE_ITS_FIRST_INSTANCE_PER_PUBLIC_TRAVERSAL_THEN_READ_EACH_INSTANCE_FIELD_ONCE_THROUGH_OBJECT_GETATTRIBUTE",
+                  "canonicalizer_and_interpreter_code_integrity": "CALLER_MUST_PRESERVE_THROUGH_CALL_RETURN",
+                  "concurrent_integrity_mutation": "CALLER_MUST_PREVENT_CLASS_INSTANCE_REGISTRY_OR_WRAPPER_BACKING_MUTATION_THROUGH_CALL_RETURN",
+                  "error_construction": "EXACT_EXCEPTION_CLASS_WITH_NO_CALLER_DEFINED_NEW_OR_INIT",
+                  "field_metadata": "EXACT_SHARED_EMPTY_METADATA_SENTINEL_WITH_NO_CALLER_MAPPING_DISPATCH",
+                  "frozen_mutator_guard": "STRUCTURAL_GENERATED_CODE_EQUIVALENCE_WITH_EXACT_CANDIDATE_CLASS_AND_FROZEN_INSTANCE_ERROR_CLOSURE_AND_PINNED_FUNCTION_CODE_GLOBALS_BUILTINS_STATE",
+                  "non_slot_instance_state": "EXACT_NATIVE_DICT_WITH_KEYS_EXACTLY_EQUAL_TO_PINNED_FIELD_NAMES",
+                  "registered_class_shape": "FROZEN_REGISTRY_PINNED_AT_REGISTRATION_EACH_REACHED_CLASS_REVALIDATED_BEFORE_ITS_FIRST_INSTANCE_PER_PUBLIC_TRAVERSAL_CALLER_MUST_PREVENT_CONCURRENT_MUTATION_THROUGH_CALL_RETURN",
+                  "registration_pins": "DIRECT_OBJECT_FROZEN_DATACLASS_PARAMETERS_FIELDS_CLASS_BINDINGS_AND_GENERATED_MUTATOR_STATE",
+                  "registry_snapshot": "EXACT_TUPLE_BACKING_GLOBAL_IDENTITY_ALIGNMENT_BOUNDS_AND_DUPLICATE_REJECTION_BEFORE_TARGETED_ARTIFACT_READ",
+                  "scope": "SAME_PROCESS_INTEGRITY_EVIDENCE_ONLY_NOT_ATOMIC_SNAPSHOT_OR_ADVERSARIAL_IN_PROCESS_SANDBOX",
+                  "structural_container_backing": "FROZEN_MAP_AND_FROZEN_LIST_BACKING_READ_ONCE_AND_CALLER_STABLE_THROUGH_CALL_RETURN"
+                },
+                "snapshot_lookup_key": "IN_PROCESS_EXACT_TYPE_OBJECT_ID",
+                "stable_id": "NONEMPTY_EXACT_STRING_WITH_AGGREGATE_BYTE_CAP"
+              },
+              "unsupported_input": "REJECT_MUTABLE_DICT_LIST_FLOAT_COMPLEX_DECIMAL_ENUM_SET_FROZENSET_BYTEARRAY_MEMORYVIEW_CLASS_UNREGISTERED_OR_NONFROZEN_DATACLASS_SUBCLASSES_AND_ALL_OTHER_TYPES"
+            },
+            "reference_vectors": [
+              {
+                "canonical_utf8_hex": "7b22246272696467655f6b696e64223a226172746966616374222c226669656c6473223a5b5b22626f756e646172795f73746174655f686561645f646967657374222c2261225d2c5b226772616e745f656e7472795f686561645f646967657374222c2262225d2c5b2273746174655f76657273696f6e222c315d2c5b227072696f725f72656c656173655f636f756e74222c305d2c5b226772616e745f63757272656e746e6573735f726563656970745f646967657374222c2263225d2c5b226c6f63616c5f6772616e745f6578636c75736976655f6e6f745f6166746572222c325d2c5b2265766964656e63655f61727469666163745f646967657374222c2264225d5d2c22747970655f726566223a226e63702e6230312e6272696467652e45787065637465644772616e7443757272656e746e65737353746174654375744031227d",
+                "input": {
+                  "field_values_in_declared_order": [
+                    [
+                      "boundary_state_head_digest",
+                      "a"
+                    ],
+                    [
+                      "grant_entry_head_digest",
+                      "b"
+                    ],
+                    [
+                      "state_version",
+                      1
+                    ],
+                    [
+                      "prior_release_count",
+                      0
+                    ],
+                    [
+                      "grant_currentness_receipt_digest",
+                      "c"
+                    ],
+                    [
+                      "local_grant_exclusive_not_after",
+                      2
+                    ],
+                    [
+                      "evidence_artifact_digest",
+                      "d"
+                    ]
+                  ],
+                  "input_kind": "EXACT_REGISTERED_ARTIFACT",
+                  "type_ref": "ncp.b01.bridge.ExpectedGrantCurrentnessStateCut@1"
+                },
+                "name": "artifact"
+              },
+              {
+                "canonical_utf8_hex": "7b22246272696467655f6b696e64223a22696d6d757461626c655f6279746573222c22686578223a2230306666227d",
+                "input": {
+                  "input_kind": "EXACT_IMMUTABLE_BYTES",
+                  "input_octets_hex": "00ff"
+                },
+                "name": "bytes"
+              },
+              {
+                "canonical_utf8_hex": "66616c7365",
+                "input": {
+                  "input_kind": "EXACT_BOOLEAN",
+                  "value": false
+                },
+                "name": "false"
+              },
+              {
+                "canonical_utf8_hex": "7b22246272696467655f6b696e64223a226c697374222c226974656d73223a5b2278222c315d7d",
+                "input": {
+                  "input_kind": "EXACT_FROZEN_LIST_WITH_EXACT_TUPLE_BACKING",
+                  "items": [
+                    "x",
+                    1
+                  ]
+                },
+                "name": "list"
+              },
+              {
+                "canonical_utf8_hex": "7b22246272696467655f6b696e64223a226d617070696e67222c22656e7472696573223a5b5b2261222c315d2c5b22ceb2222c325d5d7d",
+                "input": {
+                  "input_entries_in_canonical_order": [
+                    [
+                      "0061",
+                      1
+                    ],
+                    [
+                      "03b2",
+                      2
+                    ]
+                  ],
+                  "input_kind": "EXACT_FROZEN_MAP_SORTED_UNIQUE_UNICODE_SCALAR_STRING_KEYS"
+                },
+                "name": "mapping"
+              },
+              {
+                "canonical_utf8_hex": "39303037313939323534373430393931",
+                "input": {
+                  "input_kind": "EXACT_INTEGER",
+                  "value": 9007199254740991
+                },
+                "name": "max_int"
+              },
+              {
+                "canonical_utf8_hex": "2d39303037313939323534373430393931",
+                "input": {
+                  "input_kind": "EXACT_INTEGER",
+                  "value": -9007199254740991
+                },
+                "name": "min_int"
+              },
+              {
+                "canonical_utf8_hex": "6e756c6c",
+                "input": {
+                  "input_kind": "NULL",
+                  "value": null
+                },
+                "name": "null"
+              },
+              {
+                "canonical_utf8_hex": "74727565",
+                "input": {
+                  "input_kind": "EXACT_BOOLEAN",
+                  "value": true
+                },
+                "name": "true"
+              },
+              {
+                "canonical_utf8_hex": "7b22246272696467655f6b696e64223a227475706c65222c226974656d73223a5b2278222c315d7d",
+                "input": {
+                  "input_kind": "EXACT_TUPLE",
+                  "items": [
+                    "x",
+                    1
+                  ]
+                },
+                "name": "tuple"
+              },
+              {
+                "canonical_utf8_hex": "22412fc3a95c6e22",
+                "input": {
+                  "input_kind": "EXACT_UNICODE_SCALAR_STRING",
+                  "unicode_code_points_hex": [
+                    "0041",
+                    "002f",
+                    "00e9",
+                    "000a"
+                  ]
+                },
+                "name": "unicode"
+              },
+              {
+                "canonical_utf8_hex": "225c225c5c5c625c745c6e5c665c725c7530303031e280a8e280a9f09f9982c3a92f65cc8122",
+                "input": {
+                  "input_kind": "EXACT_UNICODE_SCALAR_STRING",
+                  "unicode_code_points_hex": [
+                    "0022",
+                    "005c",
+                    "0008",
+                    "0009",
+                    "000a",
+                    "000c",
+                    "000d",
+                    "0001",
+                    "2028",
+                    "2029",
+                    "01f642",
+                    "00e9",
+                    "002f",
+                    "0065",
+                    "0301"
+                  ],
+                  "verifies": [
+                    "QUOTATION_MARK_AND_BACKSLASH_ESCAPES",
+                    "ALL_FIVE_SHORT_CONTROL_ESCAPES",
+                    "LOWERCASE_U00XX_ESCAPE_FOR_ANOTHER_CONTROL",
+                    "UNESCAPED_U2028_AND_U2029_UTF8",
+                    "UNESCAPED_ASTRAL_UTF8",
+                    "NO_COMPOSED_OR_DECOMPOSED_UNICODE_NORMALIZATION"
+                  ]
+                },
+                "name": "unicode_escape_and_normalization"
+              },
+              {
+                "canonical_utf8_hex": "7b22246272696467655f6b696e64223a226d617070696e67222c22656e7472696573223a5b5b22ee8080222c22424d505f505249564154455f555345225d2c5b22f0908080222c2241535452414c5f504c414e455f4f4e45225d5d7d",
+                "input": {
+                  "input_entries_in_canonical_order": [
+                    [
+                      "e000",
+                      "BMP_PRIVATE_USE"
+                    ],
+                    [
+                      "010000",
+                      "ASTRAL_PLANE_ONE"
+                    ]
+                  ],
+                  "input_kind": "EXACT_FROZEN_MAP_SORTED_UNIQUE_UNICODE_SCALAR_STRING_KEYS",
+                  "ordering_discriminator": "U+E000_PRECEDES_U+10000_BY_UNICODE_SCALAR_SEQUENCE"
+                },
+                "name": "unicode_scalar_order"
+              }
+            ],
+            "schema": "ncp.b01.bridge-canonical-commitment-suite.v1",
+            "type_registry": [
+              {
+                "field_order": [
+                  "authority_realm_key",
+                  "source_session_kind",
+                  "logical_session_id",
+                  "source_generation",
+                  "operation",
+                  "route_class",
+                  "plane",
+                  "literal_route",
+                  "message_class",
+                  "channel",
+                  "extension",
+                  "declared_stream_digest",
+                  "schema_digest",
+                  "provider_contract_digest",
+                  "privacy_projection_digest",
+                  "authorization_audience",
+                  "history_clock_domain",
+                  "history_clock_incarnation",
+                  "history_window_start",
+                  "history_window_end",
+                  "scope_digest"
+                ],
+                "type_ref": "ncp.b01.bridge.CanonicalObserverReadScope@1"
+              },
+              {
+                "field_order": [
+                  "transaction_id",
+                  "prior_storage_state_head_digest",
+                  "installed_storage_state_head_digest",
+                  "validated_release_cas_receipt_artifact_digest",
+                  "committed_outbox_artifact_digest",
+                  "commit_receipt_artifact_digest"
+                ],
+                "type_ref": "ncp.b01.bridge.ExpectedCommittedObserverReadOutboxStateCut@1"
+              },
+              {
+                "field_order": [
+                  "boundary_principal",
+                  "boundary_instance",
+                  "recipient_principal",
+                  "recipient_instance",
+                  "canonical_scope_digest",
+                  "boundary_scope_membership_digest",
+                  "stable_outbox_item_id",
+                  "endpoint_profile",
+                  "connection_instance",
+                  "replay_domain",
+                  "boundary_clock_incarnation",
+                  "local_security_state_digest",
+                  "local_security_epoch",
+                  "local_revocation_epoch",
+                  "transport_gate_state_digest",
+                  "transport_gate_epoch",
+                  "exclusive_not_after"
+                ],
+                "type_ref": "ncp.b01.bridge.ExpectedDispatchDestinationCut@1"
+              },
+              {
+                "field_order": [
+                  "boundary_state_head_digest",
+                  "grant_entry_head_digest",
+                  "state_version",
+                  "prior_release_count",
+                  "grant_currentness_receipt_digest",
+                  "local_grant_exclusive_not_after",
+                  "evidence_artifact_digest"
+                ],
+                "type_ref": "ncp.b01.bridge.ExpectedGrantCurrentnessStateCut@1"
+              },
+              {
+                "field_order": [
+                  "authorization_ingress_artifact_digest",
+                  "authorization_endpoint_profile",
+                  "authorization_connection_instance",
+                  "authorization_replay_domain",
+                  "capability_digest",
+                  "capability_seal_digest",
+                  "capability_issuer_snapshot_digest",
+                  "manifest_digest",
+                  "manifest_entry_digest",
+                  "stable_grant_key_digest",
+                  "full_boundary_key_digest",
+                  "grant_digest",
+                  "server_entry_head_digest",
+                  "server_selector_digest",
+                  "authority_realm_key",
+                  "source_session_kind",
+                  "logical_session_id",
+                  "source_generation",
+                  "security_state_digest",
+                  "security_epoch",
+                  "revocation_epoch",
+                  "coordinator_clock_incarnation",
+                  "exclusive_not_after",
+                  "maximum_release_count"
+                ],
+                "type_ref": "ncp.b01.bridge.ExpectedObserverReadAuthorizationCut@1"
+              },
+              {
+                "field_order": [
+                  "decision_artifact_digest",
+                  "source_clock_incarnation",
+                  "source_exclusive_not_after",
+                  "boundary_clock_incarnation",
+                  "coordinator_reference",
+                  "boundary_reference_lower",
+                  "source_applicability_start",
+                  "source_applicability_end",
+                  "target_applicability_start",
+                  "target_applicability_end",
+                  "minimum_rate_numerator",
+                  "minimum_rate_denominator",
+                  "rounding_rule",
+                  "correlation_authority",
+                  "qualification_digest",
+                  "source_receipt_digest",
+                  "source_receipt_authority",
+                  "source_receipt_current",
+                  "mapping_policy_artifact_digest",
+                  "security_state_digest",
+                  "security_epoch",
+                  "revocation_epoch",
+                  "mapped_exclusive_not_after"
+                ],
+                "type_ref": "ncp.b01.bridge.ExpectedQualifiedDeadlineMappingStateCut@1"
+              },
+              {
+                "field_order": [
+                  "canonical_scope_digest",
+                  "boundary_principal",
+                  "boundary_instance",
+                  "delivery_domain_kind",
+                  "delivery_domain",
+                  "deadline_policy_id",
+                  "membership_digest"
+                ],
+                "type_ref": "ncp.b01.bridge.ObserverBoundaryReadScopeMembership@1"
+              },
+              {
+                "field_order": [
+                  "observer_principal",
+                  "observer_instance",
+                  "source_session_kind",
+                  "logical_session_id",
+                  "source_generation",
+                  "canonical_scope_digest",
+                  "boundary_scope_membership_digest",
+                  "caller_operation_id",
+                  "caller_request_digest",
+                  "release_idempotency_key",
+                  "authorization_ingress_artifact_digest",
+                  "release_recipient_context_artifact_digest",
+                  "read_decision_artifact_digest",
+                  "capability_digest",
+                  "grant_digest",
+                  "grant_currentness_evidence_artifact_digest",
+                  "boundary_clock_incarnation",
+                  "prior_release_count",
+                  "release_ordinal",
+                  "prior_release_counter_state_digest",
+                  "next_release_counter_state_digest",
+                  "local_grant_not_after",
+                  "grant_currentness_not_after",
+                  "qualified_deadline_mapping_artifact_digest",
+                  "mapped_decision_not_after",
+                  "local_release_context_not_after",
+                  "effective_release_not_after",
+                  "cas_digest"
+                ],
+                "type_ref": "ncp.b01.bridge.ObserverReadReleaseCAS@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "decision_artifact_digest",
+                  "source_clock_incarnation",
+                  "source_exclusive_not_after",
+                  "boundary_clock_incarnation",
+                  "coordinator_reference",
+                  "boundary_reference_lower",
+                  "source_applicability_start",
+                  "source_applicability_end",
+                  "target_applicability_start",
+                  "target_applicability_end",
+                  "minimum_rate_numerator",
+                  "minimum_rate_denominator",
+                  "rounding_rule",
+                  "correlation_authority",
+                  "qualification_digest",
+                  "source_receipt_digest",
+                  "source_receipt_authority",
+                  "source_receipt_current",
+                  "mapping_policy_artifact_digest",
+                  "security_state_digest",
+                  "security_epoch",
+                  "revocation_epoch",
+                  "mapped_exclusive_not_after",
+                  "semantic_mapping_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.QualifiedDecisionDeadlineMapping@1"
+              },
+              {
+                "field_order": [
+                  "decision_id",
+                  "decision_kind",
+                  "authority_effect",
+                  "caller_operation_id",
+                  "caller_request_digest",
+                  "capability_digest",
+                  "capability_seal_digest",
+                  "capability_issuer_snapshot_digest",
+                  "observer_principal",
+                  "observer_instance",
+                  "authorization_ingress_context",
+                  "manifest_digest",
+                  "manifest_entry_digest",
+                  "canonical_scope_digest",
+                  "boundary_scope_membership_digest",
+                  "stable_grant_key_digest",
+                  "full_boundary_key_digest",
+                  "grant_digest",
+                  "server_entry_head_digest",
+                  "server_selector_digest",
+                  "authority_realm_key",
+                  "source_session_kind",
+                  "logical_session_id",
+                  "source_generation",
+                  "security_state_digest",
+                  "security_epoch",
+                  "revocation_epoch",
+                  "coordinator_clock_incarnation",
+                  "checked_at",
+                  "exclusive_not_after",
+                  "history_request_digest",
+                  "maximum_release_count",
+                  "issuer_principal",
+                  "issuer_key_id",
+                  "issuer_incarnation",
+                  "semantic_decision_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SealedObserverReadAuthorizationDecision@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "dispatch_verification_event_id",
+                  "dispatch_attempt_id",
+                  "boundary_principal",
+                  "boundary_instance",
+                  "recipient_principal",
+                  "recipient_instance",
+                  "canonical_scope_digest",
+                  "boundary_scope_membership_digest",
+                  "stable_outbox_item_id",
+                  "stable_payload_digest",
+                  "payload_octet_length",
+                  "committed_outbox_artifact_digest",
+                  "validated_release_cas_receipt_artifact_digest",
+                  "outbox_commit_receipt_artifact_digest",
+                  "installed_outbox_storage_state_head_digest",
+                  "outbox_transaction_id",
+                  "outbox_identity_digest",
+                  "release_cas_artifact_digest",
+                  "release_recipient_context_artifact_digest",
+                  "release_ordinal",
+                  "installed_release_counter_state_digest",
+                  "transport_idempotency_key",
+                  "endpoint_profile",
+                  "connection_instance",
+                  "replay_domain",
+                  "destination_cut_digest",
+                  "transport_gate_state_digest",
+                  "transport_gate_epoch",
+                  "boundary_clock_incarnation",
+                  "local_security_state_digest",
+                  "local_security_epoch",
+                  "local_revocation_epoch",
+                  "verified_at",
+                  "exclusive_not_after",
+                  "semantic_context_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticAuthenticatedDispatchContext@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "boundary_principal",
+                  "boundary_instance",
+                  "boundary_clock_incarnation",
+                  "observer_principal",
+                  "observer_instance",
+                  "canonical_scope_digest",
+                  "boundary_scope_membership_digest",
+                  "read_decision_artifact_digest",
+                  "capability_digest",
+                  "grant_digest",
+                  "grant_currentness_receipt_digest",
+                  "boundary_state_head_digest",
+                  "grant_entry_head_digest",
+                  "release_counter_state_digest",
+                  "state_version",
+                  "prior_release_count",
+                  "local_grant_exclusive_not_after",
+                  "verified_at",
+                  "exclusive_not_after",
+                  "security_state_digest",
+                  "security_epoch",
+                  "revocation_epoch",
+                  "current",
+                  "semantic_evidence_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticAuthenticatedGrantCurrentnessEvidence@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "stable_outbox_item_id",
+                  "exact_payload",
+                  "stable_payload_digest",
+                  "payload_octet_length",
+                  "release_cas_artifact_digest",
+                  "release_recipient_context_artifact_digest",
+                  "boundary_principal",
+                  "boundary_instance",
+                  "recipient_principal",
+                  "recipient_instance",
+                  "canonical_scope_digest",
+                  "boundary_scope_membership_digest",
+                  "release_idempotency_key",
+                  "transport_idempotency_key",
+                  "release_ordinal",
+                  "installed_release_counter_state_digest",
+                  "boundary_clock_incarnation",
+                  "committed_at",
+                  "effective_release_not_after",
+                  "outbox_identity_digest",
+                  "semantic_artifact_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticCommittedObserverReadOutboxArtifact@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "transaction_id",
+                  "boundary_principal",
+                  "boundary_instance",
+                  "boundary_clock_incarnation",
+                  "prior_storage_state_head_digest",
+                  "installed_storage_state_head_digest",
+                  "validated_release_cas_receipt_artifact_digest",
+                  "release_cas_artifact_digest",
+                  "committed_outbox_artifact_digest",
+                  "stable_outbox_item_id",
+                  "outbox_identity_digest",
+                  "installed_release_counter_state_digest",
+                  "release_ordinal",
+                  "committed_at",
+                  "semantic_receipt_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticObserverReadOutboxCommitReceipt@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "validation_event_id",
+                  "validator_principal",
+                  "validator_instance",
+                  "boundary_clock_incarnation",
+                  "release_cas_artifact_digest",
+                  "authorization_ingress_artifact_digest",
+                  "release_recipient_context_artifact_digest",
+                  "read_decision_artifact_digest",
+                  "qualified_deadline_mapping_artifact_digest",
+                  "grant_currentness_evidence_artifact_digest",
+                  "expected_authorization_cut_digest",
+                  "expected_grant_currentness_state_cut_digest",
+                  "expected_deadline_mapping_state_cut_digest",
+                  "checked_at",
+                  "effective_release_not_after",
+                  "semantic_receipt_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticValidatedObserverReadReleaseCASReceipt@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "observer_principal",
+                  "observer_instance",
+                  "authorization_audience",
+                  "endpoint_profile",
+                  "connection_instance",
+                  "replay_domain",
+                  "manifest_digest",
+                  "security_state_digest",
+                  "security_epoch",
+                  "revocation_epoch",
+                  "coordinator_clock_incarnation",
+                  "verified_at",
+                  "exclusive_not_after",
+                  "semantic_context_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticVerifiedAuthorizationIngressContext@1"
+              },
+              {
+                "field_order": [
+                  "provenance_kind",
+                  "boundary_principal",
+                  "boundary_instance",
+                  "recipient_principal",
+                  "recipient_instance",
+                  "connection_instance",
+                  "replay_domain",
+                  "endpoint_profile",
+                  "boundary_scope_membership_digest",
+                  "local_security_state_digest",
+                  "local_security_epoch",
+                  "local_revocation_epoch",
+                  "boundary_clock_incarnation",
+                  "verified_at",
+                  "exclusive_not_after",
+                  "semantic_context_digest",
+                  "fixture_authentication_tag"
+                ],
+                "type_ref": "ncp.b01.bridge.SyntheticVerifiedReleaseRecipientContext@1"
+              }
+            ]
+          },
+          "suite_digest": "92b1843fefd907cf30a1cfceb7fa251e2eb1ba46f3f47a68af4dfcf8d7608cf9",
+          "suite_digest_domain": "ncp.b01.bridge.CanonicalCommitmentSuite@1"
+        },
+        "canonical_type_system": {
+          "embedded_suite_schema": "ncp.b01.bridge-canonical-commitment-suite.v1",
+          "expanded_source_preflight": {
+            "application_order": "BEFORE_SEMANTIC_COMPARISON_CANONICALIZATION_AND_DIGEST",
+            "container_and_scalar_values_count_as_nodes": true,
+            "mapping_keys_count_as_nodes": false,
+            "maximum_collection_items_or_mapping_entries": 4096,
+            "maximum_depth_inclusive": 64,
+            "maximum_input_nodes_including_root": 16384,
+            "maximum_printable_ascii_octets_per_string_or_mapping_key": 1048576,
+            "maximum_standard_json_octets": 8388608,
+            "root_depth": 0,
+            "shared_or_cyclic_container": "REJECT"
+          },
+          "expanded_source_scalar_domain": "PRINTABLE_ASCII_STRINGS_AND_PORTABLE_SAFE_INTEGERS_ONLY",
+          "private_authoring_conversion": "EXCLUSIVE_UNPUBLISHED_EXACT_DICT_LIST_TO_STRUCTURALLY_IMMUTABLE_GRAPH_WITH_SHARED_MUTABLE_AND_CYCLE_REJECTION_AND_REGISTERED_ARTIFACT_STABILITY_AS_A_CALLER_OBLIGATION",
+          "registered_artifact_type_count": 17,
+          "registered_artifact_type_identity": "EXACT_REGISTERED_FROZEN_DATACLASS_INSTANCE_NO_SUBCLASS",
+          "runtime_emitter_input": "EXACT_FROZEN_MAP_FROZEN_LIST_TUPLE_REGISTERED_ARTIFACT_OR_CLOSED_SCALAR_MUTABLE_DICT_LIST_REJECTED",
+          "runtime_normalization_and_digest_framing": "CANONICAL_COMMITMENT_SUITE_IS_COMPLETE_AUTHORITY",
+          "same_process_integrity_boundary": {
+            "artifact_instance_state": "CALLER_MUST_KEEP_STABLE_THROUGH_CALL_RETURN",
+            "artifact_snapshot": "REVALIDATE_EACH_REACHED_CLASS_BEFORE_ITS_FIRST_INSTANCE_PER_PUBLIC_TRAVERSAL_THEN_READ_EACH_INSTANCE_FIELD_ONCE_THROUGH_OBJECT_GETATTRIBUTE",
+            "canonicalizer_and_interpreter_code_integrity": "CALLER_MUST_PRESERVE_THROUGH_CALL_RETURN",
+            "concurrent_integrity_mutation": "CALLER_MUST_PREVENT_CLASS_INSTANCE_REGISTRY_OR_WRAPPER_BACKING_MUTATION_THROUGH_CALL_RETURN",
+            "error_construction": "EXACT_EXCEPTION_CLASS_WITH_NO_CALLER_DEFINED_NEW_OR_INIT",
+            "field_metadata": "EXACT_SHARED_EMPTY_METADATA_SENTINEL_WITH_NO_CALLER_MAPPING_DISPATCH",
+            "frozen_mutator_guard": "STRUCTURAL_GENERATED_CODE_EQUIVALENCE_WITH_EXACT_CANDIDATE_CLASS_AND_FROZEN_INSTANCE_ERROR_CLOSURE_AND_PINNED_FUNCTION_CODE_GLOBALS_BUILTINS_STATE",
+            "non_slot_instance_state": "EXACT_NATIVE_DICT_WITH_KEYS_EXACTLY_EQUAL_TO_PINNED_FIELD_NAMES",
+            "registered_class_shape": "FROZEN_REGISTRY_PINNED_AT_REGISTRATION_EACH_REACHED_CLASS_REVALIDATED_BEFORE_ITS_FIRST_INSTANCE_PER_PUBLIC_TRAVERSAL_CALLER_MUST_PREVENT_CONCURRENT_MUTATION_THROUGH_CALL_RETURN",
+            "registration_pins": "DIRECT_OBJECT_FROZEN_DATACLASS_PARAMETERS_FIELDS_CLASS_BINDINGS_AND_GENERATED_MUTATOR_STATE",
+            "registry_snapshot": "EXACT_TUPLE_BACKING_GLOBAL_IDENTITY_ALIGNMENT_BOUNDS_AND_DUPLICATE_REJECTION_BEFORE_TARGETED_ARTIFACT_READ",
+            "scope": "SAME_PROCESS_INTEGRITY_EVIDENCE_ONLY_NOT_ATOMIC_SNAPSHOT_OR_ADVERSARIAL_IN_PROCESS_SANDBOX",
+            "structural_container_backing": "FROZEN_MAP_AND_FROZEN_LIST_BACKING_READ_ONCE_AND_CALLER_STABLE_THROUGH_CALL_RETURN"
+          },
+          "unknown_unregistered_or_aliased_runtime_type": "REJECT"
+        },
+        "claim_boundary": "SYNTHETIC_PRE_RATIFICATION_NON_NORMATIVE_B01_ARCHITECTURE_PROFILE_NOT_WIRE_RELEASE_LIVE_TRANSPORT_EXTERNAL_INDEPENDENT_INTEROPERABILITY_CONSUMER_QUALIFICATION_CRYPTOGRAPHIC_QUALIFICATION_OR_RELEASE_EVIDENCE",
+        "commit": {
+          "atomic_effects": [
+            "CONSUME_EXACT_READ_DECISION",
+            "INSTALL_RELEASE_COUNTER_SUCCESSOR",
+            "ADVANCE_RELEASE_SEQUENCE_AND_OUTPUT_SLOT_ALLOCATORS",
+            "INSTALL_IMMUTABLE_OUTBOX_ARTIFACT",
+            "INSTALL_OUTBOX_STORAGE_STATE_HEAD",
+            "INSTALL_OUTBOX_COMMIT_RECEIPT"
+          ],
+          "commit_provenance": "SYNTHETIC_ATOMICALLY_COMMITTED_OBSERVER_READ_OUTBOX",
+          "commit_receipt_provenance": "SYNTHETIC_ATOMIC_OBSERVER_READ_OUTBOX_COMMIT",
+          "exact_payload_binding": [
+            "IMMUTABLE_PAYLOAD_BYTES",
+            "SHA256_PAYLOAD_DIGEST",
+            "PAYLOAD_OCTET_LENGTH"
+          ],
+          "installed_state_rule": "ONE_TRANSACTION_AND_ONE_RECEIPT_INSTALL_THE_COUNTER_SUCCESSOR_AND_OUTBOX_WITHOUT_PARTIAL_VISIBILITY",
+          "linearization_point": "ATOMIC_OUTBOX_COMMIT_IS_THE_ONLY_RELEASE_QUOTA_SLOT_AND_PAYLOAD_VISIBILITY_LINEARIZATION",
+          "preconditions": [
+            "VALIDATED_RELEASE_CAS_RECEIPT",
+            "EXPECTED_PRIOR_OUTBOX_STORAGE_STATE_HEAD",
+            "COMMIT_AT_BEFORE_EFFECTIVE_EXCLUSIVE_DEADLINE"
+          ],
+          "reservation_fence": {
+            "authority_effect": "NONAUTHORIZING_EXCLUSIVE_RECOVERABLE_FENCE",
+            "before_outbox_commit": [
+              "DO_NOT_CONSUME_READ_DECISION_OR_RELEASE_QUOTA",
+              "DO_NOT_INSTALL_RELEASE_COUNTER_SUCCESSOR",
+              "DO_NOT_ADVANCE_RELEASE_SEQUENCE_OR_OUTPUT_SLOT_ALLOCATORS",
+              "DO_NOT_INSTALL_USED_RELEASE_IDENTITY_OR_OUTPUT_SLOT",
+              "DO_NOT_EXPOSE_OUTBOX_PAYLOAD_OR_SUCCESS_RECEIPT"
+            ],
+            "crash_recovery": "PRESERVE_ONLY_THE_EXACT_PENDING_FENCE_WITH_ZERO_RELEASE_QUOTA_OR_ALLOCATOR_EFFECT",
+            "exact_retry": "RETURN_THE_SAME_PENDING_FENCE_OR_COMMITTED_RESULT",
+            "slot_semantics": "INTENDED_SEQUENCE_AND_SLOT_ARE_ADVISORY_ONLY_AND_MAY_MATCH_AN_UNRELATED_PENDING_INTENT",
+            "terminal_rule": "CANCEL_TO_A_PERMANENT_TOMBSTONE_WITHOUT_RELEASE_CONSUMPTION_COUNTER_SUCCESSOR_OR_OUTBOX"
+          },
+          "stable_identity_binding": [
+            "STABLE_OUTBOX_ITEM_ID",
+            "RELEASE_IDEMPOTENCY_KEY",
+            "TRANSPORT_IDEMPOTENCY_KEY",
+            "RECIPIENT_PRINCIPAL_AND_INSTANCE",
+            "CANONICAL_SCOPE_AND_BOUNDARY_MEMBERSHIP",
+            "RELEASE_ORDINAL"
+          ],
+          "transaction_identity": "FULL_RELEASE_CAS_COMMITTED_OUTBOX_ARTIFACT_AND_INSTALLED_STORAGE_HEAD_NOT_THE_QUOTA_SUCCESSOR_ALONE",
+          "winning_commit_revalidation": [
+            "RELOAD_EXACT_POST_RESERVATION_OUTER_MAP_AND_ENTRY_HEADS",
+            "DERIVE_FRESH_ACTUAL_RELEASE_SEQUENCE_AND_OUTPUT_SLOT",
+            "REISSUE_CURRENTNESS_EVIDENCE_AND_EXACT_STATE_CUT",
+            "REBUILD_RELEASE_CAS_AND_VALIDATED_RECEIPT",
+            "COINSTALL_DECISION_CONSUMPTION_COUNTER_SUCCESSOR_ALLOCATOR_ADVANCES_ENTRY_AND_OUTER_SUCCESSORS_RECEIPT_AND_OUTBOX"
+          ]
+        },
+        "currentness": {
+          "current_evidence_required": true,
+          "evidence_provenance": "SYNTHETIC_AUTHENTICATED_BOUNDARY_GRANT_CURRENTNESS",
+          "release_counter_prestate": "EXACT_BOUNDARY_GRANT_ENTRY_VERSION_AND_PRIOR_RELEASE_COUNT",
+          "state_cut_binds": [
+            "BOUNDARY_STATE_HEAD",
+            "GRANT_ENTRY_HEAD",
+            "STATE_VERSION",
+            "PRIOR_RELEASE_COUNT",
+            "GRANT_CURRENTNESS_RECEIPT",
+            "LOCAL_GRANT_EXCLUSIVE_NOT_AFTER",
+            "CURRENTNESS_EVIDENCE_ARTIFACT",
+            "SECURITY_STATE_AND_EPOCH",
+            "REVOCATION_EPOCH"
+          ],
+          "successor_scope": "QUOTA_STATE_ONLY_NOT_A_TRANSACTION_OUTBOX_OR_STORAGE_IDENTITY",
+          "successor_selection": "DOMAIN_SEPARATED_FROM_PRIOR_COUNTER_STATE_RELEASE_IDEMPOTENCY_KEY_AND_RELEASE_ORDINAL",
+          "time_relation": "VERIFIED_AT_LE_CHECKED_AT_LT_EVIDENCE_EXCLUSIVE_NOT_AFTER_LE_LOCAL_GRANT_EXCLUSIVE_NOT_AFTER"
+        },
+        "deadline_and_clock": {
+          "clock_identity": "EXACT_CANONICAL_UUID4_CLOCK_INCARNATIONS_NO_DIRECT_CROSS_CLOCK_COMPARISON",
+          "effective_release_deadline": {
+            "operands": [
+              "LOCAL_GRANT_EXCLUSIVE_NOT_AFTER",
+              "GRANT_CURRENTNESS_EXCLUSIVE_NOT_AFTER",
+              "CONSERVATIVELY_MAPPED_DECISION_EXCLUSIVE_NOT_AFTER",
+              "LOCAL_RELEASE_CONTEXT_EXCLUSIVE_NOT_AFTER"
+            ],
+            "operation": "MINIMUM",
+            "semantics": "EXCLUSIVE_NOT_AFTER"
+          },
+          "mapping_applicability": "SOURCE_AND_TARGET_REFERENCES_AND_MAPPED_DEADLINE_MUST_REMAIN_INSIDE_THEIR_QUALIFIED_APPLICABILITY_INTERVALS",
+          "mapping_provenance": "SYNTHETIC_AUTHENTICATED_CONSERVATIVE_CLOCK_MAPPING",
+          "mapping_rule": "BOUNDARY_REFERENCE_LOWER_PLUS_FLOOR_SOURCE_DELTA_TIMES_MINIMUM_RATE_NUMERATOR_OVER_DENOMINATOR",
+          "mapping_state_cut": "INDEPENDENT_EXACT_AUTHORITY_QUALIFICATION_SOURCE_RECEIPT_POLICY_CLOCK_REFERENCE_RATE_ROUNDING_APPLICABILITY_SECURITY_AND_MAPPED_DEADLINE_CUT",
+          "rounding_rule": "LOWER_FLOOR",
+          "source_receipt_current_required": true
+        },
+        "delivery_admission": {
+          "admission_is_immutable_historical_evidence": true,
+          "capsule_future_read_authority": false,
+          "delivery_binds": [
+            "VERIFIED_TRANSPORT_PRINCIPAL",
+            "LIVE_CONNECTION",
+            "REPLAY_DOMAIN",
+            "SESSION_GENERATION",
+            "SECURITY_STATE_AND_EPOCH",
+            "REVOCATION_EPOCH",
+            "DEFAULT_DENY_MANIFEST",
+            "CANONICAL_READ_SCOPE",
+            "BOUNDARY_SCOPE_MEMBERSHIP",
+            "READ_DECISION",
+            "RELEASE_RECIPIENT_CONTEXT",
+            "QUALIFIED_DEADLINE_MAPPING",
+            "GRANT_CURRENTNESS_STATE_CUT",
+            "VALIDATED_RELEASE_CAS_RECEIPT",
+            "COMMITTED_OUTBOX_ARTIFACT",
+            "OUTBOX_COMMIT_RECEIPT",
+            "EXPECTED_DISPATCH_DESTINATION_CUT",
+            "ENDPOINT_CONNECTION_AND_REPLAY_DOMAIN",
+            "TRANSPORT_GATE_STATE_DIGEST_AND_EPOCH",
+            "FRESH_AUTHENTICATED_DISPATCH_CONTEXT",
+            "EXACT_PAYLOAD_BYTES_DIGEST_AND_LENGTH"
+          ],
+          "security_cut_rule": "ADMITTED_BEFORE_CUT_REMAINS_HISTORICAL_WITHOUT_FUTURE_READ_AUTHORITY"
+        },
+        "dispatch": {
+          "artifact_rule": "DISPATCH_ONLY_THE_EXACT_ATOMICALLY_COMMITTED_OUTBOX_ARTIFACT_AND_ITS_VALIDATED_RECEIPTS",
+          "context_binds": [
+            "BOUNDARY_AND_RECIPIENT_PRINCIPAL_AND_INSTANCE",
+            "STABLE_OUTBOX_ITEM_ID",
+            "EXACT_PAYLOAD_DIGEST_AND_LENGTH",
+            "VALIDATED_RELEASE_CAS_RECEIPT",
+            "OUTBOX_COMMIT_RECEIPT_AND_INSTALLED_STORAGE_HEAD",
+            "RELEASE_COUNTER_SUCCESSOR",
+            "EXPECTED_DISPATCH_DESTINATION_CUT",
+            "CANONICAL_SCOPE_AND_BOUNDARY_MEMBERSHIP",
+            "ENDPOINT_PROFILE_CONNECTION_INSTANCE_AND_REPLAY_DOMAIN",
+            "TRANSPORT_GATE_STATE_DIGEST_AND_EPOCH",
+            "TRANSPORT_IDEMPOTENCY_KEY",
+            "BOUNDARY_CLOCK_INCARNATION",
+            "LOCAL_SECURITY_STATE_AND_EPOCH",
+            "LOCAL_REVOCATION_EPOCH"
+          ],
+          "definitive_outcome_rule": "DELIVERED_OR_REJECTED_IS_TERMINAL_AND_FORBIDS_RESEND",
+          "endpoint_profile": "production-secure",
+          "exactly_once_claim": false,
+          "freshness": "COMMIT_AT_LT_DISPATCH_VERIFIED_AT_LE_CHECKED_AT_LT_DISPATCH_EXCLUSIVE_NOT_AFTER_LE_EFFECTIVE_RELEASE_EXCLUSIVE_NOT_AFTER",
+          "post_commit_context": "INDEPENDENT_EXACT_LIVE_DESTINATION_CONNECTION_REPLAY_SECURITY_REVOCATION_TRANSPORT_GATE_AND_DEADLINE_CUT",
+          "post_commit_revocation_rule": "GRANT_TERMINALIZATION_OR_REVOCATION_ORDERED_AFTER_ATOMIC_OUTBOX_COMMIT_DOES_NOT_RETRACT_THE_COMMITTED_IMMUTABLE_ITEM;_DISPATCH_DOES_NOT_REAUTHORIZE_GRANT_OR_MANIFEST_AND_CANNOT_MINT_OR_WIDEN_RELEASE",
+          "provenance": "SYNTHETIC_FRESH_AUTHENTICATED_OUTBOX_DISPATCH",
+          "remote_result_local_ack_crash": "AMBIGUOUS_UNKNOWN_NO_DELIVERY_SUCCESS_OR_REJECTION_INFERRED",
+          "retry_after_ambiguous_requires": [
+            "SAME_COMMITTED_PAYLOAD_BYTES_DIGEST_AND_LENGTH",
+            "SAME_STABLE_OUTBOX_ITEM_AND_RELEASE_IDENTITY",
+            "SAME_TRANSPORT_IDEMPOTENCY_KEY",
+            "SAME_STABLE_PHYSICAL_DESTINATION_IDENTITY",
+            "FRESH_EXACT_TRANSPORT_GATE_CUT_PER_ATTEMPT",
+            "FRESH_UNIQUE_ATTEMPT_IDENTITY_AND_NEXT_SEQUENCE",
+            "AUTHENTICATED_RECEIVER_DEDUPLICATION_PROOF_BOUND_TO_THE_PRIOR_AMBIGUOUS_DISPOSITION"
+          ],
+          "retry_proof_boundary": "SYNTHETIC_FIXTURE_ONLY_NOT_LIVE_TRANSPORT_OR_RECEIVER_EXACTLY_ONCE_QUALIFICATION"
+        },
+        "exact_type_refs": {
+          "admission_capsule": "delivered-admission-evidence-capsule-type::DeliveredAdmissionEvidenceCapsule",
+          "boundary_membership": "observer-boundary-read-scope-membership-type::ObserverBoundaryReadScopeMembership",
+          "canonical_scope": "canonical-observer-read-scope-type::CanonicalObserverReadScope",
+          "extraction_contract": "deterministic-extraction-contract-type::DeterministicExtractionContract",
+          "extraction_receipt": "deterministic-extraction-receipt-type::DeterministicExtractionReceipt",
+          "sealed_decision": "sealed-observer-read-authorization-decision-type::SealedObserverReadAuthorizationDecision"
+        },
+        "release_cas": {
+          "candidate_authority_effect": "VALIDATION_CANDIDATE_ONLY_NO_INSTALLED_STATE",
+          "candidate_binds": [
+            "OBSERVER_PRINCIPAL_AND_INSTANCE",
+            "SOURCE_SESSION_KIND_ID_AND_GENERATION",
+            "CANONICAL_SCOPE_AND_BOUNDARY_MEMBERSHIP",
+            "CALLER_OPERATION_AND_REQUEST",
+            "RELEASE_IDEMPOTENCY_KEY",
+            "AUTHORIZATION_INGRESS_CONTEXT",
+            "RELEASE_RECIPIENT_CONTEXT",
+            "READ_DECISION",
+            "GRANT_CURRENTNESS_EVIDENCE",
+            "QUALIFIED_DEADLINE_MAPPING",
+            "PRIOR_AND_SUCCESSOR_RELEASE_COUNTER_HEADS",
+            "EFFECTIVE_RELEASE_DEADLINE"
+          ],
+          "ordinal_rule": "RELEASE_ORDINAL_EQUALS_PRIOR_RELEASE_COUNT_PLUS_ONE_AND_MUST_NOT_EXCEED_DECISION_MAXIMUM_RELEASE_COUNT",
+          "receipt_binds": [
+            "EXACT_RELEASE_CAS",
+            "VALIDATOR_PRINCIPAL_AND_INSTANCE",
+            "BOUNDARY_CLOCK_INCARNATION",
+            "AUTHORIZATION_STATE_CUT",
+            "GRANT_CURRENTNESS_STATE_CUT",
+            "QUALIFIED_DEADLINE_MAPPING_STATE_CUT",
+            "CHECKED_AT_AND_EFFECTIVE_RELEASE_DEADLINE"
+          ],
+          "receipt_provenance": "SYNTHETIC_FULL_OBSERVER_READ_RELEASE_CAS_VALIDATION",
+          "state_installation": "ONLY_THE_ATOMIC_RELEASE_COUNTER_AND_OUTBOX_COMMIT_INSTALLS_THE_SUCCESSOR"
+        },
+        "route_classes": {
+          "additional_closed_disposition": [
+            "OBSERVATION_COMMAND_DISPOSITION"
+          ],
+          "closed_shapes": {
+            "ACTION_COMMAND_PROPOSAL": {
+              "channel_allowed": true,
+              "family": "command",
+              "message_class": "CommandFrame",
+              "plane": "action"
+            },
+            "OBSERVATION_COMMAND_DISPOSITION": {
+              "channel_allowed": false,
+              "family": "observation",
+              "message_class": "CommandDisposition",
+              "plane": "observation"
+            },
+            "OBSERVATION_FRAME": {
+              "channel_allowed": false,
+              "family": "observation",
+              "message_class": "ObservationFrame",
+              "plane": "observation"
+            },
+            "PERCEPTION_PROJECTED_OBSERVATION": {
+              "channel_allowed": true,
+              "family": "sensor",
+              "message_class": "ObservationFrame",
+              "plane": "perception"
+            },
+            "PERCEPTION_SENSOR_FRAME": {
+              "channel_allowed": true,
+              "family": "sensor",
+              "message_class": "SensorFrame",
+              "plane": "perception"
+            }
+          },
+          "current_prisoma_delivery": [
+            "ACTION_COMMAND_PROPOSAL",
+            "OBSERVATION_FRAME",
+            "PERCEPTION_PROJECTED_OBSERVATION",
+            "PERCEPTION_SENSOR_FRAME"
+          ],
+          "history_domain_rule": "CONTENT_ADDRESSED_HISTORY_DOMAIN_SEPARATE_FROM_LIVE_ROUTE",
+          "live_route_rule": "EXACT_REALM_SESSION_FAMILY_AND_OPTIONAL_ADMITTED_CHANNEL",
+          "operations": [
+            "history_query",
+            "subscribe"
+          ],
+          "unknown_route_class_operation_family_or_channel": "REJECT"
+        },
+        "schema": "ncp.b01-observer-read-capture-bridge-profile.v2",
+        "semantic_extraction": {
+          "axis_members": {
+            "A": [
+              "a0"
+            ],
+            "D": [
+              "d_left",
+              "d_right"
+            ],
+            "L": [
+              "l0"
+            ],
+            "V": [
+              "v0"
+            ]
+          },
+          "deterministic_receipt_count": 7,
+          "fixture_scope": "EXACT_SYNTHETIC_NON_VACUITY_MATRIX_ONLY_NOT_A_PROTOCOL_CARDINALITY",
+          "replay": "REQUIRED_FOR_EACH_SEMANTIC_MEMBER_SAMPLE",
+          "source": "RETAINED_ADMITTED_PAYLOAD_BYTES"
+        },
+        "synthetic_bridge_type_refs": {
+          "CanonicalObserverReadScope": "ncp.b01.bridge.CanonicalObserverReadScope@1",
+          "ExpectedCommittedObserverReadOutboxStateCut": "ncp.b01.bridge.ExpectedCommittedObserverReadOutboxStateCut@1",
+          "ExpectedDispatchDestinationCut": "ncp.b01.bridge.ExpectedDispatchDestinationCut@1",
+          "ExpectedGrantCurrentnessStateCut": "ncp.b01.bridge.ExpectedGrantCurrentnessStateCut@1",
+          "ExpectedObserverReadAuthorizationCut": "ncp.b01.bridge.ExpectedObserverReadAuthorizationCut@1",
+          "ExpectedQualifiedDeadlineMappingStateCut": "ncp.b01.bridge.ExpectedQualifiedDeadlineMappingStateCut@1",
+          "ObserverBoundaryReadScopeMembership": "ncp.b01.bridge.ObserverBoundaryReadScopeMembership@1",
+          "ObserverReadReleaseCAS": "ncp.b01.bridge.ObserverReadReleaseCAS@1",
+          "QualifiedDecisionDeadlineMapping": "ncp.b01.bridge.QualifiedDecisionDeadlineMapping@1",
+          "SealedObserverReadAuthorizationDecision": "ncp.b01.bridge.SealedObserverReadAuthorizationDecision@1",
+          "SyntheticAuthenticatedDispatchContext": "ncp.b01.bridge.SyntheticAuthenticatedDispatchContext@1",
+          "SyntheticAuthenticatedGrantCurrentnessEvidence": "ncp.b01.bridge.SyntheticAuthenticatedGrantCurrentnessEvidence@1",
+          "SyntheticCommittedObserverReadOutboxArtifact": "ncp.b01.bridge.SyntheticCommittedObserverReadOutboxArtifact@1",
+          "SyntheticObserverReadOutboxCommitReceipt": "ncp.b01.bridge.SyntheticObserverReadOutboxCommitReceipt@1",
+          "SyntheticValidatedObserverReadReleaseCASReceipt": "ncp.b01.bridge.SyntheticValidatedObserverReadReleaseCASReceipt@1",
+          "SyntheticVerifiedAuthorizationIngressContext": "ncp.b01.bridge.SyntheticVerifiedAuthorizationIngressContext@1",
+          "SyntheticVerifiedReleaseRecipientContext": "ncp.b01.bridge.SyntheticVerifiedReleaseRecipientContext@1"
+        },
+        "unknown_default_missing_duplicate_or_substituted": "REJECT"
+      }
+    },
+    "observer_unresolved_target_quarantine_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "physical_actuation_jurisdiction_enrollment_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "physical_actuation_jurisdiction_hardware_epoch_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "pre_cas_variant_catalog": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "realm_scoped_direct_binding_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "schema": {
+      "const": "ncp.b01-selector-closure-authoring.v1"
+    },
+    "security_authority_state_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "selector_ownership_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "selectors": {
+      "items": {
+        "properties": {
+          "events": {
+            "maxItems": 65536,
+            "minItems": 1,
+            "type": "array"
+          },
+          "generic_receipt": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "root": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "selector": {
+            "maxLength": 512,
+            "minLength": 3,
+            "type": "string"
+          },
+          "selector_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "type": "string"
+          },
+          "state_domains": {
+            "maxItems": 65536,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "selector_id",
+          "selector",
+          "root",
+          "generic_receipt",
+          "state_domains",
+          "events"
+        ],
+        "type": "object"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "type": "array"
+    },
+    "sidecar_binding_profiles": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "simulation_session_state_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "source_logical_session_retirement_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    },
+    "task": {
+      "const": "B01"
+    },
+    "verification_model_profile": {
+      "maxProperties": 65536,
+      "type": "object"
+    }
+  },
+  "required": [
+    "$schema",
+    "adr_allocation_inventory_binding",
+    "artifacts",
+    "candidate",
+    "canonical_source_metadata",
+    "closure_commitments",
+    "generated_by",
+    "generated_view",
+    "global_key_coordinate_registry",
+    "normative",
+    "observer_read_capture_bridge_profile",
+    "schema",
+    "selectors",
+    "task"
+  ],
+  "title": "NCP B01 expanded selector-closure authoring source",
+  "type": "object"
+}

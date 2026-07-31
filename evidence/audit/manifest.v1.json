@@ -8,9 +8,9 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "c12089e98bb1da99aa3a6ac5f569e9e679307630a32fdc2c8492dea8c93af8c5",
-      "bytes": 355481,
-      "records": 153
+      "sha256": "3654dce7ab4e9f793e36faa19c15e4fd8333a30136214c8e28b44265858442c0",
+      "bytes": 386808,
+      "records": 190
     },
     {
       "path": "evidence/audit/requirement-traceability.v1.json",
@@ -20,8 +20,8 @@
     },
     {
       "path": "evidence/audit/threat-register.v1.json",
-      "sha256": "a0af08914686518b593e6f2ad5556e63fd6af1eb04eade3b9f3fc8ac035fd682",
-      "bytes": 61518,
+      "sha256": "44b84e6e009effd19862492613c0152035c66f9f2261ab708494cb23eed0774d",
+      "bytes": 61654,
       "records": 24
     }
   ],
@@ -48,8 +48,8 @@
     },
     {
       "path": "docs/adr/decision-registry.proposed.v1.json",
-      "sha256": "e44cf8ba4e47558fcd768ce39dd48d64dd9262d96ff1502ed4f25bfc9d6850ba",
-      "bytes": 7010
+      "sha256": "5b6c827cf9f719201243b34849d0a50692cfd435fb1b66a294ae088550107b0d",
+      "bytes": 36746
     },
     {
       "path": "Cargo.lock",

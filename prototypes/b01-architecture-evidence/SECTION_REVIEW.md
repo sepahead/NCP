@@ -3,11 +3,14 @@
 This review applies only to the quarantined files in this directory. The ADRs
 remain PROPOSED and retain their exact hash-bound review requirements.
 
-## Three perspectives
+## Five review lenses
 
 ### Protocol, security, and plant correctness
 
 - Crebain is the only modeled serializer of plant mode and authority.
+- A durably requested transfer persists its exact source, target, base fences,
+  and phase across restart. Recovery resumes it or retains HOLD; it never restores
+  the old holder.
 - The admission predicate binds active phase, plant domain, term, opaque
   generation equality, opaque stream-epoch equality, exact mode holder, and one
   live lease holder.
@@ -15,6 +18,10 @@ remain PROPOSED and retain their exact hash-bound review requirements.
   the abstraction.
 - Simulation input, observer grants, pid-rs results, Cortexel exports, and
   Galadriel assessments cannot substitute for the body lease.
+- A live `ObserverReadCapability` is bounded current read authority. A sealed
+  read decision is preflight evidence and requires an exact release-time recheck.
+- A delivered, admitted capsule is immutable historical evidence only. It grants
+  no future read, release, callback, admission, command, or lifecycle authority.
 - Lifecycle removal of an applied Galadriel deny cannot widen permission until
   an authenticated Haldir policy revision executes.
 - Haldir cannot report an applied Galadriel deny without an authenticated
@@ -43,14 +50,81 @@ remain PROPOSED and retain their exact hash-bound review requirements.
 
 - Every model records bounds, state/transition counts, maximum depth, action
   coverage, and non-vacuity witnesses.
-- Every critical guard has a mutation that must fail.
+- Every item counted as a mutant executes altered behavior that must fail.
+  Twenty-two observer/capture design contrasts are recorded separately and are
+  not mutants.
 - SMT premises include satisfiable witnesses before an unsatisfiable
   counterexample query is credited.
 - Resource timings are machine-local observations with broad prototype screens,
   not SLOs or universal deadlines.
 - Ed25519 authenticates fixed bytes; it does not validate advice, simulation,
   PID quality, calibration, command usefulness, or physical effect.
+- Seven deterministic extraction receipts replay retained admitted bytes for
+  `A[a0]`, `D[d_left,d_right]`, `L[l0]`, and `V[v0]`.
+- Prisoma remains blocked before estimation because the local evidence does not
+  demonstrate a genuine native-1.0 language channel.
 - Fable advice is retained as challenge input only.
+
+### State-machine, concurrency, and recovery closure
+
+- The standalone authorization probe executes one bounded atomic server and
+  two-boundary flow.
+- The direct flow has 3 server transitions and 10 boundary transitions.
+- The probe stages 71 explicit literal artifact type domains before validation.
+- It issues one sealed read-only capability and admits one read plus one exact
+  retry in the synthetic issuer domain.
+- Both observer probes load the same exact shared scope, boundary-membership,
+  and sealed read-decision source.
+- Capture binds the release recheck through delivery, receiver admission,
+  historical capsule creation, and deterministic extraction receipts.
+- Recovery recomputes each schema, operation commitment, authority link, clock
+  link, and security link. A separate authority issues one-use admissions that
+  bind the exact durable root, next writer epoch, trusted sample, clock-source
+  policy, and bounded lease.
+- The observer-admission dispatcher accepts five allocated transition kinds.
+- The dispatcher rejects `UNKNOWN_UNALLOCATED_MUTATION` before state mutation.
+- The capture canonicalizer rejects key and runtime-type coercion. It binds all
+  262 declared dataclass types to explicit, one-to-one stable digest domains.
+  Its typed encoder separates artifact, mapping, tuple, list, and byte domains.
+- The capture result reconciles 185 lifecycle decisions and 63 capture-action
+  decisions. It executes and kills 10 logic mutants, reports 22 semantic
+  contrasts separately, rejects 444 hostile inputs, and reaches 73 invariant
+  witnesses.
+- Resource closure requires every `WRITE` and `RESERVE` to target a resource
+  owned by the event's selector. Foreign resources are compare-only.
+- Each joint transaction profile bijectively names nonempty local-write
+  participants. It does not claim cross-store or cross-repository atomicity.
+- Exact server-expiry terminalization and boundary consumption of that terminal
+  receipt are direct scenarios. Server renewal, restart, rotation, bulk
+  closure, and boundary transport quiescence are not direct scenarios.
+
+### Ecosystem integration and evidence qualification
+
+- The standalone authorization probe uses deterministic synthetic envelopes and
+  an HMAC fixture. These are not issuer cryptographic qualification.
+- The probes share exact artifact source but run in separate fresh interpreter
+  processes under the bounded local checker profile. The profile is not an OS
+  sandbox or runtime-provenance check. The probes do not pass one installed live
+  capability object between runtimes.
+- The shared bridge closes a synthetic model boundary only. Live issuer,
+  transport, revocation, and independent interoperability evidence is absent.
+- The legacy capture probe is not selector-closure evidence.
+- Galadriel records 68 lifecycle head/commit pairs, but not selectors 1 through
+  67.
+- Galadriel does not execute `PENDING_RECORD_INSTALL` H1 before record-install
+  H2.
+- Prisoma executes a legacy three-transition success path. Four exclusion facts
+  have no winning terminal CAS.
+- Haldir has no receipt-free intent-source, ingress-reservation, or pre-CAS
+  evaluation-barrier fact in this fixture.
+- Haldir `NO_PROFILE` is a shape-only witness.
+- The Haldir commander executes genesis, preflight installation, and queue
+  transition only.
+- Eight negative controls reject attempts to use these structural artifacts as
+  direct selector evidence.
+- Prisoma's native language-channel dependency remains blocked. Live transport,
+  external revocation, installed peers, release gates, and every consumer-role
+  qualification remain **NOT RUN**.
 
 ## Assumptions and exclusions
 
@@ -61,6 +135,8 @@ The composition enumerator assumes:
 - at most one direct-to-gated handover in the explored history;
 - at most two body-generation changes, two stream-epoch changes, and two
   simultaneously in-flight commands;
+- exact in-progress transfer restart preserves the session generation; clean or
+  completed-state restart can move to the next finite generation;
 - terms from a small finite set;
 - arbitrary hostile input can vary one exact fence independently; and
 - delivery can be reordered, while cryptographic unforgeability is outside this
@@ -69,6 +145,9 @@ The composition enumerator assumes:
 The deny model assumes:
 
 - Haldir owns the local policy revision;
+- raw evidence authentication, profile authentication, independent profile
+  issuance, qualification, eligibility, and causal separation are distinct
+  admission guards;
 - an applied deny remains effective after expiry, retraction, disable, or
   restart until an authenticated widening transition removes it;
 - `RECORD_ONLY` is the meet identity;
@@ -99,7 +178,7 @@ Excluded:
 - Rust transition-core refinement;
 - canonical TLA+, Kani, large state spaces, fairness, or independent review;
 - consumer implementation or installed interoperability; and
-- any release or certification conclusion.
+- any release or qualification conclusion.
 
 ## Strongest counterexample class
 
@@ -156,6 +235,11 @@ The Python enumerator must detect:
 - simulation admitted as plant;
 - Haldir command constructed under Engram principal;
 - overlapping handover holders;
+- restart loss or rollback of each requested, quiesced, retired, or
+  term-persisted transfer latch;
+- transfer completion before quiescence, old-authority retirement, or higher-term
+  persistence;
+- transfer completion under the retired old holder;
 - expiry clearing a deny;
 - retraction clearing a deny;
 - disable clearing a deny;
@@ -175,7 +259,11 @@ The SMT runner must detect guard removal from:
 
 - handover old-revocation ordering;
 - stale-generation admission;
-- authenticated widening and applied-disposition guards; and
+- unauthenticated state preservation, raw-evidence authentication, and
+  authenticated recovery dwell;
+- independently authenticated and issued, qualified, eligible, causally later
+  monitor-admission profiles;
+- authenticated applied-deny dispositions and exact applied outcomes; and
 - body-lease necessity.
 
 It also rejects source-level output/control commands, mismatched `check-sat` or
@@ -190,7 +278,8 @@ The resource screens must detect:
 - silent journal eviction of recovery evidence; and
 - an artificially seeded Ed25519 screen overrun.
 
-A surviving mutation blocks the prototype result.
+A surviving executed mutation blocks the prototype result. A semantic contrast
+is a non-vacuity witness and cannot increase the mutation-kill count.
 
 ## Resource-screen interpretation
 
@@ -211,7 +300,17 @@ prove crash-safe storage.
 The Ed25519 probe measures real PyNaCl verification over maximum-profile-sized
 bytes, including full-length invalid signatures. It does not run the whole
 ingress pipeline, prove constant-time behavior, or establish a plant command
-deadline. Its declared budget is only a local pre-ratification screen.
+deadline. Its declared thread- and process-CPU p95 budget is only a fixed-sample
+computational tripwire. Maximum CPU and wall elapsed time are recorded but not
+gated because maxima include outliers and wall time includes scheduler
+preemption. The result also binds each clock's exact properties, the project and
+lock bytes, the isolated Python executable and ABI, installed PyNaCl and CFFI
+file-manifest digests, the loaded native Sodium and CFFI artifacts, and the `uv`
+runner. The outer resource process binds its own executable and ABI separately;
+its Python patch release can differ from the locked isolated environment. A fresh
+isolated subprocess must reproduce the cryptographic environment identity. These
+local hashes do not establish package provenance. Deployment latency and
+performance qualification remain separate gates.
 
 ## Exact Fable 5 disposition
 

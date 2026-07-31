@@ -1,5 +1,150 @@
 # B01 exact architecture review packet
 
+> **SUPERSEDED — DO NOT REVIEW.** ADR-004, ADR-011, the defect map, and
+> consumer task scopes changed after this packet was issued. Every identity and
+> preliminary result below binds earlier bytes only. GitHub issue 21 is not a
+> current same-digest review request. A replacement packet requires a clean pushed
+> source commit and fresh local challenge results. B01 remains `IN_PROGRESS`.
+
+```json
+{
+  "schema": "ncp.b01-review-packet-lifecycle.v1",
+  "state": "SUPERSEDED"
+}
+```
+
+This machine-readable lifecycle block controls whether review capture is
+permitted. Banner text is explanatory only. A `SUPERSEDED` or `TEMPLATE` packet
+cannot contain a `CURRENT` review-subject block and cannot receive review
+records.
+
+## Replacement packet requirements
+
+The replacement packet must bind the generated `decision_set.sha256`. The
+decision-set digest covers all exact ADR bytes, role obligations, defect
+mappings, review-policy version, and exact generator and output-schema
+identities. It excludes review records, so later review capture does not change
+the reviewed subject. A policy implementation or schema change makes an earlier
+review stale.
+
+The replacement packet must also bind:
+
+- the clean pushed source commit and its resolved tree;
+- the exact zero-review decision source SHA-256 and byte length at that commit;
+- every ADR SHA-256 and byte length;
+- the review-policy version and exact generator and output-schema SHA-256 and
+  byte length;
+- each stable `role_id`, label, minimum distinct identity count, and independence
+  requirement;
+- the current parser, model, resource, and complete-gate evidence;
+- the exact owner-free v4 allocation identity, origin/signal, semantic-shape,
+  semantic-subject, document-row, ADR-source-set, and provenance commitment
+  suites and their artifact-declared known-answer vectors;
+- the exact non-authorizing allocation proposal, its complete compiler source
+  set, schema, compact input, ADR corpus, and proposal-row commitment;
+- the local standard-library Node recomputation result, with its explicit
+  non-external and non-independent claim boundary;
+- the observer read/capture bridge v2 profile, its canonical-commitment suite
+  and digest, its exact probe source and output bindings, and its
+  actual-dispatch-byte substitution result;
+- the external receipt format and retention path; and
+- the separate B02 authorization and later N01 promotion boundaries.
+
+The packet must not embed its own digest. The external review request and every
+review record content-address the immutable packet bytes with
+`review_packet_sha256`. This acyclic rule lets the generator compare that digest
+with the current packet file.
+
+Before any review record is captured, the replacement packet must contain
+exactly one JSON block with schema `ncp.b01-review-subject.v1` and state
+`CURRENT`. That block contains the exact decision-set and review-policy
+identities, source commit and tree, claim boundary, promotion block, and all ADR
+digests, byte lengths, role obligations, and defect mappings. It does not
+contain `review_packet_sha256`.
+
+The generator allows this superseded packet or a template only while the source
+has zero review records. If a zero-review packet contains a review-subject block,
+the generator validates it immediately so reviewers do not receive an unchecked
+subject. Once any record exists, it rejects a missing, duplicate, superseded,
+template, or mismatched `CURRENT` block. It resolves every ADR in the block from
+the named Git commit. It also requires that commit to contain the exact current
+generator, output schema, and zero-review decision source. A record that claims
+the current packet must match that block.
+
+Replacement generation follows an acyclic sequence:
+
+1. commit and push the final ADR, role, generator, and schema source with zero
+   review records;
+2. run
+   `python3 scripts/generate_decision_registry.py --emit-review-subject <commit>`
+   for that exact 40-character commit, set the lifecycle to `CURRENT`, and insert
+   the emitted block without modification;
+3. commit and push the immutable packet without changing its reviewed inputs;
+4. content-address those packet bytes in the external request and review
+   records; and
+5. add review records later without changing the packet or reviewed inputs.
+
+Each reviewer must use a stable issuer-and-subject identity. A display name or
+GitHub reaction is not sufficient. Each review must have an authenticated
+external receipt and separate role-authorization evidence. A role that requires
+independence must also have a separate retained content-addressed independence
+assessment. A boolean claim alone does not qualify.
+
+The source must retain each external receipt under
+`evidence/implementation/reviews/B01/`. Each reference binds an absolute HTTPS
+URL, SHA-256, byte length, media type, and regular non-symlink file. Role
+authorization and the review receipt use separate files. A required independence
+assessment uses a third file. The generator bounds both each file and the
+aggregate retained evidence that one registry validation reads. Review,
+role-authorization, independence, and condition-closure receipt paths, URLs, and
+byte digests are exclusive across review records. One retained receipt cannot
+impersonate multiple judgments.
+
+An `ACCEPT_WITH_CONDITIONS` record does not count while a condition is open. A
+resolution must bind exact evidence and a same-reviewer closure receipt for the
+same ADR and decision-set digests. An ADR edit makes the old review stale and
+requires a new review. Resolution evidence, the closure receipt, review receipt,
+role authorization, and independence assessment use distinct retained evidence
+paths. A superseding record must have a later timestamp than its predecessor.
+
+The generator resolves the source commit as a real Git commit. It checks the
+tree, zero-review decision source, generator, output schema, and every ADR blob
+at that commit. It checks each digest and byte length. It also checks the review
+against the current packet bytes. These structural checks do not prove external
+authorship, role authority, or independence. Those facts remain B01 evidence
+obligations.
+
+A generated `ACCEPTED` registry does not advance B01 by itself. A B01
+independent-pass receipt must bind the exact registry, packet, source
+commit/tree, review policy, accepted ADR IDs, qualifying review IDs, and a
+derived digest of each role's reviewer identity kind, implementation-owner
+universe, role-authorization receipt, independence assessment, and external
+review receipt. Two distinct non-owner external adjudicators must separately
+bind and pass that complete subject and the same exact owner universe.
+Each adjudication must bind a separate retained external receipt by public HTTPS
+URL, repository-relative path, SHA-256, byte length, and media type. Those
+receipts must use distinct URLs, paths, and byte digests. They cannot reuse any
+review, role-authorization, independence, resolution, or condition-closure
+evidence. Every content-addressed registry review-evidence file must remain a
+regular current file and the exact same blob in the pushed B01 receipt commit.
+The registry inputs, adjudication artifacts, and retained receipts must also be
+exact regular blobs in that commit. The packet's zero-review source commit must
+be a strict ancestor of the pushed B01 receipt commit, so that push carries the
+exact review request in its history. Each adjudication must occur after every
+qualifying review and condition closure, and before the B01 passing receipt.
+B02 owner authorization binds the exact B01
+ratification-receipt digest and uses another exclusive, content-addressed
+retained receipt after the dependency-ready B02 start and before its passing
+receipt.
+
+This model closes D19 without promoting a file into `contract/`. B02 owns
+rebaseline authorization. B03 owns exact registry allocations. N01 alone owns
+mechanical normative promotion. N01 rejects a promoted copy that alters any
+review, policy, evidence, decision-set, schema, generator, or predecessor
+provenance field.
+
+## Historical superseded packet
+
 This packet requests human, same-digest review of the eleven **PROPOSED** NCP
 1.0 architecture decisions. It is not an approval record. It does not accept an
 ADR, change the normative contract, satisfy B01, authorize a rebaseline, certify
@@ -69,7 +214,7 @@ The dependency and authority direction is standalone-first:
   an authenticated policy receipt, not a body command disposition or authority.
   Missing disposition never lets Galadriel infer `APPLIED_DENY`.
 - Prisoma is read-only/offline; pid-rs is a protocol-neutral leaf; Cortexel is a
-  labelled export sink. None is an NCP plant peer or command-path dependency.
+  labeled export sink. None is an NCP plant peer or command-path dependency.
 
 Native v0.8-to-1.0 migration is a complete quiesced body-profile cut. Old
 admission/listeners/principals/publishers and bounded queues close before a fresh
@@ -167,27 +312,34 @@ in each ADR. In particular, try to find a counterexample involving:
 - migration, packaging, or local tests being overstated as release or installed
   interoperability evidence.
 
-## Review response template
+## Replacement review response fields
 
 ```text
-Reviewer identity:
-Organization/team:
-Reviewer role(s):
-Independent of implementation owner: yes/no, with explanation
-ADR ID(s) and exact SHA-256 reviewed:
-Disposition for each: ACCEPT | REJECT | ACCEPT_WITH_CONDITIONS
-
-Protocol/security/plant findings:
-Consumer/runtime findings:
-Operations/science/evidence findings:
-Ten-lens omissions or counterexamples:
-Conditions and exact resolution evidence required:
-Commands/artifacts independently examined:
-Timestamp (UTC):
+review_id:
+adr_id:
+role_id:
+reviewer stable issuer-and-subject identity:
+identity kind: PERSON | TEAM
+implementation-owner identities:
+independence_claimed: true | false
+decision_set_sha256:
+adr_content_sha256:
+adr_bytes:
+source_commit:
+source_tree:
+review_packet_sha256:
+decision: ACCEPT | REJECT | ACCEPT_WITH_CONDITIONS
+conditions and exact resolution requirements:
+role-authorization receipt URL, path, SHA-256, bytes, media type:
+independence-assessment receipt URL, path, SHA-256, bytes, media type, or null:
+external-review receipt URL, path, SHA-256, bytes, media type:
+timestamp_utc:
+supersedes review_id or null:
 ```
 
 An `ACCEPT_WITH_CONDITIONS` is not an acceptance until every condition is closed
-against the same exact bytes. Model output, an AI review, an implementation-owner
+against the same exact bytes and decision-set digest. The same reviewer must
+authenticate the closure. Model output, an AI review, an implementation-owner
 self-review, a local green test, or a GitHub reaction does not satisfy an
 independent reviewer role.
 

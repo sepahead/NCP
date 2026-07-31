@@ -1,9 +1,9 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "34cef2a6d8ca6fd514d412ce3ca69162d7ce8a5a7e3a1ca7601c79ee27705122"
+    "sha256": "6717f2f4ef03a119065df93b9c9d230d241169c5519008c5cbc5e86be2406f66"
   },
-  "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes; LOCAL_PASS cannot satisfy external or independent gates.",
+  "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
     {
       "closure_rule": "Close only when distinct typed simulation and plant vectors plus live role tests pass.",
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when attach, grant, revoke, and observer non-authority negatives pass with authenticated principals.",
+      "closure_rule": "Close when authenticated attach/renew/terminal/detach/revoke/reattach and non-authority tests pass. ObserverAuthorizationStateHead is the sole descriptor/security/clock/registry selector; LocalSecurityCurrentnessCASCondition joins its CAS. ObserverGrantRegistryKey=requester+never-reused lineage. BEGIN_GRANT_RENEWAL uses receipt-free ObserverGrantRenewalTransitionFact binding preallocated operation ID, prior outer/registry/G0 heads, candidate plan/grant/full key, expected versions/currentness, and G0 intent root; plan-only rejects. Its successor replaces G0 at the same key with pending G1, advances issuance, and emits ObserverGrantRenewalPredecessorFenceReceipt, never a G0 terminal receipt. Old boundaries install SERVER_RENEWAL_FENCE. G1 prepare binds authenticated G0 terminal/quiescent closure ancestry; free digests prove nothing. Activation commitment binds operation ID+intent root. A plan member is principal+never-reused instance+literal domain+deadline policy+security state; plan/preparation/root/outbox preserve it, local signers match it, and server keys cannot mint local proof. In one tagged coordinator clock request_time<installation_close. Checked positive-rate, ceiling, add, and overflow rules require installation_close+activation_budget <= grant_not_after and request_time+revocation_lag. Mapping binds calibration receipt<=request, distinct source/target horizons, correlation/qualification, clock-tagged comparisons, anchored duration endpoints, and in-domain values. Member times satisfy prepare_close<=latest_activation<release_not_after and latest_activation+budget_upper<=release_not_after. PREPARE uses prepare_close; later authorization/expiry uses release_not_after. Receipt-free AuthorizationDeadlineConditionIntent contains expected_prior_selector_version only, never future successor/version/time/result. Fact+successor bind its canonical set root. In one serialized durable transaction, store-produced post-linearization evaluations bind intent digest, installed successor digest/version, one store/transaction/sample/count, and exact digest bijection. One set-wide profile is TRANSACTION_MANAGER_LINEARIZATION with zero bound, or QUALIFIED_COMPLETION_BOUND with qualification-source digest, enforced positive bound, and store result; opaque hashes reject. DAG: intent→fact→successor→operation-commitment→evaluation-set→generic→selector→specialized; generic excludes selector digest, selector binds generic, specialized binds both. Missing/mismatch/cycle/stall rejects. Each boundary has one TrustedDeliveryReleaseStateHead/selector with bounded grant map. TrustedDeliveryBoundaryGrantKey=session+generation+registry incarnation+stable key+issuance+grant digest, derived after sealing. G1 inserts an absent key; G0 remains terminal/quiescent sibling. Phases PREPARED/LIVE/TERMINAL/TRANSPORT_QUIESCENT; only LIVE releases; ordinary changes one key; bulk cuts persist per-key receipts. SERVER_TERMINAL/SERVER_RENEWAL_FENCE cut immediately; LOCAL_FIXED_DEADLINE_EXPIRED waits for release_not_after. Terminal-first defeats activation/reservation/release; release-first preserves committed items. Release/slot/item-attempt allocators are monotonic; hard-coded-one reuse rejects. Active/ambiguous attempts are non-evictable; retry needs same-key proof; no exactly-once claim. Authorization closure, transport quiescence, and receiver admission differ. Closure is exact-or-UNKNOWN; expiry proves original source expiry elapsed and its qualified lower image reached release_not_after, never extrapolates a later sample. Quiescence needs exact inventory/dispositions, no resend right, and authenticated no-future-delivery proof; ambiguous send without finality/cancellation blocks it. Detach is exactly DETACH_AUTHORIZATION_CLOSED or DETACH_TRANSPORT_QUIESCENT. Reattach is exactly REATTACH_ALLOWED or REATTACH_FORBIDDEN; aliases reject. ObserverGrantRequestAttempt has distinct response_close/admission_not_after; renewal preserves G0 until G1 installs. LIVE or unchanged G0 in LIVE_RENEW_PENDING alone admits; DETACH_PENDING fences before send.",
       "id": "D02",
       "task_ids": [
         "N02",
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when declare, retire, exhaustion, restart vectors, and live stream traces pass.",
+      "closure_rule": "Close only when declare, retire, exhaustion, restart vectors, and live stream traces pass; when no stricter body-session or observer-admission root exists, one ReceiverAdmissionStateHead is the sole root for descriptor, declaration ledger, evidence-lineage registry, and every bounded per-stream live, history-anchor, historical, or terminal branch, with a never-reused incarnation and exact prior-plus-one state version; descriptor/declaration/retire/frame/history/lineage races serialize on that root, subordinate selectors grant no currentness, and every security-dependent successor binds LocalSecurityCurrentnessCASCondition and compares the exact local security selector in the same proven transaction or closes the surface; retirement constructs a receipt-free RetirementAnchor from the exact installed live head, prior selector version, and already installed last frame-head commit before RETIREMENT_FREEZE CAS and emits the installing receipt afterward; late attach uses only LATE_ATTACH_GENESIS; terminalization similarly constructs a receipt-free FrameAdmissionTerminalCheckpoint from the exact installed history head or anchor plus its prior already installed receipt, then uses exactly TERMINALIZE_FROM_HISTORY_HEAD or TERMINALIZE_FROM_RETIREMENT_ANCHOR and emits the installing receipt afterward; head-receipt cycles, stale siblings, wrong predecessors, generic closure kinds, missing post-CAS receipts, skipped/repeated/rolled-back versions, and cross-root check-then-CAS mutants reject.",
       "id": "D03",
       "task_ids": [
         "N03",
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when transcript-swap negatives and model-to-Rust refinement pass.",
+      "closure_rule": "Close only when transcript-swap negatives and model-to-Rust refinement pass; plant command admission binds the exact installed transcript and security context while the body-session composite CAS conditionally verifies the referenced security-authority selector version in one proven local transactional store; separate remote or before/after checks and a planned stop cannot substitute.",
       "id": "D05",
       "task_ids": [
         "N02",
@@ -56,7 +56,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when per-message actor and route provenance plus live rotation and revocation pass.",
+      "closure_rule": "Close only when per-message actor and route provenance plus live rotation and revocation pass; every security transition follows pre-CAS SecurityAuthorityTransitionFact, successor head, state commit receipt, then per-session authorization, and head-authorization plus fact-authorization cycle mutants reject; every security-dependent local composite transition constructs receipt-free LocalSecurityCurrentnessCASCondition over the exact operation and authority scopes, expected operation predecessor, local durable transaction-store identity, security-authority domain and lineage incarnation, authority-state version, security and revocation epochs, semantic security-state and installed authority-head digests, installed selector incarnation/version/digest, and authenticated installed authority head/selector/commit source; every security-dependent consumer successor and generic plus specialized post-CAS receipt binds the exact condition digest, and the receipts bind the operation heads and compared security state and selector; one proven local durable transaction uses the identified store and conditionally compares both selectors; an unavailable common transaction closes the operation surface, and an emergency selector advance makes a pending old-state CAS lose; wrong-store, wrong-source, separate remote checks, or planned stop do not qualify the race, local ordering claims no instantaneous CA, revocation-feed, or fleet propagation, and live measured propagation remains external evidence; dev-loopback-insecure accepts only IP loopback or an absolute Unix-domain socket, rejects wildcard, unspecified, non-loopback, relative-socket, and production endpoints, exposes unmistakable insecure state in every API/startup/status/transcript surface, and cannot be negotiated or reached by downgrade from production-secure.",
       "id": "D06",
       "task_ids": [
         "N04",
@@ -65,38 +65,42 @@
       ]
     },
     {
-      "closure_rule": "Close only when body-issued dispositions, query and replay tests, and composed live traces pass.",
+      "closure_rule": "Close only when body-issued dispositions, query and replay tests, and composed live traces pass; every authority/lifecycle/latch, action-command declaration, disposition, attempt, side-effect, clock, retention, rebind, and terminal transition compare-and-swaps the sole BodySessionControlState selector, and generic plus specialized post-CAS receipts bind identical prior and installed composite and subordinate heads; each normal plant command append constructs receipt-free LocalSecurityCurrentnessCASCondition over the exact operation and authority scopes, expected operation predecessor, local durable transaction-store identity, security-authority domain and lineage incarnation, authority-state version, security and revocation epochs, semantic security-state and installed authority-head digests, installed selector incarnation/version/digest, and authenticated installed authority head/selector/commit source; the security-dependent consumer successor and generic plus specialized post-CAS receipts bind the exact condition digest, and the winning composite CAS uses the identified local store to conditionally compare the exact security selector; unavailable, omitted-condition, wrong-store, wrong-source, separate-check, planned-stop, and concurrent-security mutants fail closed.",
       "id": "D07",
       "task_ids": [
         "N03",
+        "H02",
         "C02",
         "C05",
         "X02"
       ]
     },
     {
-      "closure_rule": "Close only when acquire, conflict, transfer, expiry, restart, and multi-writer campaigns pass.",
+      "closure_rule": "Close only when acquire, conflict, transfer, expiry, restart, and multi-writer campaigns pass; each operation uses pre-CAS PlantAuthorityTransitionFact, installs authority under the sole composite CAS, and emits generic, authority-commit, and live-lease currentness receipts; stale security version, unavailable common local transactional state, separate remote or before/after security checks, planned stop, concurrent declaration/journal/security change, sibling, and candidate-lease-as-current mutants reject.",
       "id": "D08",
       "task_ids": [
         "N03",
         "E04",
+        "E06",
         "H02",
         "C02",
         "X02"
       ]
     },
     {
-      "closure_rule": "Close only when the extension route is registered and disjoint, core-route rejection passes, and visuals are corrected.",
+      "closure_rule": "Close only when the extension route is registered and disjoint, core-route rejection passes, and visuals are corrected; Galadriel and Haldir release paths must each follow receipt-free commitment, successor composite head, generic commit plus specialized post-CAS release, then complete item binding that release in one local transaction; successor heads exclude complete items and post-CAS receipts, and head-item, head-release, partial-item, and crash-cut mutants reject; Galadriel FINALIZE binds a trusted assessor-clock sample in the current incarnation in its winning CAS and requires strict time before not-after, while equality, later time, or restart without the exact GALADRIEL_ASSESSOR_CLOCK_RESTART fact-to-successor-to-commit chain cancels with no item; its local queue result is exactly CANCELED_BEFORE_LOCAL_QUEUE or RELEASED_TO_LOCAL_DURABLE_EXTENSION_QUEUE, and only a separate later external disposition may be DELIVERED, REJECTED, or AMBIGUOUS_AFTER_EXTERNAL_TRANSPORT; Haldir source admission is pre-CAS fact, successor policy head, generic commit, then source-admission receipt; commander preflight is receipt-free until its local head CAS consumes the position and emits the generic plus installation receipts; NO_PROFILE terminal H2 newly binds only the ingress stamp and closed outcome and excludes both post-CAS receipts; a selected-profile barrier follows receipt-free HaldirAssessmentEvaluationBarrierFact, a winning policy CAS that reverifies the current authority-clock incarnation and sample strictly before deadline, H2 binding that exact fact, generic policy commit binding fact and H2, then post-CAS barrier receipt binding fact/H2/selector/commit; exact HALDIR_POLICY_CLOCK_RESTART and HALDIR_COMMANDER_CLOCK_RESTART fact-to-successor-to-generic-to-specialized receipt chains preserve or tighten every pending deadline, otherwise cancel pending allow/publication while preserving deny, fail-safe, consumed-position, and evidence state; deadline equality is expired, policy and commander clocks never substitute, and NCP queue transfer proves neither Crebain admission nor application.",
       "id": "D09",
       "task_ids": [
         "B03",
         "G01",
+        "H02",
+        "H04",
         "C03",
         "N10"
       ]
     },
     {
-      "closure_rule": "Close only when the bypass is deleted and malformed and wrong-context ESTOP mutants fail at the latch boundary.",
+      "closure_rule": "Close only when the bypass is deleted and the ingress-attempt, fail-safe side-effect, resolution, model, hostile mutants, and crash recovery pass: the exact minimum current-context gate and a durable attempt precede the separate non-authorizing side effect; invalid fresh same-session HOLD and ESTOP can apply that body-local effect before remaining stream, replay, and semantic checks, then reject; side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched; ESTOP queue priority, admission, and stop_latched require the full envelope, manifest, route, audience, session, stream, replay, operation, TTL, source, channel, profile, authority, and semantic gates, with only exact permitted ESTOP lease absence omitted; exact replay and identity conflict create no second received; invalid Active and wrong-context, unsigned, oversize, unverifiable, or ambiguous candidates cause no effect; ambiguous or unresolved fail-safe state blocks Active; every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts; independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
       "id": "D10",
       "task_ids": [
         "C01",
@@ -106,7 +110,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when missingness mapping and independent statistical and scientific claim review pass.",
+      "closure_rule": "Close only when missingness mapping, producer_declared_resolved_source non-causality, the closed neural/categorical/excluded Prisoma numeric contracts, exhaustive environment manifest and applicability branches, authenticated executor state, pre-CAS execution fact, and post-CAS one-use evidence, shared execution-receipt branches, canonical binary64 recomputation, environment/executable/dependency/state/fact-cycle/map/output/exclusion/nondeterminism mutants, and independent statistical and scientific claim review pass; PrisomaNumericExecutorStateHead binds exact imported trust_state_digest and policy_head_digest, ordinary successors preserve both byte-identical, and any trust/policy change fences the process state and requires a fresh never-used incarnation; each native capture event follows receipt-free fact, segment/composite successor plus generic commit and complete event/outbox item in one local transaction, and an idempotent worker drains only that exact immutable item.",
       "id": "D11",
       "task_ids": [
         "E05",
@@ -134,7 +138,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when current surfaces are regenerated and frozen 0.8 byte identity remains unchanged.",
+      "closure_rule": "Close only when current surfaces are regenerated and frozen 0.8 byte identity remains unchanged; every consumer semantic capture head binds the exact imported consumer_owner_trust_state_digest, ordinary successors preserve it byte-identical, and a trust-root or owner-authorization change fences the installed state and requires an explicitly authorized fresh state incarnation.",
       "id": "D14",
       "task_ids": [
         "N07",
@@ -143,17 +147,18 @@
       ]
     },
     {
-      "closure_rule": "Close only when body-issued authority lifecycle and live distributed transition evidence pass.",
+      "closure_rule": "Close only when body-issued authority lifecycle and live distributed transition evidence pass: exact plant-authority and command-declaration composite genesis, the closed authority/lifecycle operation set, no independently effective plant-authority or action-command declaration selector, pre-CAS facts and acyclic post-CAS receipts, and receipt-free LocalSecurityCurrentnessCASCondition are required; that condition binds the exact operation and authority scopes, expected operation predecessor, local durable transaction-store identity, security-authority domain and lineage incarnation, authority-state version, security and revocation epochs, semantic security-state and installed authority-head digests, installed selector incarnation/version/digest, and authenticated installed authority head/selector/commit source; each security-dependent consumer successor and generic plus specialized post-CAS receipt binds the exact condition digest, while one common proven local transaction uses the identified store to conditionally compare the body-session and exact security selectors; closed admission when the transaction is unavailable, wrong-store and wrong-source rejection, planned-rotation fencing, emergency old-state CAS loss, and no instantaneous external propagation claim are required.",
       "id": "D15",
       "task_ids": [
         "N03",
         "E04",
+        "E06",
         "H02",
         "C02"
       ]
     },
     {
-      "closure_rule": "Close only when semantic public-trust projection and live rebind and revoke tests pass.",
+      "closure_rule": "Close only when semantic public-trust projection and live rebind and revoke tests pass; per-session rebind authorization must derive only after the exact security successor commit, and the body composite CAS must reverify that security selector version without embedding authorization in a predecessor fact or head.",
       "id": "D16",
       "task_ids": [
         "N04",
@@ -169,20 +174,70 @@
         "R01",
         "R02"
       ]
+    },
+    {
+      "closure_rule": "Close only when every discovered executable, CI-built, or deployment-activated repository/root/target-kind/target/default-feature-mode/effective-feature-set/role/activation-profile/resolution-context-digest tuple whose closure contains NCP has one coherent versioned surface identity; separate ConsumerSurfaceInputManifest and actual build/deployment inputs determine keys, contexts, discovery, scanner evidence, and Python mirror location; resolution contexts bind pre-build inputs only; resulting artifact digests are computed separately, exclude .ncp-consumer bytes and digest, and precede sibling descriptor generation; .ncp-consumer is output-only and excluded from every digest it contains; one installed repository-local inventory head/selector/commit root binds stable scope, never-reused incarnation, exact prior-plus-one version, descriptor floor, complete canonical TrustedSubjectAuthorizationState and TrustedScannerAuthorizationState content plus recomputed digests, and a closed ACTIVE, MIGRATION_REQUIRED_DISABLED, AUTHORIZATION_REVOKED_DISABLED, FENCED, or RETIRED status; subject state binds authorization domain/policy/version, sorted authorized receipt digests, and authenticated grant/revoke ancestry, scanner state binds principal, content-addressed binary/dependency closure, scan policy/version, receipt eligibility, and authenticated grant/revoke ancestry, both are subordinate with no independent selector, and a bare digest cannot authorize; genesis, repin, floor advance, subject/scanner grant/revoke, fence, and retire all use the same selector, preserve unrelated surfaces/evidence, and serialize same-predecessor races; repin requires the current authorized scanner binary/closure/policy and eligible receipt, while no proven common transaction disables repin and real scanner execution remains NOT RUN until exact external evidence exists; cross-repository work stays staged; self-hash, output-artifact cycle, omission, stale-input, sibling-CAS, scope, authorization-state substitution, scanner-binary substitution, shared-node disagreement, and mixed-wire deployment mutants reject.",
+      "id": "D18",
+      "task_ids": [
+        "B01",
+        "N07",
+        "E01",
+        "E06",
+        "H01",
+        "H02",
+        "H04",
+        "G01",
+        "C01",
+        "P01",
+        "R07"
+      ]
+    },
+    {
+      "closure_rule": "Close only when exact current-subject human review chains can derive every non-normative ADR acceptance without stale, self, rejected, forked, or unresolved conditional evidence; B02 separately authorizes the candidate subject; B03 makes bounded allocations; and N01 alone promotes the accepted registry into the normative graph.",
+      "id": "D19",
+      "task_ids": [
+        "B01",
+        "B02",
+        "B03",
+        "N01"
+      ]
+    },
+    {
+      "closure_rule": "Close only after a separately authenticated and independently qualified verifier boundary exists outside this repository-local coordination checker and admits the exact installed challenge-exposure anchor subject. Local JSON, URLs, booleans, reviewer labels, Git refs, remote-tracking observations and in-process cryptography are never external or independent authority. Until that boundary is implemented and integrated by an explicit reviewed checker and schema change, EXTERNAL_PASS, INDEPENDENT_PASS and externally dependent COMPLETE admission are unconditionally disabled before any asserted signature, identity, currentness, revocation, qualification or gate result can grant status; X05 stays OPEN, its gate stays NOT RUN and D20 cannot close. This local checker intentionally contains no X05 signature, trust-root, qualification, revocation, or currentness acceptance parser, no cryptographic dependency, and no trust-root configuration path. Supported LOCAL receipts bind one exact canonical transition subject containing the task, from/to states, requirement-and-acceptance digest, exact repository policy and unambiguous branch, immutable local source/evidence cuts, dependency receipt generation, task-subject generation and correlation ID. Dependency receipts strictly predate each dependent receipt; same-repository dependency source cuts are ancestors of dependent source cuts; a pass generation cannot change source or subject without an IN_PROGRESS reopen and exact descendant invalidation. Local remote-tracking observations prove no configured-remote reachability, and reviewer-name separation proves no independence.",
+      "id": "D20",
+      "task_ids": [
+        "B01",
+        "N02",
+        "N04",
+        "E03",
+        "G02",
+        "P02",
+        "X05",
+        "X02",
+        "F04"
+      ]
     }
   ],
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "8efb9b7c47ad4306137017381c1d39cacf4bce0b87a20746fe325667c7b664e6"
+      "sha256": "b4e079074063e624a5d34002afda4efffe51b423e21a5b4166d5bacafebcd5b8"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "9cda40bfb62b24a00430716f7a6b36638ee3ddf088d6d0cf2d76899be3ddbf94"
+      "sha256": "6cb333f153565b00f689b1c1b8eb0436a112184529304df5d5160a198a80a6f9"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",
-      "sha256": "a6b5cebd28e2acf05ee4626b4349c72eb96bf32f5200573c1647bedc3e934baa"
+      "sha256": "aa05e5901ccdd077b4a84d03561a7349051ab49750f0dc73d953166891e57b2d"
+    },
+    {
+      "path": "scripts/validate_evidence_schemas.py",
+      "sha256": "d4de65d0155b0892d683fd7178813c973351beac48956bfd271172a642f4f484"
+    },
+    {
+      "path": "scripts/requirements-evidence-schema.txt",
+      "sha256": "b540eb4f736d82d96c981f7bce171743a5b58324a8ec4b45106159355d39427a"
     }
   ],
   "ledger_grants_release_authorization": false,
@@ -544,7 +599,7 @@
       "reviewers": [
         {
           "decision": "PASS",
-          "identity": "Codex primary implementation agent",
+          "identity": "Codex B00 local evidence reviewer",
           "implementation_owner": "Codex primary implementation agent",
           "independent": false,
           "role": "local implementation and evidence reviewer"
@@ -701,6 +756,8 @@
             "commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
             "dependency_receipts": [],
             "environment": "Darwin 25.5.0 arm64; exact clean NCP main worktree; local build/test, loopback network, package archives, current-plus-pinned advisory replay, repo-less archived-source preflight, and responsive browser QA; no external qualification environment represented.",
+            "evidence_commit": "cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1",
+            "evidence_tree": "68567033991ba963beaa8873f52f82da85f12059",
             "external_gates_not_run": [
               "live-mtls-acl-rotation-revocation",
               "two-independent-non-rust-live-peers",
@@ -733,7 +790,7 @@
             "reviewers": [
               {
                 "decision": "PASS",
-                "identity": "Codex primary implementation agent",
+                "identity": "Codex B00 local evidence reviewer",
                 "implementation_owner": "Codex primary implementation agent",
                 "independent": false,
                 "role": "local implementation and evidence reviewer"
@@ -742,6 +799,7 @@
             "rollback_or_recovery": "Revert only the B00 coordination commits if the ledger or generated recovery views prove defective; preserve consumer worktrees and retained failed/pass evidence, reopen B00 with a content-bound coordination receipt, and invalidate descendant receipts exactly as the checker requires.",
             "source_commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
             "source_tree": "6392664f6607bd399aeb7b4bd43658cba0fffd43",
+            "task_subject": null,
             "timestamp_utc": "2026-07-16T08:59:25Z",
             "toolchain": [
               {
@@ -828,7 +886,24 @@
                 "name": "agent-browser",
                 "version": "0.27.2"
               }
-            ]
+            ],
+            "transition_subject": {
+              "branch": "main",
+              "correlation_id": "ncp-v1-finalization-20260716-b00-local-pass",
+              "dependency_receipts": [],
+              "evidence_commit": "cb8a22311ca7c06ef0d3bcbd77b99ceb830053f1",
+              "evidence_tree": "68567033991ba963beaa8873f52f82da85f12059",
+              "from": "IN_PROGRESS",
+              "receipt_kind": "passing",
+              "repository": "NCP",
+              "requirement_acceptance_sha256": "7581d3ba904478678853b9be5694fba1500c7865a2bc305ef5dec1574f80a8f5",
+              "schema": "ncp.local-transition-subject.v1",
+              "source_commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
+              "source_tree": "6392664f6607bd399aeb7b4bd43658cba0fffd43",
+              "task_id": "B00",
+              "task_subject_sha256": null,
+              "to": "LOCAL_PASS"
+            }
           },
           "timestamp_utc": "2026-07-16T08:59:26Z",
           "to": "LOCAL_PASS"
@@ -1033,7 +1108,7 @@
       "reviewers": [
         {
           "decision": "PASS",
-          "identity": "Codex primary implementation agent",
+          "identity": "Codex B04 local evidence reviewer",
           "implementation_owner": "Codex primary implementation agent",
           "independent": false,
           "role": "local prototype implementation and evidence reviewer"
@@ -1111,7 +1186,38 @@
           "correlation_id": "ncp-v1-finalization-20260716-b04",
           "from": "OPEN",
           "reason": "Begin bounded non-normative feasibility work for authenticated ingress and two isolated native non-Rust parsers before ADR ratification or wire changes.",
-          "receipt": null,
+          "receipt": {
+            "dependency_receipts": [
+              {
+                "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                "task_id": "B00"
+              }
+            ],
+            "kind": "start",
+            "timestamp_utc": "2026-07-16T09:18:11Z",
+            "transition_subject": {
+              "branch": "main",
+              "correlation_id": "ncp-v1-finalization-20260716-b04",
+              "dependency_receipts": [
+                {
+                  "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                  "task_id": "B00"
+                }
+              ],
+              "evidence_commit": null,
+              "evidence_tree": null,
+              "from": "OPEN",
+              "receipt_kind": "start",
+              "repository": "NCP",
+              "requirement_acceptance_sha256": "f0f8dcb79d6b5fe4c268730fc95d0d1747118adefc765d3ea6f7eb6a3d7c7918",
+              "schema": "ncp.local-transition-subject.v1",
+              "source_commit": null,
+              "source_tree": null,
+              "task_id": "B04",
+              "task_subject_sha256": null,
+              "to": "IN_PROGRESS"
+            }
+          },
           "timestamp_utc": "2026-07-16T09:18:11Z",
           "to": "IN_PROGRESS"
         },
@@ -1250,11 +1356,13 @@
             "commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
             "dependency_receipts": [
               {
-                "receipt_sha256": "0c9219753071f0a4090b56b63c335a6a88295ce5d2c1a214318397b71b9dff4e",
+                "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
                 "task_id": "B00"
               }
             ],
             "environment": "Darwin 25.5.0 arm64; exact clean pushed NCP main implementation cut; isolated loopback Zenoh and TLS prototypes; Python, Node, SQLite, OpenSSL, package, advisory, and repository-local tests only; no external security, installed-peer, physical-safety, performance, or release qualification environment represented.",
+            "evidence_commit": "9aaf667e2aecdc3c5b898e6430e9b33a5d7e76a1",
+            "evidence_tree": "e479509f206700b50aa7747e24f41b489d0415ed",
             "external_gates_not_run": [
               "live-mtls-acl-rotation-revocation",
               "two-independent-non-rust-live-peers",
@@ -1289,7 +1397,7 @@
             "reviewers": [
               {
                 "decision": "PASS",
-                "identity": "Codex primary implementation agent",
+                "identity": "Codex B04 local evidence reviewer",
                 "implementation_owner": "Codex primary implementation agent",
                 "independent": false,
                 "role": "local prototype implementation and evidence reviewer"
@@ -1298,6 +1406,7 @@
             "rollback_or_recovery": "If the B04 local receipt or quarantined prototypes prove defective, reopen B04, bind the coordination receipt to exact defect evidence, invalidate content-bound descendant receipts, revert only affected B04 and gate-repair commits, preserve retained logs and unrelated repositories, and keep direct Zenoh production-secure disabled.",
             "source_commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
             "source_tree": "5e4b0e8a455eae677cc922d417121caf2d1c35d9",
+            "task_subject": null,
             "timestamp_utc": "2026-07-16T17:12:34Z",
             "toolchain": [
               {
@@ -1356,7 +1465,29 @@
                 "name": "git",
                 "version": "2.50.1 (Apple Git-155)"
               }
-            ]
+            ],
+            "transition_subject": {
+              "branch": "main",
+              "correlation_id": "ncp-v1-finalization-20260716-b04-local-pass",
+              "dependency_receipts": [
+                {
+                  "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                  "task_id": "B00"
+                }
+              ],
+              "evidence_commit": "9aaf667e2aecdc3c5b898e6430e9b33a5d7e76a1",
+              "evidence_tree": "e479509f206700b50aa7747e24f41b489d0415ed",
+              "from": "IN_PROGRESS",
+              "receipt_kind": "passing",
+              "repository": "NCP",
+              "requirement_acceptance_sha256": "f0f8dcb79d6b5fe4c268730fc95d0d1747118adefc765d3ea6f7eb6a3d7c7918",
+              "schema": "ncp.local-transition-subject.v1",
+              "source_commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
+              "source_tree": "5e4b0e8a455eae677cc922d417121caf2d1c35d9",
+              "task_id": "B04",
+              "task_subject_sha256": null,
+              "to": "LOCAL_PASS"
+            }
           },
           "timestamp_utc": "2026-07-16T17:12:35Z",
           "to": "LOCAL_PASS"
@@ -1379,26 +1510,64 @@
       ],
       "artifacts": [],
       "changed_files": [
+        ".github/workflows/ci.yml",
+        "RELEASE_READINESS.md",
+        "docs/1.0-candidate-receipts.md",
+        "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "docs/adr/0002-contract-identity-and-release-authorization.md",
+        "docs/adr/0003-authenticated-production-ingress.md",
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/adr/0005-declared-stream-lifecycle.md",
+        "docs/adr/0006-body-issued-authority-and-time.md",
+        "docs/adr/0007-command-disposition-journal.md",
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/adr/0009-security-state-rotation-and-revocation.md",
+        "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
         "docs/adr/B01_REVIEW_PACKET.md",
         "docs/adr/README.md",
+        "docs/adr/decision-registry.proposed.schema.v1.json",
+        "docs/adr/decision-registry.proposed.v1.json",
+        "docs/adr/decision-registry.source.v1.json",
+        "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
+        "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
         "docs/implementation/NCP_1_0_RESUMPTION.md",
         "docs/implementation/NCP_1_0_TASK_LEDGER.md",
         "evidence/audit/latent-path-inventory.v1.json",
         "evidence/audit/manifest.v1.json",
+        "evidence/implementation/receipts/README.md",
+        "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
         "evidence/implementation/working/B01/full-check-a9e0f48.log.gz",
         "evidence/implementation/working/B01/preliminary-architecture-541e1e7.log.gz",
         "evidence/implementation/working/B01/preliminary-architecture-541e1e7.v1.json",
         "evidence/implementation/working/B01/preliminary-architecture-8194195.log.gz",
-        "evidence/implementation/working/B01/preliminary-architecture-8194195.v1.json"
+        "evidence/implementation/working/B01/preliminary-architecture-8194195.v1.json",
+        "prototypes/b01-architecture-evidence/README.md",
+        "prototypes/b01-architecture-evidence/SECTION_REVIEW.md",
+        "prototypes/b01-architecture-evidence/crypto_probe.py",
+        "prototypes/b01-architecture-evidence/decision_probe.py",
+        "prototypes/b01-architecture-evidence/observer_capture_probe.py",
+        "prototypes/b01-architecture-evidence/resource_probe.py",
+        "prototypes/b01-architecture-evidence/run.sh",
+        "prototypes/b01-architecture-evidence/run_all.py",
+        "prototypes/b01-architecture-evidence/verify_result.py",
+        "scripts/README.md",
+        "scripts/check.sh",
+        "scripts/check_implementation_ledger.py",
+        "scripts/generate_decision_registry.py",
+        "scripts/generate_implementation_ledger.py",
+        "scripts/requirements-evidence-schema.in",
+        "scripts/requirements-evidence-schema.txt",
+        "scripts/validate_evidence_schemas.py"
       ],
       "claim_tier": "COORDINATION_ONLY",
       "commands": [],
       "dependencies": [
-        "B00",
         "B04"
       ],
-      "dirty_state_disposition": "ACCEPTED_CLEAN",
+      "dirty_state_disposition": "NOT_EVALUATED",
       "id": "B01",
       "invalidates": [],
       "minimum_terminal_class": "INDEPENDENT",
@@ -1422,19 +1591,24 @@
         "D14",
         "D15",
         "D16",
-        "D17"
+        "D17",
+        "D18",
+        "D19",
+        "D20"
       ],
       "residual_risks": [
         "All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.",
         "The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.",
-        "Wire examples remain draft JSON only. Independent Python/Node syntax replay and the exact clean-source preliminary model/resource run pass, but the retained result is bounded non-passing working evidence; canonical formal work, refinement, and every downstream implementation remain open.",
-        "Five usable exact Fable 5 consultations are non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
+        "Wire examples remain draft JSON only. Prior Python/Node replay and preliminary model/resource results bind superseded ADR bytes and remain historical non-passing working evidence. The amended decision subject has no retained passing clean-model or complete-gate receipt; canonical formal work, refinement, and every downstream implementation remain open.",
+        "The surface-inventory and scanner-receipt rules are bounded synthetic B01 fixtures only. Current sibling descriptors remain legacy inputs, actual trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 implementation remains open.",
+        "The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.",
+        "Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
         "The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked."
       ],
-      "reviewer_comment": "Strengthened B01 source is pushed and remote-verified at `81941954f33078aa6a8dd85d70e392aae5469246` (tree `dc2c433e5e09cce9f03e981d9cbed44f84e72d00`). Its exact clean result binds the unchanged normative digest, contract-manifest bytes, Z3 binary, 13 sources, Git cleanliness, and Fable E response `080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32`. It explored 11,444 composition, 35 deny, and 1,415 wire-cutover states; killed 23 model and four SMT mutations; passed eleven SMT checks; and detected every resource-probe fault. ADR-008 is proposed at `1379477feebd886823d1511af5df0b7a7019795aef9ee8023147a4ef0a5f56b6` and ADR-011 at `96d243fd41868a70fc00c0f309a5f87e0058f6fce5308e2c98d147e18f76421f`. Canonical result SHA-256 is `3f140dad12147500048644899f69893c1dd985d0001c900ec66b18143be51fe7`; raw/deterministic-gzip log SHA-256 values are `08ba5c52a42b505eb409734b218cf793380778c2f44cc9d151589e2364222c94`/`eb885f3c430e41f3386a860fc9cd74e23b4a1244ed94d03db281d7565d371603`. The earlier `541e1e7` result is superseded. The complete clean local gate passed at remote-verified `a9e0f48520649becc5507fc7d0ba069e4e20af92`; raw/gzip log SHA-256 values are `8dcba99800e4af9ea7f672a51cadc8e91edbee1d5b9ff94cb5a2b18f38620daf`/`11042f9980566d0dbc5687957c2045f6dc902e7a2d212d9769dbc9d834e4b67a`. The exact packet requests human same-digest review at `https://github.com/sepahead/NCP/issues/21`; responses count only with the required role, digest, independence, and disposition fields. These remain non-passing working files: commands, artifacts, and reviewers are empty; all ADRs are PROPOSED; B01 is IN_PROGRESS. Next obtain qualifying reviews. Do not create the normative registry, alter ADR/wire bytes, start dependent tasks, or infer release readiness.",
+      "reviewer_comment": "ADR-004, ADR-005, ADR-007, ADR-011, the D18 per-surface migration model, the D19 ratification/promotion state machine, and consumer task scopes are being amended after cross-repository review. Hostile replay additionally requires receiver admission before grant expiry, exact authenticated disposition causality before body-boundary application, strict decode and recomputation from delivered disposition bytes, and authenticated externally current per-stream high-water state for queued live-frame replay rejection. Earlier source commits, issue requests, preliminary model results, and clean gates bind superseded bytes only. They remain historical non-passing working evidence. Any focused result must be recomputed at the final source cut; no dirty-worktree count is retained as task evidence. The Ed25519 resource screen uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The screen records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. It runs actual result-validator mutations. Local results do not satisfy B01's independent evidence floor and are not retained here as passing task evidence. This coordination entry intentionally has no task source commit, same-digest request, owner review, independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. After a clean amended source commit, rerun the bounded challenge and complete local gates, publish a new exact review packet, and obtain qualifying same-digest reviews. Do not create the normative registry, start descendants, or infer release readiness.",
       "reviewers": [],
       "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
-      "source_commit": "81941954f33078aa6a8dd85d70e392aae5469246",
+      "source_commit": null,
       "status": "IN_PROGRESS",
       "target_commit": null,
       "ten_lens_reviews": [],
@@ -1444,7 +1618,38 @@
           "correlation_id": "ncp-v1-finalization-20260716-b01",
           "from": "OPEN",
           "reason": "Begin hash-bound PROPOSED ADR drafting and non-normative threat/traceability work after dependency-ready B00 and B04 local evidence.",
-          "receipt": null,
+          "receipt": {
+            "dependency_receipts": [
+              {
+                "receipt_sha256": "ed1c48d9ab5014a7849ff1741aeb56710e006b9ca817742a5e1030896cbffc13",
+                "task_id": "B04"
+              }
+            ],
+            "kind": "start",
+            "timestamp_utc": "2026-07-16T17:53:20Z",
+            "transition_subject": {
+              "branch": "main",
+              "correlation_id": "ncp-v1-finalization-20260716-b01",
+              "dependency_receipts": [
+                {
+                  "receipt_sha256": "ed1c48d9ab5014a7849ff1741aeb56710e006b9ca817742a5e1030896cbffc13",
+                  "task_id": "B04"
+                }
+              ],
+              "evidence_commit": null,
+              "evidence_tree": null,
+              "from": "OPEN",
+              "receipt_kind": "start",
+              "repository": "NCP",
+              "requirement_acceptance_sha256": "55d0da2605dcf73fa140fa65d9083d5902e6c53153eb15a1fa6c5a3908499630",
+              "schema": "ncp.local-transition-subject.v1",
+              "source_commit": null,
+              "source_tree": null,
+              "task_id": "B01",
+              "task_subject_sha256": null,
+              "to": "IN_PROGRESS"
+            }
+          },
           "timestamp_utc": "2026-07-16T17:53:20Z",
           "to": "IN_PROGRESS"
         }
@@ -1466,7 +1671,8 @@
       "perspective_reviews": [],
       "repository": "NCP",
       "requirement_ids": [
-        "B02-acceptance"
+        "B02-acceptance",
+        "D19"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1486,7 +1692,7 @@
       "claim_tier": "COORDINATION_ONLY",
       "commands": [],
       "dependencies": [
-        "B01"
+        "B02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "B03",
@@ -1497,7 +1703,8 @@
       "requirement_ids": [
         "B03-acceptance",
         "D09",
-        "D13"
+        "D13",
+        "D19"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1517,7 +1724,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "B02",
         "B03"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -1528,7 +1734,8 @@
       "repository": "NCP",
       "requirement_ids": [
         "N01-acceptance",
-        "D04"
+        "D04",
+        "D19"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1560,7 +1767,8 @@
         "N02-acceptance",
         "D01",
         "D02",
-        "D05"
+        "D05",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1580,7 +1788,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N01",
         "N02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -1614,8 +1821,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "B01",
-        "N01",
         "N02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -1628,7 +1833,8 @@
         "N04-acceptance",
         "D05",
         "D06",
-        "D16"
+        "D16",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1648,7 +1854,6 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "N02",
         "N03",
         "N04"
       ],
@@ -1679,7 +1884,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N02",
         "N03",
         "N04"
       ],
@@ -1710,7 +1914,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N04",
         "N05"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -1742,7 +1945,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N05",
         "N06",
         "X00"
       ],
@@ -1755,7 +1957,8 @@
       "requirement_ids": [
         "N07-acceptance",
         "D04",
-        "D14"
+        "D14",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1775,9 +1978,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N02",
-        "N03",
-        "N04",
         "N07"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -1810,7 +2010,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N06",
         "N07"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -1841,13 +2040,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N01",
-        "N02",
-        "N03",
-        "N04",
-        "N05",
-        "N06",
-        "N07",
         "N08",
         "N09"
       ],
@@ -1880,7 +2072,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N02",
         "N03",
         "N04"
       ],
@@ -1912,7 +2103,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N01",
         "N05",
         "F01"
       ],
@@ -1945,7 +2135,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N07",
         "N08",
         "F02"
       ],
@@ -2038,9 +2227,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N07",
-        "N08",
-        "N09",
         "R01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2050,7 +2236,8 @@
       "perspective_reviews": [],
       "repository": "Engram",
       "requirement_ids": [
-        "E01-acceptance"
+        "E01-acceptance",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2070,9 +2257,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N07",
-        "N08",
-        "N09",
         "R01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2082,7 +2266,8 @@
       "perspective_reviews": [],
       "repository": "Haldir",
       "requirement_ids": [
-        "H01-acceptance"
+        "H01-acceptance",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2102,10 +2287,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "B03",
-        "N07",
-        "N08",
-        "N09",
         "R01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2117,7 +2298,8 @@
       "requirement_ids": [
         "G01-acceptance",
         "D02",
-        "D09"
+        "D09",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2137,9 +2319,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N07",
-        "N08",
-        "N09",
         "R01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2151,7 +2330,8 @@
       "requirement_ids": [
         "C01-acceptance",
         "D01",
-        "D10"
+        "D10",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2171,9 +2351,6 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "N07",
-        "N08",
-        "N09",
         "R01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2185,7 +2362,8 @@
       "requirement_ids": [
         "P01-acceptance",
         "D02",
-        "D03"
+        "D03",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2205,9 +2383,7 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "E01",
-        "N02",
-        "N07"
+        "E01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "E02",
@@ -2237,9 +2413,7 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "H01",
-        "N03",
-        "G01"
+        "H01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "H02",
@@ -2249,8 +2423,11 @@
       "repository": "Haldir",
       "requirement_ids": [
         "H02-acceptance",
+        "D07",
         "D08",
-        "D15"
+        "D09",
+        "D15",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2270,9 +2447,39 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "G01",
-        "N04",
-        "N06"
+        "H02",
+        "G01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "H04",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Haldir",
+      "requirement_ids": [
+        "H04-acceptance",
+        "D09",
+        "D18"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement Haldir's isolated optional assessment receiver",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
+        "G01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "G02",
@@ -2283,7 +2490,8 @@
       "requirement_ids": [
         "G02-acceptance",
         "D02",
-        "D03"
+        "D03",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2303,11 +2511,7 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "C01",
-        "N03",
-        "N04",
-        "N05",
-        "N06"
+        "C01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "C02",
@@ -2350,7 +2554,8 @@
       "repository": "Prisoma",
       "requirement_ids": [
         "P02-acceptance",
-        "D11"
+        "D11",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2370,9 +2575,7 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "E02",
-        "N04",
-        "N06"
+        "E02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "E03",
@@ -2382,7 +2585,8 @@
       "repository": "Engram",
       "requirement_ids": [
         "E03-acceptance",
-        "D03"
+        "D03",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2434,11 +2638,8 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "E02",
         "E03",
-        "N03",
-        "C02",
-        "H01"
+        "C02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "E04",
@@ -2459,7 +2660,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Implement Engram direct and Haldir-gated plant integration",
+      "title": "Implement Engram's direct plant integration",
       "transitions": []
     },
     {
@@ -2469,8 +2670,39 @@
       "claim_tier": "IMPLEMENTATION_ONLY",
       "commands": [],
       "dependencies": [
-        "C01",
-        "C02",
+        "E04",
+        "H02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "E06",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "Engram",
+      "requirement_ids": [
+        "E06-acceptance",
+        "D08",
+        "D15",
+        "D18"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Implement Engram's optional Haldir-gated integration",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "IMPLEMENTATION_ONLY",
+      "commands": [],
+      "dependencies": [
         "C03"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2500,10 +2732,7 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "N07",
-        "N08",
-        "E03",
-        "X00"
+        "E03"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "X01",
@@ -2527,19 +2756,51 @@
       "transitions": []
     },
     {
+      "adr_ids": [
+        "ADR-004",
+        "ADR-009"
+      ],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
+        "G02",
+        "P02",
+        "X01"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "X05",
+      "invalidates": [],
+      "minimum_terminal_class": "EXTERNAL",
+      "perspective_reviews": [],
+      "repository": "independent challenge-exposure anchor lab",
+      "requirement_ids": [
+        "X05-acceptance",
+        "D20"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, revoke the stale infrastructure qualification, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Qualify the disjoint observer challenge-exposure anchor infrastructure",
+      "transitions": []
+    },
+    {
       "adr_ids": [],
       "artifacts": [],
       "changed_files": [],
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "E04",
-        "H02",
-        "G02",
-        "C03",
+        "E06",
+        "H04",
         "C04",
-        "P02",
-        "X01"
+        "X05"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "X02",
@@ -2550,7 +2811,8 @@
       "requirement_ids": [
         "X02-acceptance",
         "D07",
-        "D08"
+        "D08",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2570,19 +2832,15 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "E01",
-        "E02",
-        "E03",
         "E04",
-        "X01",
-        "X02"
+        "X01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "E05",
       "invalidates": [],
       "minimum_terminal_class": "INDEPENDENT",
       "perspective_reviews": [],
-      "repository": "Engram certification environment",
+      "repository": "Engram qualification environment",
       "requirement_ids": [
         "E05-acceptance",
         "D11"
@@ -2595,7 +2853,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Certify Engram's exact installed native-1.0 artifact",
+      "title": "Qualify Engram's exact installed native-1.0 roles",
       "transitions": []
     },
     {
@@ -2607,15 +2865,14 @@
       "dependencies": [
         "H02",
         "C02",
-        "X01",
-        "X02"
+        "X01"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "H03",
       "invalidates": [],
       "minimum_terminal_class": "INDEPENDENT",
       "perspective_reviews": [],
-      "repository": "Haldir certification environment",
+      "repository": "Haldir qualification environment",
       "requirement_ids": [
         "H03-acceptance"
       ],
@@ -2627,7 +2884,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Qualify Haldir's secure commander and deny-only receiver roles",
+      "title": "Qualify Haldir's secure commander role",
       "transitions": []
     },
     {
@@ -2637,10 +2894,35 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "G01",
-        "G02",
-        "C03",
-        "X01",
+        "X02"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "H05",
+      "invalidates": [],
+      "minimum_terminal_class": "INDEPENDENT",
+      "perspective_reviews": [],
+      "repository": "Haldir qualification environment",
+      "requirement_ids": [
+        "H05-acceptance"
+      ],
+      "residual_risks": [],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Qualify Haldir's optional assessment-receiver role",
+      "transitions": []
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "QUALIFICATION_REQUIRED",
+      "commands": [],
+      "dependencies": [
         "X02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2648,7 +2930,7 @@
       "invalidates": [],
       "minimum_terminal_class": "INDEPENDENT",
       "perspective_reviews": [],
-      "repository": "Galadriel certification environment",
+      "repository": "Galadriel qualification environment",
       "requirement_ids": [
         "G03-acceptance"
       ],
@@ -2670,9 +2952,6 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "P01",
-        "P02",
-        "X01",
         "X02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2680,7 +2959,7 @@
       "invalidates": [],
       "minimum_terminal_class": "INDEPENDENT",
       "perspective_reviews": [],
-      "repository": "Prisoma certification environment",
+      "repository": "Prisoma qualification environment",
       "requirement_ids": [
         "P03-acceptance",
         "D11"
@@ -2693,7 +2972,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Migrate the fault observatory and certify Prisoma's observer role",
+      "title": "Migrate the fault observatory and qualify Prisoma's observer role",
       "transitions": []
     },
     {
@@ -2703,8 +2982,6 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "F03",
-        "X01",
         "X02"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2716,7 +2993,8 @@
       "requirement_ids": [
         "F04-acceptance",
         "D06",
-        "D16"
+        "D16",
+        "D20"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2736,21 +3014,16 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "C02",
-        "C03",
-        "C04",
         "E05",
         "H03",
-        "G03",
-        "X01",
-        "X02"
+        "G03"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "C05",
       "invalidates": [],
       "minimum_terminal_class": "INDEPENDENT",
       "perspective_reviews": [],
-      "repository": "Crebain certification environment",
+      "repository": "Crebain qualification environment",
       "requirement_ids": [
         "C05-acceptance",
         "D07",
@@ -2764,7 +3037,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Certify Crebain body and producer integration separately",
+      "title": "Qualify Crebain body and producer integration separately",
       "transitions": []
     },
     {
@@ -2774,12 +3047,9 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "E05",
-        "H03",
-        "G03",
+        "H05",
         "C05",
         "P03",
-        "X02",
         "F04"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2809,8 +3079,7 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "X03",
-        "N09"
+        "X03"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "X04",
@@ -2840,9 +3109,6 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "N10",
-        "F04",
-        "X03",
         "X04"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -2872,15 +3138,7 @@
       "claim_tier": "QUALIFICATION_REQUIRED",
       "commands": [],
       "dependencies": [
-        "F01",
-        "F02",
-        "F03",
-        "F04",
-        "F05",
-        "N10",
-        "R01",
-        "X03",
-        "X04"
+        "F05"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
       "id": "R00",
@@ -2909,7 +3167,6 @@
       "claim_tier": "GOVERNANCE_OPERATION",
       "commands": [],
       "dependencies": [
-        "N10",
         "F04"
       ],
       "dirty_state_disposition": "NOT_EVALUATED",
@@ -3097,7 +3354,8 @@
       "perspective_reviews": [],
       "repository": "all consumer repositories",
       "requirement_ids": [
-        "R07-acceptance"
+        "R07-acceptance",
+        "D18"
       ],
       "residual_risks": [],
       "reviewer_comment": null,

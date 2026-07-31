@@ -231,7 +231,7 @@
     "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
     "contract/release-gates.v1.json": "fad29f287f446e4cd2144ef919457d39f1c5a47d38498ac892cf704c08830179",
     "docs/handoff/max-effort-audit-inputs.v2.json": "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b",
-    "docs/handoff/max-effort-task-review.v2.json": "274678e5576f4c1bae7c8593625fc932e665da2f48a5ce4e80a9a99818fd59f5"
+    "docs/handoff/max-effort-task-review.v2.json": "143fa7b8b0d7ebf2f87cf20e1a30f175a75ad6214bc5465272e1b74906281ec1"
   },
   "wire_version": "1.0"
 }

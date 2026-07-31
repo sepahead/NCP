@@ -750,7 +750,7 @@ def _acceptance_gap(task: dict[str, Any]) -> str:
     if number == 142:
         return "Publication, rollback, revocation, withdrawal, and post-publication rehearsals are NOT RUN."
     if number == 143:
-        return "The generated local convergence manifest records NO_GO and explicit non-local handoffs, but predecessor gates, all six consumer certifications, and cross-repository convergence remain unresolved."
+        return "The generated local convergence manifest records NO_GO and explicit non-local handoffs, but predecessor gates, all nine exact consumer and extension role qualifications, and cross-repository convergence remain unresolved; its historical six-project inventory is not a role receipt."
     if number == 144:
         return "The current internal review is not an independent final lead-only review of one immutable release artifact set."
     return "The only truthful current decision is unsigned NO_GO; no release-manager signature or complete prerequisite chain exists."

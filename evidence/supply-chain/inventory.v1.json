@@ -2215,7 +2215,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "77c78bab24efef9b8e4db9255259f3dcdd41e9129039275d2270104b87b2235c"
+      "sha256": "2349e5c4345f6c9357a56fccfe0dfda618f9fe5cce35a112f3720acc34a6e9cb"
     },
     {
       "outputs": [
@@ -2243,7 +2243,7 @@
         "docs/adr/decision-registry.proposed.v1.json"
       ],
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "73226dc7173d0aa5c0001056e080780d39422601403329168f5a8e68c811f033"
+      "sha256": "4970e98e6f6a84c088a0965ff5b10b5a4b4b5e222a7a6c0f761f66d1ffd990d7"
     },
     {
       "outputs": [
@@ -2251,7 +2251,7 @@
         "docs/handoff/max-effort-file-review-manifest.v2.json"
       ],
       "path": "scripts/generate_file_review_ledger.py",
-      "sha256": "97e16d721de15467c4e72f9bf358dcb029111cc156bfe965e9d9b9ffa45d0fec"
+      "sha256": "5c5c341296eb45ce90369e872d8304c7228f79ea86f4b8cb646a9c7ba572d6c8"
     },
     {
       "outputs": [
@@ -2259,7 +2259,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "9cda40bfb62b24a00430716f7a6b36638ee3ddf088d6d0cf2d76899be3ddbf94"
+      "sha256": "6cb333f153565b00f689b1c1b8eb0436a112184529304df5d5160a198a80a6f9"
     },
     {
       "outputs": [
@@ -2273,14 +2273,35 @@
         "docs/handoff/max-effort-task-review.v2.json"
       ],
       "path": "scripts/generate_max_effort_review_template.py",
-      "sha256": "52920a06c29bb7a648a7e9da36bd5958d6bfb9c12a5b34f88a4fed9f397d650c"
+      "sha256": "2bb794eedcb8b790eb5882705b3c7a8894f95e59173eccb296b73f6492ae3e23"
+    },
+    {
+      "outputs": [
+        "docs/adr/selector-allocation.proposal.v1.json"
+      ],
+      "path": "scripts/generate_selector_allocation_proposal.py",
+      "sha256": "bc54632613e1cd8dc7140fdce91db6bea960b6a0af3594362f23fc3e2d9b6d12"
+    },
+    {
+      "outputs": [
+        "docs/adr/B01_SELECTOR_CLOSURE_MATRIX.md"
+      ],
+      "path": "scripts/generate_selector_closure_matrix.py",
+      "sha256": "a6f9a35ead40e47e23a69f3a14e7cf3220d44f4e2138561f4bdbcf7e5bd2386a"
+    },
+    {
+      "outputs": [
+        "docs/adr/selector-closure.source.v1.json"
+      ],
+      "path": "scripts/generate_selector_closure_source.py",
+      "sha256": "fe0cb797a274b53768900040468f21692f38cfe154cbc872debee37ef041ae1e"
     },
     {
       "outputs": [
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "8457024b7ee4fdc3e6fe82d64019b51a50fa2900ac9a9ce1a2984dd2a0a75b06"
+      "sha256": "71f01da0ab326bad1529b5c3007a52b130ac10b071e7919a1fdf467a4d99e4e3"
     },
     {
       "outputs": [
@@ -2451,6 +2472,36 @@
       {
         "action": "actions/checkout",
         "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/checkout",
+        "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-node",
+        "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-node",
+        "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-node",
+        "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-node",
+        "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-python",
+        "revision": "ece7cb06caefa5fff74198d8649806c4678c61a1",
         "workflow": ".github/workflows/ci.yml"
       },
       {

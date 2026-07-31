@@ -24,10 +24,20 @@ unsigned evidence is a failure for initial release.
 | Plant profile, safety governor, action buffer, ESTOP | implemented with deterministic tests | non-certifying; each consumer needs a safety case |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
 | Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for exact source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | immutable multi-OS/ABI install matrix and public-registry ownership remain required |
-| Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and 100-node local requirement graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
+| Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and generated 117-requirement local graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
 | Supply-chain and candidate dossier | a held, one-platform, exact-source dossier passed checksums, five applicable comparisons, install/identity/behavior smoke, exact-source verification, a ten-subject SLSA provenance attestation, and an aggregate CycloneDX attestation; `release_authorized=false` | final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
-| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, six consumer handoffs, and post-publication checks | predecessor gates and cross-repository consumer certifications remain unresolved |
+| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-project handoff inventory, and post-publication checks | predecessor gates and all nine exact consumer/extension role qualifications remain unresolved; a project inventory is not a role receipt |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
+
+B01 is still `IN_PROGRESS`. Its maintained allocation oracle is intentionally
+`INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED`, with a zero reviewed-assignment
+digest. The explicit local and hosted review-candidate checks admit only that
+tuple, run the strict architecture checks and bound probes, and relax only the
+final allocation-completeness requirement. Their pass is local draft-integrity
+evidence. It is not ADR acceptance, B01 completion, release authorization,
+external evidence, or independent review. The review-candidate mode rejects a
+completed allocation state so that transition to the normal complete gate must
+be deliberate.
 
 The complete `scripts/check.sh` gate and hosted CI run
 [`29414498370`](https://github.com/sepahead/NCP/actions/runs/29414498370) passed for
@@ -37,6 +47,11 @@ uses the non-yanked `spin` 0.9.9/0.10.1 replacements. The runs covered the local
 package, binding, bounded-ingress, corpus, archive, dependency-policy, and protobuf
 matrix. This is time-bound preflight evidence, not a release receipt. The generated
 normative identity and candidate baseline match the checked source cut.
+
+The held local-convergence artifact retains the six project surfaces that its
+current candidate gate enumerates. That inventory does not satisfy the nine exact
+role qualifications listed below. `pid-rs` is not an NCP peer and receives no
+role receipt.
 
 The separate held-candidate workflow run
 [`29414924349`](https://github.com/sepahead/NCP/actions/runs/29414924349) also
@@ -102,8 +117,15 @@ The following are **NOT RUN** and independently block release:
   signatures, and signature verification; the held one-platform candidate
   attestations above do not satisfy this gate;
 - independent clean-room build and core-conformance reproduction;
-- native installed-artifact certification for Engram, crebain,
-  crebain-galadriel-producer, galadriel, haldir, and prisoma.
+- native installed-artifact qualification for all nine exact role subjects:
+
+  - Engram responder and commander
+  - Haldir commander and assessment receiver
+  - Galadriel observer and assessor
+  - Crebain body and producer
+  - Prisoma observer
+
+  A project-level inventory entry is not a role receipt.
 
 ## Required post-release validations
 
@@ -120,22 +142,23 @@ pre-publication pass.
 
 ## Consumer state
 
-Engram has an explicit local native-1.0 migration in progress, but its installed-
-artifact and live-transport certification are **NOT RUN**. The other five inventoried
-consumers remain on wire 0.8. None of the six is 1.0-certified. The frozen Engram
-wire-0.8 inventory remains historical migration input, not a description of its
-mutable migration worktree. `ncp-gateway` is a same-wire 1.0 Rust/Python edge and
-cannot make an unmigrated 0.8 Python backend compatible. The separate migration
-translator is a labelled terminating gateway and is ineligible for native 1.0
-certification.
+Engram has an explicit local native-1.0 migration in progress. Qualification of
+its installed responder and commander roles and its live transport is **NOT RUN**.
+The other five historical project surfaces remain on wire 0.8. None of the nine
+required role subjects is qualified for 1.0. The frozen Engram wire-0.8 inventory
+remains historical migration input. It does not describe the mutable migration
+worktree. `ncp-gateway` is a same-wire 1.0 Rust/Python edge. It cannot make an
+unmigrated 0.8 Python backend compatible. The separate migration translator is a
+labeled terminating gateway. It is ineligible for native 1.0 qualification.
 
 ## Release authorization
 
 A `v1.0.0` tag is permitted only after all required pre-release rows are passed,
 every report contains the exact normative and corpus digests with no applicable
-skip, all packages self-identify consistently, all required consumers accept the
-handoff, and the signed release dossier is independently reproduced. The required
-post-release validations begin after publication. Until the pre-release threshold:
+skip, all packages self-identify consistently, all nine exact installed role
+subjects have qualifying role receipts, and the signed release dossier is
+independently reproduced. The required post-release validations begin after
+publication. Until the pre-release threshold:
 
 - do not create or move a release tag;
 - do not publish crates/npm/wheels/binaries as stable 1.0;

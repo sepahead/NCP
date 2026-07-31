@@ -4,20 +4,40 @@
   "candidate": "1.0.0-rc.1",
   "wire_version": "1.0",
   "task": "B01",
-  "claim_boundary": "This source describes proposed architecture decisions only. It cannot change the normative contract, authorize a rebaseline or release, satisfy independent review, or certify an implementation or deployment.",
+  "claim_boundary": "This source records non-normative architecture decisions and bounded review claims. Its structural checks cannot prove external authorship, role authority, or independence. It cannot change the normative contract, authorize a rebaseline or release, satisfy B01 by itself, or certify an implementation or deployment.",
   "promotion_target": "contract/decision-registry.v1.json",
-  "promotion_blocked_until_all_accepted": true,
+  "promotion_blocked": true,
   "decisions": [
     {
       "id": "ADR-001",
       "title": "Separate simulation-service and plant-control sessions",
       "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "NCP maintainer",
-        "Engram owner",
-        "Crebain body owner",
-        "independent protocol reviewer"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "ncp-maintainer",
+          "label": "NCP maintainer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-body-owner",
+          "label": "Crebain body owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-protocol-reviewer",
+          "label": "independent protocol reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        }
       ],
       "defect_ids": [
         "D01"
@@ -27,26 +47,46 @@
       "id": "ADR-002",
       "title": "Separate contract identity and release authorization",
       "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "protocol reviewer",
-        "release and supply-chain reviewer"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "protocol-reviewer",
+          "label": "protocol reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "release-supply-chain-reviewer",
+          "label": "release and supply-chain reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D04",
         "D13",
-        "D17"
+        "D17",
+        "D19"
       ]
     },
     {
       "id": "ADR-003",
       "title": "Authenticate production ingress before interpretation",
       "path": "docs/adr/0003-authenticated-production-ingress.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "independent security and cryptography reviewer 1",
-        "independent security and cryptography reviewer 2",
-        "transport implementer"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "security-cryptography-reviewer",
+          "label": "security and cryptography reviewer",
+          "min_distinct_identities": 2,
+          "requires_independence": true
+        },
+        {
+          "role_id": "transport-implementer",
+          "label": "transport implementer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D06",
@@ -57,29 +97,95 @@
       "id": "ADR-004",
       "title": "Attach observers with bounded grants and revocation",
       "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "Prisoma owner",
-        "Galadriel owner",
-        "security reviewer"
+      "module_paths": [
+        "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
+      ],
+      "required_reviews": [
+        {
+          "role_id": "prisoma-owner",
+          "label": "Prisoma owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-owner",
+          "label": "Galadriel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "security-reviewer",
+          "label": "security reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "ncp-source-provider-owner",
+          "label": "NCP/source-provider owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "observer-anchor-infrastructure-owner-operator",
+          "label": "observer-anchor infrastructure owner/operator",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-anchor-security-distributed-systems-reviewer",
+          "label": "independent anchor security/distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        }
       ],
       "defect_ids": [
         "D02",
-        "D05"
+        "D05",
+        "D20"
       ]
     },
     {
       "id": "ADR-005",
       "title": "Declare and retire every stream explicitly",
       "path": "docs/adr/0005-declared-stream-lifecycle.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "distributed-systems reviewer",
-        "Engram stream owner",
-        "Haldir stream owner",
-        "Galadriel stream owner",
-        "Crebain stream owner",
-        "Prisoma stream owner"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "distributed-systems-reviewer",
+          "label": "distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "engram-stream-owner",
+          "label": "Engram stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-stream-owner",
+          "label": "Haldir stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-stream-owner",
+          "label": "Galadriel stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-stream-owner",
+          "label": "Crebain stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "prisoma-stream-owner",
+          "label": "Prisoma stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D03"
@@ -89,12 +195,32 @@
       "id": "ADR-006",
       "title": "Use body-issued authority and receiver-local time",
       "path": "docs/adr/0006-body-issued-authority-and-time.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "safety reviewer",
-        "distributed-systems reviewer",
-        "Haldir owner",
-        "Crebain owner"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "safety-reviewer",
+          "label": "safety reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "distributed-systems-reviewer",
+          "label": "distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D08",
@@ -105,11 +231,26 @@
       "id": "ADR-007",
       "title": "Journal body-issued command dispositions",
       "path": "docs/adr/0007-command-disposition-journal.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "plant and safety reviewer",
-        "Haldir owner",
-        "Crebain owner"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "plant-safety-reviewer",
+          "label": "plant and safety reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D07"
@@ -119,12 +260,32 @@
       "id": "ADR-008",
       "title": "Separate stable routes from Galadriel extensions",
       "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "protocol reviewer",
-        "Galadriel owner",
-        "Haldir owner",
-        "Crebain owner"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "protocol-reviewer",
+          "label": "protocol reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-owner",
+          "label": "Galadriel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D09"
@@ -134,28 +295,88 @@
       "id": "ADR-009",
       "title": "Bind semantic security state, rotation, and revocation",
       "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "security reviewer",
-        "operations reviewer",
-        "supply-chain reviewer"
+      "module_paths": [
+        "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
+      ],
+      "required_reviews": [
+        {
+          "role_id": "security-reviewer",
+          "label": "security reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "operations-reviewer",
+          "label": "operations reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "supply-chain-reviewer",
+          "label": "supply-chain reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "security-artifact-anchor-infrastructure-owner-operator",
+          "label": "security-artifact-anchor infrastructure owner/operator",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-anchor-security-reviewer",
+          "label": "independent anchor security reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        }
       ],
       "defect_ids": [
-        "D16"
+        "D16",
+        "D20"
       ]
     },
     {
       "id": "ADR-010",
       "title": "Specify finite per-plane QoS and overload behavior",
       "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "real-time and performance reviewer",
-        "Engram consumer reviewer",
-        "Haldir consumer reviewer",
-        "Galadriel consumer reviewer",
-        "Crebain consumer reviewer",
-        "Prisoma consumer reviewer"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "real-time-performance-reviewer",
+          "label": "real-time and performance reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "engram-consumer-reviewer",
+          "label": "Engram consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-consumer-reviewer",
+          "label": "Haldir consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-consumer-reviewer",
+          "label": "Galadriel consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-consumer-reviewer",
+          "label": "Crebain consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "prisoma-consumer-reviewer",
+          "label": "Prisoma consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D14"
@@ -165,24 +386,76 @@
       "id": "ADR-011",
       "title": "Fix ecosystem dependency direction and plant handover",
       "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-      "status": "PROPOSED",
-      "required_review_roles": [
-        "Engram owner",
-        "Haldir owner",
-        "Galadriel owner",
-        "Crebain owner",
-        "Prisoma owner",
-        "Cortexel owner",
-        "pid-rs owner",
-        "independent security and distributed-systems reviewer",
-        "Crebain plant and safety reviewer"
+      "module_paths": [],
+      "required_reviews": [
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-owner",
+          "label": "Galadriel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "prisoma-owner",
+          "label": "Prisoma owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "cortexel-owner",
+          "label": "Cortexel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "pid-rs-owner",
+          "label": "pid-rs owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-security-distributed-systems-reviewer",
+          "label": "independent security and distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        },
+        {
+          "role_id": "release-package-tooling-reviewer",
+          "label": "release and package-tooling reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-plant-safety-reviewer",
+          "label": "Crebain plant and safety reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
       ],
       "defect_ids": [
         "D01",
         "D08",
         "D09",
         "D11",
-        "D12"
+        "D12",
+        "D18"
       ]
     }
   ],

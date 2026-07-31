@@ -44,10 +44,18 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   still present, downstream feature unification can re-enable the path, and no
   stable publication may proceed until Zenoh permits a patched dependency and the
   waiver is removed.
-- **No known consumer has completed native 1.0 certification.** Engram has an
-  explicit local native-1.0 migration in progress; crebain,
-  crebain-galadriel-producer, galadriel, haldir, and prisoma remain wire 0.8.
-  Installed-artifact and live-transport certification are incomplete for all six.
+- **No required role has completed native 1.0 qualification.** Engram has an
+  explicit local native-1.0 migration in progress. The other five historical
+  project surfaces remain on wire 0.8. Installed-artifact and live-transport
+  qualification is incomplete for these exact subjects:
+
+  - Engram responder and commander
+  - Haldir commander and assessment receiver
+  - Galadriel observer and assessor
+  - Crebain body and producer
+  - Prisoma observer
+
+  The six-project inventory is not a role-qualification result.
 
 ## Protocol and implementation boundaries
 
@@ -56,7 +64,7 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   digest in `contract/manifest.v1.json`.
 - `ncp-gateway` is a same-wire native 1.0 edge. It cannot bridge an unmigrated 0.8
   Python backend; Engram's in-progress native migration must satisfy the same
-  contract, or a legacy deployment must use the separate labelled terminating
+  contract, or a legacy deployment must use the separate labeled terminating
   migration gateway.
 - The reviewed `ncp-zenoh` dependency profile is exactly TCP, TLS, UDP, and shared
   memory with Zenoh default features and transport compression disabled. A host

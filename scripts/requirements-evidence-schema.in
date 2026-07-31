@@ -1,0 +1,3 @@
+# Isolated build-time validator for coordination/evidence JSON.
+# Keep this dependency outside every shipped NCP package surface.
+jsonschema==4.26.0

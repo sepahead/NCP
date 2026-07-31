@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Assemble one exact-source B01 preliminary architecture-evidence result."""
 
+# The bounded support import must install its exact snapshot before probe imports.
+# ruff: noqa: I001
+
 from __future__ import annotations
 
 import hashlib
@@ -11,13 +14,43 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from bounded_json_support import (
+    BOUNDED_JSON_SUPPORT_PATHS,
+    BoundedJsonError,
+    JsonLimits,
+    parse_json_bytes,
+)
+import decision_probe
+import freshness_acceptance_probe
 import model_check
+import observer_authorization_probe
+import observer_capture_probe
 import resource_probe
 import run_smt
+import source_issuance_index_probe
+from source_inventory import (
+    SourceInventoryError,
+    build_source_inventory,
+    read_bounded_relative_file,
+)
 
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parents[1]
-SOURCE_SUFFIXES = {".py", ".sh", ".smt2", ".md"}
+MAX_CONTRACT_MANIFEST_BYTES = 65_536
+MAX_ASSEMBLED_RESULT_BYTES = 2_000_000
+CONTRACT_MANIFEST_JSON_LIMITS = JsonLimits(
+    maximum_bytes=MAX_CONTRACT_MANIFEST_BYTES,
+    maximum_depth=24,
+    maximum_items=4_096,
+    maximum_object_members=256,
+    maximum_array_items=2_048,
+    maximum_key_utf8_bytes=256,
+    maximum_string_utf8_bytes=16_384,
+    maximum_total_string_utf8_bytes=MAX_CONTRACT_MANIFEST_BYTES,
+    maximum_integer_chars=32,
+    maximum_float_chars=64,
+    allow_floats=False,
+)
 EXPECTED_CONTRACT_SHA256 = (
     "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90"
 )
@@ -29,19 +62,6 @@ class AssemblyError(RuntimeError):
 
 def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
-
-
-def _object_no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    value: dict[str, Any] = {}
-    for key, member in pairs:
-        if key in value:
-            raise AssemblyError(f"duplicate contract manifest key {key!r}")
-        value[key] = member
-    return value
-
-
-def _reject_json_constant(value: str) -> None:
-    raise AssemblyError(f"non-finite contract manifest constant {value!r}")
 
 
 def _git(*arguments: str) -> str:
@@ -62,42 +82,85 @@ def _git(*arguments: str) -> str:
 
 
 def _sources() -> list[dict[str, Any]]:
-    output: list[dict[str, Any]] = []
-    for path in sorted(ROOT.rglob("*")):
-        if not path.is_file() or path.suffix not in SOURCE_SUFFIXES:
-            continue
-        content = path.read_bytes()
-        output.append(
-            {
-                "path": path.relative_to(REPOSITORY).as_posix(),
-                "bytes": len(content),
-                "sha256": _sha256(content),
-            }
+    try:
+        return build_source_inventory(
+            ROOT,
+            REPOSITORY,
+            support_relative_paths=BOUNDED_JSON_SUPPORT_PATHS,
         )
-    if len(output) < 10:
-        raise AssemblyError("preliminary evidence source set is unexpectedly small")
-    return output
+    except (OSError, SourceInventoryError) as error:
+        raise AssemblyError(f"source inventory failed closed: {error}") from error
 
 
 def build_result() -> dict[str, Any]:
+    source_commit = _git("rev-parse", "HEAD")
+    source_tree = _git("rev-parse", "HEAD^{tree}")
     source_status = _git("status", "--short", "--", str(ROOT.relative_to(REPOSITORY)))
     repository_status = _git("status", "--short")
-    manifest_bytes = (REPOSITORY / "contract/manifest.v1.json").read_bytes()
-    manifest = json.loads(
-        manifest_bytes,
-        object_pairs_hook=_object_no_duplicates,
-        parse_constant=_reject_json_constant,
-    )
+    try:
+        manifest_bytes = read_bounded_relative_file(
+            REPOSITORY,
+            "contract/manifest.v1.json",
+            maximum_bytes=MAX_CONTRACT_MANIFEST_BYTES,
+            label="contract manifest",
+        )
+    except (OSError, SourceInventoryError) as error:
+        raise AssemblyError(f"contract manifest snapshot failed: {error}") from error
+    try:
+        manifest = parse_json_bytes(
+            manifest_bytes,
+            limits=CONTRACT_MANIFEST_JSON_LIMITS,
+            label="contract manifest",
+        )
+    except BoundedJsonError as error:
+        raise AssemblyError(f"contract manifest JSON is invalid: {error}") from error
+    if type(manifest) is not dict:
+        raise AssemblyError("contract manifest root is not an exact object")
     if manifest.get("contract_digest_sha256") != EXPECTED_CONTRACT_SHA256:
         raise AssemblyError("current contract manifest digest changed")
+    sources = _sources()
+    decision_result = decision_probe.build_result()
+    authorization_result = observer_authorization_probe.build_result()
+    capture_result = observer_capture_probe.build_result()
+    freshness_result = freshness_acceptance_probe.build_result()
+    source_index_result = source_issuance_index_probe.build_result()
+    model_result = model_check.build_result()
+    smt_result = run_smt.build_result()
+    resource_result = resource_probe.build_result()
+    final_cut = (
+        _git("rev-parse", "HEAD"),
+        _git("rev-parse", "HEAD^{tree}"),
+        _git("status", "--short", "--", str(ROOT.relative_to(REPOSITORY))),
+        _git("status", "--short"),
+    )
+    if final_cut != (
+        source_commit,
+        source_tree,
+        source_status,
+        repository_status,
+    ):
+        raise AssemblyError("repository identity changed during result assembly")
+    if _sources() != sources:
+        raise AssemblyError("source bytes changed during result assembly")
+    try:
+        final_manifest_bytes = read_bounded_relative_file(
+            REPOSITORY,
+            "contract/manifest.v1.json",
+            maximum_bytes=MAX_CONTRACT_MANIFEST_BYTES,
+            label="contract manifest",
+        )
+    except (OSError, SourceInventoryError) as error:
+        raise AssemblyError(f"contract manifest resnapshot failed: {error}") from error
+    if final_manifest_bytes != manifest_bytes:
+        raise AssemblyError("contract manifest changed during result assembly")
     return {
-        "schema": "ncp.b01-preliminary-architecture-evidence.v1",
+        "schema": "ncp.b01-preliminary-architecture-evidence.v2",
         "scope": "proposed-adrs-only",
         "task": "B01",
         "candidate": "1.0.0-rc.1",
         "wire_version": "1.0",
-        "source_commit": _git("rev-parse", "HEAD"),
-        "source_tree": _git("rev-parse", "HEAD^{tree}"),
+        "source_commit": source_commit,
+        "source_tree": source_tree,
         "source_paths_clean": source_status == "",
         "source_status": source_status.splitlines(),
         "repository_clean": repository_status == "",
@@ -109,10 +172,15 @@ def build_result() -> dict[str, Any]:
         "normative_contract_sha256": EXPECTED_CONTRACT_SHA256,
         "contract_manifest_sha256": _sha256(manifest_bytes),
         "compact_contract_hash": "163acc57d8a62b66",
-        "sources": _sources(),
-        "model": model_check.build_result(),
-        "smt": run_smt.build_result(),
-        "resources": resource_probe.build_result(),
+        "sources": sources,
+        "decision_probe": decision_result,
+        "observer_authorization_probe": authorization_result,
+        "observer_capture_probe": capture_result,
+        "freshness_acceptance_probe": freshness_result,
+        "source_issuance_index_probe": source_index_result,
+        "model": model_result,
+        "smt": smt_result,
+        "resources": resource_result,
         "claim_boundary": {
             "adrs_accepted": False,
             "normative_contract_changed": False,
@@ -122,19 +190,25 @@ def build_result() -> dict[str, Any]:
             "external_gate_satisfied": False,
             "release_authorized": False,
             "strongest_local_statement": (
-                "No counterexample was found within the recorded finite models and "
-                "fixed local resource corpus; every registered seeded mutation "
-                "was detected."
+                "No counterexample was found within the recorded finite models, "
+                "decision, observer-authorization, observer-capture, "
+                "freshness-and-acceptance, source-issuance-index, and fixed local "
+                "resource probes; every registered executable mutant was detected, "
+                "every registered hostile input was rejected, and every registered "
+                "invariant and semantic-contrast witness was reached within those "
+                "encoded finite cases."
             ),
         },
     }
 
 
 def main() -> int:
-    print(
-        "NCP_B01_PRELIMINARY_RESULT="
-        + json.dumps(build_result(), separators=(",", ":"), sort_keys=True)
+    result = "NCP_B01_PRELIMINARY_RESULT=" + json.dumps(
+        build_result(), separators=(",", ":"), sort_keys=True
     )
+    if len(result.encode("utf-8")) > MAX_ASSEMBLED_RESULT_BYTES:
+        raise AssemblyError("assembled evidence result exceeds its output bound")
+    print(result)
     return 0
 
 

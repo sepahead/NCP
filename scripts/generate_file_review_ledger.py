@@ -106,7 +106,16 @@ class LedgerError(ValueError):
 def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
     try:
         return subprocess.check_output(
-            ["git", "-C", os.fspath(repo), *args],
+            [
+                "git",
+                "-c",
+                "commit.gpgSign=false",
+                "-c",
+                "tag.gpgSign=false",
+                "-C",
+                os.fspath(repo),
+                *args,
+            ],
             input=input_bytes,
             stderr=subprocess.PIPE,
         )
@@ -508,6 +517,8 @@ def self_test() -> None:
         _git(repo, "init", "-q")
         _git(repo, "config", "user.name", "File Review Test")
         _git(repo, "config", "user.email", "test@example.invalid")
+        _git(repo, "config", "commit.gpgSign", "true")
+        _git(repo, "config", "tag.gpgSign", "true")
         (repo / "plain.txt").write_text("one\ntwo\n", encoding="utf-8")
         (repo / "odd,\nname.txt").write_text("three", encoding="utf-8")
         (repo / "binary.bin").write_bytes(b"\x00\xff")

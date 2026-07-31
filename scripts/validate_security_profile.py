@@ -1032,11 +1032,27 @@ subjectAltName = URI:urn:ncp:commander-1
         _expect_profile_error("an executable private key", lambda: runtime(config))
         peer_key.chmod(0o200)
         _expect_profile_error("an owner-unreadable private key", lambda: runtime(config))
-        peer_key.chmod(0o4600)
-        _expect_profile_error("a private key with special mode bits", lambda: runtime(config))
         peer_key.chmod(0o600)
 
         key_info = peer_key.stat()
+        special_key_info = os.stat_result(
+            (
+                key_info.st_mode | stat.S_ISUID,
+                key_info.st_ino,
+                key_info.st_dev,
+                key_info.st_nlink,
+                key_info.st_uid,
+                key_info.st_gid,
+                key_info.st_size,
+                key_info.st_atime,
+                key_info.st_mtime,
+                key_info.st_ctime,
+            )
+        )
+        _expect_profile_error(
+            "a private key with special mode bits",
+            lambda: _validate_private_key_metadata(special_key_info),
+        )
         _expect_profile_error(
             "a private key owned by another user",
             lambda: _validate_private_key_metadata(

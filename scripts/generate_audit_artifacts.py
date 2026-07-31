@@ -817,7 +817,12 @@ def threat_records() -> list[dict[str, Any]]:
                 "exact mirror revision",
                 "installed/live certification report",
             ],
-            ["immutable pins", "no silent fork policy", "six-consumer release gate"],
+            [
+                "immutable pins",
+                "no silent fork policy",
+                "nine exact consumer and extension role qualification gate",
+                "six-project inventory cannot substitute for role receipts",
+            ],
             "Reject the compatibility claim and retain explicit cross-repository prerequisites.",
             ["CF-08", "CF-04"],
             ["NCP-REQ-004"],
@@ -830,7 +835,10 @@ def threat_records() -> list[dict[str, Any]]:
                 "docs/handoff/max-effort-audit-inputs.v2.json",
             ],
             "PARTIAL_LOCAL",
-            "All six installed-artifact and live consumer certifications remain NOT RUN.",
+            (
+                "All nine exact installed consumer and extension role "
+                "qualifications remain NOT RUN; pid-rs is not an NCP peer."
+            ),
             True,
         ),
         _threat(
@@ -2205,6 +2213,15 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
         "scripts/plot_perf.py",
     } or path.startswith(("docs/0.8", "docs/plots/", "docs/wire-0.8-")):
         return "HISTORICAL_OR_INFORMATIVE", "NOT_CURRENT_RELEASE_EVIDENCE", [path]
+    if (
+        token_id == "M006"
+        and path == "docs/adr/0009-security-state-rotation-and-revocation.md"
+    ):
+        return (
+            "PROPOSED_FAIL_CLOSED_STATE",
+            "NO_AUTHORITY_WHILE_DORMANT",
+            [path],
+        )
     if token_id in {"M001", "M002", "M003", "M004", "M005", "M006"}:
         return (
             "UNREVIEWED_ACTION_PATH",
@@ -2241,6 +2258,39 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
                 "VALIDATED_CANONICAL_DEFAULT",
                 "NO_VALIDATION_OR_AUTHORITY_BYPASS",
                 ["ncp-ts/src/canonical-json.ts", "ncp-ts/scripts/check-behavior.mjs"],
+            )
+        if (
+            path == "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+            and "actionbuffer watchdog fallback" in lower
+            and "body remains final actuator authority" in lower
+        ):
+            return (
+                "FAIL_SAFE_NON_WIDENING",
+                "BODY_REMAINS_FINAL_ACTUATOR_AUTHORITY",
+                [path, "SECURITY.md"],
+            )
+        if (
+            path == "docs/adr/0009-security-state-rotation-and-revocation.md"
+            and "time-bounded closure fallback" in lower
+        ):
+            return (
+                "FAIL_SAFE_NON_WIDENING",
+                "NO_RUNTIME_AUTHORITY_FROM_CLOSURE_FALLBACK",
+                [path, "SECURITY.md"],
+            )
+        if (
+            path == "docs/adr/README.md"
+            and "rejection under the fallback profile" in lower
+        ):
+            return "NEGATIVE_POLICY_GUARD", "FAIL_CLOSED_REQUIREMENT", [path]
+        if (
+            path == "scripts/selector_allocation_review.py"
+            and "bounded fallback" in lower
+        ):
+            return (
+                "PROCESS_CLEANUP_GUARD",
+                "NO_REVIEW_OR_RUNTIME_AUTHORITY",
+                [path],
             )
         negative = (
             "no " in lower
@@ -2487,6 +2537,50 @@ def self_test() -> None:
         or quarantined[0]["claim_effect"] != "NO_SHIPPING_OR_AUTHORITY"
     ):
         raise AssertionError("authenticated-ingress quarantine classification regressed")
+    exact_reviewed_cases = (
+        (
+            "docs/adr/0009-security-state-rotation-and-revocation.md",
+            b"A root is dormant before its first emergency.\n",
+            "PROPOSED_FAIL_CLOSED_STATE",
+            "NO_AUTHORITY_WHILE_DORMANT",
+        ),
+        (
+            "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+            (
+                b"ActionBuffer watchdog fallback. The body remains final actuator "
+                b"authority.\n"
+            ),
+            "FAIL_SAFE_NON_WIDENING",
+            "BODY_REMAINS_FINAL_ACTUATOR_AUTHORITY",
+        ),
+        (
+            "docs/adr/0009-security-state-rotation-and-revocation.md",
+            b"A time-bounded closure fallback applies when acknowledgement is lost.\n",
+            "FAIL_SAFE_NON_WIDENING",
+            "NO_RUNTIME_AUTHORITY_FROM_CLOSURE_FALLBACK",
+        ),
+        (
+            "docs/adr/README.md",
+            b"Tests require rejection under the fallback profile.\n",
+            "NEGATIVE_POLICY_GUARD",
+            "FAIL_CLOSED_REQUIREMENT",
+        ),
+        (
+            "scripts/selector_allocation_review.py",
+            b"# A direct kill is a bounded fallback; the child is gone.\n",
+            "PROCESS_CLEANUP_GUARD",
+            "NO_REVIEW_OR_RUNTIME_AUTHORITY",
+        ),
+    )
+    for path, content, expected_disposition, expected_effect in exact_reviewed_cases:
+        classified, is_text = _scan_content(path, content)
+        if (
+            not is_text
+            or len(classified) != 1
+            or classified[0]["disposition"] != expected_disposition
+            or classified[0]["claim_effect"] != expected_effect
+        ):
+            raise AssertionError(f"exact reviewed latent-path class regressed: {path}")
     if _scan_content("binary.bin", b"TODO\0fallback")[1]:
         raise AssertionError("binary input was treated as tracked text")
 

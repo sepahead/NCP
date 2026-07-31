@@ -6247,7 +6247,7 @@
         "L20": "OPEN"
       },
       "evidence_summary": "A deterministic local convergence artifact locks the candidate identities, local gates, explicit NOT_RUN external gates, consumer handoffs, and NO_GO decision.",
-      "acceptance_gap": "The generated local convergence manifest records NO_GO and explicit non-local handoffs, but predecessor gates, all six consumer certifications, and cross-repository convergence remain unresolved.",
+      "acceptance_gap": "The generated local convergence manifest records NO_GO and explicit non-local handoffs, but predecessor gates, all nine exact consumer and extension role qualifications, and cross-repository convergence remain unresolved; its historical six-project inventory is not a role receipt.",
       "evidence": {
         "paths": [
           "evidence/convergence/local-convergence.v1.json",

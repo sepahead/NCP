@@ -382,7 +382,16 @@ def _self_test() -> int:
 
     def run(repo: Path, *args: str) -> str:
         result = subprocess.run(
-            ["git", "-C", str(repo), *args],
+            [
+                "git",
+                "-c",
+                "commit.gpgSign=false",
+                "-c",
+                "tag.gpgSign=false",
+                "-C",
+                str(repo),
+                *args,
+            ],
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -410,6 +419,8 @@ def _self_test() -> int:
         repo = root
         repo.mkdir()
         run(repo, "init", "-q", "--object-format=sha1")
+        run(repo, "config", "commit.gpgSign", "true")
+        run(repo, "config", "tag.gpgSign", "true")
         (repo / "buf.yaml").write_text(
             "version: v2\n"
             "modules:\n"

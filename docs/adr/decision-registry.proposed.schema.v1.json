@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sepahead.github.io/NCP/schemas/proposed-decision-registry.v1.json",
-  "title": "NCP proposed decision registry",
+  "title": "NCP non-normative architecture decision review registry",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,6 +13,11 @@
     "claim_boundary",
     "generated_by",
     "source",
+    "review_policy",
+    "review_packet",
+    "review_packet_lifecycle",
+    "review_packet_subject",
+    "decision_set",
     "promotion_target",
     "promotion_blocked",
     "counts",
@@ -37,7 +42,7 @@
     },
     "claim_boundary": {
       "type": "string",
-      "minLength": 40,
+      "minLength": 120,
       "maxLength": 1024
     },
     "generated_by": {
@@ -60,9 +65,32 @@
         },
         "bytes": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 2097152
         }
       }
+    },
+    "review_policy": {
+      "$ref": "#/$defs/reviewPolicy"
+    },
+    "review_packet": {
+      "$ref": "#/$defs/fileIdentity"
+    },
+    "review_packet_lifecycle": {
+      "$ref": "#/$defs/reviewPacketLifecycle"
+    },
+    "review_packet_subject": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/reviewPacketSubject"
+        }
+      ]
+    },
+    "decision_set": {
+      "$ref": "#/$defs/decisionSet"
     },
     "promotion_target": {
       "const": "contract/decision-registry.v1.json"
@@ -71,28 +99,7 @@
       "const": true
     },
     "counts": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "decisions",
-        "proposed",
-        "accepted",
-        "review_records"
-      ],
-      "properties": {
-        "decisions": {
-          "const": 11
-        },
-        "proposed": {
-          "const": 11
-        },
-        "accepted": {
-          "const": 0
-        },
-        "review_records": {
-          "const": 0
-        }
-      }
+      "$ref": "#/$defs/counts"
     },
     "decisions": {
       "type": "array",
@@ -104,25 +111,289 @@
     },
     "review_records": {
       "type": "array",
-      "maxItems": 0
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/reviewRecord"
+      }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "review_packet_lifecycle"
+        ],
+        "properties": {
+          "review_packet_lifecycle": {
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "const": "CURRENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "review_packet_subject": {
+            "$ref": "#/$defs/reviewPacketSubject"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "review_packet_subject": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "review_records"
+        ],
+        "properties": {
+          "review_records": {
+            "minItems": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "review_packet_lifecycle": {
+            "properties": {
+              "state": {
+                "const": "CURRENT"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
-    "decision": {
+    "gitObject": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "roleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9+.-]*:[!-~]+$",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "fileIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$",
+          "maxLength": 256
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2097152
+        }
+      }
+    },
+    "modulePaths": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^docs/adr/modules/adr-0(0[1-9]|1[01])-[a-z0-9-]+\\.md$",
+        "maxLength": 256
+      }
+    },
+    "adrSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "main",
+            "module"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^docs/adr/(?:00(0[1-9]|1[01])-[a-z0-9-]+|modules/adr-0(0[1-9]|1[01])-[a-z0-9-]+)\\.md$",
+          "maxLength": 256
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 262144
+        }
+      }
+    },
+    "adrSourceSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "decision_id",
+        "sources",
+        "digest_algorithm",
+        "domain_hex",
+        "sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-adr-source-set.v1"
+        },
+        "decision_id": {
+          "type": "string",
+          "pattern": "^ADR-0(0[1-9]|1[01])$"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/adrSource"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "main"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/adrSource"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "module"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "digest_algorithm": {
+          "const": "sha256(domain || u64be(projection_bytes) || projection)"
+        },
+        "domain_hex": {
+          "const": "6e63702e6230312d6164722d736f757263652d7365742e763100"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "reviewPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "source_schema",
+        "output_schema",
+        "generator",
+        "output_json_schema"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-review-policy.v1"
+        },
+        "source_schema": {
+          "const": "ncp.proposed-decision-registry-source.v1"
+        },
+        "output_schema": {
+          "const": "ncp.proposed-decision-registry.v1"
+        },
+        "generator": {
+          "$ref": "#/$defs/fileIdentity"
+        },
+        "output_json_schema": {
+          "$ref": "#/$defs/fileIdentity"
+        }
+      }
+    },
+    "decisionSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "digest_algorithm",
+        "domain_hex",
+        "sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-decision-set.v1"
+        },
+        "digest_algorithm": {
+          "const": "sha256(domain || u64be(projection_bytes) || projection)"
+        },
+        "domain_hex": {
+          "const": "6e63702e6230312d6465636973696f6e2d7365742e763100"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "packetDecision": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
         "title",
         "path",
-        "status",
+        "module_paths",
         "content_sha256",
         "bytes",
-        "required_review_roles",
+        "source_set",
+        "required_reviews",
         "defect_ids"
       ],
       "properties": {
@@ -139,8 +410,8 @@
           "type": "string",
           "pattern": "^docs/adr/00(0[1-9]|1[01])-[a-z0-9-]+\\.md$"
         },
-        "status": {
-          "const": "PROPOSED"
+        "module_paths": {
+          "$ref": "#/$defs/modulePaths"
         },
         "content_sha256": {
           "$ref": "#/$defs/sha256"
@@ -148,17 +419,17 @@
         "bytes": {
           "type": "integer",
           "minimum": 1024,
-          "maximum": 131072
+          "maximum": 262144
         },
-        "required_review_roles": {
+        "source_set": {
+          "$ref": "#/$defs/adrSourceSet"
+        },
+        "required_reviews": {
           "type": "array",
           "minItems": 2,
           "maxItems": 16,
-          "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 128
+            "$ref": "#/$defs/requiredReview"
           }
         },
         "defect_ids": {
@@ -168,8 +439,597 @@
           "uniqueItems": true,
           "items": {
             "type": "string",
-            "pattern": "^D(0[1-9]|1[0-7])$"
+            "pattern": "^D(0[1-9]|1[0-9]|20)$"
           }
+        }
+      }
+    },
+    "reviewPacketSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "state",
+        "normative",
+        "claim_boundary",
+        "promotion_blocked",
+        "decision_set",
+        "review_policy",
+        "source",
+        "decisions"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-review-subject.v1"
+        },
+        "state": {
+          "const": "CURRENT"
+        },
+        "normative": {
+          "const": false
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 120,
+          "maxLength": 1024
+        },
+        "promotion_blocked": {
+          "const": true
+        },
+        "decision_set": {
+          "$ref": "#/$defs/decisionSet"
+        },
+        "review_policy": {
+          "$ref": "#/$defs/reviewPolicy"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "commit",
+            "tree",
+            "decision_source"
+          ],
+          "properties": {
+            "commit": {
+              "$ref": "#/$defs/gitObject"
+            },
+            "tree": {
+              "$ref": "#/$defs/gitObject"
+            },
+            "decision_source": {
+              "$ref": "#/$defs/fileIdentity"
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": {
+            "$ref": "#/$defs/packetDecision"
+          }
+        }
+      }
+    },
+    "reviewPacketLifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "state"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-review-packet-lifecycle.v1"
+        },
+        "state": {
+          "enum": [
+            "CURRENT",
+            "SUPERSEDED",
+            "TEMPLATE"
+          ]
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisions",
+        "proposed",
+        "accepted",
+        "review_records",
+        "active_review_records",
+        "stale_review_records",
+        "superseded_review_records",
+        "qualifying_acceptances"
+      ],
+      "properties": {
+        "decisions": {
+          "const": 11
+        },
+        "proposed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 11
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 11
+        },
+        "review_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "active_review_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "stale_review_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "superseded_review_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "qualifying_acceptances": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      }
+    },
+    "requiredReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role_id",
+        "label",
+        "min_distinct_identities",
+        "requires_independence"
+      ],
+      "properties": {
+        "role_id": {
+          "$ref": "#/$defs/roleId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "min_distinct_identities": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "requires_independence": {
+          "type": "boolean"
+        }
+      }
+    },
+    "acceptanceBlocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "role_id",
+        "review_ids",
+        "detail"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "MISSING_ROLE_ACCEPTANCE",
+            "ACTIVE_REJECT",
+            "UNRESOLVED_CONDITION",
+            "INDEPENDENCE_NOT_ESTABLISHED"
+          ]
+        },
+        "role_id": {
+          "$ref": "#/$defs/roleId"
+        },
+        "review_ids": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._:-]{2,127}$"
+          }
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 512
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "path",
+        "module_paths",
+        "required_reviews",
+        "defect_ids",
+        "content_sha256",
+        "bytes",
+        "source_set",
+        "status",
+        "acceptance_blockers"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ADR-0(0[1-9]|1[01])$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 160
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^docs/adr/00(0[1-9]|1[01])-[a-z0-9-]+\\.md$"
+        },
+        "module_paths": {
+          "$ref": "#/$defs/modulePaths"
+        },
+        "required_reviews": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/requiredReview"
+          }
+        },
+        "defect_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^D(0[1-9]|1[0-9]|20)$"
+          }
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 262144
+        },
+        "source_set": {
+          "$ref": "#/$defs/adrSourceSet"
+        },
+        "status": {
+          "enum": [
+            "PROPOSED",
+            "ACCEPTED"
+          ]
+        },
+        "acceptance_blockers": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/acceptanceBlocker"
+          }
+        }
+      }
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "path",
+        "sha256",
+        "bytes",
+        "media_type"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "pattern": "^(?!.*[?#])https://[!-~]+$",
+          "minLength": 12,
+          "maxLength": 512
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^evidence/implementation/reviews/B01/(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$",
+          "maxLength": 256
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "media_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
+          "maxLength": 128
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "identity_kind",
+        "independence_claimed",
+        "implementation_owner_identities"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "identity_kind": {
+          "enum": [
+            "PERSON",
+            "TEAM"
+          ]
+        },
+        "independence_claimed": {
+          "type": "boolean"
+        },
+        "implementation_owner_identities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identity"
+          }
+        }
+      }
+    },
+    "reviewSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_set_sha256",
+        "adr_content_sha256",
+        "adr_bytes",
+        "adr_source_set",
+        "source_commit",
+        "source_tree",
+        "review_packet_sha256"
+      ],
+      "properties": {
+        "decision_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "adr_content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "adr_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 262144
+        },
+        "adr_source_set": {
+          "$ref": "#/$defs/adrSourceSet"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "review_packet_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewer_identity",
+        "decision_set_sha256",
+        "adr_content_sha256",
+        "adr_source_set_sha256",
+        "timestamp_utc",
+        "external_receipt"
+      ],
+      "properties": {
+        "reviewer_identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "decision_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "adr_content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "adr_source_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "timestamp_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "external_receipt": {
+          "$ref": "#/$defs/evidenceRef"
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition_id",
+        "statement",
+        "status",
+        "resolution_evidence",
+        "closure"
+      ],
+      "properties": {
+        "condition_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9._-]{1,63}$"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2048
+        },
+        "status": {
+          "enum": [
+            "OPEN",
+            "RESOLVED"
+          ]
+        },
+        "resolution_evidence": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "closure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/closure"
+            }
+          ]
+        }
+      }
+    },
+    "reviewDerived": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "active",
+        "current_subject",
+        "qualifying_acceptance",
+        "stale_reasons"
+      ],
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "current_subject": {
+          "type": "boolean"
+        },
+        "qualifying_acceptance": {
+          "type": "boolean"
+        },
+        "stale_reasons": {
+          "type": "array",
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "DECISION_SET_DIGEST_MISMATCH",
+              "ADR_CONTENT_DIGEST_MISMATCH",
+              "ADR_BYTE_LENGTH_MISMATCH",
+              "ADR_SOURCE_SET_DIGEST_MISMATCH",
+              "REVIEW_PACKET_DIGEST_MISMATCH"
+            ]
+          }
+        }
+      }
+    },
+    "reviewRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "adr_id",
+        "role_id",
+        "reviewer",
+        "subject",
+        "decision",
+        "conditions",
+        "role_authorization",
+        "independence_assessment",
+        "external_receipt",
+        "timestamp_utc",
+        "supersedes",
+        "derived"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{2,127}$"
+        },
+        "adr_id": {
+          "type": "string",
+          "pattern": "^ADR-0(0[1-9]|1[01])$"
+        },
+        "role_id": {
+          "$ref": "#/$defs/roleId"
+        },
+        "reviewer": {
+          "$ref": "#/$defs/reviewer"
+        },
+        "subject": {
+          "$ref": "#/$defs/reviewSubject"
+        },
+        "decision": {
+          "enum": [
+            "ACCEPT",
+            "REJECT",
+            "ACCEPT_WITH_CONDITIONS"
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "role_authorization": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "independence_assessment": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evidenceRef"
+            }
+          ]
+        },
+        "external_receipt": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "timestamp_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "supersedes": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{2,127}$"
+            }
+          ]
+        },
+        "derived": {
+          "$ref": "#/$defs/reviewDerived"
         }
       }
     }

@@ -30,6 +30,10 @@ PROTOTYPE = (
 NODE = PROTOTYPE / "node-verifier"
 JSON_FENCE = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
 ADR_PATH = re.compile(r"00(?:0[1-9]|1[01])-[a-z0-9-]+\.md")
+MIN_ADR_MARKDOWN_BYTES = 1024
+MAX_ADR_MARKDOWN_BYTES = 256 * 1024
+MAX_ADR_CORPUS_BYTES = 2 * 1024 * 1024
+MAX_JSON_EXAMPLE_BYTES = 131_072
 
 
 class ExampleError(ValueError):
@@ -47,27 +51,65 @@ def proposed_paths() -> list[Path]:
     return paths
 
 
+def validate_adr_markdown_byte_count(byte_count: int, path: str) -> int:
+    if (
+        type(byte_count) is not int
+        or not MIN_ADR_MARKDOWN_BYTES <= byte_count <= MAX_ADR_MARKDOWN_BYTES
+    ):
+        raise ExampleError(
+            f"{path} byte size is outside "
+            f"{MIN_ADR_MARKDOWN_BYTES}..{MAX_ADR_MARKDOWN_BYTES}"
+        )
+    return byte_count
+
+
+def validate_adr_corpus_byte_counts(byte_counts: list[int]) -> int:
+    total = 0
+    for index, byte_count in enumerate(byte_counts):
+        total += validate_adr_markdown_byte_count(
+            byte_count, f"ADR corpus entry {index}"
+        )
+        if total > MAX_ADR_CORPUS_BYTES:
+            raise ExampleError(
+                "ADR Markdown corpus exceeds the aggregate byte limit of "
+                f"{MAX_ADR_CORPUS_BYTES}"
+            )
+    return total
+
+
 def examples() -> list[tuple[str, bytes]]:
     found: list[tuple[str, bytes]] = []
+    byte_counts: list[int] = []
     for path in proposed_paths():
-        text = path.read_text(encoding="utf-8")
+        relative = path.relative_to(ROOT).as_posix()
+        if path.is_symlink() or not path.is_file():
+            raise ExampleError(f"{relative} must be a regular non-symlink file")
+        stat_size = path.stat().st_size
+        validate_adr_markdown_byte_count(stat_size, relative)
+        with path.open("rb") as handle:
+            content = handle.read(MAX_ADR_MARKDOWN_BYTES + 1)
+        if len(content) != stat_size:
+            raise ExampleError(f"{relative} changed while it was read")
+        byte_counts.append(len(content))
+        text = content.decode("utf-8")
         fences = JSON_FENCE.findall(text)
         if not fences:
-            raise ExampleError(f"{path.relative_to(ROOT)} has no JSON example")
+            raise ExampleError(f"{relative} has no JSON example")
         for index, value in enumerate(fences, start=1):
             found.append(
                 (
-                    f"{path.relative_to(ROOT)}#json-{index}",
+                    f"{relative}#json-{index}",
                     value.encode("utf-8"),
                 )
             )
+    validate_adr_corpus_byte_counts(byte_counts)
     return found
 
 
 def python_parse(values: list[tuple[str, bytes]]) -> None:
     strict = load_python_parser()
     limits = strict.JsonLimits(
-        max_bytes=131_072,
+        max_bytes=MAX_JSON_EXAMPLE_BYTES,
         max_depth=32,
         max_nodes=100_000,
         max_members=4_096,
@@ -97,7 +139,7 @@ def load_python_parser() -> Any:
 NODE_PROGRAM = r"""
 import { strictJsonParse } from "./dist/src/strict-json.js";
 const limits = {
-  maxBytes: 131072,
+  maxBytes: __MAX_JSON_EXAMPLE_BYTES__,
   maxDepth: 32,
   maxNodes: 100000,
   maxMembers: 4096,
@@ -110,7 +152,7 @@ for (const value of values) {
   strictJsonParse(Buffer.from(value.json, "base64"), limits, false);
 }
 process.stdout.write(JSON.stringify({ accepted: values.length }) + "\n");
-"""
+""".replace("__MAX_JSON_EXAMPLE_BYTES__", str(MAX_JSON_EXAMPLE_BYTES))
 
 
 def node_parse(values: list[tuple[str, bytes]]) -> None:
@@ -164,6 +206,34 @@ def node_parse(values: list[tuple[str, bytes]]) -> None:
 
 
 def self_test() -> None:
+    validate_adr_markdown_byte_count(
+        MAX_ADR_MARKDOWN_BYTES, "self-test ADR exact cap"
+    )
+    try:
+        validate_adr_markdown_byte_count(
+            MAX_ADR_MARKDOWN_BYTES + 1, "self-test ADR cap plus one"
+        )
+    except ExampleError:
+        pass
+    else:
+        raise AssertionError("ADR checker accepted the Markdown cap plus one byte")
+    aggregate_at_cap = [MAX_ADR_MARKDOWN_BYTES] * 7 + [
+        MAX_ADR_MARKDOWN_BYTES - 3 * MIN_ADR_MARKDOWN_BYTES,
+        MIN_ADR_MARKDOWN_BYTES,
+        MIN_ADR_MARKDOWN_BYTES,
+        MIN_ADR_MARKDOWN_BYTES,
+    ]
+    if validate_adr_corpus_byte_counts(aggregate_at_cap) != MAX_ADR_CORPUS_BYTES:
+        raise AssertionError("ADR checker corpus exact-cap test is malformed")
+    aggregate_over_cap = aggregate_at_cap.copy()
+    aggregate_over_cap[7] += 1
+    try:
+        validate_adr_corpus_byte_counts(aggregate_over_cap)
+    except ExampleError:
+        pass
+    else:
+        raise AssertionError("ADR checker accepted the corpus cap plus one byte")
+
     strict = load_python_parser()
     limits = strict.JsonLimits(128, 8, 32, 8, 32)
     hostile = b'{"duplicate":1,"duplicate":2}'

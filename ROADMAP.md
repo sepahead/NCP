@@ -10,7 +10,7 @@ The candidate now has a frozen scope/registry model, exact v0.8 boundary, canoni
 JSON/proto/schema parity, explicit security profiles, identity and plane claims,
 session generations and stream epochs, authority leases, idempotent mutations and
 receipts, bounded JSON, plant profiles, four-plane queue policy, audit vocabulary, a mandatory
-self-describing corpus, independent TypeScript validation, and a labelled
+self-describing corpus, independent TypeScript validation, and a labeled
 0.8-to-1.0 translation API.
 
 These are source-level foundations. They do not close the release program until
@@ -25,11 +25,11 @@ their installed, live, adversarial, and downstream evidence gates pass.
 | security profiles and identity binding | profile/core logic implemented; Zenoh callback principal binding unavailable and fail-closed | implement verified peer binding, then run live mTLS/ACL/rotation/revocation campaign |
 | authority, reconnect, ESTOP, idempotency | primitives and corpus implemented | live restart/fault matrix |
 | JSON limits and mandatory corpus | implemented across Rust/TS/FFI harnesses | fuzz/sanitizer duration and signed reports |
-| plant-specific safety | profile/governor/buffer tests implemented | six consumer-owned safety cases |
+| plant-specific safety | profile/governor/buffer tests implemented | role-specific safety cases for every applicable control or actuator role |
 | independent peers | TypeScript decision code implemented | second non-Rust implementation and secure live matrix |
 | package coordination | RC manifests/build scripts implemented | clean multi-platform installed artifacts, reproducibility, SBOM/signatures |
 | 0.8 migration gateway | bounded explicit channel mapping implemented | installed 0.8↔1.0 gateway fault/idempotency proof |
-| consumer migration | Engram in progress; none certified | finish Engram evidence, then crebain, producer, galadriel, haldir, prisoma |
+| consumer migration | Engram in progress; no role qualified | migrate the six historical project surfaces and qualify all nine exact role subjects |
 | 1.0 release | blocked | every required pre-release gate passed against one artifact set |
 
 ## Execution order
@@ -45,8 +45,10 @@ their installed, live, adversarial, and downstream evidence gates pass.
    artifacts.
 4. Run combined fault/restart/backpressure/soak, fuzz/sanitizer, and performance
    campaigns; archive raw logs and environment/toolchain manifests.
-5. Migrate the six consumers one by one. A native 1.0 result cannot transit a legacy
-   gateway, and each body supplies its own plant profile and safety case.
+5. Migrate the six historical project surfaces one by one, then qualify all nine
+   exact role subjects. A project entry is not a role receipt. A native 1.0 result
+   cannot transit a legacy gateway, and each body supplies its own plant profile
+   and safety case.
 6. Produce checksums, vulnerability report, licenses, signed SBOM/provenance, and
    independent clean-room reproduction.
 7. Only after every report refers to the same source and artifacts, create the

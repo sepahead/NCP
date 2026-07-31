@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   terminology across current candidate documentation. This changes the complete
   normative SHA-256 digest but does not change the wire-1.0 protobuf structure or
   compact hash.
+- Added a non-normative B01 architecture-decision and executable-challenge cut
+  for all eleven PROPOSED ADRs, including modular observer/security closure,
+  fail-closed selector-allocation, bounded canonical evidence, and
+  review-candidate validation. B01 remains `IN_PROGRESS`; the allocation state
+  remains `INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED`; external, independent,
+  consumer, and release gates remain **NOT RUN**.
 - Added a non-normative standalone-handoff audit cut and reviewer-commentable
   `T000`–`T119` review ledger. All tasks remain open, release authorization remains
   false, the requested `0.9` line requires a separately reviewed normative
@@ -222,9 +228,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   delegation, and transparent proxying from stable 1.0.
 - Kept the candidate release-blocked pending live security, two independent
   installed non-Rust peers, fault/soak, fuzz/sanitizer, performance, supply-chain,
-  clean-room, and all six consumer-certification pre-release gates. Publication
-  follows those gates; install and emergency-revocation validation follow
-  publication.
+  clean-room, and qualification of all nine exact consumer and extension role
+  subjects. The historical six-project inventory is not a role receipt.
+  Publication follows those gates; install and emergency-revocation validation
+  follow publication.
 
 ## [0.8.0] - 2026-07-12
 

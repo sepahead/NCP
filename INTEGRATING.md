@@ -5,10 +5,12 @@
 > `163acc57d8a62b66`). `v0.8.0` remains the latest immutable annotated source tag
 > and is not natively compatible.
 
-An integration is certified only when it installs immutable candidate artifacts,
-reports the same complete normative/corpus digests, passes every applicable vector
-with zero skips, passes the live secure/fault subset, and supplies its own plant
-safety case where it can actuate. A source checkout compiling is not certification.
+A role-qualification receipt is admissible only when the subject installs one
+immutable candidate artifact set, reports the same complete normative and corpus
+digests, passes every applicable vector with zero skips, passes the required live
+secure and fault subset, and supplies its own safety case when it can actuate. A
+source checkout that compiles is local implementation evidence only. No native
+1.0 role qualification has passed for this candidate.
 
 ## Choose a role
 
@@ -83,7 +85,7 @@ Audit every persisted frame, cache key, retry loop, router ACL, test fixture, UI
 status, example, and telemetry consumer—not just public structs. An old cached frame
 must fail as stale rather than acquire a new session or authority by default.
 
-## Labelled terminating gateway
+## Labeled terminating gateway
 
 `ncp-core::migration` provides the bounded migration primitive. It is terminating,
 authenticated, visible as source wire 0.8, and one-way into a separately validated
@@ -93,7 +95,7 @@ context-free inputs reject.
 
 The gateway cannot invent identity, security, session generation, authority,
 operation, receipt, plant, or scientific evidence. A result that traverses it is
-labelled legacy-translated and cannot count as native 1.0 certification. Native
+labeled legacy-translated and cannot count as native 1.0 certification. Native
 peers may set `gateway_permitted=false`.
 
 Persisted captures require a separate validation step. The bounded
@@ -156,16 +158,19 @@ runtime implementation. Advancing mirror bytes alone cannot hide a stale runtime
 wire: the checker continues to fail until the consumer completes and tests the
 breaking migration.
 
-## Known consumer inventory
+## Historical project inventory and role subjects
 
-| Consumer | Current boundary | Native 1.0 status |
+The candidate registry retains six historical project surfaces for migration
+bookkeeping. A project row is not a qualification receipt.
+
+| Historical project surface | Exact 1.0 role subjects | Current boundary |
 |---|---|---|
-| Engram | explicit local native-1.0 migration in progress; frozen 0.8 inventory retained as history | not installed-artifact/live certified |
-| crebain | Rust/npm wire-0.8 pins and hardcoded wire/hash | not migrated/certified |
-| crebain-galadriel-producer | wire-0.8 dependency surface | not migrated/certified |
-| galadriel | exact wire-0.8 revision and fixtures | not migrated/certified |
-| haldir | immutable `haldir-ncp08` compatibility surface | add parallel `haldir-ncp10`; retain 08 evidence |
-| prisoma | observer client on wire 0.8 | not migrated/certified |
+| Engram | responder and commander | explicit local native-1.0 migration in progress; frozen 0.8 inventory retained as history; installed-artifact and live qualification **NOT RUN** |
+| Crebain | body | Rust/npm wire-0.8 pins and hardcoded wire/hash; native migration and qualification **NOT RUN** |
+| Crebain Galadriel producer | producer | wire-0.8 dependency surface; native migration and qualification **NOT RUN** |
+| Galadriel | observer and assessor | exact wire-0.8 revision and fixtures; native migration and qualification **NOT RUN** |
+| Haldir | commander and assessment receiver | immutable `haldir-ncp08` compatibility surface; parallel `haldir-ncp10` and native qualification **NOT RUN** |
+| Prisoma | observer | observer client on wire 0.8; native migration and qualification **NOT RUN** |
 
 Migration ownership stays with each consumer. Protocol core must not add
 consumer-specific classes, topics, fields, or safety semantics.
