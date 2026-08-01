@@ -7,7 +7,7 @@
     "Apache-2.0 AND ISC": 1,
     "Apache-2.0 OR BSL-1.0": 1,
     "Apache-2.0 OR ISC OR MIT": 3,
-    "Apache-2.0 OR MIT": 19,
+    "Apache-2.0 OR MIT": 18,
     "Apache-2.0 WITH LLVM-exception": 1,
     "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT": 3,
     "BSD-2-Clause": 2,
@@ -26,7 +26,7 @@
     "Zlib": 7,
     "Zlib OR Apache-2.0 OR MIT": 1
   },
-  "package_count": 384,
+  "package_count": 383,
   "packages": [
     {
       "bom_ref": "pkg:cargo/adler2@2.0.1",
@@ -221,12 +221,6 @@
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/concurrent-queue@2.5.0",
-      "license_expression_normalized": "Apache-2.0 OR MIT",
-      "license_expression_raw": "Apache-2.0 OR MIT",
-      "license_file_declared": false
-    },
-    {
       "bom_ref": "pkg:cargo/const_format@0.2.36",
       "license_expression_normalized": "Zlib",
       "license_expression_raw": "Zlib",
@@ -395,7 +389,7 @@
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/event-listener@5.4.1",
+      "bom_ref": "pkg:cargo/event-listener@5.4.2",
       "license_expression_normalized": "Apache-2.0 OR MIT",
       "license_expression_raw": "Apache-2.0 OR MIT",
       "license_file_declared": false

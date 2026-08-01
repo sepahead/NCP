@@ -2326,7 +2326,7 @@
     }
   ],
   "locked_inputs": {
-    "Cargo.lock": "c4d2c007a404350d462a63d934985f0474a2fd6dab62a2b1df51c558585a3c03",
+    "Cargo.lock": "9a6d4ccd000ef81438f677486ab8f9061959ea063a4d39f93b6b7c01de63527b",
     "Cargo.toml": "c283946aaa19f4d42bdc67becb1e715be7cdfe07bdbb41b3e974ee3cb50bd386",
     "buf.gen.yaml": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
     "buf.yaml": "62f7a56b96555a24f90ec0f258d17e480600e484a04481aa2c21d9d64d2f9ea3",

@@ -92,9 +92,9 @@
       },
       {
         "path": ".github/workflows/ci.yml",
-        "bytes": 24675,
-        "sha256": "6b8f25feafeadf186fb91c7e08b9ddab9b8041fb2002672bfb3ec6205c8808d3",
-        "git_blob_oid": "f2d46683a3e53321ed81cb11cbe7c71537b7343f",
+        "bytes": 24928,
+        "sha256": "3308397d679beedf41d828469a0917c80939c15fa870c344fb7d70398e7ddfc9",
+        "git_blob_oid": "280939ba3aca61f656b4f2fa1ad3230ab796319a",
         "indexed": true
       },
       {
@@ -169,9 +169,9 @@
       },
       {
         "path": "Cargo.lock",
-        "bytes": 94783,
-        "sha256": "c4d2c007a404350d462a63d934985f0474a2fd6dab62a2b1df51c558585a3c03",
-        "git_blob_oid": "ac0aa5b8ac02b39e46eb1800055b5eb67402becf",
+        "bytes": 94523,
+        "sha256": "9a6d4ccd000ef81438f677486ab8f9061959ea063a4d39f93b6b7c01de63527b",
+        "git_blob_oid": "e67886982033642941e9949b9f9b3864ce6751a2",
         "indexed": true
       },
       {
@@ -2340,36 +2340,36 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 127143,
-        "sha256": "f8488daa42315e901b611b26b5f52304ef188e714aec10c3f41a4bb821589b0e",
-        "git_blob_oid": "22e728fca66853e62ac8cadd59e5d5070e94b67e",
+        "sha256": "d5e9f78c911ed385ebfc5b53e344aeec37d16286b39c23b5f90bede4540be6a4",
+        "git_blob_oid": "0def2c12548dd74b092dbbc9b983a502817b7468",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/license-report.v1.json",
-        "bytes": 81570,
-        "sha256": "b46b783489f16fe3892e50e9402b6d2e2e7177bfab6ea09b4474fb1b9a958f8f",
-        "git_blob_oid": "663196a58179c5faf21464c7dc8e89a0a800cbd4",
+        "bytes": 81354,
+        "sha256": "774c7c4d9308a6f4bb186e58b74fc9a47716e4e07038e002304a6c4780639d43",
+        "git_blob_oid": "d7a33a2693a6bb8daaafa8ea977af2582c934077",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/provenance-policy.v1.json",
         "bytes": 1578,
-        "sha256": "b5833393ff5ed34629abf8d1ab962cb41bc53f46bcf71a99255d9f4118ebf345",
-        "git_blob_oid": "1a965ad902cd52ee12fb70a1586b2988310aa6cc",
+        "sha256": "2dd4cf04e2c8e05d5820cbbcf7cf5f350f4393e5afb5132f9f898b7c160c0fb7",
+        "git_blob_oid": "d071c7aca61159f5c55b72d88b1d77329994aee5",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/sbom.cdx.json",
-        "bytes": 303511,
-        "sha256": "308c77ad672e03df62791a71fa6095094b0c5559dcdc95b68c2aae62eae403ca",
-        "git_blob_oid": "89d6d81940ec8d2685b0ab4f4feb0bee6263ef3a",
+        "bytes": 302713,
+        "sha256": "bcbfd6f5da06ba4a0392556e7686b43c65178655ad19a34a337ed40ffdf1826d",
+        "git_blob_oid": "f737676126cd1dbe0a0dfc5161c05d30e1a85a56",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/vulnerability-report.v1.json",
         "bytes": 1916,
-        "sha256": "f1af60b3fbb8f0f8dc76ae8e772ea50e643e0c1f110830d7153cc50230cb14b0",
-        "git_blob_oid": "fb30d159884b53ee36ceb47e29450a642a740345",
+        "sha256": "d0a9234ca788cc1e7c14ca8a30368bc54b2ca97870d3d3662f7ce84178edf2ab",
+        "git_blob_oid": "356d56cd54a694680b1d1212525c316ed36639bb",
         "indexed": true
       },
       {
@@ -6140,9 +6140,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/README.md",
-        "bytes": 45084,
-        "sha256": "e1746d59f8b975d8557a0b2b5e905fa0188dbeda25a1df56006b1e6ee5998f5b",
-        "git_blob_oid": "ce719e2da9595479b51d04b6c23a0141196cf702",
+        "bytes": 45142,
+        "sha256": "b6f9795a5e5cfa56aee521b180e5601108e4a39ff6e69247f49ab31937761229",
+        "git_blob_oid": "efb7a7e8da082df421d9256e1e167336264a75de",
         "indexed": true
       },
       {
@@ -6287,9 +6287,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/verify_result.py",
-        "bytes": 103385,
-        "sha256": "f70e2259fd974ba55d3bb3d19e2a9ec51b5bbb200d66b2b6acb2348d125bc0b0",
-        "git_blob_oid": "420505d29102f2fff11c0df53ac0480b4d15e406",
+        "bytes": 105227,
+        "sha256": "20e5c8bf85a522d93d6e016f0c4a9fc699fc0a9f182822151449de23eb4697b3",
+        "git_blob_oid": "b9005349389007df783a5f70cdc447a7d3c3d3c4",
         "indexed": true
       },
       {
@@ -6469,9 +6469,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 12082,
-        "sha256": "4df356146fe7465e240f3ce2b7062dc5128fcf61d7d8e3b4c9d5c01a5e62bbee",
-        "git_blob_oid": "d70e19c93efa91eb6048c149662a500d63bc0e30",
+        "bytes": 12318,
+        "sha256": "199b2027a073a6ab72ce85b0c20eb2d715aa04ed3589d1f8c22aa72df61af114",
+        "git_blob_oid": "b1bcd08c8f8176596b5cf5b724b797ab07ba4b8d",
         "indexed": true
       },
       {
@@ -9297,7 +9297,7 @@
       "column": 45,
       "token_id": "M008",
       "line_sha256": "3813bf29cd75d337da7b721cee700aea653af8bd41bcbaf4a43991aca136692d",
-      "file_sha256": "e1746d59f8b975d8557a0b2b5e905fa0188dbeda25a1df56006b1e6ee5998f5b",
+      "file_sha256": "b6f9795a5e5cfa56aee521b180e5601108e4a39ff6e69247f49ab31937761229",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [

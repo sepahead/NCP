@@ -63,6 +63,11 @@ jobs:
           "$evidence_schema_python" \
             prototypes/b01-architecture-evidence/bounded_canonical.py --self-test
           "$evidence_schema_python" \
+            prototypes/b01-architecture-evidence/decision_probe.py \
+            | "$evidence_schema_python" \
+                prototypes/b01-architecture-evidence/verify_result.py \
+                --decision-only
+          "$evidence_schema_python" \
             scripts/generate_selector_closure_source.py --self-test
           "$evidence_schema_python" \
             scripts/selector_allocation_inventory.py --self-test

@@ -51,6 +51,15 @@ EXPECTED_FABLE_SHA256 = (
 MAX_CONTRACT_MANIFEST_BYTES = 65_536
 MAX_RESULT_AGE = timedelta(hours=1)
 MAX_RESULT_FUTURE_SKEW = timedelta(minutes=5)
+EXPECTED_DECISION_COUNTS = {
+    "probes": 4,
+    "finite_cases_evaluated": 159_993,
+    "logic_mutants_killed": 24,
+    "semantic_contrasts_reached": 22,
+    "hostile_inputs_rejected": 616,
+    "invariant_witnesses_reached": 119,
+    "fault_cases_survived": 0,
+}
 RESULT_JSON_LIMITS = JsonLimits(
     maximum_bytes=MAX_RESULT_BYTES,
     maximum_depth=64,
@@ -321,6 +330,35 @@ def _load() -> dict[str, Any]:
         raise ResultError(f"result is not bounded strict JSON: {error}") from error
     if type(value) is not dict:
         raise ResultError("result root is not an object")
+    return value
+
+
+def _load_decision_probe() -> dict[str, Any]:
+    raw = sys.stdin.buffer.read(MAX_RESULT_BYTES + 1)
+    if len(raw) > MAX_RESULT_BYTES:
+        raise ResultError("decision-probe result exceeds the verifier input bound")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ResultError("decision-probe result is not strict UTF-8") from error
+    if "\r" in text:
+        raise ResultError("decision-probe result contains a carriage return")
+    if text.endswith("\n"):
+        text = text[:-1]
+    if not text or "\n" in text:
+        raise ResultError("expected exactly one decision-probe result line")
+    try:
+        value = parse_json_bytes(
+            text.encode("utf-8"),
+            limits=RESULT_JSON_LIMITS,
+            label="decision-probe result",
+        )
+    except BoundedJsonError as error:
+        raise ResultError(
+            f"decision-probe result is not bounded strict JSON: {error}"
+        ) from error
+    if type(value) is not dict:
+        raise ResultError("decision-probe result root is not an object")
     return value
 
 
@@ -681,13 +719,7 @@ def _verify_decision_probe(value: Any) -> None:
     if (
         not isinstance(counts, dict)
         or counts != derived_counts
-        or counts["probes"] != 4
-        or counts["finite_cases_evaluated"] != 159_945
-        or counts["logic_mutants_killed"] != 24
-        or counts["semantic_contrasts_reached"] != 22
-        or counts["hostile_inputs_rejected"] < 505
-        or counts["invariant_witnesses_reached"] < 94
-        or counts["fault_cases_survived"] != 0
+        or counts != EXPECTED_DECISION_COUNTS
     ):
         raise ResultError("decision probe coverage counts drifted")
 
@@ -2582,8 +2614,24 @@ def _self_test(value: dict[str, Any]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--self-test", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--self-test", action="store_true")
+    mode.add_argument("--decision-only", action="store_true")
     args = parser.parse_args()
+    if args.decision_only:
+        decision_value = _load_decision_probe()
+        _verify_decision_probe(decision_value)
+        counts = decision_value["counts"]
+        print(
+            "OK B01 decision probe: "
+            f"{counts['finite_cases_evaluated']} finite cases, "
+            f"{counts['logic_mutants_killed']} executable logic mutants, "
+            f"{counts['semantic_contrasts_reached']} semantic contrasts, "
+            f"{counts['hostile_inputs_rejected']} hostile inputs, "
+            f"{counts['invariant_witnesses_reached']} invariant witnesses; "
+            "PROPOSED only, no independent or release claim"
+        )
+        return 0
     value = _load()
     verify(value)
     if args.self_test:

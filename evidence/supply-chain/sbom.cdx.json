@@ -771,30 +771,6 @@
       "version": "4.6.7"
     },
     {
-      "bom-ref": "pkg:cargo/concurrent-queue@2.5.0",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "Apache-2.0 OR MIT"
-        }
-      ],
-      "name": "concurrent-queue",
-      "properties": [
-        {
-          "name": "ncp:cargo-source",
-          "value": "registry+https://github.com/rust-lang/crates.io-index"
-        }
-      ],
-      "purl": "pkg:cargo/concurrent-queue@2.5.0",
-      "type": "library",
-      "version": "2.5.0"
-    },
-    {
       "bom-ref": "pkg:cargo/const_format@0.2.36",
       "hashes": [
         {
@@ -1467,11 +1443,11 @@
       "version": "0.3.14"
     },
     {
-      "bom-ref": "pkg:cargo/event-listener@5.4.1",
+      "bom-ref": "pkg:cargo/event-listener@5.4.2",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e13b66accf52311f30a0db42147dadea9850cb48cd070028831ae5f5d4b856ab"
+          "content": "5a23add41df1562121a9393cb065eab5146a1242410f23a644851e90cfd669d2"
         }
       ],
       "licenses": [
@@ -1486,9 +1462,9 @@
           "value": "registry+https://github.com/rust-lang/crates.io-index"
         }
       ],
-      "purl": "pkg:cargo/event-listener@5.4.1",
+      "purl": "pkg:cargo/event-listener@5.4.2",
       "type": "library",
-      "version": "5.4.1"
+      "version": "5.4.2"
     },
     {
       "bom-ref": "pkg:cargo/fastbloom@0.14.1",
@@ -9349,12 +9325,6 @@
     },
     {
       "dependsOn": [
-        "pkg:cargo/crossbeam-utils@0.8.21"
-      ],
-      "ref": "pkg:cargo/concurrent-queue@2.5.0"
-    },
-    {
-      "dependsOn": [
         "pkg:cargo/const_format_proc_macros@0.2.34",
         "pkg:cargo/konst@0.2.20"
       ],
@@ -9539,11 +9509,10 @@
     },
     {
       "dependsOn": [
-        "pkg:cargo/concurrent-queue@2.5.0",
         "pkg:cargo/parking@2.2.1",
         "pkg:cargo/pin-project-lite@0.2.17"
       ],
-      "ref": "pkg:cargo/event-listener@5.4.1"
+      "ref": "pkg:cargo/event-listener@5.4.2"
     },
     {
       "dependsOn": [
@@ -11764,7 +11733,7 @@
     {
       "dependsOn": [
         "pkg:cargo/arc-swap@1.9.1",
-        "pkg:cargo/event-listener@5.4.1",
+        "pkg:cargo/event-listener@5.4.2",
         "pkg:cargo/futures@0.3.32",
         "pkg:cargo/tokio@1.52.3",
         "pkg:cargo/zenoh-buffers@1.9.0",
@@ -12015,7 +11984,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:175331ca-e423-5c4a-9831-d99d7cb8f7e2",
+  "serialNumber": "urn:uuid:822312f3-8265-5cbe-9dcf-da9bb9f20801",
   "specVersion": "1.6",
   "version": 1
 }

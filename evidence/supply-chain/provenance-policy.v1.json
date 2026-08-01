@@ -19,7 +19,7 @@
   "release_authorized": false,
   "schema": "ncp.provenance-policy.v1",
   "source_materials": {
-    "Cargo.lock": "c4d2c007a404350d462a63d934985f0474a2fd6dab62a2b1df51c558585a3c03",
+    "Cargo.lock": "9a6d4ccd000ef81438f677486ab8f9061959ea063a4d39f93b6b7c01de63527b",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
     "conformance/manifest.v1.json": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
     "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97"

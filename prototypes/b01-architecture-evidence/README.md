@@ -519,11 +519,11 @@ closures, CI configuration, or live deployments.
    generic publication plus high-level command, disposition, authority, ESTOP,
    lifecycle, declaration, and assessment operations and must differ from the
    separate oracle.
-2. The 104 lifecycle decision cases contain 20 admitted and 84 rejected cases.
+2. The 186 lifecycle decision cases contain 36 admitted and 150 rejected cases.
    They cover bounded current/history streams, manifest-scoped attach, principal-bound
    renewal, external compare-and-swap ledger heads, UUIDv4 incarnations, receiver
    clocks, authenticated security state, exact provider contracts, and queued
-   frame sources. Three semantic contrasts are not counted as mutants. Eighty-four
+   frame sources. Nine semantic contrasts are not counted as mutants. All 150
    hostile inputs must reject deterministic grant identity, self-issued authority,
    stale or replayed renewal,
    uninstalled receipts, descriptor drift, frame drift, canonical key coercion,
@@ -534,7 +534,7 @@ closures, CI configuration, or live deployments.
    body-boundary application, non-application, authenticated measurement
    delivery, and physical outcome distinct. Exact V/L/D/A segment, source, route,
    position, security-epoch, provider-contract, consumer-contract, and receipt
-   joins are challenged. Thirteen semantic contrasts and 285 hostile inputs also
+   joins are challenged. Thirteen semantic contrasts and 294 hostile inputs also
    cover sequential grants, numeric limits, the closed raw journal, the acyclic
    artifact graph, and the wire-1.0 publication-receipt schema.
 4. Four valid surfaces and two reviewed non-surface exclusions exercise one shared
@@ -578,10 +578,11 @@ closures, CI configuration, or live deployments.
    One executed global-repin mutant and 172 hostile inputs challenge the inventory
    closure.
 
-The deterministic result separates 24 killed executable logic mutants and 15
-semantic contrasts across 159,876 finite cases. It derives hostile-rejection and
-invariant-witness totals from the complete emitted witness arrays. Its real
-`--self-test` mutates counts, identities, witnesses, and inventory digests. The
+The deterministic result separates 24 killed executable logic mutants and 22
+semantic contrasts across 159,993 finite cases. It rejects 616 hostile inputs and
+reaches 119 invariant witnesses. It derives these totals from the complete emitted
+witness arrays. Its real `--self-test` mutates counts, identities, witnesses, and
+inventory digests. The
 aggregate verifier recomputes the complete canonical decision-probe result. It
 also reconciles those totals before it accepts the result. These remain bounded
 design probes, not the N07 pin-tool implementation, built-artifact qualification,
@@ -717,10 +718,10 @@ The runner:
 - executes 547 freshness/acceptance cases, rejects 369 hostile inputs, reaches
   84 invariant witnesses, and kills all 144 registered single-defect mutants;
 - explores the three bounded models and kills thirty-eight mutations;
-- evaluates 159,876 observer/lifecycle/action cases plus four valid surfaces and
-  two reviewed exclusions; kills 24 executable logic mutants, reaches 15 semantic
-  contrasts, and reconciles every emitted hostile rejection and invariant
-  witness;
+- evaluates 159,993 observer/lifecycle/action cases plus four valid surfaces and
+  two reviewed exclusions; kills 24 executable logic mutants, reaches 22 semantic
+  contrasts, rejects 616 hostile inputs, reaches 119 invariant witnesses, and
+  reconciles every emitted witness;
 - runs nineteen SMT checks and kills thirteen independent formula mutations;
 - runs the queue/parser/journal/real-Ed25519 resource screens;
 - inventories every prototype source and the shared bounded-JSON implementation
