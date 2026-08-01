@@ -62,6 +62,12 @@ selector_closure_status=0
     | "$evidence_schema_python" \
         prototypes/b01-architecture-evidence/verify_result.py --decision-only \
     || selector_closure_status=1
+"$evidence_schema_python" \
+    prototypes/b01-architecture-evidence/observer_authorization_probe.py \
+    | "$evidence_schema_python" \
+        prototypes/b01-architecture-evidence/verify_result.py \
+        --observer-authorization-only \
+    || selector_closure_status=1
 "$evidence_schema_python" scripts/generate_selector_closure_source.py --self-test \
     || selector_closure_status=1
 "$evidence_schema_python" scripts/selector_allocation_inventory.py --self-test \

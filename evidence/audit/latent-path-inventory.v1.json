@@ -6287,9 +6287,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/verify_result.py",
-        "bytes": 105227,
-        "sha256": "20e5c8bf85a522d93d6e016f0c4a9fc699fc0a9f182822151449de23eb4697b3",
-        "git_blob_oid": "b9005349389007df783a5f70cdc447a7d3c3d3c4",
+        "bytes": 106210,
+        "sha256": "028f76a7694de2b84e419f7ad0c75ce56e9b7532df9774beccf8adc84a3c605b",
+        "git_blob_oid": "7568c3cbf4abe8b379ef2cc78427eda878a8e8a1",
         "indexed": true
       },
       {
@@ -6469,9 +6469,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 12318,
-        "sha256": "199b2027a073a6ab72ce85b0c20eb2d715aa04ed3589d1f8c22aa72df61af114",
-        "git_blob_oid": "b1bcd08c8f8176596b5cf5b724b797ab07ba4b8d",
+        "bytes": 12592,
+        "sha256": "de1e81a65f5695e7affdab2c9806805b9aca81dd36685290c28eeface4c3754d",
+        "git_blob_oid": "5992798d9ecffa321e96c3ced29c7732421c127c",
         "indexed": true
       },
       {

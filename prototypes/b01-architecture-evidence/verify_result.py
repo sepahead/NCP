@@ -60,6 +60,19 @@ EXPECTED_DECISION_COUNTS = {
     "invariant_witnesses_reached": 119,
     "fault_cases_survived": 0,
 }
+EXPECTED_OBSERVER_AUTHORIZATION_COUNTS = {
+    "server_transitions": 3,
+    "boundary_transitions": 10,
+    "boundaries": 2,
+    "released_items": 1,
+    "sealed_capability_issuances": 1,
+    "authorized_read_decisions": 1,
+    "exact_read_admission_retries": 1,
+    "hostile_rejections": 169,
+    "release_linearization_witnesses": 16,
+    "registered_staged_artifact_types": 71,
+    "closed_read_route_classes": 5,
+}
 RESULT_JSON_LIMITS = JsonLimits(
     maximum_bytes=MAX_RESULT_BYTES,
     maximum_depth=64,
@@ -333,33 +346,41 @@ def _load() -> dict[str, Any]:
     return value
 
 
-def _load_decision_probe() -> dict[str, Any]:
+def _load_standalone_probe(*, label: str) -> dict[str, Any]:
     raw = sys.stdin.buffer.read(MAX_RESULT_BYTES + 1)
     if len(raw) > MAX_RESULT_BYTES:
-        raise ResultError("decision-probe result exceeds the verifier input bound")
+        raise ResultError(f"{label} result exceeds the verifier input bound")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as error:
-        raise ResultError("decision-probe result is not strict UTF-8") from error
+        raise ResultError(f"{label} result is not strict UTF-8") from error
     if "\r" in text:
-        raise ResultError("decision-probe result contains a carriage return")
+        raise ResultError(f"{label} result contains a carriage return")
     if text.endswith("\n"):
         text = text[:-1]
     if not text or "\n" in text:
-        raise ResultError("expected exactly one decision-probe result line")
+        raise ResultError(f"expected exactly one {label} result line")
     try:
         value = parse_json_bytes(
             text.encode("utf-8"),
             limits=RESULT_JSON_LIMITS,
-            label="decision-probe result",
+            label=f"{label} result",
         )
     except BoundedJsonError as error:
         raise ResultError(
-            f"decision-probe result is not bounded strict JSON: {error}"
+            f"{label} result is not bounded strict JSON: {error}"
         ) from error
     if type(value) is not dict:
-        raise ResultError("decision-probe result root is not an object")
+        raise ResultError(f"{label} result root is not an object")
     return value
+
+
+def _load_decision_probe() -> dict[str, Any]:
+    return _load_standalone_probe(label="decision-probe")
+
+
+def _load_observer_authorization_probe() -> dict[str, Any]:
+    return _load_standalone_probe(label="observer-authorization-probe")
 
 
 def _verify_sources(value: dict[str, Any]) -> None:
@@ -742,19 +763,7 @@ def _verify_observer_authorization_probe(value: Any) -> None:
         raise ResultError(
             "observer authorization probe failed deterministic semantic replay"
         )
-    if value.get("counts") != {
-        "server_transitions": 3,
-        "boundary_transitions": 10,
-        "boundaries": 2,
-        "released_items": 1,
-        "sealed_capability_issuances": 1,
-        "authorized_read_decisions": 1,
-        "exact_read_admission_retries": 1,
-        "hostile_rejections": 161,
-        "release_linearization_witnesses": 16,
-        "registered_staged_artifact_types": 71,
-        "closed_read_route_classes": 5,
-    }:
+    if value.get("counts") != EXPECTED_OBSERVER_AUTHORIZATION_COUNTS:
         raise ResultError("observer authorization coverage counts drifted")
     claim_boundary = value.get("claim_boundary")
     if (
@@ -2343,7 +2352,7 @@ def _self_test(value: dict[str, Any]) -> None:
                 "counts",
                 "hostile_rejections",
             ),
-            160,
+            EXPECTED_OBSERVER_AUTHORIZATION_COUNTS["hostile_rejections"] - 1,
         ),
         (
             "observer authorization release claim",
@@ -2617,6 +2626,7 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--self-test", action="store_true")
     mode.add_argument("--decision-only", action="store_true")
+    mode.add_argument("--observer-authorization-only", action="store_true")
     args = parser.parse_args()
     if args.decision_only:
         decision_value = _load_decision_probe()
@@ -2629,6 +2639,18 @@ def main() -> int:
             f"{counts['semantic_contrasts_reached']} semantic contrasts, "
             f"{counts['hostile_inputs_rejected']} hostile inputs, "
             f"{counts['invariant_witnesses_reached']} invariant witnesses; "
+            "PROPOSED only, no independent or release claim"
+        )
+        return 0
+    if args.observer_authorization_only:
+        authorization_value = _load_observer_authorization_probe()
+        _verify_observer_authorization_probe(authorization_value)
+        counts = authorization_value["counts"]
+        print(
+            "OK B01 observer authorization probe: "
+            f"{counts['hostile_rejections']} hostile inputs, "
+            f"{counts['registered_staged_artifact_types']} staged artifact types, "
+            f"{counts['release_linearization_witnesses']} release witnesses; "
             "PROPOSED only, no independent or release claim"
         )
         return 0
