@@ -2340,8 +2340,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 127143,
-        "sha256": "d5e9f78c911ed385ebfc5b53e344aeec37d16286b39c23b5f90bede4540be6a4",
-        "git_blob_oid": "0def2c12548dd74b092dbbc9b983a502817b7468",
+        "sha256": "993f8042314f5af8f3bd5f753fbab0a34e808034fc22a7cf9b214728f1028d8d",
+        "git_blob_oid": "9aca3722ca8614edf0e67bd2a43290d866638ca8",
         "indexed": true
       },
       {
@@ -6294,9 +6294,9 @@
       },
       {
         "path": "schemas/README.md",
-        "bytes": 1748,
-        "sha256": "452922a47a664d9e2fbe9eb772c6b3626d47a2deff22cf938b4fe81de2025459",
-        "git_blob_oid": "be3a07d431ff9047ac330c32ad656dc4a2f7f509",
+        "bytes": 1919,
+        "sha256": "da3d836d60bfb49a1981e5631092ce7f6bb69840e2cd30a8434deac626a1d896",
+        "git_blob_oid": "e1152bbc309d01ad69e36cc1987ae619f194f6ca",
         "indexed": true
       },
       {

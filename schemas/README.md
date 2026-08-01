@@ -2,7 +2,11 @@
 
 These draft-2020-12 schemas are the generated JSON projection for the unreleased,
 release-blocked NCP `1.0.0-rc.1` candidate. [`index.json`](index.json) lists wire
-`1.0`, compact proto hash `163acc57d8a62b66`, and the 14 stable message schemas.
+`1.0` and the 14 stable message schemas. The advisory compact proto hash
+`163acc57d8a62b66` is recorded in the
+[`contract manifest`](../contract/manifest.v1.json) and
+[`conformance manifest`](../conformance/manifest.v1.json); it is not an index
+field.
 
 Do not edit `*.schema.json` by hand. Change the Rust reference types and normative
 proto together, then regenerate:

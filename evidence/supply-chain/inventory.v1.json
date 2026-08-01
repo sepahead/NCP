@@ -2021,8 +2021,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "schemas/README.md",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "452922a47a664d9e2fbe9eb772c6b3626d47a2deff22cf938b4fe81de2025459",
-      "size_bytes": 1748
+      "sha256": "da3d836d60bfb49a1981e5631092ce7f6bb69840e2cd30a8434deac626a1d896",
+      "size_bytes": 1919
     },
     {
       "classification": "generated-json-schema",
