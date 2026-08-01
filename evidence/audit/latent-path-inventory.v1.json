@@ -1800,9 +1800,9 @@
       },
       {
         "path": "docs/adr/B01_REVIEW_PACKET.md",
-        "bytes": 19702,
-        "sha256": "bc7263d492821a5a1c6b83b25e72b5bf9749e0d3080e8062bdae54ac081de33a",
-        "git_blob_oid": "f1e5c54227774d4c5992dd3535d4726acdd0d585",
+        "bytes": 44261,
+        "sha256": "3a3d99623e3d21ac406d34fd198a725b994d95436436924b1024d8e6cf774e64",
+        "git_blob_oid": "fc01325d33a937c094ce8de0f1ab8cf87ffe929f",
         "indexed": true
       },
       {
@@ -1814,9 +1814,9 @@
       },
       {
         "path": "docs/adr/README.md",
-        "bytes": 21140,
-        "sha256": "33aa550e09330fd105042f2f43f5b9873bdedc3dec717c3173baa11376cad53f",
-        "git_blob_oid": "1a3401613d0455ad3d011ae7f65bd902efa6c83a",
+        "bytes": 21328,
+        "sha256": "db7272cea0e5f7ddee0c9549210c03698430d304f87ca62e88b6da12060639f0",
+        "git_blob_oid": "d1064b5fe1bbbacf8c7a4d7b77b87184327a5c17",
         "indexed": true
       },
       {
@@ -1828,9 +1828,9 @@
       },
       {
         "path": "docs/adr/decision-registry.proposed.v1.json",
-        "bytes": 36746,
-        "sha256": "5b6c827cf9f719201243b34849d0a50692cfd435fb1b66a294ae088550107b0d",
-        "git_blob_oid": "c5807beb64959c4a6c216c3ae1c11190592ad7e0",
+        "bytes": 62235,
+        "sha256": "71ee029a4200b401b20ec1d38c77fb25b83dd03363456f03702be2a40e385614",
+        "git_blob_oid": "3023f58933b39d5ce6ffa4c191f80e3524fd55c0",
         "indexed": true
       },
       {
@@ -7893,13 +7893,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-689C250D9553EA73BAF9",
+      "id": "NCP-LATENT-E2E3041FC349BE2C3B23",
       "path": "docs/adr/README.md",
-      "line": 176,
+      "line": 179,
       "column": 64,
       "token_id": "M008",
       "line_sha256": "246702ee4bb4d3fdea2ba110a136cdba3bf92aa06a8f32d5c48fc3ae538017ba",
-      "file_sha256": "33aa550e09330fd105042f2f43f5b9873bdedc3dec717c3173baa11376cad53f",
+      "file_sha256": "db7272cea0e5f7ddee0c9549210c03698430d304f87ca62e88b6da12060639f0",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [

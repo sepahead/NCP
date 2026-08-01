@@ -6,10 +6,13 @@ documents changes the current unreleased, release-blocked `1.0.0-rc.1`
 normative contract, compact proto hash, runtime authority, release status, or
 external evidence state.
 
-The current [`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is explicitly
-superseded while amended B01 source is prepared. Do not review its historical
-digests. A replacement packet will bind a clean pushed source commit; a packet
-requests review but is never itself a review or acceptance record.
+The current [`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) contains the generated
+zero-review subject for clean pushed source commit
+`90907d005a4b84b0a792453867b7d9e0aa29a20b` and decision-set digest
+`d48cd1ee840b0046009ba8f7d2e507d03eaef3633bf1e75ef64570f2d526bedb`.
+It requests exact same-subject review. It is not a review or acceptance record.
+No qualifying review or independent adjudication is recorded, so all eleven
+decisions remain **PROPOSED** and B01 remains `IN_PROGRESS`.
 
 The current candidate remains wire `1.0` with compact proto contract hash
 `163acc57d8a62b66`. The immutable `v0.8.0` release remains a different wire and

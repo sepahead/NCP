@@ -1,33 +1,726 @@
 # B01 exact architecture review packet
 
-> **SUPERSEDED — DO NOT REVIEW.** ADR-004, ADR-011, the defect map, and
-> consumer task scopes changed after this packet was issued. Every identity and
-> preliminary result below binds earlier bytes only. GitHub issue 21 is not a
-> current same-digest review request. A replacement packet requires a clean pushed
-> source commit and fresh local challenge results. B01 remains `IN_PROGRESS`.
+> **CURRENT REVIEW SUBJECT — PROPOSED DECISIONS ONLY.** This packet binds the
+> eleven proposed ADRs to clean pushed source commit
+> `90907d005a4b84b0a792453867b7d9e0aa29a20b`. It contains zero review records.
+> It does not accept an ADR, satisfy B01, authorize a rebaseline, certify
+> interoperability or plant safety, or release NCP 1.0. B01 remains
+> `IN_PROGRESS`.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "SUPERSEDED"
+  "state": "CURRENT"
+}
+```
+
+```json
+{
+  "schema": "ncp.b01-review-subject.v1",
+  "state": "CURRENT",
+  "normative": false,
+  "claim_boundary": "This generated registry records non-normative architecture decisions and structurally checked review claims. It cannot prove external authorship, role authority, or independence. It cannot satisfy B01 by itself, authorize the pre-release rebaseline or publication, or grant runtime identity, authority, plant action, safety, interoperability, or a scientific claim.",
+  "promotion_blocked": true,
+  "decision_set": {
+    "schema": "ncp.b01-decision-set.v1",
+    "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+    "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
+    "sha256": "d48cd1ee840b0046009ba8f7d2e507d03eaef3633bf1e75ef64570f2d526bedb"
+  },
+  "review_policy": {
+    "schema": "ncp.b01-review-policy.v1",
+    "source_schema": "ncp.proposed-decision-registry-source.v1",
+    "output_schema": "ncp.proposed-decision-registry.v1",
+    "generator": {
+      "path": "scripts/generate_decision_registry.py",
+      "sha256": "4970e98e6f6a84c088a0965ff5b10b5a4b4b5e222a7a6c0f761f66d1ffd990d7",
+      "bytes": 132781
+    },
+    "output_json_schema": {
+      "path": "docs/adr/decision-registry.proposed.schema.v1.json",
+      "sha256": "6977a739dc0328c993f002fc558934f76aa100555dd97448fe8f93e3d28c8e02",
+      "bytes": 23695
+    }
+  },
+  "source": {
+    "commit": "90907d005a4b84b0a792453867b7d9e0aa29a20b",
+    "tree": "746109380a37ecec5000329eb3bc27d08ae4cd64",
+    "decision_source": {
+      "path": "docs/adr/decision-registry.source.v1.json",
+      "sha256": "fe4c81e1bdd32889f396f72bcc9ef094977d8f065a3ac814e90a43a013769a2b",
+      "bytes": 14187
+    }
+  },
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "title": "Separate simulation-service and plant-control sessions",
+      "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+      "module_paths": [],
+      "content_sha256": "e02287912f7c5243aed011e7abeaee6c193b4bd8e90faca69d0c0a9addc2afa8",
+      "bytes": 151732,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-001",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+            "sha256": "e02287912f7c5243aed011e7abeaee6c193b4bd8e90faca69d0c0a9addc2afa8",
+            "bytes": 151732
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "07b1a9fa7fc2599b4cb44abb4e69e4566fb93191988259a2f59bd2530d8f4c77"
+      },
+      "required_reviews": [
+        {
+          "role_id": "ncp-maintainer",
+          "label": "NCP maintainer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-body-owner",
+          "label": "Crebain body owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-protocol-reviewer",
+          "label": "independent protocol reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        }
+      ],
+      "defect_ids": [
+        "D01"
+      ]
+    },
+    {
+      "id": "ADR-002",
+      "title": "Separate contract identity and release authorization",
+      "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+      "module_paths": [],
+      "content_sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
+      "bytes": 16004,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-002",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+            "sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
+            "bytes": 16004
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "7710e1610a5bf78a3dc269de4f1d93d6d9056d1bee7c311de1dd5bdfb756034c"
+      },
+      "required_reviews": [
+        {
+          "role_id": "protocol-reviewer",
+          "label": "protocol reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "release-supply-chain-reviewer",
+          "label": "release and supply-chain reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D04",
+        "D13",
+        "D17",
+        "D19"
+      ]
+    },
+    {
+      "id": "ADR-003",
+      "title": "Authenticate production ingress before interpretation",
+      "path": "docs/adr/0003-authenticated-production-ingress.md",
+      "module_paths": [],
+      "content_sha256": "1f5e02cba4d482a44b7588bb146232e91f97143ea33b3c85a428047991b6721c",
+      "bytes": 19602,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-003",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0003-authenticated-production-ingress.md",
+            "sha256": "1f5e02cba4d482a44b7588bb146232e91f97143ea33b3c85a428047991b6721c",
+            "bytes": 19602
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "2db528f7923854d3419d26b566786c0d1b88f5e15717e9fd9c42e1a3e805b120"
+      },
+      "required_reviews": [
+        {
+          "role_id": "security-cryptography-reviewer",
+          "label": "security and cryptography reviewer",
+          "min_distinct_identities": 2,
+          "requires_independence": true
+        },
+        {
+          "role_id": "transport-implementer",
+          "label": "transport implementer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D06",
+        "D10"
+      ]
+    },
+    {
+      "id": "ADR-004",
+      "title": "Attach observers with bounded grants and revocation",
+      "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+      "module_paths": [
+        "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
+      ],
+      "content_sha256": "a192232e3cf97bafec8e55a02ee8f411a7c298256639bec5fdc7fbcd47506904",
+      "bytes": 261552,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-004",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+            "sha256": "a192232e3cf97bafec8e55a02ee8f411a7c298256639bec5fdc7fbcd47506904",
+            "bytes": 261552
+          },
+          {
+            "kind": "module",
+            "path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
+            "sha256": "ed70f11100eb0eee6377084206025309502e5c6275e9c49a1061c4e949e9f8fb",
+            "bytes": 118633
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "ea0651c10b1c42d40f339532106cefcc5192afd8ad22981b15684dd5157f3e87"
+      },
+      "required_reviews": [
+        {
+          "role_id": "prisoma-owner",
+          "label": "Prisoma owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-owner",
+          "label": "Galadriel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "security-reviewer",
+          "label": "security reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "ncp-source-provider-owner",
+          "label": "NCP/source-provider owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "observer-anchor-infrastructure-owner-operator",
+          "label": "observer-anchor infrastructure owner/operator",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-anchor-security-distributed-systems-reviewer",
+          "label": "independent anchor security/distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        }
+      ],
+      "defect_ids": [
+        "D02",
+        "D05",
+        "D20"
+      ]
+    },
+    {
+      "id": "ADR-005",
+      "title": "Declare and retire every stream explicitly",
+      "path": "docs/adr/0005-declared-stream-lifecycle.md",
+      "module_paths": [],
+      "content_sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
+      "bytes": 38308,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-005",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0005-declared-stream-lifecycle.md",
+            "sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
+            "bytes": 38308
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "73384f873d12e9ff6eca4b41ce1fcb681d5908ad843d96c27f84ead8eb5f27f2"
+      },
+      "required_reviews": [
+        {
+          "role_id": "distributed-systems-reviewer",
+          "label": "distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "engram-stream-owner",
+          "label": "Engram stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-stream-owner",
+          "label": "Haldir stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-stream-owner",
+          "label": "Galadriel stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-stream-owner",
+          "label": "Crebain stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "prisoma-stream-owner",
+          "label": "Prisoma stream owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D03"
+      ]
+    },
+    {
+      "id": "ADR-006",
+      "title": "Use body-issued authority and receiver-local time",
+      "path": "docs/adr/0006-body-issued-authority-and-time.md",
+      "module_paths": [],
+      "content_sha256": "e1f52350e9818d1dabee572decf957100d83e455d885b02c063b3d02d24f26b6",
+      "bytes": 53927,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-006",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0006-body-issued-authority-and-time.md",
+            "sha256": "e1f52350e9818d1dabee572decf957100d83e455d885b02c063b3d02d24f26b6",
+            "bytes": 53927
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "a8d2fac8aaa51cbd83d4ccc3b1f6bf79134c533ac87bcf1fee41e270ff7087b8"
+      },
+      "required_reviews": [
+        {
+          "role_id": "safety-reviewer",
+          "label": "safety reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "distributed-systems-reviewer",
+          "label": "distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D08",
+        "D15"
+      ]
+    },
+    {
+      "id": "ADR-007",
+      "title": "Journal body-issued command dispositions",
+      "path": "docs/adr/0007-command-disposition-journal.md",
+      "module_paths": [],
+      "content_sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
+      "bytes": 221493,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-007",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0007-command-disposition-journal.md",
+            "sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
+            "bytes": 221493
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "974564f616d53789846f93b5cd8f9abc4514189c7d1d52e66ea81a401953f293"
+      },
+      "required_reviews": [
+        {
+          "role_id": "plant-safety-reviewer",
+          "label": "plant and safety reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D07"
+      ]
+    },
+    {
+      "id": "ADR-008",
+      "title": "Separate stable routes from Galadriel extensions",
+      "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+      "module_paths": [],
+      "content_sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
+      "bytes": 170617,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-008",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+            "sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
+            "bytes": 170617
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "cb0853d68c64d89e87b22e6eec36db349b824ead1657141a0b99cd11fea68f77"
+      },
+      "required_reviews": [
+        {
+          "role_id": "protocol-reviewer",
+          "label": "protocol reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-owner",
+          "label": "Galadriel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D09"
+      ]
+    },
+    {
+      "id": "ADR-009",
+      "title": "Bind semantic security state, rotation, and revocation",
+      "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+      "module_paths": [
+        "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
+      ],
+      "content_sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
+      "bytes": 257562,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-009",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+            "sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
+            "bytes": 257562
+          },
+          {
+            "kind": "module",
+            "path": "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+            "sha256": "47420d1b7a3b9bfa3ff767510c26e66520caa44ef735371d08faf4c16cc11800",
+            "bytes": 74277
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "9dd098dea0786d83d09b0465db56da289f7a61b3b3705ef243ec49a1f3039b9c"
+      },
+      "required_reviews": [
+        {
+          "role_id": "security-reviewer",
+          "label": "security reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "operations-reviewer",
+          "label": "operations reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "supply-chain-reviewer",
+          "label": "supply-chain reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "security-artifact-anchor-infrastructure-owner-operator",
+          "label": "security-artifact-anchor infrastructure owner/operator",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-anchor-security-reviewer",
+          "label": "independent anchor security reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        }
+      ],
+      "defect_ids": [
+        "D16",
+        "D20"
+      ]
+    },
+    {
+      "id": "ADR-010",
+      "title": "Specify finite per-plane QoS and overload behavior",
+      "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+      "module_paths": [],
+      "content_sha256": "be4a05d1e52bc148053d37f1009a607d0d25ef6181c5e57504ef23935008ab05",
+      "bytes": 14277,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-010",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+            "sha256": "be4a05d1e52bc148053d37f1009a607d0d25ef6181c5e57504ef23935008ab05",
+            "bytes": 14277
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "201ceb5436eaf71dedd0d78ee393b85aa9cb18a8d7f52481baa82c04e0b18144"
+      },
+      "required_reviews": [
+        {
+          "role_id": "real-time-performance-reviewer",
+          "label": "real-time and performance reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "engram-consumer-reviewer",
+          "label": "Engram consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-consumer-reviewer",
+          "label": "Haldir consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-consumer-reviewer",
+          "label": "Galadriel consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-consumer-reviewer",
+          "label": "Crebain consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "prisoma-consumer-reviewer",
+          "label": "Prisoma consumer reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D14"
+      ]
+    },
+    {
+      "id": "ADR-011",
+      "title": "Fix ecosystem dependency direction and plant handover",
+      "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+      "module_paths": [],
+      "content_sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
+      "bytes": 70553,
+      "source_set": {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": "ADR-011",
+        "sources": [
+          {
+            "kind": "main",
+            "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+            "sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
+            "bytes": 70553
+          }
+        ],
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+        "sha256": "3d0df976883070a88ada52c7d1bb554309959b2e6cb31ca68ee63de2cdeb452e"
+      },
+      "required_reviews": [
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "haldir-owner",
+          "label": "Haldir owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "galadriel-owner",
+          "label": "Galadriel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-owner",
+          "label": "Crebain owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "prisoma-owner",
+          "label": "Prisoma owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "cortexel-owner",
+          "label": "Cortexel owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "pid-rs-owner",
+          "label": "pid-rs owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "independent-security-distributed-systems-reviewer",
+          "label": "independent security and distributed-systems reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": true
+        },
+        {
+          "role_id": "release-package-tooling-reviewer",
+          "label": "release and package-tooling reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        },
+        {
+          "role_id": "crebain-plant-safety-reviewer",
+          "label": "Crebain plant and safety reviewer",
+          "min_distinct_identities": 1,
+          "requires_independence": false
+        }
+      ],
+      "defect_ids": [
+        "D01",
+        "D08",
+        "D09",
+        "D11",
+        "D12",
+        "D18"
+      ]
+    }
+  ]
 }
 ```
 
 This machine-readable lifecycle block controls whether review capture is
-permitted. Banner text is explanatory only. A `SUPERSEDED` or `TEMPLATE` packet
-cannot contain a `CURRENT` review-subject block and cannot receive review
-records.
+permitted. Banner text is explanatory only. A `CURRENT` packet must contain
+exactly one matching `CURRENT` review-subject block before it can receive review
+records. A `SUPERSEDED` or `TEMPLATE` packet cannot contain that block or receive
+review records.
 
-## Replacement packet requirements
+## Current packet bindings
 
-The replacement packet must bind the generated `decision_set.sha256`. The
+The generated review subject binds `decision_set.sha256`. The
 decision-set digest covers all exact ADR bytes, role obligations, defect
 mappings, review-policy version, and exact generator and output-schema
 identities. It excludes review records, so later review capture does not change
 the reviewed subject. A policy implementation or schema change makes an earlier
 review stale.
 
-The replacement packet must also bind:
+The review workflow has these additional binding obligations:
 
 - the clean pushed source commit and its resolved tree;
 - the exact zero-review decision source SHA-256 and byte length at that commit;
@@ -55,23 +748,29 @@ review record content-address the immutable packet bytes with
 `review_packet_sha256`. This acyclic rule lets the generator compare that digest
 with the current packet file.
 
-Before any review record is captured, the replacement packet must contain
-exactly one JSON block with schema `ncp.b01-review-subject.v1` and state
-`CURRENT`. That block contains the exact decision-set and review-policy
-identities, source commit and tree, claim boundary, promotion block, and all ADR
-digests, byte lengths, role obligations, and defect mappings. It does not
-contain `review_packet_sha256`.
+The JSON block above has schema `ncp.b01-review-subject.v1` and state `CURRENT`.
+It contains the exact decision-set and review-policy identities, source commit
+and tree, claim boundary, promotion block, and all ADR digests, byte lengths,
+role obligations, and defect mappings. It does not contain
+`review_packet_sha256`.
 
-The generator allows this superseded packet or a template only while the source
-has zero review records. If a zero-review packet contains a review-subject block,
-the generator validates it immediately so reviewers do not receive an unchecked
+The source currently has zero review records. The generator validates this
+review-subject block immediately so reviewers do not receive an unchecked
 subject. Once any record exists, it rejects a missing, duplicate, superseded,
 template, or mismatched `CURRENT` block. It resolves every ADR in the block from
 the named Git commit. It also requires that commit to contain the exact current
 generator, output schema, and zero-review decision source. A record that claims
 the current packet must match that block.
 
-Replacement generation follows an acyclic sequence:
+At the bound source commit, `scripts/check.sh` passed the complete local gate.
+The clean command `./prototypes/b01-architecture-evidence/run.sh` also passed
+with 15,379 composition states, 169 observer-authorization hostile inputs, 444
+observer-capture hostile inputs, 547 freshness and acceptance cases, 188
+source-index hostile cases, and all registered verifier hostile mutations
+rejected. These results are local preliminary evidence only. They do not satisfy
+an external, independent, consumer, safety, performance, or release gate.
+
+Review capture follows an acyclic sequence:
 
 1. commit and push the final ADR, role, generator, and schema source with zero
    review records;
