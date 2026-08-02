@@ -1800,9 +1800,9 @@
       },
       {
         "path": "docs/adr/B01_REVIEW_PACKET.md",
-        "bytes": 44431,
-        "sha256": "f3f8bd7f3014ba7d84fd480600935f360e50a6009f1b767a8f6a8f8ca71bf17b",
-        "git_blob_oid": "cc6976dc493ac5e43625252e608fd53507d72535",
+        "bytes": 44340,
+        "sha256": "c82e8a0cc1eb92adfc37cb006165d8691578a2a023856427e546f06a31105f2a",
+        "git_blob_oid": "4a0a96bb2e341da308f1ef4d4706f381a7a7a4b0",
         "indexed": true
       },
       {
@@ -1814,9 +1814,9 @@
       },
       {
         "path": "docs/adr/README.md",
-        "bytes": 21492,
-        "sha256": "65889cada9cc05aa8edae1c8bf7c9402befd8e44e258f9091857553c4b1184a3",
-        "git_blob_oid": "2209a3eb478190ee1e024e96f7c4f990e66f281d",
+        "bytes": 21285,
+        "sha256": "1ce8b6b58a8a666f84204ba6cda31e42f843287c152673641bbfd38a170e850b",
+        "git_blob_oid": "b6473fec7bed184f92f6d5a2ac65a9729130f0a4",
         "indexed": true
       },
       {
@@ -1828,9 +1828,9 @@
       },
       {
         "path": "docs/adr/decision-registry.proposed.v1.json",
-        "bytes": 36746,
-        "sha256": "1a47087eebad6c73304c4686e6e760637c870475c3f58dbbbc0a886bc9cae62e",
-        "git_blob_oid": "b9b50498a98d958a5f0c6e363e24c2a3c0458723",
+        "bytes": 62235,
+        "sha256": "04ed87e01df58b9500fcf578fc2a676290aca08ec16d2a058e65b9fc3e32dfc4",
+        "git_blob_oid": "2e136eccefc363bb5f77a10e5613f5283f2da59b",
         "indexed": true
       },
       {
@@ -2066,16 +2066,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 14839,
-        "sha256": "d96eed2657c8e81c97bbc1ddad7fd67fe00c0c13a96012cbb1724429cac2b5e7",
-        "git_blob_oid": "e45734ad48029650ae4de4f14a7b3a32c73a0fb6",
+        "bytes": 14910,
+        "sha256": "248ebc6af752f4f466b364b4daf03ff579013c13d388441372487d7c80e95873",
+        "git_blob_oid": "42391a9e0ee3217ed3518fbf0a4d9ad45532d9ad",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 146622,
-        "sha256": "db2e310a2c1aaf92dca2c7f6dfd6da593674b57cf1eac5ea1a9a56807d5c1cc0",
-        "git_blob_oid": "3801140c2a59d3ba55fb578e23e6308262e3ccd9",
+        "bytes": 146693,
+        "sha256": "66ee7ecdaa09318bba459148ef69ad7a8a8f84ce7b631391a7bf490051a82cb8",
+        "git_blob_oid": "37e525b4b1adfca756ccf77e4269c87b4d19d2c8",
         "indexed": true
       },
       {
@@ -2311,9 +2311,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 157635,
-        "sha256": "0704fecfacff9138ad0a3879bf7d8fc06184834ec0233c718473e81c442874f1",
-        "git_blob_oid": "31d3e868afda9ae440de8996807e3111cae5290f",
+        "bytes": 157706,
+        "sha256": "1d590bef00e1a05ddfec72cad0f65d9cfe953fc2f66af573721f2187a7dbb024",
+        "git_blob_oid": "46ecf4bd43e2d98f0cc6267f97ade5d1608b674d",
         "indexed": true
       },
       {
@@ -7907,13 +7907,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-6485F40AB91C5C87DDDF",
+      "id": "NCP-LATENT-E2E3041FC349BE2C3B23",
       "path": "docs/adr/README.md",
-      "line": 181,
+      "line": 179,
       "column": 64,
       "token_id": "M008",
       "line_sha256": "246702ee4bb4d3fdea2ba110a136cdba3bf92aa06a8f32d5c48fc3ae538017ba",
-      "file_sha256": "65889cada9cc05aa8edae1c8bf7c9402befd8e44e258f9091857553c4b1184a3",
+      "file_sha256": "1ce8b6b58a8a666f84204ba6cda31e42f843287c152673641bbfd38a170e850b",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [

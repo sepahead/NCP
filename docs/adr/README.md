@@ -6,15 +6,13 @@ documents changes the current unreleased, release-blocked `1.0.0-rc.1`
 normative contract, compact proto hash, runtime authority, release status, or
 external evidence state.
 
-[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is currently `SUPERSEDED`. It
-retains the historical zero-review subject for clean pushed source commit
-`90907d005a4b84b0a792453867b7d9e0aa29a20b` and decision-set digest
-`d48cd1ee840b0046009ba8f7d2e507d03eaef3633bf1e75ef64570f2d526bedb`.
-The ADR bytes have changed, so that packet cannot receive a current review and
-the generated registry contains no current review subject. Create a new exact
-subject from the amended clean commit only after its local gates pass. No
-qualifying review or independent adjudication is recorded. All eleven decisions
-remain **PROPOSED**, and B01 remains `IN_PROGRESS`.
+[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is the current review packet. It
+binds the eleven proposed ADRs to clean pushed source commit
+`f376f212268b2da4d43975052d692e5f1be50ecb` and decision-set digest
+`794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a`.
+It contains no review records. No qualifying review or independent
+adjudication is recorded. All eleven decisions remain **PROPOSED**, and B01
+remains `IN_PROGRESS`.
 
 The current candidate remains wire `1.0` with compact proto contract hash
 `163acc57d8a62b66`. The immutable `v0.8.0` release remains a different wire and

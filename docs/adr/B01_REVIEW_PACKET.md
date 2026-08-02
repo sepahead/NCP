@@ -1,21 +1,21 @@
-# B01 superseded architecture review packet
+# B01 current architecture review packet
 
-> **SUPERSEDED REVIEW SUBJECT — HISTORICAL PROPOSED DECISIONS ONLY.** This packet
-> bound the eleven proposed ADRs to clean pushed source commit
-> `90907d005a4b84b0a792453867b7d9e0aa29a20b`. The ADR bytes have since changed,
-> so this subject cannot receive a current review. It contains zero review
-> records. It did not accept an ADR, satisfy B01, authorize a rebaseline, certify
+> **CURRENT REVIEW SUBJECT — PROPOSED DECISIONS ONLY.** This packet binds the
+> eleven proposed ADRs to clean pushed source commit
+> `f376f212268b2da4d43975052d692e5f1be50ecb`. It contains zero review records.
+> It does not accept an ADR, satisfy B01, authorize a rebaseline, certify
 > interoperability or plant safety, or release NCP 1.0. B01 remains
-> `IN_PROGRESS` and requires a new exact packet after the amended source passes.
+> `IN_PROGRESS` until all exact external review and independent evidence
+> requirements pass.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "SUPERSEDED"
+  "state": "CURRENT"
 }
 ```
 
-```text
+```json
 {
   "schema": "ncp.b01-review-subject.v1",
   "state": "CURRENT",
@@ -26,7 +26,7 @@
     "schema": "ncp.b01-decision-set.v1",
     "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
     "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
-    "sha256": "d48cd1ee840b0046009ba8f7d2e507d03eaef3633bf1e75ef64570f2d526bedb"
+    "sha256": "794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a"
   },
   "review_policy": {
     "schema": "ncp.b01-review-policy.v1",
@@ -44,8 +44,8 @@
     }
   },
   "source": {
-    "commit": "90907d005a4b84b0a792453867b7d9e0aa29a20b",
-    "tree": "746109380a37ecec5000329eb3bc27d08ae4cd64",
+    "commit": "f376f212268b2da4d43975052d692e5f1be50ecb",
+    "tree": "4b2695f9ff6d1754f45ea09d1911f7ce51670b69",
     "decision_source": {
       "path": "docs/adr/decision-registry.source.v1.json",
       "sha256": "fe4c81e1bdd32889f396f72bcc9ef094977d8f065a3ac814e90a43a013769a2b",
@@ -58,8 +58,8 @@
       "title": "Separate simulation-service and plant-control sessions",
       "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
       "module_paths": [],
-      "content_sha256": "e02287912f7c5243aed011e7abeaee6c193b4bd8e90faca69d0c0a9addc2afa8",
-      "bytes": 151732,
+      "content_sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
+      "bytes": 152215,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-001",
@@ -67,13 +67,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-            "sha256": "e02287912f7c5243aed011e7abeaee6c193b4bd8e90faca69d0c0a9addc2afa8",
-            "bytes": 151732
+            "sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
+            "bytes": 152215
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "07b1a9fa7fc2599b4cb44abb4e69e4566fb93191988259a2f59bd2530d8f4c77"
+        "sha256": "7ecbfe8dfceef42a14bccf74916025fc9ab519ede4bee4465edcf32bcd37529d"
       },
       "required_reviews": [
         {
@@ -153,8 +153,8 @@
       "title": "Authenticate production ingress before interpretation",
       "path": "docs/adr/0003-authenticated-production-ingress.md",
       "module_paths": [],
-      "content_sha256": "1f5e02cba4d482a44b7588bb146232e91f97143ea33b3c85a428047991b6721c",
-      "bytes": 19602,
+      "content_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+      "bytes": 21273,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-003",
@@ -162,13 +162,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0003-authenticated-production-ingress.md",
-            "sha256": "1f5e02cba4d482a44b7588bb146232e91f97143ea33b3c85a428047991b6721c",
-            "bytes": 19602
+            "sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+            "bytes": 21273
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "2db528f7923854d3419d26b566786c0d1b88f5e15717e9fd9c42e1a3e805b120"
+        "sha256": "2323d20a36394dc267a674ae5ea61935d480ecc5566d6850ac12dcbe29030fa4"
       },
       "required_reviews": [
         {
@@ -332,8 +332,8 @@
       "title": "Use body-issued authority and receiver-local time",
       "path": "docs/adr/0006-body-issued-authority-and-time.md",
       "module_paths": [],
-      "content_sha256": "e1f52350e9818d1dabee572decf957100d83e455d885b02c063b3d02d24f26b6",
-      "bytes": 53927,
+      "content_sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
+      "bytes": 55367,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-006",
@@ -341,13 +341,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0006-body-issued-authority-and-time.md",
-            "sha256": "e1f52350e9818d1dabee572decf957100d83e455d885b02c063b3d02d24f26b6",
-            "bytes": 53927
+            "sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
+            "bytes": 55367
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "a8d2fac8aaa51cbd83d4ccc3b1f6bf79134c533ac87bcf1fee41e270ff7087b8"
+        "sha256": "a9a5cff24bfbdc8462acd15b025a52fd2ed31335a1ca59ea84c1ffa78753d13a"
       },
       "required_reviews": [
         {
@@ -550,8 +550,8 @@
       "title": "Specify finite per-plane QoS and overload behavior",
       "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
       "module_paths": [],
-      "content_sha256": "be4a05d1e52bc148053d37f1009a607d0d25ef6181c5e57504ef23935008ab05",
-      "bytes": 14277,
+      "content_sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
+      "bytes": 15683,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-010",
@@ -559,13 +559,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
-            "sha256": "be4a05d1e52bc148053d37f1009a607d0d25ef6181c5e57504ef23935008ab05",
-            "bytes": 14277
+            "sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
+            "bytes": 15683
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "201ceb5436eaf71dedd0d78ee393b85aa9cb18a8d7f52481baa82c04e0b18144"
+        "sha256": "26ef01e63136bea412d7f3d249f21978efaad48d1c9af2f20866d66725670999"
       },
       "required_reviews": [
         {
