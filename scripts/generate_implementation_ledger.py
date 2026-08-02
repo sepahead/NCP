@@ -1984,6 +1984,11 @@ def render_resumption(data: dict[str, object]) -> str:
         "  independently qualified verifier boundary is implemented and explicitly integrated.",
         "- Crebain remains standalone and is the sole plant body/actuator authority when its",
         "  optional NCP adapter is enabled. It issues epochs, leases and dispositions.",
+        "  A commander-side codec produces intent only. Engram or Haldir must reject an",
+        "  incomplete, sparse, non-finite, or unit-inconsistent plant-eligible Active output;",
+        "  Crebain independently resolves the exact installed profile, validates the final",
+        "  channel set, arity, unit, range, session, lease and horizon, and owns the body-local",
+        "  HOLD/ESTOP action. A midpoint or zero is not implicit safety.",
         "- Engram's simulation responder and plant commander are separate optional roles with",
         "  disjoint types, principals, manifests, endpoints and state. Simulation grants never",
         "  satisfy plant authority.",
@@ -2073,6 +2078,24 @@ def render_resumption(data: dict[str, object]) -> str:
                 "because this table is an intake snapshot, not a lock.",
             ]
         )
+    lines.extend(
+        [
+            "",
+            "### Current Crebain reconciliation note",
+            "",
+            "The intake rows above remain historical. A 2026-08-01 read-only reconciliation",
+            "found canonical Crebain `origin/main` at",
+            "`43df8418f1b17b773acdc85533b7fba431dc5468`. That lineage already contains the",
+            "producer commits `dec8dcaf2ed62744a2f6f15ace955fbfaf152f0a` and",
+            "`99626d00df0cf0d05372b5e505f01e5619169f3f`. No local or remote branch ref",
+            "contains the intake-only producer commit",
+            "`113ee70d5660daf90bb373bd7857d4b3f2f56784`. GitHub's retained",
+            "`refs/pull/31/head` still exposes it as merged PR history. C04 remains OPEN",
+            "behind C03; its",
+            "scope is to verify the consolidated canonical lineage and retire stale branch",
+            "references, not to infer a missing producer implementation or a role receipt.",
+        ]
+    )
     lines.extend(
         [
             "",

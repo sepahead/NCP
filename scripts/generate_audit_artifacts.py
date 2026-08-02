@@ -821,7 +821,7 @@ def threat_records() -> list[dict[str, Any]]:
                 "immutable pins",
                 "no silent fork policy",
                 "nine exact consumer and extension role qualification gate",
-                "six-project inventory cannot substitute for role receipts",
+                "historical six-surface inventory cannot substitute for role receipts",
             ],
             "Reject the compatibility claim and retain explicit cross-repository prerequisites.",
             ["CF-08", "CF-04"],

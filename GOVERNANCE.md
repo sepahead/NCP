@@ -12,10 +12,11 @@ maintainer may reject a change that weakens interoperability, security, boundedn
 scientific honesty, plant authority, or evidence quality even when it is convenient
 for one consumer.
 
-No consumer owns protocol semantics. `Engram`, `crebain`,
-`crebain-galadriel-producer`, `galadriel`, `haldir`, and `prisoma` migrate through
-the shared contract and conformance process; core does not add project-specific
-fields/classes/topics.
+No consumer owns protocol semantics. `Engram`, `crebain`, `galadriel`, `haldir`,
+and `prisoma` migrate through the shared contract and conformance process; core
+does not add project-specific fields/classes/topics. The historical
+`crebain-galadriel-producer` handoff entry is a producer surface in canonical
+Crebain, not a sixth repository or a second body identity.
 
 ## Normative authority
 
@@ -47,11 +48,13 @@ release gate. External-model review cannot vote or certify a gate.
 An immutable release tag and package publication require every required
 `pre_release_gates` entry in
 [`contract/release-gates.v1.json`](contract/release-gates.v1.json) to pass against
-one artifact set. The candidate registry's six-project inventory is not a
-qualification result. Release authorization also requires the nine exact role
-subjects in [`RELEASE_READINESS.md`](RELEASE_READINESS.md). `pid-rs` is not an
-NCP peer and receives no role receipt. A candidate version bump or local test
-run is insufficient.
+one artifact set. The candidate registry's historical six-surface inventory is
+not a qualification result; it spans five
+canonical consumer repositories. Release authorization also requires the nine
+exact role subjects in [`RELEASE_READINESS.md`](RELEASE_READINESS.md). `pid-rs`
+is not an NCP peer and receives no role receipt. The PhD thesis wire-0.8
+counterexample harness is an auxiliary pinned importer, not an installed peer or
+role subject. A candidate version bump or local test run is insufficient.
 Release artifacts, reports, signatures, SBOM/provenance, compatibility matrix,
 support term, and emergency revocation procedure must be publicly reviewable.
 The registry's `post_release_validations` run against the

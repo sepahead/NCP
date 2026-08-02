@@ -1739,6 +1739,14 @@ A simulation session:
 - has no plant profile, action authority lease, actuator route, or plant
   disposition meaning.
 
+A simulation profile may explicitly declare a bounded imputation policy for a
+missing model input or readout. The result must preserve the missingness and the
+selected policy in simulation provenance. It remains
+`is_simulation_output=true`, `calibrated_posterior=false`, and ineligible for
+plant authority. A codec midpoint, zero, or range endpoint is a real numeric
+value. It is not an implicit neutral value and cannot silently replace a missing
+input in an Active plant command.
+
 Its required child is one bounded `SimulationSessionStateHead` through
 `InstalledSimulationSessionStateSelector`. Closed `SIMULATION_ROOT` is
 `PENDING_PARENT_CONFIRMATION | ACTIVE | RETIRED_DRAIN_ONLY | TERMINAL`.

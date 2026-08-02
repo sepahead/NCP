@@ -53,7 +53,11 @@
       "status": "NOT_RUN"
     },
     {
-      "current_consumer_inventory": [
+      "auxiliary_non_peer_importers": [
+        "phd_thesis/formal/ncp-v080-counterexamples"
+      ],
+      "evidence_required": "native installed-artifact qualification for each of the nine exact role subjects against the same NCP source and artifacts",
+      "historical_handoff_surface_inventory": [
         "Engram",
         "crebain",
         "crebain-galadriel-producer",
@@ -61,9 +65,19 @@
         "haldir",
         "prisoma"
       ],
-      "evidence_required": "native installed-artifact certification for every enumerated consumer against the same NCP source and artifacts",
       "id": "consumer-certification",
       "owner": "consumer repositories",
+      "required_role_subjects": [
+        "Engram simulation responder",
+        "Engram plant commander",
+        "Haldir NCP commander",
+        "Haldir Galadriel-assessment receiver",
+        "Galadriel NCP observer",
+        "Galadriel raw-advisory publisher",
+        "Crebain body",
+        "Crebain Galadriel-producer surface",
+        "Prisoma NCP observer"
+      ],
       "status": "NOT_RUN"
     },
     {

@@ -19,14 +19,14 @@ unsigned evidence is a failure for initial release.
 | Proto/schema/canonical-vector parity | complete matrix passes locally and in hosted CI at exact source boundary `ef357d20692f707e185495dcfd16b16556fec264` | source-bound tests are not release-artifact or independent evidence |
 | Mandatory self-describing corpus | current manifest has 282 required vectors (275 stable, 7 migration), 13 requirements, and zero-skip exact-set enforcement; complete local and hosted replay passed at `ef357d20692f707e185495dcfd16b16556fec264` | signed external conformance reports remain required |
 | Ordered canonical bytes and stable integers | local harness covers 14 all-surface stable vectors across 16 ordered Rust/TypeScript/Python-FFI/C-FFI pairs; TypeScript discovers 45 reachable stable-integer schema paths and tests exact/unsafe boundaries | Python and C share Rust code; installed independent peers, complete normative traffic, alternate engines/platforms, and signed reports remain required |
-| Universal bounded JSON | implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader are gated before generic decoding | live/fuzz duration still required |
+| Universal bounded JSON | generic frame, depth, node, member, array, key, string, number, and channel bounds are implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader exercise them | the declared `max_metadata_entries=256` ceiling has no accepted message-class/path assignment; ADR-003 proposes `OpenSession.bindings[*].entity.meta`, while Rust/TypeScript lack that preallocation rule and Python applies a post-parse name heuristic; ratification, rebaseline, class/path parity, and live/fuzz duration remain unresolved |
 | Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
-| Plant profile, safety governor, action buffer, ESTOP | implemented with deterministic tests | non-certifying; each consumer needs a safety case |
+| Plant profile, safety governor, action buffer, ESTOP | deterministic candidate tests exist | checked codec paths still invent missing midpoint/zero values, permit sparse components, and select units by mapping order; installed-profile validation is not integrated into Active admission, and its current `PlantCommand` projection cannot carry units; correction, rebaseline, body integration, and every consumer safety case remain unresolved |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
 | Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for exact source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | immutable multi-OS/ABI install matrix and public-registry ownership remain required |
 | Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and generated 117-requirement local graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
 | Supply-chain and candidate dossier | a held, one-platform, exact-source dossier passed checksums, five applicable comparisons, install/identity/behavior smoke, exact-source verification, a ten-subject SLSA provenance attestation, and an aggregate CycloneDX attestation; `release_authorized=false` | final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
-| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-project handoff inventory, and post-publication checks | predecessor gates and all nine exact consumer/extension role qualifications remain unresolved; a project inventory is not a role receipt |
+| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-surface handoff inventory across five canonical consumer repositories, the nine exact role subjects, an auxiliary non-peer importer inventory, and post-publication checks | predecessor gates and all nine exact consumer/extension role qualifications remain unresolved; neither a surface nor an importer is a role receipt |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
 B01 is still `IN_PROGRESS`. Its maintained allocation oracle is intentionally
@@ -48,10 +48,10 @@ package, binding, bounded-ingress, corpus, archive, dependency-policy, and proto
 matrix. This is time-bound preflight evidence, not a release receipt. The generated
 normative identity and candidate baseline match the checked source cut.
 
-The held local-convergence artifact retains the six project surfaces that its
-current candidate gate enumerates. That inventory does not satisfy the nine exact
-role qualifications listed below. `pid-rs` is not an NCP peer and receives no
-role receipt.
+The held local-convergence artifact retains the historical six handoff surfaces
+that its current candidate gate enumerates across five canonical consumer
+repositories. That inventory does not satisfy the nine exact role qualifications
+listed below. `pid-rs` is not an NCP peer and receives no role receipt.
 
 The separate held-candidate workflow run
 [`29414924349`](https://github.com/sepahead/NCP/actions/runs/29414924349) also
@@ -119,13 +119,17 @@ The following are **NOT RUN** and independently block release:
 - independent clean-room build and core-conformance reproduction;
 - native installed-artifact qualification for all nine exact role subjects:
 
-  - Engram responder and commander
-  - Haldir commander and assessment receiver
-  - Galadriel observer and assessor
-  - Crebain body and producer
-  - Prisoma observer
+  - Engram simulation responder
+  - Engram plant commander
+  - Haldir NCP commander
+  - Haldir Galadriel-assessment receiver
+  - Galadriel NCP observer
+  - Galadriel raw-advisory publisher
+  - Crebain body
+  - Crebain Galadriel-producer surface
+  - Prisoma NCP observer
 
-  A project-level inventory entry is not a role receipt.
+  A historical surface or auxiliary importer entry is not a role receipt.
 
 ## Required post-release validations
 
@@ -144,12 +148,14 @@ pre-publication pass.
 
 Engram has an explicit local native-1.0 migration in progress. Qualification of
 its installed responder and commander roles and its live transport is **NOT RUN**.
-The other five historical project surfaces remain on wire 0.8. None of the nine
+The other five historical handoff surfaces remain on wire 0.8. None of the nine
 required role subjects is qualified for 1.0. The frozen Engram wire-0.8 inventory
 remains historical migration input. It does not describe the mutable migration
 worktree. `ncp-gateway` is a same-wire 1.0 Rust/Python edge. It cannot make an
 unmigrated 0.8 Python backend compatible. The separate migration translator is a
 labeled terminating gateway. It is ineligible for native 1.0 qualification.
+The PhD thesis counterexample harness is an auxiliary pinned wire-0.8 importer,
+not an installed peer or role subject.
 
 ## Release authorization
 

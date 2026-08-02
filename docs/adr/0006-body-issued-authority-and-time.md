@@ -796,6 +796,27 @@ Each resolution binds the exact predecessor fact and operation ID. Resource
 exhaustion fails to HOLD/deny or retires an exact non-ESTOP generation and never
 creates a holder, drops a latched transfer, resets ESTOP, or reuses an identity.
 
+Generic `CommandFrame` wire validity is not plant eligibility. After an attempt
+is classified as Active and before authority attachment or admission, the
+producer's checked codec must require every declared sensor component and
+decoder population, a finite value for each, contiguous components
+`0..arity-1`, and one consistent explicit unit for every output channel. It must
+not invent a midpoint, zero, range endpoint, component, or unit. Plant admission
+then resolves the exact content-addressed installed profile and requires the
+exact channel set, arity, unit, range, current session generation, authority
+lease, and horizon constraints. The body repeats the installed-profile check at
+the final actuator boundary. Missing or inconsistent data makes Active
+ineligible; a local unchecked mapper cannot supply qualification evidence.
+
+This Active construction and admission work does not move ADR-007's restrictive
+effect gate. A current authenticated HOLD or ESTOP attempt can reserve or apply
+the exact body-local profile action after ADR-007's minimum current-context
+checks and before later codec, channel, unit, replay, lease, or profile semantic
+checks. A later rejection does not suppress or undo that restrictive effect.
+Wrong context, unbounded or unauthenticated input, a wrong route or audience, an
+ambiguous mode, an invalid slot, or an expired deadline remains inert. HOLD and
+ESTOP claim no universal safe actuator value.
+
 ## Threat and hazard analysis
 
 This addresses split brain, stale delayed commands, self-issued authority,

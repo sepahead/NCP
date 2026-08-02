@@ -260,12 +260,15 @@ or external certification. `RUSTSEC-2026-0041` and the unavailable
 
 ## Consumer tooling
 
-`check-consumer-pins.sh` and `repin-ncp.sh` discover `.ncp-consumer` descriptors.
-They are pin-management tools, not compatibility certification. Engram's explicit
+`check-consumer-pins.sh` and `repin-ncp.sh` discover `.ncp-consumer` descriptors
+in sibling directories. A read-only scan can include an extracted review copy or
+an auxiliary importer. It does not prove Git identity, canonical repository
+membership, installation, or role assignment. These are pin-management tools,
+not compatibility certification or the canonical role registry. Engram's explicit
 native-1.0 migration is in progress and intentionally makes a v0.8 pin check fail
-until its descriptor/runtime/pin move coherently; the other five known consumers
-remain on immutable `v0.8.0`. Never repin a consumer to movable `main`, and never
-call an RC pin a completed installed-artifact certification.
+until its descriptor/runtime/pin move coherently; the other five historical
+handoff surfaces remain on immutable `v0.8.0`. Never repin a consumer to movable
+`main`, and never call an RC pin a completed installed-artifact certification.
 
 Use `mirror_rev <pin-file> <release-label> <40-hex-revision>` for a vendored mirror
 that must bind immutable source bytes instead of a tag string. The read-only checker

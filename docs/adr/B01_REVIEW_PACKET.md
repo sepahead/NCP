@@ -1,20 +1,21 @@
-# B01 exact architecture review packet
+# B01 superseded architecture review packet
 
-> **CURRENT REVIEW SUBJECT — PROPOSED DECISIONS ONLY.** This packet binds the
-> eleven proposed ADRs to clean pushed source commit
-> `90907d005a4b84b0a792453867b7d9e0aa29a20b`. It contains zero review records.
-> It does not accept an ADR, satisfy B01, authorize a rebaseline, certify
+> **SUPERSEDED REVIEW SUBJECT — HISTORICAL PROPOSED DECISIONS ONLY.** This packet
+> bound the eleven proposed ADRs to clean pushed source commit
+> `90907d005a4b84b0a792453867b7d9e0aa29a20b`. The ADR bytes have since changed,
+> so this subject cannot receive a current review. It contains zero review
+> records. It did not accept an ADR, satisfy B01, authorize a rebaseline, certify
 > interoperability or plant safety, or release NCP 1.0. B01 remains
-> `IN_PROGRESS`.
+> `IN_PROGRESS` and requires a new exact packet after the amended source passes.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "CURRENT"
+  "state": "SUPERSEDED"
 }
 ```
 
-```json
+```text
 {
   "schema": "ncp.b01-review-subject.v1",
   "state": "CURRENT",

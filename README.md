@@ -175,23 +175,33 @@ artifacts and cannot be prerequisites for their own publication.
 
 ## Downstream compatibility
 
-The candidate registry retains a historical six-project inventory: `Engram`,
-`crebain`, `crebain-galadriel-producer`, `galadriel`, `haldir`, and `prisoma`. Release
+The candidate registry retains a historical six-surface handoff inventory across
+five canonical consumer repositories: `Engram`, `crebain`,
+`crebain-galadriel-producer`, `galadriel`, `haldir`, and `prisoma`. The producer
+surface belongs to canonical Crebain; it is not a sixth repository. Release
 authorization requires these nine exact role subjects:
 
-- Engram responder and commander
-- Haldir commander and assessment receiver
-- Galadriel observer and assessor
-- Crebain body and producer
-- Prisoma observer
+- Engram simulation responder
+- Engram plant commander
+- Haldir NCP commander
+- Haldir Galadriel-assessment receiver
+- Galadriel NCP observer
+- Galadriel raw-advisory publisher
+- Crebain body
+- Crebain Galadriel-producer surface
+- Prisoma NCP observer
 
-A project entry is not a role receipt. Engram has an explicit local native-1.0
-migration in progress. Its installed roles and live transport are not qualified.
-The other five historical project surfaces remain on wire 0.8. None of the nine
-roles is qualified for 1.0. The frozen v0.8 Engram inventory is historical
-migration input. It does not describe the mutable migration worktree. A consumer
-cannot claim native 1.0 support before its exact installed role and live-transport
-matrix passes.
+A historical surface entry is not a role receipt. Engram has an explicit local
+native-1.0 migration in progress. Its installed roles and live transport are not
+qualified. The other five historical handoff surfaces remain on wire 0.8. None
+of the nine roles is qualified for 1.0. The frozen v0.8 Engram inventory is
+historical migration input. It does not describe the mutable migration worktree.
+A consumer cannot claim native 1.0 support before its exact installed role and
+live-transport matrix passes.
+
+The separately pinned PhD thesis wire-0.8 counterexample harness is auxiliary
+research audit tooling. It is not an installed NCP peer, is outside the historical
+handoff and role inventories, and receives no role receipt.
 
 See [`INTEGRATING.md`](INTEGRATING.md) for the breaking migration checklist and
 [`docs/0.8-current-baseline.md`](docs/0.8-current-baseline.md) for the frozen legacy

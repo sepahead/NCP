@@ -45,7 +45,7 @@ EXTERNAL_DETAILS = {
     },
     "consumer-certification": {
         "owner": "consumer repositories",
-        "evidence_required": "native installed-artifact certification for every enumerated consumer against the same NCP source and artifacts",
+        "evidence_required": "native installed-artifact qualification for each of the nine exact role subjects against the same NCP source and artifacts",
     },
     "independent-clean-room-reproduction": {
         "owner": "independent reproducer",
@@ -56,13 +56,27 @@ EXTERNAL_DETAILS = {
         "evidence_required": "verified package checksums, vulnerability/license dossier, SBOM/provenance attestations, signatures, and revocation procedure",
     },
 }
-CONSUMERS = (
+HISTORICAL_HANDOFF_SURFACES = (
     "Engram",
     "crebain",
     "crebain-galadriel-producer",
     "galadriel",
     "haldir",
     "prisoma",
+)
+REQUIRED_ROLE_SUBJECTS = (
+    "Engram simulation responder",
+    "Engram plant commander",
+    "Haldir NCP commander",
+    "Haldir Galadriel-assessment receiver",
+    "Galadriel NCP observer",
+    "Galadriel raw-advisory publisher",
+    "Crebain body",
+    "Crebain Galadriel-producer surface",
+    "Prisoma NCP observer",
+)
+AUXILIARY_NON_PEER_IMPORTERS = (
+    "phd_thesis/formal/ncp-v080-counterexamples",
 )
 REPOSITORY_PREREQUISITE_IDS = (
     "zenoh-production-secure-peer-principal-binding",
@@ -613,7 +627,13 @@ def build() -> dict[str, Any]:
     for identifier in external_ids:
         entry = {"id": identifier, "status": "NOT_RUN", **EXTERNAL_DETAILS[identifier]}
         if identifier == "consumer-certification":
-            entry["current_consumer_inventory"] = list(CONSUMERS)
+            entry["historical_handoff_surface_inventory"] = list(
+                HISTORICAL_HANDOFF_SURFACES
+            )
+            entry["required_role_subjects"] = list(REQUIRED_ROLE_SUBJECTS)
+            entry["auxiliary_non_peer_importers"] = list(
+                AUXILIARY_NON_PEER_IMPORTERS
+            )
         external.append(entry)
     return {
         "schema": "ncp.local-convergence.v1",
@@ -713,8 +733,18 @@ def validate(value: dict[str, Any]) -> None:
     consumer = next(
         entry for entry in external if entry["id"] == "consumer-certification"
     )
-    if tuple(consumer.get("current_consumer_inventory") or ()) != CONSUMERS:
-        raise ConvergenceError("consumer handoff inventory drifted")
+    if (
+        tuple(consumer.get("historical_handoff_surface_inventory") or ())
+        != HISTORICAL_HANDOFF_SURFACES
+    ):
+        raise ConvergenceError("historical handoff surface inventory drifted")
+    if tuple(consumer.get("required_role_subjects") or ()) != REQUIRED_ROLE_SUBJECTS:
+        raise ConvergenceError("required role subject inventory drifted")
+    if (
+        tuple(consumer.get("auxiliary_non_peer_importers") or ())
+        != AUXILIARY_NON_PEER_IMPORTERS
+    ):
+        raise ConvergenceError("auxiliary non-peer importer inventory drifted")
     prerequisites = value.get("repository_owned_open_prerequisites")
     if not isinstance(prerequisites, list) or [
         entry.get("id") if isinstance(entry, dict) else None for entry in prerequisites
@@ -799,11 +829,14 @@ def self_test(value: dict[str, Any]) -> None:
         "signed-sbom-provenance"
     ] = "PASS"
     expect_invalid(promoted_held, "held-evidence gate credit")
-    missing_consumer = copy.deepcopy(value)
-    missing_consumer["external_pre_release_handoff"][7][
-        "current_consumer_inventory"
-    ].pop()
-    expect_invalid(missing_consumer, "missing consumer")
+    for field, label in (
+        ("historical_handoff_surface_inventory", "historical handoff surface"),
+        ("required_role_subjects", "required role subject"),
+        ("auxiliary_non_peer_importers", "auxiliary non-peer importer"),
+    ):
+        missing_consumer = copy.deepcopy(value)
+        missing_consumer["external_pre_release_handoff"][7][field].pop()
+        expect_invalid(missing_consumer, f"missing {label}")
     missing_prerequisite = copy.deepcopy(value)
     missing_prerequisite["repository_owned_open_prerequisites"].pop()
     expect_invalid(missing_prerequisite, "missing repository prerequisite")

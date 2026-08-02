@@ -2215,7 +2215,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "2349e5c4345f6c9357a56fccfe0dfda618f9fe5cce35a112f3720acc34a6e9cb"
+      "sha256": "06590df8f984a4be6ff780a454d9c6c51e567ac505e1b6da63cd195a0851c21b"
     },
     {
       "outputs": [
@@ -2236,7 +2236,7 @@
         "evidence/convergence/local-convergence.v1.json"
       ],
       "path": "scripts/generate_convergence_manifest.py",
-      "sha256": "b66149192e5b217b92afdde6000eb31e388e282a1f7ec6a97b344230fce810d7"
+      "sha256": "43d924f7931f6c33aeb1b0e804e77923fa5f54993e61b3b4bfe163405255ba29"
     },
     {
       "outputs": [
@@ -2259,7 +2259,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "6cb333f153565b00f689b1c1b8eb0436a112184529304df5d5160a198a80a6f9"
+      "sha256": "83779196f2c18ead5348b83e7d276e3087ce2c289bce0c2f3f114ae77edb8967"
     },
     {
       "outputs": [
@@ -2294,7 +2294,7 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "dd1e7408ec2d33d30131ee8d54b3095ac8cce6e334ba5b2f06ccd7a8de222e75"
+      "sha256": "8d2a75df279695166cb11c72b076b932683a00553fc482dc4362e12c5874a4e6"
     },
     {
       "outputs": [

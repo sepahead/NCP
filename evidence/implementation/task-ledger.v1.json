@@ -1,7 +1,7 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "6717f2f4ef03a119065df93b9c9d230d241169c5519008c5cbc5e86be2406f66"
+    "sha256": "b1024fd073af2083a1c34c0c8b37957b59d74126ee2911de14db3e08bd40b4f6"
   },
   "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
@@ -221,11 +221,11 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "8e5e2ce69877dc35d5146b8c10f66a2e268f9b936e2efc6f74181c205f1eebb2"
+      "sha256": "9a53c833417ef65fa893f20ae24a3b5ef77fdc618eb944f7470a6d6bdbea7c4a"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "6cb333f153565b00f689b1c1b8eb0436a112184529304df5d5160a198a80a6f9"
+      "sha256": "83779196f2c18ead5348b83e7d276e3087ce2c289bce0c2f3f114ae77edb8967"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",
@@ -1511,8 +1511,15 @@
       "artifacts": [],
       "changed_files": [
         ".github/workflows/ci.yml",
+        "CHANGELOG.md",
+        "GOVERNANCE.md",
+        "INTEGRATING.md",
+        "KNOWN_LIMITATIONS.md",
+        "README.md",
         "RELEASE_READINESS.md",
+        "ROADMAP.md",
         "docs/1.0-candidate-receipts.md",
+        "docs/1.0-scope.md",
         "docs/adr/0001-separate-simulation-and-plant-sessions.md",
         "docs/adr/0002-contract-identity-and-release-authorization.md",
         "docs/adr/0003-authenticated-production-ingress.md",
@@ -1525,17 +1532,27 @@
         "docs/adr/0010-plane-qos-retention-and-overload.md",
         "docs/adr/0011-ecosystem-topology-and-handover.md",
         "docs/adr/B01_REVIEW_PACKET.md",
+        "docs/adr/B01_SELECTOR_CLOSURE_MATRIX.md",
         "docs/adr/README.md",
         "docs/adr/decision-registry.proposed.schema.v1.json",
         "docs/adr/decision-registry.proposed.v1.json",
         "docs/adr/decision-registry.source.v1.json",
         "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
         "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+        "docs/adr/selector-allocation.authoring.v1.json",
+        "docs/adr/selector-allocation.proposal.v1.json",
+        "docs/adr/selector-closure.authoring.v1.json",
+        "docs/adr/selector-closure.source.v1.json",
         "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+        "docs/handoff/max-effort-task-review.v2.json",
         "docs/implementation/NCP_1_0_RESUMPTION.md",
         "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+        "e2e/README.md",
         "evidence/audit/latent-path-inventory.v1.json",
         "evidence/audit/manifest.v1.json",
+        "evidence/audit/threat-register.v1.json",
+        "evidence/convergence/README.md",
+        "evidence/convergence/local-convergence.v1.json",
         "evidence/implementation/receipts/README.md",
         "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
@@ -1544,6 +1561,7 @@
         "evidence/implementation/working/B01/preliminary-architecture-541e1e7.v1.json",
         "evidence/implementation/working/B01/preliminary-architecture-8194195.log.gz",
         "evidence/implementation/working/B01/preliminary-architecture-8194195.v1.json",
+        "evidence/supply-chain/inventory.v1.json",
         "prototypes/b01-architecture-evidence/README.md",
         "prototypes/b01-architecture-evidence/SECTION_REVIEW.md",
         "prototypes/b01-architecture-evidence/crypto_probe.py",
@@ -1556,8 +1574,12 @@
         "scripts/README.md",
         "scripts/check.sh",
         "scripts/check_implementation_ledger.py",
+        "scripts/generate_audit_artifacts.py",
+        "scripts/generate_convergence_manifest.py",
         "scripts/generate_decision_registry.py",
         "scripts/generate_implementation_ledger.py",
+        "scripts/generate_max_effort_review_template.py",
+        "scripts/generate_selector_closure_source.py",
         "scripts/requirements-evidence-schema.in",
         "scripts/requirements-evidence-schema.txt",
         "scripts/validate_evidence_schemas.py"
@@ -1600,12 +1622,14 @@
         "All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.",
         "The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.",
         "Wire examples remain draft JSON only. Prior Python/Node replay and preliminary model/resource results bind superseded ADR bytes and remain historical non-passing working evidence. The amended decision subject has no retained passing clean-model or complete-gate receipt; canonical formal work, refinement, and every downstream implementation remain open.",
-        "The surface-inventory and scanner-receipt rules are bounded synthetic B01 fixtures only. Current sibling descriptors remain legacy inputs, actual trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 implementation remains open.",
+        "The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.",
+        "Checked codec paths can invent missing midpoint or zero values, accept sparse components, and select a unit by mapping order. The existing plant helper is not integrated into Active admission, and the `PlantCommand` projection erases units. ADR-007 restrictive effect ordering must remain unchanged. N01, N03, N05, N07, N08, B02, B03, E04, H02, and C02 remain open.",
+        "Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current nine-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.",
         "The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.",
         "Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
         "The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked."
       ],
-      "reviewer_comment": "ADR-004, ADR-005, ADR-007, ADR-011, the D18 per-surface migration model, the D19 ratification/promotion state machine, and consumer task scopes are being amended after cross-repository review. Hostile replay additionally requires receiver admission before grant expiry, exact authenticated disposition causality before body-boundary application, strict decode and recomputation from delivered disposition bytes, and authenticated externally current per-stream high-water state for queued live-frame replay rejection. Earlier source commits, issue requests, preliminary model results, and clean gates bind superseded bytes only. They remain historical non-passing working evidence. Any focused result must be recomputed at the final source cut; no dirty-worktree count is retained as task evidence. The Ed25519 resource screen uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The screen records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. It runs actual result-validator mutations. Local results do not satisfy B01's independent evidence floor and are not retained here as passing task evidence. This coordination entry intentionally has no task source commit, same-digest request, owner review, independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. After a clean amended source commit, rerun the bounded challenge and complete local gates, publish a new exact review packet, and obtain qualifying same-digest reviews. Do not create the normative registry, start descendants, or infer release readiness.",
+      "reviewer_comment": "ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, the D18 per-surface migration model, the D19 ratification/promotion state machine, and consumer task scopes are being amended after cross-repository review. The proposed amendment defines class/path metadata counting, separates generic wire validity from checked-codec and installed-profile Active admission, forbids invented values or units in plant-eligible Active output, and preserves ADR-007's earlier restrictive body-local effect ordering. Hostile replay additionally requires receiver admission before grant expiry, exact authenticated disposition causality before body-boundary application, strict decode and recomputation from delivered disposition bytes, and authenticated externally current per-stream high-water state for queued live-frame replay rejection. Earlier source commits, issue requests, preliminary model results, and clean gates bind superseded bytes only. They remain historical non-passing working evidence. Any focused result must be recomputed at the final source cut; no dirty-worktree count is retained as task evidence. The Ed25519 resource screen uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The screen records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. It runs actual result-validator mutations. Local results do not satisfy B01's independent evidence floor and are not retained here as passing task evidence. This coordination entry intentionally has no task source commit, same-digest request, owner review, independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. After a clean amended source commit, rerun the bounded challenge and complete local gates, publish a new exact review packet, and obtain qualifying same-digest reviews. Do not create the normative registry, start descendants, or infer release readiness.",
       "reviewers": [],
       "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
       "source_commit": null,
@@ -2710,7 +2734,7 @@
       "invalidates": [],
       "minimum_terminal_class": "LOCAL",
       "perspective_reviews": [],
-      "repository": "Crebain and producer worktree",
+      "repository": "Crebain canonical repository",
       "requirement_ids": [
         "C04-acceptance"
       ],
@@ -2722,7 +2746,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Reconcile and retire the separate Galadriel-producer work branch",
+      "title": "Verify the consolidated Galadriel producer lineage and retire stale branch references",
       "transitions": []
     },
     {
@@ -2942,7 +2966,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Qualify Galadriel's installed observer and deny-only assessor roles",
+      "title": "Qualify Galadriel NCP observer and raw-advisory publisher roles",
       "transitions": []
     },
     {
@@ -3037,7 +3061,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Qualify Crebain body and producer integration separately",
+      "title": "Qualify Crebain body and Galadriel-producer surface separately",
       "transitions": []
     },
     {

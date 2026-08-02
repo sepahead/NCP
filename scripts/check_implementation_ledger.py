@@ -488,7 +488,7 @@ COORDINATION_GIT_REPOSITORY_BY_TASK_REPOSITORY = {
     "Galadriel": "Galadriel",
     "Galadriel qualification environment": "Galadriel",
     "Crebain": "Crebain",
-    "Crebain and producer worktree": "Crebain",
+    "Crebain canonical repository": "Crebain",
     "Crebain qualification environment": "Crebain",
     "Prisoma": "Prisoma",
     "Prisoma qualification environment": "Prisoma",
@@ -11869,9 +11869,9 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "C04",
-        "Reconcile and retire the separate Galadriel-producer work branch",
+        "Verify the consolidated Galadriel producer lineage and retire stale branch references",
         ("C03",),
-        "Crebain and producer worktree",
+        "Crebain canonical repository",
     ),
     (
         "X01",
@@ -11911,7 +11911,7 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "G03",
-        "Qualify Galadriel's installed observer and deny-only assessor roles",
+        "Qualify Galadriel NCP observer and raw-advisory publisher roles",
         ("X02",),
         "Galadriel qualification environment",
     ),
@@ -11929,7 +11929,7 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "C05",
-        "Qualify Crebain body and producer integration separately",
+        "Qualify Crebain body and Galadriel-producer surface separately",
         ("E05", "H03", "G03"),
         "Crebain qualification environment",
     ),

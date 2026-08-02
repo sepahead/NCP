@@ -56,9 +56,13 @@ evidence.
 Reply ingress is a pure-Python implementation of the universal contract: the
 binary socket reader caps bytes before allocation, requires one LF/CRLF-delimited
 frame, decodes strict UTF-8, and scans duplicate decoded keys, nesting, node/member,
-array, string/key, number, channel, and metadata budgets before `json.loads` builds
-the admitted object. This developer runner therefore does not depend on the Rust
-extension merely to claim native bounded framing.
+array, string/key, number, and channel budgets before `json.loads` builds the
+admitted object. Its metadata check is a later recursive `meta`/`metadata`
+name heuristic. It does not implement the proposed trusted-message-class and
+decoded-path rule for `OpenSession.bindings[*].entity.meta`, and therefore does
+not establish equal preallocation enforcement of the 256-entry ceiling. This
+developer runner does not depend on the Rust extension for its generic bounded
+framing, but the class-specific metadata gate remains open.
 
 The five-model test is only model-family transport breadth: LIF alpha/exp,
 Izhikevich, Hodgkin–Huxley, and adaptive exponential integrate/stimulate/record

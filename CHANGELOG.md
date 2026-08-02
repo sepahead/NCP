@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   review-candidate validation. B01 remains `IN_PROGRESS`; the allocation state
   remains `INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED`; external, independent,
   consumer, and release gates remain **NOT RUN**.
+- Reopened B01 candidate claims after cross-repository review found two unresolved
+  boundaries. The declared metadata-entry ceiling has no accepted message-class
+  and decoded-path assignment or equal preallocation enforcement. Checked codec
+  and plant paths can invent missing values, lose unit consistency, and do not
+  enforce installed-profile Active admission. The ADR amendments remain **PROPOSED**;
+  normative bytes, the compact hash, and release status are unchanged.
 - Added a non-normative standalone-handoff audit cut and reviewer-commentable
   `T000`–`T119` review ledger. All tasks remain open, release authorization remains
   false, the requested `0.9` line requires a separately reviewed normative
@@ -229,7 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kept the candidate release-blocked pending live security, two independent
   installed non-Rust peers, fault/soak, fuzz/sanitizer, performance, supply-chain,
   clean-room, and qualification of all nine exact consumer and extension role
-  subjects. The historical six-project inventory is not a role receipt.
+  subjects. The historical six-surface inventory is not a role receipt.
   Publication follows those gates; install and emergency-revocation validation
   follow publication.
 

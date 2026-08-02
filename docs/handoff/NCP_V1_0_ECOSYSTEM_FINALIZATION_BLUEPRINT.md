@@ -13,6 +13,15 @@
 > digests, reviewer, and residual `NOT_RUN` obligations. Commit and push each
 > coherent, passing part with a professional message. Never use a status edit as a
 > substitute for implementation or independent review.
+>
+> **Current reconciliation note (2026-08-01):** the producer branch/worktree rows
+> below are preserved intake history. Canonical Crebain `origin/main` is now
+> `43df8418f1b17b773acdc85533b7fba431dc5468` and contains the producer lineage.
+> No current local or remote branch ref contains the intake commit
+> `113ee70d5660daf90bb373bd7857d4b3f2f56784`. GitHub's retained
+> `refs/pull/31/head` pull-request ref still exposes it as merged PR history. C04
+> is still OPEN behind C03 and now verifies that consolidated lineage; it does
+> not authorize branch deletion or establish a producer role receipt.
 
 ## 1. Objective and non-negotiable interpretation
 
@@ -27,10 +36,20 @@ reviewed ecosystem is:
 - `sepahead/haldir`;
 - `sepahead/galadriel`;
 - `sepahead/crebain` (the old `sepehrmn/crebain` URL redirects here);
-- the local Crebain Galadriel-producer branch/worktree;
+- the Galadriel-producer surface in canonical `sepahead/crebain`;
 - `sepahead/prisoma`; and
 - `sepahead/pid-rs`; and
 - the public `sepahead` profile/selected-work presentation.
+
+The 2026-08-01 local discovery also found directories that are not canonical
+inventory entries. `engram-origin-corpus-review.MymUYE` is a non-Git review
+extraction whose copied descriptor can appear in a filesystem scan. `NCP copy` is
+an old provider checkout. `Paper2Brain copy`, `pid_vla copy`, and `crebain copy`
+are legacy wire-0.2/0.2.5 consumer-lineage checkouts, while `Paper2Brain` is a
+placeholder-only directory. `pid-rs` copies remain protocol-neutral libraries.
+None is a canonical current consumer, installed peer, or role subject. The PhD
+thesis harness is instead an intentionally pinned auxiliary wire-0.8 importer,
+but it is still not a peer and receives no role receipt.
 
 “Final” cannot honestly mean that no future defect, cryptographic transition,
 hardware class, or scientific need will ever exist. The implementable meaning is:
@@ -1051,6 +1070,16 @@ Keep the bridge dormant/off by default until its Tauri commands, configuration,
 security, and plant-authority composition are intentionally registered and tested.
 Move Galadriel project envelopes to their extension route or translate to standard
 NCP frames as specified above.
+
+The original branch row is now historical. Read-only reconciliation on 2026-08-01
+found producer commits `dec8dcaf2ed62744a2f6f15ace955fbfaf152f0a` and
+`99626d00df0cf0d05372b5e505f01e5619169f3f` in canonical Crebain main at
+`43df8418f1b17b773acdc85533b7fba431dc5468`; no current branch ref contains
+`113ee70d5660daf90bb373bd7857d4b3f2f56784`. GitHub's retained
+`refs/pull/31/head` still exposes that commit as merged PR history. After C01-C03,
+C04 must verify patch and semantic completeness on the canonical lineage and
+retire stale branch references. It must not reconstruct a separate fork merely
+to match the intake layout.
 
 ### 6.5 Prisoma
 
@@ -2754,6 +2783,33 @@ and trust boundaries, then challenged from three required perspectives:
   features are explicit, startup failures are diagnosable, and recovery is finite;
 - **P3 — operations/science/evidence:** exact gaps, provenance, non-calibration,
   release/qualification boundaries and `NOT RUN` gates remain visible.
+
+#### Current B01 boundary findings and task routing
+
+The 2026-08-01 review found two unresolved candidate boundaries. These findings
+amend proposed decisions only. They do not change the normative digest, accept an
+ADR, authorize a rebaseline, or satisfy a consumer role.
+
+- The 256-entry metadata ceiling needs a trusted message-class and decoded-path
+  registry. The proposed stable assignment is each
+  `OpenSession.bindings[*].entity.meta` object. Counting is per immediate map;
+  duplicate decoded keys reject first, and a new 257th member rejects before its
+  key or value is retained. Member order, raw `kind`, or any field spelled
+  `meta`/`metadata` elsewhere cannot select this rule. N01 owns the registry, N02
+  the typed/schema bound, N06 finite ingress accounting, N07 binding parity, N08
+  the boundary vectors, B02 the deliberate rebaseline, and F03 duration fuzzing.
+- Generic command wire validity is separate from checked codec completeness and
+  installed-profile plant admission. A plant-eligible Active output cannot invent
+  a midpoint, zero, range endpoint, sparse component, population, or unit. N03
+  preserves ADR-007's earlier body-local restrictive effect ordering; N05 owns
+  codec/plant/governor implementation, N07 binding parity, N08 vectors, B02 the
+  rebaseline, E04 and H02 producer behavior, and C02 the final body check.
+
+B01 reviewers must challenge decoy metadata paths, member reordering, escaped and
+duplicate keys, independent map instances, and the exact 256/257 boundary. They
+must also challenge missing decoder populations, short sensors, sparse components,
+unit conflicts, fallback Active output, and any codec/profile check that runs soon
+enough to suppress ADR-007's current-context HOLD/ESTOP effect.
 
 #### Dependency and trust matrix
 
@@ -8316,7 +8372,8 @@ Ten-lens record:
 
 **Status:** `OPEN`<br>
 **Depends on:** N07–N09, R01 final source cut, fresh canonical Crebain intake<br>
-**Repository:** canonical `sepahead/crebain`, not the producer clone<br>
+**Repository:** canonical `sepahead/crebain`; the historical producer branch is
+intake evidence, not a second canonical repository<br>
 **Create/update:** explicit `ncp10` feature and `src-tauri/src/ncp10/` (or a renamed
 equivalent), `src-tauri/Cargo.toml`/`Cargo.lock`, `package.json`/`bun.lock`,
 `.ncp-consumer`, coherence script and migration docs.
@@ -8356,6 +8413,11 @@ Ten-lens record:
 8. **L8:** build flags/status/errors/migration/rollback are clear.
 9. **L9:** feature mutants and all build matrices produce receipts.
 10. **L10:** canonical repo owns the adapter; clone/branch cannot become a fork.
+
+Current lineage note: canonical `origin/main` at
+`43df8418f1b17b773acdc85533b7fba431dc5468` already contains the historical
+producer work. C01 creates the native-1.0 surface in that lineage; it does not wait
+for or recreate `113ee70d5660daf90bb373bd7857d4b3f2f56784`.
 
 #### C02 — implement Crebain as body-issued authority and disposition source
 
@@ -8513,34 +8575,38 @@ Ten-lens record:
 9. **L9:** route-confusion, load, live and differential tests retain receipts.
 10. **L10:** extension/producer/schema/support and retention ownership is explicit.
 
-#### C04 — reconcile and retire the separate Galadriel-producer work branch
+#### C04 — verify the consolidated Galadriel producer lineage and retire stale branch references
 
 **Status:** `OPEN`<br>
-**Depends on:** C01–C03, fresh branch comparison<br>
-**Repositories:** canonical Crebain plus `crebain-galadriel-producer` worktree/branch<br>
-**Current audit input:** branch `feat/galadriel-integration-refresh` at
-`113ee70d5660daf90bb373bd7857d4b3f2f56784`; canonical main at the audit point was
-`3e3ee5d0b75269b8f5f634485871069c89a9a474`.
+**Depends on:** C01–C03, fresh canonical lineage comparison<br>
+**Repository:** canonical Crebain<br>
+**Historical audit input:** branch `feat/galadriel-integration-refresh` at
+`113ee70d5660daf90bb373bd7857d4b3f2f56784`; canonical main at that intake point
+was `3e3ee5d0b75269b8f5f634485871069c89a9a474`.<br>
+**Current audit input:** canonical `origin/main` at
+`43df8418f1b17b773acdc85533b7fba431dc5468`, containing producer commits
+`dec8dcaf2ed62744a2f6f15ace955fbfaf152f0a` and
+`99626d00df0cf0d05372b5e505f01e5619169f3f`; no current local or remote branch
+ref contains the historical branch commit. GitHub's retained
+`refs/pull/31/head` still exposes it as merged PR history.
 
 Implementation:
 
-- fetch both remotes and make a commit/patch-equivalence inventory; at the audit
-  point the producer branch showed three commits beyond its local `main`, while the
-  canonical repository already contained related work under different hashes;
-- review semantic differences file-by-file; do not blindly merge, rebase or
-  cherry-pick duplicate plant/producer changes;
-- port only changes still required by C02/C03 onto a fresh canonical integration
-  branch, preserving authorship and correlation in commit messages/receipts;
+- fetch canonical remote state and make a content-addressed lineage and
+  patch-equivalence inventory against the retained historical patch set;
+- review semantic differences file-by-file. Do not create, merge, rebase, or
+  cherry-pick a duplicate branch solely to reproduce the intake topology;
+- port only changes still required by C02/C03 into canonical Crebain, preserving
+  authorship and correlation in commit messages and receipts;
 - run the complete canonical Crebain gates and producer-specific campaign there;
-- after merge and remote verification, mark the old branch superseded with its final
-  commit and replacement commit map; delete a remote branch only with owner
-  authorization and after retention/rollback needs are met;
+- record the historical-to-canonical replacement map. Delete a surviving remote
+  branch only with owner authorization and after retention/rollback needs are met;
 - keep one canonical implementation and one issue/evidence location—no silent
   consumer-specific NCP fork.
 
 Acceptance: patch-equivalence ledger; no lost unique change; no duplicate behavior;
-canonical full gates; branch replacement mapping; owner approval. Commit/push
-`chore: consolidate the Galadriel producer into canonical Crebain`.
+canonical full gates; historical replacement mapping; owner approval for any
+actual branch deletion. Commit/push `chore: verify the consolidated Galadriel producer lineage`.
 
 Ten-lens record:
 
@@ -8555,7 +8621,7 @@ Ten-lens record:
 9. **L9:** semantic diff, full tests and exact commit map support closure.
 10. **L10:** branch deletion/retention/authorship/ownership requires approval.
 
-#### C05 — qualify Crebain body and producer integration separately
+#### C05 — qualify Crebain body and Galadriel-producer surface separately
 
 **Status:** `OPEN`<br>
 **Depends on:** C02–C04, H03/E05/G03 as applicable, X01, X02<br>
@@ -8569,16 +8635,16 @@ session invalid HOLD/ESTOP side effects followed by rejection, invalid Active
 without side effect, wrong-context no-mutation, and every side-effect crash cut;
 Galadriel extension, rotation/revocation, resource/fault/soak and clean-room
 reproduction. Produce two receipts:
-Crebain body role and Crebain Galadriel-producer extension role. Neither receipt is
+Crebain body role and Crebain Galadriel-producer surface role. Neither receipt is
 physical safety, airworthiness, field deployment or research validity.
 
 Acceptance: zero skips in declared matrix, exact artifacts/configs, independent
 review, provider pin match and all hazard residuals visible. Commit/push
-`evidence: qualify Crebain's NCP 1.0 body and extension roles`.
+`evidence: qualify Crebain's NCP 1.0 body and Galadriel-producer roles`.
 
 Ten-lens record:
 
-1. **L1:** body and extension receipts bind exact separate surfaces.
+1. **L1:** body and Galadriel-producer receipts bind exact separate surfaces.
 2. **L2:** live identity/authority/route/revocation negatives pass.
 3. **L3:** non-actuating plant boundary and residual physical hazards are explicit.
 4. **L4:** multi-writer/fault/restart/partition/rotation/soak execute.
@@ -9885,7 +9951,7 @@ The final authorization bundle must contain one current receipt for every row:
 | installed package matrix | N07, N09, X01, X04 | exact crates/wheel/sdist/npm/C++ artifacts install and pass applicable behavior on supported platforms |
 | registry namespace ownership | N09 | every final distribution name is controlled, verified and collision-free before upload |
 | disjoint independent challenge-exposure anchor infrastructure | X05, X02, F04 | admission intentionally unavailable in the repository-local checker, which contains no X05 acceptance parser, cryptographic dependency, or trust-root configuration path; requires a separately authenticated, independently qualified verifier boundary plus an explicit reviewed checker/schema integration; local identities, refs, clocks, and receipts grant no status; does not count toward consumer-role receipts |
-| nine consumer/extension-role qualifications | E05, H03, G03, C05, P03, X03 | nine exact role receipts: Engram responder/commander, Haldir commander/assessment receiver, Galadriel observer/assessor, Crebain body/producer, and Prisoma observer; pid-rs compatibility remains consumer evidence because it is not an NCP peer; no aggregate substitution |
+| nine consumer/extension-role qualifications | E05, H03, G03, C05, P03, X03 | nine exact role receipts: Engram simulation responder; Engram plant commander; Haldir NCP commander; Haldir Galadriel-assessment receiver; Galadriel NCP observer; Galadriel raw-advisory publisher; Crebain body; Crebain Galadriel-producer surface; Prisoma NCP observer; `pid-rs` is not an NCP peer and receives no NCP role receipt; no aggregate substitution |
 | independent clean-room reproduction | X04 | at least two independent builders from public inputs; promised byte/semantic reproduction succeeds |
 | signed SBOM/provenance | N09, X04 | complete subjects, licenses/advisories, publisher signatures/attestations and independent verification |
 | formal/evidence claim boundary | F01–F03 | all required models/obligations/refinements pass under disclosed bounds and no broad proof claim |

@@ -246,6 +246,30 @@ Capacity for the replay entry and exact outbox item is reserved before the
 replay transition commits. Bounds are checked before expensive parsing,
 signature verification, allocation, logging, or side effects.
 
+Subject to B01 independent review and later B02/N01 implementation and
+rebaseline, the proposed semantic collection rule uses a trusted message class
+and decoded path, not an untrusted payload discriminator or a field-name
+spelling. The declared `max_metadata_entries=256` ceiling would apply
+independently to each `OpenSession.bindings[*].entity.meta` object. The proposed
+path contains an explicit typed array-item step. JSON ingress would enforce the
+rule during duplicate-aware structural preflight, before generic tree or typed
+allocation; typed and protobuf entry points would enforce the same
+immediate-member count before semantic use. The trusted route or API type would
+select the expected message class. For an authenticated outer envelope, generic
+bounds would apply to that envelope and the authenticated context would select
+the class used to stream-decode its exact inner bytes.
+
+Under the proposal, decoded RFC 6901 member identity, not member order or raw
+spelling, would select the registered map. Duplicate-key rejection would take
+precedence. A new distinct 257th member would reject with `NCP-LIMIT-003` before
+the key or its value is retained or the value is parsed. A non-object at the
+proposed path would later reject with the ordinary wire-shape decision. An
+additive `meta` or `metadata` member at any unregistered path would receive only
+the generic bounds and normal unknown-field handling. No accepted class/path
+assignment exists yet. Rust and TypeScript do not implement the proposed rule,
+and the Python developer reader currently applies a post-parse recursive name
+heuristic. Those are candidate gaps, not accepted alternate semantics.
+
 ## Threat and hazard analysis
 
 The design addresses self-authentication, algorithm confusion, route/audience

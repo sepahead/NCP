@@ -46,22 +46,43 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   waiver is removed.
 - **No required role has completed native 1.0 qualification.** Engram has an
   explicit local native-1.0 migration in progress. The other five historical
-  project surfaces remain on wire 0.8. Installed-artifact and live-transport
+  handoff surfaces remain on wire 0.8. Installed-artifact and live-transport
   qualification is incomplete for these exact subjects:
 
-  - Engram responder and commander
-  - Haldir commander and assessment receiver
-  - Galadriel observer and assessor
-  - Crebain body and producer
-  - Prisoma observer
+  - Engram simulation responder
+  - Engram plant commander
+  - Haldir NCP commander
+  - Haldir Galadriel-assessment receiver
+  - Galadriel NCP observer
+  - Galadriel raw-advisory publisher
+  - Crebain body
+  - Crebain Galadriel-producer surface
+  - Prisoma NCP observer
 
-  The six-project inventory is not a role-qualification result.
+  The historical six-surface inventory spans five canonical consumer
+  repositories and is not a role-qualification result.
 
 ## Protocol and implementation boundaries
 
 - The compact 16-hex `CONTRACT_HASH` is advisory and covers canonical protobuf
   structure, not the complete normative set. Release evidence must use the SHA-256
   digest in `contract/manifest.v1.json`.
+- The declared `max_metadata_entries=256` ceiling has no accepted message-class
+  and decoded-path assignment. ADR-003 proposes applying it to each
+  `OpenSession.bindings[*].entity.meta` object. Rust and TypeScript apply only the
+  generic object ceiling. The Python developer reader walks any key spelled
+  `meta` or `metadata` after `json.loads`. Ratification, native class/path-aware
+  preallocation enforcement, rebaseline, and 256/257 cross-language vectors
+  remain open. An unrelated same-named additive field must not silently acquire
+  consumer-specific semantics.
+- Checked codec calls can still replace missing or short sensor inputs with rate
+  midpoints, replace missing decoder populations with value midpoints, zero-fill
+  sparse components, and let the last mapping select a channel unit. The
+  content-addressed plant helper checks exact names, arity, and range but is not
+  integrated into Active admission and its `PlantCommand` projection erases
+  units. These values are not neutral or safe by default. Plant-eligible Active
+  output requires a reviewed correction, candidate rebaseline, unit-preserving
+  installed-profile validation at the body, and new boundary vectors.
 - `ncp-gateway` is a same-wire native 1.0 edge. It cannot bridge an unmigrated 0.8
   Python backend; Engram's in-progress native migration must satisfy the same
   contract, or a legacy deployment must use the separate labeled terminating

@@ -38,6 +38,11 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
   independently qualified verifier boundary is implemented and explicitly integrated.
 - Crebain remains standalone and is the sole plant body/actuator authority when its
   optional NCP adapter is enabled. It issues epochs, leases and dispositions.
+  A commander-side codec produces intent only. Engram or Haldir must reject an
+  incomplete, sparse, non-finite, or unit-inconsistent plant-eligible Active output;
+  Crebain independently resolves the exact installed profile, validates the final
+  channel set, arity, unit, range, session, lease and horizon, and owns the body-local
+  HOLD/ESTOP action. A midpoint or zero is not implicit safety.
 - Engram's simulation responder and plant commander are separate optional roles with
   disjoint types, principals, manifests, endpoints and state. Simulation grants never
   satisfy plant authority.
@@ -61,7 +66,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `6717f2f4ef03a119065df93b9c9d230d241169c5519008c5cbc5e86be2406f66`.
+Blueprint SHA-256: `b1024fd073af2083a1c34c0c8b37957b59d74126ee2911de14db3e08bd40b4f6`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -73,14 +78,16 @@ Can this ledger grant release authorization? **false**.
 
 #### `B01` — Decide and ratify ADR-001 through ADR-011
 
-ADR-004, ADR-005, ADR-007, ADR-011, the D18 per-surface migration model, the D19 ratification/promotion state machine, and consumer task scopes are being amended after cross-repository review. Hostile replay additionally requires receiver admission before grant expiry, exact authenticated disposition causality before body-boundary application, strict decode and recomputation from delivered disposition bytes, and authenticated externally current per-stream high-water state for queued live-frame replay rejection. Earlier source commits, issue requests, preliminary model results, and clean gates bind superseded bytes only. They remain historical non-passing working evidence. Any focused result must be recomputed at the final source cut; no dirty-worktree count is retained as task evidence. The Ed25519 resource screen uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The screen records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. It runs actual result-validator mutations. Local results do not satisfy B01's independent evidence floor and are not retained here as passing task evidence. This coordination entry intentionally has no task source commit, same-digest request, owner review, independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. After a clean amended source commit, rerun the bounded challenge and complete local gates, publish a new exact review packet, and obtain qualifying same-digest reviews. Do not create the normative registry, start descendants, or infer release readiness.
+ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, the D18 per-surface migration model, the D19 ratification/promotion state machine, and consumer task scopes are being amended after cross-repository review. The proposed amendment defines class/path metadata counting, separates generic wire validity from checked-codec and installed-profile Active admission, forbids invented values or units in plant-eligible Active output, and preserves ADR-007's earlier restrictive body-local effect ordering. Hostile replay additionally requires receiver admission before grant expiry, exact authenticated disposition causality before body-boundary application, strict decode and recomputation from delivered disposition bytes, and authenticated externally current per-stream high-water state for queued live-frame replay rejection. Earlier source commits, issue requests, preliminary model results, and clean gates bind superseded bytes only. They remain historical non-passing working evidence. Any focused result must be recomputed at the final source cut; no dirty-worktree count is retained as task evidence. The Ed25519 resource screen uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The screen records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. It runs actual result-validator mutations. Local results do not satisfy B01's independent evidence floor and are not retained here as passing task evidence. This coordination entry intentionally has no task source commit, same-digest request, owner review, independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. After a clean amended source commit, rerun the bounded challenge and complete local gates, publish a new exact review packet, and obtain qualifying same-digest reviews. Do not create the normative registry, start descendants, or infer release readiness.
 
 Current residual risks:
 
 - All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
 - Wire examples remain draft JSON only. Prior Python/Node replay and preliminary model/resource results bind superseded ADR bytes and remain historical non-passing working evidence. The amended decision subject has no retained passing clean-model or complete-gate receipt; canonical formal work, refinement, and every downstream implementation remain open.
-- The surface-inventory and scanner-receipt rules are bounded synthetic B01 fixtures only. Current sibling descriptors remain legacy inputs, actual trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 implementation remains open.
+- The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.
+- Checked codec paths can invent missing midpoint or zero values, accept sparse components, and select a unit by mapping order. The existing plant helper is not integrated into Active admission, and the `PlantCommand` projection erases units. ADR-007 restrictive effect ordering must remain unchanged. N01, N03, N05, N07, N08, B02, B03, E04, H02, and C02 remain open.
+- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current nine-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
 - The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.
 - Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
@@ -108,6 +115,20 @@ work is never one atomic Git transaction.
 Dirty repositories are inherited work. Do not stash, reset, clean, bulk-format,
 checkout over, or stage unrelated paths. Re-inventory immediately before editing
 because this table is an intake snapshot, not a lock.
+
+### Current Crebain reconciliation note
+
+The intake rows above remain historical. A 2026-08-01 read-only reconciliation
+found canonical Crebain `origin/main` at
+`43df8418f1b17b773acdc85533b7fba431dc5468`. That lineage already contains the
+producer commits `dec8dcaf2ed62744a2f6f15ace955fbfaf152f0a` and
+`99626d00df0cf0d05372b5e505f01e5619169f3f`. No local or remote branch ref
+contains the intake-only producer commit
+`113ee70d5660daf90bb373bd7857d4b3f2f56784`. GitHub's retained
+`refs/pull/31/head` still exposes it as merged PR history. C04 remains OPEN
+behind C03; its
+scope is to verify the consolidated canonical lineage and retire stale branch
+references, not to infer a missing producer implementation or a role receipt.
 
 ## Three perspectives required for every change
 

@@ -117,11 +117,15 @@ same-wire native-1.0 lifecycle edge and requires a native-1.0 Python
 
 ## Registering a consumer
 
-Consumer discovery is generic: `scripts/check-consumer-pins.sh` and
-`scripts/repin-ncp.sh` inspect every sibling repository that commits a
-`.ncp-consumer` descriptor. Adding a consumer never adds its name or layout to NCP.
-The line-oriented descriptor accepts `#` comments and only declares consumer-owned
-relative files:
+Local pin-surface discovery is generic: `scripts/check-consumer-pins.sh` and
+`scripts/repin-ncp.sh` inspect every sibling directory that has a
+`.ncp-consumer` descriptor. The scan does not prove that the directory is a Git
+repository, canonical, unique, installed, or assigned a qualification role; an
+extracted review copy can appear in its results. A descriptor proves only the
+declared pin coherence. Canonical historical inventory and exact role subjects
+remain separately registered and reviewed. Adding a descriptor never grants a
+role receipt or adds consumer-specific layout to NCP. The line-oriented
+descriptor accepts `#` comments and only declares consumer-owned relative files:
 
 ```text
 cargo_tag       Cargo.toml
@@ -158,19 +162,40 @@ runtime implementation. Advancing mirror bytes alone cannot hide a stale runtime
 wire: the checker continues to fail until the consumer completes and tests the
 breaking migration.
 
-## Historical project inventory and role subjects
+## Historical handoff surfaces and role subjects
 
-The candidate registry retains six historical project surfaces for migration
-bookkeeping. A project row is not a qualification receipt.
+The candidate registry retains six historical handoff surfaces across five
+canonical consumer repositories for migration bookkeeping. A surface row is not
+a qualification receipt.
 
-| Historical project surface | Exact 1.0 role subjects | Current boundary |
+| Historical surface | Canonical repository | Current boundary |
 |---|---|---|
-| Engram | responder and commander | explicit local native-1.0 migration in progress; frozen 0.8 inventory retained as history; installed-artifact and live qualification **NOT RUN** |
-| Crebain | body | Rust/npm wire-0.8 pins and hardcoded wire/hash; native migration and qualification **NOT RUN** |
-| Crebain Galadriel producer | producer | wire-0.8 dependency surface; native migration and qualification **NOT RUN** |
-| Galadriel | observer and assessor | exact wire-0.8 revision and fixtures; native migration and qualification **NOT RUN** |
-| Haldir | commander and assessment receiver | immutable `haldir-ncp08` compatibility surface; parallel `haldir-ncp10` and native qualification **NOT RUN** |
-| Prisoma | observer | observer client on wire 0.8; native migration and qualification **NOT RUN** |
+| Engram | Engram | frozen wire-0.8 inventory is history; a native-1.0 development migration exists |
+| Crebain | Crebain | inactive, unregistered wire-0.8 body-control bridge; native body absent |
+| Crebain Galadriel producer | Crebain | off-by-default, environment-gated wire-0.8 producer is in canonical main; not a separate repository |
+| Galadriel | Galadriel | optional operational read-only wire-0.8 receiver; native migration absent |
+| Haldir | Haldir | optional immutable `haldir-ncp08` commander; native commander and assessment receiver absent |
+| Prisoma | Prisoma | real read-only wire-0.8 observer crate, workspace-excluded and explicitly CI-tested |
+
+Release authorization requires a separate installed-artifact receipt for each
+exact subject below. Every qualification remains **NOT RUN**.
+
+| Exact 1.0 role subject | Current implementation boundary |
+|---|---|
+| Engram simulation responder | native-1.0 development implementation exists; installed/live qualification absent |
+| Engram plant commander | development controller exists; disjoint artifact, principal, route, store, authority, and plant evidence absent |
+| Haldir NCP commander | optional wire-0.8 implementation only; native-1.0 surface absent |
+| Haldir Galadriel-assessment receiver | absent |
+| Galadriel NCP observer | operational read-only wire-0.8 receiver; native-1.0 surface absent |
+| Galadriel raw-advisory publisher | absent; assessment schemas and receiver logic do not constitute this publisher |
+| Crebain body | inactive wire-0.8 source only; native-1.0 body absent |
+| Crebain Galadriel-producer surface | off-by-default, environment-gated wire-0.8 producer exists; native qualification absent |
+| Prisoma NCP observer | read-only wire-0.8 implementation exists; native qualification absent |
+
+The PhD thesis counterexample harness is a descriptor-pinned auxiliary wire-0.8
+importer. It is not an installed peer, is not part of either inventory above,
+and receives no role receipt. Ephemeral extractions and legacy local copies that
+a filesystem scan encounters are also not canonical inventory entries.
 
 Migration ownership stays with each consumer. Protocol core must not add
 consumer-specific classes, topics, fields, or safety semantics.

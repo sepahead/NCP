@@ -87,6 +87,23 @@ therefore uses two bounded scheduling stages before semantic severity arbitratio
    verification. Only then does the verified severity arbiter order ESTOP, HOLD
    and Active.
 
+After ratification and rebaseline, the proposed predecode budget would include
+each accepted class/path collection ceiling. Trusted route or typed API context
+would select the message class; raw kind, mode, unit, metadata spelling, or
+fallback value could not select a verifier lane or reserve semantic queue
+capacity. The proposed 256-entry `OpenSession` binding metadata rule would be
+checked per matched map during duplicate-aware structural decoding. A 257th
+distinct member would reject before its key or value is retained. Unknown
+same-named maps would not inherit that class-specific ceiling.
+
+For an Active command, checked-codec completeness and installed-profile
+admission are finite work bounded by mapping, channel, component, and horizon
+ceilings. They complete before Active admission and cannot invent missing
+midpoints, zeros, range endpoints, components, or units. Restrictive attempts
+retain ADR-007's separate body-local effect ordering: later codec or profile
+semantic failure cannot suppress an already reserved current-context HOLD or
+ESTOP effect, and it still grants no queue entry or success disposition.
+
 The emergency lane grants verifier service only, never authority, admission or a
 side effect. Invalid signatures, wrong-context traffic and lane misuse consume a
 bounded attempt and cannot allocate durable command state. If Active and ESTOP
@@ -183,6 +200,11 @@ benchmarked at just-below, exact, and just-above limits. Saturation tests cover
 invalid signatures, valid Active floods, principal spray, emergency-route misuse,
 same- and different-principal contention, same-principal cross-realm traffic,
 realm spray, restart, and a valid ESTOP waiting at each boundary.
+
+The proposed resource profile also binds the finite class/path lookup,
+duplicate-aware immediate-member counting, codec mapping/component walk, exact
+channel/unit/profile comparison, and horizon walk. These checks cannot allocate
+from the semantic queue before they finish.
 
 ## Threat and hazard analysis
 
