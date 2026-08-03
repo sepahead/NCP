@@ -2312,8 +2312,8 @@
       {
         "path": "evidence/implementation/task-ledger.v1.json",
         "bytes": 157706,
-        "sha256": "1d590bef00e1a05ddfec72cad0f65d9cfe953fc2f66af573721f2187a7dbb024",
-        "git_blob_oid": "46ecf4bd43e2d98f0cc6267f97ade5d1608b674d",
+        "sha256": "edac4ef6a65a6d0376a25be10792d1c36948c95732bc9055dcdd35ce6a649f52",
+        "git_blob_oid": "ec0c2d20ff9a615a3daa88c3d2563a16c3b4725a",
         "indexed": true
       },
       {
@@ -6546,9 +6546,9 @@
       },
       {
         "path": "scripts/check_implementation_ledger.py",
-        "bytes": 1045289,
-        "sha256": "9a53c833417ef65fa893f20ae24a3b5ef77fdc618eb944f7470a6d6bdbea7c4a",
-        "git_blob_oid": "d685a13bf7df204c9561c19159b97861d2c82fc8",
+        "bytes": 1054235,
+        "sha256": "f0408a985f727207622bb1cdcf7590ed672460e30e9b0aee6c1a1bcb366ed37c",
+        "git_blob_oid": "39662ddce92427e60167ccb0b9d398512be00b94",
         "indexed": true
       },
       {
@@ -9339,7 +9339,7 @@
       "column": 6,
       "token_id": "M007",
       "line_sha256": "94a068adc081fc0218562be78267b3cbdbf05e4ec3bcc5118790e5ce17e4403f",
-      "file_sha256": "9a53c833417ef65fa893f20ae24a3b5ef77fdc618eb944f7470a6d6bdbea7c4a",
+      "file_sha256": "f0408a985f727207622bb1cdcf7590ed672460e30e9b0aee6c1a1bcb366ed37c",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -9348,13 +9348,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-A2C551FF3BC932654508",
+      "id": "NCP-LATENT-36C349B0F10FC28A91AA",
       "path": "scripts/check_implementation_ledger.py",
-      "line": 16121,
+      "line": 16175,
       "column": 10,
       "token_id": "M007",
       "line_sha256": "05750a51f227030f2a88ff64ac69bd1c2256ddbd8b29e552996df724401d9c10",
-      "file_sha256": "9a53c833417ef65fa893f20ae24a3b5ef77fdc618eb944f7470a6d6bdbea7c4a",
+      "file_sha256": "f0408a985f727207622bb1cdcf7590ed672460e30e9b0aee6c1a1bcb366ed37c",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

@@ -221,7 +221,7 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "9a53c833417ef65fa893f20ae24a3b5ef77fdc618eb944f7470a6d6bdbea7c4a"
+      "sha256": "f0408a985f727207622bb1cdcf7590ed672460e30e9b0aee6c1a1bcb366ed37c"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",

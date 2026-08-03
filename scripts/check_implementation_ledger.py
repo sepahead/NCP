@@ -12303,6 +12303,58 @@ def _run_git_bytes(repository_root: Path, arguments: list[str], path: str) -> by
     return result.stdout
 
 
+def _run_git_exact_line(repository_root: Path, arguments: list[str], path: str) -> str:
+    """Return one exact Git output line without normalizing its content."""
+
+    payload = _run_git_bytes(repository_root, arguments, path)
+    if payload.count(b"\n") != 1 or not payload.endswith(b"\n") or b"\r" in payload:
+        _fail(f"{path} did not return one exact LF-terminated line")
+    try:
+        value = payload[:-1].decode("utf-8")
+    except UnicodeDecodeError:
+        _fail(f"{path} did not return one exact UTF-8 line")
+    if (
+        not value
+        or value != value.strip()
+        or any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
+    ):
+        _fail(f"{path} did not return one exact whitespace-free line")
+    return value
+
+
+def _authorized_origin_repository(
+    repository_root: Path,
+    path: str,
+    *,
+    repository_name: str,
+) -> str:
+    """Bind one unambiguous effective fetch and push destination for origin."""
+
+    fetch_url = _run_git_exact_line(
+        repository_root,
+        ["remote", "get-url", "--all", "origin"],
+        f"{path} fetch URL",
+    )
+    push_url = _run_git_exact_line(
+        repository_root,
+        ["remote", "get-url", "--push", "--all", "origin"],
+        f"{path} push URL",
+    )
+    fetch_repository = _validate_authorized_github_remote(
+        fetch_url,
+        f"{path} fetch URL",
+        repository_name=repository_name,
+    )
+    push_repository = _validate_authorized_github_remote(
+        push_url,
+        f"{path} push URL",
+        repository_name=repository_name,
+    )
+    if fetch_repository != push_repository:
+        _fail(f"{path} fetch and push destinations differ")
+    return fetch_repository
+
+
 @lru_cache(maxsize=512)
 def _resolved_git_tree(repository_root: str, commit: str) -> str:
     root = Path(repository_root)
@@ -12866,6 +12918,8 @@ def _validate_https_url(value: Any, path: str) -> str:
 def _validate_authorized_github_remote(
     value: Any, path: str, *, repository_name: str
 ) -> str:
+    """Validate one GitHub remote and return its canonical owner/repository."""
+
     remote = _string(value, path, maximum=256)
     if remote.startswith("git@github.com:"):
         repository = remote.removeprefix("git@github.com:")
@@ -12880,7 +12934,7 @@ def _validate_authorized_github_remote(
         _fail(f"{path} has no checked repository authorization")
     if repository != expected:
         _fail(f"{path} does not identify the authorized GitHub repository {expected}")
-    return remote
+    return repository
 
 
 def _validate_branch_name(value: Any, path: str) -> str:
@@ -18006,12 +18060,17 @@ def validate(data: Any) -> None:
                     "configured repository branch"
                 )
             repository_root = GIT_ROOT_BY_RECEIPT_REPOSITORY[receipt_repository]
-            origin_url = _run_git(
-                repository_root,
-                ["remote", "get-url", "origin"],
-                f"task {task['id']} configured origin",
+            configured_repository = _validate_authorized_github_remote(
+                repository["remote"],
+                f"task {task['id']} receipt configured remote",
+                repository_name=receipt_repository,
             )
-            if origin_url != repository["remote"]:
+            origin_repository = _authorized_origin_repository(
+                repository_root,
+                f"task {task['id']} configured origin",
+                repository_name=receipt_repository,
+            )
+            if origin_repository != configured_repository:
                 _fail(
                     f"task {task['id']} receipt origin differs from the "
                     "configured authorized remote"
@@ -18324,6 +18383,157 @@ def _self_test_git_environment_filter() -> None:
             os.environ.pop("GIT_CONFIG_PARAMETERS", None)
         else:
             os.environ["GIT_CONFIG_PARAMETERS"] = prior_git_parameters
+
+
+def _self_test_authorized_origin_line_boundary(
+    authorized_remotes: tuple[str, ...],
+) -> None:
+    with tempfile.TemporaryDirectory(prefix="ncp-origin-line-boundary-") as temporary:
+        repository_index = 0
+
+        def repository_with_origin(*remotes: str) -> Path:
+            nonlocal repository_index
+            repository_index += 1
+            repository = Path(temporary) / f"repository-{repository_index}"
+            repository.mkdir()
+            _self_test_git(repository, "init", "-b", "main")
+            for remote in remotes:
+                _self_test_git(
+                    repository,
+                    "config",
+                    "--add",
+                    "remote.origin.url",
+                    remote,
+                )
+            return repository
+
+        for remote in authorized_remotes:
+            repository = repository_with_origin(remote)
+            observed = _authorized_origin_repository(
+                repository,
+                "self-test exact configured origin",
+                repository_name="NCP",
+            )
+            if observed != "sepahead/NCP":
+                _fail("self-test exact configured origin changed repository identity")
+        for label, remote in (
+            ("leading space", " https://github.com/sepahead/NCP"),
+            ("trailing space", "https://github.com/sepahead/NCP "),
+            ("trailing tab", "https://github.com/sepahead/NCP\t"),
+            ("trailing carriage return", "https://github.com/sepahead/NCP\r"),
+        ):
+            repository = repository_with_origin(remote)
+            _must_fail(
+                lambda: _authorized_origin_repository(
+                    repository,
+                    "hostile whitespace configured origin",
+                    repository_name="NCP",
+                ),
+                f"configured origin with {label}",
+                "one exact",
+            )
+
+        for label, remotes in (
+            (
+                "duplicate authorized fetch URLs",
+                (
+                    "git@github.com:sepahead/NCP.git",
+                    "https://github.com/sepahead/NCP",
+                ),
+            ),
+            (
+                "authorized then hostile fetch URLs",
+                (
+                    "git@github.com:sepahead/NCP.git",
+                    "https://github.com/attacker/NCP",
+                ),
+            ),
+        ):
+            repository = repository_with_origin(*remotes)
+            _must_fail(
+                lambda: _authorized_origin_repository(
+                    repository,
+                    "ambiguous configured origin",
+                    repository_name="NCP",
+                ),
+                label,
+                "one exact",
+            )
+
+        repository = repository_with_origin("git@github.com:sepahead/NCP.git")
+        _self_test_git(
+            repository,
+            "config",
+            "--add",
+            "remote.origin.pushurl",
+            "https://github.com/sepahead/NCP",
+        )
+        if (
+            _authorized_origin_repository(
+                repository,
+                "authorized separate push origin",
+                repository_name="NCP",
+            )
+            != "sepahead/NCP"
+        ):
+            _fail("self-test authorized separate push origin changed identity")
+
+        repository = repository_with_origin("git@github.com:sepahead/NCP.git")
+        for push_url in (
+            "https://github.com/sepahead/NCP",
+            "https://github.com/attacker/NCP",
+        ):
+            _self_test_git(
+                repository,
+                "config",
+                "--add",
+                "remote.origin.pushurl",
+                push_url,
+            )
+        _must_fail(
+            lambda: _authorized_origin_repository(
+                repository,
+                "ambiguous push origin",
+                repository_name="NCP",
+            ),
+            "authorized then hostile push URLs",
+            "one exact",
+        )
+
+        repository = repository_with_origin("git@github.com:sepahead/NCP.git")
+        _self_test_git(
+            repository,
+            "config",
+            "remote.origin.pushurl",
+            "https://github.com/attacker/NCP",
+        )
+        _must_fail(
+            lambda: _authorized_origin_repository(
+                repository,
+                "hostile push origin",
+                repository_name="NCP",
+            ),
+            "hostile single push URL",
+            "authorized GitHub",
+        )
+
+        for rewrite_kind in ("insteadOf", "pushInsteadOf"):
+            repository = repository_with_origin("https://github.com/sepahead/NCP")
+            _self_test_git(
+                repository,
+                "config",
+                f"url.https://github.com/attacker/NCP.{rewrite_kind}",
+                "https://github.com/sepahead/NCP",
+            )
+            _must_fail(
+                lambda: _authorized_origin_repository(
+                    repository,
+                    f"hostile {rewrite_kind} origin",
+                    repository_name="NCP",
+                ),
+                f"hostile {rewrite_kind} rewrite",
+                "authorized GitHub",
+            )
 
 
 def _self_test_current_generation_evidence_reset(task: dict[str, Any]) -> None:
@@ -20048,6 +20258,49 @@ def self_test(data: dict[str, Any]) -> None:
         "illustrative JSON is invalid",
     )
     _self_test_git_environment_filter()
+
+    authorized_ncp_remotes = (
+        "git@github.com:sepahead/NCP",
+        "git@github.com:sepahead/NCP.git",
+        "https://github.com/sepahead/NCP",
+        "https://github.com/sepahead/NCP.git",
+    )
+    canonical_ncp_remotes = {
+        _validate_authorized_github_remote(
+            remote,
+            "self-test authorized NCP remote",
+            repository_name="NCP",
+        )
+        for remote in authorized_ncp_remotes
+    }
+    if canonical_ncp_remotes != {"sepahead/NCP"}:
+        _fail("authorized GitHub remote forms do not share one canonical identity")
+    _self_test_authorized_origin_line_boundary(authorized_ncp_remotes)
+    rejected_ncp_remotes = (
+        "git@github.com:attacker/NCP.git",
+        "git@github.com:sepahead/NCP.evil",
+        "https://github.com.evil/sepahead/NCP",
+        "https://user@github.com/sepahead/NCP",
+        "https://github.com/sepahead/ncp",
+        "https://github.com/sepahead/NCP/",
+        "https://github.com/sepahead/NCP/extra",
+        "https://github.com/sepahead/NCP?ref=main",
+        "https://github.com/sepahead/NCP#main",
+        "ssh://git@github.com/sepahead/NCP.git",
+        " https://github.com/sepahead/NCP",
+        "https://github.com/sepahead/NCP ",
+        "https://github.com/sepahead/NCP\t",
+    )
+    for remote in rejected_ncp_remotes:
+        _must_fail(
+            lambda remote=remote: _validate_authorized_github_remote(
+                remote,
+                "self-test rejected NCP remote",
+                repository_name="NCP",
+            ),
+            f"unauthorized GitHub remote {remote!r}",
+            "authorized GitHub",
+        )
 
     mutant = copy.deepcopy(data)
     mutant["tasks"][0]["id"] = "Z99"
