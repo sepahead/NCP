@@ -155,11 +155,11 @@
         },
         "shared_source_bindings": {
           "bounded_canonical": {
-          "byte_length": 115312,
+          "byte_length": 129665,
             "dependency_ids": [],
             "module": "bounded_canonical",
             "path": "prototypes/b01-architecture-evidence/bounded_canonical.py",
-          "sha256": "4a2d04738c8518cf5350ed551a6020c4899680457605e5360002793502c143fa"
+          "sha256": "06818b87b391be541f5df7dfecbc3bad1905fed30e0042e8b5b80eb785b2b01a"
           },
           "bounded_json": {
             "byte_length": 50898,

@@ -2294,7 +2294,7 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "8d2a75df279695166cb11c72b076b932683a00553fc482dc4362e12c5874a4e6"
+      "sha256": "164f35e2571f76a3f81d4c04a2f21c7e5fb19c73e6b68baf26c836c192a537f1"
     },
     {
       "outputs": [

@@ -54,6 +54,7 @@ MAX_CANONICAL_RECURSION_DEPTH = 256
 MAX_FROZEN_TYPE_REGISTRY_ENTRIES = 4_096
 MAX_FROZEN_TYPE_REGISTRY_FIELDS = 65_536
 MAX_FROZEN_ARTIFACT_FIELDS = 4_096
+MAX_FROZEN_ARTIFACT_CLASS_BINDINGS = MAX_FROZEN_ARTIFACT_FIELDS + 512
 MAX_FROZEN_FIELD_NAME_BYTES = 256
 MAX_FROZEN_ARTIFACT_FIELD_NAME_BYTES = 262_144
 MAX_FROZEN_TYPE_ID_BYTES = 512
@@ -315,6 +316,10 @@ _FIXED_TRUSTED_FROZEN_MUTATORS: dict[
         _EmptyFrozenMutatorTemplate.__dict__["__delattr__"],
     ),
 }
+_TRUSTED_SLOTTED_FROZEN_STATE_METHODS = (
+    ("__getstate__", CanonicalLimits.__dict__["__getstate__"]),
+    ("__setstate__", CanonicalLimits.__dict__["__setstate__"]),
+)
 _TRANSIENT_FROZEN_MUTATOR_WITNESS_GENERATIONS = 0
 
 
@@ -469,6 +474,186 @@ def _trusted_frozen_mutators(
     return trusted
 
 
+def _is_exact_legacy_slots_replacement(
+    value_type: type[Any],
+    namespace: MappingProxyType,
+    closure_class: Any,
+) -> bool:
+    """Recognize CPython 3.12/3.13 frozen-slots replacement exactly.
+
+    Older CPython releases generate frozen mutators before ``slots=True``
+    replaces the original class.  Their ``cls`` closure therefore binds the
+    non-slotted source class, not the returned slotted class.  Accept that
+    standard-library shape only when the two complete namespaces have the
+    exact copy-and-replace relationship produced by ``dataclasses``.
+    """
+
+    if type(closure_class) is not type or closure_class is value_type:
+        return False
+    try:
+        origin_namespace = type.__getattribute__(closure_class, "__dict__")
+        value_bases = type.__getattribute__(value_type, "__bases__")
+        origin_bases = type.__getattribute__(closure_class, "__bases__")
+        value_name = type.__getattribute__(value_type, "__name__")
+        origin_name = type.__getattribute__(closure_class, "__name__")
+        value_qualname = type.__getattribute__(value_type, "__qualname__")
+        origin_qualname = type.__getattribute__(closure_class, "__qualname__")
+        value_module = type.__getattribute__(value_type, "__module__")
+        origin_module = type.__getattribute__(closure_class, "__module__")
+        value_entry_count = len(namespace)
+        origin_entry_count = len(origin_namespace)
+    except (AttributeError, MemoryError, RuntimeError, TypeError):
+        return False
+    if (
+        type(origin_namespace) is not MappingProxyType
+        or type(value_bases) is not tuple
+        or type(origin_bases) is not tuple
+        or value_bases != (object,)
+        or origin_bases != (object,)
+        or type(value_name) is not str
+        or type(origin_name) is not str
+        or str.__eq__(value_name, origin_name) is not True
+        or type(value_qualname) is not str
+        or type(origin_qualname) is not str
+        or value_qualname is not origin_qualname
+        or type(value_module) is not str
+        or type(origin_module) is not str
+        or value_module is not origin_module
+        or type(value_entry_count) is not int
+        or type(origin_entry_count) is not int
+        or value_entry_count > MAX_FROZEN_ARTIFACT_CLASS_BINDINGS
+        or origin_entry_count > MAX_FROZEN_ARTIFACT_CLASS_BINDINGS
+    ):
+        return False
+    try:
+        value_entries = tuple(namespace.items())
+        origin_entries = tuple(origin_namespace.items())
+    except (MemoryError, RuntimeError, TypeError):
+        return False
+    if (
+        len(value_entries) != value_entry_count
+        or len(origin_entries) != origin_entry_count
+        or len(namespace) != value_entry_count
+        or len(origin_namespace) != origin_entry_count
+        or not all(
+            type(entry) is tuple and type(entry[0]) is str for entry in value_entries
+        )
+        or not all(
+            type(entry) is tuple and type(entry[0]) is str for entry in origin_entries
+        )
+    ):
+        return False
+
+    field_table = namespace.get("__dataclass_fields__", _ABSENT_CLASS_BINDING)
+    params = namespace.get("__dataclass_params__", _ABSENT_CLASS_BINDING)
+    slots_binding = namespace.get("__slots__", _ABSENT_CLASS_BINDING)
+    if type(field_table) is not dict or type(params) is not _DATACLASS_PARAMS_TYPE:
+        return False
+    field_entry_count = len(field_table)
+    if (
+        type(field_entry_count) is not int
+        or field_entry_count > MAX_FROZEN_ARTIFACT_FIELDS
+    ):
+        return False
+    try:
+        param_state = {
+            name: object.__getattribute__(params, name)
+            for name in _DATACLASS_PARAMS_SLOT_NAMES
+        }
+    except (AttributeError, MemoryError):
+        return False
+    if (
+        param_state.get("frozen") is not True
+        or ("slots" in param_state and param_state["slots"] is not True)
+        or ("weakref_slot" in param_state and param_state["weakref_slot"] is not False)
+    ):
+        return False
+    try:
+        field_names = tuple(field_table)
+    except (MemoryError, RuntimeError):
+        return False
+    if len(field_names) != field_entry_count or len(field_table) != field_entry_count:
+        return False
+    if (
+        not _same_exact_string_tuple(slots_binding, field_names)
+        or origin_namespace.get("__slots__", _ABSENT_CLASS_BINDING)
+        is not _ABSENT_CLASS_BINDING
+        or origin_namespace.get("__dataclass_fields__", _ABSENT_CLASS_BINDING)
+        is not field_table
+        or origin_namespace.get("__dataclass_params__", _ABSENT_CLASS_BINDING)
+        is not params
+        or origin_namespace.get("__setattr__", _ABSENT_CLASS_BINDING)
+        is not namespace.get("__setattr__", _ABSENT_CLASS_BINDING)
+        or origin_namespace.get("__delattr__", _ABSENT_CLASS_BINDING)
+        is not namespace.get("__delattr__", _ABSENT_CLASS_BINDING)
+    ):
+        return False
+
+    origin_instance_dict = origin_namespace.get("__dict__", _ABSENT_CLASS_BINDING)
+    origin_weakref = origin_namespace.get("__weakref__", _ABSENT_CLASS_BINDING)
+    if (
+        type(origin_instance_dict) is not GetSetDescriptorType
+        or origin_instance_dict.__objclass__ is not closure_class
+        or origin_instance_dict.__name__ != "__dict__"
+        or type(origin_weakref) is not GetSetDescriptorType
+        or origin_weakref.__objclass__ is not closure_class
+        or origin_weakref.__name__ != "__weakref__"
+        or "__dict__" in namespace
+        or "__weakref__" in namespace
+    ):
+        return False
+
+    try:
+        value_keys = {entry[0] for entry in value_entries}
+        origin_keys = {entry[0] for entry in origin_entries}
+        expected_value_only = {"__slots__"}
+        for field_name in field_names:
+            if field_name not in origin_namespace:
+                expected_value_only.add(field_name)
+        for state_name, trusted_state_method in _TRUSTED_SLOTTED_FROZEN_STATE_METHODS:
+            if state_name not in origin_namespace:
+                expected_value_only.add(state_name)
+                if (
+                    namespace.get(state_name, _ABSENT_CLASS_BINDING)
+                    is not trusted_state_method
+                ):
+                    return False
+        field_name_set = set(field_names)
+        common_keys = value_keys & origin_keys
+        value_only_keys = value_keys - origin_keys
+        origin_only_keys = origin_keys - value_keys
+    except (MemoryError, RuntimeError):
+        return False
+    if value_only_keys != expected_value_only or origin_only_keys != {
+        "__dict__",
+        "__weakref__",
+    }:
+        return False
+
+    for name in common_keys:
+        value_binding = namespace[name]
+        origin_binding = origin_namespace[name]
+        if name in field_name_set:
+            if (
+                type(value_binding) is not MemberDescriptorType
+                or value_binding.__objclass__ is not value_type
+                or value_binding.__name__ != name
+                or not _is_bounded_inert_scalar_tuple(origin_binding)
+            ):
+                return False
+        elif value_binding is not origin_binding:
+            return False
+    for field_name in field_names:
+        value_binding = namespace.get(field_name, _ABSENT_CLASS_BINDING)
+        if (
+            type(value_binding) is not MemberDescriptorType
+            or value_binding.__objclass__ is not value_type
+            or value_binding.__name__ != field_name
+        ):
+            return False
+    return True
+
+
 def _capture_frozen_mutator_shape(
     value_type: type[Any],
     namespace: MappingProxyType,
@@ -525,12 +710,27 @@ def _capture_frozen_mutator_shape(
         raise error_type(
             f"canonical frozen dataclass {operation} closure cell is empty"
         ) from exc
+    closure_class = closure_bindings.get(
+        "__class__",
+        closure_bindings.get("cls", _ABSENT_CLASS_BINDING),
+    )
     _require_shape(
         type(closure_bindings) is dict
         and len(closure_bindings) == 2
-        and set(closure_bindings) == {"FrozenInstanceError", "__class__"}
+        and set(closure_bindings)
+        in (
+            {"FrozenInstanceError", "__class__"},
+            {"FrozenInstanceError", "cls"},
+        )
         and closure_bindings["FrozenInstanceError"] is FrozenInstanceError
-        and closure_bindings["__class__"] is value_type,
+        and (
+            closure_class is value_type
+            or _is_exact_legacy_slots_replacement(
+                value_type,
+                namespace,
+                closure_class,
+            )
+        ),
         f"canonical frozen dataclass {operation} closure binds another class",
         error_type=error_type,
     )
@@ -2412,6 +2612,178 @@ def run_self_test() -> None:
     class ValidDictArtifact:
         alpha: int
         omega: tuple[Any, ...] = ()
+
+    def make_legacy_slots_test_pair(
+        name: str,
+    ) -> tuple[type[Any], type[Any]]:
+        """Build the exact copy shape emitted by older CPython dataclasses."""
+
+        source = make_dataclass(
+            name,
+            (("alpha", int), ("omega", str)),
+            frozen=True,
+        )
+        params_witness = make_dataclass(
+            f"{name}ParamsWitness",
+            (),
+            frozen=True,
+            slots=True,
+        )
+        type.__setattr__(
+            source,
+            "__dataclass_params__",
+            params_witness.__dict__["__dataclass_params__"],
+        )
+        source_namespace = type.__getattribute__(source, "__dict__")
+        replacement_namespace = dict(source_namespace)
+        field_names = tuple(replacement_namespace["__dataclass_fields__"])
+        replacement_namespace["__slots__"] = field_names
+        for field_name in field_names:
+            replacement_namespace.pop(field_name, None)
+        replacement_namespace.pop("__dict__", None)
+        replacement_namespace.pop("__weakref__", None)
+        replacement = type(source)(
+            type.__getattribute__(source, "__name__"),
+            type.__getattribute__(source, "__bases__"),
+            replacement_namespace,
+        )
+        installed_namespace = type.__getattribute__(replacement, "__dict__")
+        for state_name, state_method in _TRUSTED_SLOTTED_FROZEN_STATE_METHODS:
+            if state_name not in installed_namespace:
+                type.__setattr__(replacement, state_name, state_method)
+        return source, replacement
+
+    legacy_source, legacy_slot_artifact = make_legacy_slots_test_pair(
+        "LegacySlotArtifact"
+    )
+    legacy_registry = FrozenTypeRegistry(
+        ((legacy_slot_artifact, "selftest.LegacySlotArtifact@1"),)
+    )
+    require(
+        legacy_registry.snapshot_artifact_view(legacy_slot_artifact(11, "legacy"))
+        == (
+            "selftest.LegacySlotArtifact@1",
+            (("alpha", 11), ("omega", "legacy")),
+        ),
+        "exact legacy frozen-slots replacement was not portable",
+    )
+    type.__setattr__(
+        legacy_source,
+        "__qualname__",
+        f"{type.__getattribute__(legacy_source, '__qualname__')}.mutated",
+    )
+    expect_failure(
+        "post-registration legacy source mutation",
+        lambda: legacy_registry.snapshot_artifact_view(
+            legacy_slot_artifact(11, "legacy")
+        ),
+    )
+
+    mismatched_fields_source, mismatched_fields_artifact = make_legacy_slots_test_pair(
+        "LegacyMismatchedFields"
+    )
+    type.__setattr__(mismatched_fields_source, "__dataclass_fields__", {})
+    expect_failure(
+        "legacy frozen-slots source with another field table",
+        lambda: FrozenTypeRegistry(
+            ((mismatched_fields_artifact, "selftest.LegacyMismatchedFields@1"),)
+        ),
+    )
+
+    unexpected_slots_source, unexpected_slots_artifact = make_legacy_slots_test_pair(
+        "LegacyUnexpectedSlots"
+    )
+    type.__setattr__(unexpected_slots_source, "__slots__", ())
+    expect_failure(
+        "legacy frozen-slots source with an unexpected slots marker",
+        lambda: FrozenTypeRegistry(
+            ((unexpected_slots_artifact, "selftest.LegacyUnexpectedSlots@1"),)
+        ),
+    )
+
+    _mismatched_namespace_source, mismatched_namespace_artifact = (
+        make_legacy_slots_test_pair("LegacyMismatchedNamespace")
+    )
+    type.__setattr__(mismatched_namespace_artifact, "__doc__", "changed")
+    expect_failure(
+        "legacy frozen-slots replacement with a divergent namespace",
+        lambda: FrozenTypeRegistry(
+            (
+                (
+                    mismatched_namespace_artifact,
+                    "selftest.LegacyMismatchedNamespace@1",
+                ),
+            )
+        ),
+    )
+
+    oversized_namespace_source, oversized_namespace_artifact = (
+        make_legacy_slots_test_pair("LegacyOversizedNamespace")
+    )
+    for binding_index in range(MAX_FROZEN_ARTIFACT_CLASS_BINDINGS + 1):
+        type.__setattr__(
+            oversized_namespace_source,
+            f"oversized_binding_{binding_index}",
+            None,
+        )
+    expect_failure(
+        "legacy frozen-slots source exceeds its namespace-entry limit",
+        lambda: FrozenTypeRegistry(
+            (
+                (
+                    oversized_namespace_artifact,
+                    "selftest.LegacyOversizedNamespace@1",
+                ),
+            )
+        ),
+    )
+
+    oversized_fields_source, oversized_fields_artifact = make_legacy_slots_test_pair(
+        "LegacyOversizedFields"
+    )
+    oversized_field_table = oversized_fields_source.__dict__["__dataclass_fields__"]
+    for field_index in range(MAX_FROZEN_ARTIFACT_FIELDS + 1):
+        oversized_field_table[f"oversized_field_{field_index}"] = None
+    require(
+        not _is_exact_legacy_slots_replacement(
+            oversized_fields_artifact,
+            oversized_fields_artifact.__dict__,
+            oversized_fields_source,
+        ),
+        "legacy frozen-slots helper accepted an oversized field table",
+    )
+
+    field_mutation_source, field_mutation_artifact = make_legacy_slots_test_pair(
+        "LegacyFieldMutation"
+    )
+    field_mutation_registry = FrozenTypeRegistry(
+        ((field_mutation_artifact, "selftest.LegacyFieldMutation@1"),)
+    )
+    field_mutation_source.__dict__["__dataclass_fields__"].pop("omega")
+    expect_failure(
+        "post-registration legacy shared field-table mutation",
+        lambda: field_mutation_registry.snapshot_artifact_view(
+            field_mutation_artifact(13, "field")
+        ),
+    )
+
+    params_mutation_source, params_mutation_artifact = make_legacy_slots_test_pair(
+        "LegacyParamsMutation"
+    )
+    params_mutation_registry = FrozenTypeRegistry(
+        ((params_mutation_artifact, "selftest.LegacyParamsMutation@1"),)
+    )
+    object.__setattr__(
+        params_mutation_source.__dict__["__dataclass_params__"],
+        "frozen",
+        False,
+    )
+    expect_failure(
+        "post-registration legacy shared parameter mutation",
+        lambda: params_mutation_registry.snapshot_artifact_view(
+            params_mutation_artifact(17, "params")
+        ),
+    )
 
     registry = FrozenTypeRegistry(
         (
