@@ -6805,9 +6805,9 @@
       },
       {
         "path": "scripts/selector_allocation_review.py",
-        "bytes": 155633,
-        "sha256": "d134d485499641132452bc242a48e009ee23825c5e5d81333b754d51757c0529",
-        "git_blob_oid": "e32b47beaa5915b84a19b86821dd9379e2fc8f2a",
+        "bytes": 156617,
+        "sha256": "79c1a89ead8a484c9388422c7666f342db946859c74748be5a43ba7338301acf",
+        "git_blob_oid": "031cc391aede7f49f4320cd6bfd9db2aaf739b72",
         "indexed": true
       },
       {
@@ -9832,7 +9832,7 @@
       "column": 23,
       "token_id": "M008",
       "line_sha256": "3bc2c1433187e53e1dae7510eeefc13c6f544863e1c1f42813ccc69407b1eaa9",
-      "file_sha256": "d134d485499641132452bc242a48e009ee23825c5e5d81333b754d51757c0529",
+      "file_sha256": "79c1a89ead8a484c9388422c7666f342db946859c74748be5a43ba7338301acf",
       "disposition": "PROCESS_CLEANUP_GUARD",
       "claim_effect": "NO_REVIEW_OR_RUNTIME_AUTHORITY",
       "evidence_paths": [

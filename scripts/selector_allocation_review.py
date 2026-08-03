@@ -3410,12 +3410,15 @@ def _expect_rejection(action: Any, label: str) -> None:
 
 def _write_fixture(path: Path, raw: bytes, *, executable: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    file_mode = 0o755 if executable else 0o644
     descriptor = os.open(
         path,
         os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-        0o755 if executable else 0o644,
+        file_mode,
     )
     try:
+        os.fchmod(descriptor, file_mode)
         with os.fdopen(descriptor, "wb") as handle:
             descriptor = -1
             handle.write(raw)
@@ -3710,7 +3713,26 @@ else:
     with tempfile.TemporaryDirectory(
         prefix="ncp-selector-allocation-review-self-test-"
     ) as directory_name:
-        repo = Path(directory_name).resolve(strict=True)
+        sandbox = Path(directory_name).resolve(strict=True)
+        sandbox.chmod(0o700)
+        repo = sandbox / "repo"
+        review_document_directory = sandbox / "review-documents"
+        repo.mkdir(mode=0o700)
+        review_document_directory.mkdir(mode=0o700)
+        repo.chmod(0o700)
+        review_document_directory.chmod(0o700)
+        for label, managed_directory in (
+            ("review self-test sandbox", sandbox),
+            ("review self-test repository", repo),
+            ("review self-test document directory", review_document_directory),
+        ):
+            managed_state = managed_directory.stat()
+            _require(
+                stat.S_ISDIR(managed_state.st_mode)
+                and stat.S_IMODE(managed_state.st_mode) == 0o700
+                and managed_state.st_uid == os.geteuid(),
+                f"{label} is not an owner-only directory",
+            )
         _git_fixture(repo, "init", "-b", "main")
         _git_fixture(repo, "config", "user.name", "NCP Review Self Test")
         _git_fixture(repo, "config", "user.email", "review-self-test@example.invalid")
@@ -3999,7 +4021,7 @@ else:
         cases += 6
 
         canonical = review_document_bytes(document)
-        document_path = repo.parent / f"{repo.name}-review-document.json"
+        document_path = review_document_directory / "canonical-review-document.json"
         _write_fixture(document_path, canonical)
         _require(
             load_review_document(document_path) == document,
@@ -4323,7 +4345,9 @@ else:
         unrelated.unlink()
         cases += 1
 
-        noncanonical_path = repo.parent / f"{repo.name}-noncanonical-review.json"
+        noncanonical_path = (
+            review_document_directory / "noncanonical-review-document.json"
+        )
         _write_fixture(
             noncanonical_path,
             json.dumps(document, indent=2, sort_keys=True).encode("ascii") + b"\n",
