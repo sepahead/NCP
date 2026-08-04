@@ -750,13 +750,21 @@ assumptions, or release readiness.
 
 ### D13 — dependencies and registry identities remain release blockers
 
-The locked Zenoh graph retains `lz4_flex 0.10.0` through `zenoh-transport 1.9.0` and
-therefore retains [RUSTSEC-2026-0041](https://rustsec.org/advisories/RUSTSEC-2026-0041).
-Compression is disabled and checked, but the advisory remains a publication hold
-until the locked graph no longer contains an affected version and the transport,
-dependency and fault gates repeat. Risk acceptance may document interim exposure;
-it cannot satisfy this blueprint's final release gate. At the 2026-07-15 registry
-check, crates.io `ncp-core 0.2.0` belonged to the
+The current root and quarantined-probe graphs select `lz4_flex 0.11.6` through
+exact `zenoh-transport 1.9.0` backport revision
+`6b93b15d0795748b7f76c72eae07f1cda517e762`. This removes
+[RUSTSEC-2026-0041](https://rustsec.org/advisories/RUSTSEC-2026-0041)
+from those locks. Compression remains disabled and checked. Cargo does not verify
+the backport SSH signature, and a root patch does not propagate from a published
+library dependency. The normalized `ncp-zenoh` and `ncp-gateway` archive locks
+therefore select affected `lz4_flex 0.10.0` without a consuming-root patch. The
+local package checker executes archive-alone Cargo metadata and observes that
+fallback. The exact patched consuming root produces only `CONDITIONAL_PASS`;
+self-contained distribution remains `OPEN_FAIL_CLOSED` and `NO_GO`. Replace the
+temporary source with a qualified immutable upstream release or another reviewed
+distribution design before publication.
+
+At the 2026-07-15 registry check, crates.io `ncp-core 0.2.0` belonged to the
 unrelated NetCat++ project and [PyPI `ncp 1.15`](https://pypi.org/project/ncp/)
 belonged to an unrelated configuration generator. The other current Rust names and
 scoped npm name returned not-found, which is not ownership evidence. A stable
@@ -6607,9 +6615,16 @@ package READMEs and surface registry.
 
 Implementation:
 
-- eliminate `RUSTSEC-2026-0041` exposure by upgrading/removing the dependency or
-  proving the vulnerable code is absent under exact resolved features; do not add a
-  broad advisory ignore or enable unreviewed compression/default features;
+- retain the exact `RUSTSEC-2026-0041` remediation across every root graph. The
+  current source uses fixed `lz4_flex 0.11.6` through the reviewed immutable
+  Zenoh transport backport and carries no advisory ignore. Its normalized
+  Zenoh-bearing archives still require that patch from the consuming root and are
+  not self-contained distribution evidence. Archive-alone Cargo metadata must
+  retain the observed failure, and the injected-root run remains only
+  `CONDITIONAL_PASS` while that gate is `OPEN_FAIL_CLOSED` and `NO_GO`. Replace
+  that temporary source with a qualified upstream release or another reviewed
+  distribution design before publication. Do not enable unreviewed compression or
+  default features;
 - resolve crates.io/PyPI/npm package-name ownership/collision before promising
   publication: reserve/rename through ADR and update every package, import, docs,
   candidate surface and consumer plan consistently;

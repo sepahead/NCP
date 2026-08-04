@@ -19,6 +19,7 @@ from verify_source_matrix import (  # noqa: E402
     VerificationError,
     verify_feature_boundary,
     verify_files,
+    verify_manifest_patch,
 )
 
 
@@ -27,11 +28,13 @@ class FeatureBoundaryTests(unittest.TestCase):
     def metadata(features: list[str]) -> dict[str, object]:
         return {
             "packages": [
-                {"id": "zenoh-transport-id", "name": "zenoh-transport", "version": "1.9.0"}
+                {
+                    "id": "zenoh-transport-id",
+                    "name": "zenoh-transport",
+                    "version": "1.9.0",
+                }
             ],
-            "resolve": {
-                "nodes": [{"id": "zenoh-transport-id", "features": features}]
-            },
+            "resolve": {"nodes": [{"id": "zenoh-transport-id", "features": features}]},
         }
 
     def test_reviewed_transport_features_are_accepted(self) -> None:
@@ -72,6 +75,41 @@ class SourceFileBoundaryTests(unittest.TestCase):
             }
             with self.assertRaisesRegex(VerificationError, "hash differs"):
                 verify_files(crate_root, [item])
+
+
+class BackportIdentityTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.backport = {
+            "repository": "https://github.com/sepahead/zenoh-transport-lz4-backport",
+            "revision": "6b93b15d0795748b7f76c72eae07f1cda517e762",
+        }
+
+    def test_exact_manifest_patch_is_accepted(self) -> None:
+        manifest = {
+            "patch": {
+                "crates-io": {
+                    "zenoh-transport": {
+                        "git": self.backport["repository"],
+                        "rev": self.backport["revision"],
+                    }
+                }
+            }
+        }
+        verify_manifest_patch(manifest, self.backport)
+
+    def test_wrong_manifest_revision_is_rejected(self) -> None:
+        manifest = {
+            "patch": {
+                "crates-io": {
+                    "zenoh-transport": {
+                        "git": self.backport["repository"],
+                        "rev": "0" * 40,
+                    }
+                }
+            }
+        }
+        with self.assertRaisesRegex(VerificationError, "identity"):
+            verify_manifest_patch(manifest, self.backport)
 
 
 class ResultBoundaryTests(unittest.TestCase):

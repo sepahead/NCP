@@ -124,13 +124,6 @@ REVIEWED_ADVISORY_FINDINGS = {
         "2.2.0",
         (),
     ): "transitive-unmaintained-no-upstream-fix",
-    (
-        "RUSTSEC-2026-0041",
-        "vulnerability",
-        "lz4_flex",
-        "0.10.0",
-        ("CVE-2026-32829", "GHSA-vvp9-7p8x-rfvv"),
-    ): "compression-disabled-and-resolved-feature-graph-guarded",
 }
 REVIEWED_ADVISORY_IDS = {key[0] for key in REVIEWED_ADVISORY_FINDINGS}
 ARCHIVE_FILE_MANIFEST_SCHEMA = "ncp.archived-source-file-manifest.v1"
@@ -173,6 +166,12 @@ NCP_SBOM_NAMESPACE = uuid.uuid5(
     "https://github.com/sepahead/NCP/evidence/supply-chain/sbom.cdx.json",
 )
 CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
+ZENOH_BACKPORT_REPOSITORY = "https://github.com/sepahead/zenoh-transport-lz4-backport"
+ZENOH_BACKPORT_REVISION = "6b93b15d0795748b7f76c72eae07f1cda517e762"
+ZENOH_BACKPORT_SOURCE = (
+    f"git+{ZENOH_BACKPORT_REPOSITORY}?rev={ZENOH_BACKPORT_REVISION}"
+    f"#{ZENOH_BACKPORT_REVISION}"
+)
 INTERNAL_BOM_REF_PREFIX = "urn:ncp:workspace:"
 INTERNAL_BOM_REF_SURFACES = {"cargo", "npm", "python", "root"}
 REVIEWED_SPDX_LICENSE_IDS = {
@@ -631,6 +630,14 @@ def _internal_bom_ref(surface: str, name: str, version: str) -> str:
     return f"{INTERNAL_BOM_REF_PREFIX}{surface}:{encoded_name}@{encoded_version}"
 
 
+def _git_cargo_purl(name: str, version: str) -> str:
+    if name != "zenoh-transport" or version != "1.9.0":
+        raise EvidenceError(f"unreviewed Git Cargo package identity: {name} {version}")
+    vcs_url = f"git+{ZENOH_BACKPORT_REPOSITORY}@{ZENOH_BACKPORT_REVISION}"
+    qualifier = urllib.parse.quote(vcs_url, safe="")
+    return f"{_purl('cargo', name, version)}?vcs_url={qualifier}"
+
+
 def _cargo_packages(
     metadata: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
@@ -672,10 +679,17 @@ def _cargo_packages(
             reference = _internal_bom_ref("cargo", name, version)
             purl = None
             source_label = "workspace"
+            git_revision = None
         elif source == CRATES_IO_SOURCE:
             reference = _purl("cargo", name, version)
             purl = reference
             source_label = source
+            git_revision = None
+        elif source == ZENOH_BACKPORT_SOURCE:
+            reference = _git_cargo_purl(name, version)
+            purl = reference
+            source_label = source
+            git_revision = ZENOH_BACKPORT_REVISION
         else:
             raise EvidenceError(
                 f"Cargo package {name} has an unreviewed non-registry source {source!r}"
@@ -723,6 +737,7 @@ def _cargo_packages(
                 "source": source_label,
                 "purl": purl,
                 "internal": source is None,
+                "git_revision": git_revision,
             }
         )
     records.sort(key=lambda item: item["bom-ref"])
@@ -1465,6 +1480,13 @@ def _build_outputs(
                     f"workspace Cargo package unexpectedly has a registry checksum: "
                     f"{package['name']} {package['version']}"
                 )
+        elif package["git_revision"] is not None:
+            if checksum is not None:
+                raise EvidenceError(
+                    "Git Cargo package unexpectedly has a registry checksum: "
+                    f"{package['name']} {package['version']}"
+                )
+            component["hashes"] = [{"alg": "SHA-1", "content": package["git_revision"]}]
         else:
             if (
                 not isinstance(checksum, str)
@@ -1714,9 +1736,12 @@ def _build_outputs(
         "policy_result": "PASS_WITH_EXPLICIT_REVIEWED_DISPOSITIONS",
         "stable_publication_blocked": True,
         "stable_publication_blocker": (
-            "RUSTSEC-2026-0041 remains in the resolved graph through Zenoh 1.9.0; "
-            "the disabled feature guard bounds local exposure but does not waive the "
-            "stable-publication hold."
+            "The root graph advisory scan passes. Archive-alone Cargo metadata "
+            "resolution was executed and observed the vulnerable registry "
+            "Zenoh/lz4 fallback. The exact consuming-root backport produced only a "
+            "CONDITIONAL_PASS; self-contained package resolution remains "
+            "OPEN_FAIL_CLOSED and NO_GO. Other required gates also keep the "
+            "candidate release-blocked. This report is not release authorization."
         ),
         "findings": advisory_scan["findings"],
         "non_rust_runtime_dependencies": {
@@ -1833,6 +1858,16 @@ def _validate_component_identity(component: dict[str, Any]) -> str:
     if not isinstance(purl, str) or purl != reference:
         raise EvidenceError("external SBOM component PURL identity drifted")
     if purl.startswith("pkg:cargo/"):
+        if (
+            name == "zenoh-transport"
+            and version == "1.9.0"
+            and purl == _git_cargo_purl(name, version)
+        ):
+            if properties.get("ncp:cargo-source") != ZENOH_BACKPORT_SOURCE:
+                raise EvidenceError(
+                    "Git Cargo component source is not the exact backport"
+                )
+            return "git-cargo"
         if purl != _purl("cargo", name, version):
             raise EvidenceError("registry Cargo PURL is not canonical")
         if properties.get("ncp:cargo-source") != CRATES_IO_SOURCE:
@@ -1873,6 +1908,13 @@ def _validate_component_hashes(component: dict[str, Any], surface: str) -> None:
     if surface == "registry-cargo":
         if len(hashes) != 1 or hashes[0].get("alg") != "SHA-256":
             raise EvidenceError("registry Cargo component lacks one lockfile SHA-256")
+    elif surface == "git-cargo":
+        if (
+            len(hashes) != 1
+            or hashes[0].get("alg") != "SHA-1"
+            or hashes[0].get("content") != ZENOH_BACKPORT_REVISION
+        ):
+            raise EvidenceError("Git Cargo component lacks the exact backport revision")
     elif surface == "typescript":
         if len(hashes) != 1 or hashes[0].get("alg") != "SHA-512":
             raise EvidenceError("TypeScript component lacks one lockfile SHA-512")
@@ -2148,10 +2190,10 @@ def _validate_outputs(outputs: dict[str, dict[str, Any]]) -> None:
         != "PASS_WITH_EXPLICIT_REVIEWED_DISPOSITIONS"
         or vulnerabilities.get("stable_publication_blocked") is not True
         or not isinstance(vulnerabilities.get("stable_publication_blocker"), str)
-        or "RUSTSEC-2026-0041" not in vulnerabilities["stable_publication_blocker"]
+        or "release-blocked" not in vulnerabilities["stable_publication_blocker"]
     ):
         raise EvidenceError(
-            "vulnerability report does not retain reviewed findings/publication hold"
+            "vulnerability report does not retain the reviewed release boundary"
         )
     _validate_reviewed_advisory_findings(vulnerabilities.get("findings"))
 

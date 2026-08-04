@@ -61,12 +61,11 @@ jobs:
           python3 scripts/generate_contract_manifest.py
           python3 scripts/check_release_gates.py --require-release-allowed
 
-      # Build all five archives and inspect their exact contents. Core, Zenoh,
-      # and the C ABI are cargo-tested from extraction; Python and gateway are
-      # cargo-checked. Exact unpublished NCP dependencies are resolved through
-      # temporary local Cargo patches only, so published dependency semantics
-      # remain the versioned crates.io requirements in the normalized manifests.
-      - name: Verify Rust package archives
+      # Build all five archives and inspect their exact contents. The Zenoh-bearing
+      # archives first demonstrate the affected registry fallback without compiling
+      # it. The checker then applies the exact consuming-root transport backport and
+      # compiles offline. This remains CONDITIONAL_PASS and cannot authorize publish.
+      - name: Verify conditional Rust candidate archives
         run: python3 scripts/check_rust_packages.py
 
       # Real publishing is enabled later, once crates.io ownership is established

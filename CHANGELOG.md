@@ -54,6 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow for exact-revision double builds, checksums, and hosted attestations.
   The workflow cannot tag or publish and does not satisfy any external gate until
   one immutable final artifact set is actually built and independently verified.
+- Patched both NCP Zenoh dependency roots to the reviewed immutable
+  `zenoh-transport 1.9.0` backport at
+  `6b93b15d0795748b7f76c72eae07f1cda517e762`. The backport selects fixed
+  `lz4_flex 0.11.6` and removes `RUSTSEC-2026-0041` from both locks. Exact source,
+  checksum, feature, cargo-deny, SBOM, and hostile verifier gates cover the change.
+  Cargo does not verify the Git SSH signature, and root patches do not propagate
+  from a published library dependency. The archive checker executes Cargo metadata
+  against each normalized `ncp-zenoh` and `ncp-gateway` archive and observes the
+  registry fallback to affected `lz4_flex 0.10.0`. It then applies and verifies the
+  exact patch at the consuming test root before compilation. A clean-cache run
+  prefetches only exact locked inputs; it never compiles the affected fallback, and
+  all qualification compilation runs offline. The receipt schema is v2 and records
+  that boundary. The result is only `CONDITIONAL_PASS`; self-contained distribution
+  remains `OPEN_FAIL_CLOSED` and `NO_GO`, and the candidate remains release-blocked.
 - Ran exact hosted CI `29414498370` and held-dossier workflow `29414924349`
   successfully for source `ef357d20692f707e185495dcfd16b16556fec264`. The held
   artifact `8342883563` has SHA-256
@@ -68,9 +82,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This is one-platform held candidate evidence with `release_authorized=false`,
   not a tag, publication, DOI/archive deposit, final publisher signature,
   independent clean-room reproduction, multi-platform release set, or external
-  certification. `RUSTSEC-2026-0041` and the unavailable `production-secure`
-  principal binding remain release holds; external gates remain **NOT RUN** and
-  the decision remains `NO_GO`.
+  certification. At that historical source, `RUSTSEC-2026-0041` and the
+  unavailable `production-secure` principal binding were release holds. The
+  current backport remediation is outside that held dossier. The principal
+  binding and all external gates remain unresolved, and the decision remains
+  `NO_GO`.
 - Made the Python source distribution carry a lockfile resolved for its exact
   two-crate packaged workspace. Candidate construction now performs a strict
   offline-only pruning of the full workspace lock, forces Cargo network access off,
@@ -92,12 +108,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made the tag-triggered packaging workflow fail before archive construction while
   `release_allowed=false`, and renamed `scripts/check.sh` output as local preflight
   evidence so a green local run cannot be mistaken for external release approval.
-- Bound the unresolved `RUSTSEC-2026-0041` transitive exposure to Zenoh 1.9.0's
-  exact resolved feature graph. Default features and transport compression remain
-  disabled, downstream feature unification is unsupported, and stable publication
-  stays blocked until Zenoh permits a patched `lz4_flex`.
+- Previously bound the `RUSTSEC-2026-0041` transitive exposure to Zenoh 1.9.0's
+  exact resolved feature graph. The current candidate replaces that risk
+  disposition with the exact fixed backport above. Default features and transport
+  compression remain disabled, and downstream feature unification is unsupported.
 - Updated `anyhow` to 1.0.103, removing its resolved advisory while retaining the
-  separately documented Zenoh/`lz4_flex` exposure and disabled compression path.
+  separately documented Zenoh/`lz4_flex` exposure at that source and its disabled
+  compression path.
 - Added public-registry namespace ownership as an explicit pre-release gate. Local
   archives remain packageability evidence only because the intended crates.io
   `ncp-core` and PyPI `ncp` distribution names identify unrelated projects.

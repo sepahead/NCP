@@ -36,14 +36,6 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   unrelated projects. A not-found response for another name is not proof of
   ownership. Registry access or coordinated distribution renaming must be proven
   before publication; local archives establish packageability only.
-- **The locked Zenoh graph contains an unresolved transitive advisory.** Zenoh
-  1.9.0 requires `lz4_flex` 0.10.0, affected by `RUSTSEC-2026-0041`, and cannot
-  select a patched compatible release. NCP disables Zenoh defaults and
-  `transport_compression`, which keeps the affected block-decompression call out
-  of the resolved workspace build and is checked mechanically. The package is
-  still present, downstream feature unification can re-enable the path, and no
-  stable publication may proceed until Zenoh permits a patched dependency and the
-  waiver is removed.
 - **No required role has completed native 1.0 qualification.** Engram has an
   explicit local native-1.0 migration in progress. The other five historical
   handoff surfaces remain on wire 0.8. Installed-artifact and live-transport
@@ -91,6 +83,19 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   memory with Zenoh default features and transport compression disabled. A host
   that unifies `zenoh/default` or `zenoh/transport_compression` changes the compiled
   security surface and is outside this candidate profile.
+- The root lock uses exact `zenoh-transport 1.9.0` backport revision
+  `6b93b15d0795748b7f76c72eae07f1cda517e762` to select fixed
+  `lz4_flex 0.11.6`. Cargo verifies the Git object identity but not its SSH
+  signature. A Cargo patch is selected by the graph root and does not propagate
+  from a published library dependency. The normalized `ncp-zenoh` and
+  `ncp-gateway` archive locks therefore select affected `lz4_flex 0.10.0` without
+  a consuming-root patch. The package checker executes archive-alone Cargo
+  metadata and observes that fallback, then applies and verifies the exact
+  backport only at its consuming test root. The patched run is
+  `CONDITIONAL_PASS`; self-contained distribution remains `OPEN_FAIL_CLOSED` and
+  `NO_GO`. A release candidate needs a qualified upstream source or another
+  reviewed distribution design that preserves the fixed graph for installed
+  consumers.
 - The legacy translator currently specifies only explicit channel requirement
   mapping. It rejects missing/null/malformed/mixed fields and cannot invent
   identity, security, session, authority, operation, receipt, or plant context.

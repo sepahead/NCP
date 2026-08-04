@@ -224,8 +224,8 @@ authority.
 | `check_acl_template.py` | offline Zenoh ACL structure and negative mutations |
 | `verify_acl_deployment.py` | router mTLS/ACL nonce-delivery probe; it cannot prove NCP payload-to-peer identity binding, and `--self-test` is logic only |
 | `render_acl_template.py` | atomically render a validated exact realm and concrete action session |
-| `check_rust_packages.py --offline` | package/extract/build/test publishable Rust crates without workspace leakage, using canonical local-patch identities across filesystem aliases |
-| `build_candidate_dossier.py --source-revision REV --output DIR` | build exact archived source into twice-compared Rust/npm/release-profile Python candidate packages, smoke them, bind hashes/SBOM/toolchains, and emit an unsigned held dossier; never tags or publishes |
+| `check_rust_packages.py` | package and extract all Rust archives; prefetch exact locked inputs when necessary; execute archive-alone Cargo metadata without compilation and observe the affected Zenoh registry fallback; then apply and verify the exact backport at the consuming test root before offline build/test. `--offline` forbids the prefetch and requires both graphs in cache. The patched run is `CONDITIONAL_PASS`; self-contained distribution stays `OPEN_FAIL_CLOSED` and `NO_GO` |
+| `build_candidate_dossier.py --source-revision REV --output DIR` | build exact archived source into twice-compared Rust/npm/release-profile Python candidate packages, retain the observed archive fallback and conditional Zenoh-consuming-root boundary, smoke them, bind hashes/SBOM/toolchains, and emit an unsigned held dossier; never tags or publishes |
 | `build_candidate_dossier.py --sdist-preflight REV` | build the exact Python sdist twice with Cargo network access disabled, require a prune-only two-crate lock, compare archive bytes, and revalidate the extracted source under `--locked --offline` |
 | `build_candidate_dossier.py --verify-dossier DIR --require-hosted-toolchain --subject-checksums PATH` | independently recompute a held dossier's checksums, identities, comparisons, toolchain policy, package subjects, and exact attestation-subject manifest without authorizing release |
 | `prepare_advisory_database.py --source-database DIR --destination DIR` | clone one current, verified RustSec database locally and rewind a disposable copy to the evidence-pinned revision for deterministic replay |
@@ -254,9 +254,10 @@ install/identity/behavior smoke.
 That receipt is held candidate-only evidence with `release_authorized=false`. It
 does not provide a tag, registry publication, DOI/archive deposit, final publisher
 signatures, independent clean-room reproduction, multi-platform release artifacts,
-or external certification. `RUSTSEC-2026-0041` and the unavailable
-`production-secure` transport-principal binding remain holds; external gates remain
-**NOT RUN** and the candidate remains `NO_GO`.
+or external certification. At that held source, `RUSTSEC-2026-0041` and the
+unavailable `production-secure` transport-principal binding were holds. The current
+exact Zenoh transport backport remediation is outside that dossier. External gates
+remain **NOT RUN**, and the candidate remains `NO_GO`.
 
 ## Consumer tooling
 

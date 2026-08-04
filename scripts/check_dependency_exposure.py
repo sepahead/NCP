@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Fail closed on the reviewed Zenoh/lz4_flex advisory disposition.
+"""Fail closed on the reviewed Zenoh transport security backport.
 
-RUSTSEC-2026-0041 affects lz4_flex's block decompression APIs.  Zenoh 1.9.0
-contains the affected call behind its ``transport_compression`` feature, but its
-dependency constraint cannot select a patched lz4_flex release.  NCP therefore
-keeps compression and Zenoh default features disabled, verifies the *resolved*
-feature graph, and treats any dependency or feature drift as a fresh security
-review.  This is an exposure reduction, not a claim that the vulnerable package
-is absent or that arbitrary downstream Cargo feature unification is safe.
+RUSTSEC-2026-0041 affects ``lz4_flex`` block decompression before 0.11.6.
+Zenoh 1.9.0 cannot select that fixed release from its published manifest. NCP
+patches only ``zenoh-transport 1.9.0`` to one reviewed immutable Git revision
+that selects ``lz4_flex 0.11.6``. This check binds the manifest, lock, metadata,
+source policy, dependency edge, and compression-disabled feature graph.
+
+Cargo verifies the selected Git object identity but not its SSH signature. Cargo
+patches are also selected by the dependency graph root and do not propagate from
+a published library dependency. Any source, version, checksum, or feature drift
+requires a fresh security and package review.
 """
 
 from __future__ import annotations
@@ -24,7 +27,12 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 ADVISORY = "RUSTSEC-2026-0041"
 ZENOH_VERSION = "1.9.0"
-LZ4_FLEX_VERSION = "0.10.0"
+LZ4_FLEX_VERSION = "0.11.6"
+LZ4_FLEX_CHECKSUM = "373f5eceeeab7925e0c1098212f2fbc4d416adec9d35051a6ab251e824c1854a"
+CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
+BACKPORT_GIT = "https://github.com/sepahead/zenoh-transport-lz4-backport"
+BACKPORT_REVISION = "6b93b15d0795748b7f76c72eae07f1cda517e762"
+BACKPORT_SOURCE = f"git+{BACKPORT_GIT}?rev={BACKPORT_REVISION}#{BACKPORT_REVISION}"
 DECLARED_ZENOH_FEATURES = {
     "shared-memory",
     "transport_tcp",
@@ -60,7 +68,7 @@ def _packages(lock: dict[str, Any], name: str) -> list[dict[str, Any]]:
     ]
 
 
-def _one_package(lock: dict[str, Any], name: str, version: str) -> None:
+def _one_package(lock: dict[str, Any], name: str, version: str) -> dict[str, Any]:
     matches = _packages(lock, name)
     versions = sorted(
         str(package.get("version")) for package in matches if "version" in package
@@ -69,6 +77,7 @@ def _one_package(lock: dict[str, Any], name: str, version: str) -> None:
         raise ExposureError(
             f"Cargo.lock {name} versions are {versions!r}; expected reviewed {version!r}"
         )
+    return matches[0]
 
 
 def _package_by_name_version(
@@ -96,9 +105,15 @@ def _resolved_node(metadata: dict[str, Any], package_id: str) -> dict[str, Any]:
     nodes = resolve.get("nodes") if isinstance(resolve, dict) else None
     if not isinstance(nodes, list):
         raise ExposureError("cargo metadata has no resolved nodes")
-    matches = [node for node in nodes if isinstance(node, dict) and node.get("id") == package_id]
+    matches = [
+        node
+        for node in nodes
+        if isinstance(node, dict) and node.get("id") == package_id
+    ]
     if len(matches) != 1:
-        raise ExposureError(f"resolved package node count for {package_id!r} is {len(matches)}")
+        raise ExposureError(
+            f"resolved package node count for {package_id!r} is {len(matches)}"
+        )
     return matches[0]
 
 
@@ -128,32 +143,63 @@ def _dependency_ids(node: dict[str, Any]) -> set[str]:
 def validate(
     deny: dict[str, Any],
     lock: dict[str, Any],
-    manifest: dict[str, Any],
+    workspace_manifest: dict[str, Any],
+    zenoh_manifest: dict[str, Any],
     metadata: dict[str, Any],
 ) -> None:
     advisories = deny.get("advisories")
     ignored = advisories.get("ignore") if isinstance(advisories, dict) else None
-    if not isinstance(ignored, list) or ADVISORY not in ignored:
-        raise ExposureError(
-            f"deny.toml must explicitly retain the reviewed {ADVISORY} disposition"
-        )
-    if ignored.count(ADVISORY) != 1:
-        raise ExposureError(f"deny.toml must mention {ADVISORY} exactly once")
+    if not isinstance(ignored, list) or not all(
+        isinstance(item, str) and item for item in ignored
+    ):
+        raise ExposureError("deny.toml advisory ignore set is malformed")
+    if ADVISORY in ignored:
+        raise ExposureError(f"deny.toml must not ignore remediated advisory {ADVISORY}")
+
+    sources = deny.get("sources")
+    if not isinstance(sources, dict):
+        raise ExposureError("deny.toml source policy is malformed")
+    allowed_git = sources.get("allow-git")
+    if not isinstance(allowed_git, list) or allowed_git.count(BACKPORT_GIT) != 1:
+        raise ExposureError("deny.toml must allow the exact backport repository once")
+    if sources.get("required-git-spec") != "rev":
+        raise ExposureError("deny.toml must require immutable rev Git specifications")
+
+    patch = workspace_manifest.get("patch")
+    crates_io = patch.get("crates-io") if isinstance(patch, dict) else None
+    transport_patch = (
+        crates_io.get("zenoh-transport") if isinstance(crates_io, dict) else None
+    )
+    if transport_patch != {"git": BACKPORT_GIT, "rev": BACKPORT_REVISION}:
+        raise ExposureError("workspace Zenoh transport patch identity drifted")
 
     _one_package(lock, "zenoh", ZENOH_VERSION)
-    _one_package(lock, "zenoh-transport", ZENOH_VERSION)
-    _one_package(lock, "lz4_flex", LZ4_FLEX_VERSION)
+    transport_lock = _one_package(lock, "zenoh-transport", ZENOH_VERSION)
+    lz4_lock = _one_package(lock, "lz4_flex", LZ4_FLEX_VERSION)
+    if transport_lock.get("source") != BACKPORT_SOURCE or "checksum" in transport_lock:
+        raise ExposureError(
+            "Cargo.lock Zenoh transport source is not the exact backport"
+        )
+    if (
+        lz4_lock.get("source") != CRATES_IO_SOURCE
+        or lz4_lock.get("checksum") != LZ4_FLEX_CHECKSUM
+    ):
+        raise ExposureError("Cargo.lock lz4_flex identity differs from fixed 0.11.6")
 
-    dependencies = manifest.get("dependencies")
+    dependencies = zenoh_manifest.get("dependencies")
     zenoh = dependencies.get("zenoh") if isinstance(dependencies, dict) else None
     if not isinstance(zenoh, dict):
-        raise ExposureError("ncp-zenoh must declare Zenoh with an explicit dependency table")
+        raise ExposureError(
+            "ncp-zenoh must declare Zenoh with an explicit dependency table"
+        )
     if zenoh.get("version") != "1.9":
         raise ExposureError("ncp-zenoh Zenoh requirement drifted from reviewed 1.9")
     if zenoh.get("default-features") is not False:
         raise ExposureError("ncp-zenoh must keep Zenoh default features disabled")
     declared = zenoh.get("features")
-    if not isinstance(declared, list) or not all(isinstance(item, str) for item in declared):
+    if not isinstance(declared, list) or not all(
+        isinstance(item, str) for item in declared
+    ):
         raise ExposureError("ncp-zenoh Zenoh feature declaration is malformed")
     declared_set = set(declared)
     if len(declared) != len(declared_set):
@@ -164,8 +210,20 @@ def validate(
         )
 
     zenoh_package = _package_by_name_version(metadata, "zenoh", ZENOH_VERSION)
-    transport_package = _package_by_name_version(metadata, "zenoh-transport", ZENOH_VERSION)
+    transport_package = _package_by_name_version(
+        metadata, "zenoh-transport", ZENOH_VERSION
+    )
     lz4_package = _package_by_name_version(metadata, "lz4_flex", LZ4_FLEX_VERSION)
+    if zenoh_package.get("source") != CRATES_IO_SOURCE:
+        raise ExposureError("Zenoh did not resolve from the reviewed crates.io source")
+    if transport_package.get("source") != BACKPORT_SOURCE:
+        raise ExposureError("zenoh-transport metadata source is not the exact backport")
+    if transport_package.get("rust_version") != "1.81.0":
+        raise ExposureError("zenoh-transport backport Rust floor drifted")
+    if lz4_package.get("source") != CRATES_IO_SOURCE:
+        raise ExposureError(
+            "lz4_flex did not resolve from the reviewed crates.io source"
+        )
     zenoh_id = zenoh_package.get("id")
     transport_id = transport_package.get("id")
     lz4_id = lz4_package.get("id")
@@ -211,19 +269,54 @@ def _metadata(repo: Path) -> dict[str, Any]:
     return value
 
 
-def _fixture() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+def _fixture() -> tuple[
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, Any],
+]:
     zenoh_id = "registry#zenoh@1.9.0"
-    transport_id = "registry#zenoh-transport@1.9.0"
-    lz4_id = "registry#lz4_flex@0.10.0"
-    deny = {"advisories": {"ignore": [ADVISORY]}}
+    transport_id = BACKPORT_SOURCE
+    lz4_id = "registry#lz4_flex@0.11.6"
+    deny = {
+        "advisories": {"ignore": ["RUSTSEC-2024-0436"]},
+        "sources": {
+            "allow-git": [BACKPORT_GIT],
+            "required-git-spec": "rev",
+        },
+    }
     lock = {
         "package": [
-            {"name": "zenoh", "version": ZENOH_VERSION},
-            {"name": "zenoh-transport", "version": ZENOH_VERSION},
-            {"name": "lz4_flex", "version": LZ4_FLEX_VERSION},
+            {
+                "name": "zenoh",
+                "version": ZENOH_VERSION,
+                "source": CRATES_IO_SOURCE,
+            },
+            {
+                "name": "zenoh-transport",
+                "version": ZENOH_VERSION,
+                "source": BACKPORT_SOURCE,
+            },
+            {
+                "name": "lz4_flex",
+                "version": LZ4_FLEX_VERSION,
+                "source": CRATES_IO_SOURCE,
+                "checksum": LZ4_FLEX_CHECKSUM,
+            },
         ]
     }
-    manifest = {
+    workspace_manifest = {
+        "patch": {
+            "crates-io": {
+                "zenoh-transport": {
+                    "git": BACKPORT_GIT,
+                    "rev": BACKPORT_REVISION,
+                }
+            }
+        }
+    }
+    zenoh_manifest = {
         "dependencies": {
             "zenoh": {
                 "version": "1.9",
@@ -234,17 +327,33 @@ def _fixture() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str
     }
     metadata = {
         "packages": [
-            {"name": "zenoh", "version": ZENOH_VERSION, "id": zenoh_id},
+            {
+                "name": "zenoh",
+                "version": ZENOH_VERSION,
+                "id": zenoh_id,
+                "source": CRATES_IO_SOURCE,
+            },
             {
                 "name": "zenoh-transport",
                 "version": ZENOH_VERSION,
                 "id": transport_id,
+                "source": BACKPORT_SOURCE,
+                "rust_version": "1.81.0",
             },
-            {"name": "lz4_flex", "version": LZ4_FLEX_VERSION, "id": lz4_id},
+            {
+                "name": "lz4_flex",
+                "version": LZ4_FLEX_VERSION,
+                "id": lz4_id,
+                "source": CRATES_IO_SOURCE,
+            },
         ],
         "resolve": {
             "nodes": [
-                {"id": zenoh_id, "features": sorted(RESOLVED_ZENOH_FEATURES), "deps": []},
+                {
+                    "id": zenoh_id,
+                    "features": sorted(RESOLVED_ZENOH_FEATURES),
+                    "deps": [],
+                },
                 {
                     "id": transport_id,
                     "features": sorted(RESOLVED_ZENOH_FEATURES),
@@ -254,31 +363,45 @@ def _fixture() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str
             ]
         },
     }
-    return deny, lock, manifest, metadata
+    return deny, lock, workspace_manifest, zenoh_manifest, metadata
 
 
 def self_test() -> None:
     import copy
 
-    deny, lock, manifest, metadata = _fixture()
-    validate(deny, lock, manifest, metadata)
+    deny, lock, workspace_manifest, zenoh_manifest, metadata = _fixture()
+    validate(deny, lock, workspace_manifest, zenoh_manifest, metadata)
     hostile: list[tuple[str, tuple[dict[str, Any], ...]]] = []
 
-    case = tuple(copy.deepcopy(value) for value in (deny, lock, manifest, metadata))
-    case[0]["advisories"]["ignore"] = []
-    hostile.append(("missing advisory disposition", case))
+    values = (deny, lock, workspace_manifest, zenoh_manifest, metadata)
 
-    case = tuple(copy.deepcopy(value) for value in (deny, lock, manifest, metadata))
-    case[2]["dependencies"]["zenoh"]["default-features"] = True
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[0]["advisories"]["ignore"].append(ADVISORY)
+    hostile.append(("restored advisory waiver", case))
+
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[2]["patch"]["crates-io"]["zenoh-transport"]["rev"] = "0" * 40
+    hostile.append(("mutable or wrong backport identity", case))
+
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[3]["dependencies"]["zenoh"]["default-features"] = True
     hostile.append(("default features", case))
 
-    case = tuple(copy.deepcopy(value) for value in (deny, lock, manifest, metadata))
-    case[3]["resolve"]["nodes"][0]["features"].append("transport_compression")
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[4]["resolve"]["nodes"][0]["features"].append("transport_compression")
     hostile.append(("resolved compression", case))
 
-    case = tuple(copy.deepcopy(value) for value in (deny, lock, manifest, metadata))
-    case[3]["resolve"]["nodes"][1]["deps"] = []
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[4]["resolve"]["nodes"][1]["deps"] = []
     hostile.append(("missing dependency edge", case))
+
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[1]["package"][1]["source"] = CRATES_IO_SOURCE
+    hostile.append(("registry transport source", case))
+
+    case = tuple(copy.deepcopy(value) for value in values)
+    case[1]["package"][2]["checksum"] = "0" * 64
+    hostile.append(("wrong fixed dependency checksum", case))
 
     for label, values in hostile:
         try:
@@ -300,12 +423,14 @@ def main() -> int:
         validate(
             _table(repo / "deny.toml"),
             _table(repo / "Cargo.lock"),
+            _table(repo / "Cargo.toml"),
             _table(repo / "ncp-zenoh" / "Cargo.toml"),
             _metadata(repo),
         )
         print(
-            "OK dependency exposure: Zenoh 1.9.0 transport_compression/default "
-            "features disabled; RUSTSEC-2026-0041 remains tracked and release-blocking"
+            "OK dependency exposure: exact Zenoh transport backport "
+            f"{BACKPORT_REVISION}; lz4_flex {LZ4_FLEX_VERSION}; "
+            "transport_compression/default features disabled"
         )
     except (ExposureError, AssertionError) as error:
         print(f"ERROR: {error}", file=sys.stderr)

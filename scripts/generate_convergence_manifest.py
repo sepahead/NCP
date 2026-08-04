@@ -80,7 +80,7 @@ AUXILIARY_NON_PEER_IMPORTERS = (
 )
 REPOSITORY_PREREQUISITE_IDS = (
     "zenoh-production-secure-peer-principal-binding",
-    "zenoh-lz4-rustsec-stable-publication-hold",
+    "zenoh-self-contained-package-resolution",
     "independent-result-digest-projection",
 )
 HELD_SOURCE_REVISION = "ef357d20692f707e185495dcfd16b16556fec264"
@@ -673,11 +673,11 @@ def build() -> dict[str, Any]:
                 "acceptance": "Implement an adapter that supplies callback-visible verified peer identity, bind every ingress identity/plane to it, and pass local negative tests before any live campaign.",
             },
             {
-                "id": "zenoh-lz4-rustsec-stable-publication-hold",
+                "id": "zenoh-self-contained-package-resolution",
                 "status": "OPEN_FAIL_CLOSED",
-                "reason": "Zenoh 1.9.0 retains lz4_flex 0.10.0 under RUSTSEC-2026-0041; no patched 0.10 release exists.",
-                "current_behavior": "Transport compression stays disabled and the resolved feature graph is guarded, but stable publication remains blocked.",
-                "acceptance": "Upgrade to a reviewed Zenoh graph that resolves a patched lz4_flex, remove the advisory disposition, and pass the dependency exposure and current RustSec gates.",
+                "reason": "Cargo root patches do not propagate from the normalized ncp-zenoh or ncp-gateway library archives; without a consuming-root patch their generated locks select affected lz4_flex 0.10.0.",
+                "current_behavior": "Root and probe locks select fixed lz4_flex 0.11.6 through the exact reviewed backport. Archive-alone Cargo metadata resolution was executed and observed registry zenoh-transport 1.9.0 with affected lz4_flex 0.10.0. The exact injected consuming-root patch produced only a CONDITIONAL_PASS; self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO.",
+                "acceptance": "Use a qualified immutable upstream release or another reviewed distribution design, prove each installed Zenoh-bearing archive resolves the fixed graph without an out-of-band consuming-root patch, and repeat dependency, archive, SBOM, provenance, and install gates.",
             },
             {
                 "id": "independent-result-digest-projection",

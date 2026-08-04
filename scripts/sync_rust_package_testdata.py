@@ -2,10 +2,11 @@
 """Synchronize crate-local copies of NCP's package-test fixtures and licenses.
 
 The normative copies remain at the repository root. Rust crate archives cannot
-read sibling repository paths after Cargo extracts them, so publishable crates
-carry exact snapshots under ``testdata/``. Run with ``--write`` after changing a
-schema, proto, conformance vector, deployment template, or root license; the
-default check mode fails on missing, stale, or unexpected snapshot files.
+read sibling repository paths after Cargo extracts them, so packageable
+candidate crates carry exact snapshots under ``testdata/``. Run with ``--write``
+after changing a schema, proto, conformance vector, deployment template, or root
+license; the default check mode fails on missing, stale, or unexpected snapshot
+files.
 """
 
 from __future__ import annotations

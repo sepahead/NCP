@@ -2178,7 +2178,7 @@
         "candidate checksums and build receipt"
       ],
       "path": "scripts/build_candidate_dossier.py",
-      "sha256": "72cd7e0fc0dab84f2fa0ca7fd2cabe485793487203d9ab2f27afdcfed5186d9e"
+      "sha256": "5ca092514c31f823fcd2ede4535ca2ff2be9858585524451f1f5a4a6760471e5"
     },
     {
       "outputs": [
@@ -2194,7 +2194,7 @@
         "Rust package checksum receipt"
       ],
       "path": "scripts/check_rust_packages.py",
-      "sha256": "cd93682095c495837ef477627dd5d95a02023fa0dbf21922b7df1801ea8ce6c8"
+      "sha256": "3fc7d4971019b65240ea8f0237fa4ec89a6e110f355ee749edb5b01fd71980de"
     },
     {
       "outputs": [
@@ -2215,7 +2215,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "06590df8f984a4be6ff780a454d9c6c51e567ac505e1b6da63cd195a0851c21b"
+      "sha256": "1de8784621dc674088e166d2d1d13b5a7e1cea170ac361c5eacbc245ff036363"
     },
     {
       "outputs": [
@@ -2236,7 +2236,7 @@
         "evidence/convergence/local-convergence.v1.json"
       ],
       "path": "scripts/generate_convergence_manifest.py",
-      "sha256": "43d924f7931f6c33aeb1b0e804e77923fa5f54993e61b3b4bfe163405255ba29"
+      "sha256": "7b1a32ce82e6ef5d6bf34eabcc5121859a4f0bb14aad3f434bd77f7b357e8de8"
     },
     {
       "outputs": [
@@ -2301,7 +2301,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "71f01da0ab326bad1529b5c3007a52b130ac10b071e7919a1fdf467a4d99e4e3"
+      "sha256": "ab4266134cb95175a7503878160c35dfead56f0642dbb0df5fca53fd2f4bf8a0"
     },
     {
       "outputs": [
@@ -2322,23 +2322,23 @@
         "ncp-{core,zenoh,cpp}/testdata/**"
       ],
       "path": "scripts/sync_rust_package_testdata.py",
-      "sha256": "75779da4757b39977521aaa35cf33c6c1e24a8e76ca8fdb1d58fd2a1f9b8d753"
+      "sha256": "0071fcd6167012dd628f1f5e4491d2712616c756e402740894dfa9077874bbab"
     }
   ],
   "locked_inputs": {
-    "Cargo.lock": "9a6d4ccd000ef81438f677486ab8f9061959ea063a4d39f93b6b7c01de63527b",
-    "Cargo.toml": "c283946aaa19f4d42bdc67becb1e715be7cdfe07bdbb41b3e974ee3cb50bd386",
+    "Cargo.lock": "6d871ea836625994e83a7a0465b802bce3cf1f4f4e9c8c9d5be6a543d785524a",
+    "Cargo.toml": "eff3537e3a7440636c17ea29cf8fe59a9d3c579e66a273a0cccfb9fef6798f85",
     "buf.gen.yaml": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
     "buf.yaml": "62f7a56b96555a24f90ec0f258d17e480600e484a04481aa2c21d9d64d2f9ea3",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
-    "deny.toml": "1e8fe5ab6d9d784bc1a4bc777d7b114f4cd31bf4e5ed1694ffb2a4853d9f73c7",
+    "deny.toml": "5f8e204e16ae8ed3bf7f9d98defc370d211545944490843f9347c2a6a2c0056d",
     "ncp-core/Cargo.toml": "417da09809280b86a5294dab9dd841813c41c1ac815f9b29253fc9f37ae2f5e2",
     "ncp-cpp/Cargo.toml": "b219c4fa2de9f5523fa68f68a0ebbb85fc50a398ae4f9dac090cc40146d555ac",
     "ncp-gateway/Cargo.toml": "dc511c267ac3e2453a26b0eb3baf51a4275402528855ca2fc363db84f47c9f64",
     "ncp-python/Cargo.toml": "67a67422e4fcfa58b2b3d86f4a89eafb2d4ee711e1c5edae57152f93db580d56",
     "ncp-python/pyproject.toml": "760c65efa3b19cda3739047d5b0045a27fed79116e3d1f4a67e84a87a24eedec",
     "ncp-ts/package.json": "990317ce7a974b5b42ed7e17a2a5033f34a4db43a013b33da2f1dad5c9ef30c4",
-    "ncp-zenoh/Cargo.toml": "8ad487a1f8ec8b823369428e8f38e71261de535a82325296a0808cb23e14189f",
+    "ncp-zenoh/Cargo.toml": "0262de88c05ab8658599bfbc3693092987d8c02650f9445610e14f8d87c3e7bd",
     "package.json": "038f45047bd6974face3d62ce1b39524ad3486d85a535449cb33116a327de255",
     "scripts/requirements-candidate-build-linux-x86_64.txt": "47be8dcd4992a79a31c7609e1d41f561c2bbf4299fb452138ae95c0fe3691f7d",
     "scripts/requirements-plot.txt": "8a2d128f9a70eeb03f40747984f7eac9c7e0efe8638b362b28f97d01dcc5b072"

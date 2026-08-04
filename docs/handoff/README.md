@@ -77,9 +77,12 @@ install/identity/behavior smoke and was not byte-compared with the direct wheel.
 This is held candidate-only evidence with `release_authorized=false`, not a tag,
 registry publication, DOI/archive deposit, final publisher signature, independent
 clean-room reproduction, multi-platform release set, or external certification.
-`RUSTSEC-2026-0041` and the unavailable `production-secure` transport-principal
-binding remain release holds; all external gates remain **NOT RUN** and the decision
-remains `NO_GO`.
+At that held source, `RUSTSEC-2026-0041` and the unavailable
+`production-secure` transport-principal binding were release holds. The current
+source selects fixed `lz4_flex 0.11.6` through exact reviewed Zenoh transport
+backport revision `6b93b15d0795748b7f76c72eae07f1cda517e762`. That later
+remediation is outside the held dossier. The principal binding and all external
+gates remain unresolved, and the decision remains `NO_GO`.
 
 The handoff dependency graph is a strict `T000`→…→`T145` chain even though its wave
 document assigns dependent tasks to three parallel lanes. The review therefore

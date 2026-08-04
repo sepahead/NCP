@@ -421,20 +421,20 @@ def threat_records() -> list[dict[str, Any]]:
             "Dependency feature unification activates excluded code",
             "supply-chain",
             "resolved dependency features",
-            "reviewed Zenoh transport surface and advisory containment",
+            "reviewed Zenoh transport surface and immutable security backport",
             "downstream feature unification or dependency update",
             ["a dependent enables defaults or transport compression"],
-            "An excluded vulnerable or privileged feature enters the compiled surface silently.",
-            "The reviewed lock and exact feature set keep defaults and compression disabled.",
+            "An unreviewed dependency source or privileged feature enters the compiled surface silently.",
+            "The reviewed lock selects the exact fixed backport and keeps defaults and compression disabled.",
             "Unexpected Zenoh defaults, compression, or unreviewed versions fail the dependency-exposure gate.",
             "The shipped attack surface differs from the reviewed candidate.",
             ["resolved feature inspection", "cargo-deny advisory output"],
             [
                 "exact lock",
                 "feature exposure checker",
-                "publication hold on the retained Zenoh/lz4 advisory",
+                "exact backport source, revision, and fixed lz4 dependency identity",
             ],
-            "Fail CI and keep publication blocked until the graph is patched and re-reviewed.",
+            "Fail CI until the changed graph is patched and re-reviewed.",
             ["CF-07"],
             [],
             [
@@ -454,7 +454,7 @@ def threat_records() -> list[dict[str, Any]]:
                 receipt,
             ],
             "PARTIAL_LOCAL",
-            "The reviewed Zenoh path still locks the lz4_flex advisory while defaults and compression remain disabled under the resolved-feature guard; that specific residual blocks stable publication.",
+            "The exact backport removes the affected lz4_flex release from this root graph. Archive-alone Cargo metadata resolution was executed and observed the affected registry fallback. The exact consuming-root patch produced only a CONDITIONAL_PASS. Cargo does not verify the Git signature, and self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO.",
             True,
         ),
         _threat(
@@ -2235,6 +2235,22 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
             ["contract/surface.v1.json", "docs/1.0-scope.md"],
         )
     if token_id == "M008":
+        if path in {
+            "KNOWN_LIMITATIONS.md",
+            "RELEASE_READINESS.md",
+            "ncp-zenoh/README.md",
+            "scripts/build_candidate_dossier.py",
+            "scripts/check_rust_packages.py",
+        }:
+            return (
+                "PACKAGE_RESOLUTION_BOUNDARY",
+                "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
+                [
+                    "KNOWN_LIMITATIONS.md",
+                    "RELEASE_READINESS.md",
+                    "scripts/check_rust_packages.py",
+                ],
+            )
         if path == "ncp-zenoh/src/lib.rs":
             return (
                 "FAIL_SAFE_NON_WIDENING",
@@ -2570,6 +2586,18 @@ def self_test() -> None:
             b"# A direct kill is a bounded fallback; the child is gone.\n",
             "PROCESS_CLEANUP_GUARD",
             "NO_REVIEW_OR_RUNTIME_AUTHORITY",
+        ),
+        (
+            "scripts/check_rust_packages.py",
+            b"# Observe the unsafe archive-alone registry fallback.\n",
+            "PACKAGE_RESOLUTION_BOUNDARY",
+            "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
+        ),
+        (
+            "RELEASE_READINESS.md",
+            b"The archive fallback remains blocked from release.\n",
+            "PACKAGE_RESOLUTION_BOUNDARY",
+            "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
         ),
     )
     for path, content, expected_disposition, expected_effect in exact_reviewed_cases:

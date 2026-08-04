@@ -8,6 +8,13 @@ Review date: 2026-07-16. Reviewed input: exact crates.io `zenoh 1.9.0`, checksum
 `85e22d7002ac149ef17fe400bb40a267ebbba40a83413bab03da7762256fa94e`, upstream
 commit `81c6c933b6e41d72a05f04c4442ef57717ddc72b`.
 
+Dependency refresh: 2026-08-04. The probe now patches only
+`zenoh-transport 1.9.0` to reviewed immutable revision
+`6b93b15d0795748b7f76c72eae07f1cda517e762`. The backport leaves the published
+Zenoh transport library source unchanged, adds downstream security regression
+tests, and selects fixed `lz4_flex 0.11.6`. The API conclusion above is still
+bound to the same exact Zenoh source files and upstream commit.
+
 ## Self-explanation
 
 I needed to answer one narrow question before designing authenticated ingress:
@@ -46,10 +53,10 @@ meaning of `replier_id` when the run only measured its presence. Both were
 removed or renamed. Live observations now report only measured behavior; API
 meaning stays in the source-bound matrix and claim boundary.
 
-The source verifier was also tightened to reject path traversal and accidental
-Zenoh transport-compression enablement. Seven hostile verifier tests now reject
-compression enablement, parent-path escape, a wrong source hash, optimistic gate
-promotion, and incomplete result data while accepting the exact reviewed cases.
+The source verifier was also tightened to reject path traversal, source-pin drift,
+and accidental Zenoh transport-compression enablement. Nine hostile and positive
+verifier tests cover compression, path escape, source hashes, the backport pin,
+gate promotion, and incomplete result data.
 
 ## Independent assumption challenge
 
@@ -80,11 +87,10 @@ promotion, and incomplete result data while accepting the exact reviewed cases.
 - **The loopback port reservation is race-free.** Rejected. The port is released
   before Zenoh binds it. Another process can win the race and cause a bounded
   failure, not a false security pass.
-- **A passing dependency audit is implicit.** Rejected. The exact graph contains
-  `lz4_flex 0.10.0`, reported as `RUSTSEC-2026-0041` by the 2026-07-13 local
-  advisory database. Affected decompression calls are feature-gated out, and the
-  verifier rejects compression enablement, but the quarantined graph must not ship
-  and the advisory is not waived.
+- **A passing dependency audit is implicit.** Rejected. The original 2026-07-16
+  graph contained affected `lz4_flex 0.10.0`. The refreshed graph binds the exact
+  reviewed backport and fixed `lz4_flex 0.11.6`. Cargo does not verify the Git SSH
+  signature, and the quarantined graph remains non-shipping.
 
 ## Three-lens review
 
@@ -124,18 +130,18 @@ consumer API. It does not yet make NCP production-usable.
 
 ### 3. Operations, science, and evidence quality
 
-- `run.sh` checks registry lock identity, upstream source identity, 11 exact file
-  hashes and fragments, the disabled compression feature, seven hostile verifier
-  cases, Rust formatting, warnings-denied clippy, a live Rust test, and exact JSON
-  output.
+- `run.sh` checks registry and backport lock identity, upstream source identity,
+  11 exact file hashes and fragments, the disabled compression feature, nine
+  verifier cases, Rust formatting, warnings-denied clippy, a live Rust test, and
+  exact JSON output.
 - The run is reproducible on the recorded local environment but is neither
   independent nor distributed. It does not test TLS, ACL, certificate rotation,
   revocation, malformed network frames, duration fuzzing, soak, or performance.
 - No external-model response is used as evidence. No statistical, scientific,
   posterior-calibration, or paper-reproduction claim is made.
-- The exact Zenoh dependency graph retains a known advisory in code excluded by
-  the reviewed feature graph. This is acceptable only for the local quarantined
-  probe and remains a shipping prohibition.
+- The exact graph selects fixed `lz4_flex 0.11.6` through the reviewed immutable
+  backport. Root patch selection, Git signature verification, and every external
+  supply-chain gate remain outside this local probe.
 
 Result: evidence is proportional to the feasibility question, preserves negative
 results and limitations, and cannot be mistaken for a release gate.

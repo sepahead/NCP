@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Build and exercise the distributable Rust crate archives.
+"""Build and exercise the candidate Rust crate archives.
 
 All five packageable workspace crates are packaged and inspected. The three
 crates with package-sensitive test fixtures are tested from their extracted
 archives; the Python binding is type-checked and the gateway is type-checked plus
-executed for its exact identity receipt. Temporary
-Cargo patches point exact unpublished NCP dependencies at the corresponding
-extracted archives, leaving the normalized/published manifests untouched.
+executed for its exact identity receipt. Temporary Cargo patches point exact
+unpublished NCP dependencies at the corresponding extracted archives, leaving the
+normalized/published manifests untouched.
+
+The normalized ``ncp-zenoh`` and ``ncp-gateway`` archives cannot propagate the
+workspace root's Zenoh transport patch. Their generated locks therefore select
+the vulnerable published ``lz4_flex 0.10.0`` graph. This checker first resolves
+and records that fallback without compiling it, then supplies the exact immutable
+transport backport at the consuming test root, regenerates and verifies the
+conditioned lock and metadata, and only then compiles offline. That is conditional
+package-consumption evidence, not self-contained distribution or release
+authorization.
 """
 
 from __future__ import annotations
@@ -38,6 +47,30 @@ LOCAL_DEPENDENCIES = {
     "ncp-gateway": ("ncp-core", "ncp-zenoh"),
 }
 SOURCE_REVISION = re.compile(r"^[0-9a-f]{40}$")
+HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+TARGET_TRIPLE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
+ZENOH_CONDITIONAL_CRATES = ("ncp-zenoh", "ncp-gateway")
+CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
+ZENOH_TRANSPORT_VERSION = "1.9.0"
+ZENOH_TRANSPORT_REGISTRY_CHECKSUM = (
+    "80800c4adc26dbe81418735068541cf39820a95ec988114f04dd014775ba7c97"
+)
+VULNERABLE_LZ4_VERSION = "0.10.0"
+VULNERABLE_LZ4_CHECKSUM = (
+    "8b8c72594ac26bfd34f2d99dfced2edfaddfe8a476e3ff2ca0eb293d925c4f83"
+)
+ZENOH_BACKPORT_GIT = "https://github.com/sepahead/zenoh-transport-lz4-backport"
+ZENOH_BACKPORT_REVISION = "6b93b15d0795748b7f76c72eae07f1cda517e762"
+ZENOH_BACKPORT_SOURCE = (
+    f"git+{ZENOH_BACKPORT_GIT}?rev={ZENOH_BACKPORT_REVISION}#{ZENOH_BACKPORT_REVISION}"
+)
+FIXED_LZ4_VERSION = "0.11.6"
+FIXED_LZ4_CHECKSUM = "373f5eceeeab7925e0c1098212f2fbc4d416adec9d35051a6ab251e824c1854a"
+ZENOH_BACKPORT_CONFIG = {
+    "patch.crates-io.zenoh-transport.git": ZENOH_BACKPORT_GIT,
+    "patch.crates-io.zenoh-transport.rev": ZENOH_BACKPORT_REVISION,
+}
+RUST_PACKAGE_RECEIPT_SCHEMA = "ncp.rust-package-receipt.v2"
 
 
 def run(
@@ -65,6 +98,66 @@ def run_capture(
         stdout=subprocess.PIPE,
     )
     return process.stdout
+
+
+def fetch_locked_archive(
+    manifest_path: Path,
+    patch_args: list[str],
+    *,
+    target: str,
+    env: dict[str, str],
+    cwd: Path,
+) -> None:
+    """Fetch one exact archive graph before offline metadata or compilation."""
+
+    run(
+        [
+            "cargo",
+            "fetch",
+            "--manifest-path",
+            str(manifest_path),
+            "--locked",
+            "--target",
+            target,
+            *patch_args,
+        ],
+        env=env,
+        cwd=cwd,
+    )
+
+
+def parse_rustc_host(output: bytes) -> str:
+    if len(output) > 65_536:
+        raise RuntimeError("rustc version output exceeds its bound")
+    try:
+        text = output.decode("utf-8", "strict")
+    except UnicodeError as error:
+        raise RuntimeError("rustc version output is not UTF-8") from error
+    hosts = [
+        line.removeprefix("host: ")
+        for line in text.splitlines()
+        if line.startswith("host: ")
+    ]
+    if len(hosts) != 1 or TARGET_TRIPLE.fullmatch(hosts[0]) is None:
+        raise RuntimeError("rustc version output has no exact host target")
+    return hosts[0]
+
+
+def rustc_host(env: dict[str, str]) -> str:
+    try:
+        process = subprocess.run(
+            ["rustc", "-vV"],
+            env=env,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as error:
+        raise RuntimeError(f"cannot execute rustc: {error}") from error
+    if process.returncode != 0:
+        detail = process.stderr.decode("utf-8", "replace").strip()
+        raise RuntimeError(f"rustc -vV failed: {detail}")
+    return parse_rustc_host(process.stdout)
 
 
 def sha256(path: Path) -> str:
@@ -158,7 +251,378 @@ def cargo_patch_args(
     return args
 
 
+def zenoh_backport_patch_args() -> list[str]:
+    """Return and validate the exact consuming-root security patch arguments."""
+
+    args: list[str] = []
+    for key, value in ZENOH_BACKPORT_CONFIG.items():
+        args.extend(("--config", f"{key}={json.dumps(value)}"))
+    validate_zenoh_backport_patch_args(args)
+    return args
+
+
+def validate_zenoh_backport_patch_args(args: list[str]) -> None:
+    if len(args) != 2 * len(ZENOH_BACKPORT_CONFIG):
+        raise RuntimeError("Zenoh backport Cargo patch is absent or incomplete")
+    decoded: dict[str, str] = {}
+    for index in range(0, len(args), 2):
+        if args[index] != "--config" or "=" not in args[index + 1]:
+            raise RuntimeError("Zenoh backport Cargo patch argument is malformed")
+        key, encoded = args[index + 1].split("=", 1)
+        if key in decoded:
+            raise RuntimeError("Zenoh backport Cargo patch repeats a key")
+        try:
+            value = json.loads(encoded)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(
+                "Zenoh backport Cargo patch value is not TOML JSON"
+            ) from error
+        if not isinstance(value, str):
+            raise RuntimeError("Zenoh backport Cargo patch value is not a string")
+        decoded[key] = value
+    if decoded != ZENOH_BACKPORT_CONFIG:
+        raise RuntimeError("Zenoh backport Cargo patch identity drifted")
+
+
+def one_lock_package(
+    lock: dict[str, object], name: str, version: str
+) -> dict[str, object]:
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise RuntimeError("Cargo.lock package array is malformed")
+    matches = [
+        package
+        for package in packages
+        if isinstance(package, dict)
+        and package.get("name") == name
+        and package.get("version") == version
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"Cargo.lock does not contain one exact {name} {version} package"
+        )
+    return matches[0]
+
+
+def load_toml(path: Path) -> dict[str, object]:
+    try:
+        value = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise RuntimeError(f"cannot load {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise RuntimeError(f"{path} is not a TOML table")
+    return value
+
+
+def assert_unpatched_archive_fallback(
+    crate: str,
+    manifest: dict[str, object],
+    lock: dict[str, object],
+    lock_sha256: str,
+) -> dict[str, object]:
+    """Prove the normalized archive alone retains the unsafe registry fallback."""
+
+    if crate not in ZENOH_CONDITIONAL_CRATES:
+        raise RuntimeError(f"unexpected conditional Zenoh archive: {crate}")
+    if "patch" in manifest:
+        raise RuntimeError(f"{crate} normalized archive unexpectedly contains a patch")
+    if HEX_SHA256.fullmatch(lock_sha256) is None:
+        raise RuntimeError(f"{crate} archive Cargo.lock digest is malformed")
+    transport = one_lock_package(lock, "zenoh-transport", ZENOH_TRANSPORT_VERSION)
+    if (
+        transport.get("source") != CRATES_IO_SOURCE
+        or transport.get("checksum") != ZENOH_TRANSPORT_REGISTRY_CHECKSUM
+    ):
+        raise RuntimeError(
+            f"{crate} archive no longer demonstrates the reviewed registry fallback"
+        )
+    dependencies = transport.get("dependencies")
+    if not isinstance(dependencies, list) or "lz4_flex" not in dependencies:
+        raise RuntimeError(f"{crate} archive lost the transport-to-lz4 dependency edge")
+    lz4 = one_lock_package(lock, "lz4_flex", VULNERABLE_LZ4_VERSION)
+    if (
+        lz4.get("source") != CRATES_IO_SOURCE
+        or lz4.get("checksum") != VULNERABLE_LZ4_CHECKSUM
+    ):
+        raise RuntimeError(
+            f"{crate} archive no longer demonstrates the vulnerable lz4 fallback"
+        )
+    return {
+        "crate": crate,
+        "cargo_lock_sha256": lock_sha256,
+        "advisory": "RUSTSEC-2026-0041",
+        "zenoh_transport_source": CRATES_IO_SOURCE,
+        "zenoh_transport_checksum_sha256": ZENOH_TRANSPORT_REGISTRY_CHECKSUM,
+        "lz4_flex_version": VULNERABLE_LZ4_VERSION,
+        "lz4_flex_source": CRATES_IO_SOURCE,
+        "lz4_flex_checksum_sha256": VULNERABLE_LZ4_CHECKSUM,
+        "compiled": False,
+    }
+
+
+def validate_conditioned_zenoh_lock(lock: dict[str, object]) -> None:
+    transports = [
+        package
+        for package in lock.get("package", [])
+        if isinstance(package, dict) and package.get("name") == "zenoh-transport"
+    ]
+    if len(transports) != 1:
+        raise RuntimeError("conditioned lock has an incomplete Zenoh transport set")
+    transport = one_lock_package(lock, "zenoh-transport", ZENOH_TRANSPORT_VERSION)
+    if transport.get("source") != ZENOH_BACKPORT_SOURCE or "checksum" in transport:
+        raise RuntimeError("conditioned lock does not select the exact Zenoh backport")
+    dependencies = transport.get("dependencies")
+    if not isinstance(dependencies, list) or "lz4_flex" not in dependencies:
+        raise RuntimeError("conditioned lock lost the transport-to-lz4 dependency edge")
+
+    lz4_packages = [
+        package
+        for package in lock.get("package", [])
+        if isinstance(package, dict) and package.get("name") == "lz4_flex"
+    ]
+    if len(lz4_packages) != 1:
+        raise RuntimeError("conditioned lock has an incomplete lz4_flex set")
+    lz4 = one_lock_package(lock, "lz4_flex", FIXED_LZ4_VERSION)
+    if (
+        lz4.get("source") != CRATES_IO_SOURCE
+        or lz4.get("checksum") != FIXED_LZ4_CHECKSUM
+    ):
+        raise RuntimeError("conditioned lock does not select exact fixed lz4_flex")
+
+
+def one_metadata_package(
+    metadata: dict[str, object], name: str, version: str
+) -> dict[str, object]:
+    packages = metadata.get("packages")
+    if not isinstance(packages, list):
+        raise RuntimeError("cargo metadata package array is malformed")
+    matches = [
+        package
+        for package in packages
+        if isinstance(package, dict)
+        and package.get("name") == name
+        and package.get("version") == version
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"cargo metadata does not contain one exact {name} {version} package"
+        )
+    return matches[0]
+
+
+def validate_conditioned_zenoh_metadata(metadata: dict[str, object]) -> None:
+    transport = one_metadata_package(
+        metadata, "zenoh-transport", ZENOH_TRANSPORT_VERSION
+    )
+    lz4 = one_metadata_package(metadata, "lz4_flex", FIXED_LZ4_VERSION)
+    zenoh = one_metadata_package(metadata, "zenoh", ZENOH_TRANSPORT_VERSION)
+    if transport.get("source") != ZENOH_BACKPORT_SOURCE:
+        raise RuntimeError("cargo metadata Zenoh transport source drifted")
+    if transport.get("rust_version") != "1.81.0":
+        raise RuntimeError("cargo metadata Zenoh transport Rust floor drifted")
+    if lz4.get("source") != CRATES_IO_SOURCE:
+        raise RuntimeError("cargo metadata lz4_flex source drifted")
+    if zenoh.get("source") != CRATES_IO_SOURCE:
+        raise RuntimeError("cargo metadata Zenoh source drifted")
+
+    resolve = metadata.get("resolve")
+    nodes = resolve.get("nodes") if isinstance(resolve, dict) else None
+    if not isinstance(nodes, list):
+        raise RuntimeError("cargo metadata resolved nodes are unavailable")
+    package_ids = {
+        str(package.get("id")): package
+        for package in metadata.get("packages", [])
+        if isinstance(package, dict) and isinstance(package.get("id"), str)
+    }
+    transport_id = transport.get("id")
+    lz4_id = lz4.get("id")
+    zenoh_id = zenoh.get("id")
+    if not all(isinstance(item, str) for item in (transport_id, lz4_id, zenoh_id)):
+        raise RuntimeError("cargo metadata package identity is malformed")
+    resolved = {
+        node.get("id"): node
+        for node in nodes
+        if isinstance(node, dict) and isinstance(node.get("id"), str)
+    }
+    transport_node = resolved.get(transport_id)
+    zenoh_node = resolved.get(zenoh_id)
+    if not isinstance(transport_node, dict) or not isinstance(zenoh_node, dict):
+        raise RuntimeError("cargo metadata Zenoh nodes are unavailable")
+    for label, node in (("Zenoh", zenoh_node), ("Zenoh transport", transport_node)):
+        features = node.get("features")
+        if not isinstance(features, list) or not all(
+            isinstance(feature, str) for feature in features
+        ):
+            raise RuntimeError(f"{label} resolved feature set is malformed")
+        forbidden = {"default", "transport_compression"}.intersection(features)
+        if forbidden:
+            raise RuntimeError(
+                f"{label} enables forbidden features: {sorted(forbidden)}"
+            )
+    dependency_ids: set[str] = set()
+    dependencies = transport_node.get("deps")
+    if not isinstance(dependencies, list):
+        raise RuntimeError("cargo metadata transport dependency set is malformed")
+    for dependency in dependencies:
+        if not isinstance(dependency, dict) or not isinstance(
+            dependency.get("pkg"), str
+        ):
+            raise RuntimeError("cargo metadata transport dependency is malformed")
+        dependency_ids.add(dependency["pkg"])
+    if lz4_id not in dependency_ids or lz4_id not in package_ids:
+        raise RuntimeError("cargo metadata lost the exact transport-to-lz4 edge")
+
+
+def validate_unpatched_zenoh_metadata(metadata: dict[str, object]) -> None:
+    """Verify an executed archive-alone resolution exposes the unsafe fallback."""
+
+    transport = one_metadata_package(
+        metadata, "zenoh-transport", ZENOH_TRANSPORT_VERSION
+    )
+    lz4 = one_metadata_package(metadata, "lz4_flex", VULNERABLE_LZ4_VERSION)
+    if transport.get("source") != CRATES_IO_SOURCE:
+        raise RuntimeError("archive-alone metadata did not select registry transport")
+    if lz4.get("source") != CRATES_IO_SOURCE:
+        raise RuntimeError("archive-alone metadata did not select registry lz4_flex")
+    resolve = metadata.get("resolve")
+    nodes = resolve.get("nodes") if isinstance(resolve, dict) else None
+    if not isinstance(nodes, list):
+        raise RuntimeError("archive-alone metadata resolved nodes are unavailable")
+    transport_id = transport.get("id")
+    lz4_id = lz4.get("id")
+    if not isinstance(transport_id, str) or not isinstance(lz4_id, str):
+        raise RuntimeError("archive-alone metadata package identity is malformed")
+    transport_nodes = [
+        node
+        for node in nodes
+        if isinstance(node, dict) and node.get("id") == transport_id
+    ]
+    if len(transport_nodes) != 1:
+        raise RuntimeError("archive-alone metadata transport node is unavailable")
+    dependencies = transport_nodes[0].get("deps")
+    if not isinstance(dependencies, list) or lz4_id not in {
+        dependency.get("pkg")
+        for dependency in dependencies
+        if isinstance(dependency, dict)
+    }:
+        raise RuntimeError("archive-alone metadata lost the vulnerable lz4 edge")
+
+
+def condition_zenoh_archive(
+    crate: str,
+    extracted_paths: dict[str, Path],
+    *,
+    offline: bool,
+    target: str,
+    env: dict[str, str],
+) -> tuple[list[str], dict[str, object]]:
+    archive_root = extracted_paths[crate]
+    manifest_path = archive_root / "Cargo.toml"
+    lock_path = archive_root / "Cargo.lock"
+    fallback = assert_unpatched_archive_fallback(
+        crate,
+        load_toml(manifest_path),
+        load_toml(lock_path),
+        sha256(lock_path),
+    )
+    local_patch_args = cargo_patch_args(LOCAL_DEPENDENCIES[crate], extracted_paths)
+    if not offline:
+        fetch_locked_archive(
+            manifest_path,
+            local_patch_args,
+            target=target,
+            env=env,
+            cwd=archive_root,
+        )
+    unpatched_metadata_command = [
+        "cargo",
+        "metadata",
+        "--manifest-path",
+        str(manifest_path),
+        "--format-version",
+        "1",
+        "--locked",
+        "--offline",
+        "--filter-platform",
+        target,
+    ]
+    unpatched_metadata_command.extend(local_patch_args)
+    try:
+        unpatched_metadata = json.loads(
+            run_capture(unpatched_metadata_command, env=env, cwd=archive_root)
+        )
+    except json.JSONDecodeError as error:
+        raise RuntimeError(
+            f"{crate} archive-alone cargo metadata is not JSON"
+        ) from error
+    if not isinstance(unpatched_metadata, dict):
+        raise RuntimeError(f"{crate} archive-alone cargo metadata is not an object")
+    validate_unpatched_zenoh_metadata(unpatched_metadata)
+    fallback["resolution_observation"] = "EXECUTED_OBSERVED_VULNERABLE"
+
+    patch_args = [*local_patch_args, *zenoh_backport_patch_args()]
+    update = [
+        "cargo",
+        "update",
+        "--manifest-path",
+        str(manifest_path),
+        "-p",
+        f"zenoh-transport@{ZENOH_TRANSPORT_VERSION}",
+        "--precise",
+        ZENOH_TRANSPORT_VERSION,
+    ]
+    if offline:
+        update.append("--offline")
+    update.extend(patch_args)
+    run(update, env=env, cwd=archive_root)
+    validate_conditioned_zenoh_lock(load_toml(lock_path))
+    if not offline:
+        fetch_locked_archive(
+            manifest_path,
+            patch_args,
+            target=target,
+            env=env,
+            cwd=archive_root,
+        )
+
+    metadata_command = [
+        "cargo",
+        "metadata",
+        "--manifest-path",
+        str(manifest_path),
+        "--format-version",
+        "1",
+        "--locked",
+        "--offline",
+        "--filter-platform",
+        target,
+    ]
+    metadata_command.extend(patch_args)
+    try:
+        metadata = json.loads(run_capture(metadata_command, env=env, cwd=archive_root))
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"{crate} cargo metadata is not JSON") from error
+    if not isinstance(metadata, dict):
+        raise RuntimeError(f"{crate} cargo metadata is not an object")
+    validate_conditioned_zenoh_metadata(metadata)
+    return patch_args, fallback
+
+
 def self_test() -> None:
+    import copy
+
+    if parse_rustc_host(b"rustc 1.96.0\nhost: aarch64-apple-darwin\n") != (
+        "aarch64-apple-darwin"
+    ):
+        raise AssertionError("rustc host parser lost the exact target")
+    for hostile_host in (b"host: \n", b"host: bad/target\n", b"host: a\nhost: b\n"):
+        try:
+            parse_rustc_host(hostile_host)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("malformed rustc host output passed validation")
+
     with tempfile.TemporaryDirectory(prefix="ncp-package-path-selftest-") as tmp:
         root = Path(tmp)
         real_parent = root / "real source"
@@ -192,6 +656,201 @@ def self_test() -> None:
             pass
         else:
             raise AssertionError("missing Cargo patch path passed canonicalization")
+
+    exact_patch = zenoh_backport_patch_args()
+    hostile_patches = {
+        "absent": [],
+        "wrong repository": [
+            "--config",
+            'patch.crates-io.zenoh-transport.git="https://example.invalid/fork"',
+            "--config",
+            (f'patch.crates-io.zenoh-transport.rev="{ZENOH_BACKPORT_REVISION}"'),
+        ],
+        "wrong revision": [
+            "--config",
+            f'patch.crates-io.zenoh-transport.git="{ZENOH_BACKPORT_GIT}"',
+            "--config",
+            f'patch.crates-io.zenoh-transport.rev="{"0" * 40}"',
+        ],
+    }
+    validate_zenoh_backport_patch_args(exact_patch)
+    for label, hostile in hostile_patches.items():
+        try:
+            validate_zenoh_backport_patch_args(hostile)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"{label} Zenoh root patch passed validation")
+
+    fallback_lock: dict[str, object] = {
+        "package": [
+            {
+                "name": "zenoh-transport",
+                "version": ZENOH_TRANSPORT_VERSION,
+                "source": CRATES_IO_SOURCE,
+                "checksum": ZENOH_TRANSPORT_REGISTRY_CHECKSUM,
+                "dependencies": ["lz4_flex"],
+            },
+            {
+                "name": "lz4_flex",
+                "version": VULNERABLE_LZ4_VERSION,
+                "source": CRATES_IO_SOURCE,
+                "checksum": VULNERABLE_LZ4_CHECKSUM,
+            },
+        ]
+    }
+    fallback = assert_unpatched_archive_fallback(
+        "ncp-zenoh", {}, fallback_lock, "a" * 64
+    )
+    if fallback.get("advisory") != "RUSTSEC-2026-0041":
+        raise AssertionError("archive fallback evidence lost the advisory identity")
+    omitted = copy.deepcopy(fallback_lock)
+    omitted["package"] = omitted["package"][:1]
+    try:
+        assert_unpatched_archive_fallback("ncp-zenoh", {}, omitted, "a" * 64)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("archive dependency omission passed validation")
+
+    conditioned_lock: dict[str, object] = {
+        "package": [
+            {
+                "name": "zenoh-transport",
+                "version": ZENOH_TRANSPORT_VERSION,
+                "source": ZENOH_BACKPORT_SOURCE,
+                "dependencies": ["lz4_flex"],
+            },
+            {
+                "name": "lz4_flex",
+                "version": FIXED_LZ4_VERSION,
+                "source": CRATES_IO_SOURCE,
+                "checksum": FIXED_LZ4_CHECKSUM,
+            },
+        ]
+    }
+    validate_conditioned_zenoh_lock(conditioned_lock)
+    hostile_locks: dict[str, dict[str, object]] = {}
+    registry_fallback = copy.deepcopy(conditioned_lock)
+    registry_fallback["package"][0]["source"] = CRATES_IO_SOURCE
+    registry_fallback["package"][0]["checksum"] = ZENOH_TRANSPORT_REGISTRY_CHECKSUM
+    hostile_locks["registry fallback"] = registry_fallback
+    wrong_source_revision = copy.deepcopy(conditioned_lock)
+    wrong_source_revision["package"][0]["source"] = (
+        f"git+{ZENOH_BACKPORT_GIT}?rev={'0' * 40}#{'0' * 40}"
+    )
+    hostile_locks["wrong source revision"] = wrong_source_revision
+    vulnerable_lock = copy.deepcopy(conditioned_lock)
+    vulnerable_lock["package"][1]["version"] = VULNERABLE_LZ4_VERSION
+    vulnerable_lock["package"][1]["checksum"] = VULNERABLE_LZ4_CHECKSUM
+    hostile_locks["vulnerable dependency"] = vulnerable_lock
+    wrong_checksum = copy.deepcopy(conditioned_lock)
+    wrong_checksum["package"][1]["checksum"] = "0" * 64
+    hostile_locks["wrong fixed checksum"] = wrong_checksum
+    missing_edge = copy.deepcopy(conditioned_lock)
+    missing_edge["package"][0]["dependencies"] = []
+    hostile_locks["missing dependency edge"] = missing_edge
+    for label, hostile in hostile_locks.items():
+        try:
+            validate_conditioned_zenoh_lock(hostile)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"{label} conditioned lock passed validation")
+
+    transport_id = ZENOH_BACKPORT_SOURCE
+    lz4_id = f"{CRATES_IO_SOURCE}#lz4_flex@{FIXED_LZ4_VERSION}"
+    zenoh_id = f"{CRATES_IO_SOURCE}#zenoh@{ZENOH_TRANSPORT_VERSION}"
+    metadata: dict[str, object] = {
+        "packages": [
+            {
+                "id": transport_id,
+                "name": "zenoh-transport",
+                "version": ZENOH_TRANSPORT_VERSION,
+                "source": ZENOH_BACKPORT_SOURCE,
+                "rust_version": "1.81.0",
+            },
+            {
+                "id": lz4_id,
+                "name": "lz4_flex",
+                "version": FIXED_LZ4_VERSION,
+                "source": CRATES_IO_SOURCE,
+            },
+            {
+                "id": zenoh_id,
+                "name": "zenoh",
+                "version": ZENOH_TRANSPORT_VERSION,
+                "source": CRATES_IO_SOURCE,
+            },
+        ],
+        "resolve": {
+            "nodes": [
+                {
+                    "id": transport_id,
+                    "features": ["transport_tcp"],
+                    "deps": [{"pkg": lz4_id}],
+                },
+                {"id": zenoh_id, "features": ["transport_tcp"], "deps": []},
+            ]
+        },
+    }
+    validate_conditioned_zenoh_metadata(metadata)
+    hostile_metadata = copy.deepcopy(metadata)
+    hostile_metadata["packages"][0]["source"] = CRATES_IO_SOURCE
+    try:
+        validate_conditioned_zenoh_metadata(hostile_metadata)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("registry metadata fallback passed validation")
+    hostile_metadata = copy.deepcopy(metadata)
+    hostile_metadata["resolve"]["nodes"][0]["features"].append("transport_compression")
+    try:
+        validate_conditioned_zenoh_metadata(hostile_metadata)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("forbidden conditioned feature passed validation")
+
+    fallback_transport_id = (
+        f"{CRATES_IO_SOURCE}#zenoh-transport@{ZENOH_TRANSPORT_VERSION}"
+    )
+    fallback_lz4_id = f"{CRATES_IO_SOURCE}#lz4_flex@{VULNERABLE_LZ4_VERSION}"
+    fallback_metadata: dict[str, object] = {
+        "packages": [
+            {
+                "id": fallback_transport_id,
+                "name": "zenoh-transport",
+                "version": ZENOH_TRANSPORT_VERSION,
+                "source": CRATES_IO_SOURCE,
+            },
+            {
+                "id": fallback_lz4_id,
+                "name": "lz4_flex",
+                "version": VULNERABLE_LZ4_VERSION,
+                "source": CRATES_IO_SOURCE,
+            },
+        ],
+        "resolve": {
+            "nodes": [
+                {
+                    "id": fallback_transport_id,
+                    "deps": [{"pkg": fallback_lz4_id}],
+                }
+            ]
+        },
+    }
+    validate_unpatched_zenoh_metadata(fallback_metadata)
+    hostile_fallback_metadata = copy.deepcopy(fallback_metadata)
+    hostile_fallback_metadata["resolve"]["nodes"][0]["deps"] = []
+    try:
+        validate_unpatched_zenoh_metadata(hostile_fallback_metadata)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError(
+            "incomplete archive fallback observation passed validation"
+        )
 
 
 def extract_archive(archive: Path, destination: Path, expected_prefix: str) -> Path:
@@ -257,7 +916,10 @@ def main() -> int:
     parser.add_argument(
         "--offline",
         action="store_true",
-        help="pass --offline to Cargo (useful after the workspace gate populated its cache)",
+        help=(
+            "forbid even exact locked dependency prefetch; both the current and "
+            "archive-fallback graphs must already be cached"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -362,6 +1024,32 @@ def main() -> int:
         expected_identity = args.source_revision or "unreleased-worktree"
         env["NCP_EXPECTED_BUILD_IDENTITY"] = expected_identity
         env["CARGO_TARGET_DIR"] = str(test_target)
+        host_target = rustc_host(env)
+        consumer_patch_args: dict[str, list[str]] = {}
+        archive_fallbacks: list[dict[str, object]] = []
+        for crate in ZENOH_CONDITIONAL_CRATES:
+            patch_args, fallback = condition_zenoh_archive(
+                crate,
+                extracted_paths,
+                offline=args.offline,
+                target=host_target,
+                env=env,
+            )
+            consumer_patch_args[crate] = patch_args
+            archive_fallbacks.append(fallback)
+
+        if not args.offline:
+            for crate in CRATES:
+                if crate in ZENOH_CONDITIONAL_CRATES:
+                    continue
+                fetch_locked_archive(
+                    extracted_paths[crate] / "Cargo.toml",
+                    cargo_patch_args(LOCAL_DEPENDENCIES[crate], extracted_paths),
+                    target=host_target,
+                    env=env,
+                    cwd=extracted_paths[crate],
+                )
+
         for crate in TEST_CRATES:
             command = [
                 "cargo",
@@ -369,10 +1057,16 @@ def main() -> int:
                 "--manifest-path",
                 str(extracted_paths[crate] / "Cargo.toml"),
                 "--locked",
+                "--offline",
+                "--target",
+                host_target,
             ]
-            if args.offline:
-                command.append("--offline")
-            command.extend(cargo_patch_args(LOCAL_DEPENDENCIES[crate], extracted_paths))
+            command.extend(
+                consumer_patch_args.get(
+                    crate,
+                    cargo_patch_args(LOCAL_DEPENDENCIES[crate], extracted_paths),
+                )
+            )
             run(command, env=env, cwd=package_root)
 
         for crate in CHECK_CRATES:
@@ -382,10 +1076,16 @@ def main() -> int:
                 "--manifest-path",
                 str(extracted_paths[crate] / "Cargo.toml"),
                 "--locked",
+                "--offline",
+                "--target",
+                host_target,
             ]
-            if args.offline:
-                command.append("--offline")
-            command.extend(cargo_patch_args(LOCAL_DEPENDENCIES[crate], extracted_paths))
+            command.extend(
+                consumer_patch_args.get(
+                    crate,
+                    cargo_patch_args(LOCAL_DEPENDENCIES[crate], extracted_paths),
+                )
+            )
             run(command, env=env, cwd=package_root)
 
         gateway_command = [
@@ -395,12 +1095,11 @@ def main() -> int:
             "--manifest-path",
             str(extracted_paths["ncp-gateway"] / "Cargo.toml"),
             "--locked",
+            "--offline",
+            "--target",
+            host_target,
         ]
-        if args.offline:
-            gateway_command.append("--offline")
-        gateway_command.extend(
-            cargo_patch_args(LOCAL_DEPENDENCIES["ncp-gateway"], extracted_paths)
-        )
+        gateway_command.extend(consumer_patch_args["ncp-gateway"])
         gateway_command.extend(("--", "--identity-json"))
         gateway_identity = json.loads(
             run_capture(gateway_command, env=env, cwd=package_root)
@@ -435,9 +1134,8 @@ def main() -> int:
                     "--no-verify",
                     "--target-dir",
                     str(reproduction_target),
+                    "--offline",
                 ]
-                if args.offline:
-                    command.append("--offline")
                 command.extend(
                     cargo_patch_args(LOCAL_DEPENDENCIES[crate], source_paths)
                 )
@@ -473,11 +1171,29 @@ def main() -> int:
                         }
                     )
                 receipt = {
-                    "schema": "ncp.rust-package-receipt.v1",
+                    "schema": RUST_PACKAGE_RECEIPT_SCHEMA,
                     "source_revision": args.source_revision,
                     "embedded_build_identity": expected_identity,
                     "candidate_version": version,
                     "reproducibility_comparison": "PASS",
+                    "zenoh_consumption": {
+                        "status": "CONDITIONAL_PASS",
+                        "condition": "EXACT_CONSUMING_ROOT_PATCH_REQUIRED",
+                        "package_self_contained": False,
+                        "self_contained_distribution_gate": "OPEN_FAIL_CLOSED",
+                        "decision": "NO_GO",
+                        "release_authorized": False,
+                        "affected_archives": list(ZENOH_CONDITIONAL_CRATES),
+                        "archive_fallbacks": archive_fallbacks,
+                        "qualifying_root_patch": {
+                            "repository": ZENOH_BACKPORT_GIT,
+                            "revision": ZENOH_BACKPORT_REVISION,
+                            "cargo_source": ZENOH_BACKPORT_SOURCE,
+                            "lz4_flex_version": FIXED_LZ4_VERSION,
+                            "lz4_flex_checksum_sha256": FIXED_LZ4_CHECKSUM,
+                            "cargo_verifies_git_signature": False,
+                        },
+                    },
                     "archives": artifact_records,
                 }
                 (stage / "rust-package-receipt.json").write_text(
@@ -491,7 +1207,12 @@ def main() -> int:
 
     # Catch a canonical fixture changing while the longer archive tests ran.
     run([sys.executable, "scripts/sync_rust_package_testdata.py"])
-    print("Rust package archive self-test passed for all five packageable crates.")
+    print(
+        "Rust candidate archives verified; ncp-zenoh and ncp-gateway consumption "
+        "is conditional on the exact consuming-root backport. The vulnerable "
+        "fallback was not compiled; qualification compiled offline. "
+        "Self-contained Zenoh package distribution remains NO_GO."
+    )
     return 0
 
 

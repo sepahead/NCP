@@ -199,14 +199,15 @@ jobs:
           node ncp-ts/scripts/sync-bindings.mjs
 
       # Package tests must not accidentally borrow root-only fixtures or licenses.
-      # Assemble all five publishable crates, assert their archive surfaces, then
-      # test core/Zenoh/C-ABI and type-check Python/gateway from extracted archives.
-      # Temporary Cargo patches resolve the not-yet-published candidate NCP crates
-      # locally without changing the manifests that will be uploaded.
-      - name: Rust crate archives are self-contained
+      # Assemble all five candidate crates and assert their archive surfaces. The
+      # Zenoh-bearing archives first resolve the affected registry fallback without
+      # compiling it. The checker then applies the exact transport backport at the
+      # consuming root and runs every metadata/build/test qualification offline.
+      # This is a conditional package result, not publication evidence.
+      - name: Rust candidate archives + conditional Zenoh consumption
         run: |
           python3 scripts/check_rust_packages.py --self-test
-          python3 scripts/check_rust_packages.py --offline
+          python3 scripts/check_rust_packages.py
 
       - name: Rust-generated TS bindings must be committed
         run: git diff --exit-code -- ncp-core/bindings ncp-ts/src/generated

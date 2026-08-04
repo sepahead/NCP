@@ -23,9 +23,9 @@ unsigned evidence is a failure for initial release.
 | Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
 | Plant profile, safety governor, action buffer, ESTOP | deterministic candidate tests exist | checked codec paths still invent missing midpoint/zero values, permit sparse components, and select units by mapping order; installed-profile validation is not integrated into Active admission, and its current `PlantCommand` projection cannot carry units; correction, rebaseline, body integration, and every consumer safety case remain unresolved |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
-| Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for exact source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | immutable multi-OS/ABI install matrix and public-registry ownership remain required |
+| Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for historical source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | current archive-alone Cargo metadata executes and observes the affected Zenoh registry fallback; the injected-root run is only `CONDITIONAL_PASS`, while self-contained resolution stays `OPEN_FAIL_CLOSED` and `NO_GO`; immutable multi-OS/ABI install matrix and public-registry ownership remain required |
 | Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and generated 117-requirement local graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
-| Supply-chain and candidate dossier | a held, one-platform, exact-source dossier passed checksums, five applicable comparisons, install/identity/behavior smoke, exact-source verification, a ten-subject SLSA provenance attestation, and an aggregate CycloneDX attestation; `release_authorized=false` | final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
+| Supply-chain and candidate dossier | current local evidence selects fixed `lz4_flex 0.11.6` through one exact reviewed Zenoh transport backport; the earlier held, one-platform dossier passed its checks at a superseded source and records `release_authorized=false` | Cargo does not verify the backport SSH signature, a root patch does not propagate from a published library dependency, and final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
 | Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-surface handoff inventory across five canonical consumer repositories, the nine exact role subjects, an auxiliary non-peer importer inventory, and post-publication checks | predecessor gates and all nine exact consumer/extension role qualifications remain unresolved; neither a surface nor an importer is a role receipt |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
@@ -75,11 +75,25 @@ direct wheel. The dossier records `release_authorized=false` and does not supply
 tag, publication, final publisher signatures, multi-platform release artifacts, or
 independent clean-room reproduction.
 
-Two source-level holds also remain unchanged: `RUSTSEC-2026-0041` is still present
-through Zenoh's resolved `lz4_flex` dependency even though transport compression is
-disabled, and the stable Zenoh adapter still cannot bind a callback-visible
-transport-authenticated principal for `production-secure`. The candidate therefore
-remains `NO_GO`.
+The current root and quarantined-probe locks select fixed `lz4_flex 0.11.6`
+through `zenoh-transport 1.9.0` backport revision
+`6b93b15d0795748b7f76c72eae07f1cda517e762`. This removes
+`RUSTSEC-2026-0041` from those resolved graphs. It does not revise the historical
+held dossier above. Cargo does not verify the Git SSH signature, and a Cargo patch
+does not propagate from a published library dependency. Final package design,
+installed artifacts, signatures, SBOM/provenance, and independent reproduction
+remain required.
+
+The normalized `ncp-zenoh` and `ncp-gateway` archive locks demonstrate the
+consequence: without a consuming-root patch, they select affected
+`lz4_flex 0.10.0`. The local archive checker executes Cargo metadata and observes
+that failure, then applies and verifies the exact backport at its test root before
+compilation. The patched run is `CONDITIONAL_PASS`; self-contained distribution
+remains `OPEN_FAIL_CLOSED` and `NO_GO`.
+
+The stable Zenoh adapter still cannot bind a callback-visible authenticated
+transport principal for `production-secure`. This implementation prerequisite and
+the external pre-release gates keep the candidate at `NO_GO`.
 
 Per-task receipts and their exact residual acceptance gaps are indexed in
 [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md).

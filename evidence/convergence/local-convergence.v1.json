@@ -208,10 +208,10 @@
       "status": "OPEN_FAIL_CLOSED"
     },
     {
-      "acceptance": "Upgrade to a reviewed Zenoh graph that resolves a patched lz4_flex, remove the advisory disposition, and pass the dependency exposure and current RustSec gates.",
-      "current_behavior": "Transport compression stays disabled and the resolved feature graph is guarded, but stable publication remains blocked.",
-      "id": "zenoh-lz4-rustsec-stable-publication-hold",
-      "reason": "Zenoh 1.9.0 retains lz4_flex 0.10.0 under RUSTSEC-2026-0041; no patched 0.10 release exists.",
+      "acceptance": "Use a qualified immutable upstream release or another reviewed distribution design, prove each installed Zenoh-bearing archive resolves the fixed graph without an out-of-band consuming-root patch, and repeat dependency, archive, SBOM, provenance, and install gates.",
+      "current_behavior": "Root and probe locks select fixed lz4_flex 0.11.6 through the exact reviewed backport. Archive-alone Cargo metadata resolution was executed and observed registry zenoh-transport 1.9.0 with affected lz4_flex 0.10.0. The exact injected consuming-root patch produced only a CONDITIONAL_PASS; self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO.",
+      "id": "zenoh-self-contained-package-resolution",
+      "reason": "Cargo root patches do not propagate from the normalized ncp-zenoh or ncp-gateway library archives; without a consuming-root patch their generated locks select affected lz4_flex 0.10.0.",
       "status": "OPEN_FAIL_CLOSED"
     },
     {

@@ -33,12 +33,13 @@ output to match
 [`expected-result.v1.json`](expected-result.v1.json) exactly before emitting the
 deterministic JSON observation summary.
 
-The exact Zenoh graph contains `lz4_flex 0.10.0`, which the local RustSec database
-flags as `RUSTSEC-2026-0041`. The affected block decompression calls are behind
-Zenoh's `transport_compression` feature, and the source verifier rejects that
-feature if enabled. This bounded reachability fact is not a vulnerability waiver:
-the quarantined dependency graph must not ship, and a future feature change fails
-the probe before execution.
+The probe uses the exact reviewed `zenoh-transport 1.9.0` backport at
+`6b93b15d0795748b7f76c72eae07f1cda517e762`. The backport leaves the published
+Zenoh transport library source unchanged, adds downstream security regression
+tests, and selects fixed `lz4_flex 0.11.6`. The source verifier binds the patch,
+lock, metadata, checksum, and compression-disabled feature graph. Cargo does not
+verify the backport's SSH signature. This quarantined probe remains non-shipping,
+and a future source or feature change fails before execution.
 The probe reserves an unused loopback port immediately before opening the listener;
 another local process could win that small race, which produces a test failure,
 never a false security pass.

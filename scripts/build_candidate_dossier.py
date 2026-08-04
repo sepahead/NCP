@@ -80,9 +80,29 @@ SBOM_SCOPE = (
     "aggregate dossier and is not an artifact-specific SBOM."
 )
 CLAIM_BOUNDARY = (
-    "Candidate-only build evidence. No tag, registry publication, release "
-    "authorization, independent reproduction, or signature is implied."
+    "Candidate-only build evidence. Archive-alone Cargo metadata resolution was "
+    "executed without compilation and observed the vulnerable registry Zenoh/lz4 "
+    "fallback. The exact consuming-root transport backport produced only a "
+    "CONDITIONAL_PASS; the "
+    "self-contained distribution gate remains OPEN_FAIL_CLOSED and NO_GO. No tag, "
+    "registry publication, release authorization, independent reproduction, or "
+    "signature is implied."
 )
+ZENOH_CONDITIONAL_CRATES = ("ncp-zenoh", "ncp-gateway")
+CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
+ZENOH_TRANSPORT_REGISTRY_CHECKSUM = (
+    "80800c4adc26dbe81418735068541cf39820a95ec988114f04dd014775ba7c97"
+)
+VULNERABLE_LZ4_CHECKSUM = (
+    "8b8c72594ac26bfd34f2d99dfced2edfaddfe8a476e3ff2ca0eb293d925c4f83"
+)
+ZENOH_BACKPORT_GIT = "https://github.com/sepahead/zenoh-transport-lz4-backport"
+ZENOH_BACKPORT_REVISION = "6b93b15d0795748b7f76c72eae07f1cda517e762"
+ZENOH_BACKPORT_SOURCE = (
+    f"git+{ZENOH_BACKPORT_GIT}?rev={ZENOH_BACKPORT_REVISION}#{ZENOH_BACKPORT_REVISION}"
+)
+FIXED_LZ4_CHECKSUM = "373f5eceeeab7925e0c1098212f2fbc4d416adec9d35051a6ab251e824c1854a"
+RUST_PACKAGE_RECEIPT_SCHEMA = "ncp.rust-package-receipt.v2"
 DOSSIER_KEYS = {
     "schema",
     "source_revision",
@@ -1104,6 +1124,72 @@ def _is_linux_x86_64_wheel_platform(platform_tag: str) -> bool:
     return bool(tags) and all(linux_tag.fullmatch(tag) is not None for tag in tags)
 
 
+def _validate_rust_zenoh_consumption(value: Any) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "status",
+        "condition",
+        "package_self_contained",
+        "self_contained_distribution_gate",
+        "decision",
+        "release_authorized",
+        "affected_archives",
+        "archive_fallbacks",
+        "qualifying_root_patch",
+    }:
+        raise DossierError("candidate Rust Zenoh qualification shape is invalid")
+    if (
+        value.get("status") != "CONDITIONAL_PASS"
+        or value.get("condition") != "EXACT_CONSUMING_ROOT_PATCH_REQUIRED"
+        or value.get("package_self_contained") is not False
+        or value.get("self_contained_distribution_gate") != "OPEN_FAIL_CLOSED"
+        or value.get("decision") != "NO_GO"
+        or value.get("release_authorized") is not False
+        or value.get("affected_archives") != list(ZENOH_CONDITIONAL_CRATES)
+    ):
+        raise DossierError("candidate Rust Zenoh qualification boundary is invalid")
+    expected_patch = {
+        "repository": ZENOH_BACKPORT_GIT,
+        "revision": ZENOH_BACKPORT_REVISION,
+        "cargo_source": ZENOH_BACKPORT_SOURCE,
+        "lz4_flex_version": "0.11.6",
+        "lz4_flex_checksum_sha256": FIXED_LZ4_CHECKSUM,
+        "cargo_verifies_git_signature": False,
+    }
+    if value.get("qualifying_root_patch") != expected_patch:
+        raise DossierError("candidate Rust Zenoh consuming-root patch drifted")
+    fallbacks = value.get("archive_fallbacks")
+    if not isinstance(fallbacks, list) or len(fallbacks) != len(
+        ZENOH_CONDITIONAL_CRATES
+    ):
+        raise DossierError("candidate Rust Zenoh archive fallback set is incomplete")
+    expected_fallback = {
+        "advisory": "RUSTSEC-2026-0041",
+        "zenoh_transport_source": CRATES_IO_SOURCE,
+        "zenoh_transport_checksum_sha256": ZENOH_TRANSPORT_REGISTRY_CHECKSUM,
+        "lz4_flex_version": "0.10.0",
+        "lz4_flex_source": CRATES_IO_SOURCE,
+        "lz4_flex_checksum_sha256": VULNERABLE_LZ4_CHECKSUM,
+        "compiled": False,
+    }
+    for crate, fallback in zip(ZENOH_CONDITIONAL_CRATES, fallbacks, strict=True):
+        if not isinstance(fallback, dict) or set(fallback) != {
+            "crate",
+            "cargo_lock_sha256",
+            "resolution_observation",
+            *expected_fallback,
+        }:
+            raise DossierError("candidate Rust Zenoh fallback record shape is invalid")
+        digest = fallback.get("cargo_lock_sha256")
+        if (
+            fallback.get("crate") != crate
+            or fallback.get("resolution_observation") != "EXECUTED_OBSERVED_VULNERABLE"
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or any(fallback.get(key) != item for key, item in expected_fallback.items())
+        ):
+            raise DossierError("candidate Rust Zenoh fallback record is invalid")
+
+
 def _package_subject_records(
     products: Path,
     root_manifest: dict[str, Any],
@@ -1129,15 +1215,17 @@ def _package_subject_records(
             "embedded_build_identity",
             "candidate_version",
             "reproducibility_comparison",
+            "zenoh_consumption",
             "archives",
         }
-        or rust_receipt.get("schema") != "ncp.rust-package-receipt.v1"
+        or rust_receipt.get("schema") != RUST_PACKAGE_RECEIPT_SCHEMA
         or rust_receipt.get("source_revision") != revision
         or rust_receipt.get("embedded_build_identity") != revision
         or rust_receipt.get("candidate_version") != version
         or rust_receipt.get("reproducibility_comparison") != "PASS"
     ):
         raise DossierError("candidate Rust package receipt identity is invalid")
+    _validate_rust_zenoh_consumption(rust_receipt.get("zenoh_consumption"))
     rust_archives = rust_receipt.get("archives")
     expected_rust_archives = [
         {
@@ -1756,7 +1844,6 @@ def _build(revision: str, output: Path) -> None:
                 [
                     sys.executable,
                     "scripts/check_rust_packages.py",
-                    "--offline",
                     "--output-dir",
                     str(products / "rust"),
                     "--source-revision",
@@ -1911,6 +1998,47 @@ def _self_test() -> None:
             pass
         else:
             raise AssertionError("duplicate JSON key passed candidate parsing")
+    zenoh_consumption = {
+        "status": "CONDITIONAL_PASS",
+        "condition": "EXACT_CONSUMING_ROOT_PATCH_REQUIRED",
+        "package_self_contained": False,
+        "self_contained_distribution_gate": "OPEN_FAIL_CLOSED",
+        "decision": "NO_GO",
+        "release_authorized": False,
+        "affected_archives": list(ZENOH_CONDITIONAL_CRATES),
+        "archive_fallbacks": [
+            {
+                "crate": crate,
+                "cargo_lock_sha256": "a" * 64,
+                "resolution_observation": "EXECUTED_OBSERVED_VULNERABLE",
+                "advisory": "RUSTSEC-2026-0041",
+                "zenoh_transport_source": CRATES_IO_SOURCE,
+                "zenoh_transport_checksum_sha256": ZENOH_TRANSPORT_REGISTRY_CHECKSUM,
+                "lz4_flex_version": "0.10.0",
+                "lz4_flex_source": CRATES_IO_SOURCE,
+                "lz4_flex_checksum_sha256": VULNERABLE_LZ4_CHECKSUM,
+                "compiled": False,
+            }
+            for crate in ZENOH_CONDITIONAL_CRATES
+        ],
+        "qualifying_root_patch": {
+            "repository": ZENOH_BACKPORT_GIT,
+            "revision": ZENOH_BACKPORT_REVISION,
+            "cargo_source": ZENOH_BACKPORT_SOURCE,
+            "lz4_flex_version": "0.11.6",
+            "lz4_flex_checksum_sha256": FIXED_LZ4_CHECKSUM,
+            "cargo_verifies_git_signature": False,
+        },
+    }
+    _validate_rust_zenoh_consumption(zenoh_consumption)
+    hostile_zenoh_consumption = json.loads(json.dumps(zenoh_consumption))
+    hostile_zenoh_consumption["qualifying_root_patch"]["revision"] = "0" * 40
+    try:
+        _validate_rust_zenoh_consumption(hostile_zenoh_consumption)
+    except DossierError:
+        pass
+    else:
+        raise AssertionError("wrong candidate Zenoh root patch passed validation")
     derivations = _source_derivations("a" * 40)
     if [record["artifact_roles"] for record in derivations] != [
         ["rust:ncp-core", "python:sdist"],

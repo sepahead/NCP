@@ -472,13 +472,13 @@
       "title": "Dependency feature unification activates excluded code",
       "category": "supply-chain",
       "boundary": "resolved dependency features",
-      "asset_or_claim": "reviewed Zenoh transport surface and advisory containment",
+      "asset_or_claim": "reviewed Zenoh transport surface and immutable security backport",
       "actor_or_trigger": "downstream feature unification or dependency update",
       "preconditions": [
         "a dependent enables defaults or transport compression"
       ],
-      "misuse_or_failure": "An excluded vulnerable or privileged feature enters the compiled surface silently.",
-      "accepted_case": "The reviewed lock and exact feature set keep defaults and compression disabled.",
+      "misuse_or_failure": "An unreviewed dependency source or privileged feature enters the compiled surface silently.",
+      "accepted_case": "The reviewed lock selects the exact fixed backport and keeps defaults and compression disabled.",
       "rejected_case": "Unexpected Zenoh defaults, compression, or unreviewed versions fail the dependency-exposure gate.",
       "impact": "The shipped attack surface differs from the reviewed candidate.",
       "detection": [
@@ -488,9 +488,9 @@
       "prevention": [
         "exact lock",
         "feature exposure checker",
-        "publication hold on the retained Zenoh/lz4 advisory"
+        "exact backport source, revision, and fixed lz4 dependency identity"
       ],
-      "failure_response": "Fail CI and keep publication blocked until the graph is patched and re-reviewed.",
+      "failure_response": "Fail CI until the changed graph is patched and re-reviewed.",
       "counterfactual_ids": [
         "CF-07"
       ],
@@ -519,7 +519,7 @@
       "control_status": "PARTIAL_LOCAL",
       "risk_status": "OPEN",
       "release_blocking": true,
-      "residual_risk": "The reviewed Zenoh path still locks the lz4_flex advisory while defaults and compression remain disabled under the resolved-feature guard; that specific residual blocks stable publication."
+      "residual_risk": "The exact backport removes the affected lz4_flex release from this root graph. Archive-alone Cargo metadata resolution was executed and observed the affected registry fallback. The exact consuming-root patch produced only a CONDITIONAL_PASS. Cargo does not verify the Git signature, and self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO."
     },
     {
       "id": "NCP-THREAT-008",

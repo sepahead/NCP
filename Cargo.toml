@@ -7,12 +7,12 @@
 # field shapes, generated schemas, prose, then the mandatory corpus. The protocol is
 # intended as a reusable standard (cf. MCP/ACP), not a Rust-only contract.
 #
-# This workspace is self-contained and **extractable**: it has no path/parent
-# dependency on the surrounding engram repo and can be lifted into its own
-# repository and packaged without a parent checkout. Public registry names and
-# ownership remain a separate release gate. Consumers (robot/UAV
-# bodies, analysis/observer clients, and a commander gateway) depend on `ncp-core`
-# (+ `ncp-zenoh`) as a normal dependency.
+# This workspace is repository-contained and **extractable** relative to Engram:
+# it has no path/parent dependency on that repository. This does not mean that a
+# normalized library archive propagates this workspace's root Cargo patches.
+# `ncp-zenoh` distribution remains release-blocked until its fixed dependency graph
+# is self-contained at the consuming root. Public registry names and ownership are
+# separate release gates.
 #
 # Crates:
 #   ncp-core    — protocol reference: canonical-JSON validation, lifecycle and
@@ -42,3 +42,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
 getrandom = "0.3.4"
+
+[patch.crates-io]
+# Narrow reviewed security backport for Zenoh 1.9.0. The full immutable revision
+# is inline, and Cargo.lock must resolve the same Git object.
+zenoh-transport = { git = "https://github.com/sepahead/zenoh-transport-lz4-backport", rev = "6b93b15d0795748b7f76c72eae07f1cda517e762" }

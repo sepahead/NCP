@@ -58,13 +58,24 @@ shipped ACL/TLS templates remain configuration-only, and generic `open()`,
 `with_config()`, or arbitrary config-file loading must not be represented as
 `production-secure`.
 
-The reviewed Cargo feature set is exactly TCP, TLS, UDP, and shared memory with
-Zenoh defaults and `transport_compression` disabled. Zenoh 1.9.0 otherwise reaches
-the block decompression affected by `RUSTSEC-2026-0041` through its fixed
-`lz4_flex` 0.10.0 dependency. The local gate verifies that the affected feature is
-absent, but Cargo feature unification by another dependency can re-enable it; such
-a downstream build is unsupported and not covered by this candidate review. The
-release hold remains until Zenoh permits a patched dependency.
+The reviewed Cargo feature set is exactly TCP, TLS, UDP, and shared memory.
+Zenoh defaults and `transport_compression` remain disabled. The workspace root
+patches only `zenoh-transport 1.9.0` to immutable revision
+`6b93b15d0795748b7f76c72eae07f1cda517e762`. That reviewed backport selects
+`lz4_flex 0.11.6`, which removes `RUSTSEC-2026-0041` from the root lock.
+
+Cargo verifies the selected Git object but does not verify its SSH signature.
+Cargo patches are root-selected and do not propagate from a published library
+dependency. Each source-tree consumer must retain the same exact root patch and
+run its own locked dependency gate. The normalized `ncp-zenoh` archive lock falls
+back to affected `lz4_flex 0.10.0` without that patch. The local package checker
+executes archive-alone Cargo metadata and observes the fallback, then tests under
+the exact consuming-root patch. The patched run is `CONDITIONAL_PASS`;
+self-contained distribution remains `OPEN_FAIL_CLOSED` and `NO_GO`. A future
+package candidate must replace this temporary source with a qualified immutable
+upstream release or another reviewed distribution design. Cargo feature
+unification by another dependency can also enable unreviewed Zenoh features. Such
+a build is outside this candidate profile.
 
 `serve_rpc` bounds concurrent handler lifetimes, contains panics, validates
 selector/request/reply/session correlation, and returns registered errors:

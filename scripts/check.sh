@@ -229,9 +229,9 @@ step "version metadata coherence"
 scripts/check-version-coherence.sh --self-test
 scripts/check-version-coherence.sh
 
-step "Rust crate archive self-containment"
+step "Rust candidate archives + conditional Zenoh consumption"
 python3 scripts/check_rust_packages.py --self-test
-python3 scripts/check_rust_packages.py --offline
+python3 scripts/check_rust_packages.py
 python3 scripts/build_candidate_dossier.py --self-test
 
 step "dependency, license, and source policy"
