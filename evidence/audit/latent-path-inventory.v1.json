@@ -78,9 +78,9 @@
       },
       {
         "path": ".github/dependabot.yml",
-        "bytes": 368,
-        "sha256": "c822e7bd893609c9d3c02a3b69cf68bc786b063210b6a48a91be206f4d70e213",
-        "git_blob_oid": "7caa2f7cbf9afb4fdd1d3c0b282bd499378e4858",
+        "bytes": 366,
+        "sha256": "7d035a0d0cbc68969676af27cad706bb1b67f361596aa06f943583d292b4953b",
+        "git_blob_oid": "4a36c4b636e3a6d8851c1942db54a36f93e05bfb",
         "indexed": true
       },
       {
