@@ -166,7 +166,7 @@ PATH="$tmp_dir/venv/bin:$PATH" \
 step "TypeScript generated source + prebuilt dist are reproducible"
 git diff --binary -- ncp-core/bindings ncp-ts/src/generated ncp-ts/dist \
     > "$tmp_dir/ts-before.diff"
-bun install --frozen-lockfile
+bun install --frozen-lockfile --backend=copyfile --force
 bun run regen
 git diff --binary -- ncp-core/bindings ncp-ts/src/generated ncp-ts/dist \
     > "$tmp_dir/ts-after.diff"

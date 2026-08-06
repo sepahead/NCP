@@ -224,10 +224,16 @@ function boundedRegularFile(path, context, maximumBytes) {
   } catch (error) {
     fail(`${context} is unavailable: ${error.message}`)
   }
+  if (!pathBefore.isFile() || pathBefore.isSymbolicLink()) {
+    fail(`${context} is not one bounded unaliased regular file`)
+  }
+  if (pathBefore.nlink !== 1) {
+    const remediation = context.startsWith('TypeScript package file ')
+      ? '; reinstall with bun install --frozen-lockfile --backend=copyfile --force'
+      : ''
+    fail(`${context} has ${pathBefore.nlink} filesystem links${remediation}`)
+  }
   if (
-    !pathBefore.isFile() ||
-    pathBefore.isSymbolicLink() ||
-    pathBefore.nlink !== 1 ||
     !Number.isSafeInteger(pathBefore.size) ||
     pathBefore.size < 0 ||
     pathBefore.size > maximumBytes
@@ -1088,7 +1094,10 @@ function verifyTypeScriptTreeBoundaryGuards(destination) {
   mkdirSync(hardlinkedRoot)
   writeFileSync(join(hardlinkedRoot, 'target.js'), 'export const value = 1\n')
   linkSync(join(hardlinkedRoot, 'target.js'), join(hardlinkedRoot, 'alias.js'))
-  assert.throws(() => typeScriptPackageTree(hardlinkedRoot))
+  assert.throws(
+    () => typeScriptPackageTree(hardlinkedRoot),
+    /reinstall with bun install --frozen-lockfile --backend=copyfile --force/,
+  )
   rmSync(hardlinkedRoot, { recursive: true, force: true })
 
   const nonAsciiRoot = join(destination, 'typescript-non-ascii-fixture')

@@ -392,7 +392,7 @@ jobs:
       # rebuilt into dist cannot ship a stale artifact. typescript is pinned in
       # package.json for a reproducible build.
       - name: Install deps
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --backend=copyfile --force
       - name: Sync generated sources + rebuild TS dist
         run: |
           bun run sync

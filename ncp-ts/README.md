@@ -136,7 +136,7 @@ independent live transport peer or add another normative contract layer.
 Regenerate and verify with:
 
 ```bash
-bun install --frozen-lockfile
+bun install --frozen-lockfile --backend=copyfile --force
 bun run regen
 bun run check:behavior
 bun run check:integers
@@ -169,7 +169,9 @@ same revision through the Rust compile-time identity probe and staged TypeScript
 build. Before and after compilation, it compares all 132 regular files in the
 installed TypeScript 5.9.2 package with the source-controlled Bun-integrity and
 normalized-tree control. It rejects links, special files, path aliases,
-unexpected files, and byte-limit violations. The receipt binds that complete file
+unexpected files, and byte-limit violations. The explicit `copyfile` backend and
+`--force` option above avoid Bun's Linux hard-link default and rematerialize the
+package files before verification. The receipt binds that complete file
 manifest, the Bun lock, the compiler launcher, the package manifest, and the Node
 executable. It installs and checks both the repository-root and nested `ncp-ts`
 tarballs, then atomically emits them with `npm-release-build-receipt.json` and

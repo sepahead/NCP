@@ -62,7 +62,7 @@ jobs:
           python3 -m pip --version | grep -Eq '^pip 26\.1\.2 '
           cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"
           test "$(cargo deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --backend=copyfile --force
           cargo fetch --locked
 
       - name: Current policy scan and evidence-pinned replay

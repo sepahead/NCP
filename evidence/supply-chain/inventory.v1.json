@@ -2161,7 +2161,7 @@
         "npm release receipt"
       ],
       "path": "ncp-ts/scripts/build-release.mjs",
-      "sha256": "ecf2ec2e14077f9d319330ca128b12fb5dbdae9ee86639d82526108852c336cf"
+      "sha256": "fbaef65ff4e37981e294d8a55f6f68010404b664aad20ba7cc2db32aeb07a728"
     },
     {
       "outputs": [
