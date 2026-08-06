@@ -1975,16 +1975,16 @@
       },
       {
         "path": "docs/diagrams/topology-dark.svg",
-        "bytes": 25778,
-        "sha256": "f2ccbf6bfb9852bbd843ee85484215a021119a276f6da6ace77c36ef187a8e48",
-        "git_blob_oid": "7a9d1f59475b2f624d27bb8884e9e31f1d6132c8",
+        "bytes": 25823,
+        "sha256": "79eabad2b4b02efb5d8eaea0a10b444803dea0f1886687fe38ae06c6117054c7",
+        "git_blob_oid": "189c79fae99e56e2c8bf2649f31e3bbe8aad915f",
         "indexed": true
       },
       {
         "path": "docs/diagrams/topology-light.svg",
-        "bytes": 25704,
-        "sha256": "dea92824cab3846224e2ee7ccf1b5dc0bb3896d35addd566747299788b20e72a",
-        "git_blob_oid": "fc1b6b48486be0a741cf368caf5a6dba46de458e",
+        "bytes": 25749,
+        "sha256": "7437904f4126e236167ef3a8ea15bdfca563eb84745e11ee3b9a2e6f63955408",
+        "git_blob_oid": "30d9c2f156abaa8eb252ea46b691d51a13a69dd2",
         "indexed": true
       },
       {
@@ -2340,8 +2340,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 127526,
-        "sha256": "480725577355abef86659cdf8c686d6c5b892187f9846c03315ca88b74ed8250",
-        "git_blob_oid": "742d8610ce07c97d2011c0be810537749882249a",
+        "sha256": "238c836c19d7cff85daa7bfac9cebd3d09e09ac4d9866e99f9545e8689910f63",
+        "git_blob_oid": "f95107b649f76e9ac3d4d80cbee007a67634a9ea",
         "indexed": true
       },
       {
@@ -6644,9 +6644,9 @@
       },
       {
         "path": "scripts/gen_diagrams.py",
-        "bytes": 74622,
-        "sha256": "99daa1495fa495b568b69710eb81460cfb82388c97a793ac239e4a022f5dcdcb",
-        "git_blob_oid": "4d28eb4512117742d92acacd958ea0cd8bb18b0e",
+        "bytes": 76167,
+        "sha256": "e2cde2f2a2cd4b37b27cef9a182200bd29f2cec251e70b89cf49374a402d4565",
+        "git_blob_oid": "932bbf7c2610befb21ab6f51c89946ab0bcd831e",
         "indexed": true
       },
       {

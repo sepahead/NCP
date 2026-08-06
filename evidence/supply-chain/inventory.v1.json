@@ -2216,7 +2216,7 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "99daa1495fa495b568b69710eb81460cfb82388c97a793ac239e4a022f5dcdcb"
+      "sha256": "e2cde2f2a2cd4b37b27cef9a182200bd29f2cec251e70b89cf49374a402d4565"
     },
     {
       "outputs": [

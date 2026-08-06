@@ -42,6 +42,23 @@ CURRENT_META = (
     f"COMPACT PROTO HASH {CONTRACT_HASH}"
 )
 
+EXPECTED_PLANE_KEY_GRAMMAR = (
+    "{realm}/rpc/{request_kind} | "
+    "{realm}/session/{session_id}/{sensor|command}[/{channel}] | "
+    "{realm}/session/{session_id}/observation"
+)
+PLANE_CONTRACT = json.loads(
+    (ROOT / "contract" / "planes.v1.json").read_text(encoding="utf-8")
+)
+PLANE_KEY_GRAMMAR = PLANE_CONTRACT.get("key_grammar")
+if PLANE_KEY_GRAMMAR != EXPECTED_PLANE_KEY_GRAMMAR:
+    raise ValueError("plane contract key grammar changed; review every diagram route")
+RPC_ROUTE, SESSION_ROUTE_TEMPLATE, OBSERVATION_ROUTE = PLANE_KEY_GRAMMAR.split(" | ")
+if SESSION_ROUTE_TEMPLATE.count("{sensor|command}") != 1:
+    raise ValueError("plane contract has no singular sensor/command route selector")
+SENSOR_ROUTE = SESSION_ROUTE_TEMPLATE.replace("{sensor|command}", "sensor")
+COMMAND_ROUTE = SESSION_ROUTE_TEMPLATE.replace("{sensor|command}", "command")
+
 SVG_ACCESSIBILITY = {
     "topology": (
         "NCP commander-body topology",
@@ -474,8 +491,8 @@ def topology(th):
     s.append(card(th, *U2, th["observation"], "U2"))
     s.append(ic_robot(630, 286, 24, th["observation"]))
     s.append(T(662, 300, "robot / UAV body", 14, 700, th["tprim"]))
-    s.append(T(662, 316, "the plant", 10.5, 500, th["tsec"]))
-    s.append(T(662, 329, "example: Crebain", 10.5, 500, th["tsec"]))
+    s.append(T(662, 316, "generic plant role", 10.5, 500, th["tsec"]))
+    s.append(T(662, 329, "qualification: NOT RUN", 10.5, 500, th["tsec"]))
 
     s.append(card(th, *O1, th["observation"], "O1", dashed=True))
     s.append(ic_eye(312, 494, 22, th["observation"]))
@@ -496,9 +513,9 @@ def topology(th):
             o.append(T(x + 28 + len(concept) * 7 + 14, y + 13, body, 9.5, 500, th["tsec"]))
         return "".join(o)
 
-    s.append(chip(430, 168, 320, "C1", ctl, "CONTROL", "{realm}/rpc/{request_kind}", "reliable · request/reply · queryable"))
-    s.append(chip(430, 210, 306, "P1", per, "PERCEPTION", "{realm}/session/{id}/sensor[/{name}]", "best-effort-replace-latest · lossy"))
-    s.append(chip(430, 442, 310, "O1", obs, "OBSERVATION", "{realm}/session/{id}/observation", "body publishes"))
+    s.append(chip(430, 168, 320, "C1", ctl, "CONTROL", RPC_ROUTE, "reliable · request/reply · queryable"))
+    s.append(chip(430, 210, 370, "P1", per, "PERCEPTION", SENSOR_ROUTE, "best-effort-replace-latest · lossy"))
+    s.append(chip(430, 442, 350, "O1", obs, "OBSERVATION", OBSERVATION_ROUTE, "body publishes"))
 
     # ---- THE HERO: ACTION chip (the one glow) ----
     aw, ah = 336, 96
@@ -513,7 +530,7 @@ def topology(th):
     s.append(T(ax + 42, ay + 27, "ACTION", 12, 700, act, track=1.6))
     s.append(T(ax + aw - 16, ay + 27, "express · RealTime · safety-gated", 9, 600, act, anchor="end", op=0.95))
     # wire key row
-    s.append(T(ax + 14, ay + 46, "{realm}/session/{id}/command[/{name}]", 9.5, 500, th["tmut"], mono=True))
+    s.append(T(ax + 14, ay + 46, COMMAND_ROUTE, 8.5, 500, th["tmut"], mono=True))
     # mode-pill row — the wire enum made visible {init·active·hold·estop}
     py = ay + 56
     s.append(T(ax + 14, py + 13, "mode", 9, 600, th["tmut"], mono=True))
@@ -558,13 +575,13 @@ TOPOLOGY_ALT = ("NCP topology: one Commander (a NEST-brain neuromorphic controll
     "Body/plant (robot or UAV, U2) over four QoS planes, plus a read-only Observer client (O1) that "
     "must be authorized by the transport-bound manifest. The safety-gated ACTION plane is the focal "
     "element — the heaviest, brightest "
-    "vermillion trace running dead-center from Commander to Body, carrying {realm}/session/{id}/command"
-    "[/{name}] as express, RealTime, safety-gated traffic with a visible mode enum (init, active, hold, "
+    f"vermillion trace running dead-center from Commander to Body, carrying {COMMAND_ROUTE} as "
+    "express, RealTime, safety-gated traffic with a visible mode enum (init, active, hold, "
     "estop — estop flagged danger-red) and ttl_ms. The Body is final actuator authority and executes "
     "plant-profile-declared safe actions; NCP defines no universal zero-safe action. CONTROL "
-    "({realm}/rpc/{request_kind}) is a reliable, bidirectional request/reply rail; the server declares "
-    "{realm}/rpc/*. PERCEPTION ({realm}/session/{id}/sensor[/{name}]) is a "
-    "dashed best-effort-replace-latest plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) "
+    f"({RPC_ROUTE}) is a reliable, bidirectional request/reply rail; the server declares "
+    f"{{realm}}/rpc/*. PERCEPTION ({SENSOR_ROUTE}) is a dashed best-effort-replace-latest plane "
+    f"from Body to Commander. OBSERVATION ({OBSERVATION_ROUTE}) "
     "is a dotted read-only tap canonically published by the Body to the Observer. This depicts the "
     f"unreleased {CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash "
     f"{CONTRACT_HASH}; it is not a "
@@ -1175,6 +1192,32 @@ def public_svg_accessibility_problems() -> list[str]:
     return problems
 
 
+def topology_contract_problems() -> list[str]:
+    """Keep the current topology aligned with the normative plane grammar."""
+    problems = []
+    required = (
+        RPC_ROUTE,
+        SENSOR_ROUTE,
+        COMMAND_ROUTE,
+        OBSERVATION_ROUTE,
+        "qualification: NOT RUN",
+    )
+    forbidden = (
+        "{realm}/session/{id}",
+        "[/{name}]",
+        "example: Crebain",
+    )
+    for theme in (LIGHT, DARK):
+        source = topology(theme)
+        for text in required:
+            if text not in source:
+                problems.append(f"{theme['name']} topology omits {text!r}")
+        for text in forbidden:
+            if text in source:
+                problems.append(f"{theme['name']} topology retains stale text {text!r}")
+    return problems
+
+
 def _relative_luminance(color: str) -> float:
     if len(color) != 7 or not color.startswith("#"):
         raise ValueError(f"expected six-digit hex color, got {color!r}")
@@ -1315,6 +1358,7 @@ def main():
                 print(f"wrote {p}  ({len(svg)} bytes)")
 
     stale.extend(fsm_contrast_problems())
+    stale.extend(topology_contract_problems())
     stale.extend(public_svg_accessibility_problems())
 
     if stale:
