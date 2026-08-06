@@ -12,8 +12,9 @@
  * - {@link ActionBuffer} — packetized-predictive-control replay: latest command
  *   + horizon, ttl-bounded, latched ESTOP, `active`-mode allowlist.
  * - {@link SafetyGovernor} — HOLD on stale sensor, latched ESTOP on geofence
- *   breach / inbound ESTOP / link collapse, magnitude speed clamp (tick 0 and
- *   every horizon step), config fail-closed on unenforceable limits.
+ *   breach, inbound ESTOP, a reported loss burst, or sustained sensor silence;
+ *   magnitude speed clamp (tick 0 and every horizon step); config fail-closed on
+ *   unenforceable limits.
  * - {@link maxHorizonLen} — bound a horizon to its deadline.
  * - {@link assertWireFrame} — the wire-1.0 data-plane ingress gate (compatible
  *   `ncp_version`, stamped `stream.seq`), mirroring `ncp_core::decode_validated`.
@@ -50,6 +51,7 @@ export interface CommandLike {
     frame_id?: string;
     mode: Mode;
     ttl_ms?: number;
+    authority?: unknown;
     channels: WireChannels;
     horizon?: WireChannels[];
     horizon_dt_ms?: number | null;
@@ -68,10 +70,15 @@ export interface SensorLike {
 /** Upper bound on an enforced command ttl (ms) — mirrors `safety.rs::MAX_TTL_MS`:
  *  the wire field is unbounded, but the plant-side deadline must stay finite. */
 export declare const MAX_TTL_MS = 60000;
-/** How many consecutive `command_timeout_ms` deadlines of TOTAL sensor silence
- *  escalate the non-latching staleness HOLD to a latched ESTOP (mirrors
+/** Factor in the total-silence ESTOP threshold
+ *  `min(factor * min(timeout, MAX_TTL_MS), MAX_TTL_MS)` (mirrors
  *  `safety.rs::LINK_LOSS_ESTOP_FACTOR`). */
 export declare const LINK_LOSS_ESTOP_FACTOR = 20;
+/** A local governor failure for which no NCP wire frame exists. */
+export declare class SafetyGovernError extends Error {
+    readonly code: 'unattributable-envelope' | 'bounded-safe-frame';
+    constructor(code: 'unattributable-envelope' | 'bounded-safe-frame');
+}
 /**
  * Plant-side deadline backstop enforcing `CommandFrame.ttl_ms` — mirrors
  * `ncp_core::CommandWatchdog` exactly, including wire-1.0 stream discipline:
@@ -85,9 +92,10 @@ export declare class CommandWatchdog {
     private clockHighWaterS;
     private clockFaulted;
     private observeClock;
-    /** Record an accepted command at local time `nowS` with its `ttl_ms` and `seq`. */
+    /** Record an accepted command at receiver-local monotonic time `nowS`. */
     onCommand(nowS: number, ttlMs: number, seq: number): void;
-    /** True if the plant must fail safe to HOLD (no command, expired, bad clock). */
+    /** Check expiry with the same receiver-local monotonic clock used by
+     * {@link onCommand}. Returns true for no command, expiry, or a clock fault. */
     shouldHold(nowS: number): boolean;
 }
 /** Cap future horizon entries to the strict watchdog deadline. Entry `i` is due
@@ -112,13 +120,16 @@ export declare class ActionBuffer {
     private lastSeq;
     private activeEpoch;
     private retired;
+    /** Ingest at receiver-local monotonic time `nowS`. Use the same clock for
+     * {@link active} and {@link shouldHold}. */
     onCommand(nowS: number, command: CommandLike): void;
     /** Clear this local ESTOP latch and permanently retire the old session/stream
      * context. Construct a fresh ActionBuffer after the required generation cut. */
     reset(): void;
     isRetired(): boolean;
     isEstopped(): boolean;
-    /** The setpoint channels to apply at `nowS`, or `null` to fail safe (HOLD). */
+    /** The setpoint channels to apply at receiver-local monotonic `nowS`, or
+     * `null` to fail safe (HOLD). */
     active(nowS: number): WireChannels | null;
     shouldHold(nowS: number): boolean;
 }
@@ -151,15 +162,31 @@ export declare class SafetyGovernor {
      * does not authenticate or restore session authority; config failure stays set. */
     reset(): void;
     isEstopped(): boolean;
-    /** Latch ESTOP when the link monitor reports a sustained loss burst (a jam). */
+    /** Latch ESTOP when the link monitor reports a sustained loss burst. Possible
+     * causes include congestion, interference, sender failure, and jamming. The
+     * report does not identify the cause. The installed body executor must map the
+     * ESTOP state through its content-addressed plant profile. */
     noteLink(burst: boolean): void;
     safetyOk(): boolean;
     private zeroedChannels;
+    private hasAttributableEnvelope;
+    private hasBoundedProgrammaticShape;
+    private normalizeBoundedWireCandidate;
+    private hasBoundedProgrammaticSensor;
+    private isAdmittedSensor;
     private safeFrame;
     /**
      * Apply safety to `command` against the latest `sensor`. `nowS`/`lastSensorS`
-     * are wall-clock seconds (the plant's own clock). Returns a fresh frame; ESTOP
-     * latches (call {@link reset} to clear).
+     * must be readings from the same receiver-local monotonic clock. A successful
+     * call returns an attributable, canonical, bounded wire-shape candidate. The
+     * standalone governor has no publisher allocator or stream high-water and does
+     * not prove that the returned position is fresh. ESTOP latches until
+     * {@link reset} clears the local latch.
+     *
+     * @throws {SafetyGovernError} after latching when the command envelope is not
+     * attributable or no deterministic safe-frame tier has a bounded valid wire
+     * shape. The caller or transport separately supplies and admits the owning
+     * publisher's next fresh position, route, and live session generation.
      */
     govern(command: CommandLike, sensor: SensorLike | null, nowS: number, lastSensorS: number | null): CommandLike;
     private enforceGeofenceTrajectory;

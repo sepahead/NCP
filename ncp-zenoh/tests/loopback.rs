@@ -114,7 +114,9 @@ async fn zenoh_closed_loop_roundtrip() {
         sensor.stream.seq += 1;
         tokio::time::sleep(Duration::from_millis(100)).await;
         if control.transport.latest_sensor().is_some() {
-            control.tick(); // publishes a CommandFrame on the action plane
+            control
+                .tick()
+                .expect("loopback command identity remains attributable");
         }
         if let Some(c) = last_cmd.lock().unwrap().clone() {
             received = Some(c);

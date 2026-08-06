@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="204 184 92 92" width="92" height="92" role="img" aria-label="ncp logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="204 184 92 92" width="92" height="92" role="img" aria-labelledby="ncp-logo-title ncp-logo-desc">
+  <title id="ncp-logo-title">NCP logo</title>
+  <desc id="ncp-logo-desc">Animated NCP gate mark for the UNRELEASED candidate. A central protocol gate and moving packet and port accents indicate pass-or-fail admission; motion adds no unique meaning. It is not release, interoperability, or certification evidence.</desc>
   <defs>
     <radialGradient id="hubGrad" cx="50%" cy="42%" r="65%">
       <stop offset="0%" stop-color="#06281d"/>

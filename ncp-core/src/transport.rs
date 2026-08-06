@@ -1,7 +1,8 @@
 //! Closed-loop control runner (sync) — the layered special case where a neural
 //! backend (e.g. an Engram network) is "just another controller". A `Controller`
 //! turns the latest `SensorFrame` into a `CommandFrame`; a `SafetyGovernor` clamps
-//! it; a `ControlTransport` delivers it. (A Python peer mirrors this in its
+//! it; a `ControlTransport` admits it to a local transport slot. Slot admission is
+//! not a network-delivery acknowledgement. (A Python peer mirrors this in its
 //! `transport`/`loop` modules.)
 //!
 //! Clocks are injectable so the loop is deterministic under test.
@@ -10,8 +11,73 @@ use crate::messages::{
     AuthorityLease, ChannelValue, CommandFrame, ControlStatus, Mode, SafetyLimits, SensorFrame,
     SessionRef, StreamPosition, WireFrame, JSON_SAFE_INTEGER_MAX,
 };
-use crate::safety::{SafetyGovernor, MAX_TTL_MS};
+use crate::safety::{SafetyGovernError, SafetyGovernor, MAX_TTL_MS};
 use std::sync::{Arc, Mutex};
+
+/// A fail-closed local control-loop tick error.
+///
+/// The loop records no successful command admission or status for a failed tick.
+/// A transport that reports an invalid admitted position has violated the trait
+/// contract; its external side effects are ambiguous and cannot be undone here.
+/// An already pending asynchronous command is not a delivery acknowledgement and
+/// can remain in the transport.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ControlLoopTickError {
+    /// The loop-local candidate allocator consumed JSON-safe position `2^53-1`.
+    /// This is detected before the controller runs.
+    CommandStreamExhausted,
+    /// A transport-owned action-stream allocator was exhausted during slot
+    /// admission. The controller and governor can already have run.
+    TransportCommandStreamExhausted,
+    /// The transport synchronously rejected the final governed command before
+    /// admitting it to a publication slot.
+    CommandPublicationRejected,
+    /// The transport claimed admission with an invalid position, changed its
+    /// action-stream epoch, failed to advance a new position, or claimed a
+    /// replacement at anything other than the last admitted position. The loop
+    /// latches this error; recovery requires a fresh loop/transport generation.
+    InvalidTransportAdmission,
+    /// The safety governor could not produce a bounded, semantically valid command
+    /// candidate.
+    Safety(SafetyGovernError),
+}
+
+impl std::fmt::Display for ControlLoopTickError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CommandStreamExhausted => formatter.write_str(
+                "control-loop candidate stream is exhausted; create a fresh declaration",
+            ),
+            Self::TransportCommandStreamExhausted => formatter.write_str(
+                "transport command stream is exhausted; create a fresh transport declaration",
+            ),
+            Self::CommandPublicationRejected => {
+                formatter.write_str("transport rejected the governed command before slot admission")
+            }
+            Self::InvalidTransportAdmission => formatter
+                .write_str("transport returned an invalid or inconsistent command-slot admission"),
+            Self::Safety(error) => write!(formatter, "control-loop safety failure: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for ControlLoopTickError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::CommandStreamExhausted
+            | Self::TransportCommandStreamExhausted
+            | Self::CommandPublicationRejected
+            | Self::InvalidTransportAdmission => None,
+            Self::Safety(error) => Some(error),
+        }
+    }
+}
+
+impl From<SafetyGovernError> for ControlLoopTickError {
+    fn from(error: SafetyGovernError) -> Self {
+        Self::Safety(error)
+    }
+}
 
 /// A fail-closed local control-loop construction error.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -59,15 +125,23 @@ pub fn mint_stream_epoch() -> Result<String, ControlLoopConfigError> {
     ))
 }
 
-/// Result of handing one candidate command to a transport-owned publication
-/// slot. A replacement reuses the not-yet-published position and therefore must
-/// not advance the loop's publisher counter. `Accepted` is bounded local slot
-/// admission, not a delivery acknowledgement; an asynchronous put can still be
-/// delivery-ambiguous and must consume its transport position.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Result of handing one governed command to a transport-owned publication slot.
+///
+/// An admitted outcome carries the exact stream position assigned to the stored
+/// command. A replacement reuses the not-yet-published position and therefore
+/// must not advance the loop's candidate counter. `Accepted` is bounded local
+/// slot admission, not a delivery acknowledgement; an asynchronous put can still
+/// be delivery-ambiguous and must consume its transport position. Within one
+/// transport binding, `Accepted` must retain one canonical epoch and strictly
+/// advance its position; `ReplacedPending` must equal the most recently admitted
+/// position. A malformed or inconsistent admitted outcome is a transport contract
+/// violation, never operation success. A panic is also an ambiguous admission:
+/// the loop contains the unwind and permanently retires that transport binding.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CommandSendOutcome {
-    Accepted,
-    ReplacedPending,
+    Accepted(StreamPosition),
+    ReplacedPending(StreamPosition),
+    StreamExhausted,
     Rejected,
 }
 
@@ -131,7 +205,7 @@ impl ControlTransport for InProcessTransport {
         let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         g.last_command = Some(command.clone());
         g.commands.push(command.clone());
-        CommandSendOutcome::Accepted
+        CommandSendOutcome::Accepted(command.stream.clone())
     }
     fn latest_sensor(&self) -> Option<SensorFrame> {
         self.inner
@@ -285,15 +359,28 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     /// Current authenticated commander lease supplied by the host authority
     /// service. The loop never fabricates or acquires authority from payload data.
     authority: Option<AuthorityLease>,
+    /// A panic can leave arbitrary controller state partially mutated. Once one
+    /// occurs, this loop never invokes or trusts that controller again; recovery
+    /// requires a fresh loop/controller generation.
+    controller_failed: bool,
+    /// A malformed admitted position or panic during admission leaves the
+    /// transport's action-stream state ambiguous. No local reset can prove whether
+    /// bytes are pending or published, so this loop retires the transport
+    /// permanently after the first violation.
+    transport_failed: bool,
     now_fn: Box<dyn Fn() -> f64 + Send>,
     command_stream_epoch: String,
     command_seq: i64,
+    /// Last transport-owned action position accepted by this loop. It binds all
+    /// later admission receipts to one epoch, strict advancement for new slots,
+    /// and exact position reuse for pre-publication replacement.
+    last_admitted_command_position: Option<StreamPosition>,
     status_stream_epoch: String,
     /// Last consumed position in the loop-owned status stream. Zero means no
     /// status has been published yet and is never emitted on the wire.
     status_seq: i64,
-    /// Link-health monitor over the inbound sensor `seq` stream — feeds the
-    /// HOLD->ESTOP jam escalation (a sustained loss burst latches ESTOP).
+    /// Link-health monitor over the inbound sensor `seq` stream. A sustained loss
+    /// burst feeds the HOLD-to-ESTOP escalation without identifying its cause.
     link: crate::resilience::LinkMonitor,
     last_sensor_t: Option<f64>,
     /// Last accepted sensor's `(t, seq)`, to detect a frozen/cached stream. The
@@ -349,9 +436,12 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             session_id,
             session,
             authority: None,
+            controller_failed: false,
+            transport_failed: false,
             now_fn: Box::new(monotonic_secs),
             command_stream_epoch,
             command_seq: 0,
+            last_admitted_command_position: None,
             status_stream_epoch,
             status_seq: 0,
             link: crate::resilience::LinkMonitor::with_defaults("ncp-loop"),
@@ -399,11 +489,34 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         dt_ms.is_finite() && dt_ms > 0.0 && dt_ms * 2.0 <= MAX_TTL_MS
     }
 
-    /// One control step: read sensor → controller → safety → send.
-    pub fn tick(&mut self) -> CommandFrame {
+    /// One control step: read sensor → controller → safety → transport-slot
+    /// admission.
+    ///
+    /// # Errors
+    ///
+    /// Local candidate exhaustion is detected before the controller runs.
+    /// Transport-owned exhaustion, synchronous rejection, a panicking admission,
+    /// or an invalid admission receipt is detected later, after governance but
+    /// before status emission. A panic or invalid receipt permanently retires this
+    /// loop/transport binding. For a tick with an accepted sensor, `Ok` means the
+    /// returned command and its exact
+    /// position were admitted to a bounded local transport slot; it is not a
+    /// network-delivery acknowledgement. Before the first accepted sensor, `Ok` is
+    /// a local governed fallback and status update only; no command is offered to
+    /// the transport.
+    pub fn tick(&mut self) -> Result<CommandFrame, ControlLoopTickError> {
+        if self.transport_failed {
+            return Err(ControlLoopTickError::InvalidTransportAdmission);
+        }
         let now = (self.now_fn)();
         let tick_clock_ok =
             now.is_finite() && self.last_tick_now.is_none_or(|previous| now >= previous);
+        if tick_clock_ok {
+            // Clock admission is independent of command/status success. Retain
+            // every trustworthy sample before any later `?` or transport error so
+            // an erroring tick cannot let a subsequent rewind re-anchor liveness.
+            self.last_tick_now = Some(now);
+        }
         // Wire 1.0: an unstamped sensor (`seq < 1`) is not a wire-legal frame —
         // treat it as ABSENT entirely (no freshness refresh, no link feed, no
         // correlate, not even geofence input): an invalid frame is no frame.
@@ -456,36 +569,47 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         } else {
             None
         };
-        let (mut cmd, controller_fault) = if rate_is_safe && sensor.is_some() {
+        let command_seq = self
+            .command_seq
+            .checked_add(1)
+            .filter(|seq| *seq <= JSON_SAFE_INTEGER_MAX)
+            .ok_or(ControlLoopTickError::CommandStreamExhausted)?;
+        let mut cmd = if rate_is_safe && sensor.is_some() && !self.controller_failed {
             match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 self.controller.step(sensor, dt_ms)
             })) {
-                Ok(command) => (command, false),
-                Err(_) => (CommandFrame::default(), true),
+                Ok(command) => command,
+                Err(_) => {
+                    // Unwinding can leave the controller partially mutated even
+                    // when the panic itself is caught. Retire it permanently;
+                    // `AssertUnwindSafe` is containment, not state validation.
+                    self.controller_failed = true;
+                    CommandFrame::default()
+                }
             }
         } else {
-            (CommandFrame::default(), false)
+            CommandFrame::default()
         };
+        let controller_fault = self.controller_failed;
         // The command owns a distinct stream and local creation time. The driving
         // sensor travels only in `source`/`source_t`; equating publisher streams
         // would turn intentional sensor decimation into command loss/replay state.
-        // A candidate seq is committed only after publication, so rejected frames
-        // do not create artificial gaps in the action stream.
-        let next_command_seq = self
-            .command_seq
-            .checked_add(1)
-            .filter(|seq| *seq <= JSON_SAFE_INTEGER_MAX);
-        if let (Some(s), Some(command_seq)) = (self.accepted_sensor.as_ref(), next_command_seq) {
-            cmd.stream = StreamPosition {
-                epoch: self.command_stream_epoch.clone(),
-                seq: command_seq,
-            };
+        // A candidate seq is committed only after transport-slot acceptance, so a
+        // synchronous rejection does not advance this loop-local counter.
+        cmd.stream = StreamPosition {
+            epoch: self.command_stream_epoch.clone(),
+            seq: command_seq,
+        };
+        cmd.session = self.session.clone();
+        cmd.session_id.clone_from(&self.session_id);
+        cmd.t = if now.is_finite() { now } else { 0.0 };
+        if let Some(s) = self.accepted_sensor.as_ref() {
             cmd.source = Some(s.stream.clone());
             cmd.source_t = s.t;
-            cmd.session = self.session.clone();
-            cmd.session_id.clone_from(&self.session_id);
-            cmd.t = if now.is_finite() { now } else { 0.0 };
             cmd.frame_id.clone_from(&s.frame_id);
+        } else {
+            cmd.source = None;
+            cmd.source_t = 0.0;
         }
         if cmd.mode == Mode::Active {
             cmd.authority = self
@@ -513,11 +637,12 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         if cmd.mode == Mode::Active && cmd.validate_wire().is_err() {
             cmd.mode = Mode::Hold;
         }
-        // Escalate to a latched ESTOP if the link monitor reports a jam (a sustained
-        // loss burst): a collapsed link must de-energize to safe, not sit in
-        // self-clearing HOLD. Checked every tick so the latch persists once tripped.
+        // Escalate to a latched ESTOP if the link monitor reports a sustained loss
+        // burst. An installed body executor must map ESTOP through its plant
+        // profile; the burst does not prove jamming or define a universal physical
+        // action. Checked every tick so the latch persists once tripped.
         self.gov.note_link(self.link.is_burst());
-        let mut cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t);
+        let mut cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t)?;
         // loop_latency_ms is a real health field: emit the measured tick cost (not a
         // constant 0.0) and flag an overrun past the loop period in `note`. Measure
         // before publishing: if the clock failed during computation, force this
@@ -526,17 +651,65 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         let measured_latency_ms = (end - now) * 1000.0;
         let clock_ok =
             tick_clock_ok && end.is_finite() && end >= now && measured_latency_ms.is_finite();
+        if clock_ok {
+            // Retain the highest trustworthy intra-tick sample before transport
+            // admission, whose synchronous error paths return early.
+            self.last_tick_now = Some(end);
+        }
         if !clock_ok && cmd.mode != Mode::Estop {
             cmd.mode = Mode::Hold;
-            cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t);
+            cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t)?;
         }
-        // Before the first accepted sensor there is no truthful session/source
-        // binding. At command-sequence exhaustion, fail closed instead of reusing
-        // the final position. The plant remains responsible for its own watchdog.
-        if self.accepted_sensor.is_some() && cmd.validate_wire().is_ok() {
-            if let Some(next_seq) = next_command_seq {
-                if self.transport.send_command(&cmd) == CommandSendOutcome::Accepted {
-                    self.command_seq = next_seq;
+        // Before the first accepted sensor there is no truthful source binding.
+        // Offer only a valid governed frame; the plant retains its own watchdog.
+        if self.accepted_sensor.is_some() {
+            if cmd.validate_wire().is_err() {
+                return Err(ControlLoopTickError::CommandPublicationRejected);
+            }
+            let outcome = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                self.transport.send_command(&cmd)
+            })) {
+                Ok(outcome) => outcome,
+                Err(_) => {
+                    // A transport can mutate or admit its slot before unwinding.
+                    // Containment cannot determine whether that happened, so the
+                    // action-stream binding is ambiguous and must never be reused.
+                    self.transport_failed = true;
+                    return Err(ControlLoopTickError::InvalidTransportAdmission);
+                }
+            };
+            match outcome {
+                CommandSendOutcome::Accepted(position) => {
+                    let advances_one_stream = self
+                        .last_admitted_command_position
+                        .as_ref()
+                        .is_none_or(|previous| {
+                            position.epoch == previous.epoch && position.seq > previous.seq
+                        });
+                    cmd.stream = position.clone();
+                    if !advances_one_stream || cmd.validate_wire().is_err() {
+                        self.transport_failed = true;
+                        return Err(ControlLoopTickError::InvalidTransportAdmission);
+                    }
+                    self.last_admitted_command_position = Some(position);
+                    self.command_seq = command_seq;
+                }
+                CommandSendOutcome::ReplacedPending(position) => {
+                    let reuses_pending = self
+                        .last_admitted_command_position
+                        .as_ref()
+                        .is_some_and(|previous| previous == &position);
+                    cmd.stream = position;
+                    if !reuses_pending || cmd.validate_wire().is_err() {
+                        self.transport_failed = true;
+                        return Err(ControlLoopTickError::InvalidTransportAdmission);
+                    }
+                }
+                CommandSendOutcome::StreamExhausted => {
+                    return Err(ControlLoopTickError::TransportCommandStreamExhausted);
+                }
+                CommandSendOutcome::Rejected => {
+                    return Err(ControlLoopTickError::CommandPublicationRejected);
                 }
             }
         }
@@ -547,7 +720,7 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                 self.rate_hz
             ))
         } else if controller_fault {
-            Some("controller panicked; command forced safe by governor".into())
+            Some("controller failure latched; fresh loop/controller required".into())
         } else if !clock_ok {
             Some("control-loop clock anomaly; command forced safe by governor".into())
         } else if !sensor_is_fresh {
@@ -582,10 +755,7 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                 ..Default::default()
             });
         }
-        if clock_ok {
-            self.last_tick_now = Some(end);
-        }
-        cmd
+        Ok(cmd)
     }
 }
 
@@ -599,6 +769,7 @@ fn monotonic_secs() -> f64 {
 mod tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, SID};
+    use std::collections::VecDeque;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn bound_loop<T: ControlTransport, C: Controller>(
@@ -609,6 +780,14 @@ mod tests {
     ) -> NeuroControlLoop<T, C> {
         NeuroControlLoop::new(transport, controller, rate_hz, safety, SID, session())
             .expect("test session binding is canonical")
+    }
+
+    fn must_tick<T: ControlTransport, C: Controller>(
+        control_loop: &mut NeuroControlLoop<T, C>,
+    ) -> CommandFrame {
+        control_loop
+            .tick()
+            .expect("test command identity remains attributable")
     }
 
     fn velocity_command(x: f64, ttl_ms: f64) -> CommandFrame {
@@ -643,11 +822,121 @@ mod tests {
         }
     }
 
-    struct PanickingController;
+    struct MutateThenPanicController {
+        steps: Arc<AtomicUsize>,
+        mutated: bool,
+    }
 
-    impl Controller for PanickingController {
+    impl Controller for MutateThenPanicController {
         fn step(&mut self, _sensor: Option<&SensorFrame>, _dt_ms: f64) -> CommandFrame {
-            panic!("controller fault")
+            self.steps.fetch_add(1, Ordering::SeqCst);
+            if !self.mutated {
+                self.mutated = true;
+                panic!("controller fault after mutation")
+            }
+            velocity_command(1.0, 200.0)
+        }
+    }
+
+    struct PreStampedController {
+        steps: Arc<AtomicUsize>,
+    }
+
+    impl Controller for PreStampedController {
+        fn step(&mut self, _sensor: Option<&SensorFrame>, _dt_ms: f64) -> CommandFrame {
+            self.steps.fetch_add(1, Ordering::SeqCst);
+            CommandFrame {
+                stream: stream(7),
+                session: session(),
+                session_id: SID.into(),
+                mode: Mode::Hold,
+                ..Default::default()
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    struct ScriptedTransport {
+        sensor: SensorFrame,
+        outcomes: Arc<Mutex<VecDeque<CommandSendOutcome>>>,
+        commands: Arc<Mutex<Vec<CommandFrame>>>,
+        statuses: Arc<Mutex<Vec<ControlStatus>>>,
+    }
+
+    impl ScriptedTransport {
+        fn new(sensor: SensorFrame, outcomes: Vec<CommandSendOutcome>) -> Self {
+            Self {
+                sensor,
+                outcomes: Arc::new(Mutex::new(outcomes.into())),
+                commands: Arc::new(Mutex::new(Vec::new())),
+                statuses: Arc::new(Mutex::new(Vec::new())),
+            }
+        }
+    }
+
+    impl ControlTransport for ScriptedTransport {
+        fn send_command(&self, command: &CommandFrame) -> CommandSendOutcome {
+            self.commands
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .push(command.clone());
+            self.outcomes
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .pop_front()
+                .expect("test transport has a scripted send outcome")
+        }
+
+        fn latest_sensor(&self) -> Option<SensorFrame> {
+            Some(self.sensor.clone())
+        }
+
+        fn send_status(&self, status: &ControlStatus) {
+            self.statuses
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .push(status.clone());
+        }
+    }
+
+    #[derive(Clone)]
+    struct PanicAfterAdmissionTransport {
+        sensor: SensorFrame,
+        sensor_reads: Arc<AtomicUsize>,
+        send_attempts: Arc<AtomicUsize>,
+        admitted_commands: Arc<Mutex<Vec<CommandFrame>>>,
+        status_attempts: Arc<AtomicUsize>,
+    }
+
+    impl PanicAfterAdmissionTransport {
+        fn new(sensor: SensorFrame) -> Self {
+            Self {
+                sensor,
+                sensor_reads: Arc::new(AtomicUsize::new(0)),
+                send_attempts: Arc::new(AtomicUsize::new(0)),
+                admitted_commands: Arc::new(Mutex::new(Vec::new())),
+                status_attempts: Arc::new(AtomicUsize::new(0)),
+            }
+        }
+    }
+
+    impl ControlTransport for PanicAfterAdmissionTransport {
+        fn send_command(&self, command: &CommandFrame) -> CommandSendOutcome {
+            self.send_attempts.fetch_add(1, Ordering::SeqCst);
+            self.admitted_commands
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .push(command.clone());
+            panic!("transport fault after slot mutation")
+        }
+
+        fn latest_sensor(&self) -> Option<SensorFrame> {
+            self.sensor_reads.fetch_add(1, Ordering::SeqCst);
+            Some(self.sensor.clone())
+        }
+
+        fn send_status(&self, _status: &ControlStatus) {
+            self.status_attempts.fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -704,7 +993,7 @@ mod tests {
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
         // No sensor yet -> HOLD.
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Hold);
         assert!(
             transport.commands().is_empty(),
@@ -730,7 +1019,7 @@ mod tests {
             ..Default::default()
         });
         *clock.lock().unwrap() = 0.05;
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Active);
         assert_eq!(
             cmd.stream.seq, 1,
@@ -753,7 +1042,7 @@ mod tests {
         )
         .with_clock(Box::new(|| 0.0));
 
-        let command = loop_.tick();
+        let command = must_tick(&mut loop_);
         assert_eq!(command.mode, Mode::Hold);
         assert!(command.authority.is_none());
     }
@@ -789,7 +1078,7 @@ mod tests {
             channels: ch,
             ..Default::default()
         });
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Hold, "an unstamped sensor must not drive");
     }
 
@@ -835,13 +1124,13 @@ mod tests {
         });
 
         // First tick at t=0 accepts it -> ACTIVE.
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Active, "first fresh frame drives");
 
         // Advance wall clock well past the 200 ms timeout WITHOUT updating the
         // sensor (same seq re-delivered). The frozen stream must go stale.
         *clock.lock().unwrap() = 0.5;
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(
             cmd.mode,
             Mode::Hold,
@@ -853,22 +1142,22 @@ mod tests {
         // expiry windows.
         *clock.lock().unwrap() = 1.0;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "no oscillation on a frozen stream"
         );
-        // Past the total-silence deadline (20 × 200 ms = 4 s) the designed
-        // escalation latches ESTOP — a stream frozen this long is a collapsed
-        // link, and the latch (not a revival) is the correct terminal state.
+        // Past the total-silence deadline (20 × 200 ms = 4 s), the designed
+        // escalation latches ESTOP. The sustained freeze demonstrates missing
+        // perception freshness, not its network cause; the latch must not revive.
         *clock.lock().unwrap() = 5.0;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Estop,
             "sustained freeze escalates to ESTOP"
         );
         *clock.lock().unwrap() = 6.0;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Estop,
             "…and the ESTOP stays latched"
         );
@@ -912,12 +1201,12 @@ mod tests {
         };
         // Live stream at a high seq.
         transport.push_sensor(frame(0.0, 500));
-        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
         // Restart frame arrives BEFORE expiry: rejected while the old anchor is
         // live — it must neither steer the controller nor replace correlation.
         *clock.lock().unwrap() = 0.1;
         transport.push_sensor(frame(0.1, 1));
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Active, "old anchor still fresh");
         assert_eq!(
             cmd.source.as_ref().map(|source| source.seq),
@@ -926,18 +1215,18 @@ mod tests {
         );
         // Expiry does not reopen the declaration's replay window.
         *clock.lock().unwrap() = 0.5; // past the 200 ms timeout
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Hold, "lower sequence remains rejected");
         assert_eq!(cmd.source.as_ref().map(|source| source.seq), Some(500));
         *clock.lock().unwrap() = 0.8;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "rejected restart frame remains unusable"
         );
         *clock.lock().unwrap() = 2.0;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "equal-seq frame never re-anchors"
         );
@@ -946,7 +1235,7 @@ mod tests {
         *clock.lock().unwrap() = 2.1;
         transport.push_sensor(frame(2.1, 501));
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Active,
             "the existing declared stream may advance after a pause"
         );
@@ -998,7 +1287,10 @@ mod tests {
         // Establish epoch A, live.
         transport.push_sensor(frame(0.0, ep_a, 5));
         assert_eq!(
-            loop_.tick().source.as_ref().map(|source| source.seq),
+            must_tick(&mut loop_)
+                .source
+                .as_ref()
+                .map(|source| source.seq),
             Some(5),
             "epoch A accepted"
         );
@@ -1006,14 +1298,17 @@ mod tests {
         *clock.lock().unwrap() = 0.1;
         transport.push_sensor(frame(0.1, ep_b, 9999));
         assert_eq!(
-            loop_.tick().source.as_ref().map(|source| source.seq),
+            must_tick(&mut loop_)
+                .source
+                .as_ref()
+                .map(|source| source.seq),
             Some(5),
             "a foreign epoch cannot advance a LIVE stream (no hijack)"
         );
         // Expiry still does not authorize the foreign epoch.
         *clock.lock().unwrap() = 0.5;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "a foreign epoch remains rejected after expiry"
         );
@@ -1021,7 +1316,7 @@ mod tests {
         *clock.lock().unwrap() = 1.0;
         transport.push_sensor(frame(1.0, ep_a, 6));
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Active,
             "the declared epoch may advance after a pause"
         );
@@ -1050,7 +1345,7 @@ mod tests {
 
         // A sensor-less tick publishes nothing and therefore consumes no action
         // stream position.
-        let _ = loop_.tick();
+        let _ = must_tick(&mut loop_);
 
         // A sensor with distinctive identity/time drives the first command.
         let mut ch = crate::messages::Map::new();
@@ -1073,7 +1368,7 @@ mod tests {
             ..Default::default()
         });
         *clock.lock().unwrap() = 0.05;
-        let cmd = loop_.tick();
+        let cmd = must_tick(&mut loop_);
         assert_eq!(
             cmd.stream.seq, 1,
             "the first command owns position 1 in its own stream"
@@ -1103,7 +1398,7 @@ mod tests {
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
         transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
-        let first = loop_.tick();
+        let first = must_tick(&mut loop_);
         assert_eq!(first.session, session());
         assert_eq!(first.source.as_ref().map(|source| source.seq), Some(1));
 
@@ -1111,7 +1406,7 @@ mod tests {
         foreign_generation.session.generation = "50000000-0000-4000-8000-000000000005".into();
         transport.push_sensor(foreign_generation);
         *clock.lock().unwrap() = 0.05;
-        let second = loop_.tick();
+        let second = must_tick(&mut loop_);
         assert_eq!(second.session, session());
         assert_eq!(
             second.source.as_ref().map(|source| source.seq),
@@ -1121,7 +1416,7 @@ mod tests {
 
         *clock.lock().unwrap() = 0.3;
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "a rejected generation eventually leaves the original sensor stale"
         );
@@ -1173,11 +1468,11 @@ mod tests {
         .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
-        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
         assert_eq!(steps.load(Ordering::SeqCst), 1);
 
         *clock.lock().unwrap() = 0.5;
-        assert_eq!(loop_.tick().mode, Mode::Hold);
+        assert_eq!(must_tick(&mut loop_).mode, Mode::Hold);
         assert_eq!(
             steps.load(Ordering::SeqCst),
             1,
@@ -1186,19 +1481,23 @@ mod tests {
     }
 
     #[test]
-    fn controller_panic_is_contained_and_reported() {
+    fn controller_panic_retires_partially_mutated_controller() {
         let transport = InProcessTransport::new();
         transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        let steps = Arc::new(AtomicUsize::new(0));
         let mut loop_ = bound_loop(
             transport.clone(),
-            PanickingController,
+            MutateThenPanicController {
+                steps: steps.clone(),
+                mutated: false,
+            },
             20.0,
             SafetyLimits::default(),
         )
         .with_authority(test_authority())
         .with_clock(Box::new(|| 1.0));
 
-        let command = loop_.tick();
+        let command = must_tick(&mut loop_);
         assert_eq!(command.mode, Mode::Hold);
         assert!(command
             .channels
@@ -1207,7 +1506,21 @@ mod tests {
             .all(|value| *value == 0.0));
         let status = transport.statuses().pop().unwrap();
         assert!(!status.safety_ok);
-        assert!(status.note.unwrap().contains("controller panicked"));
+        assert!(status.note.unwrap().contains("controller failure latched"));
+
+        let later = must_tick(&mut loop_);
+        assert_eq!(later.mode, Mode::Hold);
+        assert_eq!(
+            steps.load(Ordering::SeqCst),
+            1,
+            "a controller that unwound is never invoked or trusted again"
+        );
+        let status = transport.statuses().pop().unwrap();
+        assert!(!status.safety_ok);
+        assert!(status
+            .note
+            .unwrap()
+            .contains("fresh loop/controller required"));
     }
 
     #[test]
@@ -1233,7 +1546,7 @@ mod tests {
         .with_clock(Box::new(|| 1.0));
 
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "the final 1000ms ttl crosses the fence even though the controller's original 200ms ttl did not"
         );
@@ -1260,16 +1573,16 @@ mod tests {
         .with_clock(Box::new(move || {
             times2.lock().unwrap().pop_front().unwrap_or(1.1)
         }));
-        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
 
         transport.push_sensor(sensor_with_motion(1.1, 2, 0.0));
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Hold,
             "a backward step between ticks must fail closed"
         );
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Active,
             "fresh input may resume only after the clock exceeds its high-water mark"
         );
@@ -1298,12 +1611,12 @@ mod tests {
         .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
         transport.push_sensor(sensor_with_motion(0.0, 500, 0.0));
-        assert_eq!(loop_.tick().mode, Mode::Active);
+        assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
         assert_eq!(resets.load(Ordering::SeqCst), 0);
 
         *clock.lock().unwrap() = 0.5;
         transport.push_sensor(sensor_with_motion(0.5, 1, 0.0));
-        assert_eq!(loop_.tick().mode, Mode::Hold);
+        assert_eq!(must_tick(&mut loop_).mode, Mode::Hold);
         assert_eq!(
             resets.load(Ordering::SeqCst),
             0,
@@ -1337,7 +1650,7 @@ mod tests {
     }
 
     #[test]
-    fn link_jam_escalates_to_latched_estop() {
+    fn link_loss_burst_escalates_to_latched_estop() {
         // A sustained loss burst on the sensor seq stream must latch ESTOP via the
         // loop's LinkMonitor -> SafetyGovernor::note_link escalation (not mere HOLD).
         let transport = InProcessTransport::new();
@@ -1347,7 +1660,7 @@ mod tests {
             transport.clone(),
             ReflexController::default(),
             20.0,
-            // Huge command_timeout so the stale-sensor HOLD path can't mask the jam.
+            // Huge command_timeout so the stale-sensor path cannot mask the burst.
             SafetyLimits {
                 command_timeout_ms: 100_000.0,
                 ..Default::default()
@@ -1379,12 +1692,12 @@ mod tests {
             let t = (i as f64 + 1.0) * 0.05;
             *clock.lock().unwrap() = t;
             transport.push_sensor(frame(t, seq));
-            let cmd = loop_.tick();
+            let cmd = must_tick(&mut loop_);
             if seq == 50 {
                 assert_eq!(
                     cmd.mode,
                     Mode::Estop,
-                    "a sensor-seq jam must escalate to ESTOP"
+                    "a sensor-sequence loss burst must escalate to ESTOP"
                 );
             }
         }
@@ -1392,9 +1705,9 @@ mod tests {
         *clock.lock().unwrap() = 0.30;
         transport.push_sensor(frame(0.30, 51));
         assert_eq!(
-            loop_.tick().mode,
+            must_tick(&mut loop_).mode,
             Mode::Estop,
-            "jam ESTOP must latch until reset"
+            "loss-burst ESTOP must latch until reset"
         );
     }
 
@@ -1417,7 +1730,7 @@ mod tests {
             *t += 0.001; // +1 ms per read
             *t
         }));
-        let _ = loop_.tick();
+        let _ = must_tick(&mut loop_);
         let st = transport.statuses().pop().expect("a status was emitted");
         assert!(
             st.loop_latency_ms > 0.0,
@@ -1437,8 +1750,8 @@ mod tests {
         )
         .with_clock(Box::new(|| 1.0));
 
-        let _ = loop_.tick();
-        let _ = loop_.tick();
+        let _ = must_tick(&mut loop_);
+        let _ = must_tick(&mut loop_);
 
         let statuses = transport.statuses();
         assert_eq!(statuses.len(), 2);
@@ -1459,15 +1772,372 @@ mod tests {
         .with_clock(Box::new(|| 1.0));
         loop_.status_seq = JSON_SAFE_INTEGER_MAX - 1;
 
-        let _ = loop_.tick();
+        let _ = must_tick(&mut loop_);
         assert_eq!(transport.statuses()[0].stream.seq, JSON_SAFE_INTEGER_MAX);
 
-        let _ = loop_.tick();
+        let _ = must_tick(&mut loop_);
         assert_eq!(
             transport.statuses().len(),
             1,
             "an exhausted status publisher must become silent rather than repeat 2^53-1"
         );
+    }
+
+    #[test]
+    fn command_stream_exhaustion_returns_no_controller_or_wire_frame() {
+        let transport = InProcessTransport::new();
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            PreStampedController {
+                steps: steps.clone(),
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+        transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        loop_.command_seq = JSON_SAFE_INTEGER_MAX;
+
+        let error = loop_
+            .tick()
+            .expect_err("an exhausted publisher cannot return a controller frame");
+
+        assert_eq!(error, ControlLoopTickError::CommandStreamExhausted);
+        assert_eq!(steps.load(Ordering::SeqCst), 0);
+        assert!(transport.commands().is_empty());
+        assert!(transport.statuses().is_empty());
+    }
+
+    #[test]
+    fn malformed_transport_admission_retires_the_binding() {
+        let transport = ScriptedTransport::new(
+            sensor_with_motion(1.0, 1, 0.0),
+            vec![
+                CommandSendOutcome::Accepted(StreamPosition::default()),
+                CommandSendOutcome::Accepted(StreamPosition {
+                    epoch: "40000000-0000-4000-8000-000000000004".into(),
+                    seq: 1,
+                }),
+            ],
+        );
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            PreStampedController {
+                steps: steps.clone(),
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::InvalidTransportAdmission
+        );
+        assert_eq!(loop_.command_seq, 0);
+        assert_eq!(steps.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.commands.lock().unwrap().len(), 1);
+        assert!(transport.statuses.lock().unwrap().is_empty());
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::InvalidTransportAdmission,
+            "an ambiguous transport binding cannot recover in place"
+        );
+        assert_eq!(steps.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.commands.lock().unwrap().len(), 1);
+        assert_eq!(transport.outcomes.lock().unwrap().len(), 1);
+        assert!(transport.statuses.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn transport_panic_after_slot_mutation_retires_the_binding() {
+        let transport = PanicAfterAdmissionTransport::new(sensor_with_motion(1.0, 1, 0.0));
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            PreStampedController {
+                steps: steps.clone(),
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::InvalidTransportAdmission,
+            "a transport unwind after mutation is contained as ambiguous admission"
+        );
+        assert_eq!(loop_.command_seq, 0);
+        assert_eq!(steps.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.sensor_reads.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.send_attempts.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.admitted_commands.lock().unwrap().len(), 1);
+        assert_eq!(transport.status_attempts.load(Ordering::SeqCst), 0);
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::InvalidTransportAdmission,
+            "an ambiguous transport binding cannot recover in place"
+        );
+        assert_eq!(steps.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.sensor_reads.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.send_attempts.load(Ordering::SeqCst), 1);
+        assert_eq!(transport.admitted_commands.lock().unwrap().len(), 1);
+        assert_eq!(transport.status_attempts.load(Ordering::SeqCst), 0);
+    }
+
+    fn assert_inconsistent_admission_retires_binding(hostile: CommandSendOutcome) {
+        let first = StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 42,
+        };
+        let transport = ScriptedTransport::new(
+            sensor_with_motion(1.0, 1, 0.0),
+            vec![
+                CommandSendOutcome::Accepted(first.clone()),
+                hostile,
+                CommandSendOutcome::Accepted(StreamPosition {
+                    epoch: first.epoch.clone(),
+                    seq: 43,
+                }),
+            ],
+        );
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            PreStampedController {
+                steps: steps.clone(),
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(loop_.tick().unwrap().stream, first);
+        assert_eq!(loop_.command_seq, 1);
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::InvalidTransportAdmission
+        );
+        assert_eq!(loop_.command_seq, 1);
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::InvalidTransportAdmission
+        );
+        assert_eq!(loop_.command_seq, 1);
+        assert_eq!(steps.load(Ordering::SeqCst), 2);
+        assert_eq!(transport.commands.lock().unwrap().len(), 2);
+        assert_eq!(transport.outcomes.lock().unwrap().len(), 1);
+        assert_eq!(
+            transport.statuses.lock().unwrap().len(),
+            1,
+            "only the valid pre-violation admission emits status"
+        );
+    }
+
+    #[test]
+    fn inconsistent_transport_admissions_retire_the_binding() {
+        let first = StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 42,
+        };
+        for hostile in [
+            CommandSendOutcome::Accepted(StreamPosition {
+                epoch: "50000000-0000-4000-8000-000000000005".into(),
+                seq: 43,
+            }),
+            CommandSendOutcome::Accepted(first.clone()),
+            CommandSendOutcome::ReplacedPending(StreamPosition {
+                epoch: first.epoch.clone(),
+                seq: 43,
+            }),
+        ] {
+            assert_inconsistent_admission_retires_binding(hostile);
+        }
+    }
+
+    #[test]
+    fn valid_transport_admissions_advance_or_replace_exactly() {
+        let first = StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 42,
+        };
+        let next = StreamPosition {
+            epoch: first.epoch.clone(),
+            seq: 43,
+        };
+        let transport = ScriptedTransport::new(
+            sensor_with_motion(1.0, 1, 0.0),
+            vec![
+                CommandSendOutcome::Accepted(first.clone()),
+                CommandSendOutcome::ReplacedPending(first.clone()),
+                CommandSendOutcome::Accepted(next.clone()),
+            ],
+        );
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            PreStampedController {
+                steps: Arc::new(AtomicUsize::new(0)),
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(loop_.tick().unwrap().stream, first);
+        assert_eq!(loop_.command_seq, 1);
+        assert_eq!(loop_.tick().unwrap().stream, first);
+        assert_eq!(loop_.command_seq, 1);
+        assert_eq!(loop_.tick().unwrap().stream, next);
+        assert_eq!(loop_.command_seq, 2);
+        assert_eq!(transport.statuses.lock().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn synchronous_transport_rejection_is_an_error_and_reuses_local_candidate() {
+        let assigned = StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 42,
+        };
+        let transport = ScriptedTransport::new(
+            sensor_with_motion(1.0, 1, 0.0),
+            vec![
+                CommandSendOutcome::Rejected,
+                CommandSendOutcome::Accepted(assigned.clone()),
+            ],
+        );
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            TrackingController {
+                steps: steps.clone(),
+                resets: Arc::new(AtomicUsize::new(0)),
+                velocity: 0.5,
+                ttl_ms: 200.0,
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_authority(test_authority())
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::CommandPublicationRejected
+        );
+        assert_eq!(
+            loop_.command_seq, 0,
+            "rejection must not commit the candidate"
+        );
+        assert!(transport.statuses.lock().unwrap().is_empty());
+
+        let admitted = loop_.tick().expect("the second slot is accepted");
+        assert_eq!(
+            admitted.stream, assigned,
+            "tick returns the assigned position"
+        );
+        assert_eq!(loop_.command_seq, 1);
+        assert_eq!(steps.load(Ordering::SeqCst), 2);
+        let attempts = transport.commands.lock().unwrap();
+        assert_eq!(attempts.len(), 2);
+        assert_eq!(
+            attempts[0].stream, attempts[1].stream,
+            "the loop-local candidate position is reused after rejection"
+        );
+        assert_eq!(transport.statuses.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn rejected_tick_retains_clock_high_water_until_recovery() {
+        let assigned_hold = StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 42,
+        };
+        let assigned_active = StreamPosition {
+            epoch: assigned_hold.epoch.clone(),
+            seq: 43,
+        };
+        let transport = ScriptedTransport::new(
+            sensor_with_motion(2.0, 1, 0.0),
+            vec![
+                CommandSendOutcome::Rejected,
+                CommandSendOutcome::Accepted(assigned_hold),
+                CommandSendOutcome::Accepted(assigned_active),
+            ],
+        );
+        let times = Arc::new(Mutex::new(VecDeque::from([
+            2.0, 2.0, // rejected tick establishes the high-water mark
+            1.0, 1.0, // rewind must fail closed
+            2.1, 2.1, // recovery only after crossing the retained mark
+        ])));
+        let times_for_loop = times.clone();
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            TrackingController {
+                steps: Arc::new(AtomicUsize::new(0)),
+                resets: Arc::new(AtomicUsize::new(0)),
+                velocity: 0.5,
+                ttl_ms: 200.0,
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_authority(test_authority())
+        .with_clock(Box::new(move || {
+            times_for_loop
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .pop_front()
+                .unwrap_or(2.1)
+        }));
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::CommandPublicationRejected
+        );
+        assert_eq!(
+            loop_.tick().expect("rewind emits a governed HOLD").mode,
+            Mode::Hold,
+            "a rejected tick must still retain its clock high-water mark"
+        );
+        assert_eq!(
+            loop_
+                .tick()
+                .expect("clock recovery restores slot admission")
+                .mode,
+            Mode::Active,
+            "Active can resume only after the clock exceeds the retained mark"
+        );
+    }
+
+    #[test]
+    fn transport_owned_exhaustion_is_reported_before_status() {
+        let transport = ScriptedTransport::new(
+            sensor_with_motion(1.0, 1, 0.0),
+            vec![CommandSendOutcome::StreamExhausted],
+        );
+        let steps = Arc::new(AtomicUsize::new(0));
+        let mut loop_ = bound_loop(
+            transport.clone(),
+            PreStampedController {
+                steps: steps.clone(),
+            },
+            20.0,
+            SafetyLimits::default(),
+        )
+        .with_clock(Box::new(|| 1.0));
+
+        assert_eq!(
+            loop_.tick().unwrap_err(),
+            ControlLoopTickError::TransportCommandStreamExhausted
+        );
+        assert_eq!(steps.load(Ordering::SeqCst), 1);
+        assert_eq!(loop_.command_seq, 0);
+        assert!(transport.statuses.lock().unwrap().is_empty());
     }
 
     #[test]
@@ -1499,7 +2169,7 @@ mod tests {
             )
             .with_authority(test_authority())
             .with_clock(Box::new(|| 1.0));
-            let command = loop_.tick();
+            let command = must_tick(&mut loop_);
             assert_eq!(command.mode, Mode::Hold, "rate={rate_hz:?}");
             assert!(command.ttl_ms.is_finite(), "rate={rate_hz:?}");
             let status = transport.statuses().pop().unwrap();
@@ -1540,7 +2210,7 @@ mod tests {
         .with_clock(Box::new(move || {
             times2.lock().unwrap().pop_front().unwrap_or(0.0)
         }));
-        let command = loop_.tick();
+        let command = must_tick(&mut loop_);
         assert_eq!(command.mode, Mode::Hold);
         assert!(command
             .channels

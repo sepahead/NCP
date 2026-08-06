@@ -1,11 +1,12 @@
 /**
- * Canonical NCP (Neuro-Cybernetic Protocol) for TypeScript: the generated,
- * wire-identical message types plus a transport-agnostic client.
+ * NCP (Neuro-Cybernetic Protocol) for TypeScript: generated reference JSON
+ * projection types plus a transport-agnostic client.
  *
- * The types are generated (via ts-rs) from the `ncp-core` reference types, which
- * conform to the normative `proto/ncp.proto` wire contract (proto-native); the
- * client/transport add orchestration only. Rust, Python and TS peers are therefore
- * wire-identical. Do not re-declare these types downstream — import them from here.
+ * The types are generated (via ts-rs) from the informative `ncp-core` reference
+ * types and checked against the normative source set. Generated shape parity
+ * reduces drift; it does not by itself qualify an installed peer or prove
+ * independent interoperability. Import these maintained shapes instead of
+ * re-declaring them downstream.
  */
 export { NCP_BUILD_IDENTITY, NCP_NORMATIVE_CONTRACT_DIGEST, NCP_PACKAGE_VERSION, } from './contract-identity.js';
 // Client orchestration, JSON-wire helpers, and the WebSocket transport.
@@ -16,5 +17,5 @@ export { canonicalizeNcpJson, canonicalizeNcpMessage } from './canonical-json.js
 export { canonicalRequestProjection, requestDigest, verifyRequestDigest, RequestDigestError, REQUEST_DIGEST_DOMAIN_V1, MAX_REQUEST_PROJECTION_BYTES, } from './request-digest.js';
 // Plant-side safety + resilience (the ncp-core safety.rs / resilience.rs port,
 // behaviour-pinned to the shared corpus) + the wire-1.0 data-plane ingress gate.
-export { ActionBuffer, CommandWatchdog, SafetyGovernor, assertWireFrame, maxHorizonLen, LINK_LOSS_ESTOP_FACTOR, MAX_TTL_MS, } from './safety.js';
+export { ActionBuffer, CommandWatchdog, SafetyGovernError, SafetyGovernor, assertWireFrame, maxHorizonLen, LINK_LOSS_ESTOP_FACTOR, MAX_TTL_MS, } from './safety.js';
 //# sourceMappingURL=index.js.map

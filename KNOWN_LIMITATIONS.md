@@ -56,9 +56,38 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
 ## Protocol and implementation boundaries
 
+- The normative `proto/ncp.proto` comment abbreviates the predictive-horizon bound
+  as `N <= ttl_ms/horizon_dt_ms`. The receiver deadline expires inclusively, and
+  the executable window clamps TTL to 60 seconds. When the clamped binary64 ratio
+  remains finite, the intended bound is
+  `ceil(min(ttl_ms, 60_000)/horizon_dt_ms) - 1`, capped at 65,536, for finite
+  positive inputs. A non-finite ratio permits zero steps, and a future step at the
+  TTL boundary is not executable. The misleading normative comment is a
+  release-blocking source conflict. Correcting it changes the complete normative
+  digest and must follow the dependency-gated normative promotion/rebaseline
+  workflow. The current mandatory corpus also lacks the exact-expiry and
+  greater-than-60-second boundary cases. Rust validation and both `ActionBuffer`
+  watchdogs clamp the executable window. The TypeScript
+  `maxHorizonLen` helper also computes the clamped bound. However, generic
+  TypeScript `assertNcpMessage` uses uncapped `ttl_ms` for its length check. It can
+  accept steps beyond 60 seconds and can accept a nonempty horizon when a tiny
+  positive cadence makes the ratio non-finite. N07 implementation parity and the
+  dependency-gated corpus, proto, identity, and rebaseline workflow remain open.
 - The compact 16-hex `CONTRACT_HASH` is advisory and covers canonical protobuf
   structure, not the complete normative set. Release evidence must use the SHA-256
   digest in `contract/manifest.v1.json`.
+- Standalone `SafetyGovernor::govern` normalizes an invalid input
+  `stream.seq` to `1` when it constructs a HOLD or ESTOP fallback. This preserves
+  the current mandatory `unstamped_active_command_holds` behavior and does not
+  invent a new epoch, but the governor has no publisher allocator or stream
+  high-water state. Sequence `1` is the required initial numeric value for a newly
+  declared stream, but the governor neither declares nor admits that position. A
+  caller must not publish that fallback into an existing stream; it must withhold
+  the frame or invoke the governor with the owning publisher's next fresh
+  position. `NeuroControlLoop` stamps its own position before governance.
+  Resolving the standalone Rust, FFI, and TypeScript behavior requires the
+  dependency-gated normative and conformance-corpus workflow. Until then, direct
+  publication of a normalized fallback is an open candidate limitation.
 - The declared `max_metadata_entries=256` ceiling has no accepted message-class
   and decoded-path assignment. ADR-003 proposes applying it to each
   `OpenSession.bindings[*].entity.meta` object. Rust and TypeScript apply only the
@@ -84,18 +113,34 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   that unifies `zenoh/default` or `zenoh/transport_compression` changes the compiled
   security surface and is outside this candidate profile.
 - The root lock uses exact `zenoh-transport 1.9.0` backport revision
-  `6b93b15d0795748b7f76c72eae07f1cda517e762` to select fixed
-  `lz4_flex 0.11.6`. Cargo verifies the Git object identity but not its SSH
-  signature. A Cargo patch is selected by the graph root and does not propagate
-  from a published library dependency. The normalized `ncp-zenoh` and
-  `ncp-gateway` archive locks therefore select affected `lz4_flex 0.10.0` without
-  a consuming-root patch. The package checker executes archive-alone Cargo
-  metadata and observes that fallback, then applies and verifies the exact
-  backport only at its consuming test root. The patched run is
-  `CONDITIONAL_PASS`; self-contained distribution remains `OPEN_FAIL_CLOSED` and
-  `NO_GO`. A release candidate needs a qualified upstream source or another
-  reviewed distribution design that preserves the fixed graph for installed
-  consumers.
+  `9045545b72a77602a87f40203cb614b48157b4bc`. The conditioned graph selects
+  patched `lz4_flex 0.11.6`, updates its `twox-hash` dependency to `2.1.3`, and
+  selects non-yanked `spin 0.9.9` and `0.10.1`. The fork's qualification lock also
+  selects fixed `crossbeam-epoch 0.9.20`, `rand 0.8.6` and `0.9.4`,
+  `quinn-proto 0.11.15`, `rustls-webpki 0.103.13`, and `serde_with 3.21.0`.
+  The fork CI pins `cargo-deny 0.19.9` and rejects yanked lock entries and current
+  RustSec vulnerabilities.
+  The checker verifies the fork revision, tree, tracked files, and reviewed
+  upstream delta during qualification. The receipt classifies these checks as
+  point-in-time local-process attestations and does not retain the exact fork
+  source bytes. Cargo does not verify Git signatures. A Cargo patch is selected by
+  the graph root and does not propagate from a published library dependency.
+  Without a consuming-root patch, the normalized `ncp-zenoh` and `ncp-gateway`
+  source archives resolve registry `zenoh-transport 1.9.0` to advisory-affected
+  `lz4_flex 0.10.0` and its `twox-hash 1.6.3` dependency. The package checker does
+  not compile that fallback. It applies the exact patch only at each consuming
+  test root. It runs the exact fork's `security_backport` regression and
+  compression-enabled library tests. Exact resolution and fetch can use network
+  access. Cargo dependency access is offline only during compile and test. The
+  checker claims no host or child-process network isolation and no host filesystem
+  isolation. It compares both conditioned consumer source graphs before and after
+  compilation, but retains no compiler-input trace. The result is
+  `CONDITIONAL_PASS`, with
+  `package_self_contained=false`,
+  `self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and
+  `release_authorized=false`. A release candidate needs a qualified upstream
+  source or another reviewed distribution design that preserves the fixed graph
+  for installed consumers.
 - The legacy translator currently specifies only explicit channel requirement
   mapping. It rejects missing/null/malformed/mixed fields and cannot invent
   identity, security, session, authority, operation, receipt, or plant context.
@@ -112,11 +157,13 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 - The reference idempotency cache is bounded and snapshot-capable, but exactly-once
   claims require server integration and durable restart evidence. If an outcome
   cannot be proved, the only valid response is `outcome_unknown`.
-- Wire 1.0 has no applied-command or physical-stop acknowledgement. A Zenoh put
-  success is not proof of plant receipt or actuation; a put error is delivery-
-  ambiguous. The adapter consumes that position and blocks Active after an ambiguous
-  fail-safe until a new-position fail-safe succeeds, but only plant-local safety and
-  a future authenticated acknowledgement can prove the resulting physical state.
+- Wire-1.0 `ResponderReceipt` covers lifecycle step, run, and close operations. A
+  `CommandFrame` has no operation context, idempotency context, applied-command
+  acknowledgement, or physical-stop acknowledgement. A Zenoh put success is not
+  proof of plant receipt or actuation; a put error is delivery-ambiguous. The
+  adapter consumes that position and blocks Active after an ambiguous fail-safe
+  until a new-position fail-safe succeeds. Any applied-command or body-boundary
+  receipt is deployment-local and does not prove the resulting physical state.
 - Wire 1.0 has no stable ESTOP-reset RPC. Binding-level governor/action-buffer reset
   methods are local primitives only; transport identity, operator grant, physical
   reset interlocks, full generation retirement, and fresh-session reconstruction

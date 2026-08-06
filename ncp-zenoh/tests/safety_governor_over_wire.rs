@@ -173,6 +173,9 @@ async fn spawn_plant(server: &ZenohBus, state: Arc<Mutex<PlantState>>) {
                 let last = s.last_sensor_s;
                 s.gov.govern(&command, sensor.as_ref(), now, last)
             };
+            let Ok(governed) = governed else {
+                return;
+            };
             let Ok(out) = serde_json::to_vec(&governed) else {
                 return;
             };

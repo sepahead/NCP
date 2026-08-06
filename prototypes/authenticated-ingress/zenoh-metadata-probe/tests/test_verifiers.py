@@ -81,7 +81,7 @@ class BackportIdentityTests(unittest.TestCase):
     def setUp(self) -> None:
         self.backport = {
             "repository": "https://github.com/sepahead/zenoh-transport-lz4-backport",
-            "revision": "6b93b15d0795748b7f76c72eae07f1cda517e762",
+            "revision": "9045545b72a77602a87f40203cb614b48157b4bc",
         }
 
     def test_exact_manifest_patch_is_accepted(self) -> None:

@@ -1,7 +1,7 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "ee01c74a7b6d3fc46266ac1d9059df53bdfe3054e6b0e5360dca8802273f14d4"
+    "sha256": "57408a610dff52199875a070f95210c5f86d6b1db0923f3cb63d296df47f12e6"
   },
   "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
@@ -221,15 +221,15 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "f0408a985f727207622bb1cdcf7590ed672460e30e9b0aee6c1a1bcb366ed37c"
+      "sha256": "fb832541a6de657d87675ec396ab1c36eb01286026e755ef1383cc18acbf490a"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "83779196f2c18ead5348b83e7d276e3087ce2c289bce0c2f3f114ae77edb8967"
+      "sha256": "7db3ed580d943fcfc2b420be0661bef0a82110fcda88225a14f485773d98a6e3"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",
-      "sha256": "aa05e5901ccdd077b4a84d03561a7349051ab49750f0dc73d953166891e57b2d"
+      "sha256": "762e1413c344f373f47ab91a06ecbd89dac2cf6a4b04e62c3eb5bcaec5ca1a6f"
     },
     {
       "path": "scripts/validate_evidence_schemas.py",
@@ -475,6 +475,16 @@
       "name": "pid-rs",
       "remote": "git@github.com:sepahead/pid-rs.git",
       "tree": "516a2c9564946fbfa6f3d45788fa2afcf90a632f"
+    },
+    {
+      "branch": "main",
+      "changed_paths": 0,
+      "dirty": false,
+      "head": "5d900d41d41a68ca1bf537c8590b1f8753d85168",
+      "intake_disposition": "Clean excluded non-peer baseline; preserve the stable FigureRequestV1 no-NCP-adapter boundary. Cortexel is outside NCP implementation, consumer qualification, and V11 atlas ownership.",
+      "name": "Cortexel",
+      "remote": "git@github.com:sepahead/cortexel.git",
+      "tree": "24f96328752d07cd5e235d45633dafd1b93b3cc9"
     },
     {
       "branch": "main",
@@ -2076,7 +2086,8 @@
       "requirement_ids": [
         "N10-acceptance",
         "D09",
-        "D14"
+        "D14",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2483,7 +2494,8 @@
       "requirement_ids": [
         "H04-acceptance",
         "D09",
-        "D18"
+        "D18",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2515,7 +2527,8 @@
         "G02-acceptance",
         "D02",
         "D03",
-        "D20"
+        "D20",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2579,7 +2592,8 @@
       "requirement_ids": [
         "P02-acceptance",
         "D11",
-        "D20"
+        "D20",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2707,7 +2721,8 @@
         "E06-acceptance",
         "D08",
         "D15",
-        "D18"
+        "D18",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2736,7 +2751,8 @@
       "perspective_reviews": [],
       "repository": "Crebain canonical repository",
       "requirement_ids": [
-        "C04-acceptance"
+        "C04-acceptance",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3142,7 +3158,8 @@
       "perspective_reviews": [],
       "repository": "cross-ecosystem lab",
       "requirement_ids": [
-        "F05-acceptance"
+        "F05-acceptance",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3349,7 +3366,8 @@
       "perspective_reviews": [],
       "repository": "NCP and GitHub",
       "requirement_ids": [
-        "R06-acceptance"
+        "R06-acceptance",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3379,7 +3397,8 @@
       "repository": "all consumer repositories",
       "requirement_ids": [
         "R07-acceptance",
-        "D18"
+        "D18",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3409,7 +3428,8 @@
       "perspective_reviews": [],
       "repository": "ecosystem GitHub and profile",
       "requirement_ids": [
-        "R08-acceptance"
+        "R08-acceptance",
+        "V11"
       ],
       "residual_risks": [],
       "reviewer_comment": null,

@@ -1,5 +1,6 @@
-// Canonical NCP TypeScript types — GENERATED from the Rust ncp-core types via
-// ts-rs. Do not edit by hand; run `bun run regen` from the repository root.
+// NCP reference JSON-projection types — GENERATED from ncp-core via ts-rs.
+// Shape parity reduces drift; it does not by itself prove interoperability.
+// Do not edit by hand; run `bun run regen` from the repository root.
 export type { AuthorityLease } from './AuthorityLease.js';
 export type { Capabilities } from './Capabilities.js';
 export type { ChannelKind } from './ChannelKind.js';

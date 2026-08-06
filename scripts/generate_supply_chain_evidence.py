@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import binascii
 import collections
 import hashlib
 import json
@@ -33,6 +34,30 @@ EVIDENCE = ROOT / "evidence" / "supply-chain"
 ADVISORY_DB_PATH_ENV = "NCP_ADVISORY_DB_PATH"
 DEFAULT_ADVISORY_DB_SETTING = 'db-path = "${HOME}/.cargo/advisory-dbs"'
 MAX_DENY_CONFIG_BYTES = 64 * 1024
+TYPESCRIPT_CONTROL_PATH = Path("security/toolchains/typescript-5.9.2.v1.json")
+TYPESCRIPT_CONTROL_SCHEMA = "ncp.reviewed-npm-build-tool.v1"
+TYPESCRIPT_REVIEWED_PACKAGE = "typescript"
+TYPESCRIPT_REVIEWED_VERSION = "5.9.2"
+NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS = (
+    "dependencies",
+    "optionalDependencies",
+    "peerDependencies",
+    "peerDependenciesMeta",
+    "bundleDependencies",
+    "bundledDependencies",
+    "workspaces",
+    "overrides",
+    "resolutions",
+    "trustedDependencies",
+    "patchedDependencies",
+    "catalog",
+    "catalogs",
+    "packageExtensions",
+)
+TYPESCRIPT_TREE_RECORD_SHAPE = ["path", "size_bytes", "sha256"]
+MAX_TYPESCRIPT_CONTROL_BYTES = 64 * 1024
+MAX_TYPESCRIPT_PACKAGE_FILES = 1_000
+MAX_TYPESCRIPT_PACKAGE_BYTES = 256 * 1024 * 1024
 OUTPUTS = {
     "inventory.v1.json": "ncp.supply-chain-inventory.v1",
     "sbom.cdx.json": "CycloneDX",
@@ -43,6 +68,10 @@ OUTPUTS = {
 GENERATOR_OUTPUTS = {
     "ncp-core/src/bin/gen-schemas.rs": ["schemas/*.schema.json", "schemas/index.json"],
     "ncp-ts/scripts/build-release.mjs": [
+        "candidate npm tarballs",
+        "npm release receipt",
+    ],
+    "ncp-ts/scripts/strict-json.mjs": [
         "candidate npm tarballs",
         "npm release receipt",
     ],
@@ -61,7 +90,7 @@ GENERATOR_OUTPUTS = {
     ],
     "scripts/check_rust_packages.py": [
         "candidate Rust crate archives",
-        "Rust package checksum receipt",
+        "Rust package qualification and retained-artifact receipt",
     ],
     "scripts/check_wire_baseline.py": ["conformance/baseline/v*/ frozen wire cut"],
     "scripts/gen_diagrams.py": ["docs/diagrams/*.svg"],
@@ -167,7 +196,7 @@ NCP_SBOM_NAMESPACE = uuid.uuid5(
 )
 CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 ZENOH_BACKPORT_REPOSITORY = "https://github.com/sepahead/zenoh-transport-lz4-backport"
-ZENOH_BACKPORT_REVISION = "6b93b15d0795748b7f76c72eae07f1cda517e762"
+ZENOH_BACKPORT_REVISION = "9045545b72a77602a87f40203cb614b48157b4bc"
 ZENOH_BACKPORT_SOURCE = (
     f"git+{ZENOH_BACKPORT_REPOSITORY}?rev={ZENOH_BACKPORT_REVISION}"
     f"#{ZENOH_BACKPORT_REVISION}"
@@ -765,28 +794,327 @@ def _lock_checksums() -> dict[tuple[str, str], str]:
     return checksums
 
 
-def _typescript_component() -> dict[str, Any]:
-    manifest = _read_json(ROOT / "package.json")
-    dependencies = manifest.get("devDependencies")
-    version = dependencies.get("typescript") if isinstance(dependencies, dict) else None
-    if not isinstance(version, str) or not re.fullmatch(
-        r"[0-9]+\.[0-9]+\.[0-9]+", version
+def _canonical_json_bytes(value: Any) -> bytes:
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _require_exact_object(
+    value: object, keys: set[str], context: str
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != keys:
+        raise EvidenceError(f"{context} has an unexpected shape")
+    return value
+
+
+def _canonical_sha512_sri(value: object, context: str) -> str:
+    """Return a canonical 64-byte SHA-512 SRI as lowercase hex."""
+
+    if (
+        not isinstance(value, str)
+        or re.fullmatch(r"sha512-[A-Za-z0-9+/]{86}==", value) is None
     ):
-        raise EvidenceError("package.json must pin one exact TypeScript version")
-    lock = (ROOT / "bun.lock").read_text(encoding="utf-8")
-    match = re.search(
-        rf'"typescript": \["typescript@{re.escape(version)}".*?"(sha512-[A-Za-z0-9+/=]+)"\]',
-        lock,
+        raise EvidenceError(f"{context} is not a canonical SHA-512 SRI")
+    encoded = value.removeprefix("sha512-")
+    try:
+        digest = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as error:
+        raise EvidenceError(f"{context} is not valid base64") from error
+    if len(digest) != 64 or base64.b64encode(digest).decode("ascii") != encoded:
+        raise EvidenceError(f"{context} does not encode exactly 64 SHA-512 bytes")
+    return digest.hex()
+
+
+def _validate_typescript_control(
+    control: object, *, expected_version: str
+) -> dict[str, Any]:
+    control = _require_exact_object(
+        control,
+        {
+            "claim_boundary",
+            "normalized_package_tree",
+            "package",
+            "registry",
+            "schema",
+            "version",
+        },
+        "TypeScript reviewed control",
     )
-    if match is None:
-        raise EvidenceError(
-            "bun.lock does not bind the exact TypeScript package integrity"
+    claim_boundary = control.get("claim_boundary")
+    if (
+        control.get("schema") != TYPESCRIPT_CONTROL_SCHEMA
+        or control.get("package") != TYPESCRIPT_REVIEWED_PACKAGE
+        or control.get("version") != TYPESCRIPT_REVIEWED_VERSION
+        or control.get("version") != expected_version
+        or not isinstance(claim_boundary, str)
+        or not claim_boundary
+        or claim_boundary != claim_boundary.strip()
+        or len(claim_boundary) > 4_096
+        or any(
+            ord(character) < 32 or ord(character) == 127 for character in claim_boundary
         )
-    algorithm, encoded = match.group(1).split("-", 1)
-    cyclonedx_algorithm = SRI_TO_CYCLONEDX.get(algorithm)
-    if cyclonedx_algorithm is None:
-        raise EvidenceError(f"unsupported TypeScript SRI algorithm {algorithm!r}")
-    digest = base64.b64decode(encoded, validate=True).hex()
+    ):
+        raise EvidenceError("TypeScript reviewed control identity is invalid")
+
+    tree = _require_exact_object(
+        control.get("normalized_package_tree"),
+        {"file_count", "manifest_sha256", "record_shape", "total_bytes"},
+        "TypeScript reviewed package tree",
+    )
+    file_count = tree.get("file_count")
+    total_bytes = tree.get("total_bytes")
+    if (
+        tree.get("record_shape") != TYPESCRIPT_TREE_RECORD_SHAPE
+        or not isinstance(file_count, int)
+        or isinstance(file_count, bool)
+        or not 1 <= file_count <= MAX_TYPESCRIPT_PACKAGE_FILES
+        or not isinstance(total_bytes, int)
+        or isinstance(total_bytes, bool)
+        or not 1 <= total_bytes <= MAX_TYPESCRIPT_PACKAGE_BYTES
+        or re.fullmatch(r"[0-9a-f]{64}", str(tree.get("manifest_sha256"))) is None
+    ):
+        raise EvidenceError("TypeScript reviewed package-tree identity is invalid")
+
+    registry = _require_exact_object(
+        control.get("registry"),
+        {"integrity_sha512", "tarball_bytes_retained", "tarball_sha256"},
+        "TypeScript reviewed registry record",
+    )
+    if (
+        registry.get("tarball_bytes_retained") is not False
+        or re.fullmatch(r"[0-9a-f]{64}", str(registry.get("tarball_sha256"))) is None
+    ):
+        raise EvidenceError("TypeScript reviewed registry identity is invalid")
+    _canonical_sha512_sri(
+        registry.get("integrity_sha512"),
+        "TypeScript reviewed registry integrity",
+    )
+    return control
+
+
+def _load_typescript_control(path: Path) -> dict[str, Any]:
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        raise EvidenceError(
+            f"cannot read TypeScript reviewed control: {error}"
+        ) from error
+    if not raw or len(raw) > MAX_TYPESCRIPT_CONTROL_BYTES:
+        raise EvidenceError("TypeScript reviewed control exceeds its byte limit")
+    value = _strict_json(raw, "TypeScript reviewed control")
+    if not isinstance(value, dict):
+        raise EvidenceError("TypeScript reviewed control must be a JSON object")
+    if raw != _canonical_json_bytes(value):
+        raise EvidenceError("TypeScript reviewed control is not canonical JSON")
+    return value
+
+
+def _strip_jsonc_comments(raw: str, context: str) -> str:
+    """Remove JSONC comments without treating comment text as lock data."""
+
+    result = list(raw)
+    index = 0
+    in_string = False
+    escaped = False
+    while index < len(result):
+        character = result[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            index += 1
+            continue
+        if character == '"':
+            in_string = True
+            index += 1
+            continue
+        if character != "/" or index + 1 >= len(result):
+            index += 1
+            continue
+        marker = result[index + 1]
+        if marker == "/":
+            result[index] = result[index + 1] = " "
+            index += 2
+            while index < len(result) and result[index] not in "\r\n":
+                result[index] = " "
+                index += 1
+            continue
+        if marker == "*":
+            result[index] = result[index + 1] = " "
+            index += 2
+            while index + 1 < len(result) and result[index : index + 2] != ["*", "/"]:
+                if result[index] not in "\r\n":
+                    result[index] = " "
+                index += 1
+            if index + 1 >= len(result):
+                raise EvidenceError(f"{context} contains an unterminated block comment")
+            result[index] = result[index + 1] = " "
+            index += 2
+            continue
+        index += 1
+    return "".join(result)
+
+
+def _remove_jsonc_trailing_commas(raw: str) -> str:
+    result: list[str] = []
+    index = 0
+    in_string = False
+    escaped = False
+    while index < len(raw):
+        character = raw[index]
+        if in_string:
+            result.append(character)
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            index += 1
+            continue
+        if character == '"':
+            in_string = True
+            result.append(character)
+            index += 1
+            continue
+        if character == ",":
+            lookahead = index + 1
+            while lookahead < len(raw) and raw[lookahead].isspace():
+                lookahead += 1
+            if lookahead < len(raw) and raw[lookahead] in "}]":
+                index += 1
+                continue
+        result.append(character)
+        index += 1
+    return "".join(result)
+
+
+def _parse_bun_lock(raw: str) -> dict[str, Any]:
+    normalized = _remove_jsonc_trailing_commas(_strip_jsonc_comments(raw, "bun.lock"))
+    value = _strict_json(normalized, "bun.lock")
+    if not isinstance(value, dict):
+        raise EvidenceError("bun.lock must contain one JSONC object")
+    return value
+
+
+def _load_bun_lock(path: Path) -> dict[str, Any]:
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        raise EvidenceError(f"cannot read bun.lock: {error}") from error
+    if not raw or len(raw) > MAX_TYPESCRIPT_CONTROL_BYTES:
+        raise EvidenceError("bun.lock exceeds its TypeScript-control byte limit")
+    try:
+        text = raw.decode("utf-8", "strict")
+    except UnicodeError as error:
+        raise EvidenceError("bun.lock is not UTF-8") from error
+    return _parse_bun_lock(text)
+
+
+def _validate_npm_dependency_surface(
+    manifest: dict[str, Any], *, context: str
+) -> str:
+    unexpected = [
+        field for field in NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS if field in manifest
+    ]
+    if unexpected:
+        raise EvidenceError(
+            f"{context} contains unreviewed dependency or package-graph fields: "
+            + ", ".join(unexpected)
+        )
+    dependencies = manifest.get("devDependencies")
+    if not isinstance(dependencies, dict) or set(dependencies) != {
+        TYPESCRIPT_REVIEWED_PACKAGE
+    }:
+        raise EvidenceError(
+            "package.json must contain only the reviewed TypeScript dev dependency"
+        )
+    version = dependencies.get(TYPESCRIPT_REVIEWED_PACKAGE)
+    if version != TYPESCRIPT_REVIEWED_VERSION:
+        raise EvidenceError(
+            f"{context} must retain the exact reviewed TypeScript version"
+        )
+    return version
+
+
+def _validate_python_runtime_dependency_surface(project: dict[str, Any]) -> None:
+    if project.get("dependencies") not in (None, []):
+        raise EvidenceError("Python runtime dependency surface changed and needs review")
+    if "optional-dependencies" in project:
+        raise EvidenceError(
+            "Python optional runtime dependency surface changed and needs review"
+        )
+    dynamic = project.get("dynamic", [])
+    if (
+        not isinstance(dynamic, list)
+        or any(not isinstance(item, str) for item in dynamic)
+        or len(dynamic) != len(set(dynamic))
+    ):
+        raise EvidenceError("Python dynamic metadata declaration is malformed")
+    if {"dependencies", "optional-dependencies"}.intersection(dynamic):
+        raise EvidenceError(
+            "Python runtime dependencies cannot be supplied through dynamic metadata"
+        )
+
+
+def _typescript_component_from_documents(
+    manifest: dict[str, Any],
+    control: dict[str, Any],
+    lock: dict[str, Any],
+) -> dict[str, Any]:
+    version = _validate_npm_dependency_surface(manifest, context="package.json")
+    dependencies = manifest["devDependencies"]
+    control = _validate_typescript_control(control, expected_version=version)
+    registry = control["registry"]
+
+    if set(lock) != {"configVersion", "lockfileVersion", "packages", "workspaces"}:
+        raise EvidenceError("bun.lock top-level shape is invalid")
+    workspaces = lock.get("workspaces")
+    packages = lock.get("packages")
+    if (
+        lock.get("lockfileVersion") != 1
+        or lock.get("configVersion") != 1
+        or not isinstance(workspaces, dict)
+        or set(workspaces) != {""}
+        or not isinstance(packages, dict)
+        or set(packages) != {TYPESCRIPT_REVIEWED_PACKAGE}
+    ):
+        raise EvidenceError("bun.lock workspace or package records are malformed")
+    root_workspace = workspaces[""]
+    if not isinstance(root_workspace, dict) or set(root_workspace) != {
+        "devDependencies",
+        "name",
+    }:
+        raise EvidenceError("bun.lock root workspace shape is invalid")
+    lock_dependencies = root_workspace.get("devDependencies")
+    if root_workspace.get("name") != manifest.get("name") or (
+        not isinstance(lock_dependencies, dict) or lock_dependencies != dependencies
+    ):
+        raise EvidenceError("bun.lock root TypeScript pin differs from package.json")
+
+    key = TYPESCRIPT_REVIEWED_PACKAGE
+    record = packages[key]
+    if (
+        key != TYPESCRIPT_REVIEWED_PACKAGE
+        or not isinstance(record, list)
+        or len(record) != 4
+        or record[0] != f"{TYPESCRIPT_REVIEWED_PACKAGE}@{version}"
+        or record[1] != ""
+        or record[2] != {"bin": {"tsc": "bin/tsc", "tsserver": "bin/tsserver"}}
+    ):
+        raise EvidenceError("bun.lock TypeScript package record shape is invalid")
+    lock_integrity = record[3]
+    digest = _canonical_sha512_sri(
+        lock_integrity,
+        "bun.lock TypeScript package integrity",
+    )
+    if lock_integrity != registry.get("integrity_sha512"):
+        raise EvidenceError(
+            "bun.lock TypeScript integrity differs from the reviewed control"
+        )
+
     license_expression_raw = "Apache-2.0"
     return {
         "bom-ref": _purl("npm", "typescript", version),
@@ -796,9 +1124,16 @@ def _typescript_component() -> dict[str, Any]:
         "license_expression_normalized": _normalize_spdx_expression(
             license_expression_raw, "TypeScript"
         ),
-        "hash": {"alg": cyclonedx_algorithm, "content": digest},
+        "hash": {"alg": "SHA-512", "content": digest},
         "scope": "development",
     }
+
+
+def _typescript_component() -> dict[str, Any]:
+    manifest = _read_json(ROOT / "package.json")
+    control = _load_typescript_control(ROOT / TYPESCRIPT_CONTROL_PATH)
+    lock = _load_bun_lock(ROOT / "bun.lock")
+    return _typescript_component_from_documents(manifest, control, lock)
 
 
 def _workspace_inventory(
@@ -930,6 +1265,7 @@ def _generator_inventory(tracked: set[str]) -> list[dict[str, Any]]:
         in {
             "ncp-core/src/bin/gen-schemas.rs",
             "ncp-ts/scripts/build-release.mjs",
+            "ncp-ts/scripts/strict-json.mjs",
             "ncp-ts/scripts/sync-bindings.mjs",
             "scripts/gen_diagrams.py",
             "scripts/plot_perf.py",
@@ -1153,9 +1489,7 @@ def _cargo_advisories() -> dict[str, Any]:
                 f"cannot inspect {ADVISORY_DB_PATH_ENV}: {error}"
             ) from error
         if stat.S_ISLNK(candidate_mode) or not stat.S_ISDIR(candidate_mode):
-            raise EvidenceError(
-                f"{ADVISORY_DB_PATH_ENV} must name a plain directory"
-            )
+            raise EvidenceError(f"{ADVISORY_DB_PATH_ENV} must name a plain directory")
         repository_root = ROOT.resolve()
         if (
             configured_database_root == repository_root
@@ -1195,18 +1529,15 @@ def _cargo_advisories() -> dict[str, Any]:
             raise EvidenceError("deny.toml is not UTF-8") from error
         if deny_text.count(DEFAULT_ADVISORY_DB_SETTING) != 1:
             raise EvidenceError("deny.toml advisory database setting drifted")
-        database_setting = (
-            "db-path = "
-            + json.dumps(configured_database_root.as_posix(), ensure_ascii=True)
+        database_setting = "db-path = " + json.dumps(
+            configured_database_root.as_posix(), ensure_ascii=True
         )
         derived_config = deny_text.replace(
             DEFAULT_ADVISORY_DB_SETTING,
             database_setting,
             1,
         )
-        temporary_config = tempfile.TemporaryDirectory(
-            prefix="ncp-cargo-deny-config-"
-        )
+        temporary_config = tempfile.TemporaryDirectory(prefix="ncp-cargo-deny-config-")
         config_path = Path(temporary_config.name) / "deny.toml"
         try:
             config_path.write_text(derived_config, encoding="utf-8")
@@ -1404,6 +1735,7 @@ def _build_outputs(
     tracked_set = set(tracked)
     workspace = _workspace_inventory(metadata, refs)
     root_manifest = _read_json(ROOT / "package.json")
+    nested_npm_manifest = _read_json(ROOT / "ncp-ts" / "package.json")
     python_manifest = _read_toml(ROOT / "ncp-python" / "pyproject.toml")
     contract = _read_json(ROOT / "contract" / "manifest.v1.json")
 
@@ -1415,6 +1747,18 @@ def _build_outputs(
         raise EvidenceError("workspace package versions are incoherent")
     if root_manifest.get("version") != version:
         raise EvidenceError("npm and Cargo package versions are incoherent")
+    root_typescript = _validate_npm_dependency_surface(
+        root_manifest, context="package.json"
+    )
+    nested_typescript = _validate_npm_dependency_surface(
+        nested_npm_manifest, context="ncp-ts/package.json"
+    )
+    if (
+        nested_npm_manifest.get("name") != root_manifest.get("name")
+        or nested_npm_manifest.get("version") != version
+        or nested_typescript != root_typescript
+    ):
+        raise EvidenceError("root and nested npm package identities are incoherent")
     npm_name = root_manifest.get("name")
     npm_license_raw = root_manifest.get("license")
     if not isinstance(npm_name, str) or not npm_name:
@@ -1423,10 +1767,9 @@ def _build_outputs(
         npm_license_raw, "npm workspace package"
     )
     project = python_manifest.get("project")
-    if not isinstance(project, dict) or project.get("dependencies") not in (None, []):
-        raise EvidenceError(
-            "Python runtime dependency surface changed and needs review"
-        )
+    if not isinstance(project, dict):
+        raise EvidenceError("Python project metadata is malformed")
+    _validate_python_runtime_dependency_surface(project)
     python_name = project.get("name")
     if not isinstance(python_name, str) or not python_name:
         raise EvidenceError("Python distribution identity is malformed")
@@ -1627,6 +1970,7 @@ def _build_outputs(
                     "ncp-python/pyproject.toml",
                     "ncp-ts/package.json",
                     "package.json",
+                    TYPESCRIPT_CONTROL_PATH.as_posix(),
                     "scripts/requirements-candidate-build-linux-x86_64.txt",
                     "scripts/requirements-plot.txt",
                     *[package["manifest"] for package in workspace],
@@ -1737,11 +2081,21 @@ def _build_outputs(
         "stable_publication_blocked": True,
         "stable_publication_blocker": (
             "The root graph advisory scan passes. Archive-alone Cargo metadata "
-            "resolution was executed and observed the vulnerable registry "
-            "Zenoh/lz4 fallback. The exact consuming-root backport produced only a "
-            "CONDITIONAL_PASS; self-contained package resolution remains "
-            "OPEN_FAIL_CLOSED and NO_GO. Other required gates also keep the "
-            "candidate release-blocked. This report is not release authorization."
+            "observes registry zenoh-transport 1.9.0 resolving to advisory-affected "
+            "lz4_flex 0.10.0 and its twox-hash 1.6.3 dependency without a "
+            "consuming-root patch. The exact reviewed patch conditions that graph "
+            "to patched lz4_flex 0.11.6 and updates its twox-hash dependency to "
+            "2.1.3. Qualification runs the exact fork's "
+            "security_backport regression and compression-enabled library tests. "
+            "Fork source verification and upstream delta verification are "
+            "point-in-time local-process attestations; the exact fork source "
+            "bytes are not retained. "
+            "The result is CONDITIONAL_PASS with "
+            "package_self_contained=false, "
+            "self_contained_distribution_gate=OPEN_FAIL_CLOSED, decision=NO_GO, "
+            "and release_authorized=false. Cargo does not verify Git signatures. "
+            "Other required gates also keep the candidate release-blocked. This "
+            "report is not release authorization."
         ),
         "findings": advisory_scan["findings"],
         "non_rust_runtime_dependencies": {
@@ -1761,6 +2115,7 @@ def _build_outputs(
         "source_materials": {
             "Cargo.lock": _sha256(ROOT / "Cargo.lock"),
             "bun.lock": _sha256(ROOT / "bun.lock"),
+            TYPESCRIPT_CONTROL_PATH.as_posix(): _sha256(ROOT / TYPESCRIPT_CONTROL_PATH),
             "contract/manifest.v1.json": _sha256(
                 ROOT / "contract" / "manifest.v1.json"
             ),
@@ -2268,6 +2623,305 @@ def _self_test() -> None:
         raise AssertionError("internal component reference encoding regressed")
     if SRI_TO_CYCLONEDX.get("sha512") != "SHA-512":
         raise AssertionError("CycloneDX SHA-512 spelling regressed")
+
+    reviewed_integrity = (
+        "sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d"
+        "7SKKjZKrSJu3+t/xlw3R9A=="
+    )
+    reviewed_control: dict[str, Any] = {
+        "claim_boundary": "Hostile self-test TypeScript control.",
+        "normalized_package_tree": {
+            "file_count": 3,
+            "manifest_sha256": "a" * 64,
+            "record_shape": ["path", "size_bytes", "sha256"],
+            "total_bytes": 225,
+        },
+        "package": "typescript",
+        "registry": {
+            "integrity_sha512": reviewed_integrity,
+            "tarball_bytes_retained": False,
+            "tarball_sha256": "b" * 64,
+        },
+        "schema": TYPESCRIPT_CONTROL_SCHEMA,
+        "version": TYPESCRIPT_REVIEWED_VERSION,
+    }
+    typescript_manifest = {
+        "name": "@sepahead/ncp",
+        "devDependencies": {"typescript": TYPESCRIPT_REVIEWED_VERSION},
+    }
+    package_record: list[Any] = [
+        f"typescript@{TYPESCRIPT_REVIEWED_VERSION}",
+        "",
+        {"bin": {"tsc": "bin/tsc", "tsserver": "bin/tsserver"}},
+        reviewed_integrity,
+    ]
+
+    def clone_json(value: Any) -> Any:
+        return json.loads(json.dumps(value))
+
+    def bun_lock_fixture(
+        package_entries: list[tuple[str, Any]],
+        *,
+        workspace_version: str = TYPESCRIPT_REVIEWED_VERSION,
+    ) -> str:
+        package_body = ",\n".join(
+            f"{json.dumps(key)}: {json.dumps(value)}" for key, value in package_entries
+        )
+        return (
+            "{\n"
+            '  "lockfileVersion": 1,\n'
+            '  "configVersion": 1,\n'
+            '  "workspaces": {\n'
+            '    "": {\n'
+            '      "name": "@sepahead/ncp",\n'
+            '      "devDependencies": {\n'
+            f'        "typescript": {json.dumps(workspace_version)},\n'
+            "      },\n"
+            "    },\n"
+            "  },\n"
+            '  "packages": {\n'
+            f"{package_body}\n"
+            "  },\n"
+            "}\n"
+        )
+
+    valid_lock = _parse_bun_lock(bun_lock_fixture([("typescript", package_record)]))
+    valid_typescript = _typescript_component_from_documents(
+        typescript_manifest,
+        reviewed_control,
+        valid_lock,
+    )
+    if valid_typescript["hash"] != {
+        "alg": "SHA-512",
+        "content": base64.b64decode(
+            reviewed_integrity.removeprefix("sha512-"), validate=True
+        ).hex(),
+    }:
+        raise AssertionError("reviewed TypeScript lock identity regressed")
+
+    with tempfile.TemporaryDirectory(prefix="ncp-typescript-control-self-test-") as tmp:
+        control_path = Path(tmp) / "typescript-control.json"
+        control_path.write_bytes(_canonical_json_bytes(reviewed_control))
+        if _load_typescript_control(control_path) != reviewed_control:
+            raise AssertionError("canonical TypeScript control did not round-trip")
+        control_path.write_text(
+            json.dumps(reviewed_control, sort_keys=True),
+            encoding="utf-8",
+        )
+        expect_rejected(
+            "non-canonical TypeScript control JSON",
+            lambda: _load_typescript_control(control_path),
+        )
+
+    for label, mutate in (
+        (
+            "unexpected TypeScript control field",
+            lambda value: value.update({"unreviewed": True}),
+        ),
+        (
+            "unexpected TypeScript tree field",
+            lambda value: value["normalized_package_tree"].update({"unreviewed": True}),
+        ),
+        (
+            "unexpected TypeScript registry field",
+            lambda value: value["registry"].update({"unreviewed": True}),
+        ),
+        (
+            "wrong TypeScript control package",
+            lambda value: value.update({"package": "typescript-lookalike"}),
+        ),
+        (
+            "wrong TypeScript control version",
+            lambda value: value.update({"version": "5.9.3"}),
+        ),
+    ):
+        hostile_control = clone_json(reviewed_control)
+        mutate(hostile_control)
+        expect_rejected(
+            label,
+            lambda hostile_control=hostile_control: (
+                _typescript_component_from_documents(
+                    typescript_manifest,
+                    hostile_control,
+                    valid_lock,
+                )
+            ),
+        )
+
+    noncanonical_sri = f"{reviewed_integrity[:-3]}B=="
+    for hostile_sri in ("sha512-***", "sha512-YWJjZA==", noncanonical_sri):
+        hostile_control = clone_json(reviewed_control)
+        hostile_control["registry"]["integrity_sha512"] = hostile_sri
+        expect_rejected(
+            f"non-canonical or wrong-length reviewed TypeScript SRI {hostile_sri!r}",
+            lambda hostile_control=hostile_control: (
+                _typescript_component_from_documents(
+                    typescript_manifest,
+                    hostile_control,
+                    valid_lock,
+                )
+            ),
+        )
+        hostile_record = clone_json(package_record)
+        hostile_record[3] = hostile_sri
+        expect_rejected(
+            f"non-canonical or wrong-length Bun TypeScript SRI {hostile_sri!r}",
+            lambda hostile_record=hostile_record: _typescript_component_from_documents(
+                typescript_manifest,
+                reviewed_control,
+                _parse_bun_lock(bun_lock_fixture([("typescript", hostile_record)])),
+            ),
+        )
+
+    divergent_control = clone_json(reviewed_control)
+    divergent_control["registry"]["integrity_sha512"] = "sha512-" + base64.b64encode(
+        b"\x00" * 64
+    ).decode("ascii")
+    expect_rejected(
+        "TypeScript control and Bun lock integrity divergence",
+        lambda: _typescript_component_from_documents(
+            typescript_manifest,
+            divergent_control,
+            valid_lock,
+        ),
+    )
+    expect_rejected(
+        "TypeScript root pin and Bun lock divergence",
+        lambda: _typescript_component_from_documents(
+            typescript_manifest,
+            reviewed_control,
+            _parse_bun_lock(
+                bun_lock_fixture(
+                    [("typescript", package_record)], workspace_version="5.9.3"
+                )
+            ),
+        ),
+    )
+    expect_rejected(
+        "duplicate TypeScript package records",
+        lambda: _typescript_component_from_documents(
+            typescript_manifest,
+            reviewed_control,
+            _parse_bun_lock(
+                bun_lock_fixture(
+                    [
+                        ("typescript", package_record),
+                        ("typescript@5.9.2", package_record),
+                    ]
+                )
+            ),
+        ),
+    )
+    for label, mutate in (
+        (
+            "extra package.json dev dependency",
+            lambda manifest, lock: manifest["devDependencies"].update(
+                {"evil": "1.0.0"}
+            ),
+        ),
+        *(
+            (
+                f"package.json {field}",
+                lambda manifest, lock, field=field: manifest.update(
+                    {
+                        field: ["evil"]
+                        if field in {"bundleDependencies", "bundledDependencies"}
+                        else {"evil": "1.0.0"}
+                    }
+                ),
+            )
+            for field in NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS
+        ),
+        (
+            "unexpected Bun top-level field",
+            lambda manifest, lock: lock.update({"unreviewed": True}),
+        ),
+        (
+            "wrong Bun lockfile version",
+            lambda manifest, lock: lock.update({"lockfileVersion": 2}),
+        ),
+        (
+            "wrong Bun config version",
+            lambda manifest, lock: lock.update({"configVersion": 2}),
+        ),
+        (
+            "extra Bun workspace",
+            lambda manifest, lock: lock["workspaces"].update(
+                {"packages/evil": {"name": "evil", "devDependencies": {}}}
+            ),
+        ),
+        (
+            "unexpected Bun root workspace field",
+            lambda manifest, lock: lock["workspaces"][""].update(
+                {"dependencies": {}}
+            ),
+        ),
+        (
+            "extra Bun root dependency",
+            lambda manifest, lock: lock["workspaces"][""][
+                "devDependencies"
+            ].update({"evil": "1.0.0"}),
+        ),
+        (
+            "unreviewed Bun package",
+            lambda manifest, lock: lock["packages"].update(
+                {"evil": ["evil@1.0.0", "", "", "sha512-YQ=="]}
+            ),
+        ),
+    ):
+        hostile_manifest = clone_json(typescript_manifest)
+        hostile_lock = clone_json(valid_lock)
+        mutate(hostile_manifest, hostile_lock)
+        expect_rejected(
+            label,
+            lambda hostile_manifest=hostile_manifest, hostile_lock=hostile_lock: (
+                _typescript_component_from_documents(
+                    hostile_manifest,
+                    reviewed_control,
+                    hostile_lock,
+                )
+            ),
+        )
+    _validate_python_runtime_dependency_surface(
+        {"name": "ncp", "dynamic": ["version"]}
+    )
+    for label, hostile_project in (
+        ("Python dependencies", {"dependencies": ["evil>=1"]}),
+        ("Python optional dependencies", {"optional-dependencies": {}}),
+        ("Python dynamic dependencies", {"dynamic": ["dependencies"]}),
+        (
+            "Python dynamic optional dependencies",
+            {"dynamic": ["optional-dependencies"]},
+        ),
+    ):
+        expect_rejected(
+            label,
+            lambda hostile_project=hostile_project: (
+                _validate_python_runtime_dependency_surface(hostile_project)
+            ),
+        )
+    expect_rejected(
+        "duplicate Bun package key",
+        lambda: _parse_bun_lock(
+            bun_lock_fixture(
+                [("typescript", package_record), ("typescript", package_record)]
+            )
+        ),
+    )
+    commented_record = json.dumps(package_record)
+    commented_only_lock = bun_lock_fixture([]).replace(
+        '  "packages": {\n\n',
+        f'  "packages": {{\n// "typescript": {commented_record},\n',
+    )
+    expect_rejected(
+        "commented TypeScript package record",
+        lambda: _typescript_component_from_documents(
+            typescript_manifest,
+            reviewed_control,
+            _parse_bun_lock(commented_only_lock),
+        ),
+    )
+
     expect_rejected("unknown asset class", lambda: _asset_class("unreviewed/model.bin"))
     for unsafe in ("", "../escape", "/absolute", "a/../b", "a\\b"):
         expect_rejected(

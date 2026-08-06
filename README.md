@@ -7,7 +7,7 @@ read-only analysis clients.
 > **Current status:** repository HEAD is the **unreleased, release-blocked**
 > `1.0.0-rc.1` candidate: wire `1.0`, compact proto contract hash
 > `163acc57d8a62b66`. The latest immutable annotated source tag is `v0.8.0`; it is a
-> different, incompatible wire. Do not describe this candidate as NCP 1.0,
+> different, incompatible wire. Do not describe this candidate as the NCP 1.0 release,
 > production-certified, published, signed, or consumer-certified.
 
 The complete normative SHA-256 contract digest and exact source list are generated
@@ -130,8 +130,9 @@ non-certifying sentinel, not a source revision or release provenance claim.
 
 ## Build and verify
 
-Required local tools are Rust 1.88+, Python 3, Node.js, a C++17 compiler, Bun,
-npm, Buf, and `cargo-deny`. Hosted CI pins Node.js 24.18.0 and Bun 1.3.14.
+Required local tools are Rust 1.88+, Python 3.11+, Node.js 18+, a C++17 compiler,
+Bun, npm, Buf, and `cargo-deny` 0.19.9. The complete gate invokes both Bun and
+npm. Hosted CI pins Node.js 24.18.0 and Bun 1.3.14.
 
 ```bash
 scripts/check.sh

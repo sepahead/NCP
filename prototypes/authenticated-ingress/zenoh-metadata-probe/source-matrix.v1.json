@@ -12,12 +12,12 @@
     "name": "zenoh-transport",
     "version": "1.9.0",
     "repository": "https://github.com/sepahead/zenoh-transport-lz4-backport",
-    "revision": "6b93b15d0795748b7f76c72eae07f1cda517e762",
-    "cargo_source": "git+https://github.com/sepahead/zenoh-transport-lz4-backport?rev=6b93b15d0795748b7f76c72eae07f1cda517e762#6b93b15d0795748b7f76c72eae07f1cda517e762",
+    "revision": "9045545b72a77602a87f40203cb614b48157b4bc",
+    "cargo_source": "git+https://github.com/sepahead/zenoh-transport-lz4-backport?rev=9045545b72a77602a87f40203cb614b48157b4bc#9045545b72a77602a87f40203cb614b48157b4bc",
     "rust_version": "1.81.0",
     "lz4_flex_version": "0.11.6",
     "lz4_flex_checksum_sha256": "373f5eceeeab7925e0c1098212f2fbc4d416adec9d35051a6ab251e824c1854a",
-    "reviewed_change": "The immutable backport leaves the published Zenoh transport library source unchanged, changes package metadata to select the fixed lz4_flex release, and adds downstream security regression tests."
+    "reviewed_change": "The immutable backport leaves the published Zenoh transport library source unchanged, changes package metadata to select the fixed lz4_flex release, adds downstream security regression tests, selects fixed or non-yanked lock entries for current advisories, and rejects yanked entries and current RustSec vulnerabilities with a pinned cargo-deny policy."
   },
   "files": [
     {

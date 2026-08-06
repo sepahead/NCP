@@ -218,6 +218,231 @@ function channelMap(value: unknown, path: string): string {
   return map(value, path, channelValue)
 }
 
+class CappedCanonicalByteCounter {
+  bytes = 0
+
+  constructor(private readonly maximum: number) {}
+
+  private add(count: number): void {
+    if (!Number.isSafeInteger(count) || count < 0 || this.bytes + count > this.maximum) {
+      throw new Error(`canonical NCP projection exceeds ${this.maximum} UTF-8 bytes`)
+    }
+    this.bytes += count
+  }
+
+  ascii(value: string): void {
+    this.add(value.length)
+  }
+
+  jsonString(value: unknown, path: string): void {
+    if (typeof value !== 'string') throw new Error(`${path} must be a string`)
+    this.add(2) // quotes
+    for (let index = 0; index < value.length; index++) {
+      const unit = value.charCodeAt(index)
+      if (unit === 0x22 || unit === 0x5c) {
+        this.add(2)
+      } else if (unit <= 0x1f) {
+        this.add([0x08, 0x09, 0x0a, 0x0c, 0x0d].includes(unit) ? 2 : 6)
+      } else if (unit <= 0x7f) {
+        this.add(1)
+      } else if (unit <= 0x7ff) {
+        this.add(2)
+      } else if (unit >= 0xd800 && unit <= 0xdbff) {
+        const next = value.charCodeAt(index + 1)
+        if (index + 1 >= value.length || next < 0xdc00 || next > 0xdfff) {
+          throw new Error(`${path} contains an unpaired UTF-16 surrogate`)
+        }
+        this.add(4)
+        index++
+      } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+        throw new Error(`${path} contains an unpaired UTF-16 surrogate`)
+      } else {
+        this.add(3)
+      }
+    }
+  }
+
+  number(value: unknown, path: string): void {
+    this.ascii(number(value, path))
+  }
+
+  integer(value: unknown, path: string): void {
+    this.ascii(integer(value, path))
+  }
+
+  object(entries: Array<readonly [string, () => void]>): void {
+    this.ascii('{')
+    entries.forEach(([key, write], index) => {
+      if (index > 0) this.ascii(',')
+      this.jsonString(key, 'canonical object key')
+      this.ascii(':')
+      write()
+    })
+    this.ascii('}')
+  }
+
+  array(value: unknown, path: string, write: (item: unknown, path: string) => void): void {
+    if (!Array.isArray(value)) throw new Error(`${path} must be an array`)
+    this.ascii('[')
+    value.forEach((item, index) => {
+      if (index > 0) this.ascii(',')
+      write(item, `${path}[${index}]`)
+    })
+    this.ascii(']')
+  }
+}
+
+function countStreamPosition(
+  counter: CappedCanonicalByteCounter,
+  value: unknown,
+  path: string,
+): void {
+  const input = record(value, path)
+  counter.object([
+    ['epoch', () => counter.jsonString(member(input, 'epoch'), `${path}.epoch`)],
+    ['seq', () => counter.integer(member(input, 'seq'), `${path}.seq`)],
+  ])
+}
+
+function countSessionRef(
+  counter: CappedCanonicalByteCounter,
+  value: unknown,
+  path: string,
+): void {
+  const input = record(value, path)
+  counter.object([
+    ['generation', () => counter.jsonString(member(input, 'generation'), `${path}.generation`)],
+  ])
+}
+
+function countAuthorityLease(
+  counter: CappedCanonicalByteCounter,
+  value: unknown,
+  path: string,
+): void {
+  const input = record(value, path)
+  counter.object([
+    ['session_epoch', () => counter.jsonString(member(input, 'session_epoch'), `${path}.session_epoch`)],
+    ['term', () => counter.integer(member(input, 'term'), `${path}.term`)],
+    ['lease_id', () => counter.jsonString(member(input, 'lease_id'), `${path}.lease_id`)],
+    ['issuer_principal_id', () => counter.jsonString(member(input, 'issuer_principal_id'), `${path}.issuer_principal_id`)],
+    ['holder_principal_id', () => counter.jsonString(member(input, 'holder_principal_id'), `${path}.holder_principal_id`)],
+    ['holder_entity_id', () => counter.jsonString(member(input, 'holder_entity_id'), `${path}.holder_entity_id`)],
+    ['issued_at_utc_ms', () => counter.integer(member(input, 'issued_at_utc_ms'), `${path}.issued_at_utc_ms`)],
+    ['expires_at_utc_ms', () => counter.integer(member(input, 'expires_at_utc_ms'), `${path}.expires_at_utc_ms`)],
+  ])
+}
+
+function countChannelMap(
+  counter: CappedCanonicalByteCounter,
+  value: unknown,
+  path: string,
+): void {
+  const input = record(value, path)
+  counter.ascii('{')
+  let index = 0
+  for (const key in input) {
+    if (!Object.hasOwn(input, key)) continue
+    if (index++ > 0) counter.ascii(',')
+    counter.jsonString(key, `${path} key`)
+    counter.ascii(':')
+    const channel = record(input[key], `${path}[${JSON.stringify(key)}]`)
+    counter.object([
+      [
+        'data',
+        () =>
+          counter.array(
+            member(channel, 'data', []),
+            `${path}[${JSON.stringify(key)}].data`,
+            (item, itemPath) => counter.number(item, itemPath),
+          ),
+      ],
+      [
+        'unit',
+        () => {
+          const unit = member(channel, 'unit', null)
+          if (unit === null) counter.ascii('null')
+          else counter.jsonString(unit, `${path}[${JSON.stringify(key)}].unit`)
+        },
+      ],
+    ])
+  }
+  counter.ascii('}')
+}
+
+/** Count exact canonical command/sensor projection bytes without materializing
+ * the projection. The counter stops as soon as `maximum` would be exceeded. */
+export function canonicalDataPlaneByteLength(
+  value: unknown,
+  expectedKind: 'command_frame' | 'sensor_frame',
+  maximum: number,
+): number {
+  const input = record(value, expectedKind)
+  const kind = member(input, 'kind')
+  if (kind !== expectedKind) {
+    throw new Error(`NCP kind mismatch: expected ${expectedKind}, got ${String(kind)}`)
+  }
+  const counter = new CappedCanonicalByteCounter(maximum)
+  if (expectedKind === 'sensor_frame') {
+    counter.object([
+      ['ncp_version', () => counter.jsonString(member(input, 'ncp_version'), 'sensor_frame.ncp_version')],
+      ['kind', () => counter.jsonString(kind, 'sensor_frame.kind')],
+      ['t', () => counter.number(member(input, 't', 0), 'sensor_frame.t')],
+      ['frame_id', () => counter.jsonString(member(input, 'frame_id', 'world'), 'sensor_frame.frame_id')],
+      ['channels', () => countChannelMap(counter, member(input, 'channels', {}), 'sensor_frame.channels')],
+      ['stream', () => countStreamPosition(counter, member(input, 'stream'), 'sensor_frame.stream')],
+      ['session', () => countSessionRef(counter, member(input, 'session'), 'sensor_frame.session')],
+      ['session_id', () => counter.jsonString(member(input, 'session_id'), 'sensor_frame.session_id')],
+    ])
+    return counter.bytes
+  }
+  counter.object([
+    ['ncp_version', () => counter.jsonString(member(input, 'ncp_version'), 'command_frame.ncp_version')],
+    ['kind', () => counter.jsonString(kind, 'command_frame.kind')],
+    ['t', () => counter.number(member(input, 't', 0), 'command_frame.t')],
+    ['frame_id', () => counter.jsonString(member(input, 'frame_id', 'world'), 'command_frame.frame_id')],
+    ['mode', () => counter.jsonString(member(input, 'mode', 'hold'), 'command_frame.mode')],
+    ['ttl_ms', () => counter.number(member(input, 'ttl_ms'), 'command_frame.ttl_ms')],
+    ['channels', () => countChannelMap(counter, member(input, 'channels', {}), 'command_frame.channels')],
+    [
+      'horizon',
+      () =>
+        counter.array(member(input, 'horizon', []), 'command_frame.horizon', (step, path) =>
+          countChannelMap(counter, step, path),
+        ),
+    ],
+    [
+      'horizon_dt_ms',
+      () => {
+        const value = member(input, 'horizon_dt_ms', null)
+        if (value === null) counter.ascii('null')
+        else counter.number(value, 'command_frame.horizon_dt_ms')
+      },
+    ],
+    ['stream', () => countStreamPosition(counter, member(input, 'stream'), 'command_frame.stream')],
+    [
+      'source',
+      () => {
+        const source = member(input, 'source', null)
+        if (source === null) counter.ascii('null')
+        else countStreamPosition(counter, source, 'command_frame.source')
+      },
+    ],
+    ['source_t', () => counter.number(member(input, 'source_t', 0), 'command_frame.source_t')],
+    ['session', () => countSessionRef(counter, member(input, 'session'), 'command_frame.session')],
+    ['session_id', () => counter.jsonString(member(input, 'session_id'), 'command_frame.session_id')],
+    [
+      'authority',
+      () => {
+        const authority = member(input, 'authority', null)
+        if (authority === null) counter.ascii('null')
+        else countAuthorityLease(counter, authority, 'command_frame.authority')
+      },
+    ],
+  ])
+  return counter.bytes
+}
+
 function networkRef(value: unknown, path: string): string {
   const input = record(value, path)
   return object([

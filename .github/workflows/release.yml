@@ -61,12 +61,15 @@ jobs:
           python3 scripts/generate_contract_manifest.py
           python3 scripts/check_release_gates.py --require-release-allowed
 
-      # Build all five archives and inspect their exact contents. The Zenoh-bearing
-      # archives first demonstrate the affected registry fallback without compiling
-      # it. The checker then applies the exact consuming-root transport backport and
-      # compiles offline. This remains CONDITIONAL_PASS and cannot authorize publish.
+      # Build all five archives and inspect their exact contents. The source-only
+      # Zenoh probes resolve registry zenoh-transport 1.9.0 to lz4_flex 0.10.0 and
+      # twox-hash 1.6.3 without compiling that graph. The exact consuming-root patch
+      # conditions it to lz4_flex 0.11.6 and twox-hash 2.1.3. Cargo dependency
+      # access is offline only during compile/test. No host/process network or host
+      # filesystem isolation is claimed. This remains CONDITIONAL_PASS and cannot
+      # publish.
       - name: Verify conditional Rust candidate archives
-        run: python3 scripts/check_rust_packages.py
+        run: python3 -I scripts/check_rust_packages.py
 
       # Real publishing is enabled later, once crates.io ownership is established
       # and a CARGO_REGISTRY_TOKEN secret is configured. Until then this job is

@@ -7,9 +7,11 @@
 //! boundary. The limits mirror `contract/limits.v1.json` and are intentionally
 //! constants rather than deployment knobs: changing one changes the contract.
 
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::fmt;
+use std::io::Write;
 
 pub const MAX_FRAME_BYTES: usize = 1_048_576;
 pub const MAX_NESTING_DEPTH: usize = 32;
@@ -25,6 +27,45 @@ pub const MAX_TOTAL_STRING_BYTES: usize = 1_048_576;
 pub const SAFE_INTEGER_MIN: i64 = -9_007_199_254_740_991;
 pub const SAFE_INTEGER_MAX: i64 = 9_007_199_254_740_991;
 pub const MAX_FINITE_NUMBER_MAGNITUDE: f64 = 1e300;
+
+struct CappedJsonWriter {
+    bytes: Vec<u8>,
+}
+
+impl CappedJsonWriter {
+    fn new() -> Self {
+        Self {
+            bytes: Vec::with_capacity(MAX_FRAME_BYTES.min(64 * 1024)),
+        }
+    }
+}
+
+impl Write for CappedJsonWriter {
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        let remaining = MAX_FRAME_BYTES.saturating_sub(self.bytes.len());
+        if input.len() > remaining {
+            return Err(std::io::Error::other("NCP frame byte limit exceeded"));
+        }
+        self.bytes.extend_from_slice(input);
+        Ok(input.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Serialize a typed value without ever retaining more than
+/// [`MAX_FRAME_BYTES`] output bytes.
+///
+/// This is a preallocation boundary for programmatic callers. It does not replace
+/// [`preflight`], which must still check the exact returned bytes for structural
+/// budgets, duplicate keys, Unicode, and numeric limits.
+pub fn to_bounded_vec<T: Serialize + ?Sized>(value: &T) -> Result<Vec<u8>, serde_json::Error> {
+    let mut writer = CappedJsonWriter::new();
+    serde_json::to_writer(&mut writer, value)?;
+    Ok(writer.bytes)
+}
 
 const SAFE_INTEGER_MAX_DECIMAL: &[u8] = b"9007199254740991";
 

@@ -453,6 +453,7 @@ REPOSITORY_NAMES = (
     "Crebain Galadriel producer",
     "Prisoma",
     "pid-rs",
+    "Cortexel",
     "sepahead profile",
 )
 AUTHORIZED_GITHUB_REPOSITORY_BY_NAME = {
@@ -464,6 +465,7 @@ AUTHORIZED_GITHUB_REPOSITORY_BY_NAME = {
     "Crebain Galadriel producer": "sepahead/crebain",
     "Prisoma": "sepahead/prisoma",
     "pid-rs": "sepahead/pid-rs",
+    "Cortexel": "sepahead/cortexel",
     "sepahead profile": "sepahead/sepahead",
 }
 X05_EXTERNAL_GATE = "disjoint-independent-challenge-exposure-anchor-infrastructure"
@@ -476,6 +478,7 @@ GIT_ROOT_BY_RECEIPT_REPOSITORY = {
     "Crebain Galadriel producer": ROOT.parent / "crebain",
     "Prisoma": ROOT.parent / "prisoma",
     "pid-rs": ROOT.parent / "pid-rs",
+    "Cortexel": ROOT.parent / "cortexel",
     "sepahead profile": ROOT.parent / "sepahead",
 }
 COORDINATION_GIT_REPOSITORY_BY_TASK_REPOSITORY = {
@@ -12112,6 +12115,21 @@ TASK_CLAIM_TIER: dict[str, str] = {
     },
 }
 
+V11_ATLAS_TASKS = frozenset(
+    {
+        "N10",
+        "E06",
+        "H04",
+        "G02",
+        "C04",
+        "P02",
+        "F05",
+        "R06",
+        "R07",
+        "R08",
+    }
+)
+
 DEFECT_TRACEABILITY: dict[str, tuple[str, ...]] = {
     "D01": ("N02", "E02", "C01"),
     "D02": ("N02", "G01", "G02", "P01"),
@@ -18021,6 +18039,14 @@ def validate(data: Any) -> None:
         _validate_task(task, expected, f"$.tasks[{index}]", budget=evidence_budget)
     _validate_legacy_portability_exception_inventory(tasks)
     task_by_id = {task["id"]: task for task in tasks}
+    observed_v11_tasks = {
+        task["id"] for task in tasks if "V11" in task["requirement_ids"]
+    }
+    if observed_v11_tasks != V11_ATLAS_TASKS:
+        _fail(
+            "V11 atlas ownership must cover the provider, five producer tasks, "
+            "the final visual gate and exact release refreshes"
+        )
     all_correlation_ids = [
         transition["correlation_id"]
         for task in tasks
@@ -20314,6 +20340,29 @@ def self_test(data: dict[str, Any]) -> None:
         "checked ordered ecosystem inventory",
     )
     mutant = copy.deepcopy(data)
+    mutant["repositories"] = [
+        repository
+        for repository in mutant["repositories"]
+        if repository["name"] != "Cortexel"
+    ]
+    _must_fail(
+        lambda: validate(mutant),
+        "missing Cortexel inventory",
+        "checked ordered ecosystem inventory",
+    )
+    mutant = copy.deepcopy(data)
+    cortexel_repository = next(
+        repository
+        for repository in mutant["repositories"]
+        if repository["name"] == "Cortexel"
+    )
+    cortexel_repository["remote"] = "git@github.com:attacker/cortexel.git"
+    _must_fail(
+        lambda: validate(mutant),
+        "Cortexel origin redirected outside the authorized owner",
+        "does not identify the authorized GitHub repository",
+    )
+    mutant = copy.deepcopy(data)
     mutant["repositories"][0]["remote"] = "git@github.com:attacker/NCP.git"
     _must_fail(
         lambda: validate(mutant),
@@ -20324,6 +20373,30 @@ def self_test(data: dict[str, Any]) -> None:
     mutant = copy.deepcopy(data)
     mutant["tasks"][1]["dependencies"] = []
     _must_fail(lambda: validate(mutant), "missing dependency", "checked DAG")
+    mutant = copy.deepcopy(data)
+    mutant_by_id = {task["id"]: task for task in mutant["tasks"]}
+    mutant_by_id["F05"]["dependencies"] = []
+    _must_fail(
+        lambda: validate(mutant),
+        "final visual gate bypassed clean-room reproduction",
+        "checked DAG",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_by_id = {task["id"]: task for task in mutant["tasks"]}
+    mutant_by_id["X03"]["requirement_ids"].append("V11")
+    _must_fail(
+        lambda: validate(mutant),
+        "atlas work added to the nine role receipts",
+        "V11 atlas ownership",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_by_id = {task["id"]: task for task in mutant["tasks"]}
+    mutant_by_id["R07"]["repository"] = "Cortexel"
+    _must_fail(
+        lambda: validate(mutant),
+        "Cortexel added to the consumer repin task",
+        "repository differs from the checked catalog",
+    )
     _must_fail(
         lambda: _check_acyclic({"B00": ("B01",), "B01": ("B00",)}),
         "cycle",

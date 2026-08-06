@@ -8,12 +8,21 @@ prose specification, and mandatory corpus; this crate is an informative
 implementation of it.
 
 The crate is transport-independent. It provides canonical JSON message types and
-validation, key grammar, universal bounded decoding, security-profile and authority
+validation, key grammar, generic bounded-JSON decoding, security-profile and authority
 manifest validation, session/lease state machines, bounded idempotency and receipts,
 portable domain-separated security-state and plant-profile digests, content-addressed
 plant profiles, deterministic safety/governor/watchdog/action buffer logic,
 codec/bulk helpers, audit chaining, and an in-process reference loop.
 Zenoh lives in [`ncp-zenoh`](../ncp-zenoh/).
+
+These primitives are necessary but not sufficient for plant-eligible Active output.
+The accepted trusted-message-class/decoded-path allocation and equal Rust,
+TypeScript, and Python preallocation enforcement for the 256-entry metadata limit
+remain open, including exact 256/257 parity vectors. Checked codecs can still
+invent midpoint or zero values, accept sparse components, select units by mapping
+order, and erase units in `PlantCommand`. A body must not treat that output as
+Active admission evidence until unit-preserving installed-profile validation is
+integrated.
 
 RPC failures use a required registered `ErrorFrame.code`. The typed builders
 distinguish invalid wire messages (`NCP-WIRE-001`) from contained implementation
@@ -48,6 +57,44 @@ Important boundaries:
   reactivate; a fresh `SessionOpened` generation gets fresh objects;
 - periodically published status positions start at 1, never repeat, and stop at
   JSON-safe exhaustion until a new publisher declaration;
+- the breaking candidate API `NeuroControlLoop::tick` returns
+  `Result<CommandFrame, ControlLoopTickError>`. Loop-local candidate exhaustion is
+  detected before the controller runs. A transport-owned stream can instead
+  exhaust or synchronously reject the governed command during slot admission,
+  after the controller but before status emission. It contains a panic during slot
+  admission and also rejects an admitted position that is wire-invalid, changes
+  epoch, does not advance a new slot, or does not exactly reuse the last pending
+  position. A panic or invalid result has ambiguous transport-side effects, never
+  local operation success. The loop latches that failure and performs no later
+  sensor, controller, command, or status work; recovery requires a fresh
+  loop/transport generation.
+  For a tick with an accepted sensor, `Ok` carries the exact validated
+  transport-assigned position and means bounded local slot admission, not network
+  delivery. Before the first accepted sensor, `Ok` is a local governed result and
+  status only. Construct fresh loop and transport declarations after their
+  respective exhaustion errors. The loop retains each trustworthy tick-clock
+  high-water sample even when command admission or governance returns an error.
+  A controller panic permanently retires that controller within the loop because
+  unwinding can leave partially mutated state; all later ticks remain non-Active
+  and recovery requires a fresh loop/controller generation;
+- `SafetyGovernor::govern` returns `Result`. It preserves a canonical attributable
+  stream/session envelope for each safe frame. Among the envelope's identity and
+  position fields, it can normalize only an invalid stream sequence to `1`; it can
+  also normalize non-routing metadata. The standalone governor has no publisher
+  allocator or stream high-water state. Sequence `1` is the required initial
+  numeric value for a newly declared stream, but the governor neither declares nor
+  admits that position. A caller must not publish that fallback into an existing
+  stream; it must withhold the frame or invoke the governor with the owning
+  publisher's next fresh position. `NeuroControlLoop` stamps its own position
+  before governance. See [`KNOWN_LIMITATIONS.md`](../KNOWN_LIMITATIONS.md). If the
+  attributable envelope is unavailable, the governor latches locally and returns
+  `SafetyGovernError` without a wire frame. The caller or transport must separately
+  admit the exact route and live session generation;
+- each generated HOLD or ESTOP frame passes semantic validation and generic
+  bounded-JSON preflight over exact serialized bytes. The governor tries the
+  complete representable zeroed channel union, then all negotiated channels, then
+  an empty channel map. If all three tiers fail, it returns `SafetyGovernError`
+  without a wire frame;
 - `BulkBlock` is bounded local/offline data and not a transport frame;
 - HOLD/ESTOP is not physical safety certification and the body remains final
   actuator authority;

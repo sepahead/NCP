@@ -21,11 +21,11 @@ unsigned evidence is a failure for initial release.
 | Ordered canonical bytes and stable integers | local harness covers 14 all-surface stable vectors across 16 ordered Rust/TypeScript/Python-FFI/C-FFI pairs; TypeScript discovers 45 reachable stable-integer schema paths and tests exact/unsafe boundaries | Python and C share Rust code; installed independent peers, complete normative traffic, alternate engines/platforms, and signed reports remain required |
 | Universal bounded JSON | generic frame, depth, node, member, array, key, string, number, and channel bounds are implemented in Rust and independent TypeScript; FFI replay and the dependency-free PyNEST JSONL reader exercise them | the declared `max_metadata_entries=256` ceiling has no accepted message-class/path assignment; ADR-003 proposes `OpenSession.bindings[*].entity.meta`, while Rust/TypeScript lack that preallocation rule and Python applies a post-parse name heuristic; ratification, rebaseline, class/path parity, and live/fuzz duration remain unresolved |
 | Identity/security/session/authority/idempotency/receipt model | protocol/core decisions implemented with negative corpus | Zenoh transport-authenticated peer binding unavailable; `open_secure` fails closed |
-| Plant profile, safety governor, action buffer, ESTOP | deterministic candidate tests exist | checked codec paths still invent missing midpoint/zero values, permit sparse components, and select units by mapping order; installed-profile validation is not integrated into Active admission, and its current `PlantCommand` projection cannot carry units; correction, rebaseline, body integration, and every consumer safety case remain unresolved |
+| Plant profile, safety governor, action buffer, ESTOP | deterministic candidate tests exist; successful standalone `SafetyGovernor` calls emit normalized, bounded wire-shape candidates, while an unattributable stream/session envelope or unrepresentable bounded safe output latches local ESTOP and returns an error without a wire frame; the governor owns no stream-position allocator or high-water mark, and fail-safe normalization to `seq=1` does not establish freshness; the owning publisher must assign and admit the next fresh position together with the exact route and live generation; the governor does not load or execute a plant profile | checked codec paths still invent missing midpoint/zero values, permit sparse components, and select units by mapping order; installed-profile validation and body-owned execution are not integrated into Active admission, and the current `PlantCommand` projection cannot carry units; correction, rebaseline, body integration, and every consumer safety case remain unresolved |
 | Candidate JSON baseline `v1.0.0` | regenerated and exact-verified against the current schemas/vectors | candidate audit snapshot only; never a tag or release proof |
-| Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for historical source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | current archive-alone Cargo metadata executes and observes the affected Zenoh registry fallback; the injected-root run is only `CONDITIONAL_PASS`, while self-contained resolution stays `OPEN_FAIL_CLOSED` and `NO_GO`; immutable multi-OS/ABI install matrix and public-registry ownership remain required |
+| Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for historical source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | current source-only archive metadata resolves registry `zenoh-transport 1.9.0` to advisory-affected `lz4_flex 0.10.0` and its `twox-hash 1.6.3` dependency; only the exact consuming-root patch conditions the graph to patched `lz4_flex 0.11.6` and updates its `twox-hash` dependency to `2.1.3`; that result is `CONDITIONAL_PASS`, with `package_self_contained=false`, `self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and `release_authorized=false`; immutable multi-OS/ABI install matrix and public-registry ownership remain required |
 | Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and generated 117-requirement local graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
-| Supply-chain and candidate dossier | current local evidence selects fixed `lz4_flex 0.11.6` through one exact reviewed Zenoh transport backport; the earlier held, one-platform dossier passed its checks at a superseded source and records `release_authorized=false` | Cargo does not verify the backport SSH signature, a root patch does not propagate from a published library dependency, and final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
+| Supply-chain and candidate dossier | current local evidence selects patched `lz4_flex 0.11.6` and updates its `twox-hash` dependency to `2.1.3` through one exact reviewed Zenoh transport backport; the earlier held, one-platform dossier passed its checks at a superseded source and records `release_authorized=false` | Cargo does not verify Git signatures, a root patch does not propagate from a published library dependency, and final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
 | Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-surface handoff inventory across five canonical consumer repositories, the nine exact role subjects, an auxiliary non-peer importer inventory, and post-publication checks | predecessor gates and all nine exact consumer/extension role qualifications remain unresolved; neither a surface nor an importer is a role receipt |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
@@ -38,6 +38,22 @@ evidence. It is not ADR acceptance, B01 completion, release authorization,
 external evidence, or independent review. The review-candidate mode rejects a
 completed allocation state so that transition to the normal complete gate must
 be deliberate.
+
+The normative `proto/ncp.proto` horizon comment also states the shorthand
+`N <= ttl_ms/horizon_dt_ms`, while the receiver expires inclusively and clamps TTL
+to 60 seconds. When the clamped binary64 ratio remains finite, the intended bound
+permits only `ceil(min(ttl_ms, 60_000)/horizon_dt_ms) - 1` future steps, capped at
+65,536. A non-finite ratio permits zero steps. Rust validation and both
+`ActionBuffer` watchdogs clamp the executable window. The TypeScript
+`maxHorizonLen` helper also computes this bound. Generic TypeScript
+`assertNcpMessage` currently uses uncapped `ttl_ms` for its horizon-length check.
+It can accept steps beyond the 60-second executable window. It can also accept a
+nonempty horizon when a tiny positive cadence makes the ratio non-finite. N07
+implementation parity and the exact cross-language corpus cases remain pending.
+A comment correction leaves wire shape and the compact proto hash unchanged, but
+it changes the complete normative digest. The dependency-gated proto promotion,
+identity regeneration, candidate rebaseline, and corpus workflow are not ready.
+These conflicts independently keep the candidate blocked.
 
 The complete `scripts/check.sh` gate and hosted CI run
 [`29414498370`](https://github.com/sepahead/NCP/actions/runs/29414498370) passed for
@@ -75,21 +91,40 @@ direct wheel. The dossier records `release_authorized=false` and does not supply
 tag, publication, final publisher signatures, multi-platform release artifacts, or
 independent clean-room reproduction.
 
-The current root and quarantined-probe locks select fixed `lz4_flex 0.11.6`
-through `zenoh-transport 1.9.0` backport revision
-`6b93b15d0795748b7f76c72eae07f1cda517e762`. This removes
+The current root and quarantined-probe locks select patched `lz4_flex 0.11.6`,
+`twox-hash 2.1.3`, and non-yanked `spin 0.9.9` and `0.10.1` through
+`zenoh-transport 1.9.0` backport revision
+`9045545b72a77602a87f40203cb614b48157b4bc`. The fork CI pins
+`cargo-deny 0.19.9` and rejects yanked lock entries and current RustSec
+vulnerabilities. Its own qualification lock also selects fixed
+`crossbeam-epoch 0.9.20`, `rand 0.8.6` and `0.9.4`, `quinn-proto 0.11.15`,
+`rustls-webpki 0.103.13`, and `serde_with 3.21.0`. This removes
 `RUSTSEC-2026-0041` from those resolved graphs. It does not revise the historical
-held dossier above. Cargo does not verify the Git SSH signature, and a Cargo patch
-does not propagate from a published library dependency. Final package design,
-installed artifacts, signatures, SBOM/provenance, and independent reproduction
-remain required.
+held dossier above. Cargo does not verify Git signatures, and a Cargo patch
+does not propagate from a published library dependency. The receipt classifies
+fork source verification and upstream delta verification as point-in-time
+local-process attestations. It does not retain the exact fork source bytes. Final
+package design, installed artifacts, signatures, SBOM/provenance, and independent
+reproduction remain required.
 
-The normalized `ncp-zenoh` and `ncp-gateway` archive locks demonstrate the
-consequence: without a consuming-root patch, they select affected
-`lz4_flex 0.10.0`. The local archive checker executes Cargo metadata and observes
-that failure, then applies and verifies the exact backport at its test root before
-compilation. The patched run is `CONDITIONAL_PASS`; self-contained distribution
-remains `OPEN_FAIL_CLOSED` and `NO_GO`.
+The normalized `ncp-zenoh` and `ncp-gateway` source archives demonstrate the
+consequence. Without a consuming-root patch, their Cargo metadata resolves registry
+`zenoh-transport 1.9.0` to advisory-affected `lz4_flex 0.10.0` and its
+`twox-hash 1.6.3` dependency. The checker does not compile that fallback. It
+applies and verifies the exact backport at each consuming test root. The
+conditioned graph resolves patched `lz4_flex 0.11.6` and updates its `twox-hash`
+dependency to `2.1.3` before compilation. The qualification also runs the exact
+fork's `security_backport` regression and its compression-enabled library tests.
+
+Exact resolution and fetch can use network access. Cargo dependency access is
+offline only during compile and test. The checker claims no host or child-process
+network isolation and no host filesystem isolation. Its source comparison covers
+both conditioned consumer graphs at two points in time. It retains no
+compiler-input trace or command transcript. The patched result is
+`CONDITIONAL_PASS`, with
+`package_self_contained=false`,
+`self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and
+`release_authorized=false`.
 
 The stable Zenoh adapter still cannot bind a callback-visible authenticated
 transport principal for `production-secure`. This implementation prerequisite and

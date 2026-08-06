@@ -101,13 +101,13 @@
     "handoff_generated_outputs_status": "HISTORICAL_SUPPLIED_HELPER_OUTPUT_NOT_REVIEWED_SOURCE_INVENTORY",
     "handoff_generated_manifest_sha256": "3db582da44602b441dca1c23aa24d6a6683a69bdcc854a7c44cb69892e76a4f9",
     "handoff_generated_csv_sha256": "ef87693789dc19ff5cf6af11d8c19d7157fcb15403ddc4879b73b5ae873fad5e",
-    "corrected_review_manifest_sha256": "32304b22047f99e2b729d409984f6f901c082f024cdfad08414993788dd7b88b",
-    "corrected_review_csv_sha256": "21cfe5112ea132bfdcb73ddd07a51963b4c97f129a8c3b357b7bfdd0c7c06df6",
-    "internal_review_completed_at_utc": "2026-07-15T12:30:58Z",
+    "corrected_review_manifest_sha256": "931f54ac3296ee50c695dfd273240b5a9af7c8ed9da81ec80090535980ee64bf",
+    "corrected_review_csv_sha256": "99a80391fe7d2f418aea06888ca19c01bbb6132349ea12635a5a41fdf9791e6f",
+    "internal_review_completed_at_utc": "2026-08-06T07:39:36Z",
     "review_status": "THREE_LANE_INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS",
     "internally_reviewed_files": 828,
     "independently_reviewed_files": 0,
-    "limitation": "The supplied audit helper emitted only 18 of the mandated 21 columns and inspected worktree bytes; its two retained hashes are historical supplied-helper outputs and do not describe the reviewed source inventory. The corrected ledger binds all 828 rows to immutable ef357d20692f707e185495dcfd16b16556fec264 Git blobs and records complete internal AI-assisted inspection, but it is not independent human review, task closure, external-gate evidence, certification, or release authorization."
+    "limitation": "The supplied audit helper emitted only 18 of the mandated 21 columns and inspected worktree bytes; its two retained hashes are historical supplied-helper outputs and do not describe the reviewed source inventory. The corrected ledger binds all 828 rows to immutable ef357d20692f707e185495dcfd16b16556fec264 Git blobs and records complete internal AI-assisted inspection, but it is not independent human review, task closure, external-gate evidence, certification, or release authorization. On 2026-08-06, the corrected immutable-source ledger was regenerated and rechecked after the current review pass; this does not convert internal review into independent evidence."
   },
   "locked_inputs": {
     "Cargo.lock": "c4d2c007a404350d462a63d934985f0474a2fd6dab62a2b1df51c558585a3c03",

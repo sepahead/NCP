@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_IDENTITY = json.loads(
@@ -41,6 +42,40 @@ CURRENT_META = (
     f"COMPACT PROTO HASH {CONTRACT_HASH}"
 )
 
+SVG_ACCESSIBILITY = {
+    "topology": (
+        "NCP commander-body topology",
+        f"Informative topology for the UNRELEASED {CANDIDATE_VERSION} candidate. "
+        "It shows the commander, body, observer, and four QoS planes; it is not a "
+        "release, interoperability qualification, or certification claim.",
+    ),
+    "ecosystem": (
+        "NCP ecosystem integration map",
+        f"Informative ecosystem map for the UNRELEASED {CANDIDATE_VERSION} candidate. "
+        "It summarizes repository relationships and migration context; it is not a "
+        "release, consumer qualification, or certification claim.",
+    ),
+    "versioning": (
+        "NCP version handshake",
+        f"Informative compatibility handshake for the UNRELEASED {CANDIDATE_VERSION} "
+        f"candidate and wire {WIRE_VERSION}. It distinguishes the hard major-version "
+        "gate from the advisory compact hash; it is not a release or certification claim.",
+    ),
+    "fsm": (
+        "NCP plant-admission state model",
+        f"Informative plant-admission model for the UNRELEASED {CANDIDATE_VERSION} "
+        "candidate. It distinguishes ACTIVE, HOLD, latched ESTOP, configuration failure, "
+        "local no-wire identity or bounded-output failure, publisher-position admission, "
+        "and generation-cut reset; it is not a release claim or physical-safety certification.",
+    ),
+    "sequence": (
+        "NCP session sequence",
+        f"Informative session sequence for the UNRELEASED {CANDIDATE_VERSION} candidate. "
+        "It traces open, step or run, observation, and close messages with authority and "
+        "receipt context; it is not a release, interoperability, or certification claim.",
+    ),
+}
+
 # ───────────────────────────── theme tokens ─────────────────────────────
 DARK = dict(
     name="dark",
@@ -52,9 +87,14 @@ DARK = dict(
     control="#3a9ad9", perception="#56b4e9", action="#e8783c", action_hi="#ff8a4c",
     observation="#8b949e", contract="#a78bfa", contract_lo="#7c3aed",
     active="#33c295", hold="#f0b429", configfail="#e08cbf",
+    fsm_active_text="#33c295", fsm_hold_text="#f0b429",
+    fsm_configfail_text="#e08cbf", fsm_action_text="#e8783c",
+    fsm_active_badge="#33c295", fsm_active_badge_text="#06281e",
+    fsm_estop_badge_text="#0d1117", fsm_hero_ink="#0d1117",
     shadow="#05070b", shadow_op=0.6, shadow_dy=4, shadow_sd=7,
     halo_op=0.40, glow_flood="#ff8a4c", glow_op=0.9, glow_double=True,
     bus_stops=[("0", "#e8783c", "0.85"), ("0.5", "#ff8a4c", "1"), ("1", "#e8783c", "0.85")],
+    fsm_bus_stops=[("0", "#e8783c", "0.85"), ("0.5", "#ff8a4c", "1"), ("1", "#e8783c", "0.85")],
     wash_op=0.06,
 )
 LIGHT = dict(
@@ -67,9 +107,14 @@ LIGHT = dict(
     control="#0072B2", perception="#56B4E9", action="#D55E00", action_hi="#D55E00",
     observation="#999999", contract="#6D28D9", contract_lo="#5b21b6",
     active="#009E73", hold="#E69F00", configfail="#CC79A7",
+    fsm_active_text="#006B4F", fsm_hold_text="#8A5A00",
+    fsm_configfail_text="#8C3F6F", fsm_action_text="#8C3B00",
+    fsm_active_badge="#007A59", fsm_active_badge_text="#ffffff",
+    fsm_estop_badge_text="#0d1117", fsm_hero_ink="#1b2733",
     shadow="#1b2733", shadow_op=0.18, shadow_dy=3, shadow_sd=5,
     halo_op=0.22, glow_flood="#D55E00", glow_op=0.4, glow_double=False,
     bus_stops=[("0", "#D55E00", "1"), ("0.5", "#D55E00", "1"), ("1", "#b94f00", "1")],
+    fsm_bus_stops=[("0", "#F07A32", "1"), ("0.5", "#F58A45", "1"), ("1", "#E66F24", "1")],
     wash_op=0.05,
 )
 
@@ -120,8 +165,18 @@ def path(d, stroke="none", sw=0, fill="none", cap="round", join="round", op=None
 
 
 # ───────────────────────────── defs kit ─────────────────────────────
-def defs(th) -> str:
+def defs(th, *, include_fsm=False) -> str:
     bus = "".join(f'<stop offset="{o}" stop-color="{c}" stop-opacity="{op}"/>' for o, c, op in th["bus_stops"])
+    fsm_gradient = ""
+    if include_fsm:
+        fsm_bus = "".join(
+            f'<stop offset="{o}" stop-color="{c}" stop-opacity="{op}"/>'
+            for o, c, op in th["fsm_bus_stops"]
+        )
+        fsm_gradient = (
+            '  <linearGradient id="fsmAction" x1="0" y1="0" x2="1" y2="0">'
+            f"{fsm_bus}</linearGradient>\n"
+        )
     glow_merge = ('<feMergeNode in="g"/><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/>'
                   if th["glow_double"] else '<feMergeNode in="g"/><feMergeNode in="SourceGraphic"/>')
     glow_in = "SourceGraphic" if th["glow_double"] else "SourceAlpha"
@@ -133,7 +188,7 @@ def defs(th) -> str:
     <stop offset="0" stop-color="{th['surf_top']}"/><stop offset="1" stop-color="{th['surf_bot']}"/>
   </linearGradient>
   <linearGradient id="busAction" x1="0" y1="0" x2="1" y2="0">{bus}</linearGradient>
-  <linearGradient id="contractHero" x1="0" y1="0" x2="1" y2="1">
+{fsm_gradient}  <linearGradient id="contractHero" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="{th['contract']}"/><stop offset="1" stop-color="{th['contract_lo']}"/>
   </linearGradient>
   <radialGradient id="gridDot" cx="0.5" cy="0.5" r="0.5">
@@ -354,9 +409,15 @@ def card(th, x, y, w, h, rail_hue, designator, *, dashed=False, glow=False, fill
     return "".join(out)
 
 
-def svg_open(w, h):
+def svg_open(w, h, visual_id):
+    title, description = SVG_ACCESSIBILITY[visual_id]
+    title_id = f"ncp-{visual_id}-title"
+    description_id = f"ncp-{visual_id}-desc"
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
-            f'viewBox="0 0 {w} {h}" font-family="{SANS}" role="img">')
+            f'viewBox="0 0 {w} {h}" font-family="{SANS}" role="img" '
+            f'aria-labelledby="{title_id} {description_id}">'
+            f'<title id="{title_id}">{esc(title)}</title>'
+            f'<desc id="{description_id}">{esc(description)}</desc>')
 
 
 def sheet_meta(th, x, y, s):
@@ -373,7 +434,7 @@ def title_block(th, title, eyebrow, w):
 # ───────────────────────────── 1. TOPOLOGY (hero) ─────────────────────────────
 def topology(th):
     W, H = 860, 610
-    s = [svg_open(W, H), defs(th), background(th, W, H)]
+    s = [svg_open(W, H, "topology"), defs(th), background(th, W, H)]
     s.append(title_block(th, "TOPOLOGY",
                          "COMMANDER ⇄ BODY  ·  4 QoS PLANES  ·  AUTHORIZED READ-ONLY OBSERVER", W))
     s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
@@ -414,7 +475,7 @@ def topology(th):
     s.append(ic_robot(630, 286, 24, th["observation"]))
     s.append(T(662, 300, "robot / UAV body", 14, 700, th["tprim"]))
     s.append(T(662, 316, "the plant", 10.5, 500, th["tsec"]))
-    s.append(T(662, 329, "example: crebain", 10.5, 500, th["tsec"]))
+    s.append(T(662, 329, "example: Crebain", 10.5, 500, th["tsec"]))
 
     s.append(card(th, *O1, th["observation"], "O1", dashed=True))
     s.append(ic_eye(312, 494, 22, th["observation"]))
@@ -436,7 +497,7 @@ def topology(th):
         return "".join(o)
 
     s.append(chip(430, 168, 320, "C1", ctl, "CONTROL", "{realm}/rpc/{request_kind}", "reliable · request/reply · queryable"))
-    s.append(chip(430, 210, 268, "P1", per, "PERCEPTION", "{realm}/session/{id}/sensor[/{name}]", "best-effort · DROP · lossy-OK"))
+    s.append(chip(430, 210, 306, "P1", per, "PERCEPTION", "{realm}/session/{id}/sensor[/{name}]", "best-effort-replace-latest · lossy"))
     s.append(chip(430, 442, 310, "O1", obs, "OBSERVATION", "{realm}/session/{id}/observation", "body publishes"))
 
     # ---- THE HERO: ACTION chip (the one glow) ----
@@ -503,7 +564,7 @@ TOPOLOGY_ALT = ("NCP topology: one Commander (a NEST-brain neuromorphic controll
     "plant-profile-declared safe actions; NCP defines no universal zero-safe action. CONTROL "
     "({realm}/rpc/{request_kind}) is a reliable, bidirectional request/reply rail; the server declares "
     "{realm}/rpc/*. PERCEPTION ({realm}/session/{id}/sensor[/{name}]) is a "
-    "dashed best-effort DROP plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) "
+    "dashed best-effort-replace-latest plane from Body to Commander. OBSERVATION ({realm}/session/{id}/observation) "
     "is a dotted read-only tap canonically published by the Body to the Observer. This depicts the "
     f"unreleased {CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash "
     f"{CONTRACT_HASH}; it is not a "
@@ -513,7 +574,7 @@ TOPOLOGY_ALT = ("NCP topology: one Commander (a NEST-brain neuromorphic controll
 # ───────────────────────────── 2. ECOSYSTEM ─────────────────────────────
 def ecosystem(th):
     W, H = 820, 520
-    s = [svg_open(W, H), defs(th), background(th, W, H)]
+    s = [svg_open(W, H, "ecosystem"), defs(th), background(th, W, H)]
     s.append(title_block(th, "ECOSYSTEM",
                          f"UNRELEASED {CANDIDATE_VERSION}  ·  CONSUMER CERTIFICATION NOT RUN", W))
     s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
@@ -531,8 +592,8 @@ def ecosystem(th):
     # consumer cards (left column)
     for x, y, des, hue, icon, name, sub in [
             (56, 150, "E1", ctl, ic_brain, "Engram", "native-1.0 migration · NOT certified"),
-            (56, 256, "C1", obs, ic_robot, "crebain", "legacy migration input · NOT certified"),
-            (56, 362, "P1", obs, ic_eye, "prisoma", "legacy migration input · NOT certified")]:
+            (56, 256, "C1", obs, ic_robot, "Crebain", "legacy migration input · NOT certified"),
+            (56, 362, "P1", obs, ic_eye, "Prisoma", "legacy migration input · NOT certified")]:
         s.append(card(th, x, y, 244, 84, hue, des))
         s.append(icon(x + 18, y + 40, 24, hue))
         s.append(T(x + 52, y + 48, name, 14, 700, th["tprim"]))
@@ -550,7 +611,7 @@ def ecosystem(th):
     s.append(T(cx, hy + 99, "the wire contract", 11, 600, "#ffffff", anchor="middle", op=0.92))
     s.append(T(cx, hy + 120, "ncp-core · ncp-zenoh · ncp-gateway", 9.5, 600, "#ffffff", anchor="middle", op=0.9, mono=True))
     s.append(line(hx + 22, hy + 128, hx + hw - 22, hy + 128, "#ffffff", 1, op=0.18))
-    s.append(T(cx, hy + 140, "peers: ncp-python · ncp-cpp · @sepahead/ncp", 8.5, 500, "#ffffff", anchor="middle", op=0.76, mono=True))
+    s.append(T(cx, hy + 140, "bindings/packages · Python · C/C++ · TS/npm", 8.5, 500, "#ffffff", anchor="middle", op=0.76, mono=True))
     s.append(rect(cx - 72, hy + 147, 144, 15, rx=6, fill="#ffffff", op=0.13))
     s.append(T(cx, hy + 157.5, f"{CANDIDATE_VERSION} · {CONTRACT_HASH[:8]}", 9, 700, "#ffffff", anchor="middle", mono=True))
 
@@ -595,13 +656,13 @@ def ecosystem(th):
 
 
 ECOSYSTEM_ALT = ("NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, "
-    "ncp-zenoh, ncp-gateway; peers ncp-python, ncp-cpp, @sepahead/ncp) depicts the unreleased "
+    "ncp-zenoh, ncp-gateway; Python, C/C++, and TypeScript/npm bindings and packages) depicts the unreleased "
     f"{CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash {CONTRACT_HASH}. "
     "Three example consumers "
     "appear in a left column. Engram has an explicit native-1.0 migration in progress and is not "
-    "certified. crebain and prisoma are labelled immutable wire-0.8 historical migration input, not "
+    "certified. Crebain and Prisoma are labelled immutable wire-0.8 historical migration input, not "
     "native-1.0 consumers or certification evidence. No consumer shown is certified for 1.0. A separate "
-    "pid-rs node (PID estimators science library) links to prisoma by a distinct dashed grey edge labelled "
+    "pid-rs node (PID estimators science library) links to Prisoma by a distinct dashed grey edge labelled "
     "'git submodule · NOT an NCP wire consumer' and does not connect to the contract. The candidate hub "
     "does not imply release, migration completion, interoperability, or certification.")
 
@@ -609,8 +670,8 @@ ECOSYSTEM_ALT = ("NCP ecosystem: a single highlighted NCP wire-contract node at 
 # ───────────────────────────── 3. VERSIONING ─────────────────────────────
 def versioning(th):
     W, H = 820, 520
-    s = [svg_open(W, H), defs(th), background(th, W, H)]
-    s.append(title_block(th, "VERSION HANDSHAKE",
+    s = [svg_open(W, H, "versioning"), defs(th), background(th, W, H)]
+    s.append(title_block(th, "VERSION GATE",
                          f"CANONICAL VERSION  ·  SAME MAJOR {WIRE_MAJOR}.x  ·  OTHER MAJORS FAIL CLOSED", W))
     s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
     ctr, verm, grn, ctl, obs = th["contract"], th["action"], th["active"], th["control"], th["observation"]
@@ -722,19 +783,24 @@ VERSIONING_ALT = (f"NCP version-compatibility handshake for the unreleased {CAND
 # ───────────────────────────── 4. SAFETY FSM ─────────────────────────────
 def fsm(th):
     W, H = 820, 586
-    s = [svg_open(W, H), defs(th), background(th, W, H)]
-    s.append(title_block(th, "SAFETY GOVERNOR · FSM",
-                         "PLANT-SIDE STATE MACHINE  ·  PROFILE-DECLARED SAFE ACTIONS  ·  ESTOP LATCHES", W))
+    s = [svg_open(W, H, "fsm"), defs(th, include_fsm=True), background(th, W, H)]
+    s.append(title_block(th, "PLANT ADMISSION · STATE MODEL",
+                         "ATTRIBUTABLE → WIRE CANDIDATE  ·  UNATTRIBUTABLE → NO FRAME  ·  ESTOP LATCHES", W))
     s.append(sheet_meta(th, W - 28, 48,
                         f"NCP · UNRELEASED {CANDIDATE_VERSION} · WIRE {WIRE_VERSION} · SHEET 04/05"))
     grn, amb, verm, pink, obs = th["active"], th["hold"], th["action"], th["configfail"], th["observation"]
-    ink = "#0d1117" if th["name"] == "dark" else "#1b2733"
+    active_text = th["fsm_active_text"]
+    hold_text = th["fsm_hold_text"]
+    configfail_text = th["fsm_configfail_text"]
+    action_text = th["fsm_action_text"]
+    ink = th["fsm_hero_ink"]
 
     # mode-enum ribbon (top-right, under sheet-meta)
     rx0 = W - 28
     for label, fill, txt, filled in reversed([("init", None, th["surf_chip"], None),
-            ("active", grn, "#06281e" if th["name"] == "dark" else "#fff", True),
-            ("hold", amb, amb, False), ("estop", verm, "#fff", True)]):
+            ("active", th["fsm_active_badge"], th["fsm_active_badge_text"], True),
+            ("hold", amb, hold_text, False),
+            ("estop", verm, th["fsm_estop_badge_text"], True)]):
         pw = 10 + len(label) * 6.2
         rx0 -= pw
         if filled is True:
@@ -801,34 +867,34 @@ def fsm(th):
     s.append(ic_play(AC[0] + AC[2] - 38, AC[1] + 9, 22, grn))
     s.append(T(AC[0] + 18, AC[1] + 34, "ACTIVE", 14, 700, th["tprim"]))
     s.append(T(AC[0] + 18, AC[1] + 50, "valid command · live authority", 10, 500, th["tsec"]))
-    s.append(T(AC[0] + 18, AC[1] + 64, "Mode::active", 9, 500, th["tmut"], mono=True))
+    s.append(T(AC[0] + 18, AC[1] + 64, "Mode::Active", 9, 500, th["tmut"], mono=True))
 
     s.append(card(th, *HD, amb, "S2"))
     s.append(ic_pause(HD[0] + HD[2] - 38, HD[1] + 9, 22, amb))
     s.append(T(HD[0] + 18, HD[1] + 34, "HOLD", 14, 700, th["tprim"]))
     s.append(rect(HD[0] + 70, HD[1] + 24, 88, 15, rx=7, fill=th["surf_chip"], stroke=amb, sw=1))
-    s.append(T(HD[0] + 114, HD[1] + 34.5, "NON-LATCHING", 8, 700, amb, anchor="middle"))
+    s.append(T(HD[0] + 114, HD[1] + 34.5, "NON-LATCHING", 8, 700, hold_text, anchor="middle"))
     s.append(T(HD[0] + 18, HD[1] + 50, "non-actuating until all gates pass", 10, 500, th["tsec"]))
-    s.append(T(HD[0] + 18, HD[1] + 64, "profile HOLD action · Mode::hold", 9, 500, th["tmut"], mono=True))
+    s.append(T(HD[0] + 18, HD[1] + 64, "emits zeroed Mode::Hold", 9, 500, th["tmut"], mono=True))
 
     s.append(card(th, *CF, pink, "S4", dashed=True))
     s.append(ic_warn(CF[0] + CF[2] - 38, CF[1] + 9, 22, pink))
     s.append(T(CF[0] + 18, CF[1] + 32, "CONFIG-FAIL-CLOSED", 12.5, 700, th["tprim"]))
     s.append(rect(CF[0] + 18, CF[1] + 40, 96, 15, rx=7, fill=th["surf_chip"], stroke=pink, sw=1))
-    s.append(T(CF[0] + 66, CF[1] + 50.5, "safety_ok=false", 8, 700, pink, anchor="middle", mono=True))
+    s.append(T(CF[0] + 66, CF[1] + 50.5, "safety_ok=false", 8, 700, configfail_text, anchor="middle", mono=True))
     s.append(T(CF[0] + 122, CF[1] + 51, "permanent", 9.5, 500, th["tsec"]))
-    s.append(T(CF[0] + 18, CF[1] + 65, "profile safe action · no reset", 9, 500, th["tmut"], mono=True))
+    s.append(T(CF[0] + 18, CF[1] + 65, "emits zeroed HOLD · no reset", 9, 500, th["tmut"], mono=True))
 
     # ESTOP hero (filled vermillion + glow + 4 corner lock-ticks)
     ex, ey, ew, eh = ES
-    s.append(rect(ex, ey, ew, eh, rx=10, fill="url(#busAction)", stroke="#ffd9c2", sw=2, filt="glow"))
+    s.append(rect(ex, ey, ew, eh, rx=10, fill="url(#fsmAction)", stroke="#ffd9c2", sw=2, filt="glow"))
     for lx, ly, dx, dy in [(ex, ey, 1, 1), (ex + ew, ey, -1, 1), (ex, ey + eh, 1, -1), (ex + ew, ey + eh, -1, -1)]:
         s.append(path(f"M{lx + 9 * dx},{ly} L{lx},{ly} L{lx},{ly + 9 * dy}", stroke="#ffd9c2", sw=1.6, op=0.9))
     s.append(rect(ex + 14, ey + 11, 26, 15, rx=4, fill=th["surf_chip"]))
     s.append(T(ex + 27, ey + 21.5, "S3", 10, 700, th["tsec"], mono=True, anchor="middle"))
     s.append(ic_octagon(ex + ew - 40, ey + 10, 24, ink))
     s.append(T(ex + 18, ey + 44, "ESTOP", 15, 800, ink))
-    s.append(T(ex + 18, ey + 61, "LATCHED · profile ESTOP action", 10.5, 600, ink))
+    s.append(T(ex + 18, ey + 61, "LATCHED · emits zeroed ESTOP", 10.5, 600, ink))
     s.append(T(ex + 18, ey + 77, "reset never restores authority", 9.5, 500, ink, mono=True))
 
     # Successful reset is a generation cut, not a transition inside the old session.
@@ -838,47 +904,56 @@ def fsm(th):
                th["tmut"], mono=True))
 
     # ---- edge labels ----
-    s.append(klabel(300, 108, "valid config · session init", "→ HOLD", amb, compact=True))
-    s.append(klabel(235, 126, "fresh sensor · live authority", "ACTIVE", grn, compact=True))
-    s.append(klabel(363, 158, "stale · NaN · timeout", "↓ HOLD", amb, compact=True))
-    s.append(klabel(363, 214, "sensor + live lease + active cmd", "ALL GATES", grn, compact=True))
-    s.append(klabel(376, 285, "geofence · link burst", "BREACH", verm, compact=True))
-    s.append(klabel(560, 278, "geofence · link burst", "BREACH", verm, compact=True))
-    s.append(klabel(726, 374, "profile ESTOP action", "LATCHED", verm, compact=True))
-    s.append(klabel(670, 430, "fresh generation → HOLD", "RESET CUT", amb, compact=True))
-    s.append(klabel(140, 282, "invalid channel / config", "MISCONFIG", pink, compact=True))
+    s.append(klabel(300, 108, "valid config · session init", "→ HOLD", hold_text, compact=True))
+    s.append(klabel(235, 126, "fresh sensor · live authority", "ACTIVE", active_text, compact=True))
+    s.append(klabel(363, 158, "stale · NaN · timeout", "↓ HOLD", hold_text, compact=True))
+    s.append(klabel(363, 238, "sensor + live lease + active cmd", "LOCAL GOVERNOR GATES", active_text, compact=True))
+    s.append(klabel(476, 282,
+                    "geofence breach · reported loss burst · sustained sensor silence",
+                    "ESTOP TRIGGERS", action_text))
+    s.append(klabel(726, 374, "emits ESTOP frame", "LATCHED", action_text, compact=True))
+    s.append(klabel(670, 430, "fresh generation → HOLD", "RESET CUT", hold_text, compact=True))
+    s.append(klabel(140, 282, "invalid channel / config", "MISCONFIG", configfail_text, compact=True))
 
     # ---- invariant band ----
     iy = 526
     s.append(rect(28, iy, W - 56, 44, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1))
     s.append(rect(28, iy, 4, 44, rx=2, fill=verm))
-    s.append(T(44, iy + 17, "INVARIANT · Body executes plant-profile-declared HOLD / ESTOP / failure actions — no universal zero-safe action.",
+    s.append(T(44, iy + 17, "INVARIANT · Successful output is a normalized, bounded wire-shape candidate; the governor does not execute plant-profile actions.",
                8.5, 500, th["tsec"], italic=True))
-    s.append(T(44, iy + 33, "Reset retires the generation; fresh session + streams + lease + admitted active command and plant gates precede actuation.",
+    s.append(T(44, iy + 33, "Unattributable envelope / no bounded safe tier → local ESTOP + error / no frame; position + route + live generation stay external.",
                8.5, 500, th["tsec"], italic=True))
     s.append("</svg>")
     return "".join(s)
 
 
-FSM_ALT = ("NCP plant-side safety governor finite state machine. Four states: ACTIVE (nominal only while "
+FSM_ALT = ("Informative NCP plant-side admission state model. Four states: ACTIVE (nominal only while "
     "a fresh in-bounds sensor, live session and authority lease, and admitted active command all remain "
-    "valid), HOLD (non-latching but non-actuating until every active gate passes, while executing the "
-    "plant profile's HOLD action), ESTOP (latched and executing the "
-    "plant profile's ESTOP action; the emphasized vermillion glowing state with corner lock-ticks), and "
+    "valid), HOLD (non-latching and represented by a normalized zeroed HOLD frame until every active gate "
+    "passes), ESTOP (latched and represented by a normalized zeroed ESTOP frame; the emphasized vermillion "
+    "glowing state with corner lock-ticks), and "
     "CONFIG-FAIL-CLOSED (a limit cites an undeclared channel; permanent for the session, safety_ok=false, "
-    "and executing the declared local safe action). "
+    "and represented by a zeroed HOLD frame). For a canonical attributable stream/session envelope, "
+    "successful governor output is normalized and bounded; the governor does not load or execute the plant "
+    "profile. An unattributable envelope or the absence of any representable bounded safe-frame tier "
+    "latches local ESTOP and returns an error without a wire frame. "
+    "The standalone governor owns no publisher allocator or high-water mark; normalized sequence 1 is wire "
+    "shape, not freshness evidence. The owning publisher separately assigns and admits the next fresh position, "
+    "exact route, and live generation. An installed body-owned "
+    "executor must map each successful HOLD and ESTOP output through that exact profile. "
     "Transitions: INIT validates configuration and enters non-actuating HOLD when valid or "
     "CONFIG-FAIL-CLOSED when invalid. ACTIVE self-loops only while all active gates remain valid; ACTIVE "
     "moves to HOLD on a stale or missing sensor, non-finite clock, velocity, or position, bad timeout, or "
     "absent geofence channel. HOLD enters ACTIVE only on fresh in-bounds sensor data plus a live session, "
-    "matching lease, and admitted active command. ACTIVE and HOLD both latch to ESTOP on an actual geofence breach or "
-    "link-loss burst (the heaviest strokes); ESTOP self-loops while latched. Wire 1.0 has no stable reset "
+    "matching lease, and admitted active command. ACTIVE and HOLD both latch to ESTOP on an actual geofence breach, "
+    "a reported link-loss burst, or sustained sensor silence at the bounded derived threshold (the heaviest strokes); "
+    "these inputs do not identify a network cause. ESTOP self-loops while latched. Wire 1.0 has no stable reset "
     "RPC. A successful authorized body-local or out-of-band reset is a session-generation cut: the old "
     "session, authority and lease, streams, sequence state, deadlines, and buffered actuation are retired. It never "
     "restores old authority. The Body remains in non-actuating HOLD until a fresh SessionOpened creates a new "
     "generation, publishers establish fresh streams, a new matching authority lease is acquired, and all "
     "active gates pass. CONFIG-FAIL-CLOSED self-loops for the invalid session. "
-    "Invariant: the plant profile declares the applicable safe actions; NCP defines no universal "
+    "Invariant: an installed body executor maps the profile-declared actions; NCP defines no universal "
     f"zero-safe action and does not certify physical stopping. This depicts the unreleased {CANDIDATE_VERSION} "
     "candidate, not a release or certification.")
 
@@ -886,7 +961,7 @@ FSM_ALT = ("NCP plant-side safety governor finite state machine. Four states: AC
 # ───────────────────────────── 5. SEQUENCE ─────────────────────────────
 def sequence(th):
     W, H = 820, 640
-    s = [svg_open(W, H), defs(th), background(th, W, H)]
+    s = [svg_open(W, H, "sequence"), defs(th), background(th, W, H)]
     s.append(title_block(th, "SESSION LIFECYCLE",
                          "CLIENT ⇄ BODY / SERVER  ·  FENCED OPEN → MUTATE / OBSERVE → CLOSE", W))
     s.append(sheet_meta(th, W - 28, 48,
@@ -1012,6 +1087,201 @@ DIAGRAMS = {
     "sequence": (sequence, SEQUENCE_ALT),
 }
 
+PUBLIC_SVG_PATHS = (
+    ROOT / "assets" / "logo-light.svg",
+    ROOT / "assets" / "logo-dark.svg",
+    *(ROOT / "docs" / "diagrams" / f"{name}-{theme}.svg"
+      for name in DIAGRAMS for theme in ("light", "dark")),
+    ROOT / "docs" / "plots" / "overlap_light.svg",
+    ROOT / "docs" / "plots" / "overlap_dark.svg",
+    ROOT / "docs" / "plots" / "realtime_light.svg",
+    ROOT / "docs" / "plots" / "realtime_dark.svg",
+)
+
+
+def _local_name(tag) -> str:
+    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+
+def public_svg_accessibility_problems() -> list[str]:
+    """Audit the exact direct-view accessibility contract for all public SVGs."""
+    if len(PUBLIC_SVG_PATHS) != 16 or len(set(PUBLIC_SVG_PATHS)) != 16:
+        return ["public SVG inventory must contain exactly 16 unique assets"]
+
+    problems = []
+    actual_paths = {
+        *ROOT.joinpath("assets").glob("*.svg"),
+        *ROOT.joinpath("docs", "diagrams").glob("*.svg"),
+        *ROOT.joinpath("docs", "plots").glob("*.svg"),
+    }
+    expected_paths = set(PUBLIC_SVG_PATHS)
+    for path in sorted(actual_paths - expected_paths):
+        problems.append(f"unregistered public SVG {path.relative_to(ROOT).as_posix()}")
+    for path in PUBLIC_SVG_PATHS:
+        label = path.relative_to(ROOT).as_posix()
+        if not path.is_file():
+            problems.append(f"missing public SVG {label}")
+            continue
+        source = path.read_text(encoding="utf-8")
+        try:
+            root = ET.fromstring(source)
+        except ET.ParseError as error:
+            problems.append(f"invalid XML in {label}: {error}")
+            continue
+        if _local_name(root.tag) != "svg":
+            problems.append(f"{label}: document root is not svg")
+            continue
+        if root.get("role") != "img":
+            problems.append(f'{label}: root must have role="img"')
+        if root.get("aria-label") is not None:
+            problems.append(f"{label}: remove aria-label; aria-labelledby is authoritative")
+
+        titles = [node for node in root if _local_name(node.tag) == "title"]
+        descriptions = [node for node in root if _local_name(node.tag) == "desc"]
+        if len(titles) != 1 or len(descriptions) != 1:
+            problems.append(f"{label}: root needs exactly one direct title and desc")
+            continue
+
+        title_id = titles[0].get("id")
+        description_id = descriptions[0].get("id")
+        labelledby = root.get("aria-labelledby", "").split()
+        id_counts = {}
+        for node in root.iter():
+            node_id = node.get("id")
+            if node_id:
+                id_counts[node_id] = id_counts.get(node_id, 0) + 1
+        if (
+            not title_id
+            or not description_id
+            or title_id == description_id
+            or id_counts.get(title_id) != 1
+            or id_counts.get(description_id) != 1
+            or labelledby != [title_id, description_id]
+        ):
+            problems.append(f"{label}: aria-labelledby must name direct title then desc")
+
+        title = " ".join("".join(titles[0].itertext()).split())
+        description = " ".join("".join(descriptions[0].itertext()).split())
+        if not title or len(title.split()) > 10:
+            problems.append(f"{label}: title must be nonempty and at most 10 words")
+        if not description or len(description.split()) > 55:
+            problems.append(f"{label}: desc must be nonempty and at most 55 words")
+        if "UNRELEASED" not in description or "certification" not in description.casefold():
+            problems.append(f"{label}: desc must state UNRELEASED and non-certification status")
+
+        has_motion = "<animate" in source or "animation:" in source
+        if has_motion and "prefers-reduced-motion: reduce" not in source:
+            problems.append(f"{label}: motion has no reduced-motion rule")
+    return problems
+
+
+def _relative_luminance(color: str) -> float:
+    if len(color) != 7 or not color.startswith("#"):
+        raise ValueError(f"expected six-digit hex color, got {color!r}")
+    channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [
+        channel / 12.92
+        if channel <= 0.04045
+        else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(foreground: str, background_color: str) -> float:
+    foreground_luminance = _relative_luminance(foreground)
+    background_luminance = _relative_luminance(background_color)
+    lighter = max(foreground_luminance, background_luminance)
+    darker = min(foreground_luminance, background_luminance)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def _composite_color(foreground: str, background_color: str, opacity: float) -> str:
+    if not 0 <= opacity <= 1:
+        raise ValueError(f"opacity must be in [0, 1], got {opacity}")
+    foreground_channels = [int(foreground[index:index + 2], 16) for index in (1, 3, 5)]
+    background_channels = [
+        int(background_color[index:index + 2], 16) for index in (1, 3, 5)
+    ]
+    channels = [
+        round(opacity * front + (1 - opacity) * back)
+        for front, back in zip(foreground_channels, background_channels)
+    ]
+    return "#" + "".join(f"{channel:02x}" for channel in channels)
+
+
+def fsm_contrast_problems() -> list[str]:
+    """Check normal text against every actual FSM solid or gradient background."""
+    problems = []
+    for theme in (LIGHT, DARK):
+        checks = []
+        for token in (
+            "fsm_active_text",
+            "fsm_hold_text",
+            "fsm_configfail_text",
+            "fsm_action_text",
+            "tprim",
+            "tsec",
+            "tmut",
+        ):
+            for background_token in (
+                "bg_top",
+                "bg_bot",
+                "surf_top",
+                "surf_bot",
+                "surf_chip",
+            ):
+                checks.append(
+                    (
+                        f"{token} on {background_token}",
+                        theme[token],
+                        theme[background_token],
+                    )
+                )
+        checks.extend(
+            (
+                ("active badge", theme["fsm_active_badge_text"], theme["fsm_active_badge"]),
+                ("ESTOP badge", theme["fsm_estop_badge_text"], theme["action"]),
+            )
+        )
+        for offset, stop, opacity_text in theme["fsm_bus_stops"]:
+            try:
+                opacity = float(opacity_text)
+            except ValueError:
+                problems.append(
+                    f"{theme['name']} FSM hero gradient stop {offset} has invalid opacity {opacity_text!r}"
+                )
+                continue
+            if not 0 < opacity <= 1:
+                problems.append(
+                    f"{theme['name']} FSM hero gradient stop {offset} opacity must be in (0, 1]"
+                )
+                continue
+            underlays = ("bg_top", "bg_bot") if opacity < 1 else (None,)
+            for underlay in underlays:
+                actual_stop = (
+                    _composite_color(stop, theme[underlay], opacity)
+                    if underlay is not None
+                    else stop
+                )
+                suffix = f" over {underlay}" if underlay is not None else ""
+                checks.append(
+                    (
+                        f"ESTOP hero gradient stop {offset}{suffix}",
+                        theme["fsm_hero_ink"],
+                        actual_stop,
+                    )
+                )
+
+        for label, foreground, background_color in checks:
+            ratio = _contrast_ratio(foreground, background_color)
+            if ratio < 4.5:
+                problems.append(
+                    f"{theme['name']} FSM {label} contrast {ratio:.2f}:1 is below 4.5:1 "
+                    f"({foreground} on {background_color})"
+                )
+    return problems
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1044,13 +1314,20 @@ def main():
                     f.write(svg)
                 print(f"wrote {p}  ({len(svg)} bytes)")
 
+    stale.extend(fsm_contrast_problems())
+    stale.extend(public_svg_accessibility_problems())
+
     if stale:
         for problem in stale:
             print(problem)
         print("run: python3 scripts/gen_diagrams.py")
         raise SystemExit(1)
     if args.check:
-        print(f"OK: {len(DIAGRAMS) * 2} generated diagrams are current")
+        print(
+            f"OK: {len(DIAGRAMS) * 2} generated diagrams are current; "
+            f"{len(PUBLIC_SVG_PATHS)} public SVGs meet the direct-view accessibility contract; "
+            "FSM text contrast is at least 4.5:1"
+        )
 
 
 if __name__ == "__main__":

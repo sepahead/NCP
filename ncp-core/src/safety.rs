@@ -1,12 +1,16 @@
 //! Safety governor for the **action plane** — the only plane with command
 //! authority. Enforces the parts of `SafetyLimits` a controller can: HOLD on a
-//! stale sensor, **latch** ESTOP on a geofence breach, and clamp speed. Returns a
-//! *fresh* `CommandFrame` (never mutates the input). `max_tilt_rad` is advisory —
-//! the plant / flight controller enforces it. Mirrors `loop.py::SafetyGovernor`.
+//! stale sensor, **latch** ESTOP on a geofence breach, and clamp speed. A successful
+//! call returns an attributable, semantically valid, bounded wire-shape candidate
+//! (never mutates the input). The standalone governor has no publisher allocator or
+//! stream high-water and does not prove that the returned position is fresh. A local
+//! failure returns [`SafetyGovernError`] and no wire frame. `max_tilt_rad` is
+//! advisory — the plant / flight controller enforces it. The shared behavior corpus
+//! pins the cross-language decisions.
 //!
-//! ESTOP **latches**: once any condition trips it, every subsequent `govern`
-//! returns ESTOP + a zeroed command until an authorized operator calls
-//! [`reset`](SafetyGovernor::reset). HOLD (on a
+//! ESTOP **latches**: once any condition trips it, every subsequent successful
+//! `govern` returns ESTOP + a bounded zeroed command until an authorized operator
+//! calls [`reset`](SafetyGovernor::reset). HOLD (on a
 //! stale/frozen sensor) is **non-latching** — it clears as soon as fresh data
 //! flows again.
 //!
@@ -15,7 +19,7 @@
 //! plant-side governor fails safe to HOLD independent of the controller.
 
 use crate::bounded_json::{
-    MAX_ARRAY_ITEMS, MAX_FINITE_NUMBER_MAGNITUDE, MAX_KEY_BYTES, MAX_STRING_BYTES,
+    self, MAX_ARRAY_ITEMS, MAX_FINITE_NUMBER_MAGNITUDE, MAX_KEY_BYTES, MAX_STRING_BYTES,
     MAX_TOTAL_ARRAY_ITEMS, MAX_TOTAL_STRING_BYTES,
 };
 use crate::messages::{
@@ -30,6 +34,40 @@ const POSITION_UNIT: &str = "m";
 const VELOCITY_UNIT: &str = "m/s";
 const SAFETY_VECTOR_WIDTH: usize = 3;
 
+/// Local failure from [`SafetyGovernor::govern`]. This error is not an NCP wire
+/// message. A caller must not publish a synthetic `CommandFrame` in its place.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SafetyGovernError {
+    /// The command has no canonical attributable stream/session envelope.
+    /// Route and live-generation admission remain transport/caller duties.
+    UnattributableEnvelope,
+    /// No safe-frame fallback passed both semantic validation and universal
+    /// bounded-JSON preflight.
+    BoundedSafeFrame,
+}
+
+impl std::fmt::Display for SafetyGovernError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnattributableEnvelope => formatter.write_str(
+                "safety governor latched locally but cannot emit a wire frame without a canonical attributable stream/session envelope",
+            ),
+            Self::BoundedSafeFrame => formatter.write_str(
+                "safety governor latched locally because no bounded, semantically valid safe frame could be built",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SafetyGovernError {}
+
+#[derive(Clone, Copy)]
+enum SafeChannelTier {
+    FullUnion,
+    NegotiatedOnly,
+    Empty,
+}
+
 #[derive(Clone, Debug)]
 pub struct SafetyGovernor {
     pub limits: SafetyLimits,
@@ -38,11 +76,14 @@ pub struct SafetyGovernor {
     position_channel: String,
     /// Channel carrying the commanded velocity (speed clamp target).
     velocity_channel: String,
-    /// All negotiated command channels — the HOLD/zero path zeroes their union
-    /// with the inbound command's channels, never just one literal name.
+    /// All negotiated command channels. The HOLD/ESTOP path first tries their
+    /// complete union with inbound channels, then the complete negotiated set,
+    /// then an empty channel map. It never emits a partial fallback tier.
     command_channels: Vec<String>,
     /// Latched emergency-stop. Set by any ESTOP-tripping condition; cleared only
-    /// by [`reset`](SafetyGovernor::reset). While set, every `govern` returns a zeroed ESTOP frame.
+    /// by [`reset`](SafetyGovernor::reset). While set, each successful `govern`
+    /// returns a bounded zeroed ESTOP wire-shape candidate; an unattributable call
+    /// still errors.
     estop: bool,
     /// Latched config-level fail-closed. Set when a geofence/speed limit is
     /// unenforceable: its channel is absent from the negotiated specs (FIX 3), or
@@ -273,12 +314,12 @@ impl SafetyGovernor {
         self.estop
     }
 
-    /// Latch ESTOP when the link monitor reports a sustained loss burst (a jam) —
-    /// the documented Layer-3 fail-safe escalation. A collapsed link is NOT a
-    /// transient HOLD; it de-energizes to a latched safe state until an operator
-    /// [`reset`](SafetyGovernor::reset)s (an operator-supplied loss-rate threshold may gate this too, but
-    /// the CUSUM `burst` is the trip today). Without this, a jammed craft sits in
-    /// self-clearing HOLD forever while the link is dead.
+    /// Latch ESTOP when the link monitor reports a sustained loss burst (possible
+    /// congestion, interference, sender failure, or jamming). An installed body
+    /// executor must map this state through its content-addressed plant profile;
+    /// NCP defines no universal de-energized or zero-safe action. An
+    /// operator-supplied policy may gate this input, but the CUSUM `burst` is the
+    /// link-monitor trip today.
     pub fn note_link(&mut self, burst: bool) {
         if burst {
             self.estop = true; // latch
@@ -292,10 +333,8 @@ impl SafetyGovernor {
         !self.estop && !self.config_fail_closed
     }
 
-    /// Zero the union of the inbound command's channels and the negotiated command
-    /// channels, preserving each channel's arity (width) and unit so the HOLD/ESTOP
-    /// frame is shaped exactly like the live command — no channel is silently
-    /// dropped or left unzeroed.
+    /// Insert one complete zeroed channel. Return `false` instead of partially
+    /// consuming an aggregate budget. The caller then rejects the complete tier.
     fn insert_zeroed_channel(
         channels: &mut crate::messages::Map<ChannelValue>,
         name: &str,
@@ -303,7 +342,7 @@ impl SafetyGovernor {
         requested_unit: Option<&str>,
         total_items: &mut usize,
         total_string_bytes: &mut usize,
-    ) {
+    ) -> bool {
         if channels.contains_key(name)
             || channels.len() >= MAX_CHANNELS
             || name.is_empty()
@@ -311,15 +350,13 @@ impl SafetyGovernor {
             || name.chars().any(char::is_control)
             || total_string_bytes.saturating_add(name.len()) > MAX_TOTAL_STRING_BYTES
         {
-            return;
+            return false;
         }
         let remaining_items = MAX_TOTAL_ARRAY_ITEMS.saturating_sub(*total_items);
-        if remaining_items == 0 {
-            return;
+        let width = requested_width.clamp(1, MAX_ARRAY_ITEMS);
+        if width > remaining_items {
+            return false;
         }
-        let width = requested_width
-            .clamp(1, MAX_ARRAY_ITEMS)
-            .min(remaining_items);
         let unit = requested_unit.filter(|unit| {
             unit.len() <= MAX_STRING_BYTES
                 && total_string_bytes
@@ -336,16 +373,24 @@ impl SafetyGovernor {
                 unit: unit.map(str::to_owned),
             },
         );
+        true
     }
 
-    fn zeroed_channels(&self, command: &CommandFrame) -> crate::messages::Map<ChannelValue> {
+    fn zeroed_channels(
+        &self,
+        command: &CommandFrame,
+        tier: SafeChannelTier,
+    ) -> Option<crate::messages::Map<ChannelValue>> {
         let mut m = crate::messages::Map::new();
+        if matches!(tier, SafeChannelTier::Empty) {
+            return Some(m);
+        }
         let mut total_items = 0;
         let mut total_string_bytes = 0;
 
-        // Negotiated channels take precedence over caller-supplied extras so a
-        // hostile oversized map cannot crowd out the plant's known command set.
-        for name in self.command_channels.iter().take(MAX_CHANNELS) {
+        // Negotiated channels take precedence. A tier is retained only when all
+        // negotiated channels fit; a partial negotiated actuator map is ambiguous.
+        for name in &self.command_channels {
             let source = command.channels.get(name);
             let (width, unit) = if name == &self.velocity_channel {
                 (SAFETY_VECTOR_WIDTH, Some(VELOCITY_UNIT))
@@ -355,27 +400,44 @@ impl SafetyGovernor {
                     source.and_then(|channel| channel.unit.as_deref()),
                 )
             };
-            Self::insert_zeroed_channel(
+            if !Self::insert_zeroed_channel(
                 &mut m,
                 name,
                 width,
                 unit,
                 &mut total_items,
                 &mut total_string_bytes,
-            );
+            ) {
+                return None;
+            }
         }
 
-        for (name, channel) in command.channels.iter().take(MAX_CHANNELS) {
-            Self::insert_zeroed_channel(
-                &mut m,
-                name,
-                channel.data.len(),
-                channel.unit.as_deref(),
-                &mut total_items,
-                &mut total_string_bytes,
-            );
+        if matches!(tier, SafeChannelTier::FullUnion) {
+            for (name, channel) in &command.channels {
+                if m.contains_key(name) {
+                    continue;
+                }
+                // Invalid diagnostic extras cannot appear in a wire frame. Skip
+                // them, but do not let a valid extra partially consume a tier.
+                if name.is_empty()
+                    || name.len() > MAX_KEY_BYTES
+                    || name.chars().any(char::is_control)
+                {
+                    continue;
+                }
+                if !Self::insert_zeroed_channel(
+                    &mut m,
+                    name,
+                    channel.data.len(),
+                    channel.unit.as_deref(),
+                    &mut total_items,
+                    &mut total_string_bytes,
+                ) {
+                    return None;
+                }
+            }
         }
-        m
+        Some(m)
     }
 
     fn safe_envelope(command: &CommandFrame) -> (f64, StreamPosition, String) {
@@ -384,9 +446,9 @@ impl SafetyGovernor {
         } else {
             0.0
         };
-        // Echo the inbound command's stream identity onto the safe (HOLD/ESTOP) frame
-        // so the plant's fail-safe response is attributable to the stream it
-        // superseded. Sanitize a garbage stream.seq to 1 (never 0/negative).
+        // Preserve the exact publisher epoch. Sequence is position, not routing
+        // identity: normalize an unstamped or non-JSON-safe position to 1 so a
+        // fail-safe remains attributable without creating a different stream.
         let mut stream = command.stream.clone();
         if !(1..=JSON_SAFE_INTEGER_MAX).contains(&stream.seq) {
             stream.seq = 1;
@@ -400,6 +462,13 @@ impl SafetyGovernor {
             command.frame_id.clone()
         };
         (t, stream, frame_id)
+    }
+
+    fn has_attributable_envelope(command: &CommandFrame) -> bool {
+        is_canonical_uuid_v4(&command.stream.epoch)
+            && is_canonical_uuid_v4(&command.session.generation)
+            && command.session_id.len() <= 64
+            && crate::keys::valid_id_segment(&command.session_id)
     }
 
     fn safe_source_correlation(command: &CommandFrame) -> (Option<StreamPosition>, f64) {
@@ -419,51 +488,90 @@ impl SafetyGovernor {
         }
     }
 
-    fn estop_frame(&self, command: &CommandFrame) -> CommandFrame {
-        let (t, stream, frame_id) = Self::safe_envelope(command);
-        let (source, source_t) = Self::safe_source_correlation(command);
-        CommandFrame {
-            t,
-            stream,
-            source,
-            source_t,
-            session: command.session.clone(),
-            session_id: command.session_id.clone(),
-            frame_id,
-            mode: Mode::Estop,
-            channels: self.zeroed_channels(command),
-            ..Default::default()
-        }
+    fn has_bounded_serialization(candidate: &CommandFrame) -> bool {
+        bounded_json::to_bounded_vec(candidate)
+            .ok()
+            .is_some_and(|encoded| bounded_json::preflight(&encoded).is_ok())
     }
 
-    fn hold_frame(&self, command: &CommandFrame) -> CommandFrame {
-        let (t, stream, frame_id) = Self::safe_envelope(command);
-        let (source, source_t) = Self::safe_source_correlation(command);
-        CommandFrame {
-            t,
-            stream,
-            source,
-            source_t,
-            session: command.session.clone(),
-            session_id: command.session_id.clone(),
-            frame_id,
-            mode: Mode::Hold,
-            channels: self.zeroed_channels(command),
-            ..Default::default()
-        }
+    fn is_bounded_wire_candidate(candidate: &CommandFrame) -> bool {
+        candidate.validate_wire().is_ok() && Self::has_bounded_serialization(candidate)
     }
 
-    /// Apply safety to `command`. `now_s` and `last_sensor_s` are wall-clock
-    /// seconds; a missing/old sensor forces HOLD (fail-safe to zero, **not**
-    /// latch-last). ESTOP **latches**: once tripped, every later call returns a
-    /// zeroed ESTOP until [`reset`](SafetyGovernor::reset). Takes `&mut self` because of that latch.
+    fn safe_frame(
+        &mut self,
+        command: &CommandFrame,
+        mode: Mode,
+    ) -> Result<CommandFrame, SafetyGovernError> {
+        let (t, stream, frame_id) = Self::safe_envelope(command);
+        let (source, source_t) = Self::safe_source_correlation(command);
+        for tier in [
+            SafeChannelTier::FullUnion,
+            SafeChannelTier::NegotiatedOnly,
+            SafeChannelTier::Empty,
+        ] {
+            let Some(channels) = self.zeroed_channels(command, tier) else {
+                continue;
+            };
+            let candidate = CommandFrame {
+                t,
+                stream: stream.clone(),
+                source: source.clone(),
+                source_t,
+                session: command.session.clone(),
+                session_id: command.session_id.clone(),
+                frame_id: frame_id.clone(),
+                mode: mode.clone(),
+                channels,
+                ..Default::default()
+            };
+            if Self::is_bounded_wire_candidate(&candidate) {
+                return Ok(candidate);
+            }
+        }
+        self.estop = true;
+        Err(SafetyGovernError::BoundedSafeFrame)
+    }
+
+    fn estop_frame(&mut self, command: &CommandFrame) -> Result<CommandFrame, SafetyGovernError> {
+        self.safe_frame(command, Mode::Estop)
+    }
+
+    fn hold_frame(&mut self, command: &CommandFrame) -> Result<CommandFrame, SafetyGovernError> {
+        self.safe_frame(command, Mode::Hold)
+    }
+
+    /// Apply safety to `command`. `now_s` and `last_sensor_s` are readings from the
+    /// same receiver-local monotonic clock. A missing or stale sensor produces a
+    /// normalized, bounded HOLD wire-shape candidate; an installed body executor
+    /// must map an admitted frame through the plant profile. ESTOP **latches**:
+    /// once tripped, every later successful call returns a normalized, bounded
+    /// ESTOP wire-shape candidate until
+    /// [`reset`](SafetyGovernor::reset). This method takes `&mut self` because of
+    /// that latch. The standalone governor owns no publisher allocator or
+    /// high-water mark. The owning publisher must assign and admit the next fresh
+    /// position, exact route, and live session generation before publication.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SafetyGovernError::UnattributableEnvelope`] after latching ESTOP
+    /// when the command lacks a canonical attributable stream/session envelope.
+    /// This syntax check does not replace route or live-generation admission at
+    /// the transport/caller boundary.
+    /// Returns [`SafetyGovernError::BoundedSafeFrame`] after latching ESTOP when
+    /// no deterministic safe-frame fallback passes semantic and bounded-JSON
+    /// validation. An error is local state, not a wire frame.
     pub fn govern(
         &mut self,
         command: &CommandFrame,
         sensor: Option<&SensorFrame>,
         now_s: f64,
         last_sensor_s: Option<f64>,
-    ) -> CommandFrame {
+    ) -> Result<CommandFrame, SafetyGovernError> {
+        if !Self::has_attributable_envelope(command) {
+            self.estop = true;
+            return Err(SafetyGovernError::UnattributableEnvelope);
+        }
         // Latched ESTOP dominates everything until an authorized operator resets it.
         if self.estop {
             return self.estop_frame(command);
@@ -484,7 +592,11 @@ impl SafetyGovernor {
 
         // A timestamp without the actual validated sensor document is not proof
         // of perception liveness. Hostile/misrouted/versionless sensors HOLD.
-        let sensor = sensor.filter(|frame| frame.validate_wire().is_ok());
+        let sensor = sensor.filter(|frame| {
+            frame.validate_wire().is_ok()
+                && frame.session == command.session
+                && frame.session_id == command.session_id
+        });
 
         // A configured-but-nonsensical geofence/speed limit (non-finite or
         // negative) must fail closed, not silently disable enforcement:
@@ -536,19 +648,19 @@ impl SafetyGovernor {
         if stale {
             // Sustained TOTAL silence escalates HOLD -> latched ESTOP. A single
             // missed deadline is a transient (non-latching HOLD, self-clears when
-            // data resumes), but a link that stays silent past
-            // `LINK_LOSS_ESTOP_FACTOR` deadlines is a collapsed link and must
-            // de-energize to a latched safe state — the intent `note_link`
-            // documents. The CUSUM jam burst (`note_link`) only fires on ARRIVING
-            // gappy frames, so without this a fully silent link would sit in
-            // self-clearing HOLD forever. Wire-invisible: the escalation deadline
-            // is derived from the existing `command_timeout_ms` (capped at
-            // `MAX_TTL_MS`), not a new `SafetyLimits` field.
+            // data resumes), but silence that reaches
+            // `min(LINK_LOSS_ESTOP_FACTOR * min(timeout, MAX_TTL_MS), MAX_TTL_MS)`
+            // is treated as loss of perception freshness and enters the governor's
+            // latched ESTOP state. An installed body executor must map that state
+            // through its plant profile. The CUSUM burst (`note_link`) only fires on
+            // ARRIVING gappy frames, so it cannot detect silence after the final
+            // frame. This threshold is derived from existing fields and constants;
+            // it adds no wire field.
             if let Some(last) = last_sensor_s {
                 if now_s.is_finite() && last.is_finite() && now_s >= last {
                     let deadline_s = (timeout_s * LINK_LOSS_ESTOP_FACTOR).min(MAX_TTL_MS / 1000.0);
                     if (now_s - last) >= deadline_s {
-                        self.estop = true; // latch: the link is collapsed
+                        self.estop = true; // latch: sustained sensor silence
                         return self.estop_frame(command);
                     }
                 }
@@ -594,8 +706,9 @@ impl SafetyGovernor {
 
         // Freshness, total-silence escalation, and the CURRENT geofence state
         // deliberately run before command validation/mode checks. A controller
-        // HOLD (or malformed non-ESTOP frame) is safe for this tick, but it must
-        // not mask a collapsed link or an already-breached physical boundary.
+        // HOLD (or malformed non-ESTOP frame) is non-Active for this tick, but it
+        // must not mask sustained sensor silence or an already-breached physical
+        // boundary.
         // The governor remains an actuation boundary for direct Rust callers: a
         // typed struct is not authority for prospective motion.
         if command.validate_wire().is_err() {
@@ -605,6 +718,13 @@ impl SafetyGovernor {
         // Only `Active` commands may actuate. A remaining non-Active inbound mode
         // (Init/Hold, or any mode added later) must never drive the plant.
         if !matches!(command.mode, Mode::Active) {
+            return self.hold_frame(command);
+        }
+
+        // Direct typed callers do not necessarily pass through a bounded JSON
+        // decoder. Reject an oversized input before cloning it, then use the same
+        // gate again after any numeric normalization below.
+        if !Self::has_bounded_serialization(command) {
             return self.hold_frame(command);
         }
 
@@ -663,7 +783,14 @@ impl SafetyGovernor {
                 }
             }
         }
-        out
+        if Self::is_bounded_wire_candidate(&out) {
+            Ok(out)
+        } else {
+            // A typed in-process command can satisfy field semantics while its
+            // serialized form exceeds the whole-frame budget. Never hand that
+            // Active frame to a publisher; replace it with a bounded HOLD.
+            self.hold_frame(command)
+        }
     }
 
     fn enforce_geofence_trajectory(
@@ -777,26 +904,28 @@ impl SafetyGovernor {
     }
 }
 
-/// Plant-side deadline backstop that **enforces `CommandFrame.ttl_ms`** — which is
-/// otherwise carried on the wire but never checked. Feed each accepted command's
-/// **local** arrival time and its `ttl_ms`; the plant must fail safe (HOLD to a
-/// zero/safe setpoint) once the latest command has expired or none has arrived.
-/// Using the plant's own clock avoids controller↔plant clock skew. This is the
-/// deadline backstop the packetized-predictive-control horizon (see RESILIENCE.md)
-/// relies on: replay buffered predictions only while unexpired, HOLD on drain.
+/// Plant-side deadline backstop that enforces receiver-local temporal expiry for
+/// `CommandFrame.ttl_ms`. Feed each accepted command's
+/// **local monotonic** arrival time and its `ttl_ms`. The caller must select HOLD
+/// once the latest command has expired or none has arrived, then an installed body
+/// executor must map that HOLD through the plant profile. Using the receiver's own
+/// monotonic clock avoids controller↔plant clock skew. This is the deadline backstop
+/// the packetized-predictive-control horizon (see RESILIENCE.md) relies on: replay
+/// buffered predictions only while unexpired, HOLD on drain.
 /// Upper bound on an enforced command ttl. The wire field `ttl_ms` is unbounded,
 /// but the plant-side deadline backstop must stay finite: an absurdly large (or
 /// `+Inf`) ttl would let a single command keep the plant "live" indefinitely,
-/// defeating the watchdog. 60 s is far beyond any real control deadline.
+/// defeating the watchdog. The candidate uses 60 s as its finite implementation
+/// ceiling; this value is not a plant-specific timing qualification.
 pub const MAX_TTL_MS: f64 = 60_000.0;
 
-/// How many consecutive `command_timeout_ms` deadlines of TOTAL sensor silence
-/// escalate the non-latching staleness HOLD to a latched ESTOP. One missed
-/// deadline is a transient (HOLD); staying silent this many deadlines means the
-/// link is collapsed, which must de-energize to a latched safe state (a
-/// authorized-operator `reset` is then required). Fail-safe over-triggering (a spurious
-/// ESTOP on a long-but-recoverable dropout) is acceptable; failing OPEN — sitting
-/// in self-clearing HOLD on a dead link — is not.
+/// Factor used to derive the total-silence ESTOP threshold from the bounded valid
+/// sensor timeout. The exact threshold is
+/// `min(LINK_LOSS_ESTOP_FACTOR * min(timeout, MAX_TTL_MS), MAX_TTL_MS)`.
+/// One missed timeout is a transient HOLD. Reaching the derived threshold enters
+/// the governor's latched ESTOP state. An installed body executor must map that
+/// state through its plant profile. This receiver-local freshness rule does not
+/// identify the cause or define a universal physical action.
 const LINK_LOSS_ESTOP_FACTOR: f64 = 20.0;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -814,7 +943,8 @@ pub struct CommandWatchdog {
     last_seq: i64,
     /// Highest local clock sample observed by either ingestion or enforcement.
     /// Interior state is intentional: `should_hold(&self)` is the polling API,
-    /// and a rewind seen there must revoke authority for later ingestion too.
+    /// and a rewind seen there must keep the prior command unusable for later
+    /// ingestion too.
     clock: std::sync::Mutex<WatchdogClock>,
 }
 
@@ -939,6 +1069,29 @@ mod tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, SID};
     use crate::messages::AuthorityLease;
+
+    trait MustGovern {
+        fn must_govern(
+            &mut self,
+            command: &CommandFrame,
+            sensor: Option<&SensorFrame>,
+            now_s: f64,
+            last_sensor_s: Option<f64>,
+        ) -> CommandFrame;
+    }
+
+    impl MustGovern for SafetyGovernor {
+        fn must_govern(
+            &mut self,
+            command: &CommandFrame,
+            sensor: Option<&SensorFrame>,
+            now_s: f64,
+            last_sensor_s: Option<f64>,
+        ) -> CommandFrame {
+            SafetyGovernor::govern(self, command, sensor, now_s, last_sensor_s)
+                .expect("test command identity remains attributable")
+        }
+    }
 
     fn authority() -> AuthorityLease {
         AuthorityLease {
@@ -1117,7 +1270,7 @@ mod tests {
             channels: ch,
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1147,7 +1300,7 @@ mod tests {
             ..Default::default()
         };
 
-        let out = gov.govern(&command, Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&command, Some(&sensor), 1.0, Some(1.0));
 
         assert_eq!(out.mode, Mode::Estop);
         assert!(
@@ -1160,9 +1313,9 @@ mod tests {
     fn note_link_burst_latches_estop() {
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
         assert!(!gov.is_estopped());
-        gov.note_link(false); // no jam -> no change
+        gov.note_link(false); // no reported burst -> no change
         assert!(!gov.is_estopped());
-        gov.note_link(true); // jam burst -> latch
+        gov.note_link(true); // reported loss burst -> latch
         assert!(gov.is_estopped(), "a link burst must latch ESTOP");
         gov.note_link(false); // a later clear link must NOT un-latch
         assert!(gov.is_estopped(), "ESTOP latch must persist until reset");
@@ -1204,7 +1357,7 @@ mod tests {
             channels: channels_with("pose_position", 9.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&cmd, Some(&near), 1.0, Some(1.0));
+        let out = gov.must_govern(&cmd, Some(&near), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Active,
@@ -1223,7 +1376,7 @@ mod tests {
             ],
             ..cmd.clone()
         };
-        let out = gov.govern(&crossing, Some(&near), 1.5, Some(1.5));
+        let out = gov.must_govern(&crossing, Some(&near), 1.5, Some(1.5));
         assert_eq!(out.mode, Mode::Active);
         assert_eq!(
             out.horizon.len(),
@@ -1238,7 +1391,7 @@ mod tests {
             channels: channels_with("pose_position", 3.0, "m"),
             ..Default::default()
         };
-        let out2 = gov.govern(&cmd, Some(&inside), 2.0, Some(2.0));
+        let out2 = gov.must_govern(&cmd, Some(&inside), 2.0, Some(2.0));
         assert_eq!(
             out2.horizon.len(),
             4,
@@ -1271,7 +1424,8 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            gov.govern(&outward, Some(&sensor), 1.0, Some(1.0)).mode,
+            gov.must_govern(&outward, Some(&sensor), 1.0, Some(1.0))
+                .mode,
             Mode::Hold,
             "legacy no-horizon tick 0 would cross while replayed to ttl"
         );
@@ -1284,7 +1438,7 @@ mod tests {
             ..outward
         };
         assert_eq!(
-            gov.govern(&inward, Some(&sensor), 2.0, Some(2.0)).mode,
+            gov.must_govern(&inward, Some(&sensor), 2.0, Some(2.0)).mode,
             Mode::Active,
             "direction-aware projection must preserve an inward command"
         );
@@ -1297,7 +1451,8 @@ mod tests {
             ..inward
         };
         assert_eq!(
-            gov.govern(&body_frame, Some(&sensor), 3.0, Some(3.0)).mode,
+            gov.must_govern(&body_frame, Some(&sensor), 3.0, Some(3.0))
+                .mode,
             Mode::Hold,
             "position and velocity must share one coordinate frame"
         );
@@ -1321,7 +1476,7 @@ mod tests {
             horizon_dt_ms: Some(50.0),
             ..Default::default()
         };
-        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
+        let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Hold);
         assert!(out.horizon.is_empty());
     }
@@ -1367,7 +1522,7 @@ mod tests {
             ..Default::default()
         };
         // Fresh sensor (now == last → not stale); a NaN must not slip past the clamp.
-        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
+        let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Hold, "NaN velocity must fail safe to HOLD");
         let v = out
             .channels
@@ -1389,7 +1544,7 @@ mod tests {
             channels: channels_with("pose_position", f64::NAN, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1407,7 +1562,7 @@ mod tests {
             geofence_radius_m: Some(0.0),
             ..Default::default()
         });
-        // pose 3,0,0 → r=3 > 0; with radius 0 the fence is disabled (matches loop.py).
+        // pose 3,0,0 → r=3 > 0; with radius 0 the fence is disabled.
         let sensor = SensorFrame {
             stream: stream(1),
             session: session(),
@@ -1415,7 +1570,7 @@ mod tests {
             channels: channels_with("pose_position", 3.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Active,
@@ -1439,7 +1594,7 @@ mod tests {
             channels: channels_with("pose_position", 99.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&breach), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&breach), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Estop, "geofence breach must ESTOP");
         assert!(gov.is_estopped());
         assert!(!gov.safety_ok());
@@ -1452,7 +1607,7 @@ mod tests {
             channels: channels_with("pose_position", 1.0, "m"),
             ..Default::default()
         };
-        let still = gov.govern(&active_command(), Some(&inside), 2.0, Some(2.0));
+        let still = gov.must_govern(&active_command(), Some(&inside), 2.0, Some(2.0));
         assert_eq!(
             still.mode,
             Mode::Estop,
@@ -1470,7 +1625,7 @@ mod tests {
         // Authorized reset clears it; the next safe state is ACTIVE again.
         gov.reset();
         assert!(!gov.is_estopped());
-        let after = gov.govern(&active_command(), Some(&inside), 3.0, Some(3.0));
+        let after = gov.must_govern(&active_command(), Some(&inside), 3.0, Some(3.0));
         assert_eq!(
             after.mode,
             Mode::Active,
@@ -1490,7 +1645,7 @@ mod tests {
             // last == now: under a *valid* timeout this is the freshest possible
             // sensor (not stale). A bad timeout must STILL force HOLD (fail closed),
             // never fall through to ACTIVE.
-            let out = gov.govern(&active_command(), None, 10.0, Some(10.0));
+            let out = gov.must_govern(&active_command(), None, 10.0, Some(10.0));
             assert_eq!(
                 out.mode,
                 Mode::Hold,
@@ -1503,7 +1658,7 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            ok.govern(&active_command(), Some(&fresh_sensor()), 10.0, Some(10.0))
+            ok.must_govern(&active_command(), Some(&fresh_sensor()), 10.0, Some(10.0))
                 .mode,
             Mode::Active
         );
@@ -1556,7 +1711,7 @@ mod tests {
             channels: channels_with(POSITION_CHANNEL, 3.0, POSITION_UNIT),
             ..Default::default()
         };
-        let out = gov.govern(&command, Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&command, Some(&sensor), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Active);
         assert_eq!(out.channels[VELOCITY_CHANNEL].data, vec![1.0, 0.0, 0.0]);
     }
@@ -1673,7 +1828,7 @@ mod tests {
                 channels: [(POSITION_CHANNEL.into(), position)].into_iter().collect(),
                 ..Default::default()
             };
-            let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+            let out = gov.must_govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
             assert_eq!(out.mode, Mode::Hold);
             assert!(!gov.is_estopped());
         }
@@ -1704,7 +1859,7 @@ mod tests {
                 channels: [(VELOCITY_CHANNEL.into(), velocity)].into_iter().collect(),
                 ..Default::default()
             };
-            let out = gov.govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
+            let out = gov.must_govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
             assert_eq!(out.mode, Mode::Hold);
             assert_eq!(
                 out.channels[VELOCITY_CHANNEL].data.len(),
@@ -1736,7 +1891,7 @@ mod tests {
             channels: channels_with("ned_pos", 50.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&breach), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&breach), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Estop,
@@ -1765,7 +1920,7 @@ mod tests {
             channels: channels_with("imu_accel", 0.0, "m/s2"),
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1798,7 +1953,7 @@ mod tests {
             channels: channels_with("other", 1.0, "m"),
             ..Default::default()
         };
-        let out = gov.govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
+        let out = gov.must_govern(&active_command(), Some(&sensor), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1841,7 +1996,7 @@ mod tests {
             ..Default::default()
         };
         // Fresh sensor, no geofence -> ACTIVE; the horizon must come back clamped.
-        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
+        let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(out.mode, Mode::Active);
         let hv = &out.horizon[0]["velocity_setpoint"].data;
         let mag = hv.iter().map(|c| c * c).sum::<f64>().sqrt();
@@ -1877,7 +2032,7 @@ mod tests {
             horizon_dt_ms: Some(50.0),
             ..Default::default()
         };
-        let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
+        let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -1934,7 +2089,7 @@ mod tests {
                 channels: channels_with("pose_position", 1000.0, "m"),
                 ..Default::default()
             };
-            let out = gov.govern(&cmd, Some(&sensor), 1.0, Some(1.0));
+            let out = gov.must_govern(&cmd, Some(&sensor), 1.0, Some(1.0));
             assert_eq!(
                 out.mode,
                 Mode::Hold,
@@ -1952,7 +2107,7 @@ mod tests {
             max_speed_mps: Some(5.0),
             ..Default::default()
         });
-        let out = ok.govern(
+        let out = ok.must_govern(
             &CommandFrame {
                 stream: stream(1),
                 session: session(),
@@ -1989,7 +2144,7 @@ mod tests {
             ..Default::default()
         });
         // last_sensor at t=2.0, now stepped BACK to t=1.0 -> (now-last) = -1.0.
-        let out = gov.govern(&active_command(), Some(&fresh_sensor()), 1.0, Some(2.0));
+        let out = gov.must_govern(&active_command(), Some(&fresh_sensor()), 1.0, Some(2.0));
         assert_eq!(
             out.mode,
             Mode::Hold,
@@ -2005,7 +2160,7 @@ mod tests {
         wd.on_command(1.0, 500.0, 2);
         assert!(
             wd.should_hold(2.0),
-            "a command received on the rewound clock must not restore authority, and catch-up alone is insufficient"
+            "a command received on the rewound clock must not restore liveness, and catch-up alone is insufficient"
         );
         wd.on_command(2.0, 500.0, 2);
         assert!(
@@ -2019,7 +2174,7 @@ mod tests {
         // safety-2: a non-finite `now_s` must be treated as stale (HOLD), not slip
         // past the `(now_s - last) >= timeout` comparison as "fresh".
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
-        let out = gov.govern(
+        let out = gov.must_govern(
             &active_command(),
             Some(&fresh_sensor()),
             f64::NAN,
@@ -2062,7 +2217,7 @@ mod tests {
             ..Default::default()
         };
         // No sensor -> stale -> HOLD.
-        let out = gov.govern(&cmd, None, 1.0, None);
+        let out = gov.must_govern(&cmd, None, 1.0, None);
         assert_eq!(out.mode, Mode::Hold);
         for name in ["thrust_vec", "aux_servo", "yaw_rate"] {
             let cv = out
@@ -2082,19 +2237,23 @@ mod tests {
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
         let cmd = active_command();
         // A brief dropout (well under the deadline) is a non-latching HOLD.
-        let out = gov.govern(&cmd, None, 6.0, Some(1.0)); // 5 s silence
+        let out = gov.must_govern(&cmd, None, 6.0, Some(1.0)); // 5 s silence
         assert_eq!(out.mode, Mode::Hold, "a brief dropout HOLDs (non-latching)");
         assert!(gov.safety_ok(), "a transient HOLD does not trip safety_ok");
         assert!(!gov.is_estopped());
         // Sustained total silence past the deadline latches ESTOP.
-        let out = gov.govern(&cmd, None, 12.0, Some(1.0)); // 11 s silence > 10 s
-        assert_eq!(out.mode, Mode::Estop, "a collapsed link must latch ESTOP");
+        let out = gov.must_govern(&cmd, None, 12.0, Some(1.0)); // 11 s silence > 10 s
+        assert_eq!(
+            out.mode,
+            Mode::Estop,
+            "sustained sensor silence must latch ESTOP"
+        );
         assert!(gov.is_estopped(), "the ESTOP must latch");
         // Latched: even fresh data now returns ESTOP until an authorized operator resets it.
-        let out = gov.govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
+        let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
         assert_eq!(out.mode, Mode::Estop, "ESTOP stays latched until reset");
         gov.reset();
-        let out = gov.govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
+        let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 12.0, Some(12.0));
         assert_eq!(
             out.mode,
             Mode::Active,
@@ -2116,7 +2275,7 @@ mod tests {
                 channels: channels_with("velocity_setpoint", 1.0, "m/s"),
                 ..Default::default()
             };
-            let out = gov.govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
+            let out = gov.must_govern(&cmd, Some(&fresh_sensor()), 1.0, Some(1.0));
             assert_eq!(out.mode, Mode::Hold, "{mode:?} must normalize to HOLD");
             let v = out.channels.get("velocity_setpoint").expect("present");
             assert!(v.data.iter().all(|c| *c == 0.0), "HOLD zeroes the setpoint");
@@ -2136,7 +2295,7 @@ mod tests {
             ..Default::default()
         };
 
-        let out = gov.govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
+        let out = gov.must_govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
 
         assert_eq!(out.mode, Mode::Hold);
         assert!(
@@ -2154,11 +2313,14 @@ mod tests {
         // ActionBuffer's "a fail-safe is never dropped".
         let mut gov = SafetyGovernor::new(SafetyLimits::default());
         let estop_cmd = CommandFrame {
+            stream: stream(1),
+            session: session(),
+            session_id: SID.into(),
             mode: Mode::Estop,
             channels: channels_with("velocity_setpoint", 9.0, "m/s"),
             ..Default::default()
         };
-        let out = gov.govern(&estop_cmd, None, 1.0, Some(1.0));
+        let out = gov.must_govern(&estop_cmd, None, 1.0, Some(1.0));
         assert_eq!(
             out.mode,
             Mode::Estop,
@@ -2181,13 +2343,13 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            gov.govern(&active, None, 2.0, Some(2.0)).mode,
+            gov.must_govern(&active, None, 2.0, Some(2.0)).mode,
             Mode::Estop,
             "the latch persists until an authorized operator resets it"
         );
         gov.reset();
         assert_eq!(
-            gov.govern(&active, Some(&fresh_sensor()), 3.0, Some(3.0))
+            gov.must_govern(&active, Some(&fresh_sensor()), 3.0, Some(3.0))
                 .mode,
             Mode::Active,
             "reset restores normal governing"
@@ -2195,74 +2357,206 @@ mod tests {
     }
 
     #[test]
-    fn inbound_estop_builds_a_resource_bounded_zero_output() {
+    fn inbound_estop_falls_back_to_negotiated_channels_near_the_frame_budget() {
         let mut channels = crate::messages::Map::new();
-        channels.insert(
-            "bulk".into(),
-            ChannelValue {
-                data: vec![1.0; crate::bounded_json::MAX_ARRAY_ITEMS + 1],
-                unit: Some("u".repeat(crate::bounded_json::MAX_STRING_BYTES + 1)),
-            },
-        );
-        channels.insert(
-            "a".repeat(crate::bounded_json::MAX_KEY_BYTES + 1),
-            ChannelValue::scalar(1.0, None),
-        );
-        for index in 0..=MAX_CHANNELS {
+        let full_unit = "u".repeat(crate::bounded_json::MAX_STRING_BYTES);
+        for index in 0..15 {
             channels.insert(
-                format!("channel_{index:04}"),
-                ChannelValue::scalar(1.0, None),
+                format!("bulk_{index:02}"),
+                ChannelValue::scalar(1.0, Some(&full_unit)),
             );
         }
+        // Negotiated `velocity_setpoint` consumes 20 decoded string bytes. The
+        // 16 seven-byte extra names and these units fill the channel builder's
+        // aggregate string budget exactly. JSON envelope strings and syntax then
+        // force the full union past the universal one-MiB frame boundary.
+        let final_unit_len = crate::bounded_json::MAX_TOTAL_STRING_BYTES
+            - ("velocity_setpoint".len() + VELOCITY_UNIT.len())
+            - (16 * "bulk_00".len())
+            - (15 * crate::bounded_json::MAX_STRING_BYTES);
+        channels.insert(
+            "bulk_15".into(),
+            ChannelValue::scalar(1.0, Some(&"u".repeat(final_unit_len))),
+        );
         let command = CommandFrame {
-            t: f64::MAX,
             stream: stream(1),
-            source: Some(stream(2)),
-            source_t: f64::MAX,
             session: session(),
             session_id: SID.into(),
-            frame_id: "f".repeat(crate::bounded_json::MAX_STRING_BYTES + 1),
             mode: Mode::Estop,
             channels,
             ..Default::default()
         };
 
         let mut governor = SafetyGovernor::default();
-        let output = governor.govern(&command, None, 0.0, None);
+        let output = governor.must_govern(&command, None, 0.0, None);
 
         assert_eq!(output.mode, Mode::Estop);
-        assert_eq!(output.t, 0.0);
-        assert_eq!(output.frame_id, "world");
-        assert_eq!((output.source, output.source_t), (None, 0.0));
-        assert!(output.channels.len() <= MAX_CHANNELS);
-        assert!(output
-            .channels
-            .keys()
-            .all(|name| !name.is_empty() && name.len() <= crate::bounded_json::MAX_KEY_BYTES));
-        assert!(output
-            .channels
-            .values()
-            .all(|channel| channel.data.iter().all(|value| *value == 0.0)));
-        assert!(
-            output
-                .channels
-                .values()
-                .map(|channel| channel.data.len())
-                .sum::<usize>()
-                <= crate::bounded_json::MAX_TOTAL_ARRAY_ITEMS
+        assert_eq!(output.channels.len(), 1);
+        assert_eq!(
+            output.channels["velocity_setpoint"],
+            ChannelValue::vec3(0.0, 0.0, 0.0, Some(VELOCITY_UNIT))
         );
-        assert!(output
+        output
+            .validate_wire()
+            .expect("negotiated-only fallback must remain semantically valid");
+        let encoded = serde_json::to_vec(&output).expect("safe frame serializes");
+        crate::bounded_json::preflight(&encoded)
+            .expect("negotiated-only fallback must pass universal preflight");
+    }
+
+    #[test]
+    fn inbound_estop_falls_back_to_empty_channels_on_object_budget() {
+        let command_channels: Vec<String> =
+            (0..4_092).map(|index| format!("c{index:04}")).collect();
+        let channels = command_channels
+            .iter()
+            .map(|name| (name.clone(), ChannelValue::scalar(1.0, None)))
+            .collect();
+        let command = CommandFrame {
+            stream: stream(1),
+            source: Some(stream(2)),
+            session: session(),
+            session_id: SID.into(),
+            mode: Mode::Estop,
+            channels,
+            ..Default::default()
+        };
+        let velocity_channel = command_channels[0].clone();
+        let mut governor = SafetyGovernor::with_channels(
+            SafetyLimits::default(),
+            POSITION_CHANNEL,
+            velocity_channel,
+            command_channels,
+            Vec::new(),
+        );
+
+        let output = governor.must_govern(&command, None, 0.0, None);
+
+        assert!(output.channels.is_empty());
+        output
+            .validate_wire()
+            .expect("empty-channel fallback must remain semantically valid");
+        let encoded = serde_json::to_vec(&output).expect("safe frame serializes");
+        crate::bounded_json::preflight(&encoded)
+            .expect("empty-channel fallback must pass universal preflight");
+    }
+
+    #[test]
+    fn oversized_programmatic_active_command_falls_back_to_bounded_hold() {
+        let mut channels = crate::messages::Map::new();
+        let full_unit = "u".repeat(crate::bounded_json::MAX_STRING_BYTES);
+        for index in 0..15 {
+            channels.insert(
+                format!("bulk_{index:02}"),
+                ChannelValue::scalar(1.0, Some(&full_unit)),
+            );
+        }
+        channels.insert("bulk_15".into(), ChannelValue::scalar(1.0, Some("")));
+        let mut command = active_command();
+        command.channels = channels;
+        let base_len = serde_json::to_vec(&command)
+            .expect("programmatic command serializes")
+            .len();
+        let padding = crate::bounded_json::MAX_FRAME_BYTES
+            .checked_add(1)
+            .and_then(|target| target.checked_sub(base_len))
+            .expect("fixture starts below the whole-frame ceiling");
+        assert!(padding <= crate::bounded_json::MAX_STRING_BYTES);
+        command
             .channels
-            .get("bulk")
-            .is_some_and(
-                |channel| channel.data.len() == crate::bounded_json::MAX_ARRAY_ITEMS
-                    && channel.unit.is_none()
-            ));
+            .get_mut("bulk_15")
+            .expect("fixture channel exists")
+            .unit = Some("u".repeat(padding));
+        command
+            .validate_wire()
+            .expect("field-semantics validation alone accepts the typed command");
+        let oversized = serde_json::to_vec(&command).expect("programmatic command serializes");
+        assert_eq!(oversized.len(), crate::bounded_json::MAX_FRAME_BYTES + 1);
+        assert!(crate::bounded_json::preflight(&oversized).is_err());
+
+        let mut governor = SafetyGovernor::default();
+        let output = governor.must_govern(&command, Some(&fresh_sensor()), 1.0, Some(1.0));
+
+        assert_eq!(output.mode, Mode::Hold);
+        assert!(!governor.is_estopped());
+        assert!(SafetyGovernor::is_bounded_wire_candidate(&output));
+    }
+
+    #[test]
+    fn foreign_session_sensor_cannot_supply_freshness_for_active_command() {
+        let command = active_command();
+        let mut foreign_id = fresh_sensor();
+        foreign_id.session_id = "other-session".into();
+        let mut governor = SafetyGovernor::default();
+        assert_eq!(
+            governor
+                .must_govern(&command, Some(&foreign_id), 1.0, Some(1.0))
+                .mode,
+            Mode::Hold
+        );
+
+        let mut foreign_generation = fresh_sensor();
+        foreign_generation.session.generation = "50000000-0000-4000-8000-000000000005".into();
+        let mut governor = SafetyGovernor::default();
+        assert_eq!(
+            governor
+                .must_govern(&command, Some(&foreign_generation), 1.0, Some(1.0))
+                .mode,
+            Mode::Hold
+        );
+    }
+
+    #[test]
+    fn unattributable_envelope_latches_without_a_wire_frame() {
+        let mut invalid_commands = Vec::new();
+        let mut missing_epoch = active_command();
+        missing_epoch.stream.epoch.clear();
+        invalid_commands.push(missing_epoch);
+        let mut missing_generation = active_command();
+        missing_generation.session.generation.clear();
+        invalid_commands.push(missing_generation);
+        let mut unsafe_session = active_command();
+        unsafe_session.session_id = "bad/session".into();
+        invalid_commands.push(unsafe_session);
+
+        for command in invalid_commands {
+            let mut governor = SafetyGovernor::default();
+            let error = governor
+                .govern(&command, None, 0.0, None)
+                .expect_err("invalid identity must not produce a wire frame");
+            assert_eq!(error, SafetyGovernError::UnattributableEnvelope);
+            assert!(
+                governor.is_estopped(),
+                "identity failure must latch locally"
+            );
+            assert_eq!(
+                governor
+                    .must_govern(&active_command(), None, 0.0, None)
+                    .mode,
+                Mode::Estop,
+                "a later attributable frame must expose the existing latch"
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_sequence_normalizes_only_with_attributable_envelope() {
+        let mut command = active_command();
+        command.stream.seq = 0;
+        command.mode = Mode::Estop;
+        let mut governor = SafetyGovernor::default();
+
+        let output = governor.must_govern(&command, None, 0.0, None);
+
+        assert_eq!(output.stream.epoch, command.stream.epoch);
+        assert_eq!(output.stream.seq, 1);
+        assert_eq!(output.session, command.session);
+        assert_eq!(output.session_id, command.session_id);
     }
 
     fn govern_estop_with_source(source: StreamPosition, source_t: f64) -> CommandFrame {
         let mut governor = SafetyGovernor::new(SafetyLimits::default());
-        governor.govern(
+        governor.must_govern(
             &CommandFrame {
                 stream: stream(2),
                 source: Some(source),
@@ -2314,6 +2608,14 @@ mod tests {
     }
 
     #[test]
+    fn inbound_estop_preserves_valid_source_with_zero_default_time() {
+        let source = stream(1);
+        let output = govern_estop_with_source(source.clone(), 0.0);
+
+        assert_eq!((output.source, output.source_t), (Some(source), 0.0));
+    }
+
+    #[test]
     fn bad_command_timeout_latches_config_fail_closed() {
         for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
             let mut gov = SafetyGovernor::new(SafetyLimits {
@@ -2324,7 +2626,7 @@ mod tests {
                 !gov.safety_ok(),
                 "bad timeout {bad} must be visible before the first command"
             );
-            let out = gov.govern(&active_command(), None, 1.0, Some(1.0));
+            let out = gov.must_govern(&active_command(), None, 1.0, Some(1.0));
             assert_eq!(out.mode, Mode::Hold, "bad timeout {bad} must HOLD");
             assert!(
                 !gov.safety_ok(),
@@ -2372,10 +2674,10 @@ mod tests {
             vec!["velocity\nspoof".into()],
             vec!["pose".into()],
         );
-        let output = gov.govern(&active_command(), Some(&fresh_sensor()), 1.0, Some(1.0));
+        let output = gov.must_govern(&active_command(), Some(&fresh_sensor()), 1.0, Some(1.0));
         assert_eq!(output.mode, Mode::Hold);
         output
             .validate_wire()
-            .expect("config-fail HOLD must still be a complete publishable frame");
+            .expect("config-fail HOLD must still have a complete bounded wire shape");
     }
 }

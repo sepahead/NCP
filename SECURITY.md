@@ -8,9 +8,10 @@
 > independent-host certification are therefore **NOT RUN**, and the candidate is
 > release-blocked.
 
-Report vulnerabilities privately through the repository's GitHub security advisory
-flow. Do not include credentials, private keys, sensitive plant data, or exploit
-details in a public issue.
+Report vulnerabilities through the repository's enabled
+[private vulnerability report form](https://github.com/sepahead/NCP/security/advisories/new).
+Do not include credentials, private keys, sensitive plant data, or exploit details
+in a public issue.
 
 ## Threat boundary
 

@@ -28,7 +28,7 @@ EXPECTED_INDEX_SHA256 = (
     "2e0337544d91a780415d5f86e6372f2067121fc60244c8a30d5231e5ab031b51"
 )
 EXPECTED_AUDIT_SHA256 = (
-    "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b"
+    "18b18684b24f8464ac2b305f48d85bc2404a1bb7844030e7f36179a08dcadc02"
 )
 LENS_IDS = tuple(f"L{index:02d}" for index in range(1, 21))
 COMMIT_ID = re.compile(r"^[0-9a-f]{40}$")
@@ -350,7 +350,7 @@ def _phase_evidence(phase: str) -> tuple[list[str], list[str]]:
             ],
             [
                 "python3 scripts/check_behavior_vectors.py",
-                "python3 scripts/check_rust_packages.py --offline",
+                "python3 -I scripts/check_rust_packages.py",
             ],
         ),
         (
@@ -362,7 +362,7 @@ def _phase_evidence(phase: str) -> tuple[list[str], list[str]]:
             ],
             [
                 "cargo test -p ncp-cpp --locked",
-                "python3 scripts/check_rust_packages.py --offline",
+                "python3 -I scripts/check_rust_packages.py",
             ],
         ),
         (
@@ -647,7 +647,7 @@ def _task_specific_evidence(task: dict[str, Any]) -> tuple[list[str], list[str]]
                 "evidence/supply-chain/sbom.cdx.json",
             ],
             [
-                "python3 scripts/build_candidate_dossier.py --self-test",
+                "python3 -I scripts/build_candidate_dossier.py --self-test",
                 "python3 scripts/generate_supply_chain_evidence.py --check",
                 "python3 scripts/check_max_effort_handoff_review.py --self-test",
                 "NOT RUN: release-authorized multi-platform artifacts, publisher signatures, and independent clean-room reproduction",

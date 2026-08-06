@@ -5,7 +5,7 @@
 > `python3 scripts/generate_implementation_ledger.py --write`, then run the checker.
 > This is evidence bookkeeping, not release authorization or certification.
 
-Blueprint SHA-256: `ee01c74a7b6d3fc46266ac1d9059df53bdfe3054e6b0e5360dca8802273f14d4`.
+Blueprint SHA-256: `57408a610dff52199875a070f95210c5f86d6b1db0923f3cb63d296df47f12e6`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -1762,6 +1762,7 @@ external or independent status in the current checker.
 | Crebain Galadriel producer | `feat/galadriel-integration-refresh` | `113ee70d5660` | `55eb96da6d98` | 0 | Clean feature worktree; reconcile only in C04 after canonical C01-C03. |
 | Prisoma | `main` | `b0185d98aea8` | `0d7287deb631` | 0 | Clean main baseline; preserve v0.8 history while adding a parallel 1.0 observer. |
 | pid-rs | `main` | `1410c8808f1b` | `516a2c956494` | 0 | Clean standalone estimator/run-log baseline; preserve its protocol-neutral dependency direction and refresh consumer pins only in dependency-ready Galadriel/Prisoma tasks. |
+| Cortexel | `main` | `5d900d41d41a` | `24f96328752d` | 0 | Clean excluded non-peer baseline; preserve the stable FigureRequestV1 no-NCP-adapter boundary. Cortexel is outside NCP implementation, consumer qualification, and V11 atlas ownership. |
 | sepahead profile | `main` | `80a5c1d5af3a` | `ed84f1da473e` | 2 | Preserve the two unrelated untracked tool directories; edit only canonical sources when R08 is evidence-ready. |
 
 ## Ten-lens mapping to the prior twenty-lens review
@@ -1781,68 +1782,99 @@ external or independent status in the current checker.
 
 ## Dependency-ordered tasks
 
-| Task | Status | Claim tier | Required evidence class | Scope | Dependencies | Repository | Source commit | Residual risks |
-|---|---|---|---|---|---|---|---|---:|
-| `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
-| `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
-| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | Decide and ratify ADR-001 through ADR-011 | `B04` | NCP | `—` | 9 |
-| `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
-| `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | Reserve registries, namespaces, error codes, and owners | `B02` | NCP | `—` | 0 |
-| `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Establish the single normative source graph and identity projections | `B03` | NCP | `—` | 0 |
-| `N02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement typed simulation, plant, and observer session lifecycles | `N01` | NCP | `—` | 0 |
-| `N03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement declared streams, domain-separated authority, and command disposition | `N02` | NCP | `—` | 0 |
-| `N04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement the production authenticated envelope and semantic security state | `N02` | NCP | `—` | 0 |
-| `X00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Prototype an early independent non-Rust draft peer | `N03`, `N04` | independent draft-peer environment | `—` | 0 |
-| `N05` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Refactor critical Rust behavior into pure checked transition cores | `N03`, `N04` | NCP | `—` | 0 |
-| `N06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Integrate security and state machines into Zenoh without trusting callbacks | `N05` | NCP | `—` | 0 |
-| `N07` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Regenerate and harden all supported language and package surfaces | `N06`, `X00` | NCP | `—` | 0 |
-| `N08` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Rebuild conformance, behavior, migration, and fixture coverage | `N07` | NCP | `—` | 0 |
-| `N09` | `OPEN` | `IMPLEMENTATION_ONLY` | `EXTERNAL` | Remove supply-chain and package-identity release blockers | `N07` | NCP | `—` | 0 |
-| `N10` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Rewrite normative and user documentation and regenerate visuals | `N08`, `N09` | NCP | `—` | 0 |
-| `F01` | `OPEN` | `IMPLEMENTATION_ONLY` | `INDEPENDENT` | Implement and independently review the TLA+ model suite | `N03`, `N04` | NCP | `—` | 0 |
-| `F02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement SMT, Kani, and model-to-Rust refinement checks | `N05`, `F01` | NCP | `—` | 0 |
-| `F03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement differential, property, fuzz, sanitizer, and mutation campaigns | `N08`, `F02` | NCP | `—` | 0 |
-| `R01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Create the final untagged 1.0.0 source cut and publication machinery | `N10`, `F03` | NCP | `—` | 0 |
-| `R11` | `OPEN` | `GOVERNANCE_OPERATION` | `EXTERNAL` | Establish durable 1.0 stewardship without pretending software is eternal | `N10` | NCP and ecosystem governance | `—` | 0 |
-| `E01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Establish Engram's clean native-1.0 integration baseline | `R01` | Engram | `—` | 0 |
-| `H01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Add a parallel haldir-ncp10 adapter without mutating v0.8 history | `R01` | Haldir | `—` | 0 |
-| `G01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Create Galadriel's native-1.0 observer and extension adapter | `R01` | Galadriel | `—` | 0 |
-| `C01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Create Crebain's separate native-1.0 plant adapter and exact pins | `R01` | Crebain | `—` | 0 |
-| `P01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Add a parallel native-1.0 Prisoma observer | `R01` | Prisoma | `—` | 0 |
-| `E02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Split Engram's simulation responder from plant commander types | `E01` | Engram | `—` | 0 |
-| `H02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Integrate body-issued authority and dispositions into Haldir Gate | `H01` | Haldir | `—` | 0 |
-| `H04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement Haldir's isolated optional assessment receiver | `H02`, `G01` | Haldir | `—` | 0 |
-| `G02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Bind Galadriel lifecycle and monitoring to authenticated observer state | `G01` | Galadriel | `—` | 0 |
-| `C02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement Crebain as body-issued authority and disposition source | `C01` | Crebain | `—` | 0 |
-| `P02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Preserve missing-variable and research-claim semantics in native capture | `P01` | Prisoma | `—` | 0 |
-| `E03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement Engram's authenticated transport and declared streams | `E02` | Engram | `—` | 0 |
-| `C03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Migrate Crebain sensor and Galadriel-extension publication | `C02`, `G01` | Crebain | `—` | 0 |
-| `E04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement Engram's direct plant integration | `E03`, `C02` | Engram | `—` | 0 |
-| `E06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Implement Engram's optional Haldir-gated integration | `E04`, `H02` | Engram | `—` | 0 |
-| `C04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | Verify the consolidated Galadriel producer lineage and retire stale branch references | `C03` | Crebain canonical repository | `—` | 0 |
-| `X01` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Qualify two genuinely independent installed non-Rust peers | `E03` | independent peer lab | `—` | 0 |
-| `X05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | Qualify the disjoint observer challenge-exposure anchor infrastructure | `G02`, `P02`, `X01` | independent challenge-exposure anchor lab | `—` | 0 |
-| `X02` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | Run the composed ecosystem and multi-writer campaign | `E06`, `H04`, `C04`, `X05` | isolated ecosystem lab | `—` | 0 |
-| `E05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Qualify Engram's exact installed native-1.0 roles | `E04`, `X01` | Engram qualification environment | `—` | 0 |
-| `H03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Qualify Haldir's secure commander role | `H02`, `C02`, `X01` | Haldir qualification environment | `—` | 0 |
-| `H05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Qualify Haldir's optional assessment-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
-| `G03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Qualify Galadriel NCP observer and raw-advisory publisher roles | `X02` | Galadriel qualification environment | `—` | 0 |
-| `P03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Migrate the fault observatory and qualify Prisoma's observer role | `X02` | Prisoma qualification environment | `—` | 0 |
-| `F04` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | Execute the live security, fault, soak, rotation, and revocation campaign | `X02` | cross-ecosystem lab | `—` | 0 |
-| `C05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Qualify Crebain body and Galadriel-producer surface separately | `E05`, `H03`, `G03` | Crebain qualification environment | `—` | 0 |
-| `X03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Issue nine exact consumer and extension role qualification receipts | `H05`, `C05`, `P03`, `F04` | cross-ecosystem adjudication | `—` | 0 |
-| `X04` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Reproduce the provider and ecosystem from clean rooms | `X03` | independent clean builders | `—` | 0 |
-| `F05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | Execute release-bound performance, resource, and final visual campaigns | `X04` | cross-ecosystem lab | `—` | 0 |
-| `R00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | Hand the qualified candidate to the release runbook | `F05` | NCP | `—` | 0 |
-| `R10` | `OPEN` | `GOVERNANCE_OPERATION` | `EXTERNAL` | Execute rollback, withdrawal, revocation, and incident response | `F04` | incident-response exercise | `—` | 0 |
-| `R02` | `OPEN` | `RELEASE_OPERATION` | `INDEPENDENT` | Issue the signed release-authorization bundle | `R00`, `R10`, `R11` | independent release adjudication | `—` | 0 |
-| `R03` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Create and verify the immutable signed tag and draft GitHub Release | `R02` | NCP release environment | `—` | 0 |
-| `R04` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Build, compare, sign, attest, and stage final artifacts | `R03` | protected release builders | `—` | 0 |
-| `R05` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Publish exact registry artifacts and the GitHub Release | `R04` | protected publication environment | `—` | 0 |
-| `R06` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Update NCP README, GitHub description, topics, and repository controls | `R05` | NCP and GitHub | `—` | 0 |
-| `R07` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Repin and revalidate every consumer against the immutable tag | `R05` | all consumer repositories | `—` | 0 |
-| `R08` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Update ecosystem repository metadata and the public selected-work profile | `R06`, `R07` | ecosystem GitHub and profile | `—` | 0 |
-| `R09` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | Run post-publication installs and emergency-revocation exercise | `R05` | public install hosts and revocation lab | `—` | 0 |
+Requirement IDs identify coordination scope. They do not grant runtime authority,
+close a requirement, or change a task's evidence floor.
+
+| Task | Status | Claim tier | Required evidence class | Requirement IDs | Scope | Dependencies | Repository | Source commit | Residual risks |
+|---|---|---|---|---|---|---|---|---|---:|
+| `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | `B00-ledger-integrity`, `B00-no-optimistic-status`, `B00-resumption-control`, `B00-current-generation-evidence`, `B00-content-bound-receipts` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
+| `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | `B04-acceptance` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
+| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | `B01-acceptance`, `D01`, `D02`, `D03`, `D04`, `D05`, `D06`, `D07`, `D08`, `D09`, `D10`, `D11`, `D12`, `D13`, `D14`, `D15`, `D16`, `D17`, `D18`, `D19`, `D20` | Decide and ratify ADR-001 through ADR-011 | `B04` | NCP | `—` | 9 |
+| `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | `B02-acceptance`, `D19` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
+| `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | `B03-acceptance`, `D09`, `D13`, `D19` | Reserve registries, namespaces, error codes, and owners | `B02` | NCP | `—` | 0 |
+| `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N01-acceptance`, `D04`, `D19` | Establish the single normative source graph and identity projections | `B03` | NCP | `—` | 0 |
+| `N02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N02-acceptance`, `D01`, `D02`, `D05`, `D20` | Implement typed simulation, plant, and observer session lifecycles | `N01` | NCP | `—` | 0 |
+| `N03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N03-acceptance`, `D03`, `D07`, `D08`, `D15` | Implement declared streams, domain-separated authority, and command disposition | `N02` | NCP | `—` | 0 |
+| `N04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N04-acceptance`, `D05`, `D06`, `D16`, `D20` | Implement the production authenticated envelope and semantic security state | `N02` | NCP | `—` | 0 |
+| `X00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X00-acceptance` | Prototype an early independent non-Rust draft peer | `N03`, `N04` | independent draft-peer environment | `—` | 0 |
+| `N05` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N05-acceptance` | Refactor critical Rust behavior into pure checked transition cores | `N03`, `N04` | NCP | `—` | 0 |
+| `N06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N06-acceptance`, `D06`, `D16` | Integrate security and state machines into Zenoh without trusting callbacks | `N05` | NCP | `—` | 0 |
+| `N07` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N07-acceptance`, `D04`, `D14`, `D18` | Regenerate and harden all supported language and package surfaces | `N06`, `X00` | NCP | `—` | 0 |
+| `N08` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N08-acceptance`, `D04`, `D05`, `D14` | Rebuild conformance, behavior, migration, and fixture coverage | `N07` | NCP | `—` | 0 |
+| `N09` | `OPEN` | `IMPLEMENTATION_ONLY` | `EXTERNAL` | `N09-acceptance`, `D13` | Remove supply-chain and package-identity release blockers | `N07` | NCP | `—` | 0 |
+| `N10` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N10-acceptance`, `D09`, `D14`, `V11` | Rewrite normative and user documentation and regenerate visuals | `N08`, `N09` | NCP | `—` | 0 |
+| `F01` | `OPEN` | `IMPLEMENTATION_ONLY` | `INDEPENDENT` | `F01-acceptance`, `D12` | Implement and independently review the TLA+ model suite | `N03`, `N04` | NCP | `—` | 0 |
+| `F02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `F02-acceptance`, `D05`, `D12` | Implement SMT, Kani, and model-to-Rust refinement checks | `N05`, `F01` | NCP | `—` | 0 |
+| `F03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `F03-acceptance`, `D10`, `D12` | Implement differential, property, fuzz, sanitizer, and mutation campaigns | `N08`, `F02` | NCP | `—` | 0 |
+| `R01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `R01-acceptance`, `D17` | Create the final untagged 1.0.0 source cut and publication machinery | `N10`, `F03` | NCP | `—` | 0 |
+| `R11` | `OPEN` | `GOVERNANCE_OPERATION` | `EXTERNAL` | `R11-acceptance` | Establish durable 1.0 stewardship without pretending software is eternal | `N10` | NCP and ecosystem governance | `—` | 0 |
+| `E01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E01-acceptance`, `D18` | Establish Engram's clean native-1.0 integration baseline | `R01` | Engram | `—` | 0 |
+| `H01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H01-acceptance`, `D18` | Add a parallel haldir-ncp10 adapter without mutating v0.8 history | `R01` | Haldir | `—` | 0 |
+| `G01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `G01-acceptance`, `D02`, `D09`, `D18` | Create Galadriel's native-1.0 observer and extension adapter | `R01` | Galadriel | `—` | 0 |
+| `C01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C01-acceptance`, `D01`, `D10`, `D18` | Create Crebain's separate native-1.0 plant adapter and exact pins | `R01` | Crebain | `—` | 0 |
+| `P01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `P01-acceptance`, `D02`, `D03`, `D18` | Add a parallel native-1.0 Prisoma observer | `R01` | Prisoma | `—` | 0 |
+| `E02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E02-acceptance`, `D01` | Split Engram's simulation responder from plant commander types | `E01` | Engram | `—` | 0 |
+| `H02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H02-acceptance`, `D07`, `D08`, `D09`, `D15`, `D18` | Integrate body-issued authority and dispositions into Haldir Gate | `H01` | Haldir | `—` | 0 |
+| `H04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H04-acceptance`, `D09`, `D18`, `V11` | Implement Haldir's isolated optional assessment receiver | `H02`, `G01` | Haldir | `—` | 0 |
+| `G02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `G02-acceptance`, `D02`, `D03`, `D20`, `V11` | Bind Galadriel lifecycle and monitoring to authenticated observer state | `G01` | Galadriel | `—` | 0 |
+| `C02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C02-acceptance`, `D07`, `D08`, `D10`, `D15` | Implement Crebain as body-issued authority and disposition source | `C01` | Crebain | `—` | 0 |
+| `P02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `P02-acceptance`, `D11`, `D20`, `V11` | Preserve missing-variable and research-claim semantics in native capture | `P01` | Prisoma | `—` | 0 |
+| `E03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E03-acceptance`, `D03`, `D20` | Implement Engram's authenticated transport and declared streams | `E02` | Engram | `—` | 0 |
+| `C03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C03-acceptance`, `D03`, `D09` | Migrate Crebain sensor and Galadriel-extension publication | `C02`, `G01` | Crebain | `—` | 0 |
+| `E04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E04-acceptance`, `D08`, `D15` | Implement Engram's direct plant integration | `E03`, `C02` | Engram | `—` | 0 |
+| `E06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E06-acceptance`, `D08`, `D15`, `D18`, `V11` | Implement Engram's optional Haldir-gated integration | `E04`, `H02` | Engram | `—` | 0 |
+| `C04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C04-acceptance`, `V11` | Verify the consolidated Galadriel producer lineage and retire stale branch references | `C03` | Crebain canonical repository | `—` | 0 |
+| `X01` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X01-acceptance`, `D04` | Qualify two genuinely independent installed non-Rust peers | `E03` | independent peer lab | `—` | 0 |
+| `X05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X05-acceptance`, `D20` | Qualify the disjoint observer challenge-exposure anchor infrastructure | `G02`, `P02`, `X01` | independent challenge-exposure anchor lab | `—` | 0 |
+| `X02` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X02-acceptance`, `D07`, `D08`, `D20` | Run the composed ecosystem and multi-writer campaign | `E06`, `H04`, `C04`, `X05` | isolated ecosystem lab | `—` | 0 |
+| `E05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E05-acceptance`, `D11` | Qualify Engram's exact installed native-1.0 roles | `E04`, `X01` | Engram qualification environment | `—` | 0 |
+| `H03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H03-acceptance` | Qualify Haldir's secure commander role | `H02`, `C02`, `X01` | Haldir qualification environment | `—` | 0 |
+| `H05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H05-acceptance` | Qualify Haldir's optional assessment-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
+| `G03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `G03-acceptance` | Qualify Galadriel NCP observer and raw-advisory publisher roles | `X02` | Galadriel qualification environment | `—` | 0 |
+| `P03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `P03-acceptance`, `D11` | Migrate the fault observatory and qualify Prisoma's observer role | `X02` | Prisoma qualification environment | `—` | 0 |
+| `F04` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F04-acceptance`, `D06`, `D16`, `D20` | Execute the live security, fault, soak, rotation, and revocation campaign | `X02` | cross-ecosystem lab | `—` | 0 |
+| `C05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `C05-acceptance`, `D07`, `D10` | Qualify Crebain body and Galadriel-producer surface separately | `E05`, `H03`, `G03` | Crebain qualification environment | `—` | 0 |
+| `X03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X03-acceptance` | Issue nine exact consumer and extension role qualification receipts | `H05`, `C05`, `P03`, `F04` | cross-ecosystem adjudication | `—` | 0 |
+| `X04` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X04-acceptance`, `D13` | Reproduce the provider and ecosystem from clean rooms | `X03` | independent clean builders | `—` | 0 |
+| `F05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F05-acceptance`, `V11` | Execute release-bound performance, resource, and final visual campaigns | `X04` | cross-ecosystem lab | `—` | 0 |
+| `R00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `R00-acceptance` | Hand the qualified candidate to the release runbook | `F05` | NCP | `—` | 0 |
+| `R10` | `OPEN` | `GOVERNANCE_OPERATION` | `EXTERNAL` | `R10-acceptance` | Execute rollback, withdrawal, revocation, and incident response | `F04` | incident-response exercise | `—` | 0 |
+| `R02` | `OPEN` | `RELEASE_OPERATION` | `INDEPENDENT` | `R02-acceptance`, `D17` | Issue the signed release-authorization bundle | `R00`, `R10`, `R11` | independent release adjudication | `—` | 0 |
+| `R03` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R03-acceptance` | Create and verify the immutable signed tag and draft GitHub Release | `R02` | NCP release environment | `—` | 0 |
+| `R04` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R04-acceptance` | Build, compare, sign, attest, and stage final artifacts | `R03` | protected release builders | `—` | 0 |
+| `R05` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R05-acceptance`, `D13` | Publish exact registry artifacts and the GitHub Release | `R04` | protected publication environment | `—` | 0 |
+| `R06` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R06-acceptance`, `V11` | Update NCP README, GitHub description, topics, and repository controls | `R05` | NCP and GitHub | `—` | 0 |
+| `R07` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R07-acceptance`, `D18`, `V11` | Repin and revalidate every consumer against the immutable tag | `R05` | all consumer repositories | `—` | 0 |
+| `R08` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R08-acceptance`, `V11` | Update ecosystem repository metadata and the public selected-work profile | `R06`, `R07` | ecosystem GitHub and profile | `—` | 0 |
+| `R09` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R09-acceptance` | Run post-publication installs and emergency-revocation exercise | `R05` | public install hosts and revocation lab | `—` | 0 |
+
+## V11 ecosystem-atlas ownership
+
+V11 remains coordination scope until each owning task reaches its required evidence
+class. Only NCP and the five exact consumer producers own atlas work. Cortexel
+is an excluded non-peer and receives no atlas task, NCP role receipt, authority,
+observer grant, or runtime edge.
+
+| Task | Status | Repository | Owned atlas slice |
+|---|---|---|---|
+| `N10` | `OPEN` | NCP | Rewrite normative and user documentation and regenerate visuals |
+| `E06` | `OPEN` | Engram | Implement Engram's optional Haldir-gated integration |
+| `H04` | `OPEN` | Haldir | Implement Haldir's isolated optional assessment receiver |
+| `G02` | `OPEN` | Galadriel | Bind Galadriel lifecycle and monitoring to authenticated observer state |
+| `C04` | `OPEN` | Crebain canonical repository | Verify the consolidated Galadriel producer lineage and retire stale branch references |
+| `P02` | `OPEN` | Prisoma | Preserve missing-variable and research-claim semantics in native capture |
+
+### V11 evidence consumers
+
+These tasks consume, check, or publish owner-produced atlas evidence. They do not
+own a semantic graph or its generated variants.
+
+| Task | Status | Repository | Consumer scope |
+|---|---|---|---|
+| `F05` | `OPEN` | cross-ecosystem lab | Execute release-bound performance, resource, and final visual campaigns |
+| `R06` | `OPEN` | NCP and GitHub | Update NCP README, GitHub description, topics, and repository controls |
+| `R07` | `OPEN` | all consumer repositories | Repin and revalidate every consumer against the immutable tag |
+| `R08` | `OPEN` | ecosystem GitHub and profile | Update ecosystem repository metadata and the public selected-work profile |
 
 ## Status-change receipts
 

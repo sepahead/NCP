@@ -5,16 +5,16 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "assets/logo-dark.svg",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "d80da617da74ffd8cf61c5ed87c94ce7f1fa12e60a035ff8a85c258117c63556",
-      "size_bytes": 19135
+      "sha256": "ff20b0ce3fcfc6746ce955b740ae3f1109ec3f83e0b4f79055f5574f55f8867a",
+      "size_bytes": 19480
     },
     {
       "classification": "documentation-asset-or-measurement-input",
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "assets/logo-light.svg",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "456fe0b031dbde37c9c5948c1b630b4b679e1b336d45746b7d12d9d71fce3d0b",
-      "size_bytes": 20098
+      "sha256": "01c58a004567398be9b292f600ea24ebc6cc903d3e177d245ccfa1fccb0cbf63",
+      "size_bytes": 20443
     },
     {
       "classification": "conformance-fixture",
@@ -2161,7 +2161,15 @@
         "npm release receipt"
       ],
       "path": "ncp-ts/scripts/build-release.mjs",
-      "sha256": "4587ff9557b21887c1a8bc79887b59beec082ac126f95e70576fe6abf3f19b77"
+      "sha256": "ecf2ec2e14077f9d319330ca128b12fb5dbdae9ee86639d82526108852c336cf"
+    },
+    {
+      "outputs": [
+        "candidate npm tarballs",
+        "npm release receipt"
+      ],
+      "path": "ncp-ts/scripts/strict-json.mjs",
+      "sha256": "fb2bc1432138dec44528b1f3fedc675026c7fdb48cdb1017273a3dfe1bb9006c"
     },
     {
       "outputs": [
@@ -2170,7 +2178,7 @@
         "ncp-ts/dist/generated/*.d.ts"
       ],
       "path": "ncp-ts/scripts/sync-bindings.mjs",
-      "sha256": "ee200cdd7cd330ba180bd026167a4629cde64ccc2654a8650028ce2c9e388357"
+      "sha256": "4ae475c8e88e678d768aeabca5101985a6fd7ff40bb7a1de11892629150255ff"
     },
     {
       "outputs": [
@@ -2178,7 +2186,7 @@
         "candidate checksums and build receipt"
       ],
       "path": "scripts/build_candidate_dossier.py",
-      "sha256": "5ca092514c31f823fcd2ede4535ca2ff2be9858585524451f1f5a4a6760471e5"
+      "sha256": "242c2bd1175f51b42df06ee37828adb5439cc9981f523dd66c7822973e866ff5"
     },
     {
       "outputs": [
@@ -2191,10 +2199,10 @@
     {
       "outputs": [
         "candidate Rust crate archives",
-        "Rust package checksum receipt"
+        "Rust package qualification and retained-artifact receipt"
       ],
       "path": "scripts/check_rust_packages.py",
-      "sha256": "3fc7d4971019b65240ea8f0237fa4ec89a6e110f355ee749edb5b01fd71980de"
+      "sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225"
     },
     {
       "outputs": [
@@ -2208,14 +2216,14 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "6a513914543c43589045be628b8113e2f577a1933821c23ba71601fd1c4b580a"
+      "sha256": "99daa1495fa495b568b69710eb81460cfb82388c97a793ac239e4a022f5dcdcb"
     },
     {
       "outputs": [
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "1de8784621dc674088e166d2d1d13b5a7e1cea170ac361c5eacbc245ff036363"
+      "sha256": "e3921b6471ea5f6646a836e0b5e85b2da74610c312a2b1f225c10d36d563dc7e"
     },
     {
       "outputs": [
@@ -2229,14 +2237,14 @@
         "contract/manifest.v1.json"
       ],
       "path": "scripts/generate_contract_manifest.py",
-      "sha256": "75718799406801c0a3042c8ab841182d2a15592d31b7c3c304ec47658591ccb0"
+      "sha256": "7d1c83ce6cbff2ec65e75058ff9b21ec7ce705aa15f8276cdbb4a821f0730988"
     },
     {
       "outputs": [
         "evidence/convergence/local-convergence.v1.json"
       ],
       "path": "scripts/generate_convergence_manifest.py",
-      "sha256": "7b1a32ce82e6ef5d6bf34eabcc5121859a4f0bb14aad3f434bd77f7b357e8de8"
+      "sha256": "b90450b9eac59b6de3104c7b66ec9ee285cac60a0cd97051b86398e00bb90444"
     },
     {
       "outputs": [
@@ -2251,7 +2259,7 @@
         "docs/handoff/max-effort-file-review-manifest.v2.json"
       ],
       "path": "scripts/generate_file_review_ledger.py",
-      "sha256": "5c5c341296eb45ce90369e872d8304c7228f79ea86f4b8cb646a9c7ba572d6c8"
+      "sha256": "0a92b6fd11849342f91f4cdb88d167d96a0d8dd67736203d1d4f17814c0d41ba"
     },
     {
       "outputs": [
@@ -2259,7 +2267,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "83779196f2c18ead5348b83e7d276e3087ce2c289bce0c2f3f114ae77edb8967"
+      "sha256": "7db3ed580d943fcfc2b420be0661bef0a82110fcda88225a14f485773d98a6e3"
     },
     {
       "outputs": [
@@ -2273,7 +2281,7 @@
         "docs/handoff/max-effort-task-review.v2.json"
       ],
       "path": "scripts/generate_max_effort_review_template.py",
-      "sha256": "2bb794eedcb8b790eb5882705b3c7a8894f95e59173eccb296b73f6492ae3e23"
+      "sha256": "bf9835b8a34cf855503e34109b00ecdcc8ee77cf64e87df3552e3ccf4ac54f93"
     },
     {
       "outputs": [
@@ -2301,14 +2309,14 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "ab4266134cb95175a7503878160c35dfead56f0642dbb0df5fca53fd2f4bf8a0"
+      "sha256": "bee676c016fdc0df8578b1b03100612de432568f375011865a4d38ce04642931"
     },
     {
       "outputs": [
         "docs/plots/*.svg"
       ],
       "path": "scripts/plot_perf.py",
-      "sha256": "e8c6819c3e0f5f3719d7c30a11f700acfc9a23d0b58755fade4e4fabd0f63e86"
+      "sha256": "87d8e3c788bd0c00a2580b2f68e64b63df2485e504a2bf87f41cbcc9ba9fbe5e"
     },
     {
       "outputs": [
@@ -2326,8 +2334,8 @@
     }
   ],
   "locked_inputs": {
-    "Cargo.lock": "6d871ea836625994e83a7a0465b802bce3cf1f4f4e9c8c9d5be6a543d785524a",
-    "Cargo.toml": "eff3537e3a7440636c17ea29cf8fe59a9d3c579e66a273a0cccfb9fef6798f85",
+    "Cargo.lock": "66dc7e6a8eaba70369d87cc6685d5f8f596f33730090bb57588618abc837379e",
+    "Cargo.toml": "00c21fa1aff2071927ca63b552730fb2e8da6c73893ac3768b7e462ac7473e2a",
     "buf.gen.yaml": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
     "buf.yaml": "62f7a56b96555a24f90ec0f258d17e480600e484a04481aa2c21d9d64d2f9ea3",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
@@ -2335,13 +2343,14 @@
     "ncp-core/Cargo.toml": "417da09809280b86a5294dab9dd841813c41c1ac815f9b29253fc9f37ae2f5e2",
     "ncp-cpp/Cargo.toml": "b219c4fa2de9f5523fa68f68a0ebbb85fc50a398ae4f9dac090cc40146d555ac",
     "ncp-gateway/Cargo.toml": "dc511c267ac3e2453a26b0eb3baf51a4275402528855ca2fc363db84f47c9f64",
-    "ncp-python/Cargo.toml": "67a67422e4fcfa58b2b3d86f4a89eafb2d4ee711e1c5edae57152f93db580d56",
-    "ncp-python/pyproject.toml": "760c65efa3b19cda3739047d5b0045a27fed79116e3d1f4a67e84a87a24eedec",
+    "ncp-python/Cargo.toml": "bf45c47a23cdf60a1ef74cd14238011e72555308a1b0d7cc26d7c855296004af",
+    "ncp-python/pyproject.toml": "3ffae253db4b3054ae8127212d8d39be3bf9f3bcf46216204fdf2864c56424f6",
     "ncp-ts/package.json": "990317ce7a974b5b42ed7e17a2a5033f34a4db43a013b33da2f1dad5c9ef30c4",
     "ncp-zenoh/Cargo.toml": "0262de88c05ab8658599bfbc3693092987d8c02650f9445610e14f8d87c3e7bd",
     "package.json": "038f45047bd6974face3d62ce1b39524ad3486d85a535449cb33116a327de255",
     "scripts/requirements-candidate-build-linux-x86_64.txt": "47be8dcd4992a79a31c7609e1d41f561c2bbf4299fb452138ae95c0fe3691f7d",
-    "scripts/requirements-plot.txt": "8a2d128f9a70eeb03f40747984f7eac9c7e0efe8638b362b28f97d01dcc5b072"
+    "scripts/requirements-plot.txt": "8a2d128f9a70eeb03f40747984f7eac9c7e0efe8638b362b28f97d01dcc5b072",
+    "security/toolchains/typescript-5.9.2.v1.json": "95567243589f757d9c643070a0f93621cca2d46b32f8d7765c0329cdb9dc2857"
   },
   "npm_surface": {
     "development_dependencies": [

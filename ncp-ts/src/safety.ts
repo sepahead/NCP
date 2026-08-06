@@ -12,8 +12,9 @@
  * - {@link ActionBuffer} — packetized-predictive-control replay: latest command
  *   + horizon, ttl-bounded, latched ESTOP, `active`-mode allowlist.
  * - {@link SafetyGovernor} — HOLD on stale sensor, latched ESTOP on geofence
- *   breach / inbound ESTOP / link collapse, magnitude speed clamp (tick 0 and
- *   every horizon step), config fail-closed on unenforceable limits.
+ *   breach, inbound ESTOP, a reported loss burst, or sustained sensor silence;
+ *   magnitude speed clamp (tick 0 and every horizon step); config fail-closed on
+ *   unenforceable limits.
  * - {@link maxHorizonLen} — bound a horizon to its deadline.
  * - {@link assertWireFrame} — the wire-1.0 data-plane ingress gate (compatible
  *   `ncp_version`, stamped `stream.seq`), mirroring `ncp_core::decode_validated`.
@@ -30,10 +31,14 @@ import {
   assertNcpMessage,
   checkVersion,
   hasWireControlCharacters,
+  JSON_SAFE_INTEGER_MAX,
+  MAX_CHANNELS,
   MAX_HORIZON_STEPS,
   NCP_VERSION,
   NcpVersionError,
 } from './client.js'
+import { JSON_LIMITS, preflightJson } from './bounded-json.js'
+import { canonicalDataPlaneByteLength, canonicalizeNcpMessage } from './canonical-json.js'
 
 /** JSON-wire channel map: `{ name: { data, unit } }`. */
 export interface WireChannels {
@@ -43,7 +48,7 @@ export interface WireChannels {
 /** Structural (JSON-wire) view of a `CommandFrame` — the fields the safety layer
  *  reads. Accepts a full `Wire<CommandFrame>`; optional members default like the
  *  Rust wire defaults. */
-/** Wire 0.8: a canonical lowercase UUIDv4 (`stream.epoch` / `session.generation`). */
+/** A canonical lowercase UUIDv4 (`stream.epoch` / `session.generation`). */
 const UUID_V4_SAFETY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 /** Structural view of a `StreamPosition` — one frame's stream identity + position. */
@@ -68,6 +73,7 @@ export interface CommandLike {
   frame_id?: string
   mode: Mode
   ttl_ms?: number
+  authority?: unknown
   channels: WireChannels
   horizon?: WireChannels[]
   horizon_dt_ms?: number | null
@@ -88,8 +94,8 @@ export interface SensorLike {
 /** Upper bound on an enforced command ttl (ms) — mirrors `safety.rs::MAX_TTL_MS`:
  *  the wire field is unbounded, but the plant-side deadline must stay finite. */
 export const MAX_TTL_MS = 60_000
-/** How many consecutive `command_timeout_ms` deadlines of TOTAL sensor silence
- *  escalate the non-latching staleness HOLD to a latched ESTOP (mirrors
+/** Factor in the total-silence ESTOP threshold
+ *  `min(factor * min(timeout, MAX_TTL_MS), MAX_TTL_MS)` (mirrors
  *  `safety.rs::LINK_LOSS_ESTOP_FACTOR`). */
 export const LINK_LOSS_ESTOP_FACTOR = 20
 const POSITION_CHANNEL = 'pose_position'
@@ -98,13 +104,63 @@ const POSITION_UNIT = 'm'
 const VELOCITY_UNIT = 'm/s'
 const SAFETY_VECTOR_WIDTH = 3
 
+/** A local governor failure for which no NCP wire frame exists. */
+export class SafetyGovernError extends Error {
+  constructor(readonly code: 'unattributable-envelope' | 'bounded-safe-frame') {
+    super(
+      code === 'unattributable-envelope'
+        ? 'safety governor latched locally but cannot emit a wire frame without a canonical attributable stream/session envelope'
+        : 'safety governor latched locally because no bounded, semantically valid safe frame could be built',
+    )
+    this.name = 'SafetyGovernError'
+  }
+}
+
+type SafeChannelTier = 'full-union' | 'negotiated-only' | 'empty'
+
+/** Return a string's UTF-8 length, or `null` for invalid Unicode or an exceeded
+ * bound. This avoids allocating an encoded copy of a hostile caller string. */
+function boundedUtf8ByteLength(value: string, maximum: number): number | null {
+  let bytes = 0
+  for (const scalar of value) {
+    const codePoint = scalar.codePointAt(0)!
+    // `for...of` combines a valid surrogate pair. A remaining surrogate is an
+    // unpaired code unit and cannot appear in normative UTF-8 JSON.
+    if (codePoint >= 0xd800 && codePoint <= 0xdfff) return null
+    bytes += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4
+    if (bytes > maximum) return null
+  }
+  return bytes
+}
+
+/** Rust `BTreeMap<String, _>` ordering for valid Unicode strings. UTF-8 preserves
+ * Unicode scalar order, while JavaScript's default sort compares UTF-16 units. */
+function compareUtf8Order(left: string, right: string): number {
+  const leftScalars = left[Symbol.iterator]()
+  const rightScalars = right[Symbol.iterator]()
+  for (;;) {
+    const a = leftScalars.next()
+    const b = rightScalars.next()
+    if (a.done || b.done) return a.done === b.done ? 0 : a.done ? -1 : 1
+    const difference = a.value.codePointAt(0)! - b.value.codePointAt(0)!
+    if (difference !== 0) return difference
+  }
+}
+
 type CapabilityChannel = Capabilities['sensor_channels'][number]
 
 function compatibleSafetyVec3(
   spec: CapabilityChannel | undefined,
   expectedUnit: string,
 ): boolean {
-  if (spec === undefined || spec.kind !== 'vec3' || spec.unit !== expectedUnit) return false
+  if (
+    spec === undefined ||
+    spec.requirement !== 'required' ||
+    spec.kind !== 'vec3' ||
+    spec.unit !== expectedUnit
+  ) {
+    return false
+  }
   const size: unknown = spec.size
   return size == null || size === SAFETY_VECTOR_WIDTH || size === BigInt(SAFETY_VECTOR_WIDTH)
 }
@@ -135,7 +191,7 @@ export class CommandWatchdog {
     return true
   }
 
-  /** Record an accepted command at local time `nowS` with its `ttl_ms` and `seq`. */
+  /** Record an accepted command at receiver-local monotonic time `nowS`. */
   onCommand(nowS: number, ttlMs: number, seq: number): void {
     if (!this.observeClock(nowS)) return
     if (!Number.isSafeInteger(seq) || seq < 1) return
@@ -148,7 +204,8 @@ export class CommandWatchdog {
     this.clockFaulted = false
   }
 
-  /** True if the plant must fail safe to HOLD (no command, expired, bad clock). */
+  /** Check expiry with the same receiver-local monotonic clock used by
+   * {@link onCommand}. Returns true for no command, expiry, or a clock fault. */
   shouldHold(nowS: number): boolean {
     if (!this.observeClock(nowS) || this.clockFaulted) return true
     const t = this.lastRecvS
@@ -196,6 +253,8 @@ export class ActionBuffer {
   private activeEpoch: string | null = null
   private retired = false
 
+  /** Ingest at receiver-local monotonic time `nowS`. Use the same clock for
+   * {@link active} and {@link shouldHold}. */
   onCommand(nowS: number, command: CommandLike): void {
     if (this.retired) return
     // Within an already-admitted local context, HOLD/INIT/future non-actuating
@@ -250,7 +309,8 @@ export class ActionBuffer {
     return this.estop
   }
 
-  /** The setpoint channels to apply at `nowS`, or `null` to fail safe (HOLD). */
+  /** The setpoint channels to apply at receiver-local monotonic `nowS`, or
+   * `null` to fail safe (HOLD). */
   active(nowS: number): WireChannels | null {
     if (this.estop) return null
     if (this.watchdog.shouldHold(nowS)) return null
@@ -307,10 +367,14 @@ export class SafetyGovernor {
     const timeoutBad =
       !Number.isFinite(this.limits.command_timeout_ms) || this.limits.command_timeout_ms <= 0
     const validChannelName = (name: string) =>
-      name.length > 0 && !hasWireControlCharacters(name)
+      name.length > 0 &&
+      boundedUtf8ByteLength(name, JSON_LIMITS.maxKeyBytes) !== null &&
+      !hasWireControlCharacters(name)
     const channelConfigBad =
       !validChannelName(this.positionChannel) ||
       !validChannelName(this.velocityChannel) ||
+      this.commandChannels.length > MAX_CHANNELS ||
+      sensorChannels.length > MAX_CHANNELS ||
       this.commandChannels.some((name) => !validChannelName(name)) ||
       sensorChannels.some((name) => !validChannelName(name)) ||
       new Set(this.commandChannels).size !== this.commandChannels.length ||
@@ -368,7 +432,10 @@ export class SafetyGovernor {
     return this.estop
   }
 
-  /** Latch ESTOP when the link monitor reports a sustained loss burst (a jam). */
+  /** Latch ESTOP when the link monitor reports a sustained loss burst. Possible
+   * causes include congestion, interference, sender failure, and jamming. The
+   * report does not identify the cause. The installed body executor must map the
+   * ESTOP state through its content-addressed plant profile. */
   noteLink(burst: boolean): void {
     if (burst) this.estop = true
   }
@@ -377,36 +444,315 @@ export class SafetyGovernor {
     return !this.estop && !this.configFailClosed
   }
 
-  private zeroedChannels(command: CommandLike): WireChannels {
-    const out: WireChannels = {}
+  private zeroedChannels(command: CommandLike, tier: SafeChannelTier): WireChannels | null {
+    const out = Object.create(null) as WireChannels
+    if (tier === 'empty') return out
+    let channelCount = 0
+    let totalItems = 0
+    let totalStringBytes = 0
     const rawChannels: unknown = (command as unknown as { channels?: unknown })?.channels
-    const entries =
-      typeof rawChannels === 'object' && rawChannels !== null && !Array.isArray(rawChannels)
-        ? Object.entries(rawChannels)
-        : []
-    for (const [name, raw] of entries) {
-      if (name.length === 0 || hasWireControlCharacters(name)) continue
+
+    const rawChannel = (name: string): unknown =>
+      typeof rawChannels === 'object' &&
+      rawChannels !== null &&
+      !Array.isArray(rawChannels) &&
+      Object.hasOwn(rawChannels, name)
+        ? (rawChannels as Record<string, unknown>)[name]
+        : undefined
+
+    const insertZeroedChannel = (
+      name: unknown,
+      requestedWidth: number,
+      requestedUnit: unknown,
+    ): boolean => {
+      if (typeof name !== 'string' || Object.hasOwn(out, name) || channelCount >= MAX_CHANNELS) {
+        return false
+      }
+      const nameBytes = boundedUtf8ByteLength(name, JSON_LIMITS.maxKeyBytes)
+      if (
+        name.length === 0 ||
+        nameBytes === null ||
+        hasWireControlCharacters(name) ||
+        totalStringBytes + nameBytes > JSON_LIMITS.maxTotalStringBytes
+      ) {
+        return false
+      }
+      const remainingItems = JSON_LIMITS.maxTotalArrayItems - totalItems
+      const width = Math.min(
+        Math.max(Math.trunc(requestedWidth), 1),
+        JSON_LIMITS.maxArrayItems,
+      )
+      if (width > remainingItems) return false
+      let unit: string | null = null
+      let unitBytes = 0
+      if (typeof requestedUnit === 'string') {
+        const measured = boundedUtf8ByteLength(requestedUnit, JSON_LIMITS.maxStringBytes)
+        if (
+          measured !== null &&
+          totalStringBytes + nameBytes + measured <= JSON_LIMITS.maxTotalStringBytes
+        ) {
+          unit = requestedUnit
+          unitBytes = measured
+        }
+      }
+      out[name] = { data: new Array(width).fill(0), unit }
+      channelCount++
+      totalItems += width
+      totalStringBytes += nameBytes + unitBytes
+      return true
+    }
+
+    // A tier is retained only when every negotiated actuator channel fits. A
+    // partial negotiated map has ambiguous plant meaning.
+    for (let index = 0; index < this.commandChannels.length; index++) {
+      const name: unknown = this.commandChannels[index]
+      if (typeof name !== 'string') return null
+      const raw = rawChannel(name)
       const cv =
         typeof raw === 'object' && raw !== null && !Array.isArray(raw)
           ? (raw as { data?: unknown; unit?: unknown })
           : {}
       const data = Array.isArray(cv.data) ? cv.data : []
-      const unit = typeof cv.unit === 'string' || cv.unit === null ? cv.unit : null
-      out[name] =
-        name === this.velocityChannel
-          ? { data: new Array(SAFETY_VECTOR_WIDTH).fill(0), unit: VELOCITY_UNIT }
-          : { data: new Array(Math.max(data.length, 1)).fill(0), unit }
+      if (
+        !insertZeroedChannel(
+          name,
+          name === this.velocityChannel ? SAFETY_VECTOR_WIDTH : data.length,
+          name === this.velocityChannel ? VELOCITY_UNIT : cv.unit,
+        )
+      ) {
+        return null
+      }
     }
-    for (const name of this.commandChannels) {
-      if (name.length === 0 || hasWireControlCharacters(name)) continue
-      if (!(name in out)) {
-        out[name] =
-          name === this.velocityChannel
-            ? { data: [0, 0, 0], unit: VELOCITY_UNIT }
-            : { data: [0], unit: null }
+
+    if (
+      tier === 'full-union' &&
+      typeof rawChannels === 'object' &&
+      rawChannels !== null &&
+      !Array.isArray(rawChannels)
+    ) {
+      const extraNames: string[] = []
+      let examined = 0
+      for (const name in rawChannels) {
+        if (!Object.hasOwn(rawChannels, name)) continue
+        if (++examined > MAX_CHANNELS) return null
+        if (Object.hasOwn(out, name)) continue
+        const nameBytes = boundedUtf8ByteLength(name, JSON_LIMITS.maxKeyBytes)
+        if (name.length === 0 || nameBytes === null || hasWireControlCharacters(name)) continue
+        extraNames.push(name)
+      }
+      extraNames.sort(compareUtf8Order)
+      for (const name of extraNames) {
+        const raw = (rawChannels as Record<string, unknown>)[name]
+        const cv =
+          typeof raw === 'object' && raw !== null && !Array.isArray(raw)
+            ? (raw as { data?: unknown; unit?: unknown })
+            : {}
+        const data = Array.isArray(cv.data) ? cv.data : []
+        if (!insertZeroedChannel(name, data.length, cv.unit)) return null
       }
     }
     return out
+  }
+
+  private hasAttributableEnvelope(command: CommandLike): boolean {
+    const stream = command.stream
+    const generation = command.session?.generation
+    const sessionId = command.session_id
+    return (
+      typeof stream?.epoch === 'string' &&
+      UUID_V4_SAFETY.test(stream.epoch) &&
+      typeof generation === 'string' &&
+      UUID_V4_SAFETY.test(generation) &&
+      typeof sessionId === 'string' &&
+      sessionId.length > 0 &&
+      boundedUtf8ByteLength(sessionId, 64) !== null &&
+      !/[/*$#?]/u.test(sessionId) &&
+      !/\s/u.test(sessionId) &&
+      !sessionId.includes('\ufeff') &&
+      !hasWireControlCharacters(sessionId)
+    )
+  }
+
+  private hasBoundedProgrammaticShape(candidate: CommandLike): boolean {
+    let objects = 3 // command, stream, session
+    let arrays = 1 // horizon (materialized by canonical projection)
+    let members = 18 // command + stream + session fixed projection members
+    let arrayItems = 0
+    let stringBytes = 0
+
+    const addString = (
+      value: unknown,
+      maximum: number = JSON_LIMITS.maxStringBytes,
+    ): boolean => {
+      if (value === undefined || value === null) return true
+      if (typeof value !== 'string') return false
+      const measured = boundedUtf8ByteLength(value, maximum)
+      if (measured === null || stringBytes + measured > JSON_LIMITS.maxTotalStringBytes) {
+        return false
+      }
+      stringBytes += measured
+      return true
+    }
+    const withinCounts = (): boolean =>
+      objects <= JSON_LIMITS.maxObjects &&
+      arrays <= JSON_LIMITS.maxArrays &&
+      members <= JSON_LIMITS.maxTotalMembers &&
+      arrayItems <= JSON_LIMITS.maxTotalArrayItems
+    const inspectChannelMap = (raw: unknown): boolean => {
+      if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return false
+      objects++
+      let channelCount = 0
+      for (const name in raw) {
+        if (!Object.hasOwn(raw, name)) continue
+        if (++channelCount > MAX_CHANNELS) return false
+        if (!addString(name, JSON_LIMITS.maxKeyBytes)) return false
+        const channel = (raw as Record<string, unknown>)[name]
+        if (typeof channel !== 'object' || channel === null || Array.isArray(channel)) return false
+        objects++
+        members += 3 // map entry plus `data` and `unit`
+        const data = (channel as { data?: unknown }).data ?? []
+        if (!Array.isArray(data) || data.length > JSON_LIMITS.maxArrayItems) return false
+        arrays++
+        arrayItems += data.length
+        if (!addString((channel as { unit?: unknown }).unit)) return false
+        if (!withinCounts()) return false
+      }
+      return withinCounts()
+    }
+
+    if (
+      ![
+        candidate.kind,
+        candidate.ncp_version,
+        candidate.stream?.epoch,
+        candidate.source?.epoch,
+        candidate.session?.generation,
+        candidate.session_id,
+        candidate.frame_id,
+        candidate.mode,
+      ].every((value) => addString(value))
+    ) {
+      return false
+    }
+    const authority = candidate.authority
+    if (authority !== undefined && authority !== null) {
+      if (typeof authority !== 'object' || Array.isArray(authority)) return false
+      objects++
+      members += 8
+      for (const key of [
+        'session_epoch',
+        'lease_id',
+        'issuer_principal_id',
+        'holder_principal_id',
+        'holder_entity_id',
+      ] as const) {
+        if (!addString((authority as unknown as Record<string, unknown>)[key])) return false
+      }
+    }
+    if (candidate.source !== undefined && candidate.source !== null) {
+      objects++
+      members += 2
+    }
+    if (!inspectChannelMap(candidate.channels)) return false
+    const horizon = candidate.horizon ?? []
+    if (!Array.isArray(horizon) || horizon.length > MAX_HORIZON_STEPS) return false
+    arrayItems += horizon.length
+    for (const step of horizon) {
+      if (!inspectChannelMap(step)) return false
+    }
+    return withinCounts()
+  }
+
+  private normalizeBoundedWireCandidate(candidate: CommandLike): CommandLike | null {
+    try {
+      if (!this.hasBoundedProgrammaticShape(candidate)) return null
+      canonicalDataPlaneByteLength(candidate, 'command_frame', JSON_LIMITS.maxFrameBytes)
+      assertWireFrame(candidate as unknown as Record<string, unknown>, 'command_frame')
+      const canonical = canonicalizeNcpMessage(candidate, 'command_frame')
+      preflightJson(canonical)
+      const normalized = JSON.parse(canonical) as CommandLike
+      const nullPrototypeMap = (map: WireChannels): WireChannels => {
+        const out = Object.create(null) as WireChannels
+        for (const name of Object.keys(map)) out[name] = map[name]!
+        return out
+      }
+      normalized.channels = nullPrototypeMap(normalized.channels)
+      normalized.horizon = (normalized.horizon ?? []).map(nullPrototypeMap)
+      return normalized
+    } catch {
+      return null
+    }
+  }
+
+  private hasBoundedProgrammaticSensor(candidate: SensorLike): boolean {
+    let objects = 3 // sensor, stream, session
+    let arrays = 0
+    let members = 11 // canonical sensor + stream + session members
+    let arrayItems = 0
+    let stringBytes = 0
+    const addString = (value: unknown, maximum: number): boolean => {
+      if (value === undefined || value === null) return true
+      if (typeof value !== 'string') return false
+      const measured = boundedUtf8ByteLength(value, maximum)
+      if (measured === null || stringBytes + measured > JSON_LIMITS.maxTotalStringBytes) {
+        return false
+      }
+      stringBytes += measured
+      return true
+    }
+    if (
+      ![
+        candidate.kind,
+        candidate.ncp_version,
+        candidate.stream?.epoch,
+        candidate.session?.generation,
+        candidate.session_id,
+        candidate.frame_id,
+      ].every((value) => addString(value, JSON_LIMITS.maxStringBytes))
+    ) {
+      return false
+    }
+    const raw = candidate.channels
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return false
+    objects++
+    let channelCount = 0
+    for (const name in raw) {
+      if (!Object.hasOwn(raw, name)) continue
+      if (++channelCount > MAX_CHANNELS) return false
+      if (!addString(name, JSON_LIMITS.maxKeyBytes)) return false
+      const channel = (raw as Record<string, unknown>)[name]
+      if (typeof channel !== 'object' || channel === null || Array.isArray(channel)) return false
+      objects++
+      members += 3
+      const data = (channel as { data?: unknown }).data ?? []
+      if (!Array.isArray(data) || data.length > JSON_LIMITS.maxArrayItems) return false
+      arrays++
+      arrayItems += data.length
+      if (!addString((channel as { unit?: unknown }).unit, JSON_LIMITS.maxStringBytes)) {
+        return false
+      }
+      if (
+        objects > JSON_LIMITS.maxObjects ||
+        arrays > JSON_LIMITS.maxArrays ||
+        members > JSON_LIMITS.maxTotalMembers ||
+        arrayItems > JSON_LIMITS.maxTotalArrayItems
+      ) {
+        return false
+      }
+    }
+    return true
+  }
+
+  private isAdmittedSensor(candidate: SensorLike): boolean {
+    try {
+      if (!this.hasBoundedProgrammaticSensor(candidate)) return false
+      canonicalDataPlaneByteLength(candidate, 'sensor_frame', JSON_LIMITS.maxFrameBytes)
+      assertWireFrame(candidate as unknown as Record<string, unknown>, 'sensor_frame')
+      preflightJson(canonicalizeNcpMessage(candidate, 'sensor_frame'))
+      return true
+    } catch {
+      return false
+    }
   }
 
   private safeFrame(command: CommandLike, mode: Mode): CommandLike {
@@ -414,36 +760,92 @@ export class SafetyGovernor {
       t?: unknown
       frame_id?: unknown
     }
-    const stream = command.stream ?? { epoch: '', seq: 1 }
-    const t = typeof raw.t === 'number' && Number.isFinite(raw.t) ? raw.t : 0
+    const rawStream = command.stream!
+    // Preserve the exact publisher epoch. Sequence is position, not routing
+    // identity: normalize an invalid position to 1 so a fail-safe remains
+    // attributable without creating a different stream.
+    const stream = {
+      epoch: rawStream.epoch,
+      seq:
+        typeof rawStream.seq === 'number' &&
+        Number.isSafeInteger(rawStream.seq) &&
+        rawStream.seq >= 1 &&
+        rawStream.seq <= JSON_SAFE_INTEGER_MAX
+          ? rawStream.seq
+          : 1,
+    }
+    const t =
+      typeof raw.t === 'number' &&
+      Number.isFinite(raw.t) &&
+      Math.abs(raw.t) <= JSON_LIMITS.maxFiniteNumberMagnitude
+        ? raw.t
+        : 0
+    const frameIdBytes =
+      typeof raw.frame_id === 'string'
+        ? boundedUtf8ByteLength(raw.frame_id, JSON_LIMITS.maxStringBytes)
+        : null
     const frameId =
       typeof raw.frame_id === 'string' &&
       raw.frame_id.length > 0 &&
+      frameIdBytes !== null &&
       !hasWireControlCharacters(raw.frame_id)
         ? raw.frame_id
         : 'world'
-    return {
-      kind: 'command_frame',
-      ncp_version: NCP_VERSION,
-      stream,
-      source: command.source,
-      source_t: command.source_t,
-      session: command.session,
-      session_id: command.session_id,
-      t,
-      frame_id: frameId,
-      mode,
-      ttl_ms: 200,
-      channels: this.zeroedChannels(command),
-      horizon: [],
-      horizon_dt_ms: null,
+    const rawSource = command.source
+    const sourceT = command.source_t === undefined ? 0 : command.source_t
+    const sourceValid =
+      rawSource != null &&
+      typeof rawSource.epoch === 'string' &&
+      UUID_V4_SAFETY.test(rawSource.epoch) &&
+      typeof rawSource.seq === 'number' &&
+      Number.isSafeInteger(rawSource.seq) &&
+      rawSource.seq >= 1 &&
+      rawSource.seq <= JSON_SAFE_INTEGER_MAX &&
+      typeof sourceT === 'number' &&
+      Number.isFinite(sourceT) &&
+      Math.abs(sourceT) <= JSON_LIMITS.maxFiniteNumberMagnitude
+    for (const tier of ['full-union', 'negotiated-only', 'empty'] as const) {
+      try {
+        const channels = this.zeroedChannels(command, tier)
+        if (channels === null) continue
+        const candidate: CommandLike = {
+          kind: 'command_frame',
+          ncp_version: NCP_VERSION,
+          stream,
+          source: sourceValid ? { epoch: rawSource.epoch, seq: rawSource.seq } : null,
+          source_t: sourceValid ? sourceT : 0,
+          session: { generation: command.session!.generation },
+          session_id: command.session_id,
+          t,
+          frame_id: frameId,
+          mode,
+          ttl_ms: 200,
+          channels,
+          horizon: [],
+          horizon_dt_ms: null,
+        }
+        const normalized = this.normalizeBoundedWireCandidate(candidate)
+        if (normalized !== null) return normalized
+      } catch {
+        continue
+      }
     }
+    this.estop = true
+    throw new SafetyGovernError('bounded-safe-frame')
   }
 
   /**
    * Apply safety to `command` against the latest `sensor`. `nowS`/`lastSensorS`
-   * are wall-clock seconds (the plant's own clock). Returns a fresh frame; ESTOP
-   * latches (call {@link reset} to clear).
+   * must be readings from the same receiver-local monotonic clock. A successful
+   * call returns an attributable, canonical, bounded wire-shape candidate. The
+   * standalone governor has no publisher allocator or stream high-water and does
+   * not prove that the returned position is fresh. ESTOP latches until
+   * {@link reset} clears the local latch.
+   *
+   * @throws {SafetyGovernError} after latching when the command envelope is not
+   * attributable or no deterministic safe-frame tier has a bounded valid wire
+   * shape. The caller or transport separately supplies and admits the owning
+   * publisher's next fresh position, route, and live session generation.
    */
   govern(
     command: CommandLike,
@@ -451,6 +853,10 @@ export class SafetyGovernor {
     nowS: number,
     lastSensorS: number | null,
   ): CommandLike {
+    if (!this.hasAttributableEnvelope(command)) {
+      this.estop = true
+      throw new SafetyGovernError('unattributable-envelope')
+    }
     // Latched ESTOP dominates everything until an authorized operator resets it.
     if (this.estop) return this.safeFrame(command, 'estop')
     // An INBOUND ESTOP-mode command is itself a fail-safe: LATCH and propagate
@@ -487,12 +893,14 @@ export class SafetyGovernor {
     // sensor independently so a malformed/absent frame enters the same stale
     // path (including total-silence escalation) as no frame at all.
     let validatedSensor = sensor
-    try {
-      if (validatedSensor !== null) {
-        assertWireFrame(validatedSensor as unknown as Record<string, unknown>, 'sensor_frame')
+    if (validatedSensor !== null) {
+      if (
+        !this.isAdmittedSensor(validatedSensor) ||
+        validatedSensor.session?.generation !== command.session?.generation ||
+        validatedSensor.session_id !== command.session_id
+      ) {
+        validatedSensor = null
       }
-    } catch {
-      validatedSensor = null
     }
 
     // Staleness backstop (default-deny; NaN/backward clocks fail closed).
@@ -541,25 +949,26 @@ export class SafetyGovernor {
 
     // Freshness, total-silence escalation, and the CURRENT geofence state run
     // before command validation/mode checks. A HOLD or malformed non-ESTOP
-    // command must never hide a collapsed link or an already-breached boundary.
-    try {
-      assertWireFrame(command as unknown as Record<string, unknown>, 'command_frame')
-    } catch {
-      return this.safeFrame(command, 'hold')
-    }
+    // command must never hide sustained sensor silence or an already-breached
+    // boundary.
     // Only `active` may actuate (defense-in-depth with ActionBuffer's allowlist).
     if (command.mode !== 'active') return this.safeFrame(command, 'hold')
 
-    const out: CommandLike = structuredClone(command)
-    out.horizon = out.horizon ?? []
+    // Bound and canonicalize the typed input before cloning. Programmatic callers
+    // do not necessarily pass through the raw bounded-JSON ingress gate.
+    const admitted = this.normalizeBoundedWireCandidate(command)
+    if (admitted === null) return this.safeFrame(command, 'hold')
+    const out: CommandLike = structuredClone(admitted)
+    const outHorizon = out.horizon ?? []
+    out.horizon = outHorizon
     const maxSpeed = this.limits.max_speed_mps
     if (maxSpeed != null && maxSpeed > 0) {
       if (!this.clampVelocity(out.channels, maxSpeed)) return this.safeFrame(command, 'hold')
       // Clamp every predictive horizon step too; truncate at the first
       // unclampable step so replay HOLDs rather than emitting unbounded output.
-      let safeLen = out.horizon.length
-      for (let i = 0; i < out.horizon.length; i++) {
-        if (!this.clampVelocity(out.horizon[i]!, maxSpeed)) {
+      let safeLen = outHorizon.length
+      for (let i = 0; i < outHorizon.length; i++) {
+        if (!this.clampVelocity(outHorizon[i]!, maxSpeed)) {
           // An empty horizon means legacy "replay tick 0 until ttl", not
           // "drain after tick 0". Reject instead of truncating index 0 to an
           // actively replayed command.
@@ -568,7 +977,7 @@ export class SafetyGovernor {
           break
         }
       }
-      out.horizon.length = safeLen
+      outHorizon.length = safeLen
     }
 
     // Project the exact canonical velocity trajectory over every interval that
@@ -586,7 +995,10 @@ export class SafetyGovernor {
         return this.safeFrame(command, 'hold')
       }
     }
-    return out
+    // A programmatic object can satisfy field semantics while its serialized
+    // form exceeds the whole-frame budget (or grows during normalization). Never
+    // return an invalid or over-budget Active frame; replace it with a bounded HOLD.
+    return this.normalizeBoundedWireCandidate(out) ?? this.safeFrame(command, 'hold')
   }
 
   private enforceGeofenceTrajectory(
@@ -739,7 +1151,7 @@ export function assertWireFrame(
   const seq = stream?.seq
   if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < 1) {
     throw new Error(
-      `${expectedKind}: stream.seq ${JSON.stringify(seq)} invalid (wire 0.8 requires a safe integer >= 1)`,
+      `${expectedKind}: stream.seq ${JSON.stringify(seq)} must be a safe integer >= 1`,
     )
   }
   if (typeof stream?.epoch !== 'string' || !UUID_V4_SAFETY.test(stream.epoch)) {

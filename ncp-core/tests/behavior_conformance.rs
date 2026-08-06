@@ -218,7 +218,9 @@ fn govern_corpus() {
         // each corpus vector is a single, self-contained decision (latching across
         // calls is covered by safety.rs unit tests, not the cross-language corpus).
         let mut gov = SafetyGovernor::new(limits);
-        let out = gov.govern(&command, sensor.as_ref(), now_s, last_sensor_s);
+        let out = gov
+            .govern(&command, sensor.as_ref(), now_s, last_sensor_s)
+            .expect("behavior fixture identity remains attributable");
         let out = serde_json::to_value(&out).unwrap();
 
         assert_eq!(

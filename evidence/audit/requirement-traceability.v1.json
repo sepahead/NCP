@@ -16,7 +16,7 @@
   },
   "counts": {
     "requirements": 117,
-    "edges": 750,
+    "edges": 755,
     "by_evidence_status": {
       "LOCAL_VERIFIED": 58,
       "NOT_CLAIMED": 6,
@@ -409,7 +409,7 @@
         "docs/1.0-candidate-receipts.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "NOT_RUN_POST_PUBLICATION",
       "claim_tier": "post-publication-evidence-required",
@@ -557,7 +557,7 @@
         "docs/1.0-candidate-receipts.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline",
+        "python3 -I scripts/check_rust_packages.py",
         "cd ncp-ts && bun run check:package"
       ],
       "evidence_status": "NOT_RUN_EXTERNAL",
@@ -671,7 +671,7 @@
         "docs/1.0-candidate-receipts.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "NOT_RUN_EXTERNAL",
       "claim_tier": "external-evidence-required",
@@ -1212,11 +1212,16 @@
       ],
       "code_paths": [
         "ncp-core/src/safety.rs",
-        "ncp-ts/src/safety.ts"
+        "ncp-ts/src/safety.ts",
+        "ncp-python/src/lib.rs",
+        "ncp-cpp/src/lib.rs",
+        "ncp-cpp/include/ncp.h"
       ],
       "test_paths": [
         "ncp-core/tests/behavior_conformance.rs",
-        "ncp-ts/scripts/check-behavior.mjs"
+        "ncp-ts/scripts/check-behavior.mjs",
+        "ncp-python/tests/test_smoke.py",
+        "ncp-cpp/src/lib.rs"
       ],
       "evidence_paths": [
         "conformance/manifest.v1.json",
@@ -1224,7 +1229,10 @@
       ],
       "verification_commands": [
         "cargo test -p ncp-core --locked",
-        "cd ncp-ts && bun run check:behavior"
+        "cd ncp-ts && bun run check:behavior",
+        "maturin develop -m ncp-python/Cargo.toml --features extension-module",
+        "python3 -m pytest -q ncp-python/tests/test_smoke.py -k persistent_governor_unattributable_envelope_failure_is_local_and_latched",
+        "cargo test -p ncp-cpp --locked governor_unattributable_envelope_failure_returns_null_and_keeps_the_local_latch"
       ],
       "evidence_status": "LOCAL_VERIFIED",
       "claim_tier": "local-source-bound-evidence",
@@ -2358,7 +2366,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "candidate-package-local-evidence",
@@ -2386,7 +2394,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "candidate-package-local-evidence",
@@ -2414,7 +2422,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "candidate-package-local-evidence",
@@ -2442,7 +2450,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "candidate-package-local-evidence",
@@ -2470,7 +2478,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "candidate-package-local-evidence",
@@ -2526,7 +2534,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "LOCAL_VERIFIED",
       "claim_tier": "explicit-independence-non-claim",
@@ -2552,7 +2560,7 @@
         "RELEASE_READINESS.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline"
+        "python3 -I scripts/check_rust_packages.py"
       ],
       "evidence_status": "LOCAL_VERIFIED",
       "claim_tier": "explicit-independence-non-claim",
@@ -3451,7 +3459,7 @@
         "docs/1.0-candidate-receipts.md"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline",
+        "python3 -I scripts/check_rust_packages.py",
         "cargo deny check"
       ],
       "evidence_status": "NOT_RUN_EXTERNAL",
@@ -4951,6 +4959,21 @@
     {
       "from": "NCP-REQ-010",
       "relation": "implemented-by",
+      "to": "ncp-cpp/include/ncp.h"
+    },
+    {
+      "from": "NCP-REQ-010",
+      "relation": "implemented-by",
+      "to": "ncp-cpp/src/lib.rs"
+    },
+    {
+      "from": "NCP-REQ-010",
+      "relation": "implemented-by",
+      "to": "ncp-python/src/lib.rs"
+    },
+    {
+      "from": "NCP-REQ-010",
+      "relation": "implemented-by",
       "to": "ncp-ts/src/safety.ts"
     },
     {
@@ -4972,6 +4995,16 @@
       "from": "NCP-REQ-010",
       "relation": "verified-by",
       "to": "ncp-core/tests/behavior_conformance.rs"
+    },
+    {
+      "from": "NCP-REQ-010",
+      "relation": "verified-by",
+      "to": "ncp-cpp/src/lib.rs"
+    },
+    {
+      "from": "NCP-REQ-010",
+      "relation": "verified-by",
+      "to": "ncp-python/tests/test_smoke.py"
     },
     {
       "from": "NCP-REQ-010",

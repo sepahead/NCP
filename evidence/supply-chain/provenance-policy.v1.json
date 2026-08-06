@@ -19,9 +19,10 @@
   "release_authorized": false,
   "schema": "ncp.provenance-policy.v1",
   "source_materials": {
-    "Cargo.lock": "6d871ea836625994e83a7a0465b802bce3cf1f4f4e9c8c9d5be6a543d785524a",
+    "Cargo.lock": "66dc7e6a8eaba70369d87cc6685d5f8f596f33730090bb57588618abc837379e",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
     "conformance/manifest.v1.json": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
-    "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97"
+    "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
+    "security/toolchains/typescript-5.9.2.v1.json": "95567243589f757d9c643070a0f93621cca2d46b32f8d7765c0329cdb9dc2857"
   }
 }

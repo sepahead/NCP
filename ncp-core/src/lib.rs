@@ -49,13 +49,14 @@ pub use request_digest::{
     MAX_REQUEST_PROJECTION_BYTES, REQUEST_DIGEST_DOMAIN_V1,
 };
 pub use resilience::{max_horizon_len, ActionBuffer, LinkMonitor};
-pub use safety::{CommandWatchdog, SafetyGovernor};
+pub use safety::{CommandWatchdog, SafetyGovernError, SafetyGovernor};
 pub use stream_fence::{
     StreamFenceError, StreamMonotonicityFence, MAX_STREAM_FENCE_ENTRIES,
     MAX_STREAM_FENCE_KIND_BYTES, MAX_STREAM_FENCE_ROUTE_BYTES,
 };
 pub use transport::{
-    ControlTransport, Controller, InProcessTransport, NeuroControlLoop, ReflexController,
+    ControlLoopTickError, ControlTransport, Controller, InProcessTransport, NeuroControlLoop,
+    ReflexController,
 };
 
 #[cfg(test)]

@@ -8,8 +8,8 @@
 
 use ncp_core::transport::Controller;
 use ncp_core::{
-    BulkBlock, ChannelValue, Column, CommandFrame, Map, Mode, ReflexController, SafetyGovernor,
-    SafetyLimits, SensorFrame, SessionRef, StreamPosition,
+    AuthorityLease, BulkBlock, ChannelValue, Column, CommandFrame, Map, Mode, ReflexController,
+    SafetyGovernor, SafetyLimits, SensorFrame, SessionRef, StreamPosition,
 };
 
 const EX_EPOCH: &str = "00000000-0000-4000-8000-000000000001";
@@ -37,6 +37,19 @@ fn row(name: &str, ns: f64, bytes: usize) {
     println!("  {name:38} {ns:9.1} ns/op   {per_sec:>11.0} ops/s   {b}");
 }
 
+fn authority() -> AuthorityLease {
+    AuthorityLease {
+        session_epoch: EX_GEN.into(),
+        term: 1,
+        lease_id: "00000000-0000-4000-8000-0000000000b1".into(),
+        issuer_principal_id: "commander-principal".into(),
+        holder_principal_id: "commander-principal".into(),
+        holder_entity_id: "controller-1".into(),
+        issued_at_utc_ms: 1_000,
+        expires_at_utc_ms: 61_000,
+    }
+}
+
 fn main() {
     // typical action frame
     let mut ch = Map::new();
@@ -55,6 +68,7 @@ fn main() {
             generation: EX_GEN.into(),
         },
         session_id: "uav1".into(),
+        authority: Some(authority()),
         channels: ch,
         ..Default::default()
     };
@@ -125,10 +139,18 @@ fn main() {
         command_timeout_ms: 1000.0,
         ..Default::default()
     });
+    assert_eq!(
+        gov.govern(&cmd, Some(&sensor), 1.0, Some(0.99))
+            .expect("the benchmark fixture must remain attributable")
+            .mode,
+        Mode::Active,
+        "the governor component row must measure its admitted Active path"
+    );
     row(
         "SafetyGovernor.govern",
         bench(n, || {
-            black_box(gov.govern(black_box(&cmd), Some(black_box(&sensor)), 1.0, Some(0.99)));
+            let _ =
+                black_box(gov.govern(black_box(&cmd), Some(black_box(&sensor)), 1.0, Some(0.99)));
         }),
         0,
     );

@@ -1,11 +1,11 @@
 /**
  * Neuro-Cybernetic Protocol (NCP) — transport-agnostic TypeScript client.
  *
- * Wire-identical to the normative `proto/ncp.proto` contract (proto-native) and the
- * Rust (`ncp-core`) and Python peers: every reply and enum type is imported from
- * the generated bindings (`./generated`, the ts-rs output of the `ncp-core`
- * reference types). This file adds only the *client* orchestration (build a
- * request, await the typed reply) and a JSON-wire view of the generated types.
+ * Uses generated reference JSON-projection shapes from `ncp-core` and checks them
+ * against the repository's normative sources. This file adds the *client*
+ * orchestration (build a request, await the typed reply) and a JSON-wire view of
+ * those shapes. Shared shapes reduce drift; they do not prove installed-peer
+ * interoperability.
  * Request envelopes are built as object literals — keep their fields in sync with
  * the generated request types (`OpenSession`/`StepRequest`/`RunRequest`/`CloseSession`).
  *
@@ -82,7 +82,7 @@ export declare function assertNcpMessage(value: unknown, expectedKind?: string):
  * precision-safety, but `JSON.stringify` cannot serialize a `bigint` and
  * `JSON.parse` yields `number`; NCP uses small integers, so the JSON wire uses
  * `number` (see `ncp-core/bindings/README.md`). `Wire<T>` maps `bigint → number`
- * recursively so the generated shapes stay wire-identical to the contract while
+ * recursively so the generated shapes stay aligned with the contract while
  * remaining JSON-(de)serializable.
  */
 export type Wire<T> = T extends bigint ? number : T extends Array<infer U> ? Array<Wire<U>> : T extends object ? {

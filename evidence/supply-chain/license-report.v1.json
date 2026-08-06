@@ -2237,7 +2237,7 @@
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%406b93b15d0795748b7f76c72eae07f1cda517e762",
+      "bom_ref": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%409045545b72a77602a87f40203cb614b48157b4bc",
       "license_expression_normalized": "EPL-2.0 OR Apache-2.0",
       "license_expression_raw": "EPL-2.0 OR Apache-2.0",
       "license_file_declared": false

@@ -28,7 +28,7 @@
 The objective is to make the first stable NCP 1.0 contract internally coherent,
 secure by construction, implementable in independent languages, usable by the
 named ecosystem, and evolvable without silently changing its stable core. The
-reviewed ecosystem is:
+reviewed intake inventory is:
 
 - canonical NCP in `sepahead/NCP`;
 - the active Engram implementation in private `sepahead/Paper2Brain`, including
@@ -37,9 +37,20 @@ reviewed ecosystem is:
 - `sepahead/galadriel`;
 - `sepahead/crebain` (the old `sepehrmn/crebain` URL redirects here);
 - the Galadriel-producer surface in canonical `sepahead/crebain`;
-- `sepahead/prisoma`; and
-- `sepahead/pid-rs`; and
+- `sepahead/prisoma`;
+- `sepahead/pid-rs`;
+- `sepahead/cortexel`, as an inspected and explicitly excluded non-peer; and
 - the public `sepahead` profile/selected-work presentation.
+
+Cortexel is not an NCP package dependency, NCP peer, observer grant holder, source
+of truth, control-path component, consumer, commander, or atlas owner. This plan
+authorizes no NCP implementation or documentation-import work in Cortexel, and it
+receives no NCP role receipt.
+
+The content-bound current ADR-011 review subject still asks reviewers to adjudicate
+an optional labeled-export boundary. That proposal remains unratified and grants no
+task or work authority. Removing it from the ADR requires a separately reviewed B01
+subject supersession and reissue; this plan does not rewrite that review history.
 
 The 2026-08-01 local discovery also found directories that are not canonical
 inventory entries. `engram-origin-corpus-review.MymUYE` is a non-Git review
@@ -477,6 +488,12 @@ HOLD, lease expiry and frame arrival must not mint, select, reset or rotate an
 epoch. A pull/RPC simulation result has no data-plane `StreamPosition`; if an
 observation is published, it follows the complete declared-stream lifecycle.
 
+The standalone safety governor also has no publisher allocator or high-water
+state. Its normalized `seq=1` output is a bounded wire-shape candidate, not proof
+of a fresh stream position. A caller must not publish that candidate into an
+existing declared stream. The owning publisher must assign and admit its next
+fresh position under the complete stream lifecycle above.
+
 ### D04 — compact proto identity is advisory and incomplete
 
 The compact `CONTRACT_HASH` covers the proto and is intentionally advisory. It does
@@ -552,8 +569,8 @@ Primary standards and substrate references:
 - [RFC 9864: fully specified JOSE algorithms](https://www.rfc-editor.org/info/rfc9864/)
 - [RFC 8725: algorithm, issuer, audience, and cross-type validation guidance](https://www.rfc-editor.org/info/rfc8725/)
 - [RFC 8446: TLS 1.3](https://www.rfc-editor.org/info/rfc8446/)
-- [Zenoh `Sample` API](https://docs.rs/zenoh/latest/zenoh/sample/index.html)
-- [Zenoh default configuration and ACL model](https://github.com/eclipse-zenoh/zenoh/blob/main/DEFAULT_CONFIG.json5)
+- [Zenoh 1.9.0 `Sample` API](https://docs.rs/zenoh/1.9.0/zenoh/sample/index.html)
+- [Zenoh default configuration and ACL model at reviewed commit `81c6c933`](https://github.com/eclipse-zenoh/zenoh/blob/81c6c933b6e41d72a05f04c4442ef57717ddc72b/DEFAULT_CONFIG.json5)
 
 ### D07 — the plant cannot report a protocol-level command disposition
 
@@ -750,19 +767,33 @@ assumptions, or release readiness.
 
 ### D13 — dependencies and registry identities remain release blockers
 
-The current root and quarantined-probe graphs select `lz4_flex 0.11.6` through
-exact `zenoh-transport 1.9.0` backport revision
-`6b93b15d0795748b7f76c72eae07f1cda517e762`. This removes
+The current root and quarantined-probe graphs select `lz4_flex 0.11.6` and
+non-yanked `spin 0.9.9` and `0.10.1` through exact `zenoh-transport 1.9.0`
+backport revision
+`9045545b72a77602a87f40203cb614b48157b4bc`. This removes
 [RUSTSEC-2026-0041](https://rustsec.org/advisories/RUSTSEC-2026-0041)
-from those locks. Compression remains disabled and checked. Cargo does not verify
-the backport SSH signature, and a root patch does not propagate from a published
-library dependency. The normalized `ncp-zenoh` and `ncp-gateway` archive locks
-therefore select affected `lz4_flex 0.10.0` without a consuming-root patch. The
-local package checker executes archive-alone Cargo metadata and observes that
-fallback. The exact patched consuming root produces only `CONDITIONAL_PASS`;
-self-contained distribution remains `OPEN_FAIL_CLOSED` and `NO_GO`. Replace the
-temporary source with a qualified immutable upstream release or another reviewed
-distribution design before publication.
+from those locks. The fork CI pins `cargo-deny 0.19.9` and rejects yanked lock
+entries and current RustSec vulnerabilities. Its qualification lock also selects
+fixed `crossbeam-epoch 0.9.20`, `rand 0.8.6` and `0.9.4`,
+`quinn-proto 0.11.15`, `rustls-webpki 0.103.13`, and `serde_with 3.21.0`.
+Compression remains disabled and checked. Cargo does not verify
+Git signatures, and a root patch does not propagate from a published library
+dependency. Without a consuming-root patch, metadata resolution from each
+normalized `ncp-zenoh` and `ncp-gateway` source archive selects registry
+`zenoh-transport 1.9.0` with affected `lz4_flex 0.10.0` and `twox-hash 1.6.3`.
+The local package checker observes that fallback without compiling it. It applies
+the exact patch at each consuming test root before compilation; the conditioned
+graph selects `lz4_flex 0.11.6` and `twox-hash 2.1.3`. Receipt v3 retains the two
+conditioned locks and three checksum-bound registry crates. Fork-source and
+upstream-delta verification are point-in-time local-process attestations because
+the receipt does not retain the exact fork bytes. Pre/post source comparisons are
+not a compiler-input trace. Exact resolution and fetch can use network access;
+only compilation and tests disable Cargo dependency access. The checker claims no
+host or child-process network isolation or host filesystem isolation. The result
+is only `CONDITIONAL_PASS`; self-contained distribution remains
+`OPEN_FAIL_CLOSED` and `NO_GO`. Replace the temporary source with a qualified
+immutable upstream release or another reviewed distribution design before
+publication.
 
 At the 2026-07-15 registry check, crates.io `ncp-core 0.2.0` belonged to the
 unrelated NetCat++ project and [PyPI `ncp 1.15`](https://pypi.org/project/ncp/)
@@ -2744,17 +2775,17 @@ ten lens decisions.
 
 | ADR | Decision | Required reviewers before `ACCEPTED` |
 |---|---|---|
-| ADR-001 | split simulation-service and plant-control sessions | NCP maintainer, Engram owner, Crebain body owner, independent protocol reviewer |
-| ADR-002 | stable-core/release/corpus identity hierarchy, extension freeze and external exact-subject release authorization | protocol + release/supply-chain reviewers |
-| ADR-003 | production JWS authenticated envelope versus equivalent terminating ingress | two independent security/cryptography reviewers plus transport implementer |
-| ADR-004 | observer attach, grants, descriptors, privacy and revocation | Prisoma, Galadriel, security reviewers |
-| ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems + all stream consumer owners |
-| ADR-006 | body-issued authority operations and temporal model | safety, distributed-systems, Haldir, Crebain reviewers |
-| ADR-007 | command disposition states, boundary meanings, journal and query | plant/safety, Haldir, Crebain reviewers |
-| ADR-008 | extension namespace and Galadriel sidecar separation | protocol, Galadriel, Haldir, Crebain reviewers |
-| ADR-009 | security-state semantic digest, key rotation and revocation | security, operations, supply-chain reviewers |
-| ADR-010 | exact per-plane QoS, retention and overload semantics | real-time/performance + consumer reviewers |
-| ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | every named consumer owner, pid-rs owner, independent security/distributed-systems reviewer, release/package-tooling reviewer, and Crebain plant/safety reviewer |
+| ADR-001 | split simulation-service and plant-control sessions | NCP maintainer; Engram owner; Crebain body owner; independent protocol reviewer |
+| ADR-002 | stable-core/release/corpus identity hierarchy, extension freeze and external exact-subject release authorization | protocol reviewer; release and supply-chain reviewer |
+| ADR-003 | production JWS authenticated envelope versus equivalent terminating ingress | security and cryptography reviewer (two distinct independent identities); transport implementer |
+| ADR-004 | observer attach, grants, descriptors, privacy and revocation | Prisoma owner; Galadriel owner; security reviewer; NCP/source-provider owner; observer-anchor infrastructure owner/operator; independent anchor security/distributed-systems reviewer |
+| ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems reviewer; Engram stream owner; Haldir stream owner; Galadriel stream owner; Crebain stream owner; Prisoma stream owner |
+| ADR-006 | body-issued authority operations and temporal model | safety reviewer; distributed-systems reviewer; Haldir owner; Crebain owner |
+| ADR-007 | command disposition states, boundary meanings, journal and query | plant and safety reviewer; Haldir owner; Crebain owner |
+| ADR-008 | extension namespace and Galadriel sidecar separation | protocol reviewer; Galadriel owner; Haldir owner; Crebain owner |
+| ADR-009 | security-state semantic digest, key rotation and revocation | security reviewer; operations reviewer; supply-chain reviewer; security-artifact-anchor infrastructure owner/operator; independent anchor security reviewer |
+| ADR-010 | exact per-plane QoS, retention and overload semantics | real-time and performance reviewer; Engram consumer reviewer; Haldir consumer reviewer; Galadriel consumer reviewer; Crebain consumer reviewer; Prisoma consumer reviewer |
+| ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; Cortexel owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
 
 Ratification is blocked until:
 
@@ -2877,6 +2908,8 @@ reopens them with equivalent safeguards:
 
 - NCP core/provider → any consumer application dependency;
 - pid-rs → NCP, Zenoh, Engram, Haldir, Galadriel, Crebain or Prisoma;
+- any NCP or consumer implementation, runtime, evidence, semantic, authority,
+  observation, release, or documentation-import edge to or from Cortexel;
 - Galadriel or Prisoma → command publication, authority operations, plant lifecycle
   mutation, ESTOP, watchdog or disposition creation;
 - an observer credential → the Galadriel assessment route, or an assessor
@@ -4283,8 +4316,11 @@ properties.
 
 ### 9.1 Current tracked inventory and audit result
 
-At the blueprint audit point the repository tracked 47 Markdown files and 16 SVG
-files. The SVG set was:
+At the original blueprint audit cut described in section 12.1, the repository
+tracked 47 Markdown files and 16 SVG files. At this living-document handoff
+revision, `git ls-files` tracks 80 Markdown files and the same 16 SVG files. The
+documentation manifest must derive and bind the inventory at execution; neither
+historical count is an acceptance allowlist. The SVG set was:
 
 | Class | Tracked files | Current source | Current document use |
 |---|---:|---|---|
@@ -4292,18 +4328,20 @@ files. The SVG set was:
 | protocol diagrams | 10 files: five light/dark pairs in `docs/diagrams/` | `scripts/gen_diagrams.py` | only the safety FSM pair is embedded, in `RESILIENCE.md` |
 | historical plots | 4 files: two light/dark pairs in `docs/plots/` | `scripts/plot_perf.py` plus optional recorded data | both pairs are embedded in `PERFORMANCE.md` |
 
-`python3 scripts/gen_diagrams.py --check` passed during blueprint construction. It
-establishes that the committed ten diagram SVGs match the current generator; it does
-not establish correct architecture, typography, accessibility, embedding, or
-release readiness. The pinned historical plot check was deferred to the complete
-repository gate because the host Python environment lacked the pinned Matplotlib
-dependency; its status remains `NOT_RUN` until that gate produces a receipt.
+The deterministic diagram and pinned historical-plot checks passed during the
+current local repair. The diagram check establishes byte freshness for ten generated
+diagrams, the direct-view accessibility structure for the exact 16-SVG inventory,
+and at least 4.5:1 text contrast for the declared FSM text/background pairs,
+including each ESTOP gradient stop. The plot check reproduced all four historical
+SVGs from the explicitly labeled fallback constants. These local checks do not
+establish correct architecture, browser accessibility-tree behavior, visual
+acceptance, release readiness, or retained independent evidence.
 
 The first rendered inspection found these open defects and review obligations:
 
 | ID | Asset | Finding | Required disposition |
 |---|---|---|---|
-| V01 | `versioning-{light,dark}.svg` | the right-aligned metadata beginning `NCP · UNRELEASED` visibly collides with the `VERSION HANDSHAKE` heading | change the generator layout; prove non-overlap in both themes and all render matrices |
+| V01 | `versioning-{light,dark}.svg` | the original `VERSION HANDSHAKE` heading collided with the right-aligned metadata; the current generator uses the shorter `VERSION GATE` heading and the two retained theme renders no longer collide, but no exhaustive render-matrix evidence exists | retain the corrected layout; prove non-overlap in all required render matrices before closure |
 | V02 | versioning | it says same-major `1.x` opens and compact `contract_hash` differences are advisory | after ADR-002, depict the exact stable-core compatibility rule and distinct release/corpus identities; never imply an unreviewed future 1.x is compatible |
 | V03 | sequence | one lifeline is “body / simulation backend” and one `OpenSession` represents contradictory simulation and plant lifecycles | replace it with separate simulation-service, plant-control, and observer-attach sequences after ADR-001/004 |
 | V04 | topology | the single commander/body topology does not expose typed session edges, authenticated observer attach, declared streams, body-issued authority, disposition, or the production envelope | redraw from ratified ADR-001/003/004/005/006/007; keep plane and fail-safe boundaries explicit |
@@ -4311,8 +4349,9 @@ The first rendered inspection found these open defects and review obligations:
 | V06 | FSM | it is visually dense and represents only the current candidate admission model | perform bounding-box review and update it for body-issued authority, typed sessions, stream declaration, security epoch/rebind, disposition, and exact ESTOP-reset boundary |
 | V07 | topology, ecosystem, versioning, sequence | the generated pairs are not referenced by current Markdown | either embed each in an owner document with exact alt text or delete it and its generator branch; no orphaned release visual |
 | V08 | logos | the two variants require background/theme, reduced-motion, accessible-name, unused-definition, and deterministic-source review | define supported logo uses, make visual differences intentional, add a reproducible source or freeze reviewed source with exact provenance, and remove unused or unsafe SVG content |
-| V09 | historical plots | they are clearly labeled non-release historical material, but visual inspection is not yet a retained gate | reproduce with pinned dependencies/data, audit labels/contrast/clipping/alt text, and keep them separate from any release-bound benchmark figures |
-| V10 | all SVG | direct SVG files have `role="img"`, while generated protocol SVG roots have no internal `<title>` or `<desc>` | decide and test the accessibility contract for both embedded `<img>` and direct-file viewing; prevent conflicting or missing accessible names |
+| V09 | historical plots | they are clearly labeled non-release historical material; the original overlap-plot title collision is corrected in the current source and retained theme renders, but visual inspection is not yet a retained gate | reproduce with pinned dependencies/data, audit labels/contrast/clipping/alt text across the required render matrix, and keep them separate from any release-bound benchmark figures |
+| V10 | all SVG | **OPEN:** all 16 current SVG roots now use `role="img"` and `aria-labelledby` with one direct, concise `<title>` and `<desc>`; the local deterministic check covers that structure and requires the direct `<desc>` to state `UNRELEASED` and non-certification status, but it does not prove a visible on-canvas qualifier, embedded accessibility trees, host-name conflicts, long-description policy, the atlas manifest, or independent acceptance | retain the local guard; complete and independently accept the direct-file and embedded-`<img>` accessibility matrix and atlas policy before closing V10 |
+| V11 | NCP and ecosystem atlas | NCP and the five exact consumer repositories lack one complete, source-bound, accessible static and finite-motion visual atlas | NCP and each exact consumer producer own one semantic graph and generated variants for their exact roles and limitations; excluded non-peers receive no atlas task or implied NCP relationship |
 
 These are release-blocking documentation findings, not permission to hand-edit the
 generated SVG files. The source generator, normative architecture, embedding
@@ -4363,6 +4402,103 @@ If one visual becomes too dense, split it. A visual must not carry more concepts
 than can remain legible at the minimum supported rendered width. Cross-document
 links supply detail; tiny type does not.
 
+The atlas must cover these semantic families. “Cover” means that every named
+boundary appears in at least one registered visual and its complete adjacent
+description or table. It does not require one unreadable master diagram.
+
+| Family | Minimum truth that the atlas must preserve |
+|---|---|
+| architecture and planes | contract, transport, session, control, observation, extension, evidence and physical-actuator boundaries |
+| typed lifecycles | separate simulation-service, plant-control and observer-attach sequences, including close, restart and terminal states |
+| production security | principal binding, default-deny manifest, signature and transport responsibilities, exact validation order, rotation, revocation and rebind |
+| authority and commands | body-issued terms and bounded leases, direct/gated exclusivity, handover quiescence, idempotency, dispositions and ambiguous-result recovery |
+| streams and resources | declaration, bounded sequence space, gaps, retire/redeclare, exhaustion, queues, overload and fail-closed allocation |
+| plant safety | body-final authority, profile identity, watchdog, HOLD/ESTOP effects, reset boundary, fail-safe action limits and absence of physical certification |
+| simulation and science | resource authority, provenance, `is_simulation_output=true`, `calibrated_posterior=false`, missingness and no paper-reproduction inference |
+| observers and privacy | grant scope, non-authority, delivery versus admission, expiry, revocation, detach, restart, gaps, retention and disclosure boundaries |
+| identity and migration | wire, stable-core, normative release and corpus identities, unreleased candidate versus immutable 0.8, and native migration without a private fork |
+| packages and languages | Rust provider, Python, TypeScript, C and C++ boundaries, generated sources, installed-artifact evidence and independent-peer limits |
+| conformance and release | corpus, local gates, external qualification, nine exact role receipts, publication, post-publication checks and emergency revocation |
+| ecosystem topology | Engram, Haldir, Galadriel, Crebain and Prisoma roles; pid-rs shown only as a protocol-neutral consumer dependency with no authority edge; unrelated repositories are omitted |
+
+Each owning repository generates all variants from one semantic graph:
+
+- static light and dark SVGs for wide layouts;
+- static light and dark compact SVGs for the minimum supported mobile width;
+- finite one-shot motion light and dark SVGs whose final frame equals the complete
+  static meaning; motion never loops autonomously, never carries unique meaning,
+  settles within a registered duration, and renders the complete final state when
+  `prefers-reduced-motion: reduce` applies; and
+- a long description and semantic table that enumerate every node, edge, state,
+  qualifier and exception without requiring sight, color, hover or animation.
+
+Do not use script, `foreignObject`, event handlers, external URLs, network fonts,
+or raster images. Use declarative SVG/CSS motion only when it remains safe under
+the sanitizers and renderers in section 9.4. A static asset is required when motion
+does not materially clarify ordering, handover, validation, failure propagation or
+state change.
+
+The NCP repository owns the shared informative atlas contract and its protocol
+semantic sources. Each consumer owns the graph for its own implemented roles:
+
+| Producer | Required role-specific atlas ownership |
+|---|---|
+| NCP | all shared semantic families above, without presenting informative visuals as normative contract or qualification evidence |
+| Engram | simulation responder plus mutually exclusive direct and Haldir-gated commander paths, with simulation/science limits |
+| Haldir | commander, separate policy-state authority and default-off Galadriel assessment receiver, with no body authority |
+| Galadriel | authenticated read-only observer and separate raw-advisory publisher, with advisory/non-calibration and deny-only downstream limits |
+| Crebain | body/final-actuator boundary and consolidated Galadriel producer surface, with physical-safety limitations |
+| Prisoma | read-only capture, missingness/provenance and research-claim partition, with no control edge |
+
+Consumer-owned public Engram atlas assets must not disclose private implementation
+structure, source, credentials, repository identity, or qualification detail
+beyond facts explicitly approved for the public placeholder. The NCP handoff
+inventory remains evidence bookkeeping and is not permission to copy its source
+coordinates into public consumer documentation. No unrelated figure, gallery, or
+export workflow is a source, transport, or target for NCP architecture assets.
+
+Every semantic source or per-asset manifest records the visual ID, owner
+repository, exact source commit and tree, semantic and generator digests, role and
+disclosure class, candidate/release/wire identity, claim tier, evidence status,
+source ADRs/requirements, every output path and SHA-256, accessibility metadata,
+finite-motion duration/final-state identity, and automated, human and independent
+review receipt IDs. The checker rejects an output whose manifest, source, claim or
+owner boundary is missing or stale.
+
+N10 creates and owns versioned schemas for the atlas manifest, semantic graph,
+coverage matrix and render receipt. The coverage matrix
+maps every section 9.2 family, required producer role, requirement/ADR, limitation,
+node, edge and long-description entry to at least one visual ID. It rejects missing
+coverage, contradictory duplicate meanings, an unlabeled claim, and a visible fact
+that is absent from the non-visual description. A V11 owner cannot pass with an
+unrelated artifact: the ledger checker must require the task-specific producer,
+aggregate or release-refresh subjects and current receipts once that task leaves
+`OPEN`.
+
+The shared atlas-artifact schema is closed and bounded. Unless N10 justifies a
+stricter reviewed limit, one producer output set contains at most 256 assets and
+128 MiB total;
+one SVG is at most 2 MiB; one semantic graph, long description, table or manifest
+is at most 1 MiB; a relative UTF-8 path is at most 240 bytes; one SVG has at most
+10,000 XML elements, 50,000 path commands and 128 declarative animation elements;
+and finite motion settles within 12 seconds. Reject unknown or duplicate fields,
+non-canonical JSON, invalid UTF-8, absolute or traversing paths, links, hardlinks,
+special files, duplicate normalized paths, XML entity expansion, excess nesting,
+and any byte or count overflow before semantic allocation. Producer approval is an
+authenticated review receipt that binds the producer-owned commit, tree, manifest
+and disclosure decision; repository location alone cannot substitute for approval.
+
+For every semantic family, retain the plan, design constraints, materially distinct
+prototypes, render matrices, rejected variants with reasons, and final synthesis.
+Review from these 20 lenses before selection: semantic truth; normative versus
+informative boundary; security; safety; failure and concurrency; resource bounds;
+interoperability; science and statistics; release/qualification claims; source and
+generator reproducibility; provenance; accessibility; motion and reduced motion;
+light/dark themes; mobile/desktop geometry; typography; contrast and color vision;
+information hierarchy; audience task completion; and maintainability. Select the
+most coherent whole that survives all lenses. Do not combine attractive fragments
+when their geometry, vocabulary, motion grammar or claim hierarchy conflicts.
+
 ### 9.3 Diagram source and layout contract
 
 Keep protocol diagrams as deterministic, text-preserving SVGs generated from code.
@@ -4389,7 +4525,10 @@ generator, but do not hand-edit outputs. The generator must:
    obscure state boundaries;
 10. encode status by text and shape/pattern in addition to hue; and
 11. emit light and dark variants from the same geometry and semantic graph unless
-    an explicitly tested theme difference is necessary.
+    an explicitly tested theme difference is necessary; and
+12. emit the registered wide, compact and finite-motion variants plus their long
+    description and semantic table from that same graph, and prove that the motion
+    final frame and reduced-motion rendering preserve the complete static meaning.
 
 The source semantic graph must give every node and edge a unique ID, type, status,
 claim tier, source requirement/ADR, short label, full explanation, and allowed
@@ -4410,7 +4549,7 @@ or filter defects. The gate must execute this matrix for every SVG pair:
 | displayed width | intrinsic, 820/860 px as applicable, 640 px, 480 px, and 320 px or the documented minimum if horizontal scrolling is intentional |
 | font environment | primary supported system stack and forced final fallback |
 | renderer | pinned Chromium plus pinned librsvg or another recorded independent implementation |
-| motion | normal and `prefers-reduced-motion: reduce` |
+| motion | registered static and finite-motion variant groups; normal first frame, every semantic transition, declared settle time and post-settle frame; reduced motion at first paint and post-settle |
 
 For each matrix cell retain the original SVG, raster render, browser screenshot,
 DOM geometry JSON, accessibility-tree excerpt, tool versions and SHA-256. Automated
@@ -4426,9 +4565,19 @@ checks must reject:
   broken theme pairs, or different semantic text between themes;
 - external requests, console/CSP errors, animation after reduced-motion is set, or
   a raster whose painted bounds are unexpectedly blank;
+- indefinite or repeating motion, motion beyond its declared settled duration,
+  unique meaning visible only during animation, or a final/reduced-motion state
+  that differs semantically from the registered static variant;
 - accessible-name/description mismatch, duplicate announcements, keyboard-focus
   traps, or meaningful information exposed only by color; and
 - a pixel-difference beyond reviewed thresholds against the accepted baseline.
+
+Sample declarative timelines with a controlled clock. For each registered variant
+group, compare wide-static, compact-static, motion-final and reduced-motion-first-
+paint semantic trees and labeled geometry. A compact motion output is optional only
+when its manifest explicitly selects the compact-static fallback and proves that no
+mobile meaning is lost. Waiting for wall-clock animation is not a deterministic
+test.
 
 Pixel comparison is a regression detector, not the acceptance oracle. Baselines are
 created only from a reviewed render receipt and are re-approved when intended
@@ -4437,7 +4586,9 @@ cannot hide moved text, missing glyphs, clipping, or contrast regression. Includ
 mutant self-tests that deliberately introduce the V01 title collision, clipped
 text, missing font, duplicate ID, broken dark asset, remote URL, blank output,
 low-contrast label, color-only state, and inaccessible image; the checker must fail
-each mutant for the intended reason.
+each mutant for the intended reason. Also include indefinite/repeating animation,
+delayed non-settlement, final-frame semantic mismatch, reduced-motion intermediate
+state, motion-only information and undeclared compact fallback mutants.
 
 ### 9.5 Contrast, color, and accessibility acceptance
 
@@ -4539,7 +4690,7 @@ human reviewer, review time, independence and signed decision
 known limitations and superseded receipt
 ```
 
-The release visual gate passes only if V01–V10 are closed with receipts; every
+The release visual gate passes only if V01–V11 are closed with receipts; every
 registered document/asset has a current automated and independent-human pass; no
 orphan, stale identity, missing graph source, overlap, clipping, missing glyph,
 contrast failure, accessibility failure, broken link, spelling error, or unreviewed
@@ -4598,6 +4749,12 @@ all receipts and PR descriptions, land the provider before consumers, and preser
 a working rollback pin. A consumer commit that depends on an unmerged provider
 commit stays on its integration branch and cannot be presented as the consumer's
 release state.
+
+The human-readable `Depends on` blocks can repeat transitive safety, evidence and
+release prerequisites to make a task executable in isolation. The JSON ledger
+stores the minimal immediate dependency edges and is authoritative for start
+readiness. Every additional prose prerequisite must be reachable through those
+edges or named as an external gate; a non-transitive mismatch is an error.
 
 ### 10.2 Topological order and stop gates
 
@@ -6421,7 +6578,7 @@ Ten-lens record:
 #### N07 — regenerate and harden all supported language/package surfaces
 
 **Status:** `OPEN`<br>
-**Depends on:** N05, N06, X00<br>
+**Depends on:** N06, X00<br>
 **Repository:** NCP<br>
 **Update/create:** `ncp-core/src/bin/gen-schemas.rs`, `schemas/`,
 `ncp-core/bindings/`, `ncp-ts/src/generated/`, `ncp-ts/src/*.ts`, `ncp-ts/dist/`,
@@ -6435,6 +6592,10 @@ Implementation:
 - provide high-level TS/Rust/Python/C APIs for typed sessions, observer attach,
   streams, authority and dispositions; unsafe low-level decode/publish is clearly
   named and cannot bypass validation in production;
+- document and test the distinction between standalone governor output and
+  publisher admission in every binding: the governor owns no position allocator
+  or high-water mark, normalized `seq=1` is not freshness evidence, and an owning
+  publisher must assign and admit the next fresh position before publication;
 - make TypeScript bounded parsing preserve safe integers/exact strings and implement
   canonical JWS/identity bytes independently rather than calling Rust for the
   required independent-peer evidence;
@@ -6619,12 +6780,15 @@ Implementation:
   current source uses fixed `lz4_flex 0.11.6` through the reviewed immutable
   Zenoh transport backport and carries no advisory ignore. Its normalized
   Zenoh-bearing archives still require that patch from the consuming root and are
-  not self-contained distribution evidence. Archive-alone Cargo metadata must
-  retain the observed failure, and the injected-root run remains only
-  `CONDITIONAL_PASS` while that gate is `OPEN_FAIL_CLOSED` and `NO_GO`. Replace
-  that temporary source with a qualified upstream release or another reviewed
-  distribution design before publication. Do not enable unreviewed compression or
-  default features;
+  not self-contained distribution evidence. Source-only archive metadata must
+  retain the observed registry fallback without compiling it. Qualification must
+  apply the exact patch at each consuming test root, verify the conditioned graph,
+  and retain receipt v3's locks and checksum-bound registry sources without
+  overstating point-in-time fork verification or pre/post source comparison as an
+  exact compiler-input trace. That run remains only `CONDITIONAL_PASS` while the
+  gate is `OPEN_FAIL_CLOSED` and `NO_GO`. Replace the temporary source with a
+  qualified upstream release or another reviewed distribution design before
+  publication. Do not enable unreviewed compression or default features;
 - resolve crates.io/PyPI/npm package-name ownership/collision before promising
   publication: reserve/rename through ADR and update every package, import, docs,
   candidate surface and consumer plan consistently;
@@ -6673,8 +6837,9 @@ Implementation:
   language;
 - document exact quick starts for simulation, plant, observer and extension roles,
   each visibly development-only or production-secure as applicable;
-- regenerate separate diagrams listed in section 9.2, close V01–V10, embed or delete
-  every visual, and supply exact alt/long descriptions;
+- implement the shared informative atlas contract and NCP-owned semantic graphs,
+  regenerate the separate diagrams listed in section 9.2, close V01–V11, embed or
+  delete every visual, and supply exact alt/long descriptions and semantic tables;
 - compile every code/config example and validate every route, field, error, digest,
   command and status against generated artifacts;
 - make limitations prominent: unreleased until release task, no physical
@@ -6888,7 +7053,7 @@ complete documentation/visual matrix from section 9 against tagged-source candid
 bytes. Keep historical plots separate.
 
 Acceptance: every preregistered cell meets its derived deadline/resource bound with
-the required confidence; no hidden failure/exclusion; V01–V10 closed; every document
+the required confidence; no hidden failure/exclusion; V01–V11 closed; every document
 and visual has machine and independent-human receipts. Commit/push public,
 privacy-safe evidence as `evidence: record NCP 1.0 performance and visual acceptance`.
 
@@ -7257,7 +7422,8 @@ Ten-lens record:
 **Depends on:** E04, H02<br>
 **Repository:** Engram<br>
 **Update:** gated-intent adapter, mode/handover configuration, source-transfer
-fixtures, resilience tests and documentation.
+fixtures, resilience tests, documentation, and Engram-owned atlas semantic source
+and generated variants.
 
 Implementation:
 
@@ -7289,7 +7455,12 @@ Implementation:
   and
 - keep the optional adapter, feature, credential and local route absent from the
   direct-only artifact unless explicitly selected. Never activate both modes for
-  one plant session generation.
+  one plant session generation; and
+- generate Engram's V11 atlas from one owned semantic graph. Show the simulation
+  responder, direct commander and gated-intent paths; direct/gated exclusivity;
+  body-owned handover and dispositions; and simulation, science, privacy and
+  qualification limits. Produce every section 9.2 variant and manifest without
+  exposing private implementation details on the public placeholder.
 
 Acceptance: Engram↔Haldir fixtures; direct/gated feature, process, credential and
 authority exclusivity; no NCP lease/command in gated mode; protected-transfer
@@ -7303,7 +7474,9 @@ transfer-without-source, changed declaration/content/session generation,
 attachment-under-same-signature, weak/full watermark substitution and canonical-
 CBOR/signature coverage;
 two-commander conflict and both body-coordinated handover directions. This task
-creates integration evidence, not a new NCP role receipt. Commit/push
+creates integration evidence, not a new NCP role receipt. The Engram atlas passes
+the V11 semantic, variant, accessibility, motion, manifest and 20-lens review
+contract. Commit/push
 `neurocontrol: add optional Haldir-gated control`.
 
 Ten-lens record:
@@ -7771,7 +7944,8 @@ Ten-lens record:
 **Create/update:** separate assessment-receiver crate/binary and deployment
 profile, extension routes/schemas, receiver-to-policy-authority API client,
 receiver replay/admission/disposition stores, policy-ingress/evaluation references,
-status and tests. The H02 policy-authority target owns profiles/policy state.
+status, tests, and Haldir-owned atlas semantic source and generated variants. The
+H02 policy-authority target owns profiles/policy state.
 
 Implementation:
 
@@ -7882,7 +8056,12 @@ Implementation:
   only through the separate H02 exact publication reservation/fence under the
   policy authority's then-current base/monitor head. Receiver, policy authority,
   and commander cannot access one another's credentials/routes or non-contract
-  state.
+  state; and
+- generate Haldir's V11 atlas from one owned semantic graph. Show the commander,
+  separate policy-state authority and default-off assessment receiver; evidence-
+  only admission; receiver/authority currentness; deny-only meet; publication
+  fence; and the body-authority prohibition. Produce every section 9.2 variant,
+  manifest and complete semantic table.
 
 Acceptance: build/process/activation/credential/route/store isolation;
 shared-runtime and mixed-credential negatives; stable/extension wrong-route;
@@ -7933,7 +8112,8 @@ to restamp receiver fields, crash after receiver key reservation before record
 storage, crash after record before authority stamp, crash after authority stamp
 before CAS, crash after CAS before disposition, same-position different digest,
 dwell/hysteresis/recovery, restart and widening-persistence
-hostiles; authenticated disposition for each verified assessment. Commit/push
+hostiles; authenticated disposition for each verified assessment; V11 semantic,
+variant, accessibility, motion, manifest and 20-lens review receipts. Commit/push
 `gate: add isolated deny-only assessment receiver`.
 
 Ten-lens record:
@@ -8115,7 +8295,8 @@ Ten-lens record:
 **Repository:** Galadriel<br>
 **Update:** native-1.0 equivalents of `assembler.rs`, `config_identity.rs`,
 `lifecycle.rs`, `live.rs`, `monitor.rs`, `monitor_live.rs`, `operational_live.rs`,
-deploy configs and security/state-machine docs.
+deploy configs, security/state-machine docs, and Galadriel-owned atlas semantic
+source and generated variants.
 
 Implementation:
 
@@ -8245,7 +8426,12 @@ Implementation:
   a no-extension bridge for both deadlines and the feasibility mapping. Observer
   clock restart requires its own exact bridge. A server terminal head, expiry-
   only `UNKNOWN` inventory, or generic success flag cannot establish transport
-  quiescence or receiver non-admission.
+  quiescence or receiver non-admission; and
+- generate Galadriel's V11 atlas from one owned semantic graph. Show the read-only
+  observer and distinct raw-advisory publisher, authenticated capture lineage,
+  grant/revocation/gap behavior, non-authoritative output, non-calibration labels,
+  and the optional Haldir-bound deny-only downstream limit. Produce every section
+  9.2 variant, manifest and complete semantic table.
 
 Acceptance: attach/start atomicity; pre-grant injection; grant expiry/revocation;
 atomic rejection or purge of an old-grant frame queued before revocation; exact
@@ -8303,7 +8489,8 @@ observer-with-extension-key,
 assessor-with-read-capability, tampered/stale/sibling/invalidated handoff and
 serialization-only reconstruction; producer UTC-as-local-freshness, missing/
 over-uncertain clock mapping and restart-deadline extension; pid error/resource/
-non-finite cases; real signed transport later.
+non-finite cases; V11 semantic, variant, accessibility, motion, manifest and
+20-lens review receipts; real signed transport later.
 Commit/push
 `observer: bind Galadriel monitoring to NCP grants`.
 
@@ -8595,6 +8782,8 @@ Ten-lens record:
 **Status:** `OPEN`<br>
 **Depends on:** C01–C03, fresh canonical lineage comparison<br>
 **Repository:** canonical Crebain<br>
+**Update:** canonical producer lineage receipts, Crebain-owned body/producer atlas
+semantic source and generated variants, and stale branch references.<br>
 **Historical audit input:** branch `feat/galadriel-integration-refresh` at
 `113ee70d5660daf90bb373bd7857d4b3f2f56784`; canonical main at that intake point
 was `3e3ee5d0b75269b8f5f634485871069c89a9a474`.<br>
@@ -8617,11 +8806,18 @@ Implementation:
 - record the historical-to-canonical replacement map. Delete a surviving remote
   branch only with owner authorization and after retention/rollback needs are met;
 - keep one canonical implementation and one issue/evidence location—no silent
-  consumer-specific NCP fork.
+  consumer-specific NCP fork; and
+- generate Crebain's V11 atlas from that canonical lineage. Show the body as final
+  software and actuator-boundary authority, plant profile/watchdog/fail-safe and
+  disposition paths, the separate Galadriel producer surface, observer isolation,
+  and the physical-certification limits. Produce every section 9.2 variant,
+  manifest and complete semantic table.
 
 Acceptance: patch-equivalence ledger; no lost unique change; no duplicate behavior;
-canonical full gates; historical replacement mapping; owner approval for any
-actual branch deletion. Commit/push `chore: verify the consolidated Galadriel producer lineage`.
+canonical full gates; historical replacement mapping; V11 semantic, variant,
+accessibility, motion, manifest and 20-lens review receipts; owner approval for any
+actual branch deletion. Commit/push
+`chore: verify the consolidated Galadriel producer lineage`.
 
 Ten-lens record:
 
@@ -9317,7 +9513,8 @@ Ten-lens record:
 `crates/pid-sim/src/offline_harness.rs`,
 `crates/pid-sim/src/bin/offline_harness.rs`,
 `crates/pid-sim/fixtures/ncp_vlda_native10/`, `RESEARCH_VLA_D_NCP.md`,
-`LIMITATIONS.md`, `EXPERIMENTS.md`, protocol/evidence ledgers and tests.<br>
+`LIMITATIONS.md`, `EXPERIMENTS.md`, protocol/evidence ledgers, tests, and
+Prisoma-owned atlas semantic source and generated variants.<br>
 **Fixed P01 inputs:** `protocols/ncp_vlda_native10_schema_v1.json`,
 `scripts/audit_ncp_vlda_native10_schema.py`, receipt version 2, and the five
 finalized control-artifact
@@ -9483,7 +9680,12 @@ Implementation:
   Verify that every derived metric has exactly one matching homogeneous partition;
   and
 - preregister any actual PID analysis, population support, estimator, missing-data
-  policy, multiplicity and uncertainty outside the transport migration.
+  policy, multiplicity and uncertainty outside the transport migration; and
+- generate Prisoma's V11 atlas from one owned semantic graph. Show read-only
+  capture, grant and gap state, exact provenance joins, independent V/L/D/A
+  missingness, proposal/application/physical-outcome partitions, fail-before-
+  analysis behavior and the no-control/no-scientific-inference boundary. Produce
+  every section 9.2 variant, manifest and complete semantic table.
 
 Acceptance: distinct valid V/L/D/A contracts and valid frozen-neural and
 frozen-categorical numeric L variants; missing/partial axes, gaps, conflicts,
@@ -9535,7 +9737,8 @@ paths reject mixed, missing, or swapped semantics before estimator, metric, summ
 or run-log emission; valid distinct semantics produce separate finalized
 partitions, receipts, invocations and metrics with no aggregate result; claim/docset
 audits reject zero-fill, E3 overstatement, source-causality overstatement, and
-overclaim. Commit/push
+overclaim; V11 semantic, variant, accessibility, motion, manifest and 20-lens
+review receipts. Commit/push
 `research: preserve missing-axis semantics for NCP 1.0 capture`.
 
 Ten-lens record:
@@ -9970,7 +10173,7 @@ The final authorization bundle must contain one current receipt for every row:
 | independent clean-room reproduction | X04 | at least two independent builders from public inputs; promised byte/semantic reproduction succeeds |
 | signed SBOM/provenance | N09, X04 | complete subjects, licenses/advisories, publisher signatures/attestations and independent verification |
 | formal/evidence claim boundary | F01–F03 | all required models/obligations/refinements pass under disclosed bounds and no broad proof claim |
-| documentation and visual acceptance | N10, F05 | V01–V10 closed; all registered prose/examples/visuals have current machine and independent-human receipts |
+| documentation and visual acceptance | N10, F05 | V01–V11 closed; all registered prose/examples/visuals have current machine and independent-human receipts |
 
 If a receipt binds an earlier commit, different package hash, different contract
 digest, expired configuration, superseded key/manifest, narrower platform or an
@@ -10245,9 +10448,11 @@ the exact release; two-minute simulation, plant and observer quick starts; packa
 matrix and verification commands; architecture/session/security diagrams; stable
 identity values; supported platforms; 0.8 migration; nine scoped role receipts;
 security/safety/science limitations; docs map; support/security contacts; citation
-and license. Remove candidate warnings only where the tag/publication makes them
-false; keep warnings about unnamed consumers, physical certification and
-simulation/statistics. Regenerate diagrams and pass section 9.
+and license. Refresh the NCP-owned atlas semantic inputs against the immutable tag,
+regenerate every static, compact and finite-motion variant, and retain the
+candidate-to-release claim-label diff. Remove candidate warnings only where the
+tag/publication makes them false; keep warnings about unnamed consumers, physical
+certification and simulation/statistics. Regenerate diagrams and pass section 9.
 
 Via GitHub API/CLI, capture before/after JSON and verify exact description, homepage,
 topics, default branch, security policy, issue/PR templates, CODEOWNERS, branch/tag
@@ -10264,8 +10469,9 @@ post-release documentation commit; never move the tag to include them. Push
 
 Acceptance: the public API state, README and rendered documentation agree with the
 published release; all install/verification links and quick starts pass from clean
-hosts; section 9 passes; required repository controls are tested and evidenced;
-the immutable release tag is unchanged.
+hosts; the release-bound NCP atlas and manifests resolve the immutable tag; section
+9 passes; required repository controls are tested and evidenced; the immutable
+release tag is unchanged.
 
 Ten-lens record:
 
@@ -10309,6 +10515,11 @@ Implementation:
   inventory; shared locks are resolved from each target root;
 - run each complete consumer gate and its installed-artifact smoke again; pin-only
   equivalence is not assumed, even when the commit matches;
+- regenerate the five producer-owned consumer atlases from their immutable-tag
+  inputs, update their per-asset manifests and claim labels, and repeat every
+  static, compact, finite-motion, reduced-motion, accessibility and 20-lens review
+  gate. This changes no role receipt unless its bound semantic/runtime subject also
+  changed;
 - make one professional commit and push per repository, then run NCP's fleet pin
   checker against the exact roots and retain remote-ref receipts.
 
@@ -10318,9 +10529,10 @@ deployment-activated root/target/canonical-feature-set/role/activation-profile
 tuple whose closure contains NCP is inventoried exactly once; shared same-wire
 nodes agree;
 each native surface resolves to the immutable release subject appropriate to its
-subject kind; retained 0.8 surfaces remain unchanged; nine role receipts reference
-the tag/published hashes or a signed equivalence supplement; no consumer work is
-lost. Suggested commit: `build: pin NCP v1.0.0 release artifacts`.
+subject kind; retained 0.8 surfaces remain unchanged; all five producer-owned
+consumer atlases and manifests resolve the immutable tag; nine role receipts
+reference the tag/published hashes or a signed equivalence supplement; no consumer
+work is lost. Suggested commit: `build: pin NCP v1.0.0 release artifacts`.
 
 Ten-lens record:
 
@@ -10341,9 +10553,9 @@ Ten-lens record:
 
 **Status:** `OPEN`<br>
 **Depends on:** R06, R07; exact role receipt for each statement<br>
-**Repositories/GitHub:** Haldir, Galadriel, Crebain, Prisoma, pid-rs, public Engram
-placeholder, private implementation as authorized, and `sepahead/sepahead` profile
-source.
+**Repositories/GitHub:** Haldir, Galadriel, Crebain, Prisoma, pid-rs,
+public Engram placeholder, private implementation as authorized, and
+`sepahead/sepahead` profile source.
 
 The live GitHub metadata snapshot at 2026-07-15 showed:
 
@@ -10430,8 +10642,8 @@ paths and push `docs: reflect the NCP 1.0 ecosystem release`.
 Acceptance: GitHub API before/after receipts match every approved description and
 topic; the profile generator is idempotent; every card, edge, label, link and
 accessibility check passes at all registered viewports; public/private and
-qualified/unqualified boundaries remain exact; unrelated worktree files are
-untouched.
+qualified/unqualified boundaries remain exact; the public profile agrees with the
+refreshed producer assets; unrelated worktree files are untouched.
 
 Ten-lens record:
 
@@ -10626,7 +10838,7 @@ release completion.
 | P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings D01–D20 above; implementation remains open |
 | P3 | target 1.0 architecture and normative decision records | `LOCAL_PASS` | target laws, messages, security, extensions, and ADR gates in section 7; ADRs remain unratified |
 | P4 | formal, executable, statistical, security, and fault verification program | `LOCAL_PASS` | layered program, models, invariants, refinement, security/fault/fuzz and statistical rules in section 8; all new executions remain `NOT_RUN` |
-| P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V10 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |
+| P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V11 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |
 | P5 | exact implementation task DAG and per-repository file/runbook detail | `LOCAL_PASS` | dependency order, execution protocol, B/N/F provider tasks, all named consumer tasks, cross-ecosystem qualification and ten-lens records in section 10; implementation remains `OPEN`/`NOT_RUN` |
 | P6 | release, package, documentation, GitHub, rollback, and incident runbook | `LOCAL_PASS` | exact release state machine, gate matrix, signed authorization, tag/artifact/publication order, NCP/ecosystem/profile metadata, consumer repin, post-publication, incident and stewardship tasks in section 11; execution remains `OPEN`/`NOT_RUN` |
 | P7 | triple review, repository gate, commit, and push receipts | `LOCAL_PASS` | three review passes, a clean committed-tree gate, the final handoff-tree gate, and the locally retained containing-commit/remote-observation record are recorded in section 12.1; this closes blueprint construction only and proves no configured-remote state |
@@ -10665,7 +10877,7 @@ this living document, do not inherit these receipts or their render counts.
 | security, safety, science and release claims | `LOCAL_PASS` | the B00-bound revision separates simulation-resource authority from body-issued plant authority, makes direct Engram and Haldir-gated command mutually exclusive, gives only Crebain body authority over handover, makes Galadriel-to-Haldir input deny-only, keeps pid-rs protocol-neutral, and preserves standalone modes; the candidate remains `NO_GO`, implementation and external/formal work remain open or `NOT_RUN`, and no local/model result is promoted to release, qualification, physical-safety certification, posterior calibration, paper reproduction, perfection or permanence |
 | prose and Markdown | `LOCAL_PASS` | `codespell 2.4.1`, `cspell 10.0.1`, `proselint 0.14.0`, `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0`, candidate-link/anchor checks, JSON parsing and `git diff --check` report zero current findings under the narrow reviewed technical-name/Markdown configuration recorded by B00; long lines remain allowed only where tables, commands or digests require them |
 | browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` and direct pinned Chrome-for-Testing `149.0.7827.55` inspection of a temporary `marked 18.0.6` render exposed one H1, 12 H2, 80 H3, 83 H4, 26 tables and 31 code blocks in the blueprint; Playwright `1.61.0-alpha-1781023400000` sampled blueprint topology/receipt, ledger tasks and the resumption boundary at 1440×1000 and 390×844 with document scroll width equal to viewport, all table/code overflow confined to labeled scroll containers, zero page/console errors and no observed overlap, clipping, missing glyph or illegible text |
-| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 10 tracked generated protocol diagrams current; this is byte freshness only and does not close V01–V10 or claim release visual acceptance |
+| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 10 generated protocol diagrams current, audits the exact 16-SVG direct-view accessibility inventory, and checks declared FSM normal text against solid and gradient backgrounds at 4.5:1 or better; this local automation does not close V01–V11 or claim visual, atlas, accessibility-matrix, or release acceptance |
 | historical clean committed-tree `scripts/check.sh` | `LOCAL_PASS` | from clean commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree `89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, the command exited zero with `NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN`; this receipt is historical and does not cover the 2026-07-16 revision |
 | historical B00-bound revision gate, commit, push and local remote observation | `LOCAL_PASS` | B00's transition receipt binds the exact checked source/target commits, artifact digests, commands, local-only evidence class, push assertion, and local remote-observation record; these local records do not prove configured-remote reachability, and the handoff reports the containing ledger-status commit because embedding it here would change it; no protocol, consumer, formal, live-security, release or publication gate is inferred |
 

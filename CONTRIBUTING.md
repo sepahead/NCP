@@ -78,8 +78,8 @@ python3 scripts/generate_contract_manifest.py
 scripts/check.sh
 ```
 
-`scripts/check.sh` requires Rust 1.88 or later, Python 3, C++17, Bun or npm, Buf,
-and `cargo-deny`.
+`scripts/check.sh` requires Rust 1.88 or later, Python 3.11 or later, C++17,
+Node.js 18+, Bun, npm, Buf, and `cargo-deny` 0.19.9. It invokes both Bun and npm.
 
 Treat a missing required tool or a skipped applicable vector as a failure.
 

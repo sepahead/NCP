@@ -6,6 +6,9 @@
  * projection independently for the stable message set so the mandatory corpus
  * can compare emitted bytes rather than merely reparsed values.
  */
+/** Count exact canonical command/sensor projection bytes without materializing
+ * the projection. The counter stops as soon as `maximum` would be exceeded. */
+export declare function canonicalDataPlaneByteLength(value: unknown, expectedKind: 'command_frame' | 'sensor_frame', maximum: number): number;
 /** Validate a programmatic TypeScript message and emit Rust-reference-identical bytes. */
 export declare function canonicalizeNcpMessage(value: unknown, expectedKind?: string): string;
 /** Apply bounded raw-JSON ingress before producing deterministic message bytes. */

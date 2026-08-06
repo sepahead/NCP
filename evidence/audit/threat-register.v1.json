@@ -519,7 +519,7 @@
       "control_status": "PARTIAL_LOCAL",
       "risk_status": "OPEN",
       "release_blocking": true,
-      "residual_risk": "The exact backport removes the affected lz4_flex release from this root graph. Archive-alone Cargo metadata resolution was executed and observed the affected registry fallback. The exact consuming-root patch produced only a CONDITIONAL_PASS. Cargo does not verify the Git signature, and self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO."
+      "residual_risk": "The exact consuming-root backport conditions registry zenoh-transport 1.9.0 from advisory-affected lz4_flex 0.10.0 and its twox-hash 1.6.3 dependency to patched lz4_flex 0.11.6, with its twox-hash dependency updated to 2.1.3. Source-only archive metadata observes the fallback without compiling it. The qualification runs the exact fork security_backport regression and compression-enabled library tests. Fork source verification and upstream delta verification are point-in-time local-process attestations; the exact fork source bytes are not retained. Exact resolution and fetch can use network access. Cargo dependency access is offline only during compile and test. No host or child-process network isolation or host filesystem isolation is claimed. Both consumer source graphs are compared before and after compilation, but no compiler-input trace is retained. The result is CONDITIONAL_PASS with package_self_contained=false, self_contained_distribution_gate=OPEN_FAIL_CLOSED, decision=NO_GO, and release_authorized=false. Cargo does not verify Git signatures."
     },
     {
       "id": "NCP-THREAT-008",
@@ -695,11 +695,12 @@
       "asset_or_claim": "plant-owned safe action and final actuator authority",
       "actor_or_trigger": "deployment relying on mode text or transport success",
       "preconditions": [
-        "an ESTOP or HOLD message is accepted or published"
+        "an ESTOP or HOLD message is accepted or published",
+        "a standalone governor candidate is inserted into an existing stream without publisher-owned position admission"
       ],
       "misuse_or_failure": "Protocol state is treated as proof that a physical plant stopped safely.",
-      "accepted_case": "The body applies its content-addressed plant profile and independent interlock.",
-      "rejected_case": "A missing/mismatched profile, stale session, or malformed ESTOP is rejected without inventing a universal action.",
+      "accepted_case": "The owning publisher assigns and admits the next fresh position; the body applies its content-addressed plant profile and independent interlock.",
+      "rejected_case": "A missing/mismatched profile, stale session, stale standalone sequence, or malformed ESTOP is rejected without inventing a universal action.",
       "impact": "Physical harm occurs despite a nominal protocol success.",
       "detection": [
         "profile digest",
@@ -708,10 +709,11 @@
       ],
       "prevention": [
         "body final authority",
+        "publisher-owned position allocator and high-water admission",
         "profile-owned HOLD/ESTOP action",
         "physical-safety non-claim"
       ],
-      "failure_response": "Fail safe at the body and retain the absence of physical acknowledgement as an open limitation.",
+      "failure_response": "Fail safe at the body, require publisher-owned next-position admission, and retain the absence of physical acknowledgement as an open limitation.",
       "counterfactual_ids": [
         "CF-01",
         "CF-05"
@@ -742,7 +744,7 @@
       "control_status": "LOCAL_VERIFIED_NON_CLAIM",
       "risk_status": "OPEN",
       "release_blocking": false,
-      "residual_risk": "No physical plant, universal safe action, or applied-command acknowledgement is certified."
+      "residual_risk": "No physical plant, universal safe action, or applied-command acknowledgement is certified. A standalone governor owns no publisher allocator or high-water mark; normalized seq=1 can be stale and rejected while a prior Active command can remain effective only until its receiver-local deadline."
     },
     {
       "id": "NCP-THREAT-012",
@@ -1015,7 +1017,7 @@
         "scripts/check_dependency_exposure.py"
       ],
       "verification_commands": [
-        "python3 scripts/check_rust_packages.py --offline",
+        "python3 -I scripts/check_rust_packages.py",
         "cargo deny check"
       ],
       "evidence_paths": [
@@ -1378,10 +1380,10 @@
       "asset_or_claim": "standalone-first acyclic dependencies and final body authority",
       "actor_or_trigger": "convenience callback, reverse dependency, shared credential, or hidden startup service",
       "preconditions": [
-        "Galadriel, Prisoma, pid-rs, or Cortexel is enabled"
+        "Galadriel, Prisoma, pid-rs, or an unrelated visualization system is enabled"
       ],
       "misuse_or_failure": "An observer, estimator, offline analysis, run log, or figure output becomes a command publisher, authority source, or mandatory control dependency.",
-      "accepted_case": "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; Cortexel consumes labelled exports only.",
+      "accepted_case": "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; unrelated visualization systems are outside the NCP topology.",
       "rejected_case": "Any publish, lease, mutation, ESTOP, disposition, control callback, or reverse dependency from these surfaces rejects review and qualification.",
       "impact": "Unreviewed software or evidence can influence actuation, create cycles, or block fail-safe behavior.",
       "detection": [

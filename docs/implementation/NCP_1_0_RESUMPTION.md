@@ -59,6 +59,10 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
 - pid-rs remains a protocol-neutral leaf library. Galadriel/Prisoma may depend on it
   through exact optional consumer-owned adapters; pid-rs never depends on NCP or an
   application, and no PID result/log grants identity, capability or authority.
+- V11 assigns source-owned atlas work only to NCP and each exact consumer producer.
+  Cortexel is outside that ownership set and has no NCP atlas import task, protocol,
+  runtime, semantic, evidence, observer, authority, or role-receipt edge. Its existing
+  `FigureRequestV1` workflow remains unrelated to NCP architecture assets.
 
 The complete build/start/runtime/trust matrix, orthogonal deployment state, handover
 sequence, monotonicity proof and failure campaign are in blueprint section 7.15. This
@@ -66,7 +70,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `ee01c74a7b6d3fc46266ac1d9059df53bdfe3054e6b0e5360dca8802273f14d4`.
+Blueprint SHA-256: `57408a610dff52199875a070f95210c5f86d6b1db0923f3cb63d296df47f12e6`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -110,6 +114,7 @@ work is never one atomic Git transaction.
 | Crebain Galadriel producer | `feat/galadriel-integration-refresh` | `113ee70d5660daf90bb373bd7857d4b3f2f56784` | 0 | Clean feature worktree; reconcile only in C04 after canonical C01-C03. |
 | Prisoma | `main` | `b0185d98aea8bb6512926d9a8365ba8140fd07c0` | 0 | Clean main baseline; preserve v0.8 history while adding a parallel 1.0 observer. |
 | pid-rs | `main` | `1410c8808f1b4e51c76fef395360976e715d2df6` | 0 | Clean standalone estimator/run-log baseline; preserve its protocol-neutral dependency direction and refresh consumer pins only in dependency-ready Galadriel/Prisoma tasks. |
+| Cortexel | `main` | `5d900d41d41a68ca1bf537c8590b1f8753d85168` | 0 | Clean excluded non-peer baseline; preserve the stable FigureRequestV1 no-NCP-adapter boundary. Cortexel is outside NCP implementation, consumer qualification, and V11 atlas ownership. |
 | sepahead profile | `main` | `80a5c1d5af3a7b85d2a683921dd31e2bdf0406ce` | 2 | Preserve the two unrelated untracked tool directories; edit only canonical sources when R08 is evidence-ready. |
 
 Dirty repositories are inherited work. Do not stash, reset, clean, bulk-format,

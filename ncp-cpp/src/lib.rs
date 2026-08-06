@@ -4,7 +4,8 @@
 //! # API notes
 //!
 //! String returns are heap-allocated UTF-8 C strings the caller must release with
-//! [`ncp_string_free`]; `NULL` signals malformed input or an internal error.
+//! [`ncp_string_free`]; `NULL` signals malformed input, a documented local safety
+//! failure, or an internal error.
 //! Inputs are NUL-terminated UTF-8; JSON arguments/returns match the NCP wire
 //! exactly.
 //!
@@ -485,7 +486,12 @@ pub unsafe extern "C" fn ncp_decode_command(
 }
 
 /// Apply the action-plane safety governor to a `CommandFrame` JSON; returns the
-/// governed JSON, or NULL on malformed input. `sensor_json` may be NULL.
+/// governed JSON, or NULL on malformed input or a local safety failure for which
+/// no attributable bounded wire-shape candidate exists. Success does not prove
+/// publisher-position freshness. The standalone governor has no allocator or
+/// stream high-water; never publish a sequence-normalized fallback into an
+/// existing stream. `sensor_json` may be NULL.
+/// `now_s` and `last_sensor_s` must use the same receiver-local monotonic clock.
 /// `last_sensor_s < 0` means "no sensor yet" (forces HOLD). Caller frees.
 /// # Safety
 /// Arguments must be NULL or valid C strings.
@@ -528,7 +534,9 @@ pub unsafe extern "C" fn ncp_govern(
         // persistent handle (`ncp_governor_new` + `ncp_governor_govern`) so a
         // latched ESTOP survives until an authorized operator calls `ncp_governor_reset`.
         let mut gov = SafetyGovernor::new(limits);
-        let out = gov.govern(&command, sensor.as_ref(), now_s, last);
+        let Ok(out) = gov.govern(&command, sensor.as_ref(), now_s, last) else {
+            return std::ptr::null_mut();
+        };
         match serde_json::to_string(&out) {
             Ok(s) => cstr_out(s),
             Err(_) => std::ptr::null_mut(),
@@ -536,11 +544,12 @@ pub unsafe extern "C" fn ncp_govern(
     })
 }
 
-/// Opaque persistent action-plane safety governor — the **latching** form: a
-/// geofence breach / inbound ESTOP / link collapse keeps every later
-/// [`ncp_governor_govern`] at ESTOP until an authorized operator calls [`ncp_governor_reset`].
-/// (The one-shot [`ncp_govern`] cannot latch by construction.) NOT thread-safe:
-/// the caller synchronizes access to one handle.
+/// Opaque persistent action-plane safety governor — the **latching** form. A
+/// geofence breach, inbound ESTOP, reported loss burst, or sustained sensor
+/// silence forces ESTOP on each later frame that [`ncp_governor_govern`] returns
+/// successfully. An authorized operator must call [`ncp_governor_reset`] to clear
+/// the local latch. The one-shot [`ncp_govern`] cannot latch by construction. This
+/// type is not thread-safe. The caller must synchronize access to one handle.
 pub struct NcpGovernor(SafetyGovernor);
 
 /// Create a persistent governor from a `SafetyLimits` JSON. NULL on malformed
@@ -563,9 +572,12 @@ pub unsafe extern "C" fn ncp_governor_new(limits_json: *const c_char) -> *mut Nc
     })
 }
 
-/// Govern one `CommandFrame` JSON through a persistent handle (the ESTOP latch
-/// survives across calls). Same argument semantics as [`ncp_govern`]; NULL on a
-/// NULL handle or malformed input. Caller frees the returned string.
+/// Govern one `CommandFrame` JSON through a persistent handle. The ESTOP latch
+/// survives across calls, and each successfully returned frame uses ESTOP while
+/// the latch is set. Same argument semantics as [`ncp_govern`]; NULL on a NULL
+/// handle, malformed input, or a local safety failure that produced no wire frame.
+/// A successful result has the same publisher-position limitation as
+/// [`ncp_govern`]. Caller frees the returned string.
 /// # Safety
 /// `gov` must be NULL or a live handle from [`ncp_governor_new`]; string
 /// arguments must be NULL or valid C strings.
@@ -603,7 +615,9 @@ pub unsafe extern "C" fn ncp_governor_govern(
         };
         let last = sanitize_govern_inputs(&mut command, &mut sensor, last);
         // SAFETY: caller guarantees `gov` is a live, exclusively-held handle.
-        let out = (*gov).0.govern(&command, sensor.as_ref(), now_s, last);
+        let Ok(out) = (*gov).0.govern(&command, sensor.as_ref(), now_s, last) else {
+            return std::ptr::null_mut();
+        };
         match serde_json::to_string(&out) {
             Ok(s) => cstr_out(s),
             Err(_) => std::ptr::null_mut(),
@@ -640,7 +654,9 @@ pub unsafe extern "C" fn ncp_governor_is_estopped(gov: *const NcpGovernor) -> i3
     })
 }
 
-/// Latch ESTOP when a link monitor reports a sustained loss burst. NULL no-op.
+/// Latch ESTOP when a link monitor reports a sustained loss burst. Possible causes
+/// include congestion, interference, sender failure, and jamming. The report does
+/// not identify the cause or define the plant action. NULL is a no-op.
 /// # Safety
 /// `gov` must be NULL or a live handle from [`ncp_governor_new`].
 #[no_mangle]
@@ -693,7 +709,8 @@ pub extern "C" fn ncp_action_buffer_new() -> *mut NcpActionBuffer {
     })
 }
 
-/// Ingest one command at the plant's local `now_s`.
+/// Ingest one command at the receiver-local monotonic `now_s`. Use the same clock
+/// for [`ncp_action_buffer_active`] and [`ncp_action_buffer_should_hold`].
 ///
 /// Body-local API, not a remote ingress gate: the caller first binds authenticated
 /// actor/plane and exact live route/session generation. Returns `0` when the JSON
@@ -1460,6 +1477,47 @@ mod tests {
             ncp_governor_govern(governor, command.as_ptr(), 1.0, malformed.as_ptr(), 1.0)
         };
         assert!(persistent.is_null(), "malformed sensor must be rejected");
+        unsafe { ncp_governor_free(governor) };
+    }
+
+    #[test]
+    fn governor_unattributable_envelope_failure_returns_null_and_keeps_the_local_latch() {
+        let limits = cstr(r#"{"command_timeout_ms":500.0}"#);
+        let unattributable_estop = cstr(&format!(
+            r#"{{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{{"epoch":"","seq":1}},"session":{{"generation":"{TEST_GEN}"}},"mode":"estop","channels":{{}}}}"#
+        ));
+        let attributable_hold = cstr(&format!(
+            r#"{{"kind":"command_frame","ncp_version":"1.0","session_id":"s","stream":{{"epoch":"{TEST_EPOCH}","seq":1}},"session":{{"generation":"{TEST_GEN}"}},"mode":"hold","channels":{{}}}}"#
+        ));
+        let governor = unsafe { ncp_governor_new(limits.as_ptr()) };
+        assert!(!governor.is_null());
+
+        let rejected = unsafe {
+            ncp_governor_govern(
+                governor,
+                unattributable_estop.as_ptr(),
+                1.0,
+                std::ptr::null(),
+                -1.0,
+            )
+        };
+        assert!(
+            rejected.is_null(),
+            "an unattributable frame has no wire output"
+        );
+        assert_eq!(unsafe { ncp_governor_is_estopped(governor) }, 1);
+
+        let output = unsafe {
+            ncp_governor_govern(
+                governor,
+                attributable_hold.as_ptr(),
+                2.0,
+                std::ptr::null(),
+                -1.0,
+            )
+        };
+        let output = unsafe { take(output) }.expect("attributable follow-up emits the latch");
+        assert!(output.contains(r#""mode":"estop""#));
         unsafe { ncp_governor_free(governor) };
     }
 

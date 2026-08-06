@@ -33,16 +33,21 @@ import {
   ActionBuffer,
   CommandWatchdog,
   SafetyGovernor,
+  SafetyGovernError,
   assertWireFrame,
   maxHorizonLen,
   parseBoundedJson,
+  preflightJson,
+  canonicalizeNcpMessage,
   BoundedJsonError,
   JSON_LIMITS,
   requestDigest,
   NCP_ERROR_CODES,
+  MAX_CHANNELS,
 } from '../dist/index.js'
+import { canonicalDataPlaneByteLength } from '../dist/canonical-json.js'
 
-// Wire 0.8: valid canonical UUIDv4 identity for the hand-written fixtures.
+// Valid canonical UUIDv4 identifiers for the hand-written current-wire fixtures.
 const EP = '00000000-0000-4000-8000-000000000001'
 const GEN = '00000000-0000-4000-8000-0000000000a2'
 const OP = '00000000-0000-4000-8000-0000000000c1'
@@ -170,6 +175,14 @@ for (const filename of readdirSync(vectorsDir).filter((name) => name.endsWith('.
     assertNcpMessage(message, kind)
     if (['sensor_frame', 'command_frame', 'observation_frame'].includes(kind)) {
       assertWireFrame(message, kind)
+    }
+    if (kind === 'sensor_frame' || kind === 'command_frame') {
+      const canonical = canonicalizeNcpMessage(message, kind)
+      check(
+        canonicalDataPlaneByteLength(message, kind, JSON_LIMITS.maxFrameBytes) ===
+          Buffer.byteLength(canonical, 'utf8'),
+        `golden[${filename}]: capped canonical byte counter matches emitted bytes`,
+      )
     }
   } catch (error) {
     failures.push(`golden[${filename}]: canonical ${JSON.stringify(kind)} rejected: ${error}`)
@@ -487,6 +500,60 @@ for (const c of corpus.cases.action_buffer) {
   } catch {
     check(true, 'validator: unpaired surrogate rejected in an in-memory session_id')
   }
+  const unicodeCounterFrames = [
+    [
+      'sensor_frame',
+      {
+        kind: 'sensor_frame',
+        ncp_version: NCP_VERSION,
+        t: 0,
+        frame_id: 'world',
+        channels: { sample: { data: [0], unit: '𝄞' } },
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        session_id: 's',
+      },
+    ],
+    [
+      'command_frame',
+      {
+        kind: 'command_frame',
+        ncp_version: NCP_VERSION,
+        t: 0,
+        frame_id: 'world',
+        mode: 'hold',
+        ttl_ms: 200,
+        channels: { sample: { data: [0], unit: '𝄞' } },
+        horizon: [],
+        horizon_dt_ms: null,
+        stream: { epoch: EP, seq: 1 },
+        source: null,
+        source_t: 0,
+        session: { generation: GEN },
+        session_id: 's',
+        authority: null,
+      },
+    ],
+  ]
+  for (const [kind, frame] of unicodeCounterFrames) {
+    const canonical = canonicalizeNcpMessage(frame, kind)
+    check(
+      canonicalDataPlaneByteLength(frame, kind, JSON_LIMITS.maxFrameBytes) ===
+        Buffer.byteLength(canonical, 'utf8'),
+      `canonical byte counter: ${kind} supplementary-plane surrogate pair matches emitted bytes`,
+    )
+    const invalid = structuredClone(frame)
+    invalid.channels.sample.unit = '\ud800'
+    try {
+      canonicalDataPlaneByteLength(invalid, kind, JSON_LIMITS.maxFrameBytes)
+      check(false, `canonical byte counter: ${kind} trailing high surrogate accepted`)
+    } catch (error) {
+      check(
+        error instanceof Error && error.message.includes('unpaired UTF-16 surrogate'),
+        `canonical byte counter: ${kind} trailing high surrogate returned wrong error ${String(error)}`,
+      )
+    }
+  }
   // The outer byte gate must not duplicate an oversized WebSocket string into a
   // full TextEncoder buffer before rejecting it. A throwing encoder proves the
   // admission decision is made by the allocation-free bounded counter.
@@ -521,12 +588,12 @@ for (const c of corpus.cases.action_buffer) {
   const negotiated = SafetyGovernor.fromCapabilities({
     safety,
     sensor_channels: [
-      { name: 'imu_accel', kind: 'vec3', unit: 'm/s2', size: null },
-      { name: 'pose_position', kind: 'vec3', unit: 'm', size: 3n },
+      { name: 'imu_accel', requirement: 'required', kind: 'vec3', unit: 'm/s2', size: null },
+      { name: 'pose_position', requirement: 'required', kind: 'vec3', unit: 'm', size: 3n },
     ],
     command_channels: [
-      { name: 'thrust', kind: 'scalar', unit: 'N', size: null },
-      { name: 'velocity_setpoint', kind: 'vec3', unit: 'm/s', size: 3n },
+      { name: 'thrust', requirement: 'required', kind: 'scalar', unit: 'N', size: null },
+      { name: 'velocity_setpoint', requirement: 'required', kind: 'vec3', unit: 'm/s', size: 3n },
     ],
   })
   check(negotiated.safetyOk(), 'governor capabilities: compatible canonical specs negotiate')
@@ -554,26 +621,42 @@ for (const c of corpus.cases.action_buffer) {
     'governor capabilities: canonical velocity channel is clamped even when declared second',
   )
 
+  for (const requirement of [undefined, 'optional', 'unknown']) {
+    const governor = SafetyGovernor.fromCapabilities({
+      safety,
+      sensor_channels: [
+        { name: 'pose_position', requirement, kind: 'vec3', unit: 'm', size: 3n },
+      ],
+      command_channels: [
+        { name: 'velocity_setpoint', requirement, kind: 'vec3', unit: 'm/s', size: 3n },
+      ],
+    })
+    check(
+      !governor.safetyOk(),
+      `governor capabilities: ${String(requirement)} safety requirements fail closed`,
+    )
+  }
+
   for (const position of [
-    { name: 'pose_position', kind: 'vec3', unit: null, size: 3n },
-    { name: 'pose_position', kind: 'vec3', unit: 'cm', size: 3n },
-    { name: 'pose_position', kind: 'scalar', unit: 'm', size: null },
-    { name: 'pose_position', kind: 'vec3', unit: 'm', size: 2n },
+    { name: 'pose_position', requirement: 'required', kind: 'vec3', unit: null, size: 3n },
+    { name: 'pose_position', requirement: 'required', kind: 'vec3', unit: 'cm', size: 3n },
+    { name: 'pose_position', requirement: 'required', kind: 'scalar', unit: 'm', size: null },
+    { name: 'pose_position', requirement: 'required', kind: 'vec3', unit: 'm', size: 2n },
   ]) {
     const governor = SafetyGovernor.fromCapabilities({
       safety: { ...safety, max_speed_mps: null },
       sensor_channels: [position],
       command_channels: [
-        { name: 'velocity_setpoint', kind: 'vec3', unit: 'm/s', size: 3n },
+        { name: 'velocity_setpoint', requirement: 'required', kind: 'vec3', unit: 'm/s', size: 3n },
       ],
     })
     check(!governor.safetyOk(), 'governor capabilities: incompatible position fails closed')
   }
   for (const velocity of [
-    { name: 'velocity_setpoint', kind: 'vec3', unit: null, size: 3n },
-    { name: 'velocity_setpoint', kind: 'vec3', unit: 'km/h', size: 3n },
-    { name: 'velocity_setpoint', kind: 'scalar', unit: 'm/s', size: null },
-    { name: 'velocity_setpoint', kind: 'vec3', unit: 'm/s', size: 4n },
+    { name: 'velocity_setpoint', requirement: 'required', kind: 'vec3', unit: null, size: 3n },
+    { name: 'velocity_setpoint', requirement: 'required', kind: 'vec3', unit: 'km/h', size: 3n },
+    { name: 'velocity_setpoint', requirement: 'required', kind: 'scalar', unit: 'm/s', size: null },
+    { name: 'velocity_setpoint', requirement: 'required', kind: 'vec3', unit: 'm/s', size: 4n },
   ]) {
     const governor = SafetyGovernor.fromCapabilities({
       safety: { ...safety, geofence_radius_m: null },
@@ -585,7 +668,7 @@ for (const c of corpus.cases.action_buffer) {
   const reactiveOnlyFence = SafetyGovernor.fromCapabilities({
     safety: { ...safety, max_speed_mps: null },
     sensor_channels: [
-      { name: 'pose_position', kind: 'vec3', unit: 'm', size: 3n },
+      { name: 'pose_position', requirement: 'required', kind: 'vec3', unit: 'm', size: 3n },
     ],
     command_channels: [],
   })
@@ -625,22 +708,540 @@ for (const c of corpus.cases.action_buffer) {
   } catch (error) {
     check(false, `governor config: fail-closed HOLD must remain publishable (${error})`)
   }
+  const oversizedChannelName = 'k'.repeat(JSON_LIMITS.maxKeyBytes + 1)
+  const oversizedChannelData = new Array(JSON_LIMITS.maxArrayItems + 1).fill(1)
   const sanitizedEstop = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
     {
       kind: 'command_frame',
       mode: 'estop',
       stream: { epoch: EP, seq: 0 }, session: { generation: GEN }, session_id: 's',
+      source: { epoch: EP, seq: 0 },
+      source_t: Number.MAX_VALUE,
+      t: Number.MAX_VALUE,
       frame_id: 'world\u0085spoof',
-      channels: { 'bad\u0085channel': { data: [1] } },
+      channels: {
+        'bad\u0085channel': { data: [1] },
+        bulk_0: {
+          data: oversizedChannelData,
+          unit: 'u'.repeat(JSON_LIMITS.maxStringBytes + 1),
+        },
+        bulk_1: { data: oversizedChannelData },
+        bulk_2: { data: oversizedChannelData },
+        bulk_3: { data: oversizedChannelData },
+        bulk_4: { data: oversizedChannelData },
+        [oversizedChannelName]: { data: [1] },
+      },
     },
     null,
     1,
     null,
   )
   check(
-    sanitizedEstop.frame_id === 'world' && !('bad\u0085channel' in sanitizedEstop.channels),
-    'governor fail-safe output strips C1 control characters',
+    sanitizedEstop.stream.seq === 1 &&
+      sanitizedEstop.stream.epoch === EP &&
+      sanitizedEstop.session.generation === GEN &&
+      sanitizedEstop.session_id === 's' &&
+      sanitizedEstop.t === 0 &&
+      sanitizedEstop.frame_id === 'world' &&
+      sanitizedEstop.source === null &&
+      sanitizedEstop.source_t === 0,
+    'governor fail-safe output sanitizes sequence, time, frame, and source correlation',
   )
+  check(
+    !('bad\u0085channel' in sanitizedEstop.channels) &&
+      !(oversizedChannelName in sanitizedEstop.channels) &&
+      Object.keys(sanitizedEstop.channels).length === 1 &&
+      sanitizedEstop.channels.velocity_setpoint?.data.length === 3 &&
+      sanitizedEstop.channels.velocity_setpoint.data.every((value) => value === 0),
+    'governor aggregate-item overflow falls back to the complete negotiated set',
+  )
+  try {
+    assertWireFrame(sanitizedEstop, 'command_frame')
+    preflightJson(canonicalizeNcpMessage(sanitizedEstop, 'command_frame'))
+  } catch (error) {
+    check(false, `governor sanitized ESTOP must pass wire and bounded preflight (${error})`)
+  }
+
+  const callerChannels = {}
+  for (let index = 0; index < 5_000; index++) {
+    callerChannels[`caller_${index.toString().padStart(4, '0')}`] = {
+      data: [index + 1],
+      unit: 'count',
+    }
+  }
+  const boundedEstop = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'estop',
+      stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's',
+      channels: callerChannels,
+    },
+    null,
+    1,
+    null,
+  )
+  const boundedEntries = Object.entries(boundedEstop.channels)
+  check(
+    boundedEntries.length === 1 &&
+      boundedEntries[0]?.[0] === 'velocity_setpoint' &&
+      boundedEntries.every(([, channel]) => channel.data.every((value) => value === 0)) &&
+      boundedEntries.reduce((total, [, channel]) => total + channel.data.length, 0) <=
+        JSON_LIMITS.maxTotalArrayItems,
+    'governor falls back atomically to negotiated channels when the full union is too large',
+  )
+  try {
+    assertWireFrame(boundedEstop, 'command_frame')
+    preflightJson(canonicalizeNcpMessage(boundedEstop, 'command_frame'))
+  } catch (error) {
+    check(false, `governor bounded ESTOP must pass wire and bounded preflight (${error})`)
+  }
+
+  const nearFrameChannels = Object.create(null)
+  for (let index = 0; index < 15; index++) {
+    nearFrameChannels[`bulk_${index.toString().padStart(2, '0')}`] = {
+      data: [1],
+      unit: 'u'.repeat(JSON_LIMITS.maxStringBytes),
+    }
+  }
+  nearFrameChannels.bulk_15 = { data: [1], unit: '' }
+  const nearFrameInput = {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    mode: 'estop',
+    stream: { epoch: EP, seq: 1 },
+    session: { generation: GEN },
+    session_id: 's',
+    channels: nearFrameChannels,
+  }
+  const baseNearFrameJson = JSON.stringify(nearFrameInput)
+  const tunedUnitBytes = JSON_LIMITS.maxFrameBytes - Buffer.byteLength(baseNearFrameJson, 'utf8')
+  check(
+    tunedUnitBytes > 0 && tunedUnitBytes <= JSON_LIMITS.maxStringBytes,
+    'governor near-frame fixture has a legal tunable final unit',
+  )
+  nearFrameChannels.bulk_15.unit = 'u'.repeat(tunedUnitBytes)
+  const maxFrameJson = JSON.stringify(nearFrameInput)
+  check(
+    Buffer.byteLength(maxFrameJson, 'utf8') === JSON_LIMITS.maxFrameBytes,
+    'governor near-frame fixture reaches the exact universal byte ceiling',
+  )
+  try {
+    preflightJson(maxFrameJson)
+    assertWireFrame(nearFrameInput, 'command_frame')
+  } catch (error) {
+    check(false, `governor near-frame input must be bounded and semantically valid (${error})`)
+  }
+  const nearFrameOutput = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    nearFrameInput,
+    null,
+    1,
+    null,
+  )
+  check(
+    Object.keys(nearFrameOutput.channels).length === 1 &&
+      Object.hasOwn(nearFrameOutput.channels, 'velocity_setpoint'),
+    'governor near-frame expansion falls back to the complete negotiated set',
+  )
+  try {
+    assertWireFrame(nearFrameOutput, 'command_frame')
+    preflightJson(canonicalizeNcpMessage(nearFrameOutput, 'command_frame'))
+  } catch (error) {
+    check(false, `governor near-frame fallback must be publishable (${error})`)
+  }
+
+  const growingActiveChannels = Object.create(null)
+  growingActiveChannels.velocity_setpoint = { data: [10, 10, 10], unit: 'm/s' }
+  for (let index = 0; index < 15; index++) {
+    growingActiveChannels[`bulk_${index.toString().padStart(2, '0')}`] = {
+      data: [1],
+      unit: 'u'.repeat(JSON_LIMITS.maxStringBytes),
+    }
+  }
+  growingActiveChannels.bulk_15 = { data: [1], unit: '' }
+  const growingActive = {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    t: 0,
+    frame_id: 'world',
+    mode: 'active',
+    ttl_ms: 200,
+    channels: growingActiveChannels,
+    horizon: [],
+    horizon_dt_ms: null,
+    stream: { epoch: EP, seq: 1 },
+    source: null,
+    source_t: 0,
+    session: { generation: GEN },
+    session_id: 's',
+    authority: AUTHORITY,
+  }
+  const baseGrowingCanonical = canonicalizeNcpMessage(growingActive, 'command_frame')
+  const growingPadding =
+    JSON_LIMITS.maxFrameBytes - Buffer.byteLength(baseGrowingCanonical, 'utf8')
+  check(
+    growingPadding > 0 && growingPadding <= JSON_LIMITS.maxStringBytes,
+    'governor growing-Active fixture has legal exact-bound padding',
+  )
+  growingActiveChannels.bulk_15.unit = 'u'.repeat(growingPadding)
+  const exactGrowingCanonical = canonicalizeNcpMessage(growingActive, 'command_frame')
+  check(
+    Buffer.byteLength(exactGrowingCanonical, 'utf8') === JSON_LIMITS.maxFrameBytes &&
+      canonicalDataPlaneByteLength(
+        growingActive,
+        'command_frame',
+        JSON_LIMITS.maxFrameBytes,
+      ) === JSON_LIMITS.maxFrameBytes,
+    'governor growing-Active canonical input reaches the exact frame ceiling',
+  )
+  preflightJson(exactGrowingCanonical)
+  const growingOutput = new SafetyGovernor({
+    command_timeout_ms: 500,
+    max_speed_mps: 1,
+  }).govern(
+    growingActive,
+    {
+      kind: 'sensor_frame',
+      ncp_version: NCP_VERSION,
+      stream: { epoch: EP, seq: 1 },
+      session: { generation: GEN },
+      session_id: 's',
+      channels: {},
+    },
+    1,
+    1,
+  )
+  check(
+    growingOutput.mode === 'hold',
+    'governor replaces an Active frame whose clamp expands past the canonical byte ceiling',
+  )
+  try {
+    preflightJson(canonicalizeNcpMessage(growingOutput, 'command_frame'))
+  } catch (error) {
+    check(false, `governor growing-Active HOLD must remain publishable (${error})`)
+  }
+
+  const canonicalZeroChannels = Object.create(null)
+  canonicalZeroChannels.a = { data: new Array(65_536).fill(1), unit: null }
+  canonicalZeroChannels.b = { data: new Array(65_536).fill(1), unit: null }
+  canonicalZeroChannels.c = { data: new Array(65_536).fill(1), unit: null }
+  canonicalZeroChannels.d = { data: new Array(65_533).fill(1), unit: null }
+  const canonicalZeroOutput = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'estop',
+      stream: { epoch: EP, seq: 1 },
+      session: { generation: GEN },
+      session_id: 's',
+      channels: canonicalZeroChannels,
+    },
+    null,
+    1,
+    null,
+  )
+  check(
+    Object.keys(canonicalZeroOutput.channels).length === 1 &&
+      Object.hasOwn(canonicalZeroOutput.channels, 'velocity_setpoint'),
+    'governor measures canonical 0.0 bytes and rejects an oversized full-union tier',
+  )
+  preflightJson(canonicalizeNcpMessage(canonicalZeroOutput, 'command_frame'))
+
+  const orderBase = Array.from({ length: 15 }, (_, index) => [
+    `m${index.toString().padStart(2, '0')}`,
+    { data: [1], unit: 'u'.repeat(JSON_LIMITS.maxStringBytes) },
+  ])
+  const earlyBmp = '\ue000'
+  const lateSupplementary = '\u{10000}'
+  const orderedChannels = (reverse) => {
+    const channels = Object.create(null)
+    const edge = reverse
+      ? [
+          [lateSupplementary, { data: [1], unit: 'u'.repeat(60_000) }],
+          ...orderBase,
+          [earlyBmp, { data: [1], unit: 'u'.repeat(10_000) }],
+        ]
+      : [
+          [earlyBmp, { data: [1], unit: 'u'.repeat(10_000) }],
+          ...orderBase,
+          [lateSupplementary, { data: [1], unit: 'u'.repeat(60_000) }],
+        ]
+    for (const [name, value] of edge) channels[name] = value
+    return channels
+  }
+  const governOrdered = (channels) =>
+    new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+      {
+        kind: 'command_frame',
+        ncp_version: NCP_VERSION,
+        mode: 'estop',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        session_id: 's',
+        channels,
+      },
+      null,
+      1,
+      null,
+    )
+  const orderedForward = governOrdered(orderedChannels(false))
+  const orderedReverse = governOrdered(orderedChannels(true))
+  check(
+    canonicalizeNcpMessage(orderedForward, 'command_frame') ===
+      canonicalizeNcpMessage(orderedReverse, 'command_frame') &&
+      orderedForward.channels[earlyBmp]?.unit?.length === 10_000 &&
+      orderedForward.channels[lateSupplementary]?.unit === null,
+    'governor fallback budgets use Rust UTF-8 map order, independent of JS insertion order',
+  )
+
+  const manyNegotiatedNames = Array.from(
+    { length: 4_092 },
+    (_, index) => `c${index.toString().padStart(4, '0')}`,
+  )
+  const manyNegotiatedChannels = Object.create(null)
+  for (const name of manyNegotiatedNames) manyNegotiatedChannels[name] = { data: [1], unit: null }
+  const objectBudgetOutput = new SafetyGovernor(
+    { command_timeout_ms: 500 },
+    'pose_position',
+    manyNegotiatedNames[0],
+    manyNegotiatedNames,
+    [],
+  ).govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'estop',
+      stream: { epoch: EP, seq: 1 },
+      source: { epoch: EP, seq: 2 },
+      source_t: 0,
+      session: { generation: GEN },
+      session_id: 's',
+      channels: manyNegotiatedChannels,
+    },
+    null,
+    1,
+    null,
+  )
+  check(
+    Object.keys(objectBudgetOutput.channels).length === 0,
+    'governor object-budget overflow falls back atomically to empty channels',
+  )
+  try {
+    assertWireFrame(objectBudgetOutput, 'command_frame')
+    preflightJson(canonicalizeNcpMessage(objectBudgetOutput, 'command_frame'))
+  } catch (error) {
+    check(false, `governor empty-channel fallback must be publishable (${error})`)
+  }
+
+  const sourceWithoutTime = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'estop',
+      stream: { epoch: EP, seq: 1 },
+      source: { epoch: EP, seq: 2 },
+      session: { generation: GEN },
+      session_id: 's',
+      channels: {},
+    },
+    null,
+    1,
+    null,
+  )
+  check(
+    sourceWithoutTime.source?.epoch === EP &&
+      sourceWithoutTime.source.seq === 2 &&
+      sourceWithoutTime.source_t === 0,
+    'governor defaults omitted source_t to zero without dropping valid source identity',
+  )
+
+  const sourceNullInput = {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    mode: 'estop',
+    stream: { epoch: EP, seq: 1 },
+    source: { epoch: EP, seq: 2 },
+    source_t: null,
+    session: { generation: GEN },
+    session_id: 's',
+    channels: {},
+  }
+  try {
+    assertWireFrame(sourceNullInput, 'command_frame')
+    check(false, 'validator accepted explicit null command_frame.source_t')
+  } catch {
+    check(true, 'validator rejects explicit null command_frame.source_t')
+  }
+  const sourceNullOutput = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    sourceNullInput,
+    null,
+    1,
+    null,
+  )
+  check(
+    sourceNullOutput.source === null && sourceNullOutput.source_t === 0,
+    'governor drops source correlation when explicit source_t is invalid',
+  )
+
+  const activeWithoutSourceTime = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'active',
+      stream: { epoch: EP, seq: 1 },
+      source: { epoch: EP, seq: 2 },
+      session: { generation: GEN },
+      session_id: 's',
+      authority: AUTHORITY,
+      ttl_ms: 200,
+      channels: { velocity_setpoint: { data: [0, 0, 0], unit: 'm/s' } },
+    },
+    {
+      kind: 'sensor_frame',
+      ncp_version: NCP_VERSION,
+      stream: { epoch: EP, seq: 2 },
+      session: { generation: GEN },
+      session_id: 's',
+      channels: {},
+    },
+    1,
+    1,
+  )
+  check(
+    activeWithoutSourceTime.mode === 'active' &&
+      activeWithoutSourceTime.source_t === 0 &&
+      activeWithoutSourceTime.frame_id === 'world' &&
+      Array.isArray(activeWithoutSourceTime.horizon),
+    'governor materializes Rust defaults on a successful Active output',
+  )
+
+  const foreignSensorCommand = {
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    mode: 'active',
+    stream: { epoch: EP, seq: 1 },
+    session: { generation: GEN },
+    session_id: 's',
+    authority: AUTHORITY,
+    ttl_ms: 200,
+    channels: { velocity_setpoint: { data: [0, 0, 0], unit: 'm/s' } },
+  }
+  for (const [label, patch] of [
+    ['session id', { session_id: 'other-session' }],
+    [
+      'session generation',
+      { session: { generation: '50000000-0000-4000-8000-000000000005' } },
+    ],
+  ]) {
+    const output = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+      foreignSensorCommand,
+      {
+        kind: 'sensor_frame',
+        ncp_version: NCP_VERSION,
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        session_id: 's',
+        channels: {},
+        ...patch,
+      },
+      1,
+      1,
+    )
+    check(output.mode === 'hold', `governor rejects a foreign sensor ${label}`)
+  }
+
+  const nonfiniteSourceCommand = {
+    ...foreignSensorCommand,
+    source: { epoch: EP, seq: 2 },
+    source_t: Number.POSITIVE_INFINITY,
+  }
+  try {
+    assertWireFrame(nonfiniteSourceCommand, 'command_frame')
+    check(false, 'validator accepted non-finite command_frame.source_t')
+  } catch {
+    check(true, 'validator rejects non-finite command_frame.source_t')
+  }
+
+  for (const [label, identityPatch] of [
+    ['missing stream epoch', { stream: { seq: 1 } }],
+    ['missing session generation', { session: {} }],
+    ['unsafe session id', { session_id: 'bad/session' }],
+  ]) {
+    const governor = new SafetyGovernor({ command_timeout_ms: 500 })
+    const invalidIdentity = {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'estop',
+      stream: { epoch: EP, seq: 1 },
+      session: { generation: GEN },
+      session_id: 's',
+      channels: {},
+      ...identityPatch,
+    }
+    let error = null
+    try {
+      governor.govern(invalidIdentity, null, 1, null)
+    } catch (caught) {
+      error = caught
+    }
+    check(
+      error instanceof SafetyGovernError &&
+        error.code === 'unattributable-envelope' &&
+        governor.isEstopped(),
+      `governor ${label}: latches locally and emits no wire frame`,
+    )
+    const latched = governor.govern(
+      {
+        kind: 'command_frame',
+        ncp_version: NCP_VERSION,
+        mode: 'hold',
+        stream: { epoch: EP, seq: 1 },
+        session: { generation: GEN },
+        session_id: 's',
+        channels: {},
+      },
+      null,
+      1,
+      null,
+    )
+    check(latched.mode === 'estop', `governor ${label}: valid follow-up exposes the latch`)
+  }
+
+  const prototypeInput = JSON.parse(
+    `{"__proto__":{"data":[1]},"constructor":{"data":[2]},` +
+      `"prototype":{"data":[3]},"toJSON":{"data":[4]}}`,
+  )
+  const prototypeOutput = new SafetyGovernor({ command_timeout_ms: 500 }).govern(
+    {
+      kind: 'command_frame',
+      ncp_version: NCP_VERSION,
+      mode: 'estop',
+      stream: { epoch: EP, seq: 1 },
+      session: { generation: GEN },
+      session_id: 's',
+      channels: prototypeInput,
+    },
+    null,
+    1,
+    null,
+  )
+  check(
+    Object.getPrototypeOf(prototypeOutput.channels) === null &&
+      ['__proto__', 'constructor', 'prototype', 'toJSON'].every(
+        (name) =>
+          Object.hasOwn(prototypeOutput.channels, name) &&
+          prototypeOutput.channels[name].data.every((value) => value === 0),
+      ) &&
+      Object.prototype.polluted === undefined,
+    'governor preserves prototype-like channel keys without prototype mutation',
+  )
+  try {
+    const prototypeJson = JSON.stringify(prototypeOutput)
+    preflightJson(prototypeJson)
+    assertWireFrame(JSON.parse(prototypeJson), 'command_frame')
+  } catch (error) {
+    check(false, `governor prototype-key output must be publishable (${error})`)
+  }
 
   // assertWireFrame: the data-plane ingress gate.
   const okFrame = { kind: 'command_frame', ncp_version: NCP_VERSION, stream: { epoch: EP, seq: 1 }, session: { generation: GEN }, session_id: 's' }

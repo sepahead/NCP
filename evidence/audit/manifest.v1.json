@@ -8,20 +8,20 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "56befd102814f7a5fdaff9c852494261afa1155d3a1c76bf4580b0a4bd7cfb7b",
-      "bytes": 414039,
-      "records": 237
+      "sha256": "c124bfd04953064302d858b6a91b34d404747a5e6824b488047debb59aaaf198",
+      "bytes": 432890,
+      "records": 269
     },
     {
       "path": "evidence/audit/requirement-traceability.v1.json",
-      "sha256": "1189918cc08dfbccdd2b93a76554d4ab166170df648fca976808218358fba104",
-      "bytes": 229805,
+      "sha256": "9597a93c26a49065c751b11ed1d719af7474e108de902f78e3900e1363999451",
+      "bytes": 230804,
       "records": 117
     },
     {
       "path": "evidence/audit/threat-register.v1.json",
-      "sha256": "a22cd0638278339b18627650dd6cd56b7e58d951932949d35399af8012a9b822",
-      "bytes": 61853,
+      "sha256": "26c2ff3351737c1c4bc4a9ccdae7402df7d654bd293add56449e40047f76ef39",
+      "bytes": 63146,
       "records": 24
     }
   ],
@@ -48,12 +48,12 @@
     },
     {
       "path": "docs/adr/decision-registry.proposed.v1.json",
-      "sha256": "04ed87e01df58b9500fcf578fc2a676290aca08ec16d2a058e65b9fc3e32dfc4",
+      "sha256": "6f5ae86a0084f20c73aa5462bd6a7286cba0e387e72badcc9117200631fa485f",
       "bytes": 62235
     },
     {
       "path": "Cargo.lock",
-      "sha256": "6d871ea836625994e83a7a0465b802bce3cf1f4f4e9c8c9d5be6a543d785524a",
+      "sha256": "66dc7e6a8eaba70369d87cc6685d5f8f596f33730090bb57588618abc837379e",
       "bytes": 94486
     },
     {
@@ -63,8 +63,8 @@
     },
     {
       "path": "evidence/supply-chain/vulnerability-report.v1.json",
-      "sha256": "863255cd94092c098d713885a7987d68f4e2281e68685cb9197f3830a5568fc0",
-      "bytes": 1832
+      "sha256": "41ba00fcc532da4cd49a90939f4d70bdc14c99dab24aed2288a3d76f6d946dba",
+      "bytes": 2342
     }
   ],
   "generation_policy": "Rebuild from current repository inputs; byte drift or an unclassified latent path fails the local gate."

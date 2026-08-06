@@ -34,10 +34,10 @@ EXPECTED_INDEX_SHA256 = (
     "2e0337544d91a780415d5f86e6372f2067121fc60244c8a30d5231e5ab031b51"
 )
 EXPECTED_AUDIT_SHA256 = (
-    "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b"
+    "18b18684b24f8464ac2b305f48d85bc2404a1bb7844030e7f36179a08dcadc02"
 )
 EXPECTED_REVIEW_CONTENT_SHA256 = (
-    "9d41b80e777d0a866e649228e131b7b1457c6a5c548390aeb11a1edf8e454815"
+    "4f00a63414957114d11e36aff46843b469f13eecc8111a1de942c0e16008f1cc"
 )
 EXPECTED_CANONICAL_INDEX_SHA256 = (
     "b4290ad1b08be16e1400c008d642ee14b416d6f39a33bb65c44f53dccd09897f"
@@ -101,29 +101,67 @@ def _sha256(path: Path) -> str:
         raise ReviewError(f"cannot hash {path}: {error}") from error
 
 
-def _git(*args: str) -> bytes:
+def _git_environment() -> dict[str, str]:
     environment = os.environ.copy()
-    environment.pop("GIT_EXTERNAL_DIFF", None)
-    environment.pop("GIT_DIFF_OPTS", None)
-    environment["LC_ALL"] = "C"
+    exact = {
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_CEILING_DIRECTORIES",
+        "GIT_COMMON_DIR",
+        "GIT_CONFIG",
+        "GIT_CONFIG_COUNT",
+        "GIT_CONFIG_GLOBAL",
+        "GIT_CONFIG_PARAMETERS",
+        "GIT_CONFIG_SYSTEM",
+        "GIT_DIR",
+        "GIT_DIFF_OPTS",
+        "GIT_EXTERNAL_DIFF",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_REPLACE_REF_BASE",
+        "GIT_WORK_TREE",
+    }
+    for key in list(environment):
+        if key in exact or key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")):
+            environment.pop(key, None)
+    environment.update(
+        {
+            "GIT_ATTR_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_NO_REPLACE_OBJECTS": "1",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "LC_ALL": "C",
+        }
+    )
+    return environment
+
+
+def _git_at(root: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
     try:
         return subprocess.check_output(
             [
                 "git",
+                "--no-replace-objects",
                 "--no-pager",
                 "-c",
                 "color.ui=false",
                 "-c",
                 "core.quotePath=true",
                 "-C",
-                str(ROOT),
+                str(root),
                 *args,
             ],
+            input=input_bytes,
             stderr=subprocess.PIPE,
-            env=environment,
+            env=_git_environment(),
         )
     except (OSError, subprocess.CalledProcessError) as error:
         raise ReviewError(f"git {' '.join(args)} failed: {error}") from error
+
+
+def _git(*args: str) -> bytes:
+    return _git_at(ROOT, *args)
 
 
 def _git_json(path: str) -> dict[str, Any]:
@@ -1350,6 +1388,27 @@ def self_test(
         duplicate = root / "duplicate.json"
         duplicate.write_text('{"a": 1, "a": 2}', encoding="utf-8")
         _must_fail(lambda: load(duplicate), "duplicate JSON key")
+
+        repository = root / "repository"
+        repository.mkdir()
+        _git_at(repository, "init", "-q")
+        _git_at(repository, "config", "user.name", "Max Effort Review Test")
+        _git_at(repository, "config", "user.email", "test@example.invalid")
+        tracked = repository / "tracked.txt"
+        tracked.write_bytes(b"one\ntwo\n")
+        _git_at(repository, "add", "tracked.txt")
+        _git_at(repository, "-c", "commit.gpgSign=false", "commit", "-qm", "fixture")
+        original_blob = _git_at(repository, "rev-parse", "HEAD:tracked.txt").decode().strip()
+        replacement_blob = _git_at(
+            repository,
+            "hash-object",
+            "-w",
+            "--stdin",
+            input_bytes=b"red\nblu\n",
+        ).decode().strip()
+        _git_at(repository, "replace", original_blob, replacement_blob)
+        if _git_at(repository, "cat-file", "blob", original_blob) != b"one\ntwo\n":
+            raise AssertionError("Git replacement ref changed immutable review bytes")
 
 
 def main() -> int:

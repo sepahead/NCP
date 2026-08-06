@@ -14,7 +14,8 @@ and give and receive feedback gracefully.
 **Reporting:** to raise a conduct concern, contact the maintainer (**@sepahead**)
 privately (a direct message, or email **sepmhn@gmail.com**).
 Reports are handled promptly and confidentially. *(Security vulnerabilities go
-through a different channel — a GitHub security advisory — per [`SECURITY.md`](SECURITY.md).)*
+through the enabled private vulnerability-reporting channel described in
+[`SECURITY.md`](SECURITY.md).)*
 
 This Code of Conduct is adapted from the Contributor Covenant v2.1; see the linked
 page above for the full community standards and enforcement guidelines.

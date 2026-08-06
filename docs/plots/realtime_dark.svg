@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="621.672748pt" height="319.029656pt" viewBox="0 0 621.672748 319.029656" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="621.672748pt" height="319.029656pt" viewBox="0 0 621.672748 319.029656" xmlns="http://www.w3.org/2000/svg" version="1.1" role="img" aria-labelledby="ncp-realtime-plot-title ncp-realtime-plot-desc">
+ <title id="ncp-realtime-plot-title">Historical NCP real-time-factor sweep</title>
+ <desc id="ncp-realtime-plot-desc">Historical, non-normative local NEST 3.8.0 sweep of real-time factor by OpenMP threads. It does not qualify the UNRELEASED 1.0.0-rc.1 candidate and is not release evidence, a capacity claim, or certification; the 17–20k crossing is interpolated.</desc>
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>

@@ -1,7 +1,7 @@
 # `ncp-zenoh`
 
 `ncp-zenoh` is the stable transport binding named by the unreleased,
-release-blocked NCP `1.0.0-rc.1` candidate. It carries canonical JSON over Zenoh
+release-blocked NCP `1.0.0-rc.1` candidate. It carries validated NCP JSON over Zenoh
 queryable RPC and per-session pub/sub keys; it does not change the normative wire.
 It re-exports the coordinated package, wire, compact-proto, complete-contract, and
 build identity constants from `ncp-core`; the RC build identity is the
@@ -34,8 +34,9 @@ a complete envelope and live binding; it may omit only the authority lease.
 
 `ZenohControlTransport` owns one command epoch and one JSON-safe sequence allocator
 across Active, HOLD, and ESTOP; caller and emergency positions are always replaced by
-that single action-stream identity. `send_command()` reports bounded slot admission
-(`Accepted`, `ReplacedPending`, or `Rejected`), not Zenoh delivery. A pending
+that single action-stream identity. `send_command()` reports the result of bounded slot admission
+(`Accepted`, `ReplacedPending`, `StreamExhausted`, or `Rejected`), not Zenoh
+delivery. The admitted variants carry the exact transport-assigned position. A pending
 pre-publication replacement reuses the slot's position so local replacement creates no fake
 gap. Once a put is attempted, the position is consumed. If a fail-safe put is
 rejected or delivery-ambiguous, `fail_safe_delivery_pending()` remains true and
@@ -61,19 +62,39 @@ shipped ACL/TLS templates remain configuration-only, and generic `open()`,
 The reviewed Cargo feature set is exactly TCP, TLS, UDP, and shared memory.
 Zenoh defaults and `transport_compression` remain disabled. The workspace root
 patches only `zenoh-transport 1.9.0` to immutable revision
-`6b93b15d0795748b7f76c72eae07f1cda517e762`. That reviewed backport selects
-`lz4_flex 0.11.6`, which removes `RUSTSEC-2026-0041` from the root lock.
+`9045545b72a77602a87f40203cb614b48157b4bc`. That reviewed backport selects
+patched `lz4_flex 0.11.6`, updates its `twox-hash` dependency to `2.1.3`, and
+selects non-yanked `spin 0.9.9` and `0.10.1`. The fork CI pins
+`cargo-deny 0.19.9` and rejects yanked lock entries and current RustSec
+vulnerabilities. Its qualification lock also selects fixed
+`crossbeam-epoch 0.9.20`, `rand 0.8.6` and `0.9.4`, `quinn-proto 0.11.15`,
+`rustls-webpki 0.103.13`, and `serde_with 3.21.0`.
+This removes `RUSTSEC-2026-0041` from the root lock.
 
-Cargo verifies the selected Git object but does not verify its SSH signature.
+The package checker verifies the selected Git revision, tree, tracked files, and
+reviewed delta from the checksum-bound registry source during qualification. The
+receipt classifies these checks as point-in-time local-process attestations and
+does not retain the exact fork source bytes. Cargo does not verify Git signatures.
+
 Cargo patches are root-selected and do not propagate from a published library
 dependency. Each source-tree consumer must retain the same exact root patch and
-run its own locked dependency gate. The normalized `ncp-zenoh` archive lock falls
-back to affected `lz4_flex 0.10.0` without that patch. The local package checker
-executes archive-alone Cargo metadata and observes the fallback, then tests under
-the exact consuming-root patch. The patched run is `CONDITIONAL_PASS`;
-self-contained distribution remains `OPEN_FAIL_CLOSED` and `NO_GO`. A future
-package candidate must replace this temporary source with a qualified immutable
-upstream release or another reviewed distribution design. Cargo feature
+run its own locked dependency gate. Without that patch, the normalized source
+archive resolves registry `zenoh-transport 1.9.0` to affected
+`lz4_flex 0.10.0` and its `twox-hash 1.6.3` dependency. The package checker does
+not compile that fallback. It applies the exact patch at the consuming test root.
+The conditioned graph then resolves patched `lz4_flex 0.11.6` and updates its
+`twox-hash` dependency to `2.1.3`. The qualification also runs the exact fork's
+`security_backport` regression and its compression-enabled library tests.
+
+Exact resolution and fetch can use network access. Cargo dependency access is
+offline only during compile and test. The checker claims no host or child-process
+network isolation and no host filesystem isolation. Its source comparison covers
+both conditioned consumer graphs at two points in time. It retains no
+compiler-input trace or command transcript. The result is `CONDITIONAL_PASS`, with
+`package_self_contained=false`,
+`self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and
+`release_authorized=false`. A future package candidate must use a qualified
+immutable upstream release or another reviewed distribution design. Cargo feature
 unification by another dependency can also enable unreviewed Zenoh features. Such
 a build is outside this candidate profile.
 

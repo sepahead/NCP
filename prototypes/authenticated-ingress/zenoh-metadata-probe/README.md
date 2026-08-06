@@ -34,11 +34,17 @@ output to match
 deterministic JSON observation summary.
 
 The probe uses the exact reviewed `zenoh-transport 1.9.0` backport at
-`6b93b15d0795748b7f76c72eae07f1cda517e762`. The backport leaves the published
+`9045545b72a77602a87f40203cb614b48157b4bc`. The backport leaves the published
 Zenoh transport library source unchanged, adds downstream security regression
-tests, and selects fixed `lz4_flex 0.11.6`. The source verifier binds the patch,
-lock, metadata, checksum, and compression-disabled feature graph. Cargo does not
-verify the backport's SSH signature. This quarantined probe remains non-shipping,
+tests, selects fixed `lz4_flex 0.11.6`, and selects non-yanked `spin 0.9.9` and
+`0.10.1`. Its qualification lock also selects fixed `crossbeam-epoch 0.9.20`,
+`rand 0.8.6` and `0.9.4`, `quinn-proto 0.11.15`,
+`rustls-webpki 0.103.13`, and `serde_with 3.21.0`. Its pinned
+`cargo-deny 0.19.9` policy rejects yanked lock entries and current RustSec
+vulnerabilities. The
+source verifier binds the patch, lock, metadata, checksum, and
+compression-disabled feature graph. Cargo does not
+verify Git signatures. This quarantined probe remains non-shipping,
 and a future source or feature change fails before execution.
 The probe reserves an unused loopback port immediately before opening the listener;
 another local process could win that small race, which produces a test failure,

@@ -347,7 +347,8 @@ def test_local_action_buffer_reset_retires_generation_context():
 def test_persistent_governor_latches_across_calls():
     """The Governor CLASS is the latching form — the one-shot govern() cannot
     latch by construction (fresh governor per call). A geofence breach must keep
-    every later call at ESTOP until an authorized operator calls reset()."""
+    every later successfully returned frame at ESTOP until an authorized operator
+    calls reset()."""
     gov = ncp.Governor(json.dumps({"geofence_radius_m": 5.0, "command_timeout_ms": 500.0}))
     active = json.dumps(
         {
@@ -396,3 +397,35 @@ def test_persistent_governor_latches_across_calls():
     # note_link(burst=True) latches too (the jam escalation path).
     gov.note_link(True)
     assert gov.is_estopped() is True
+
+
+def test_persistent_governor_unattributable_envelope_failure_is_local_and_latched():
+    gov = ncp.Governor(json.dumps({"command_timeout_ms": 500.0}))
+    unattributable_estop = json.dumps(
+        {
+            "kind": "command_frame",
+            "ncp_version": "1.0",
+            "stream": {"epoch": "", "seq": 1},
+            "session": {"generation": _GEN},
+            "session_id": "s",
+            "mode": "estop",
+            "channels": {},
+        }
+    )
+
+    with pytest.raises(ValueError, match="local safety failure"):
+        gov.govern(unattributable_estop, 1.0)
+
+    assert gov.is_estopped() is True
+    attributable_hold = json.dumps(
+        {
+            "kind": "command_frame",
+            "ncp_version": "1.0",
+            "stream": {"epoch": _EP, "seq": 1},
+            "session": {"generation": _GEN},
+            "session_id": "s",
+            "mode": "hold",
+            "channels": {},
+        }
+    )
+    assert json.loads(gov.govern(attributable_hold, 2.0))["mode"] == "estop"

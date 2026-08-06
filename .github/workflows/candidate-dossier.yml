@@ -98,7 +98,7 @@ jobs:
           HOME="$pinned_home" \
             python3 scripts/generate_supply_chain_evidence.py --self-test --check
           python3 scripts/check_dependency_exposure.py --self-test
-          python3 scripts/build_candidate_dossier.py \
+          python3 -I scripts/build_candidate_dossier.py \
             --archive-preflight "$GITHUB_SHA"
 
       - name: Build exact held candidate dossier
@@ -108,12 +108,12 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
           export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
-          python3 scripts/build_candidate_dossier.py \
+          python3 -I scripts/build_candidate_dossier.py \
             --source-revision "$GITHUB_SHA" \
             --output candidate-dossier
           mkdir candidate-held
           mv candidate-dossier candidate-held/
-          python3 scripts/build_candidate_dossier.py \
+          python3 -I scripts/build_candidate_dossier.py \
             --verify-dossier candidate-held/candidate-dossier \
             --require-hosted-toolchain \
             --subject-checksums candidate-held/attestation-subjects.sha256
@@ -155,7 +155,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          python3 scripts/build_candidate_dossier.py \
+          python3 -I scripts/build_candidate_dossier.py \
             --verify-dossier candidate-held/candidate-dossier \
             --require-hosted-toolchain \
             --subject-checksums "$RUNNER_TEMP/recomputed-subjects.sha256"

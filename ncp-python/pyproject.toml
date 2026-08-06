@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "ncp"
-description = "Python bindings for the NCP (Neuro-Cybernetic Protocol) Rust core: version guard, key scheme, rate codec, action-plane safety governor, and wire validation, wire-identical to the Rust and TypeScript peers"
+description = "Python bindings to the informative NCP Rust reference implementation for version guards, keys, codecs, action-plane safety, and validation"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT OR Apache-2.0" }

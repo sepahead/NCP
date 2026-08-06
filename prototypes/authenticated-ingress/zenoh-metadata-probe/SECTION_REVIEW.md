@@ -8,11 +8,17 @@ Review date: 2026-07-16. Reviewed input: exact crates.io `zenoh 1.9.0`, checksum
 `85e22d7002ac149ef17fe400bb40a267ebbba40a83413bab03da7762256fa94e`, upstream
 commit `81c6c933b6e41d72a05f04c4442ef57717ddc72b`.
 
-Dependency refresh: 2026-08-04. The probe now patches only
+Dependency refresh: 2026-08-05. The probe now patches only
 `zenoh-transport 1.9.0` to reviewed immutable revision
-`6b93b15d0795748b7f76c72eae07f1cda517e762`. The backport leaves the published
+`9045545b72a77602a87f40203cb614b48157b4bc`. The backport leaves the published
 Zenoh transport library source unchanged, adds downstream security regression
-tests, and selects fixed `lz4_flex 0.11.6`. The API conclusion above is still
+tests, selects fixed `lz4_flex 0.11.6`, and selects non-yanked `spin 0.9.9` and
+`0.10.1`. Its qualification lock also selects fixed `crossbeam-epoch 0.9.20`,
+`rand 0.8.6` and `0.9.4`, `quinn-proto 0.11.15`,
+`rustls-webpki 0.103.13`, and `serde_with 3.21.0`. Its pinned
+`cargo-deny 0.19.9` policy rejects yanked lock entries and current RustSec
+vulnerabilities. The
+API conclusion above is still
 bound to the same exact Zenoh source files and upstream commit.
 
 ## Self-explanation
@@ -89,8 +95,8 @@ gate promotion, and incomplete result data.
   failure, not a false security pass.
 - **A passing dependency audit is implicit.** Rejected. The original 2026-07-16
   graph contained affected `lz4_flex 0.10.0`. The refreshed graph binds the exact
-  reviewed backport and fixed `lz4_flex 0.11.6`. Cargo does not verify the Git SSH
-  signature, and the quarantined graph remains non-shipping.
+  reviewed backport and fixed `lz4_flex 0.11.6`. Cargo does not verify Git
+  signatures, and the quarantined graph remains non-shipping.
 
 ## Three-lens review
 
@@ -104,7 +110,7 @@ gate promotion, and incomplete result data.
 - The probe runs explicit loopback TCP without TLS and says so in its output. It
   cannot be selected as `production-secure` or weaken that profile's fail-closed
   behavior.
-- No ESTOP, actuator command, lease, session epoch, receipt, or safety claim is
+- No ESTOP, actuator command, lease, session generation, receipt, or safety claim is
   generated. Physical certification remains outside NCP.
 
 Result: the protocol/security conclusion is internally consistent and safer than
@@ -118,9 +124,10 @@ to prototype a boundary that can observe and bind a verified principal.
 - The result explains why direct Zenoh cannot satisfy Engram, Crebain, Haldir, or
   any other consumer's production identity requirement merely by copying an
   entity ID into a message.
-- A usable production path still requires the separately quarantined terminating
-  TLS-ingress prototype, manifest admission, replay handling, bounded parsing,
-  and consumer integration. None exists yet.
+- At the 2026-07-16 review cut, a usable production path still required a
+  separately quarantined terminating TLS-ingress prototype, manifest admission,
+  replay handling, bounded parsing, and consumer integration. None existed at
+  that cut.
 - The executable probe is isolated from the root workspace and packages, uses
   exact dependencies, applies operation timeouts, and produces a deterministic
   reviewed result.
@@ -148,10 +155,11 @@ results and limitations, and cannot be mistaken for a release gate.
 
 ## Section decision and next boundary
 
-This section passes its bounded local objective. It establishes that the exact
-direct-Zenoh application surface cannot provide NCP's required authenticated
-principal binding and supplies executable sender-control counterexamples. It
-authorizes only the next research activity: implement and try to falsify prototype
+At the 2026-07-16 review cut, this section passed its bounded local objective. It
+established that the exact direct-Zenoh application surface cannot provide NCP's
+required authenticated principal binding and supplied executable sender-control
+counterexamples. It
+authorized only the next research activity: implement and try to falsify prototype
 A, a terminating TLS 1.3 ingress that owns certificate verification and forwards
 the resulting principal fact over a protected local boundary.
 
@@ -159,3 +167,10 @@ Prototype A must fail closed before NCP parsing when the client certificate or
 manifest admission fails, keep identity distinct from authority, enforce limits
 before semantic allocation, and remain non-shipping until its own self-explanation,
 independent challenge, and three-lens review pass.
+
+Current follow-up: the isolated
+[`tls-terminating-ingress`](../tls-terminating-ingress/README.md) prototype now
+implements that bounded feasibility experiment, and coordination task B04 records
+a local pass for its exact cut. This does not make an installed production path:
+independent review, live deployment security, consumer integration, and release
+gates remain separate and incomplete.

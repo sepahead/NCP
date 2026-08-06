@@ -675,8 +675,8 @@ def build() -> dict[str, Any]:
             {
                 "id": "zenoh-self-contained-package-resolution",
                 "status": "OPEN_FAIL_CLOSED",
-                "reason": "Cargo root patches do not propagate from the normalized ncp-zenoh or ncp-gateway library archives; without a consuming-root patch their generated locks select affected lz4_flex 0.10.0.",
-                "current_behavior": "Root and probe locks select fixed lz4_flex 0.11.6 through the exact reviewed backport. Archive-alone Cargo metadata resolution was executed and observed registry zenoh-transport 1.9.0 with affected lz4_flex 0.10.0. The exact injected consuming-root patch produced only a CONDITIONAL_PASS; self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO.",
+                "reason": "Cargo root patches do not propagate from the normalized ncp-zenoh or ncp-gateway source archives; without a consuming-root patch their metadata resolution selects registry zenoh-transport 1.9.0 with affected lz4_flex 0.10.0.",
+                "current_behavior": "Root and probe locks select fixed lz4_flex 0.11.6 and twox-hash 2.1.3 through the exact reviewed backport. Source-only archive metadata observes the registry fallback to affected lz4_flex 0.10.0 and twox-hash 1.6.3 without compiling it. Qualification applies the exact patch at each consuming test root before compilation. Receipt v3 retains the conditioned locks and checksum-bound registry sources, but fork verification is a point-in-time local-process attestation and the pre/post source comparison is not a compiler-input trace. The result is only CONDITIONAL_PASS; self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO.",
                 "acceptance": "Use a qualified immutable upstream release or another reviewed distribution design, prove each installed Zenoh-bearing archive resolves the fixed graph without an out-of-band consuming-root patch, and repeat dependency, archive, SBOM, provenance, and install gates.",
             },
             {

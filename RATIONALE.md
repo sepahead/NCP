@@ -1,4 +1,4 @@
-# Why NCP Was Needed — Design Rationale for the Neuro-Cybernetic Protocol
+# Why NCP was proposed — design rationale for the Neuro-Cybernetic Protocol
 
 > **Current-status note:** this comparative argument is informative and partly
 > historical. Repository HEAD is the unreleased, release-blocked NCP
@@ -6,116 +6,121 @@
 > No rationale substitutes for live security, independent interoperability,
 > fault, safety, or consumer evidence.
 
-> An unbiased design-rationale document, researched against the robotics-middleware,
-> agent-protocol, RL/simulation, and neuroscience-co-simulation ecosystems, and
-> deliberately adversarially reviewed for pro-NCP bias. It credits substrate wins
-> to the substrate, concedes the strongest "you didn't need a new protocol"
-> argument in full, and states NCP's disadvantages as plainly as its advantages.
+> This design rationale compares NCP with robotics middleware, environment APIs,
+> agent protocols, and neuroscience co-simulation. It credits substrate functions
+> to the substrate and states the composition alternative and NCP ownership cost.
 
 ## Thesis (and an honest caveat about it)
 
-NCP occupies a specific design point: a **versioned, transport-agnostic,
-project-agnostic wire contract that serves a running NEST network of point and
-rate neurons (spiking, binary, and rate-based models) to external,
-possibly-remote robot/UAV/analysis clients** — with neural
-record/stimulus semantics, a scientific-provenance boundary on every frame,
-QoS-differentiated planes, a first-class command-mode safety concept, and a
-read-only observer tap.
+NCP targets a specific design point: a **versioned, transport-agnostic,
+project-agnostic wire contract for simulation providers and external robot, UAV,
+and analysis clients**. The contract includes neural record and stimulus
+semantics, simulation provenance, plane-specific QoS, explicit command modes, and
+an observation role that has no actuation authority. A NEST provider is one
+intended implementation. No installed native-1.0 provider or observer role is
+qualified yet.
 
 The honest caveat, stated up front: "no off-the-shelf protocol occupies this exact
 point" is **weak evidence of necessity**. Any sufficiently conjunctive target
 (all of A∧B∧C∧D∧E) is unoccupied *by construction* — that is gerrymandering, not
-proof. The real test is not "does ROS 2 / MUSIC / MCP *alone* substitute?" (NCP
-trivially wins those), but "is the **composition alternative** — `rmw_zenoh` +
-three message packages + a watchdog node — meaningfully worse than a bespoke
-protocol?" That is the question this document must actually win, and it is treated
-in its own section below rather than assumed away.
+proof. Comparing NCP with one component at a different layer is incomplete. The
+useful question is whether a ROS 2 transport, application messages, and a watchdog
+form a better deployment-specific composition. This document treats that
+alternative separately.
 
 ## What NCP is
 
-NCP is a thin domain-and-provenance layer over a mature transport. Normative
+NCP is a domain-and-provenance layer over its selected transport. Normative
 precedence is the versioned contract registries, protobuf field-number/message
-shapes, generated JSON Schemas, prose specification, then mandatory corpus. The
-reference implementation is a Rust SDK (`ncp-core` = wire types + safety governor + codec + key scheme;
-`ncp-zenoh` = transport; `ncp-gateway` = the simulation host's Rust edge over a
-Python NEST `SessionService`; `ncp-python` = a PyO3 binding; `ncp-cpp` = a C ABI for
-C/C++; `@sepahead/ncp` = ts-rs-generated TypeScript types + client). It defines four keys over a Zenoh realm: a
-request/reply **control plane** (`/rpc`), a Best-Effort DROP **perception plane**
-with an adapter-side replace-latest receive slot (`…/sensor`), an express,
-RealTime-priority, safety-gated **action plane**
-(`…/command`, with `mode ∈ {init,active,hold,estop}` and a `ttl_ms`), and a
-read-only **observation plane** (`…/observation`). The spiking net can act as
-perception, action, both, or neither. Every observation carries
-`is_simulation_output=true` and `calibrated_posterior=false`: a neuro-controller
-is a control artifact, never a paper-reproduction claim.
+shapes, generated JSON Schemas, prose specification, then mandatory corpus.
+
+The reference implementation includes these packages:
+
+- `ncp-core` supplies wire types, validation, safety primitives, codecs, and keys.
+- `ncp-zenoh` supplies the stable transport binding.
+- `ncp-gateway` supplies a Rust edge to a Python `SessionService` on wire 1.0.
+- `ncp-python` and `ncp-cpp` expose Rust decisions through FFI.
+- `@sepahead/ncp` supplies generated types and independent TypeScript decisions.
+
+The Zenoh binding defines four key families. Control uses request/reply RPC.
+Perception uses Best-Effort DROP plus an adapter-side replace-latest slot. Action
+uses express, RealTime-priority DROP. Observation uses DROP and a bounded
+drop-oldest queue policy. Known command modes are `init`, `active`, `hold`, and
+`estop`; an unknown mode cannot authorize actuation. Every observation carries
+`is_simulation_output=true` and `calibrated_posterior=false`. These fields identify
+a simulation artifact, not a paper reproduction or calibrated posterior.
 
 ### One contract, many consumers (the generic-hub design)
 
-NCP is deliberately **generic** — it bakes in *no* consumer-specific assumptions —
-so a single wire contract serves an open, independently-developed set of peers. The
-reference topology is **hub-and-bodies**: a *commander/hub* (a NEST spiking brain)
-drives one or more *bodies* (robots/UAVs) and is watched by read-only *observers*.
+NCP does not name consumer projects in its wire contract. One contract can therefore
+target independently developed peers. The intended topology is
+**hub-and-bodies**: a *commander/hub* can drive one or more *bodies*. Authorized
+*observers* can receive observation-plane data without actuation authority.
 The contract names none of them; the commander core speaks only
 entity/channel-addressed NCP (see `INTEGRATING.md`). The following roles describe
 the historical wire-0.8 topology and intended native-1.0 model; they are not current
 native-1.0 interoperability evidence:
 
 - **Engram** (a.k.a. Paper2Brain) is the intended **hub / command-center**. Its
-  native-1.0 migration is in progress and not installed/live certified.
-- **crebain** is a tactical-UAV body that can also run standalone; it remains on
-  wire 0.8 and is not native-1.0 certified.
-- **prisoma** is the intended read-only analysis/observer client and likewise
-  remains on wire 0.8.
+  native-1.0 migration is in progress and not installed or live-qualified.
+- **Crebain** is an intended body and owns the Galadriel-producer surface. Both
+  historical surfaces remain wire 0.8.
+- **Haldir** is an intended commander and Galadriel-assessment receiver. Its two
+  historical surfaces remain wire 0.8.
+- **Galadriel** is an intended NCP observer and raw-advisory publisher. Its two
+  historical surfaces remain wire 0.8.
+- **Prisoma** is an intended read-only analysis/observer client and remains wire
+  0.8.
+- **pid-rs** remains a protocol-neutral library/CLI. Consumer-owned adapters can
+  call it, but it receives no NCP role receipt.
+- **Cortexel** is historical intake inventory only. It is not an NCP dependency,
+  consumer, commander, atlas owner, documentation-import target, or authority.
+  ADR-011's content-bound review subject still contains an unratified optional
+  export question; it grants no implementation task or work authority.
 
 The intended first-principles payoff is that a conformant body and brain can
 interoperate without either knowing the other's implementation—the same property
 that lets an observer attach without changing the control path. That remains a
-design goal until installed native peers prove it. The cost is the one this document concedes throughout: a generic contract
-earns its keep only when the consumers are genuinely heterogeneous, multi-language,
-and non-ROS; for a single ROS-2 stack the composition alternative is cheaper to own.
+design goal until installed native peers prove it. A separate contract has value
+only when its consumer and evidence boundaries justify its maintenance cost. A
+single-framework deployment can have a smaller composition boundary.
 
 
 ## Why existing solutions were insufficient
 
-Almost none of the surveyed technologies are alternatives *at the same layer*.
-They are transports, serialization formats, or general frameworks that sit
-*underneath* an NCP-shaped contract. The verdict throughout: the substrates are
-more mature, several are better-pedigreed, but **none provides the
-neural/provenance/safety/observer semantics** — and most of NCP's *performance and
-topology* advantages are inherited from those substrates, not invented by NCP.
+Many compared technologies operate at a different layer. They supply transport,
+serialization, simulation APIs, or application frameworks. NCP must therefore be
+compared with a composition of those parts, not with one part in isolation. NCP
+inherits transport and topology behavior from its substrate.
 
-**ROS 2 / DDS.** ROS 2's topics/services/actions map almost 1:1 onto NCP's needs,
-and typical robot/UAV clients already live in ROS 2 — it is unambiguously more mature and
-better-tooled (rviz, rosbag2, lifecycle nodes). DDS's QoS model is arguably a
-*better-specified* version of NCP's three-plane idea with a ~15-year
-safety-critical pedigree and µs shared-memory latency. Crucially, DDS already
-carries most of NCP's "safety" primitives at the QoS layer: **LIFESPAN** is
-*exactly* an auto-expiring `ttl_ms`; **OWNERSHIP/OWNERSHIP_STRENGTH** is exclusive
-writer authority over an actuator; **LIVELINESS** is failure-detection → fail-safe;
-**DEADLINE** bounds staleness. So `ttl_ms` is **not novel — it is DDS LIFESPAN**.
-The genuine NCP-specific safety part is only the `mode` enum (init/active/hold/
-estop) as a *wire concept*. The gap that remains: ROS 2 gives the IDL machinery
-but no neural V_m/spikes/stimulus vocabulary and no provenance boundary, and
-binding the NEST server to the ROS graph/build system burdens non-ROS consumers
-(an analysis/observer client may be a plain Rust analyzer, not a ROS node). ROS 2 is the right *client
-framework*, not a replacement for the semantic + provenance layer.
+**ROS 2 / DDS.** ROS 2 topics, services, and actions can represent many NCP
+surfaces. Its tooling can also be a better fit for a deployment that already uses
+ROS 2. DDS QoS offers mechanisms that are related to NCP controls, but the meanings
+are not equal. LIFESPAN limits sample validity, DEADLINE reports missed update
+expectations, LIVELINESS reports writer availability, and OWNERSHIP selects among
+writers. NCP's `ttl_ms` is enforced from the receiver's local acceptance time.
+NCP declares identity, route, session generation, stream position, authority
+lease, command mode, and a plant-profile digest for the intended receiver-admission
+model. The current reference does not integrate installed-profile validation or
+body execution into Active admission. DDS QoS alone does not supply the declared
+NCP semantics or prove an actuator action. ROS 2 does not define NCP's neural
+vocabulary or simulation-provenance boundary. A ROS-based composition remains a
+valid design alternative, especially when all consumers already use ROS 2.
 
-**Zenoh alone.** Zenoh is the best substrate match and NCP's chosen transport:
-queryables = control-plane RPC, DROP = perception, express + priority =
-action, routed subscriptions = observers, Rust-first core, simpler discovery than
-DDS. But it is payload-agnostic *by design* — no typing, no neural semantics, no
-provenance. **Every transport latency, DROP, priority, P2P-no-broker, and
-fleet/many-to-many property NCP enjoys is Zenoh's, not NCP's**; the capacity-one
-replace-latest receive slot is adapter behavior. Zenoh is the layer NCP sits on, not
-a competitor.
+**Zenoh alone.** Zenoh is NCP's selected stable transport substrate. Queryables
+carry control-plane RPC. DROP, express delivery, and priority settings implement
+the current data-plane QoS mapping. Routed subscriptions support observation
+delivery. Zenoh is payload-agnostic and does not define NCP types, neural semantics,
+identity, authority, provenance, or plant policy. The capacity-one replace-latest
+receive slot is NCP adapter behavior. Transport and topology properties come from
+Zenoh, not from the NCP contract.
 
 ### Why Zenoh specifically — features, not raw latency
 
-Choosing Zenoh is a **feature** decision, not a latency one, and saying so plainly
-avoids a claim NCP cannot defend. Zenoh is **transport only** — it carries the
-three pub/sub planes plus the queryable RPC plane and contributes none of the
-neural/provenance/safety semantics. What it *does* contribute is exactly the
-feature set the four-plane design needs out of the box:
+Choosing Zenoh is a feature decision, not a latency claim. Zenoh carries three
+pub/sub planes plus the queryable RPC plane. It contributes no NCP neural,
+provenance, identity, authority, or plant semantics. The adapter uses these
+configured features:
 
 - **Per-plane QoS** — action is express / RealTime priority / DROP, perception is
   DataHigh / DROP, and control is reliable / BLOCK. The typed adapter separately
@@ -123,43 +128,43 @@ feature set the four-plane design needs out of the box:
   reliability/priority regimes.
 - **Queryable RPC** — request/reply for the control plane without bolting a second
   protocol onto the data bus.
-- **Topology freedom** — P2P or routed, late-joining subscribers, many-to-many
-  fleet fan-out, and a read-only observer that attaches for free.
-- **SHM zero-copy** for large same-host payloads, and **ROS 2 interop** via
-  `rmw_zenoh` so existing robot/UAV clients are first-class.
+- **Topology options** — the configured substrate supports direct or routed
+  deployment and multiple subscribers. The NCP contract requires role and plane
+  authorization. The current stable adapter cannot enforce remote
+  `production-secure` identity and therefore fails closed.
+- **Configured shared-memory facility** — the reviewed dependency profile enables
+  Zenoh's `shared-memory` feature. The NCP publisher does not construct a shared-
+  memory payload, so this repository demonstrates no NCP zero-copy path.
 
-On *raw* latency Zenoh is **not** the leader, and NCP does not pretend otherwise:
-in single-machine 64-byte ping-pong a tuned DDS reaches ~8 µs versus Zenoh-p2p
-~10 µs — roughly a **~2 µs tax** for the feature set (see `PERFORMANCE.md`). That
-tax is invisible against the real budget: NCP compute per control tick is ~2.8 µs,
-transport is ~0.1 ms on Zenoh loopback / tens of µs over SHM, and in-simulation
-NEST compute dominates by orders of magnitude (about 0.006–0.28 % of a 20–1000 Hz
-budget). Zenoh is chosen because its *features* collapse what would otherwise be a
-hand-rolled broker, not because it wins a microbenchmark.
+NCP does not claim that Zenoh leads on raw latency. The historical local figures in
+[`PERFORMANCE.md`](PERFORMANCE.md) bind specific developer runs and do not compare
+current DDS and Zenoh releases under one controlled profile. Zenoh is selected for
+its routing, QoS, queryable, and topology features. A deployment must measure the
+shipped NCP copy path, security profile, topology, payload, and load before it sets a
+latency budget.
 
-One safe, wire-neutral optimization is worth flagging here so the "features" choice
-isn't read as "free": `ZenohBus::put` in `ncp-zenoh/src/lib.rs` currently does
-`payload.to_vec()` on every publish, copying each frame and **defeating the SHM
-zero-copy that is otherwise enabled**; moving to Zenoh's `ZBytes`/SHM path removes
-that per-frame copy with no change to the wire. See `KNOWN_LIMITATIONS.md` for the
-audited robustness findings on the bus and safety paths.
+One wire-shape-neutral optimization candidate is worth recording.
+`ZenohBus::put` in `ncp-zenoh/src/lib.rs` currently calls `payload.to_vec()` for
+each publish. An owned-buffer or compatible `ZBytes` path could remove that copy.
+It would not establish shared-memory zero-copy by itself. Ownership, buffer
+compatibility, backpressure, security behavior, and end-to-end measurements still
+need implementation and verification. See `KNOWN_LIMITATIONS.md` for the current
+bus and safety boundaries.
 
 
-**MAVLink / MAVROS.** MAVLink owns the UAV actuation edge NCP must *target*
-(`CommandFrame` → `SET_POSITION_TARGET` into PX4/ArduPilot via MAVROS), and its
-lossy-link tolerance far exceeds anything NCP specifies. But its vocabulary is
-fixed and UAV-centric: no neural record/stimulus, no provenance. A downstream
-dialect NCP feeds, not a neural-controller protocol.
+**MAVLink / MAVROS.** MAVLink or MAVROS can own a UAV actuation edge that an NCP
+body targets, such as a reviewed mapping from `CommandFrame` to a flight-controller
+command. NCP does not define or qualify that mapping. MAVLink also does not define
+NCP's neural record, stimulus, or simulation-provenance semantics.
 
-**gRPC / protobuf.** NCP already uses protobuf IDL, so a gRPC control plane is
-idiomatic with broader polyglot tooling than Zenoh queryables. gRPC *does* have
-bidirectional streaming; its real limit is **no broker-mediated fan-out, no
-late-joining subscriber, no conflation, no topic discovery** — you would hand-roll
-a pub/sub broker for the data planes — and HTTP/2/TCP is unfit for the hot action
-loop. gRPC could replace NCP's *control plane*; you would still need a data-plane
-bus and the neural/provenance layer.
+**gRPC / protobuf.** A gRPC binding could express request/reply and streaming
+surfaces. It would require a separately specified mapping for NCP's plane-specific
+delivery, routing, overflow, and observation semantics. No gRPC performance or
+fitness claim is made here. Stable NCP 1.0 excludes a gRPC binding and protobuf
+runtime encoding, so adding either would require a reviewed protocol change and
+conformance evidence.
 
-### What the wire actually is — JSON by default, protobuf as the schema
+### What the wire actually is — JSON at runtime, protobuf as the schema
 
 A recurring overstatement worth correcting precisely: **protobuf is NCP's field-
 shape IDL, not its shipped runtime encoding or sole contract source.**
@@ -174,237 +179,187 @@ member). What actually travels on the live planes is:
   It is not a transport frame; a future negotiated observation path must wrap it
   in complete metadata and ship in every binding first.
 
-Why JSON is the right *default*, from first principles:
+Why JSON is the stable runtime representation in this candidate:
 
-1. **Debuggable on the path you least want to guess about.** A safety-gated action
-   frame is human-readable on the wire — a `zenohd`/log tap or the WebSocket
-   fallback shows the actual `mode`/`ttl_ms`/channel values directly.
-2. **Polyglot at zero codegen.** Every peer already has a JSON reader: Python (PyO3
-   JSON in/out), C/C++ (JSON over the C ABI), and TS (ts-rs types over a BYO
-   transport) interoperate with no protoc/buf build step in each consumer.
+1. **Inspectable with authorized tooling.** JSON lets an authorized diagnostic or
+   experimental WebSocket endpoint display the `mode`, `ttl_ms`, and channel
+   values without a protobuf decoder. Transport security and access controls still
+   apply.
+2. **One JSON interface across current bindings.** Python and C/C++ expose JSON
+   through Rust FFI. TypeScript supplies generated types and independent JSON
+   decisions. A consumer does not compile the protobuf runtime to use these paths.
 3. **One contract, two projections.** The `.proto` and the `schemas/` JSON Schemas
    are kept in lockstep by parity guards, so protobuf's schema discipline is
    retained even though the bytes are JSON.
 
 Why protobuf still earns its place: it is the **machine-checkable contract** that
-pins field numbers and types so the JSON projection cannot silently drift. And the
-overhead numbers show JSON is not the reason to switch: a full measured control
-tick is about 2.8 µs (337-byte perception and 403-byte action frames; roughly
-0.5–0.6 µs serialization and 1.0 µs deserialization on the reference machine), transport is ~0.1 ms on Zenoh
-loopback / tens of µs over SHM (see `PERFORMANCE.md`), and in-simulation NEST
-compute dominates by orders of magnitude — about 0.006–0.28 % of a 20–1000 Hz budget. A
-binary protobuf runtime is therefore an **opt-in, negotiated encoding** for a
-future kHz- or bandwidth-constrained consumer. JSON remains the always-available
-default; the local `BulkBlock` codec demonstrates a possible packed layout but is
-not precedent for an already-shipped negotiated binary transport.
+pins field numbers and types so the JSON projection cannot silently drift.
+Historical local measurements in [`PERFORMANCE.md`](PERFORMANCE.md) characterize
+one JSON hot path, but they do not establish a release-bound transport or workload
+budget. A future binary runtime would require explicit negotiation, complete
+binding support, and a normative rebaseline. JSON remains the stable runtime
+representation. The local `BulkBlock` codec demonstrates a packed layout, but it
+does not establish a negotiated binary transport.
 
 
-**dm_env_rpc / MCP / ACP / A2A.** The most conspicuous near-peer is **dm_env_rpc**
-(DeepMind) — a gRPC/protobuf protocol for serving RL environments across the wire,
-which *is* a networked, multi-language env-control protocol very close in spirit to
-NCP's control plane; NCP's delta over it is the neural record/stimulus vocabulary,
-the QoS-split data planes, the safety mode, and the provenance flag, not the basic
-idea of "open/step a remote environment." **MCP** (with the 2025 *streamable HTTP*
-transport, not only the older HTTP+SSE) and **ACP/A2A** are request/response
-orchestration for LLM tool-use and agent hand-off; even with streamable HTTP their
-orchestration model and tool-call latency budget are unfit for a perpetual
-sub-10 ms data plane, and they carry no safety authority, no continuous sensor
-channel, and no neural vocabulary. They are more mature for *their* layer and
-structurally the wrong shape for real-time control — but NCP is right to *resemble*
-MCP's versioned capability handshake on its control plane.
+**dm_env_rpc / MCP / ACP / A2A.** `dm_env_rpc` is a networked environment-control
+protocol and is close in spirit to NCP's control plane. NCP adds a different
+contract for neural records and stimuli, plane-specific delivery, command modes,
+authority, and simulation provenance. MCP, ACP, and A2A address tool or agent
+orchestration rather than NCP's continuous plant data planes. This document makes
+no comparative latency or maturity claim. Their versioned capability patterns are
+useful control-plane design references, not substitutes for NCP data-plane and
+plant semantics.
 
-**Gym / dm_env / Gymnasium / PettingZoo.** The closest *API-ergonomics* analogue:
-`reset`/`step` ↔ NCP `open`/`step`/`run`, and `observation_spec`/`action_spec` is a
-clean typed-capability idiom. Gymnasium is the de-facto RL standard with a vastly
-larger ecosystem. The *standard specs* are in-process single-language Python (which
-is why Rust clients can't call them across the wire) — though note
-this is a property of the spec, not a hard law (dm_env_rpc and third-party gRPC
-bridges cross the wire). The right ergonomic north star to imitate; not the wire.
+**Gym / dm_env / Gymnasium / PettingZoo.** Their `reset` and `step` operations and
+typed observation/action specifications are useful API analogies for NCP lifecycle
+operations and capabilities. The in-process APIs do not define NCP's wire,
+transport security, plane QoS, or plant authority. Networked environment protocols
+can bridge that gap with a different contract.
 
-**MUSIC and the Neurorobotics Platform / PyNN / NEST Server (the closest prior
-art, and the fairest delta).** This neuroscience ecosystem is where NCP must
-concede the most. **MUSIC** (Djurfeldt et al. 2010) is the INCF standard for
-runtime spike/continuous exchange between simulators via **continuous ports and
-event ports wired by connectors** — direct intellectual lineage for NCP's
-continuous-(V_m/rate) vs event-(spikes) channel taxonomy, which NCP presents as
-*inspired by MUSIC*, not invented. The **ROS-MUSIC toolchain** (Weidel, Djurfeldt,
-Duarte, Morrison 2016) did NCP's headline thing in 2016: a real-time NEST→Gazebo
-closed loop with sensory→spike encoders and spike→motor decoders, even splitting
-transport (MUSIC on the neural side, ROS pub/sub to the robot). **NRP-core** (HBP)
-generalizes this with "engines" exchanging **DataPacks (JSON-or-protobuf)** — the
-closest *data-model* prior art to NCP's "protobuf IDL + JSON Schemas; the session
-declares what to record/inject." A reasonable reviewer asks: *isn't NCP redundant?*
+**MUSIC and the Neurorobotics Platform / PyNN / NEST Server.**
+[Djurfeldt et al. 2010](https://pmc.ncbi.nlm.nih.gov/articles/PMC2846392/) describes
+MUSIC ports for runtime event and continuous-data exchange between simulators.
+That work is direct prior art for NCP's event and continuous neural channels.
+[Weidel et al. 2016](https://www.frontiersin.org/articles/10.3389/fninf.2016.00031/full)
+describes a NEST, MUSIC, ROS, and Gazebo closed loop. NCP must not claim to have
+invented an SNN-robot loop or port-typed neural exchange.
 
-The honest delta is **deployment model and packaging**, not the core idea — and
-the wording matters: MUSIC is **co-scheduled in one MPI launch with no dynamic
-discovery, no TLS/auth, and no per-client versioned wire contract** (MPI itself
-*can* span hosts over TCP/IP or InfiniBand, so the accurate criticism is "one
-co-launched MPI world / static config," **not** "same machine / no network"). The
-ROS-MUSIC toolchain requires all components co-launched with manual MUSIC config
-files, was tested single-node, and explicitly models **no actuator semantics, no
-safety constraints, no QoS, no fault tolerance**; its latencies (≈70 ms at a 1 ms
-tick to ≈350 ms at a 50 ms tick) are a function of MUSIC tick granularity.
-NRP-core is **synchronous, step-locked, blocking, single-host orchestration**
-inside a monolithic HBP-coupled platform — not a thin versioned wire you embed in
-an arbitrary client. **PyNN/NESTML** describe *what a network is*, not how a robot
-talks to a running one — orthogonal. **NEST Server (REST)** is the closest in-tree
-"NEST as a network service," and it is request/response only — no streaming planes,
-no QoS, no safety. So NCP is **adjacent to and informed by** this work, not
-redundant — *provided it cites Weidel et al. 2016, Djurfeldt et al. 2010, and
-NRP-core and frames itself as a networked, safety-gated protocolization, never as
-the first SNN-robot loop or the inventor of port-typed neural channels.*
+NRP, PyNN, NESTML, and NEST Server provide additional simulation, model, and
+service patterns. This document does not assert a current deployment, latency,
+security, or topology comparison for those systems. NCP's intended difference is a
+separately versioned contract for identity, authority, provenance, plane QoS, and
+plant-facing behavior. That difference remains a design proposition until
+installed independent peers qualify it.
 
 ## The strongest counter-argument: "compose, don't invent"
 
 The one argument that genuinely threatens NCP's existence, stated in full so it
 must be answered:
 
-> *Take `rmw_zenoh` (ROS 2 on a Zenoh middleware, Tier-1 since 2025). Define three
+> *Take ROS 2 on a Zenoh middleware. Define three
 > message packages — `neuro_msgs/RecordFrame`, `StimulusFrame`, `CommandFrame` —
 > each with `bool is_simulation_output`, `bool calibrated_posterior`, and a
 > `SimProvenance` sub-message. Set per-topic QoS: Reliable + Deadline + Lifespan
 > for action, Best-Effort + KeepLast(1) for perception. Implement ESTOP/HOLD/TTL
 > as a node-level lifecycle plus a Deadline/Liveliness/Lifespan watchdog. Non-ROS
-> clients (analysis/observer clients, robot/UAV bodies) read the same Zenoh keys via `zenoh-rs` directly. You
-> now have neural semantics, provenance, QoS planes, a free observer, and fleet —
-> with zero new protocol, zero new SDK, and ROS 2's entire tooling and governance
-> for free. What does `ncp.proto` + `ncp-core` + `ncp-zenoh` + PyO3 buy that this
-> does not?*
+> clients use an explicitly specified bridge. This composition still defines an
+> application contract, but it reuses ROS 2 types, tooling, and lifecycle
+> mechanisms. What does `ncp.proto` + `ncp-core` + `ncp-zenoh` + PyO3 buy that this
+> composition does not?*
 
-This is strong and **partially correct**. Honest answers, with their weaknesses
-conceded:
+This is a viable alternative. The relevant NCP differences and limits are:
 
-1. **Off-ROS reach.** ROS 2 message payloads are CDR with `.msg` type hashes;
-   consuming them off-ROS means a CDR+type-hash story, whereas bare protobuf/JSON
-   is more directly polyglot (PyO3/ts-rs/any-proto). *Weakness:* `rmw_zenoh`
-   clients **can** speak at the Zenoh layer, so this is a convenience delta, not a
-   wall.
-2. **Safety as authority vs. as QoS.** NCP makes `mode` (estop/hold) an explicit
-   wire state a controller asserts; the composition makes safety an emergent
-   property of Deadline/Liveliness/Lifespan watchdogs. *Weakness:* this is a
-   **design opinion, not a fact** — a hardened DDS Deadline/Ownership/Liveliness
-   stack is arguably *safer* than a single-author `mode` enum (see Lens 6).
-3. **One audited safety/codec implementation** in `ncp-core`, reached by all
-   languages via FFI, beats three reimplementations of ESTOP/HOLD/TTL/encoding.
-   *Weakness:* only true once that one crate is actually audited and conformance-
-   tested — which it is not yet.
-4. **No ROS build/graph imposed** on a plain analyzer like an analysis/observer client. *Weakness:*
-   real but modest; the cost is a dependency, not impossibility.
+1. **Explicit off-ROS contract.** NCP provides JSON and language bindings without
+   requiring a ROS graph in each consumer. *Weakness:* a reviewed ROS bridge can
+   provide the same reach with a different maintenance boundary.
+2. **Authority in the application contract.** NCP combines command mode with
+   identity, route, session generation, authority lease, stream position, and plant
+   profile. DDS QoS has related transport controls, but it does not automatically
+   implement these NCP decisions. *Weakness:* NCP's composition must still prove
+   the installed body behavior and is not safer merely because fields exist.
+3. **One reference decision implementation.** Rust owns the reference validation,
+   codec, and safety logic. Python and C/C++ reuse it through FFI. *Weakness:* local
+   conformance tests are not an independent audit, live peer qualification, or
+   physical safety evidence.
+4. **Smaller dependency boundary for non-ROS consumers.** A plain analyzer can use
+   the NCP package without a ROS build graph. *Weakness:* the value depends on the
+   consumer set and team operations.
 
-Net: the composition alternative is **viable and cheaper to own**, and a team
-already standardized on ROS 2 should probably take it. NCP's defensible edge is for
-the **non-ROS, multi-language, fleet+observer** case where carrying the whole ROS
-2 build system to every consumer is the larger tax — and even there the win is
-*packaging and polyglot ergonomics*, not a capability ROS 2 + Zenoh lacks.
+Net: the composition alternative is viable and can have a smaller maintenance cost
+for a team that already uses ROS 2. NCP's intended fit is the non-ROS,
+multi-language case where a separate contract boundary is useful. That fit remains
+not demonstrated until installed heterogeneous peers complete qualification.
 
 ## The ten lenses
 
-> **Disclaimer (read first).** Where a listed advantage is the *substrate's*
-> (Zenoh pub/sub, DROP, express/priority, P2P/no-broker, datacenter-to-LPWAN
-> span, DDS/ROS2 bridging, multi-subscriber "free taps", fleet many-to-many), it
-> is **credited to Zenoh/protobuf, not to NCP**. Only the neural record/stimulus
-> vocabulary, the provenance discriminators, the `mode` safety enum, and the typed
-> `(V,L,D,A)` observer semantics are NCP's own. Lenses 2–4 and 8 in particular
-> describe inherited properties.
+> **Disclaimer (read first).** Zenoh supplies transport, routing, pub/sub, and QoS
+> mechanisms. Protobuf supplies a field-shape IDL. NCP specifies how its neural,
+> provenance, identity, security, session, authority, plant, and plane semantics use
+> those mechanisms. This document claims no novelty for a substrate feature or a
+> concept that appears in prior work.
 
-**1. Scientific provenance & boundary.** *Advantage:* every observation carries
-`is_simulation_output=true`/`calibrated_posterior=false` as cheap, mandatory,
-fail-closed fields — a machine-checkable epistemic discriminator on the hot path.
-*Disadvantage:* no upstream standard defines this term — W3C PROV models lineage
-but carries no epistemic-status field, RO-Crate packages archives, nanopublications
-are publishing-weight; NCP's flag is a domain assertion on no incumbent, and the
-PROV-aligned session archive is a recommendation, not shipped.
+**1. Scientific provenance and boundary.** *Advantage:* every observation requires
+`is_simulation_output=true` and `calibrated_posterior=false`. These values make the
+candidate's scientific non-claim machine-checkable. *Disadvantage:* the values are
+NCP domain assertions, not scientific validation. The proposed PROV/RO-Crate
+session archive is not shipped.
 
-**2. Latency & performance.** *Advantage (substrate):* Zenoh gives µs–low-ms with
-express, priorities, and DROP; the typed adapter adds bounded receive-slot
-replacement, and the plane split lets each pay only its cost.
-*Disadvantage:* software NEST over Zenoh will not approach neuromorphic on-chip
-loops (figures like "~3 ms on Loihi, faster than real-time" are **task- and
-benchmark-specific demos, not a universal property**); NCP must not claim latency
-leadership, and the gateway adds a localhost-socket hop to Python NEST.
+**2. Latency and performance.** *Advantage:* the adapter maps each plane to an
+explicit QoS policy and bounds its local receive behavior. *Disadvantage:* the
+release-bound secure transport, workload, queue, memory, and platform profile is
+**NOT RUN**. Historical component measurements in `PERFORMANCE.md` do not establish
+end-to-end latency or a comparison with another system.
 
-**3. Coupling & topology / fleet.** *Advantage (substrate):* data-centric pub/sub
-lets a fleet and observers attach without re-plumbing; Zenoh is P2P-capable.
-*Disadvantage:* **fleet is a solved, deployed ROS 2/DDS pattern** (namespacing,
-domain IDs, discovery); NCP inherits it via Zenoh and neither adds nor improves on
-it — and inherits its **unsolved multi-writer / who-steps-when coordination**
-(cf. PettingZoo AEC-vs-Parallel), which NCP exposes but does not resolve.
+**3. Coupling, topology, and fleet.** *Advantage:* the selected substrate supports
+multiple publishers and subscribers without putting a broker API in the NCP
+contract. NCP adds declared roles and bounded authority for plant action.
+*Disadvantage:* transport topology does not solve application scheduling, fleet
+coordination, discovery policy, or plant ownership. Each deployment must define
+and qualify those decisions.
 
-**4. Transport-agnosticism & medium choice.** *Advantage:* the shipped runtime wire
-is canonical JSON on every plane and byte-identical across transports; bounded
-`BulkBlock` remains local/offline. `ncp.proto` is the normative field-shape IDL,
-not a compiled runtime encoding. *Disadvantage:* agnosticism is partly aspirational:
-Zenoh is the only stable 1.0 binding, while the shipped TypeScript WebSocket client
-is explicitly experimental. Zenoh does not compile to browser WASM, gRPC/protobuf
-runtime is excluded from stable 1.0, and DDS QoS remains unexercised.
+**4. Transport abstraction and medium choice.** *Advantage:* stable NCP messages
+use a validated JSON projection. Canonicalization helpers can emit a deterministic
+typed projection for corpus and digest work. The Zenoh adapter can forward valid
+caller-supplied JSON without normalizing whitespace or member order, so transmitted
+bytes are not guaranteed to match across transports. `BulkBlock` remains
+local/offline, and `ncp.proto` supplies field-number and message-shape IDL.
+*Disadvantage:* Zenoh is the only stable 1.0 binding. The TypeScript WebSocket
+binding is experimental. Stable browser, gRPC/protobuf-runtime, and DDS bindings
+are not part of the candidate.
 
-**5. Language & runtime interop (Rust ↔ Python ↔ TS ↔ C++).** *Advantage:* the
-normative layers are implementation-neutral, while `ncp-core` provides the Rust
-reference behavior (codec, safety, keys, version), reaching Python via PyO3 and C/C++ via a C ABI (`ncp-cpp` +
-`ncp.h`) — both verified by importing/linking and running — so the
-high-consequence safety/codec logic is written once, not reimplemented per
-language. *Disadvantage:* FFI glue is irreducible; PyO3/C-ABI friction with Rust
-enums/generics constrains the public surface to FFI-friendly tagged structs and
-JSON-string in/out; TS relies on *generated types + a hand-kept transport* (Zenoh
-is native, no browser WASM), so TS is the least-unified peer.
+**5. Language and runtime interoperability.** *Advantage:* the normative layers
+are implementation-neutral. Python and C/C++ reuse Rust reference decisions through
+PyO3 and the C ABI. TypeScript implements bounded parsing, validation, client
+correlation, and plant-side decisions independently. The recorded implementation
+cut in [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md) includes
+local import, link, and corpus tests. *Disadvantage:* Python and
+C/C++ are not independent decision implementations. TypeScript has no qualified
+stable live transport, and the required installed non-Rust peer program is
+**NOT RUN**.
 
-**6. Safety & control authority.** *Advantage:* the action plane has an explicit
-`mode` (init/active/hold/estop), bounded lease and TTL, and a plant-profile-defined
-HOLD/ESTOP action—a protocol concept no surveyed alternative states in the same
-envelope (though DDS LIFESPAN≈`ttl_ms` and OWNERSHIP/LIVELINESS cover much of the
-rest). *Disadvantage (confronted directly):* the 1.0 candidate still has one Rust
-reference; Python/C wrap it, while TypeScript independently ports validation and
-plant-side decisions. It does not yet have two independently installed non-Rust
-  live peers. The candidate defines a fail-closed `production-secure`
-  mTLS/default-deny profile and a loopback-only visibly insecure development profile,
-  but the current Zenoh callback surface cannot expose the authenticated remote
-  principal required for `IdentityClaim` binding. Its secure open path therefore
-  fails closed, and the later certificate/ACL/rotation/revocation campaign has not
-  run. A
-protocol ESTOP is not physical safety certification and may be less mature than a
-15-year-pedigreed DDS Deadline/Liveliness/Ownership stack.
+**6. Safety and control authority.** *Advantage:* the action contract declares
+explicit command mode, receiver-local TTL, session generation, stream position,
+bounded authority lease, and a content-addressed plant-profile digest. DDS QoS
+offers related sample-validity, availability, and writer-selection controls, but
+it is not equivalent to this intended receiver-admission model. *Disadvantage:*
+installed-profile validation and body-owned execution are not integrated into
+Active admission, and the current `PlantCommand` projection cannot preserve units.
+Python and C/C++ wrap the Rust decisions, and TypeScript has no qualified stable
+live transport. The Zenoh adapter cannot expose the authenticated remote principal
+that `production-secure` requires. Its secure open path fails closed. The live
+certificate, ACL, rotation, and revocation campaign is **NOT RUN**. Protocol ESTOP
+is not physical safety certification.
 
-**7. Domain semantics.** *Advantage:* a **networked, versioned, transport-agnostic
-wire vocabulary** for record (V_m/spikes/rate) and stimulus (current_pA/rate_hz/
-spike_times/weight_set) against named populations. *Disadvantage:* the *underlying
-record/stimulus modeling is MUSIC/NRP prior art*, not novel; it is NEST-shaped
-today, and the "simulator-agnostic" ambition is untested *as shipped* — though it
-is agnostic *by design*: the typed enums are abstract SNN concepts each backend
-maps, with simulator-specifics confined to the backend + the `recordables`/`params`
-escape hatches, at **zero NEST cost**. A second backend is the required test; it is
-not claimed by the current [`ROADMAP.md`](ROADMAP.md). (So: NCP-only as a *wire
-vocabulary*, not as a concept.)
+**7. Domain semantics.** *Advantage:* NCP defines a networked and versioned wire
+vocabulary for named neural records and stimuli. *Disadvantage:* MUSIC and related
+systems are prior art for neural exchange. The current Engram comparison point is
+NEST-specific, and a second provider has not qualified the abstraction. Backend
+mapping, custom recordables, parameters, and model constraints still create
+provider-specific cost and behavior.
 
-**8. Observability & analysis.** *Advantage:* an analysis/observer client subscribes
-read-only and turns each tick into a typed, provenance-stamped analysis sample.
-*Disadvantage:* **the "free tap" is a property of the bus, not of NCP** — any
-DDS/ROS 2 topic is multi-subscriber (`ros2 bag record`, `rostopic echo`, DDS spy are
-the same free tap); NCP's only contribution here is the typed record/stimulus +
-provenance *semantics* on the frame. The released 0.8 open realm leaves the action
-plane writable to reachable peers—a safety and security concern. The 1.0 candidate
-instead limits insecure mode to loopback/UDS and requires the authenticated,
-default-deny profile for production. Alignment uses typed identities: every
-published stream has `stream:{epoch,seq}`, while a derived command or observation
-uses `source:{epoch,seq}` for correlation. Receivers never infer correlation from
-arrival time or reuse source position for loss accounting.
+**8. Observability and analysis.** *Advantage:* NCP defines an observer role with no
+actuation authority and typed stream/source correlation. Each published stream has
+`stream:{epoch,seq}`. A derived command or observation can use
+`source:{epoch,seq}` for correlation. *Disadvantage:* multi-subscriber delivery is
+a substrate feature. `ZenohBus::subscribe_fleet` is explicitly an untrusted
+diagnostic tap, not an authorized observer boundary. The candidate cannot enforce
+remote `production-secure` observer identity until the transport-principal binding
+exists. No installed observer role is qualified.
 
-**9. Ecosystem maturity, adoption & risk.** *Advantage:* rides proven substrates
-rather than reinventing them. *Disadvantage (the NIH critique, and the cost of
-ownership):* NCP is a single-author reference SDK; ROS 2, DDS, Gazebo, MCP, A2A,
-and Gymnasium are vastly more adopted and governed. NCP visibly **reinvents parts
-of MUSIC (ports), ROS/DDS (QoS planes, LIFESPAN), and MCP (handshake/schemas)**.
-Beyond adoption, **build-vs-buy cost** is the con a principal engineer weighs most:
-a bespoke Rust+PyO3+ts-rs+protobuf+Zenoh stack is a perpetual maintenance liability
-(FFI churn, Zenoh API breakage, version-compat upkeep, and maintaining a pragmatic
-conformance suite) versus inheriting ROS 2/DDS's maintained tooling.
+**9. Ecosystem maturity, adoption, and risk.** *Advantage:* NCP reuses Zenoh,
+protobuf IDL, JSON Schema, and language packaging tools. *Disadvantage:* NCP has no
+neutral standards body, released 1.0 ecosystem, or qualified independent live-peer
+set. It also owns continuing Rust, FFI, TypeScript, schema, transport-version, and
+conformance maintenance. An established middleware composition can have a smaller
+ownership cost for some teams.
 
-**10. Developer experience, governance & standardization path.** *Advantage:*
-schema-first contract, an extractable crate (no parent-repo / host-application
-dependency), a Gym-familiar ergonomic target. *Disadvantage:* "become a standard like MCP" is a
-multi-year governance effort needing an open spec repo, independent implementations,
-multiple independent implementations, and a neutral home (the LF AI & Data path
-ACP/A2A took). NCP's in-tree shape/behavior corpus exists; independent certification
-and neutral governance do not.
+**10. Developer experience and governance.** *Advantage:* NCP has a schema-first
+contract, separately packaged libraries, and a mandatory shape/behavior corpus.
+*Disadvantage:* independent implementations and independent qualification are
+incomplete. Intended public package namespace ownership is unresolved, and neutral
+governance does not exist. The repository cannot infer standardization from local
+completeness.
 
 ## Disadvantages & open risks (summary)
 
@@ -413,17 +368,16 @@ decision implementation, two Rust-FFI bindings, and a mandatory corpus—but not
 required independent live installed-peer program. Engram's Python NEST backend has
 an explicit local native-1.0 migration in progress, but it has not completed the
 installed live evidence required by the native-1.0 Rust gateway contract.
-The production-secure profile is specified, but the stable Zenoh adapter's verified
-peer-to-`IdentityClaim` binding is not implemented and its live
-mTLS/ACL/certificate enforcement is not certified. NCP **reinvents
-parts of MUSIC, ROS/DDS (incl. LIFESPAN≈ttl), and MCP**, and must not claim to have
-invented SNN-robot loops, port-typed neural channels, protobuf neural datapacks, or
-latency leadership. The only stable transport binding is Zenoh; WebSocket is
-experimental; matching observation samples align on typed `source` identity while completeness
-remains best-effort under DROP QoS; the PROV/RO-Crate archive is
-unshipped; and the **composition alternative (`rmw_zenoh` + `neuro_msgs` + a
-watchdog) is a real, cheaper-to-own option** that a ROS-2-standardized team should
-prefer. A standing audit—`KNOWN_LIMITATIONS.md`—keeps a live evidence ledger.
+The production-secure profile is specified, but the stable Zenoh adapter cannot
+bind a verified transport peer to `IdentityClaim`. Its live mTLS, ACL, certificate,
+rotation, and revocation campaign is **NOT RUN**. NCP builds on concepts found in
+MUSIC, ROS/DDS, environment protocols, and agent protocols. It must not claim to
+have invented SNN-robot loops, port-typed neural channels, or latency leadership.
+Zenoh is the only stable transport binding, and WebSocket is experimental.
+Observation completeness remains best-effort under DROP QoS. The PROV/RO-Crate
+archive is not shipped. A ROS-based composition remains a valid alternative whose
+cost depends on the team and consumer set. `KNOWN_LIMITATIONS.md` retains the live
+evidence boundaries.
 Integration, deployment, security, independent-peer, safety-case, and performance
 risks remain explicit.
 
@@ -436,29 +390,30 @@ risks remain explicit.
   negotiation and "learn what a backend supports, fail-closed on the unsupported."
 - **MUSIC's port/connector taxonomy** — continuous-(V_m/rate) vs event-(spikes)
   channels, acknowledged as MUSIC lineage.
-- **ROS/DDS QoS thinking** — the per-plane reliability/priority/overflow split,
-  and `ttl_ms` ≡ DDS LIFESPAN. Validation, not novelty.
+- **ROS/DDS QoS thinking** — the per-plane reliability, priority, and overflow
+  split. DDS LIFESPAN is an analogy for bounded sample validity, not an equivalent
+  definition of receiver-local `ttl_ms`.
 - **Gym/dm_env(_rpc) ergonomics** — `open`/`step`/`run` and `*_spec`-style typed
   capabilities.
 - **PROV / RO-Crate** — the intended provenance substrate for the session archive.
 
 ## When you should NOT use NCP / use X instead
 
-- **Coupling two simulators on one HPC cluster:** **MUSIC**. NCP doesn't replace it.
-- **An all-ROS 2 stack, especially with no off-ROS consumers:** define `neuro_msgs`
-  on **`rmw_zenoh`** with a watchdog (the composition above) and keep ROS 2's
-  tooling/governance — this is the right default for a ROS-standardized team.
-- **A safety-critical path needing a decade of QoS hardening:** **DDS** as the
-  substrate (heavier, fiddlier, pedigreed) — possibly *under* an NCP contract.
-- **In-process, single-language Python RL:** **Gymnasium/dm_env** (or **dm_env_rpc**
-  if you need it networked) — no bespoke wire required.
+- **Coupling simulators through established co-simulation ports:** evaluate MUSIC
+  before adding NCP.
+- **An all-ROS 2 deployment with no off-ROS consumers:** evaluate a ROS message and
+  watchdog composition before maintaining a separate NCP boundary.
+- **A safety-critical path:** select the transport and safety architecture from the
+  installed system's qualified requirements. NCP supplies no physical
+  certification.
+- **In-process, single-language Python RL:** evaluate Gymnasium or `dm_env` before
+  adding a network contract.
 - **LLM tool-use / agent hand-off:** **MCP / A2A**.
 - **Driving a flight controller directly:** **MAVLink/MAVROS** is the edge NCP
-  *targets*, not replaces.
-- **Raw latency near silicon:** neuromorphic on-chip (**Loihi/SpiNNaker**).
+  targets rather than replaces.
 
-Use NCP when you need *all* of: a NEST SNN served to external/remote multi-language
-non-ROS clients, neural record/stimulus semantics, a safety-moded action plane, a
-provenance boundary on every frame, and a typed analysis tap — **and** carrying the
-full ROS 2 build system to every consumer is the larger tax. That intersection,
-weighed honestly against the composition alternative, is the narrow gap NCP fills.
+NCP targets deployments that need an explicit multi-language contract for neural
+records and stimuli, simulation provenance, bounded plant authority, plane-specific
+delivery, and observation roles outside one application framework. The candidate
+does not prove that this design is preferable for a deployment. Compare it with the
+composition alternative, then require exact installed evidence before adoption.

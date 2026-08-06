@@ -850,7 +850,7 @@ This packet requests human, same-digest review of the eleven **PROPOSED** NCP
 ADR, change the normative contract, satisfy B01, authorize a rebaseline, certify
 interoperability or plant safety, or release NCP 1.0.
 
-## Exact review subject
+### Exact review subject
 
 - ADR/prototype source commit:
   `81941954f33078aa6a8dd85d70e392aae5469246`
@@ -875,7 +875,7 @@ log, and generated coordination/audit mirrors; it does not alter the ADR bytes
 below. A review is valid only for the exact ADR SHA-256 values it names. Any later
 ADR edit invalidates that review.
 
-## Decisions and required roles
+### Decisions and required roles
 
 | ADR | Exact content SHA-256 | Required reviewer roles |
 |---|---|---|
@@ -895,7 +895,7 @@ The generated [proposed registry](decision-registry.proposed.v1.json) is the
 machine-readable digest and role inventory. It remains non-normative, contains
 zero review records, and is deliberately outside `contract/`.
 
-## Ecosystem decision under review
+### Ecosystem decision under review
 
 The dependency and authority direction is standalone-first:
 
@@ -923,7 +923,7 @@ v0.8 incarnation. Neither direction permits dual-stack body admission or revival
 of pre-cutover traffic. Generation and stream-epoch UUIDs are equality fences,
 not counters.
 
-## Current consumer baseline observation
+### Current consumer baseline observation
 
 These observations prevent copied files, active worktrees, or prerelease branches
 from being mistaken for installed native-1.0 evidence. They are not review or
@@ -943,7 +943,7 @@ qualification receipts.
   `adbd9026da1490a3c39663970ba4c2fc70a42376` retain the authority boundaries
   above. Active Cortexel/pid-rs work is unrelated and was not modified here.
 
-## Preliminary challenge evidence
+### Preliminary challenge evidence
 
 The retained result is
 [`preliminary-architecture-8194195.v1.json`](../../evidence/implementation/working/B01/preliminary-architecture-8194195.v1.json),
@@ -973,7 +973,7 @@ latest response SHA-256 is
 `080ad93775d6dec018a08efeadd49b0d57e6162a90f4bc7cf9a8b43199246d32`.
 External-model advice is challenge input only and satisfies no review role.
 
-## Reproduction commands
+### Reproduction commands
 
 From an exact checkout of `a9e0f48520649becc5507fc7d0ba069e4e20af92`:
 
@@ -992,7 +992,7 @@ Reviewers should independently compute the ADR SHA-256 values rather than trust
 this packet. Local reproduction is useful challenge evidence but cannot replace
 the required independent role and content-bound judgment.
 
-## Required review focus
+### Required review focus
 
 Review the selected ADRs through all three perspectives and the ten lenses named
 in each ADR. In particular, try to find a counterexample involving:
@@ -1012,7 +1012,7 @@ in each ADR. In particular, try to find a counterexample involving:
 - migration, packaging, or local tests being overstated as release or installed
   interoperability evidence.
 
-## Replacement review response fields
+### Replacement review response fields
 
 ```text
 review_id:
@@ -1043,7 +1043,7 @@ authenticate the closure. Model output, an AI review, an implementation-owner
 self-review, a local green test, or a GitHub reaction does not satisfy an
 independent reviewer role.
 
-## Explicit non-claims and remaining gates
+### Explicit non-claims and remaining gates
 
 All ADRs remain `PROPOSED`; B01 remains `IN_PROGRESS`; the generated registry has
 zero review records. The normative contract is unchanged. Canonical TLA+,

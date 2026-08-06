@@ -1,6 +1,6 @@
 [package]
 name = "ncp-python"
-description = "Python bindings (PyO3) for the NCP Rust core — so Python projects use the canonical Rust implementation (version guard, key scheme, rate codec, safety governor, message validation) instead of reimplementing the wire."
+description = "PyO3 bindings to the informative NCP Rust reference implementation for version guards, keys, codecs, safety, and validation."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

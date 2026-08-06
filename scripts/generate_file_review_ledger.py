@@ -30,7 +30,7 @@ DEFAULT_SOURCE = "ef357d20692f707e185495dcfd16b16556fec264"
 DEFAULT_OUTPUT = ROOT / "docs" / "handoff" / "max-effort-file-review.v2.csv"
 DEFAULT_MANIFEST = ROOT / "docs" / "handoff" / "max-effort-file-review-manifest.v2.json"
 DEFAULT_REVIEW_STATUS = "INTERNAL_AI_REVIEW_COMPLETE_WITH_OPEN_FINDINGS"
-DEFAULT_COMPLETED_AT = "2026-07-15T12:30:58Z"
+DEFAULT_COMPLETED_AT = "2026-08-06T07:39:36Z"
 SOURCE_ID = re.compile(r"^[0-9a-f]{40}$")
 REVIEWERS = (
     "/root/cross_repo_audit",
@@ -97,6 +97,17 @@ TEXT_EXTENSIONS = {
     ".html",
     ".svg",
 }
+PUBLIC_API_SOURCE_PREFIXES = (
+    "ncp-core/src/",
+    "ncp-cpp/src/",
+    "ncp-gateway/src/",
+    "ncp-python/src/",
+    "ncp-ts/src/",
+    "ncp-zenoh/src/",
+)
+AUTHORITY_CRITICAL_SOURCE_PATHS = {
+    "ncp-core/src/transport.rs",
+}
 
 
 class LedgerError(ValueError):
@@ -108,6 +119,7 @@ def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
         return subprocess.check_output(
             [
                 "git",
+                "--no-replace-objects",
                 "-c",
                 "commit.gpgSign=false",
                 "-c",
@@ -118,12 +130,49 @@ def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
             ],
             input=input_bytes,
             stderr=subprocess.PIPE,
+            env=_git_environment(),
         )
     except (OSError, subprocess.CalledProcessError) as error:
         detail = ""
         if isinstance(error, subprocess.CalledProcessError):
             detail = error.stderr.decode("utf-8", "replace").strip()
         raise LedgerError(f"git {' '.join(args)} failed: {detail or error}") from error
+
+
+def _git_environment() -> dict[str, str]:
+    environment = os.environ.copy()
+    exact = {
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_CEILING_DIRECTORIES",
+        "GIT_COMMON_DIR",
+        "GIT_CONFIG",
+        "GIT_CONFIG_COUNT",
+        "GIT_CONFIG_GLOBAL",
+        "GIT_CONFIG_PARAMETERS",
+        "GIT_CONFIG_SYSTEM",
+        "GIT_DIR",
+        "GIT_DIFF_OPTS",
+        "GIT_EXTERNAL_DIFF",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_REPLACE_REF_BASE",
+        "GIT_WORK_TREE",
+    }
+    for key in list(environment):
+        if key in exact or key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")):
+            environment.pop(key, None)
+    environment.update(
+        {
+            "GIT_ATTR_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_NO_REPLACE_OBJECTS": "1",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "LC_ALL": "C",
+        }
+    )
+    return environment
 
 
 def resolve_source(repo: Path, source: str) -> tuple[str, str]:
@@ -253,9 +302,14 @@ def _generated(path: str) -> tuple[str, str]:
         return "YES", "python3 scripts/generate_conformance_manifest.py --write"
     if path.startswith("schemas/") and path != "schemas/README.md":
         return "YES", "cargo run -p ncp-core --features schema --bin gen-schemas"
-    if path.startswith("ncp-core/bindings/") or path.startswith(
-        "ncp-ts/src/generated/"
-    ):
+    if path == "ncp-core/bindings/index.ts":
+        return "YES", "node ncp-ts/scripts/sync-bindings.mjs"
+    if path.startswith("ncp-core/bindings/") and path.endswith(".ts"):
+        return (
+            "YES",
+            "cargo test -p ncp-core --features ts && node ncp-ts/scripts/sync-bindings.mjs",
+        )
+    if path.startswith("ncp-ts/src/generated/"):
         return "YES", "node ncp-ts/scripts/sync-bindings.mjs"
     if path.startswith("ncp-ts/dist/"):
         return "YES", "bun run build"
@@ -282,6 +336,7 @@ def _flags(path: str) -> tuple[str, str, str, str]:
     public = (
         path in {"README.md", "CITATION.cff", "VERSIONING.md", "SECURITY.md"}
         or lower.startswith(("proto/", "contract/", "schemas/", "docs/"))
+        or lower.startswith(PUBLIC_API_SOURCE_PREFIXES)
         or any(
             part in lower
             for part in ("/readme.md", "/include/", "pyproject.toml", "package.json")
@@ -331,7 +386,7 @@ def _flags(path: str) -> tuple[str, str, str, str]:
             "gateway",
             "deploy/",
         )
-    )
+    ) or path in AUTHORITY_CRITICAL_SOURCE_PATHS
     return (
         *("YES" if value else "NO" for value in (public, security, science, authority)),
     )
@@ -511,6 +566,40 @@ def _encoded_manifest(value: dict[str, Any]) -> str:
 
 
 def self_test() -> None:
+    generated_cases = {
+        "ncp-core/bindings/README.md": ("NO", "NOT_APPLICABLE"),
+        "ncp-core/bindings/CommandFrame.ts": (
+            "YES",
+            "cargo test -p ncp-core --features ts && node ncp-ts/scripts/sync-bindings.mjs",
+        ),
+        "ncp-core/bindings/index.ts": (
+            "YES",
+            "node ncp-ts/scripts/sync-bindings.mjs",
+        ),
+        "ncp-ts/src/generated/CommandFrame.ts": (
+            "YES",
+            "node ncp-ts/scripts/sync-bindings.mjs",
+        ),
+    }
+    for path, expected in generated_cases.items():
+        if _generated(path) != expected:
+            raise AssertionError(f"wrong generator classification for {path}")
+
+    for public_api_path in (
+        "ncp-core/src/lib.rs",
+        "ncp-core/src/transport.rs",
+        "ncp-cpp/src/lib.rs",
+        "ncp-python/src/lib.rs",
+        "ncp-ts/src/index.ts",
+        "ncp-zenoh/src/lib.rs",
+    ):
+        if _flags(public_api_path)[0] != "YES":
+            raise AssertionError(
+                f"public API source was not classified as public: {public_api_path}"
+            )
+    if _flags("ncp-core/src/transport.rs")[3] != "YES":
+        raise AssertionError("control transport source lost authority-critical status")
+
     with tempfile.TemporaryDirectory() as directory:
         repo = Path(directory) / "repo"
         repo.mkdir()
@@ -562,6 +651,24 @@ def self_test() -> None:
             raise AssertionError(
                 "assigned-review generator omitted the required empty timestamp"
             )
+        original_blob = _git(repo, "rev-parse", "HEAD:plain.txt").decode().strip()
+        replacement_blob = _git(
+            repo,
+            "hash-object",
+            "-w",
+            "--stdin",
+            input_bytes=b"red\nblu\n",
+        ).decode().strip()
+        _git(repo, "replace", original_blob, replacement_blob)
+        replaced_ledger, _ = build(repo, "HEAD", "REVIEW_ASSIGNED", "")
+        replaced_rows = {
+            row["path"]: row
+            for row in csv.DictReader(io.StringIO(replaced_ledger))
+        }
+        if replaced_rows["plain.txt"]["sha256"] != hashlib.sha256(
+            b"one\ntwo\n"
+        ).hexdigest():
+            raise AssertionError("Git replacement ref changed immutable blob review bytes")
 
 
 def main() -> int:
@@ -582,6 +689,9 @@ def main() -> int:
     try:
         if args.self_test:
             self_test()
+            if not args.check:
+                print("OK max-effort file ledger self-test")
+                return 0
         csv_text, manifest = build(
             args.repo.resolve(), args.source, args.review_status, args.completed_at
         )

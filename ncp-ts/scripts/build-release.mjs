@@ -5,18 +5,26 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
+  closeSync,
   copyFileSync,
+  chmodSync,
   cpSync,
   existsSync,
+  fstatSync,
+  lstatSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   readFileSync,
+  readSync,
   readdirSync,
   renameSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -25,6 +33,39 @@ const repositoryRoot = join(ncpTsRoot, '..')
 const SENTINEL_BUILD_IDENTITY = 'unreleased-worktree'
 const SOURCE_REVISION = /^[0-9a-f]{40}$/
 const IDENTITY_DECLARATION = /^export const NCP_BUILD_IDENTITY = .*$/gm
+const MAX_GIT_TREE_FILES = 10_000
+const MAX_GIT_BLOB_BYTES = 64 * 1024 * 1024
+const MAX_GIT_TREE_BYTES = 1024 * 1024 * 1024
+const MAX_RELEASE_ORCHESTRATION_BYTES = 256 * 1024
+const RELEASE_ORCHESTRATION_PATHS = ['ncp-ts/scripts/build-release.mjs']
+const TYPESCRIPT_CONTROL_PATH = 'security/toolchains/typescript-5.9.2.v1.json'
+const TYPESCRIPT_CONTROL_SCHEMA = 'ncp.reviewed-npm-build-tool.v1'
+const TYPESCRIPT_REGISTRY_TARBALL_EVIDENCE =
+  'REVIEWED_EXPECTED_DIGEST_NOT_BUILD_OBSERVED'
+const NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS = [
+  'dependencies',
+  'optionalDependencies',
+  'peerDependencies',
+  'peerDependenciesMeta',
+  'bundleDependencies',
+  'bundledDependencies',
+  'workspaces',
+  'overrides',
+  'resolutions',
+  'trustedDependencies',
+  'patchedDependencies',
+  'catalog',
+  'catalogs',
+  'packageExtensions',
+]
+const MAX_TYPESCRIPT_CONTROL_BYTES = 64 * 1024
+const MAX_TYPESCRIPT_PACKAGE_FILES = 1_000
+const MAX_TYPESCRIPT_PACKAGE_ENTRIES = 2_000
+const MAX_TYPESCRIPT_PACKAGE_DEPTH = 16
+const MAX_TYPESCRIPT_PACKAGE_PATH_BYTES = 512
+const MAX_TYPESCRIPT_PACKAGE_FILE_BYTES = 64 * 1024 * 1024
+const MAX_TYPESCRIPT_PACKAGE_BYTES = 256 * 1024 * 1024
+const MAX_NODE_EXECUTABLE_BYTES = 256 * 1024 * 1024
 const SENTINEL_DECLARATION =
   `export const NCP_BUILD_IDENTITY = '${SENTINEL_BUILD_IDENTITY}'`
 
@@ -37,6 +78,111 @@ function validateSourceRevision(revision) {
     fail('source revision must be exactly 40 lowercase hexadecimal characters')
   }
   return revision
+}
+
+function gitEnvironment() {
+  return {
+    PATH: process.env.PATH ?? '/usr/bin:/bin',
+    LANG: 'C',
+    LC_ALL: 'C',
+    GIT_ATTR_NOSYSTEM: '1',
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_SYSTEM: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_NO_REPLACE_OBJECTS: '1',
+    GIT_OPTIONAL_LOCKS: '0',
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: '/usr/bin/false',
+    GCM_INTERACTIVE: 'never',
+  }
+}
+
+function git(args, options = {}) {
+  return execFileSync('git', args, {
+    cwd: repositoryRoot,
+    env: gitEnvironment(),
+    maxBuffer: MAX_GIT_BLOB_BYTES + 1024,
+    ...options,
+  })
+}
+
+function safeTreePath(encoded) {
+  const value = encoded.toString('utf8')
+  if (
+    !Buffer.from(value, 'utf8').equals(encoded) ||
+    !value ||
+    value.startsWith('/') ||
+    value.includes('\\') ||
+    value.split('/').some((part) => !part || part === '.' || part === '..') ||
+    [...value].some((character) => character.codePointAt(0) < 32 || character.codePointAt(0) === 127)
+  ) {
+    fail(`exact Git tree contains an unsafe path ${JSON.stringify(value)}`)
+  }
+  return value
+}
+
+function materializeExactTree(revision, destination) {
+  const objectFormat = git(['rev-parse', '--show-object-format'], { encoding: 'ascii' }).trim()
+  const objectLengths = new Map([
+    ['sha1', 40],
+    ['sha256', 64],
+  ])
+  if (!objectLengths.has(objectFormat)) fail(`unsupported Git object format ${objectFormat}`)
+  const tree = git(['ls-tree', '-r', '-z', '--full-tree', revision])
+  const records = tree.subarray(0, tree.length - (tree.at(-1) === 0 ? 1 : 0)).toString('binary').split('\0')
+  if (!records.length || records.length > MAX_GIT_TREE_FILES) {
+    fail(`exact Git tree file count is outside 1..${MAX_GIT_TREE_FILES}`)
+  }
+  let totalBytes = 0
+  const seen = new Set()
+  for (const binaryRecord of records) {
+    const record = Buffer.from(binaryRecord, 'binary')
+    const separator = record.indexOf(0x09)
+    if (separator < 1) fail('exact Git tree contains malformed metadata')
+    const [mode, type, objectId] = record.subarray(0, separator).toString('ascii').split(' ')
+    const path = safeTreePath(record.subarray(separator + 1))
+    if (
+      type !== 'blob' ||
+      !['100644', '100755'].includes(mode) ||
+      !new RegExp(`^[0-9a-f]{${objectLengths.get(objectFormat)}}$`).test(objectId)
+    ) {
+      fail(`exact Git tree contains a link, submodule, or unsupported entry: ${path}`)
+    }
+    if (seen.has(path)) fail(`exact Git tree repeats ${path}`)
+    seen.add(path)
+    const sizeText = git(['cat-file', '-s', objectId], { encoding: 'ascii' }).trim()
+    if (!/^[0-9]+$/.test(sizeText)) fail(`exact Git blob size is malformed: ${path}`)
+    const size = Number(sizeText)
+    if (!Number.isSafeInteger(size) || size > MAX_GIT_BLOB_BYTES) {
+      fail(`exact Git blob exceeds its byte limit: ${path}`)
+    }
+    totalBytes += size
+    if (totalBytes > MAX_GIT_TREE_BYTES) fail('exact Git tree exceeds its byte limit')
+    const body = git(['cat-file', 'blob', objectId])
+    if (body.length !== size) fail(`exact Git blob size changed while reading: ${path}`)
+    const digest = createHash(objectFormat)
+      .update(Buffer.from(`blob ${body.length}\0`, 'ascii'))
+      .update(body)
+      .digest('hex')
+    if (digest !== objectId) fail(`exact Git blob identity differs for ${path}`)
+    const output = join(destination, ...path.split('/'))
+    mkdirSync(dirname(output), { recursive: true })
+    writeFileSync(output, body, { flag: 'wx' })
+    chmodSync(output, mode === '100755' ? 0o755 : 0o644)
+  }
+}
+
+function assertNoCargoConfigAncestors(path) {
+  let current = resolve(path)
+  while (true) {
+    for (const name of ['config', 'config.toml']) {
+      const candidate = join(current, '.cargo', name)
+      if (existsSync(candidate)) fail(`release build inherits Cargo configuration: ${candidate}`)
+    }
+    const parent = dirname(current)
+    if (parent === current) return
+    current = parent
+  }
 }
 
 function parseArguments(argv) {
@@ -65,23 +211,587 @@ function parseArguments(argv) {
   return { selfTest: false, revision, output }
 }
 
+function sameFileIdentity(left, right) {
+  return ['dev', 'ino', 'mode', 'nlink', 'size', 'mtimeMs', 'ctimeMs'].every(
+    (key) => left[key] === right[key],
+  )
+}
+
+function boundedRegularFile(path, context, maximumBytes) {
+  let pathBefore
+  try {
+    pathBefore = lstatSync(path)
+  } catch (error) {
+    fail(`${context} is unavailable: ${error.message}`)
+  }
+  if (
+    !pathBefore.isFile() ||
+    pathBefore.isSymbolicLink() ||
+    pathBefore.nlink !== 1 ||
+    !Number.isSafeInteger(pathBefore.size) ||
+    pathBefore.size < 0 ||
+    pathBefore.size > maximumBytes
+  ) {
+    fail(`${context} is not one bounded unaliased regular file`)
+  }
+
+  let descriptor
+  try {
+    descriptor = openSync(path, 'r')
+    const opened = fstatSync(descriptor)
+    if (!sameFileIdentity(pathBefore, opened)) {
+      fail(`${context} changed while it was opened`)
+    }
+    const body = Buffer.alloc(pathBefore.size)
+    let offset = 0
+    while (offset < body.length) {
+      const count = readSync(descriptor, body, offset, body.length - offset, offset)
+      if (count === 0) fail(`${context} ended before its declared size`)
+      offset += count
+    }
+    const overflow = Buffer.alloc(1)
+    if (readSync(descriptor, overflow, 0, 1, offset) !== 0) {
+      fail(`${context} grew beyond its declared size`)
+    }
+    const openedAfter = fstatSync(descriptor)
+    const pathAfter = lstatSync(path)
+    if (
+      !sameFileIdentity(opened, openedAfter) ||
+      !sameFileIdentity(openedAfter, pathAfter)
+    ) {
+      fail(`${context} changed while it was read`)
+    }
+    return body
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor)
+  }
+}
+
+function readUniqueJsonObject(
+  path,
+  context,
+  maximumBytes = MAX_TYPESCRIPT_CONTROL_BYTES,
+) {
+  const body = boundedRegularFile(path, context, maximumBytes)
+  const raw = body.toString('utf8')
+  if (!Buffer.from(raw, 'utf8').equals(body)) fail(`${context} is not UTF-8`)
+  return { body, raw, value: parseUniqueJsonObject(raw, context) }
+}
+
+function safePackagePath(encoded, parent) {
+  const name = encoded.toString('utf8')
+  if (
+    !Buffer.from(name, 'utf8').equals(encoded) ||
+    !name ||
+    name === '.' ||
+    name === '..' ||
+    name.includes('/') ||
+    name.includes('\\') ||
+    !/^[\x20-\x7e]+$/.test(name) ||
+    [...name].some(
+      (character) => character.codePointAt(0) < 32 || character.codePointAt(0) === 127,
+    )
+  ) {
+    fail('TypeScript package tree contains an unsafe entry name')
+  }
+  const path = parent ? `${parent}/${name}` : name
+  if (Buffer.byteLength(path, 'utf8') > MAX_TYPESCRIPT_PACKAGE_PATH_BYTES) {
+    fail(`TypeScript package path exceeds its byte limit: ${path}`)
+  }
+  return { name, path }
+}
+
+function canonicalSha512Integrity(value, context) {
+  if (!/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(value ?? '')) {
+    fail(`${context} is not a canonical SHA-512 SRI value`)
+  }
+  const encoded = value.slice('sha512-'.length)
+  const digest = Buffer.from(encoded, 'base64')
+  if (digest.length !== 64 || digest.toString('base64') !== encoded) {
+    fail(`${context} does not encode exactly 64 SHA-512 bytes`)
+  }
+  return value
+}
+
+function rejectDuplicateJsonObjectKeys(text, context) {
+  let index = 0
+  const maximumDepth = 64
+  const skipWhitespace = () => {
+    while (index < text.length && /\s/.test(text[index])) index += 1
+  }
+  const parseString = () => {
+    const start = index
+    index += 1
+    let escaped = false
+    while (index < text.length) {
+      const character = text[index]
+      index += 1
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === '"') return JSON.parse(text.slice(start, index))
+    }
+    fail(`${context} has an unterminated string`)
+  }
+  const scanValue = (depth) => {
+    if (depth > maximumDepth) fail(`${context} exceeds the JSON nesting limit`)
+    skipWhitespace()
+    const character = text[index]
+    if (character === '{') {
+      index += 1
+      const keys = new Set()
+      skipWhitespace()
+      if (text[index] === '}') {
+        index += 1
+        return
+      }
+      while (index < text.length) {
+        skipWhitespace()
+        if (text[index] !== '"') fail(`${context} has a non-string object key`)
+        const key = parseString()
+        if (keys.has(key)) {
+          fail(`${context} contains duplicate object key ${JSON.stringify(key)}`)
+        }
+        keys.add(key)
+        skipWhitespace()
+        if (text[index] !== ':') fail(`${context} has a malformed object member`)
+        index += 1
+        scanValue(depth + 1)
+        skipWhitespace()
+        if (text[index] === '}') {
+          index += 1
+          return
+        }
+        if (text[index] !== ',') fail(`${context} has a malformed object separator`)
+        index += 1
+      }
+      fail(`${context} has an unterminated object`)
+    }
+    if (character === '[') {
+      index += 1
+      skipWhitespace()
+      if (text[index] === ']') {
+        index += 1
+        return
+      }
+      while (index < text.length) {
+        scanValue(depth + 1)
+        skipWhitespace()
+        if (text[index] === ']') {
+          index += 1
+          return
+        }
+        if (text[index] !== ',') fail(`${context} has a malformed array separator`)
+        index += 1
+      }
+      fail(`${context} has an unterminated array`)
+    }
+    if (character === '"') {
+      parseString()
+      return
+    }
+    const start = index
+    while (index < text.length && !/[\s,\]}]/.test(text[index])) index += 1
+    if (index === start) fail(`${context} has a malformed scalar`)
+  }
+
+  scanValue(0)
+  skipWhitespace()
+  if (index !== text.length) fail(`${context} has trailing JSON content`)
+}
+
+function parseUniqueJsonObject(raw, context) {
+  let value
+  try {
+    value = JSON.parse(raw)
+  } catch (error) {
+    fail(`${context} is not valid JSON: ${error.message}`)
+  }
+  rejectDuplicateJsonObjectKeys(raw, context)
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${context} must contain one object`)
+  }
+  return value
+}
+
+function parseJsoncObject(raw, context) {
+  const stripped = [...raw]
+  let inString = false
+  let escaped = false
+  for (let index = 0; index < stripped.length; index += 1) {
+    const character = stripped[index]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === '"') inString = false
+      continue
+    }
+    if (character === '"') {
+      inString = true
+      continue
+    }
+    if (character !== '/' || index + 1 >= stripped.length) continue
+    const marker = stripped[index + 1]
+    if (marker === '/') {
+      stripped[index] = stripped[index + 1] = ' '
+      index += 2
+      while (index < stripped.length && !['\r', '\n'].includes(stripped[index])) {
+        stripped[index] = ' '
+        index += 1
+      }
+      index -= 1
+      continue
+    }
+    if (marker === '*') {
+      stripped[index] = stripped[index + 1] = ' '
+      index += 2
+      while (
+        index + 1 < stripped.length &&
+        !(stripped[index] === '*' && stripped[index + 1] === '/')
+      ) {
+        if (!['\r', '\n'].includes(stripped[index])) stripped[index] = ' '
+        index += 1
+      }
+      if (index + 1 >= stripped.length) fail(`${context} has an unterminated comment`)
+      stripped[index] = stripped[index + 1] = ' '
+      index += 1
+    }
+  }
+  if (inString) fail(`${context} has an unterminated string`)
+
+  const withoutTrailingCommas = []
+  inString = false
+  escaped = false
+  for (let index = 0; index < stripped.length; index += 1) {
+    const character = stripped[index]
+    if (inString) {
+      withoutTrailingCommas.push(character)
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === '"') inString = false
+      continue
+    }
+    if (character === '"') {
+      inString = true
+      withoutTrailingCommas.push(character)
+      continue
+    }
+    if (character === ',') {
+      let lookahead = index + 1
+      while (lookahead < stripped.length && /\s/.test(stripped[lookahead])) lookahead += 1
+      if (lookahead < stripped.length && ['}', ']'].includes(stripped[lookahead])) continue
+    }
+    withoutTrailingCommas.push(character)
+  }
+  const normalized = withoutTrailingCommas.join('')
+  let value
+  try {
+    value = JSON.parse(normalized)
+  } catch (error) {
+    fail(`${context} is not valid JSONC: ${error.message}`)
+  }
+  rejectDuplicateJsonObjectKeys(normalized, context)
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${context} must contain one object`)
+  }
+  return value
+}
+
+function exactTypeScriptBunLock(lock, version, reviewedIntegrity) {
+  if (lock.includes('\r')) fail('Bun lockfile must use canonical LF line endings')
+  canonicalSha512Integrity(reviewedIntegrity, 'reviewed TypeScript registry integrity')
+  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pinPattern = new RegExp(
+    `^\\s*"typescript"\\s*:\\s*"${escapedVersion}"[,]?\\s*$`,
+  )
+  const packagePattern = new RegExp(
+    `^\\s*"typescript"\\s*:\\s*\\["typescript@${escapedVersion}"[^\\r\\n]*?` +
+      `"(sha512-[A-Za-z0-9+/]+={0,2})"\\][,]?\\s*$`,
+  )
+  const lines = lock.split('\n')
+  const mentions = lines.filter((line) => line.includes('"typescript"'))
+  const pins = mentions.filter((line) => pinPattern.test(line))
+  const packages = mentions.map((line) => line.match(packagePattern)).filter(Boolean)
+  if (
+    mentions.length !== 2 ||
+    pins.length !== 1 ||
+    packages.length !== 1 ||
+    canonicalSha512Integrity(packages[0][1], 'Bun TypeScript registry integrity') !==
+      reviewedIntegrity
+  ) {
+    fail('Bun lockfile does not contain the one exact reviewed TypeScript package record')
+  }
+  const parsed = parseJsoncObject(lock, 'Bun lockfile')
+  exactObjectKeys(
+    parsed,
+    ['configVersion', 'lockfileVersion', 'packages', 'workspaces'],
+    'Bun lockfile',
+  )
+  exactObjectKeys(parsed.workspaces, [''], 'Bun lockfile workspaces')
+  exactObjectKeys(parsed.packages, ['typescript'], 'Bun lockfile packages')
+  const workspace = parsed.workspaces['']
+  exactObjectKeys(workspace, ['devDependencies', 'name'], 'Bun root workspace')
+  exactObjectKeys(
+    workspace.devDependencies,
+    ['typescript'],
+    'Bun root development dependencies',
+  )
+  const record = parsed.packages.typescript
+  if (
+    parsed.lockfileVersion !== 1 ||
+    parsed.configVersion !== 1 ||
+    workspace.name !== '@sepahead/ncp' ||
+    workspace.devDependencies.typescript !== version ||
+    !Array.isArray(record) ||
+    record.length !== 4 ||
+    record[0] !== `typescript@${version}` ||
+    record[1] !== '' ||
+    JSON.stringify(record[2]) !==
+      JSON.stringify({ bin: { tsc: 'bin/tsc', tsserver: 'bin/tsserver' } }) ||
+    record[3] !== reviewedIntegrity
+  ) {
+    fail('Bun lockfile TypeScript package structure differs from its reviewed form')
+  }
+}
+
+function typeScriptPackageTree(packageRoot) {
+  let rootIdentity
+  try {
+    rootIdentity = lstatSync(packageRoot)
+  } catch (error) {
+    fail(`installed TypeScript package is unavailable: ${error.message}`)
+  }
+  if (!rootIdentity.isDirectory() || rootIdentity.isSymbolicLink()) {
+    fail('installed TypeScript package root is linked or not a directory')
+  }
+
+  const files = []
+  const seen = new Set()
+  let entries = 0
+  let totalBytes = 0
+  function walk(directory, parent, depth) {
+    if (depth > MAX_TYPESCRIPT_PACKAGE_DEPTH) {
+      fail('TypeScript package tree exceeds its depth limit')
+    }
+    const names = readdirSync(directory, { encoding: 'buffer' }).sort(Buffer.compare)
+    for (const encoded of names) {
+      entries += 1
+      if (entries > MAX_TYPESCRIPT_PACKAGE_ENTRIES) {
+        fail('TypeScript package tree exceeds its entry limit')
+      }
+      const { name, path } = safePackagePath(encoded, parent)
+      if (seen.has(path)) fail(`TypeScript package tree repeats ${path}`)
+      seen.add(path)
+      const absolute = join(directory, name)
+      const identity = lstatSync(absolute)
+      if (identity.isSymbolicLink()) {
+        fail(`TypeScript package tree contains a symbolic link: ${path}`)
+      }
+      if (identity.isDirectory()) {
+        walk(absolute, path, depth + 1)
+        continue
+      }
+      if (!identity.isFile()) {
+        fail(`TypeScript package tree contains a special file: ${path}`)
+      }
+      if (files.length >= MAX_TYPESCRIPT_PACKAGE_FILES) {
+        fail('TypeScript package tree exceeds its file-count limit')
+      }
+      const body = boundedRegularFile(
+        absolute,
+        `TypeScript package file ${path}`,
+        MAX_TYPESCRIPT_PACKAGE_FILE_BYTES,
+      )
+      totalBytes += body.length
+      if (totalBytes > MAX_TYPESCRIPT_PACKAGE_BYTES) {
+        fail('TypeScript package tree exceeds its aggregate byte limit')
+      }
+      files.push({
+        path,
+        size_bytes: body.length,
+        sha256: createHash('sha256').update(body).digest('hex'),
+      })
+    }
+  }
+  walk(packageRoot, '', 0)
+  if (!files.length) fail('TypeScript package tree contains no regular files')
+  return {
+    file_count: files.length,
+    total_bytes: totalBytes,
+    manifest_sha256: createHash('sha256').update(JSON.stringify(files)).digest('hex'),
+    files,
+  }
+}
+
+function exactObjectKeys(value, expected, context) {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    JSON.stringify(Object.keys(value).sort()) !== JSON.stringify([...expected].sort())
+  ) {
+    fail(`${context} has an unexpected shape`)
+  }
+}
+
+function exactNpmDependencySurface(manifest, context) {
+  const unexpected = NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(manifest, field),
+  )
+  if (unexpected.length) {
+    fail(`${context} contains unreviewed dependency or package-graph fields: ${unexpected.join(', ')}`)
+  }
+  exactObjectKeys(
+    manifest.devDependencies,
+    ['typescript'],
+    `${context} development dependencies`,
+  )
+  const version = manifest.devDependencies.typescript
+  if (!/^\d+\.\d+\.\d+$/.test(version ?? '')) {
+    fail(`${context} must pin TypeScript to one exact x.y.z version`)
+  }
+  return version
+}
+
+function typeScriptControl(sourceRoot) {
+  const path = join(sourceRoot, ...TYPESCRIPT_CONTROL_PATH.split('/'))
+  const { body, raw, value: control } = readUniqueJsonObject(
+    path,
+    'TypeScript source control',
+  )
+  if (`${JSON.stringify(control, null, 2)}\n` !== raw) {
+    fail('TypeScript source control is not canonical JSON')
+  }
+  exactObjectKeys(
+    control,
+    ['claim_boundary', 'normalized_package_tree', 'package', 'registry', 'schema', 'version'],
+    'TypeScript source control',
+  )
+  exactObjectKeys(
+    control.normalized_package_tree,
+    ['file_count', 'manifest_sha256', 'record_shape', 'total_bytes'],
+    'TypeScript normalized-tree control',
+  )
+  exactObjectKeys(
+    control.registry,
+    ['integrity_sha512', 'tarball_bytes_retained', 'tarball_sha256'],
+    'TypeScript registry control',
+  )
+  if (
+    control.schema !== TYPESCRIPT_CONTROL_SCHEMA ||
+    control.package !== 'typescript' ||
+    !/^\d+\.\d+\.\d+$/.test(control.version ?? '') ||
+    canonicalSha512Integrity(
+      control.registry.integrity_sha512,
+      'TypeScript source-control registry integrity',
+    ) !== control.registry.integrity_sha512 ||
+    control.registry.tarball_bytes_retained !== false ||
+    !/^[0-9a-f]{64}$/.test(control.registry.tarball_sha256 ?? '') ||
+    control.normalized_package_tree.record_shape.join('\0') !==
+      ['path', 'size_bytes', 'sha256'].join('\0') ||
+    !Number.isSafeInteger(control.normalized_package_tree.file_count) ||
+    control.normalized_package_tree.file_count < 1 ||
+    control.normalized_package_tree.file_count > MAX_TYPESCRIPT_PACKAGE_FILES ||
+    !Number.isSafeInteger(control.normalized_package_tree.total_bytes) ||
+    control.normalized_package_tree.total_bytes < 1 ||
+    control.normalized_package_tree.total_bytes > MAX_TYPESCRIPT_PACKAGE_BYTES ||
+    !/^[0-9a-f]{64}$/.test(control.normalized_package_tree.manifest_sha256 ?? '') ||
+    typeof control.claim_boundary !== 'string' ||
+    !control.claim_boundary
+  ) {
+    fail('TypeScript source control identity is malformed')
+  }
+  return {
+    ...control,
+    sha256: createHash('sha256').update(body).digest('hex'),
+  }
+}
+
+function assertTypeScriptTreeMatches(observed, expected, context) {
+  if (
+    observed.file_count !== expected.file_count ||
+    observed.total_bytes !== expected.total_bytes ||
+    observed.manifest_sha256 !== expected.manifest_sha256
+  ) {
+    fail(`${context} differs from the reviewed TypeScript package tree`)
+  }
+}
+
+function exactNodeRuntime() {
+  if (!isAbsolute(process.execPath)) fail('Node executable path is not absolute')
+  const body = boundedRegularFile(
+    process.execPath,
+    'Node executable',
+    MAX_NODE_EXECUTABLE_BYTES,
+  )
+  return {
+    version: process.version,
+    executable_sha256: createHash('sha256').update(body).digest('hex'),
+  }
+}
+
 function exactTypeScriptCompiler(sourceRoot) {
-  const manifest = JSON.parse(readFileSync(join(sourceRoot, 'package.json'), 'utf8'))
-  const requestedVersion = manifest.devDependencies?.typescript
-  if (!/^\d+\.\d+\.\d+$/.test(requestedVersion ?? '')) {
-    fail('root package.json must pin TypeScript to one exact x.y.z version')
+  const { value: manifest } = readUniqueJsonObject(
+    join(sourceRoot, 'package.json'),
+    'root package.json',
+  )
+  const { value: nestedManifest } = readUniqueJsonObject(
+    join(sourceRoot, 'ncp-ts', 'package.json'),
+    'ncp-ts/package.json',
+  )
+  const requestedVersion = exactNpmDependencySurface(manifest, 'root package.json')
+  const nestedVersion = exactNpmDependencySurface(
+    nestedManifest,
+    'ncp-ts/package.json',
+  )
+  if (
+    nestedManifest.name !== manifest.name ||
+    nestedManifest.version !== manifest.version ||
+    nestedVersion !== requestedVersion
+  ) {
+    fail('root and nested npm package identities are incoherent')
   }
-  const installedManifestPath = join(repositoryRoot, 'node_modules', 'typescript', 'package.json')
-  if (!existsSync(installedManifestPath)) {
-    fail('pinned TypeScript is not installed; run bun install --frozen-lockfile first')
+  const control = typeScriptControl(sourceRoot)
+  if (requestedVersion !== control.version) {
+    fail(`source TypeScript ${requestedVersion} has no matching reviewed control`)
   }
-  const installedVersion = JSON.parse(readFileSync(installedManifestPath, 'utf8')).version
-  if (installedVersion !== requestedVersion) {
-    fail(`installed TypeScript ${installedVersion} != source pin ${requestedVersion}`)
+
+  const lockPath = join(sourceRoot, 'bun.lock')
+  const lockBody = boundedRegularFile(lockPath, 'Bun lockfile', MAX_TYPESCRIPT_CONTROL_BYTES)
+  const lock = lockBody.toString('utf8')
+  if (!Buffer.from(lock, 'utf8').equals(lockBody)) fail('Bun lockfile is not UTF-8')
+  exactTypeScriptBunLock(lock, requestedVersion, control.registry.integrity_sha512)
+
+  const packageRoot = join(repositoryRoot, 'node_modules', 'typescript')
+  const tree = typeScriptPackageTree(packageRoot)
+  assertTypeScriptTreeMatches(
+    tree,
+    control.normalized_package_tree,
+    'installed TypeScript package',
+  )
+  const records = new Map(tree.files.map((record) => [record.path, record]))
+  const installedManifestPath = join(packageRoot, 'package.json')
+  const { value: installedManifest } = readUniqueJsonObject(
+    installedManifestPath,
+    'installed TypeScript package manifest',
+  )
+  if (installedManifest.version !== requestedVersion) {
+    fail(`installed TypeScript ${installedManifest.version} != source pin ${requestedVersion}`)
   }
-  const compiler = join(repositoryRoot, 'node_modules', 'typescript', 'bin', 'tsc')
-  if (!existsSync(compiler)) fail(`TypeScript compiler is missing: ${compiler}`)
-  return { compiler, version: installedVersion }
+  const compiler = join(packageRoot, 'bin', 'tsc')
+  const compilerRecord = records.get('bin/tsc')
+  const manifestRecord = records.get('package.json')
+  if (!compilerRecord || !manifestRecord) {
+    fail('reviewed TypeScript package lacks its compiler launcher or package manifest')
+  }
+  return {
+    compiler,
+    version: installedManifest.version,
+    compilerLauncherSha256: compilerRecord.sha256,
+    packageManifestSha256: manifestRecord.sha256,
+    lockfileSha256: createHash('sha256').update(lockBody).digest('hex'),
+    control,
+    tree,
+  }
 }
 
 function injectBuildIdentity(sourceRoot, revision) {
@@ -124,10 +834,14 @@ function writeReceipt(
   sourceRoot,
   artifactRoot,
   revision,
-  typescriptVersion,
+  typescript,
+  nodeRuntime,
   rustBuildIdentityProbePassed,
 ) {
-  const manifest = JSON.parse(readFileSync(join(sourceRoot, 'package.json'), 'utf8'))
+  const { value: manifest } = readUniqueJsonObject(
+    join(sourceRoot, 'package.json'),
+    'root package.json',
+  )
   const identitySource = readFileSync(
     join(sourceRoot, 'ncp-ts', 'src', 'contract-identity.ts'),
     'utf8',
@@ -137,14 +851,29 @@ function writeReceipt(
   )?.[1]
   if (!digest) fail('staged package has no canonical normative contract digest')
   const receipt = {
-    schema: 'ncp.npm-release-build-receipt.v1',
+    schema: 'ncp.npm-release-build-receipt.v2',
     package_name: manifest.name,
     package_version: manifest.version,
     source_revision: revision,
     build_identity: revision,
     normative_contract_digest_sha256: digest,
-    node_version: process.version,
-    typescript_version: typescriptVersion,
+    node_version: nodeRuntime.version,
+    node_executable_sha256: nodeRuntime.executable_sha256,
+    node_executable_pre_post_match: true,
+    typescript_version: typescript.version,
+    typescript_control_path: TYPESCRIPT_CONTROL_PATH,
+    typescript_control_sha256: typescript.control.sha256,
+    typescript_control_claim_boundary: typescript.control.claim_boundary,
+    typescript_lockfile_sha256: typescript.lockfileSha256,
+    typescript_registry_integrity_sha512: typescript.control.registry.integrity_sha512,
+    typescript_registry_tarball_sha256: typescript.control.registry.tarball_sha256,
+    typescript_registry_tarball_bytes_retained:
+      typescript.control.registry.tarball_bytes_retained,
+    typescript_registry_tarball_evidence: TYPESCRIPT_REGISTRY_TARBALL_EVIDENCE,
+    typescript_compiler_launcher_sha256: typescript.compilerLauncherSha256,
+    typescript_package_manifest_sha256: typescript.packageManifestSha256,
+    typescript_package_tree: typescript.tree,
+    typescript_package_tree_pre_post_match: true,
     rust_build_identity_probe_passed: rustBuildIdentityProbePassed,
     artifacts: [
       artifactRecord(artifactRoot, 'repository-root'),
@@ -166,8 +895,9 @@ function compileAndVerify(
   rustBuildIdentityProbePassed = false,
 ) {
   injectBuildIdentity(sourceRoot, revision)
-  const { compiler, version } = exactTypeScriptCompiler(sourceRoot)
-  execFileSync(process.execPath, [compiler, '-p', join(sourceRoot, 'ncp-ts', 'tsconfig.json')], {
+  const nodeRuntime = exactNodeRuntime()
+  const typescript = exactTypeScriptCompiler(sourceRoot)
+  execFileSync(process.execPath, [typescript.compiler, '-p', join(sourceRoot, 'ncp-ts', 'tsconfig.json')], {
     cwd: sourceRoot,
     stdio: 'inherit',
   })
@@ -183,21 +913,31 @@ function compileAndVerify(
     ],
     {
       cwd: sourceRoot,
-      env: { ...process.env, NCP_TYPESCRIPT_BIN: compiler },
+      env: { ...process.env, NCP_TYPESCRIPT_BIN: typescript.compiler },
       stdio: 'inherit',
     },
   )
+  const typescriptAfter = exactTypeScriptCompiler(sourceRoot)
+  const nodeRuntimeAfter = exactNodeRuntime()
+  if (JSON.stringify(typescriptAfter) !== JSON.stringify(typescript)) {
+    fail('TypeScript package or source control changed during the npm build')
+  }
+  if (JSON.stringify(nodeRuntimeAfter) !== JSON.stringify(nodeRuntime)) {
+    fail('Node executable changed during the npm build')
+  }
   return writeReceipt(
     sourceRoot,
     artifactRoot,
     revision,
-    version,
+    typescript,
+    nodeRuntime,
     rustBuildIdentityProbePassed,
   )
 }
 
 function verifyRustBuildIdentity(sourceRoot, targetRoot, revision) {
   validateSourceRevision(revision)
+  assertNoCargoConfigAncestors(sourceRoot)
   const output = execFileSync(
     'cargo',
     [
@@ -233,29 +973,37 @@ function verifyRustBuildIdentity(sourceRoot, targetRoot, revision) {
   }
 }
 
+function assertExactOrchestrationBytes(running, committed, relativePath) {
+  if (!running.equals(committed)) {
+    fail(`running ${relativePath} differs from source revision`)
+  }
+}
+
 function exactHeadRevision(revision) {
-  const head = execFileSync('git', ['rev-parse', '--verify', 'HEAD^{commit}'], {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-  }).trim()
+  const head = git(['rev-parse', '--verify', 'HEAD^{commit}'], { encoding: 'utf8' }).trim()
   if (head !== revision) {
     fail(`source revision ${revision} is not exact HEAD ${head}`)
   }
 
-  // The orchestration code itself must be the version committed at the source
-  // revision. Package bytes come exclusively from `git archive` below.
-  const scriptRelativePath = 'ncp-ts/scripts/build-release.mjs'
-  let committedScript
-  try {
-    committedScript = execFileSync('git', ['show', `${revision}:${scriptRelativePath}`], {
-      cwd: repositoryRoot,
-    })
-  } catch {
-    fail(`${scriptRelativePath} is absent from source revision ${revision}`)
-  }
-  const runningScript = readFileSync(fileURLToPath(import.meta.url))
-  if (!runningScript.equals(committedScript)) {
-    fail(`running ${scriptRelativePath} differs from source revision ${revision}`)
+  // Every local orchestration module must be the version committed at the source
+  // revision. Package bytes come exclusively from exact tree materialization below.
+  for (const relativePath of RELEASE_ORCHESTRATION_PATHS) {
+    let committed
+    try {
+      committed = git(['show', `${revision}:${relativePath}`])
+    } catch {
+      fail(`${relativePath} is absent from source revision ${revision}`)
+    }
+    const running = boundedRegularFile(
+      join(repositoryRoot, ...relativePath.split('/')),
+      `running ${relativePath}`,
+      MAX_RELEASE_ORCHESTRATION_BYTES,
+    )
+    try {
+      assertExactOrchestrationBytes(running, committed, relativePath)
+    } catch {
+      fail(`running ${relativePath} differs from source revision ${revision}`)
+    }
   }
 }
 
@@ -266,24 +1014,18 @@ function buildRelease(revision, output) {
   if (existsSync(output)) fail(`release output already exists: ${output}`)
 
   const temporaryRoot = mkdtempSync(join(outputParent, '.ncp-npm-release-'))
-  const archive = join(temporaryRoot, 'source.tar')
   const sourceRoot = join(temporaryRoot, 'source')
   const artifactRoot = join(temporaryRoot, 'artifacts')
   mkdirSync(sourceRoot)
   try {
-    execFileSync(
-      'git',
-      ['archive', '--format=tar', '--output', archive, revision],
-      { cwd: repositoryRoot, stdio: 'inherit' },
-    )
-    execFileSync('tar', ['-xf', archive, '-C', sourceRoot], { stdio: 'inherit' })
+    materializeExactTree(revision, sourceRoot)
 
-    // These checks run from archived source, not the mutable checkout.
+    // These checks run from exact materialized source, not the mutable checkout.
     execFileSync(join(sourceRoot, 'scripts', 'check-version-coherence.sh'), [], {
       cwd: sourceRoot,
       stdio: 'inherit',
     })
-    execFileSync('python3', [join(sourceRoot, 'scripts', 'generate_contract_manifest.py')], {
+    execFileSync('python3', ['-I', join(sourceRoot, 'scripts', 'generate_contract_manifest.py')], {
       cwd: sourceRoot,
       stdio: 'inherit',
     })
@@ -300,10 +1042,125 @@ function buildRelease(revision, output) {
 
 function copySelfTestSource(destination) {
   mkdirSync(destination)
-  for (const name of ['package.json', 'LICENSE-MIT', 'LICENSE-APACHE']) {
+  for (const name of ['package.json', 'bun.lock', 'LICENSE-MIT', 'LICENSE-APACHE']) {
     copyFileSync(join(repositoryRoot, name), join(destination, name))
   }
+  const controlDestination = join(destination, 'security', 'toolchains')
+  mkdirSync(controlDestination, { recursive: true })
+  copyFileSync(
+    join(repositoryRoot, ...TYPESCRIPT_CONTROL_PATH.split('/')),
+    join(controlDestination, 'typescript-5.9.2.v1.json'),
+  )
   cpSync(ncpTsRoot, join(destination, 'ncp-ts'), { recursive: true })
+}
+
+function verifyTypeScriptMutationGuard(destination) {
+  const packageRoot = join(destination, 'typescript-fixture')
+  mkdirSync(join(packageRoot, 'bin'), { recursive: true })
+  mkdirSync(join(packageRoot, 'lib'), { recursive: true })
+  writeFileSync(join(packageRoot, 'bin', 'tsc'), '#!/usr/bin/env node\nrequire("../lib/_tsc.js")\n')
+  writeFileSync(join(packageRoot, 'package.json'), '{"name":"typescript","version":"0.0.0"}\n')
+  writeFileSync(join(packageRoot, 'lib', '_tsc.js'), 'export const marker = "before"\n')
+  const before = typeScriptPackageTree(packageRoot)
+  const launcherBefore = before.files.find(({ path }) => path === 'bin/tsc')?.sha256
+  const manifestBefore = before.files.find(({ path }) => path === 'package.json')?.sha256
+  writeFileSync(join(packageRoot, 'lib', '_tsc.js'), 'export const marker = "after"\n')
+  const after = typeScriptPackageTree(packageRoot)
+  assert.equal(after.files.find(({ path }) => path === 'bin/tsc')?.sha256, launcherBefore)
+  assert.equal(
+    after.files.find(({ path }) => path === 'package.json')?.sha256,
+    manifestBefore,
+  )
+  assert.throws(() =>
+    assertTypeScriptTreeMatches(after, before, 'mutated TypeScript package fixture'),
+  )
+}
+
+function verifyTypeScriptTreeBoundaryGuards(destination) {
+  const linkedRoot = join(destination, 'typescript-linked-fixture')
+  mkdirSync(linkedRoot)
+  writeFileSync(join(linkedRoot, 'target.js'), 'export const value = 1\n')
+  symlinkSync('target.js', join(linkedRoot, 'linked.js'))
+  assert.throws(() => typeScriptPackageTree(linkedRoot))
+  rmSync(linkedRoot, { recursive: true, force: true })
+
+  const hardlinkedRoot = join(destination, 'typescript-hardlinked-fixture')
+  mkdirSync(hardlinkedRoot)
+  writeFileSync(join(hardlinkedRoot, 'target.js'), 'export const value = 1\n')
+  linkSync(join(hardlinkedRoot, 'target.js'), join(hardlinkedRoot, 'alias.js'))
+  assert.throws(() => typeScriptPackageTree(hardlinkedRoot))
+  rmSync(hardlinkedRoot, { recursive: true, force: true })
+
+  const nonAsciiRoot = join(destination, 'typescript-non-ascii-fixture')
+  mkdirSync(nonAsciiRoot)
+  writeFileSync(join(nonAsciiRoot, 'café.js'), 'export const value = 1\n')
+  assert.throws(() => typeScriptPackageTree(nonAsciiRoot))
+  rmSync(nonAsciiRoot, { recursive: true, force: true })
+}
+
+function verifyTypeScriptLockGuards() {
+  const version = '5.9.2'
+  const integrity =
+    'sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A=='
+  const valid = readFileSync(join(repositoryRoot, 'bun.lock'), 'utf8')
+  const packageLine = valid
+    .split('\n')
+    .find((line) => line.includes(`"typescript@${version}"`))
+  assert.ok(packageLine)
+  assert.doesNotThrow(() => exactTypeScriptBunLock(valid, version, integrity))
+  for (const hostile of [
+    valid.replace(packageLine, `// ${packageLine}`),
+    valid.replace(packageLine, `${packageLine}\n${packageLine}`),
+    valid.replace(integrity, 'sha512-YQ=='),
+    valid.replace('"typescript": "5.9.2"', '"typescript": "5.9.3"'),
+    valid.replace('  "packages": {\n', '  "packages": {},\n  "packages": {\n'),
+    valid.replace(
+      '      "name": "@sepahead/ncp",',
+      '      "name": "attacker",\n      "name": "@sepahead/ncp",',
+    ),
+    valid.replace('{ "bin": {', '{ "bin": {}, "bin": {'),
+  ]) {
+    assert.throws(() => exactTypeScriptBunLock(hostile, version, integrity))
+  }
+  assert.throws(() => canonicalSha512Integrity('sha512-YQ==', 'hostile SRI'))
+}
+
+function verifyNpmManifestDependencyGuards() {
+  for (const [path, context] of [
+    [join(repositoryRoot, 'package.json'), 'root package.json'],
+    [join(ncpTsRoot, 'package.json'), 'ncp-ts/package.json'],
+  ]) {
+    const { value: manifest } = readUniqueJsonObject(path, context)
+    assert.equal(exactNpmDependencySurface(manifest, context), '5.9.2')
+    for (const field of NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS) {
+      const hostile = JSON.parse(JSON.stringify(manifest))
+      hostile[field] = ['bundleDependencies', 'bundledDependencies'].includes(field)
+        ? ['evil']
+        : { evil: '1.0.0' }
+      assert.throws(() => exactNpmDependencySurface(hostile, context))
+    }
+    const extraDevelopmentDependency = JSON.parse(JSON.stringify(manifest))
+    extraDevelopmentDependency.devDependencies.evil = '1.0.0'
+    assert.throws(() => exactNpmDependencySurface(extraDevelopmentDependency, context))
+  }
+  assert.throws(() =>
+    parseUniqueJsonObject(
+      '{"devDependencies":{},"devDependencies":{"typescript":"5.9.2"}}',
+      'hostile package.json',
+    ),
+  )
+}
+
+function verifyOrchestrationSourceGuard() {
+  const committed = Buffer.from('export const strict = true\n')
+  const hostile = Buffer.from(committed)
+  hostile[0] ^= 1
+  assert.doesNotThrow(() =>
+    assertExactOrchestrationBytes(committed, committed, 'fixture.mjs'),
+  )
+  assert.throws(() =>
+    assertExactOrchestrationBytes(hostile, committed, 'fixture.mjs'),
+  )
 }
 
 function createRustProbeFixture(destination) {
@@ -397,11 +1254,35 @@ function selfTest() {
   try {
     createRustProbeFixture(rustProbeRoot)
     verifyRustBuildIdentity(rustProbeRoot, join(temporaryRoot, 'rust-target'), revision)
+    verifyTypeScriptMutationGuard(temporaryRoot)
+    verifyTypeScriptTreeBoundaryGuards(temporaryRoot)
+    verifyTypeScriptLockGuards()
+    verifyNpmManifestDependencyGuards()
+    verifyOrchestrationSourceGuard()
     copySelfTestSource(sourceRoot)
     const receipt = compileAndVerify(sourceRoot, artifactRoot, revision, true)
+    assert.equal(receipt.schema, 'ncp.npm-release-build-receipt.v2')
     assert.equal(receipt.source_revision, revision)
     assert.equal(receipt.build_identity, revision)
     assert.equal(receipt.rust_build_identity_probe_passed, true)
+    assert.match(receipt.node_executable_sha256, /^[0-9a-f]{64}$/)
+    assert.equal(receipt.node_executable_pre_post_match, true)
+    assert.match(receipt.typescript_control_sha256, /^[0-9a-f]{64}$/)
+    assert.match(receipt.typescript_lockfile_sha256, /^[0-9a-f]{64}$/)
+    assert.equal(
+      receipt.typescript_registry_tarball_evidence,
+      TYPESCRIPT_REGISTRY_TARBALL_EVIDENCE,
+    )
+    assert.match(receipt.typescript_compiler_launcher_sha256, /^[0-9a-f]{64}$/)
+    assert.match(receipt.typescript_package_manifest_sha256, /^[0-9a-f]{64}$/)
+    assert.equal(receipt.typescript_package_tree.file_count, 132)
+    assert.equal(receipt.typescript_package_tree.total_bytes, 23_622_869)
+    assert.equal(
+      receipt.typescript_package_tree.manifest_sha256,
+      '93e852b782eb0932c565b026f4d24173d127359f1283cb41cecea12a7b1286e1',
+    )
+    assert.equal(receipt.typescript_package_tree.files.length, 132)
+    assert.equal(receipt.typescript_package_tree_pre_post_match, true)
     assert.equal(receipt.artifacts.length, 2)
     assert.ok(receipt.artifacts.every(({ sha256: digest }) => /^[0-9a-f]{64}$/.test(digest)))
     assert.deepEqual(

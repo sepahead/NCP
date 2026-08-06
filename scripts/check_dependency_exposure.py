@@ -7,7 +7,7 @@ patches only ``zenoh-transport 1.9.0`` to one reviewed immutable Git revision
 that selects ``lz4_flex 0.11.6``. This check binds the manifest, lock, metadata,
 source policy, dependency edge, and compression-disabled feature graph.
 
-Cargo verifies the selected Git object identity but not its SSH signature. Cargo
+Cargo verifies the selected Git object identity but not Git signatures. Cargo
 patches are also selected by the dependency graph root and do not propagate from
 a published library dependency. Any source, version, checksum, or feature drift
 requires a fresh security and package review.
@@ -31,7 +31,7 @@ LZ4_FLEX_VERSION = "0.11.6"
 LZ4_FLEX_CHECKSUM = "373f5eceeeab7925e0c1098212f2fbc4d416adec9d35051a6ab251e824c1854a"
 CRATES_IO_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 BACKPORT_GIT = "https://github.com/sepahead/zenoh-transport-lz4-backport"
-BACKPORT_REVISION = "6b93b15d0795748b7f76c72eae07f1cda517e762"
+BACKPORT_REVISION = "9045545b72a77602a87f40203cb614b48157b4bc"
 BACKPORT_SOURCE = f"git+{BACKPORT_GIT}?rev={BACKPORT_REVISION}#{BACKPORT_REVISION}"
 DECLARED_ZENOH_FEATURES = {
     "shared-memory",

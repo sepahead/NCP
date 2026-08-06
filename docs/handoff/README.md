@@ -10,8 +10,14 @@ does not silently reinterpret the earlier standalone ledger.
 [`NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md`](NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md)
 is the living, non-normative implementation plan for resolving the candidate's
 remaining architecture decisions and migrating Engram, Haldir, Galadriel, Crebain,
-Prisoma, and their one-way pid-rs library dependencies. pid-rs remains
-protocol-neutral and is not an NCP peer. The blueprint's task states require
+and Prisoma and their one-way pid-rs library dependencies. pid-rs remains
+protocol-neutral and is not an NCP peer. Cortexel is retained only as historical
+intake inventory: it is not an NCP dependency, consumer, commander, atlas owner,
+or authorized documentation-import target, and it receives no NCP role receipt.
+The content-bound current ADR-011 subject still presents an optional labeled-export
+boundary for review. It is unratified, grants no work authority, and requires a
+separate B01 subject supersession before its bytes can change.
+The blueprint's task states require
 evidence receipts and do not close or replace either audit below, authorize
 publication, or turn a consumer worktree into installed interoperability evidence.
 
@@ -79,8 +85,13 @@ registry publication, DOI/archive deposit, final publisher signature, independen
 clean-room reproduction, multi-platform release set, or external certification.
 At that held source, `RUSTSEC-2026-0041` and the unavailable
 `production-secure` transport-principal binding were release holds. The current
-source selects fixed `lz4_flex 0.11.6` through exact reviewed Zenoh transport
-backport revision `6b93b15d0795748b7f76c72eae07f1cda517e762`. That later
+source selects fixed `lz4_flex 0.11.6` and non-yanked `spin 0.9.9` and `0.10.1`
+through exact reviewed Zenoh transport backport revision
+`9045545b72a77602a87f40203cb614b48157b4bc`. The fork CI pins
+`cargo-deny 0.19.9` and rejects yanked lock entries and current RustSec
+vulnerabilities. Its qualification lock also selects fixed
+`crossbeam-epoch 0.9.20`, `rand 0.8.6` and `0.9.4`, `quinn-proto 0.11.15`,
+`rustls-webpki 0.103.13`, and `serde_with 3.21.0`. That later
 remediation is outside the held dossier. The principal binding and all external
 gates remain unresolved, and the decision remains `NO_GO`.
 

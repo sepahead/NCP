@@ -173,9 +173,10 @@ impl ActionBuffer {
 ///
 /// Horizon entry `i` (zero based) is scheduled at `(i + 1) * horizon_dt_ms`, while
 /// [`CommandWatchdog`] expires inclusively at `elapsed >= ttl_ms`.  A setpoint at
-/// exactly the TTL boundary is therefore not executable.  The exact bound is
-/// `ceil(ttl_ms / horizon_dt_ms) - 1`, not `floor(ttl_ms / horizon_dt_ms)` (the two
-/// differ when TTL is an integer multiple of the cadence).
+/// exactly the effective TTL boundary is therefore not executable. For finite
+/// positive inputs, the bound is
+/// `min(MAX_HORIZON_STEPS, max(ceil(min(ttl_ms, MAX_TTL_MS) / horizon_dt_ms) - 1, 0))`.
+/// A non-finite input or ratio permits zero future steps.
 pub fn max_horizon_len(ttl_ms: f64, horizon_dt_ms: f64) -> usize {
     // A non-finite ttl/dt (or dt <= 0) has no bounded horizon: `Inf / dt` floors to
     // `Inf`, which `as usize` saturates to `usize::MAX` — a garbage/`+Inf` ttl would

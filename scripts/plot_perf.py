@@ -54,6 +54,8 @@ import math
 import sys
 import tempfile
 from pathlib import Path
+import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape as xml_escape
 
 import matplotlib
 
@@ -113,6 +115,29 @@ REGIME_OVERLAP = (
 ROOT = Path(__file__).resolve().parents[1]
 OUTDIR = ROOT / "docs" / "plots"
 DATADIR = OUTDIR / "data"
+CONTRACT_IDENTITY = json.loads(
+    (ROOT / "contract" / "manifest.v1.json").read_text(encoding="utf-8")
+)
+CANDIDATE_VERSION = CONTRACT_IDENTITY["candidate"]
+if not isinstance(CANDIDATE_VERSION, str) or not CANDIDATE_VERSION:
+    raise ValueError("contract manifest has no candidate identity for plot metadata")
+
+PLOT_ACCESSIBILITY = {
+    "overlap": (
+        "Historical NCP overlap illustration",
+        "Historical, non-normative developer illustration of analytic overlap and retained "
+        f"serial and thread values. It does not qualify the UNRELEASED {CANDIDATE_VERSION} "
+        "candidate and is not current transport performance, release evidence, capacity "
+        "evidence, or certification.",
+    ),
+    "realtime": (
+        "Historical NCP real-time-factor sweep",
+        "Historical, non-normative local NEST 3.8.0 sweep of real-time factor by OpenMP "
+        f"threads. It does not qualify the UNRELEASED {CANDIDATE_VERSION} candidate and is "
+        "not release evidence, a capacity claim, or certification; the 17–20k crossing is "
+        "interpolated.",
+    ),
+}
 
 # --------------------------------------------------------------------------- #
 # 1b. OPTIONAL STRICT DATA-FILE OVERRIDE
@@ -331,6 +356,74 @@ def _normalize_svg(path: Path) -> None:
     )
 
 
+def _local_name(tag) -> str:
+    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+
+def _validate_svg_accessibility(path: Path, visual_id: str) -> None:
+    """Require one unambiguous direct-view name and concise description."""
+    root = ET.parse(path).getroot()
+    if _local_name(root.tag) != "svg" or root.get("role") != "img":
+        raise PlotDataError(f"{path.name} root must be an SVG with role=img")
+    if root.get("aria-label") is not None:
+        raise PlotDataError(f"{path.name} must use aria-labelledby, not aria-label")
+
+    titles = [node for node in root if _local_name(node.tag) == "title"]
+    descriptions = [node for node in root if _local_name(node.tag) == "desc"]
+    if len(titles) != 1 or len(descriptions) != 1:
+        raise PlotDataError(f"{path.name} needs exactly one direct title and desc")
+    title_id = f"ncp-{visual_id}-plot-title"
+    description_id = f"ncp-{visual_id}-plot-desc"
+    if titles[0].get("id") != title_id or descriptions[0].get("id") != description_id:
+        raise PlotDataError(f"{path.name} accessibility IDs changed")
+    ids = [node.get("id") for node in root.iter() if node.get("id")]
+    if ids.count(title_id) != 1 or ids.count(description_id) != 1:
+        raise PlotDataError(f"{path.name} accessibility IDs must be unique")
+    if root.get("aria-labelledby", "").split() != [title_id, description_id]:
+        raise PlotDataError(f"{path.name} aria-labelledby order changed")
+
+    title = " ".join("".join(titles[0].itertext()).split())
+    description = " ".join("".join(descriptions[0].itertext()).split())
+    if not title or len(title.split()) > 10:
+        raise PlotDataError(f"{path.name} title is missing or not concise")
+    if not description or len(description.split()) > 55:
+        raise PlotDataError(f"{path.name} desc is missing or not concise")
+    if "UNRELEASED" not in description or "certification" not in description.casefold():
+        raise PlotDataError(f"{path.name} desc omits candidate/non-certification status")
+
+
+def _finalize_svg(path: Path, visual_id: str) -> None:
+    """Normalize Matplotlib output, then add deterministic direct-view semantics."""
+    _normalize_svg(path)
+    title, description = PLOT_ACCESSIBILITY[visual_id]
+    title_id = f"ncp-{visual_id}-plot-title"
+    description_id = f"ncp-{visual_id}-plot-desc"
+    source = path.read_text(encoding="utf-8")
+    root_start = source.find("<svg ")
+    root_end = source.find(">", root_start)
+    if root_start < 0 or root_end < 0:
+        raise PlotDataError(f"{path.name} has no SVG root tag")
+    root_tag = source[root_start:root_end + 1]
+    if " role=" in root_tag or " aria-label" in root_tag:
+        raise PlotDataError(f"{path.name} generator unexpectedly emitted accessibility attributes")
+    labelled_root = (
+        root_tag[:-1]
+        + f' role="img" aria-labelledby="{title_id} {description_id}">'
+    )
+    direct_metadata = (
+        f'\n <title id="{title_id}">{xml_escape(title)}</title>'
+        f'\n <desc id="{description_id}">{xml_escape(description)}</desc>'
+    )
+    source = (
+        source[:root_start]
+        + labelled_root
+        + direct_metadata
+        + source[root_end + 1:]
+    )
+    path.write_text(source, encoding="utf-8", newline="\n")
+    _validate_svg_accessibility(path, visual_id)
+
+
 def apply_theme(fig, ax, T) -> None:
     """Despine top+right, faint y-grid behind data, themed spines/ticks/labels."""
     fig.set_facecolor(T["face"])
@@ -427,9 +520,9 @@ def fig_overlap(T, outdir: Path) -> Path:
     axL.set_ylim(1.0, 1.95)
     axL.set_xlabel("transport-work per chunk (ms, log)", fontsize=12)
     axL.set_ylabel("overlap speedup (×)", fontsize=12)
-    # Shortened so the 15pt bold hero fits inside the 1.6-ratio left panel and
-    # never reaches the right panel's title band (was: "… single-digit-% win").
-    hero_title(axL, "Historical overlap model: diminishing synthetic gain", T, fontsize=14)
+    # Keep the hero heading inside the left panel's title band. The companion
+    # label sits in a separate, reserved in-axes band on the right.
+    hero_title(axL, "Historical overlap: diminishing gain", T, fontsize=13)
 
     # Shaded sub-ms rate-loop regime (where the real T_ncp lives).
     axL.axvspan(0.05, 1.0, color=c_verm, alpha=0.08, zorder=0)
@@ -577,34 +670,35 @@ def fig_overlap(T, outdir: Path) -> Path:
         )
 
     axR.set_xlim(0, 2.0)  # zero baseline — magnitude bars MUST start at 0
-    axR.set_ylim(-0.6, len(bars) - 0.4)
+    # Reserve a full row above the bars for the companion label. This prevents
+    # it from sharing the external title band with the left-panel hero.
+    axR.set_ylim(-0.6, len(bars))
     axR.set_yticks(ypos)
     axR.set_yticklabels([short[b[0]] for b in bars], fontsize=10)
     axR.set_xticks([])  # values are direct-labeled; keep only the break-even line
-    # Demoted from a bold 12pt title to a smaller, non-bold subtitle and dropped
-    # BELOW the left hero's band (placed inside-axes near the top, ha-left) so the
-    # two titles never share a horizontal stripe and cannot overprint.
+    # This compact companion label is inside the reserved top row, not in the
+    # external hero-title band.
     axR.text(
         0.0,
-        1.04,
-        "overlap @ 10 ms work (best case)",
+        0.97,
+        "10 ms work · best case",
         transform=axR.transAxes,
-        fontsize=10,
+        fontsize=9.5,
         fontweight="normal",
         color=T["muted"],
         ha="left",
-        va="bottom",
+        va="top",
     )
 
     # Break-even reference (achromatic chrome — NOT a data hue).
     axR.axvline(1.0, color=T["ref"], ls=":", lw=1.2, zorder=2)
     axR.annotate(
         "baseline 1.00×",
-        xy=(1.0, -0.55),
+        xy=(1.0, -0.52),
         xytext=(0, 0),
         textcoords="offset points",
         ha="center",
-        va="top",
+        va="bottom",
         fontsize=8,
         color=T["muted"],
         zorder=6,
@@ -654,7 +748,7 @@ def fig_overlap(T, outdir: Path) -> Path:
         metadata={"Date": None, "Creator": "NCP plot_perf.py"},
     )
     plt.close(fig)
-    _normalize_svg(out)
+    _finalize_svg(out, "overlap")
     return out
 
 
@@ -781,7 +875,7 @@ def fig_realtime(T, outdir: Path) -> Path:
         metadata={"Date": None, "Creator": "NCP plot_perf.py"},
     )
     plt.close(fig)
-    _normalize_svg(out)
+    _finalize_svg(out, "realtime")
     return out
 
 
@@ -892,7 +986,10 @@ def main() -> int:
                         raise PlotDataError(
                             f"{committed.relative_to(ROOT)} differs from deterministic generation"
                         )
-            print(f"OK historical plots reproducible from {source}")
+            print(
+                f"OK historical plots reproducible from {source}; "
+                "4 SVGs meet the direct-view accessibility contract"
+            )
             return 0
 
         written = _generate(OUTDIR)

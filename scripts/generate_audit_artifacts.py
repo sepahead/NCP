@@ -454,7 +454,7 @@ def threat_records() -> list[dict[str, Any]]:
                 receipt,
             ],
             "PARTIAL_LOCAL",
-            "The exact backport removes the affected lz4_flex release from this root graph. Archive-alone Cargo metadata resolution was executed and observed the affected registry fallback. The exact consuming-root patch produced only a CONDITIONAL_PASS. Cargo does not verify the Git signature, and self-contained distribution remains OPEN_FAIL_CLOSED and NO_GO.",
+            "The exact consuming-root backport conditions registry zenoh-transport 1.9.0 from advisory-affected lz4_flex 0.10.0 and its twox-hash 1.6.3 dependency to patched lz4_flex 0.11.6, with its twox-hash dependency updated to 2.1.3. Source-only archive metadata observes the fallback without compiling it. The qualification runs the exact fork security_backport regression and compression-enabled library tests. Fork source verification and upstream delta verification are point-in-time local-process attestations; the exact fork source bytes are not retained. Exact resolution and fetch can use network access. Cargo dependency access is offline only during compile and test. No host or child-process network isolation or host filesystem isolation is claimed. Both consumer source graphs are compared before and after compilation, but no compiler-input trace is retained. The result is CONDITIONAL_PASS with package_self_contained=false, self_contained_distribution_gate=OPEN_FAIL_CLOSED, decision=NO_GO, and release_authorized=false. Cargo does not verify Git signatures.",
             True,
         ),
         _threat(
@@ -565,10 +565,13 @@ def threat_records() -> list[dict[str, Any]]:
             "command protocol to plant actuation",
             "plant-owned safe action and final actuator authority",
             "deployment relying on mode text or transport success",
-            ["an ESTOP or HOLD message is accepted or published"],
+            [
+                "an ESTOP or HOLD message is accepted or published",
+                "a standalone governor candidate is inserted into an existing stream without publisher-owned position admission",
+            ],
             "Protocol state is treated as proof that a physical plant stopped safely.",
-            "The body applies its content-addressed plant profile and independent interlock.",
-            "A missing/mismatched profile, stale session, or malformed ESTOP is rejected without inventing a universal action.",
+            "The owning publisher assigns and admits the next fresh position; the body applies its content-addressed plant profile and independent interlock.",
+            "A missing/mismatched profile, stale session, stale standalone sequence, or malformed ESTOP is rejected without inventing a universal action.",
             "Physical harm occurs despite a nominal protocol success.",
             [
                 "profile digest",
@@ -577,10 +580,11 @@ def threat_records() -> list[dict[str, Any]]:
             ],
             [
                 "body final authority",
+                "publisher-owned position allocator and high-water admission",
                 "profile-owned HOLD/ESTOP action",
                 "physical-safety non-claim",
             ],
-            "Fail safe at the body and retain the absence of physical acknowledgement as an open limitation.",
+            "Fail safe at the body, require publisher-owned next-position admission, and retain the absence of physical acknowledgement as an open limitation.",
             ["CF-01", "CF-05"],
             ["NCP-REQ-010", "NCP-REQ-011"],
             ["ncp-core/src/plant.rs", "ncp-core/src/safety.rs", "ncp-zenoh/src/lib.rs"],
@@ -591,7 +595,7 @@ def threat_records() -> list[dict[str, Any]]:
             ["cargo test -p ncp-core --locked", "cargo test -p ncp-zenoh --locked"],
             ["SECURITY.md", "KNOWN_LIMITATIONS.md", receipt],
             "LOCAL_VERIFIED_NON_CLAIM",
-            "No physical plant, universal safe action, or applied-command acknowledgement is certified.",
+            "No physical plant, universal safe action, or applied-command acknowledgement is certified. A standalone governor owns no publisher allocator or high-water mark; normalized seq=1 can be stale and rejected while a prior Active command can remain effective only until its receiver-local deadline.",
             False,
         ),
         _threat(
@@ -765,7 +769,7 @@ def threat_records() -> list[dict[str, Any]]:
                 ".github/workflows/release.yml",
             ],
             ["scripts/check_rust_packages.py", "scripts/check_dependency_exposure.py"],
-            ["python3 scripts/check_rust_packages.py --offline", "cargo deny check"],
+            ["python3 -I scripts/check_rust_packages.py", "cargo deny check"],
             ["KNOWN_LIMITATIONS.md", "RELEASE_READINESS.md", receipt],
             "NOT_RUN_EXTERNAL",
             "Registry control, final SBOM/provenance/signatures, and clean-room reproduction are absent.",
@@ -853,7 +857,11 @@ def threat_records() -> list[dict[str, Any]]:
             "Draft records remain outside contract/, bind exact ADR hashes, and promotion is one reviewed all-accepted rebaseline operation.",
             "Any non-accepted registry under contract/, missing content hash, or status-only promotion fails the local gate.",
             "Unreviewed architecture becomes normative and invalidates candidate identity and descendant evidence.",
-            ["decision-registry generator", "contract manifest diff", "B01 ledger state"],
+            [
+                "decision-registry generator",
+                "contract manifest diff",
+                "B01 ledger state",
+            ],
             [
                 "path-separated proposed registry",
                 "exact ADR content hashes",
@@ -894,7 +902,11 @@ def threat_records() -> list[dict[str, Any]]:
             "Typed simulation and plant requests, credentials, routes, stores, and grants are disjoint.",
             "Cross-kind members, frames, grants, or same-principal role reuse reject before state allocation.",
             "Simulation output or resource authority can be laundered into plant control.",
-            ["cross-kind vectors", "responder-only binary inspection", "role-manifest audit"],
+            [
+                "cross-kind vectors",
+                "responder-only binary inspection",
+                "role-manifest audit",
+            ],
             [
                 "ADR-001 typed separation",
                 "disjoint build features and endpoints",
@@ -935,7 +947,11 @@ def threat_records() -> list[dict[str, Any]]:
             "Crebain serializes HOLD/quiesce/revoke/higher-term/grant and checks exact generation, lease, holder, stream, and sequence state.",
             "Old generation, term, lease ID, holder, epoch, sequence, or ambiguous recovery state rejects.",
             "Two authority chains can actuate one plant or a revoked chain can revive.",
-            ["formal handover counterexample", "crash-point traces", "stale-buffer rejects"],
+            [
+                "formal handover counterexample",
+                "crash-point traces",
+                "stale-buffer rejects",
+            ],
             [
                 "body-issued strictly higher terms",
                 "exact equality fencing plus monotonic term/sequence",
@@ -1013,12 +1029,16 @@ def threat_records() -> list[dict[str, Any]]:
             "observer/research/visualization outputs to action admission",
             "standalone-first acyclic dependencies and final body authority",
             "convenience callback, reverse dependency, shared credential, or hidden startup service",
-            ["Galadriel, Prisoma, pid-rs, or Cortexel is enabled"],
+            ["Galadriel, Prisoma, pid-rs, or an unrelated visualization system is enabled"],
             "An observer, estimator, offline analysis, run log, or figure output becomes a command publisher, authority source, or mandatory control dependency.",
-            "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; Cortexel consumes labelled exports only.",
+            "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; unrelated visualization systems are outside the NCP topology.",
             "Any publish, lease, mutation, ESTOP, disposition, control callback, or reverse dependency from these surfaces rejects review and qualification.",
             "Unreviewed software or evidence can influence actuation, create cycles, or block fail-safe behavior.",
-            ["dependency graph", "API capability audit", "observer overload and credential negatives"],
+            [
+                "dependency graph",
+                "API capability audit",
+                "observer overload and credential negatives",
+            ],
             [
                 "ADR-004 observer non-authority",
                 "ADR-011 prohibited edges",
@@ -1059,7 +1079,11 @@ def threat_records() -> list[dict[str, Any]]:
             "Simulation provenance is integrity protected and non-authoritative; plant authority comes only from the commander's exact body lease, with application audit retaining advisory sources.",
             "Simulation principals/routes/grants at plant admission, missing mandatory provenance on simulation output, or calibration promotion reject.",
             "Plant action or scientific claims appear justified by protocol success rather than separate authority and evidence.",
-            ["provenance vectors", "credential/route separation tests", "application audit review"],
+            [
+                "provenance vectors",
+                "credential/route separation tests",
+                "application audit review",
+            ],
             [
                 "mandatory SimProvenance non-claim fields",
                 "disjoint responder/commander security domains",
@@ -1072,7 +1096,10 @@ def threat_records() -> list[dict[str, Any]]:
                 "docs/adr/0001-separate-simulation-and-plant-sessions.md",
                 "ncp-core/src/messages.rs",
             ],
-            ["scripts/generate_decision_registry.py", "ncp-core/tests/behavior_conformance.rs"],
+            [
+                "scripts/generate_decision_registry.py",
+                "ncp-core/tests/behavior_conformance.rs",
+            ],
             [
                 "python3 scripts/generate_decision_registry.py --self-test --check",
                 "cargo test -p ncp-core --locked",
@@ -1303,14 +1330,31 @@ NORMATIVE_TRACE: dict[str, dict[str, Any]] = {
         ],
     },
     "NCP-REQ-010": {
-        "code": ["ncp-core/src/safety.rs", "ncp-ts/src/safety.ts"],
+        "code": [
+            "ncp-core/src/safety.rs",
+            "ncp-ts/src/safety.ts",
+            "ncp-python/src/lib.rs",
+            "ncp-cpp/src/lib.rs",
+            "ncp-cpp/include/ncp.h",
+        ],
         "tests": [
             "ncp-core/tests/behavior_conformance.rs",
             "ncp-ts/scripts/check-behavior.mjs",
+            "ncp-python/tests/test_smoke.py",
+            "ncp-cpp/src/lib.rs",
         ],
         "commands": [
             "cargo test -p ncp-core --locked",
             "cd ncp-ts && bun run check:behavior",
+            "maturin develop -m ncp-python/Cargo.toml --features extension-module",
+            (
+                "python3 -m pytest -q ncp-python/tests/test_smoke.py "
+                "-k persistent_governor_unattributable_envelope_failure_is_local_and_latched"
+            ),
+            (
+                "cargo test -p ncp-cpp --locked "
+                "governor_unattributable_envelope_failure_returns_null_and_keeps_the_local_latch"
+            ),
         ],
     },
     "NCP-REQ-011": {
@@ -1484,14 +1528,14 @@ def release_gate_nodes(
             ["scripts/check_rust_packages.py", "ncp-ts/scripts/check-package.mjs"],
             ["ncp-python/tests/test_smoke.py", "ncp-cpp/tests/corpus.rs"],
             [
-                "python3 scripts/check_rust_packages.py --offline",
+                "python3 -I scripts/check_rust_packages.py",
                 "cd ncp-ts && bun run check:package",
             ],
         ),
         "registry-namespace-ownership": (
             ["Cargo.toml", "ncp-python/pyproject.toml", "ncp-ts/package.json"],
             ["scripts/check_rust_packages.py"],
-            ["python3 scripts/check_rust_packages.py --offline"],
+            ["python3 -I scripts/check_rust_packages.py"],
         ),
         "consumer-certification": (
             ["scripts/consumer_pin_guard.py", "scripts/repin-ncp.sh"],
@@ -1511,7 +1555,7 @@ def release_gate_nodes(
         "post-publication-install-smoke": (
             [".github/workflows/release.yml", "scripts/check_rust_packages.py"],
             ["ncp-python/tests/test_smoke.py", "ncp-ts/scripts/check-package.mjs"],
-            ["python3 scripts/check_rust_packages.py --offline"],
+            ["python3 -I scripts/check_rust_packages.py"],
         ),
         "post-publication-emergency-revocation-exercise": (
             [".github/workflows/release.yml", "scripts/verify_acl_deployment.py"],
@@ -1862,7 +1906,7 @@ def surface_nodes(surface: dict[str, Any]) -> list[dict[str, Any]]:
                     ],
                     ["docs/1.0-candidate-receipts.md", "RELEASE_READINESS.md"],
                     [
-                        "python3 scripts/check_rust_packages.py --offline"
+                        "python3 -I scripts/check_rust_packages.py"
                         if member != "@sepahead/ncp"
                         else "cd ncp-ts && bun run check:package"
                     ],
@@ -1995,10 +2039,7 @@ def proposed_decision_nodes(
                     "required same-digest owner and independent review before "
                     "normative implementation or candidate rebaseline."
                 ),
-                [
-                    "docs/adr/decision-registry.proposed.v1.json"
-                    f"#/decisions/{index}"
-                ],
+                [f"docs/adr/decision-registry.proposed.v1.json#/decisions/{index}"],
                 [decision["path"], "scripts/generate_decision_registry.py"],
                 [
                     "scripts/generate_decision_registry.py",
@@ -2009,8 +2050,7 @@ def proposed_decision_nodes(
                     "docs/implementation/NCP_1_0_TASK_LEDGER.md",
                 ],
                 [
-                    "python3 scripts/generate_decision_registry.py "
-                    "--self-test --check",
+                    "python3 scripts/generate_decision_registry.py --self-test --check",
                     "python3 scripts/check_adr_examples.py --self-test",
                 ],
                 "PARTIAL_LOCAL",
@@ -2275,6 +2315,18 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
                 "NO_VALIDATION_OR_AUTHORITY_BYPASS",
                 ["ncp-ts/src/canonical-json.ts", "ncp-ts/scripts/check-behavior.mjs"],
             )
+        if path in {"ncp-core/src/safety.rs", "ncp-ts/src/safety.ts"}:
+            return (
+                "FAIL_SAFE_NON_WIDENING",
+                "LOCAL_SAFETY_GUARD",
+                [path, "RESILIENCE.md", "SECURITY.md"],
+            )
+        if path == "ncp-ts/scripts/check-behavior.mjs":
+            return (
+                "FAIL_SAFE_NON_WIDENING",
+                "TEST_ONLY_SAFETY_GUARD",
+                [path, "ncp-core/src/safety.rs", "ncp-ts/src/safety.ts"],
+            )
         if (
             path == "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
             and "actionbuffer watchdog fallback" in lower
@@ -2537,6 +2589,28 @@ def self_test() -> None:
         raise AssertionError(
             "threat register does not cover every mandatory counterfactual"
         )
+    safety_trace = NORMATIVE_TRACE["NCP-REQ-010"]
+    if not {
+        "ncp-python/src/lib.rs",
+        "ncp-cpp/src/lib.rs",
+        "ncp-cpp/include/ncp.h",
+    }.issubset(safety_trace["code"]):
+        raise AssertionError("safety trace lost a Python or C failure mapping")
+    if not {
+        "ncp-python/tests/test_smoke.py",
+        "ncp-cpp/src/lib.rs",
+    }.issubset(safety_trace["tests"]):
+        raise AssertionError("safety trace lost a focused Python or C failure test")
+    if not any(
+        "persistent_governor_unattributable_envelope_failure_is_local_and_latched"
+        in command
+        for command in safety_trace["commands"]
+    ) or not any(
+        "governor_unattributable_envelope_failure_returns_null_and_keeps_the_local_latch"
+        in command
+        for command in safety_trace["commands"]
+    ):
+        raise AssertionError("safety trace lost a focused Python or C test command")
     hostile, is_text = _scan_content("hostile.rs", b"// TODO: permissive fallback\n")
     if not is_text or len(hostile) != 2:
         raise AssertionError("latent scanner missed a hostile multi-token line")
@@ -2552,7 +2626,9 @@ def self_test() -> None:
         or quarantined[0]["disposition"] != "EXPLICIT_SCOPE_QUARANTINE"
         or quarantined[0]["claim_effect"] != "NO_SHIPPING_OR_AUTHORITY"
     ):
-        raise AssertionError("authenticated-ingress quarantine classification regressed")
+        raise AssertionError(
+            "authenticated-ingress quarantine classification regressed"
+        )
     exact_reviewed_cases = (
         (
             "docs/adr/0009-security-state-rotation-and-revocation.md",
@@ -2580,6 +2656,18 @@ def self_test() -> None:
             b"Tests require rejection under the fallback profile.\n",
             "NEGATIVE_POLICY_GUARD",
             "FAIL_CLOSED_REQUIREMENT",
+        ),
+        (
+            "ncp-core/src/safety.rs",
+            b"A bounded fallback emits HOLD instead of Active.\n",
+            "FAIL_SAFE_NON_WIDENING",
+            "LOCAL_SAFETY_GUARD",
+        ),
+        (
+            "ncp-ts/scripts/check-behavior.mjs",
+            b"The fallback regression must remain bounded.\n",
+            "FAIL_SAFE_NON_WIDENING",
+            "TEST_ONLY_SAFETY_GUARD",
         ),
         (
             "scripts/selector_allocation_review.py",

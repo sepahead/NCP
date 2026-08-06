@@ -1,12 +1,10 @@
 //! # ncp (Python) — PyO3 bindings for the NCP Rust core
 //!
-//! So Python projects use the **canonical Rust implementation** of NCP rather
-//! than reimplementing the wire: the version guard, the key scheme, the rate
-//! codec, the action-plane safety governor, and message validation all come from
-//! `ncp-core`. A Python backend may keep its own server-side models (e.g. Engram's
-//! NEST server keeps Pydantic ones),
-//! but any Python peer can compute keys, encode/decode, and validate frames
-//! through this module and be guaranteed wire-identical to the Rust and TS peers.
+//! Python projects can reuse the informative Rust reference implementation for
+//! version guards, keys, rate codecs, the action-plane safety governor, and
+//! message validation. This reduces independent reimplementation drift; it does
+//! not by itself qualify an installed Python peer or prove interoperability with
+//! another implementation. A Python backend may keep its own server-side models.
 //!
 //! Build the importable extension with maturin (`maturin develop -m
 //! ncp-python/Cargo.toml --features extension-module`). The `extension-module`
@@ -19,7 +17,12 @@
 //! ncp.NCP_VERSION                      # "1.0"
 //! k = ncp.Keys("ncp")                  # the realm is a deployment choice (e.g. "engram/ncp")
 //! k.command("uav3")                    # "ncp/session/uav3/command"
-//! ncp.decode_command(codec_json, '{"vel_x":200.0}', seq=7, t=0.0)  # CommandFrame JSON
+//! cmd_json = ncp.decode_command(
+//!     '{}', '{}', seq=7, t=0.0,
+//!     epoch='00000000-0000-4000-8000-000000000001',
+//!     session_generation='00000000-0000-4000-8000-0000000000a2',
+//!     session_id='uav3',
+//! )
 //! gov = ncp.Governor('{"command_timeout_ms": 500.0}')  # PERSISTENT (latching) governor
 //! ```
 
@@ -210,12 +213,19 @@ fn parse_sensor(sensor_json: Option<&str>) -> PyResult<Option<SensorFrame>> {
 
 /// Apply the action-plane safety governor to a `CommandFrame` JSON, returning the
 /// governed `CommandFrame` JSON (HOLD on a stale sensor, ESTOP on geofence breach,
-/// speed clamp). `sensor_json`/`last_sensor_s` may be `None`.
+/// speed clamp). `now_s` and `last_sensor_s` must be readings from the same
+/// receiver-local monotonic clock. `sensor_json` and `last_sensor_s` may be `None`.
 ///
 /// **One-shot**: a fresh governor is constructed per call, so the ESTOP latch
 /// cannot persist across calls. Use this for stateless/corpus checks only — a
 /// real plant MUST hold a persistent [`Governor`] so a latched ESTOP survives
 /// until an authorized operator calls `reset()`.
+///
+/// Raises `ValueError` when local safety latches but cannot return a canonical,
+/// bounded wire-shape candidate. A successful result does not prove stream-position
+/// freshness: pass the owning publisher's next position in `command_json`, and do
+/// not publish a sequence-normalized fallback into an existing stream. Position,
+/// route, and live-generation admission remain caller duties.
 #[pyfunction]
 #[pyo3(signature = (limits_json, command_json, now_s, sensor_json = None, last_sensor_s = None))]
 fn govern(
@@ -254,13 +264,17 @@ fn govern_with(
     // `sensor=None` independently denies actuation. Preserve the timestamp of
     // the last accepted sensor so prolonged absence/invalid input can still
     // cross the reference governor's total-silence ESTOP deadline.
-    let out = gov.govern(&command, sensor.as_ref(), now_s, last_sensor_s);
+    let out = gov
+        .govern(&command, sensor.as_ref(), now_s, last_sensor_s)
+        .map_err(|error| PyValueError::new_err(format!("local safety failure: {error}")))?;
     serde_json::to_string(&out).map_err(val)
 }
 
 /// A **persistent** action-plane safety governor: the stateful form whose ESTOP
-/// latch survives across calls (a geofence breach / inbound ESTOP / link collapse
-/// keeps every later `govern` at ESTOP until an authorized operator calls `reset()`).
+/// latch survives across calls. A geofence breach, inbound ESTOP, reported loss
+/// burst, or sustained sensor silence forces ESTOP on each later frame that
+/// `govern` returns successfully. An authorized operator must call `reset()` to
+/// clear the local latch.
 /// This is what a real plant must hold — the module-level one-shot `govern`
 /// function cannot latch by construction. Wraps `ncp_core::SafetyGovernor`.
 #[pyclass]
@@ -278,8 +292,14 @@ impl Governor {
         })
     }
 
-    /// Govern one `CommandFrame` JSON against the latest sensor; returns the
-    /// governed `CommandFrame` JSON. The ESTOP latch persists across calls.
+    /// Govern one `CommandFrame` JSON against the latest sensor. `now_s` and
+    /// `last_sensor_s` must use the same receiver-local monotonic clock. The ESTOP
+    /// latch persists across calls. While latched, each successfully returned frame
+    /// uses ESTOP. Raises `ValueError` when local safety cannot return a canonical,
+    /// bounded wire-shape candidate; no frame exists in that case. Success does not
+    /// prove publisher-position freshness. The command must carry the owning
+    /// publisher's next position; never publish a sequence-normalized fallback into
+    /// an existing stream.
     #[pyo3(signature = (command_json, now_s, sensor_json = None, last_sensor_s = None))]
     fn govern(
         &mut self,
@@ -309,7 +329,10 @@ impl Governor {
         self.inner.is_estopped()
     }
 
-    /// Latch ESTOP when a link monitor reports a sustained loss burst (a jam).
+    /// Latch ESTOP when a link monitor reports a sustained loss burst. Possible
+    /// causes include congestion, interference, sender failure, and jamming. The
+    /// report does not identify the cause. The installed body executor must map
+    /// ESTOP through its content-addressed plant profile.
     fn note_link(&mut self, burst: bool) {
         self.inner.note_link(burst)
     }
@@ -338,9 +361,10 @@ impl ActionBuffer {
         }
     }
 
-    /// Ingest one CommandFrame JSON at the plant's local arrival time. This is a
-    /// body-local buffer API, not a remote ingress gate: callers must first bind
-    /// authenticated actor/plane and the exact live route/session generation.
+    /// Ingest one CommandFrame JSON at its receiver-local monotonic arrival time.
+    /// This is a body-local buffer API, not a remote ingress gate. Callers must
+    /// first bind the authenticated actor and plane to the exact live route and
+    /// session generation.
     /// Over-budget or malformed JSON raises ValueError; parseable invalid/replayed
     /// frames are fail-closed and ignored by the core, while a locally admitted
     /// ESTOP latches.
@@ -350,9 +374,9 @@ impl ActionBuffer {
         Ok(())
     }
 
-    /// Return the active channel-map JSON at `now_s`, or `None` when the plant
-    /// must HOLD (no command, expired TTL, replay rejection, horizon drain, or
-    /// latched ESTOP).
+    /// Return the active channel-map JSON at receiver-local monotonic `now_s`.
+    /// Use the same clock as `on_command`. Return `None` when the plant must HOLD
+    /// because of no command, expiry, replay rejection, horizon drain, or ESTOP.
     fn active(&self, now_s: f64) -> PyResult<Option<String>> {
         self.inner
             .active(now_s)
@@ -360,7 +384,8 @@ impl ActionBuffer {
             .transpose()
     }
 
-    /// True when no active setpoint is safe to apply at `now_s`.
+    /// True when no active setpoint is safe to apply at receiver-local monotonic
+    /// `now_s`. Use the same clock as `on_command`.
     fn should_hold(&self, now_s: f64) -> bool {
         self.inner.should_hold(now_s)
     }

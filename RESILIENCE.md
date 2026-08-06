@@ -1,337 +1,219 @@
-# NCP over a degraded link — resilience design (poor connection *and* jamming)
+# NCP over a degraded link
 
-> **Candidate boundary:** the deterministic primitives and corpus cases inform the
-> unreleased NCP `1.0.0-rc.1` candidate. Combined live delay/loss/duplication/
-> reordering/partition/restart/flood/soak certification is **NOT RUN**, so this
-> document is not a resilience or anti-jamming certification.
+> **Candidate boundary:** the deterministic library primitives and corpus cases in
+> this repository inform the unreleased, release-blocked NCP `1.0.0-rc.1`
+> candidate. Combined live delay, loss, duplication, reordering, partition,
+> restart, flood, fault, and soak qualification is **NOT RUN**. This document is not
+> resilience, anti-jamming, or plant-safety certification.
 
-Researched against June-2026 SOTA (streaming/erasure codes, the information theory
-of networked control, Age-of-Information / semantic communication, anti-jamming +
-predictive control) and then **adversarially pruned**. The honest result is small:
-most of the literature is overkill for a 3–12-float control stream. What survives
-is high-value and fits NCP's existing `seq`/`ttl_ms`/`mode`/codec.
+This design was reviewed against control-over-networks, predictive-control,
+freshness, erasure-coding, and information-decomposition concepts. Those bodies of
+work provide design questions, not universal thresholds for an unknown plant. NCP
+implements only the bounded mechanisms identified below.
 
-This covers **general link degradation** — random loss, latency/jitter, low
-bandwidth, intermittent connectivity — with **jamming as the adversarial worst
-case**, not the only case.
+## Current implementation and design targets
 
-## Per-plane threat model
+| Surface | Candidate implementation | Boundary |
+|---|---|---|
+| Command deadline | `CommandWatchdog` enforces receiver-local TTL and fails closed on invalid time | Each actuator-owning consumer must wire it into the final actuation path |
+| Predictive replay | `ActionBuffer` replays a validated `CommandFrame` horizon until it drains or expires | A producer is not supplied; no current Engram/NEST horizon producer is claimed |
+| Link telemetry | `LinkMonitor` computes sequence-gap loss and a CUSUM burst indication | It has no clock-based silence detector and does not identify the cause of loss |
+| Plant policy | Successful standalone `SafetyGovernor` calls emit normalized, bounded Active, HOLD, or ESTOP wire-shape candidates; an admitted ESTOP, a geofence breach, sustained sensor silence, or `note_link(true)` latches ESTOP | An unattributable stream/session envelope or an unrepresentable bounded safe output latches local ESTOP and returns an error without a wire frame; the governor owns no stream-position allocator or high-water mark, and normalized `seq=1` is not freshness evidence; the owning publisher must supply the next fresh position and perform exact-route and live-generation admission; the governor does not load or execute a plant profile; arrival-probability and goodput gates are not implemented |
+| Channel prioritization | Design candidate only | No PID-derived online policy or installed analysis loop exists |
+| Duplication or FEC | Deployment study only | NCP ships no duplication controller or erasure/streaming-code module |
 
-- **Perception plane** (`SensorFrame`, plant→controller; best-effort DROP,
-  reliability left at Zenoh default; no keep-last/conflation is configured on the wire): *lossy-OK* — a dropped sample is fine if a fresher one arrives, until
-  arrival probability crosses a floor. The pressure here is **low bandwidth**
-  (what to send when you can't send everything) and freshness.
-- **Action plane** (`CommandFrame`, controller→plant; express + DROP + RealTime):
-  *safety-critical, low-rate* — a command is useful only if it arrives within its
-  deadline; a late frame is a dropped frame, and a *burst* of drops over a fast
-  unstable mode lets the state escape. **Normative:** because this plane may drop a
-  frame, a conformant plant **MUST** fail safe (HOLD) once the latest command's
-  `ttl_ms` expires and **MUST NOT** actuate on a stale setpoint — see the
-  action-plane liveness conformance clause in `NEURO_CYBERNETIC_PROTOCOL.md`.
-- **Control-RPC plane** (lifecycle; Reliable/Block): rare, not real-time — ARQ is
-  correct, no change.
+## Per-plane failure model
 
-## Review finding (fixed): `ttl_ms` must be enforced plant-side
+- **Perception plane:** `SensorFrame` uses best-effort DROP. The typed adapter has a
+  bounded replace-latest receive slot after transport receipt. A missing sample can
+  be tolerated only while the consumer's plant-specific freshness policy remains
+  satisfied.
+- **Action plane:** `CommandFrame` uses express, DROP, and RealTime priority. A
+  command can actuate only while its receiver-local deadline and all identity,
+  session, lease, route, stream, plant, and safety gates pass. A conformant plant
+  must enter its declared HOLD behavior when the command expires.
+- **Control plane:** lifecycle RPC uses reliable/blocking transport behavior. It is
+  separate from the deadline-sensitive action path.
 
-`CommandFrame.ttl_ms` is the application-layer analogue of DDS LIFESPAN. The
-reference `CommandWatchdog` and `ActionBuffer` now enforce it: expiry, a missing
-command, a non-finite value, or a clock anomaly all resolve to HOLD. Enforced TTLs
-are capped at `MAX_TTL_MS` (60 seconds), so a hostile huge or `+Inf` value cannot
-pin the actuator live. NCP cannot install that watchdog in hardware it does not
-own; every plant integration must wire the primitive into its final actuator path.
-The watchdog retains a local clock high-water mark: after a rewind/non-finite
-sample, old authority remains revoked until the clock catches up and a fresh,
-non-duplicate command is accepted. Catch-up alone never revives a stale command.
+Transport delivery does not prove plant receipt or physical action. A successful
+put and a local library decision are not actuator acknowledgements. Wire-1.0
+`ResponderReceipt` applies to lifecycle step, run, and close operations. A
+`CommandFrame` has no operation context, idempotency context, or applied-command
+receipt. A deployment can define a body-local actuator receipt, but that receipt is
+deployment-local and is not an NCP wire receipt.
 
-## The layered design (what survives the pruning)
+## Receiver-local TTL is the backstop
 
-### Layer 0 — feasibility, honestly
-One constant is genuinely actionable (see the correction note just below): the **Sinopoli critical arrival probability**
-`p_c = 1 − 1/|λ_max|²` (Kalman with intermittent observations)—the perception
-floor; Zenoh DROP plus the adapter's replace-latest receive slot is appropriate while
-measured arrival `p̂ > p_c`. The **data-rate
-theorem** `R_min = Σ log₂|λᵢ|` matters only as a *goodput-collapse sentinel*: at
-20–50 Hz × tens of bytes NCP is rate-rich by ~3 orders of magnitude, so `R_min`
-*sizes nothing* — it only tells you when the link has effectively died and you must
-fail safe. **Anytime capacity** (Sahai–Mitter) correctly motivates "use a causal/
-streaming scheme, not block FEC," but for a 1–3-symbol payload it's motivation, not
-a redundancy formula. (Honest: three of the four classic thresholds are rigor; one,
-`p_c`, binds.)
+`CommandWatchdog` measures freshness with the plant receiver's monotonic clock. It
+refreshes only for a strictly advancing positive sequence. The caller must scope
+one watchdog instance to one declared stream epoch; `ActionBuffer` enforces that
+epoch binding. Timeout does not reopen a lower sequence. A foreign epoch requires
+a fresh declaration, session context, and watchdog instance.
 
-> **Correction (2026-07-11 deep protocol review).** Three of the thresholds above
-> are stated more loosely than the underlying theorems warrant. The accurate forms:
-> - **Sinopoli `p_c = 1 − 1/|λ_max|²` is a *lower bound* on the critical arrival
->   probability in general — not a universal threshold.** Equality holds only for
->   special structures (a scalar system, or a fully-observed / invertible
->   observation matrix `C`). For a general partially-observed, neural, or
->   event-based estimator the exact threshold is system-dependent and can be
->   *higher*, so treat `p_c` as a necessary-condition floor and analyse each
->   estimator/plant on its own terms rather than deploying just above the formula.
-> - **The data-rate lower bound sums over the *unstable* modes only:
->   `R_min = Σ_{|λᵢ|>1} log₂|λᵢ|`.** And a high aggregate bit-rate is necessary but
->   not sufficient — tail latency, outage duration, and freshness can make a
->   rate-rich link control-infeasible. This is precisely why NCP treats `R_min` as a
->   goodput-collapse sentinel, not a sizing formula.
-> - **"Coding theory says nothing better exists for K≈1–3" overstates it.** Long
->   *block* codes are unattractive under a tight deadline, but packet duplication on
->   independent paths, small systematic erasure codes, or protecting only the
->   mode/stop/header fields can still help; it is a per-deployment trade study, not a
->   theorem. PPC + whole-frame duplication remains the sound *default*, not the
->   proven optimum.
+The watchdog treats a non-finite clock or TTL as expired and clamps finite TTL to
+`MAX_TTL_MS` (60 seconds). After a clock rewind or non-finite sample, the prior
+command stays unusable until the local clock catches up and a new, strictly
+advancing command is accepted. Catch-up alone does not revive a stale command. The
+watchdog does not revoke or mutate an authority lease.
 
-### Layer 1 — action plane: packetized predictive control (the one real win)
-Each `CommandFrame` carries a short **horizon** of future setpoints, not one. The
-actuator buffers them and, on a dropout, **replays the buffered prediction** for
-that tick — a single lost packet becomes a non-event, using only the `seq` already
-present. Overlapping horizons re-send predictions for neighbouring ticks, so a
-*burst* is ridden out without parity overhead (the anytime-causal structure for
-free). The NEST controller emits a horizon by rolling its readout forward N ticks.
+NCP cannot install this control in hardware that it does not own. The body remains
+final actuator authority and must map HOLD to the exact content-addressed plant
+profile. No universal zero-safe action exists.
 
-**Safety invariant (load-bearing):** replaying a stale predicted command is
-open-loop dead-reckoning — if a disturbance hits during the blackout it actively
-commands the wrong thing and diverges on an unstable mode. Therefore **N is capped
-by both `floor(min(ttl_ms, MAX_TTL_MS) / horizon_dt_ms)` and
-`MAX_HORIZON_STEPS = 65_536`**, each horizon entry `i` expires at
-`t + i·horizon_dt_ms`, and once the buffer drains or any entry is past `ttl_ms`,
-**HOLD fires**. The whole safety argument rests on this cap.
+## Predictive horizon: exact timing and bound
 
-NCP currently ships no RS / RLNC / RaptorQ / streaming-FEC module. For its typical
-3–12-float setpoint, PPC horizons are the measured default; whole-frame duplication,
-independent paths, or small systematic protection may still be better for a specific
-plant/link and require a deployment-level latency/failure trade study.
+`CommandFrame.channels` is tick 0. Zero-based `horizon[i]` is scheduled at receiver
+time
 
-### Layer 2 — perception plane under low bandwidth: PID-informed Value-of-Information
-This is where **Partial Information Decomposition** earns its place (see the PID
-section below): drop **redundant** channels, keep **unique** ones, bundle
-**synergistic** ones — a principled "what to send when you can't send everything,"
-designed offline (via an information-theoretic analysis client) and applied online as static channel priorities.
-Zenoh DROP remains the wire congestion behavior, while the typed adapter's bounded
-replace-latest slot preserves freshness after receipt; a `max_silence_ms` heartbeat
-distinguishes "no change" from "link dead."
+```text
+received_at + (i + 1) * horizon_dt_ms
+```
 
-### Layer 3 — detection & fail-safe
-A lightweight detector in `ncp-core` over the **`seq`-gap** stream (already on both
-planes): loss rate + a **CUSUM change-point** test (minimum-delay detection) to
-separate random loss (poor connection) from a sustained burst (jamming), published
-as a `LinkStatus` telemetry message. The fail-safe is the point: when `p̂ < p_c` or
-goodput collapses toward `R_min`, escalate **HOLD → ESTOP** (the only two `mode`
-rungs that exist today; an autonomous-RTL rung would need a new `Mode` variant + a
-MAVROS SET_MODE path that a given robot/UAV client may not yet have — out of scope until built).
+The watchdog expires inclusively when elapsed time reaches the locally enforced
+TTL. Define the calculation as follows for finite `ttl_ms` and finite
+`horizon_dt_ms > 0`:
 
-The plant-side `SafetyGovernor` state machine (verified against
-`ncp-core/src/safety.rs`) — `ACTIVE` clamps speed and projects the actual canonical
-velocity path over the full TTL/horizon window, preserving safe inward motion but
-HOLDing/truncating before a geofence crossing; a stale/missing sensor (or non-finite
-clock, velocity, or position, bad timeout, absent geofence channel) drops to
-**non-latching** `HOLD`. Fresh in-bounds data can clear the governor's local HOLD,
-but deployment actuation additionally requires the live session generation,
-matching authority lease, admitted active command, and all plant gates. An actual
-geofence breach or sustained link burst **latches** `ESTOP` and executes the plant
-profile's declared ESTOP action. `SafetyGovernor::reset()` is a body-local primitive,
-not a stable wire RPC or an authority transition; a limit referencing an undeclared
-channel is `config_fail_closed` state that the primitive does **not** clear. A
-successful deployment-level reset is an out-of-band
-session-generation cut: it retires the generation, authority and lease, and stream
-state, and the body remains non-actuating until a fresh `SessionOpened`, new
-generation, new streams, a new matching authority lease, and an admitted active
-command with all plant gates satisfied. The diagram below composes the governor's
-local state with those deployment admission gates; its reset edge returns through
-non-actuating HOLD and does not authorize actuation:
+```text
+effective_ttl_ms = clamp(ttl_ms, 0, MAX_TTL_MS)
+ratio = effective_ttl_ms / horizon_dt_ms
+N_max = 0                                             if ratio is non-finite
+N_max = min(MAX_HORIZON_STEPS, max(ceil(ratio) - 1, 0)) otherwise
+```
+
+`MAX_HORIZON_STEPS` is 65,536. Invalid inputs and a non-finite binary64 ratio permit
+zero future steps. A step at the effective TTL boundary is not executable. For
+example, `ttl_ms=200` and `horizon_dt_ms=50` permit three future steps, scheduled at
+50, 100, and 150 ms. The 200 ms step is expired.
+
+Rust `CommandFrame` validation rejects a horizon longer than this bound. Both Rust
+and TypeScript `ActionBuffer` watchdogs clamp the executable window to 60 seconds.
+The TypeScript `maxHorizonLen` helper also calculates the clamped bound. However,
+the generic TypeScript `assertNcpMessage` path currently uses uncapped `ttl_ms`.
+For `ttl_ms > 60_000`, it can accept steps that the watchdog cannot execute. It can
+also accept a nonempty horizon when a tiny positive cadence makes the ratio
+non-finite. N07 must correct the implementation and add the exact cross-language
+corpus cases through the dependency-gated proto, identity, and rebaseline workflow.
+Do not use generic TypeScript validation alone as evidence of horizon parity.
+
+`ActionBuffer` returns tick 0 before the first future step, then `horizon[i]` at its
+scheduled tick. It returns no setpoint after the horizon drains or the watchdog
+expires. A non-`active` frame clears buffered actuation; ESTOP also latches. Reset
+retires that buffer's complete session context, so a fresh generation needs a fresh
+object.
+
+Predictive replay is open-loop action. It can bridge a bounded dropout, but a model
+error or disturbance can make the prediction wrong. The producer and plant must
+choose the cadence and horizon from a measured closed-loop profile. Protocol tests
+do not prove that any nonzero horizon is safe for a specific plant.
+
+## Plant-side governor and admission
+
+The reference `SafetyGovernor` can clamp the canonical velocity path and project it
+over the TTL/horizon window. Invalid configuration, stale or malformed sensor data,
+an absent required channel, non-finite values, or a projected geofence crossing
+fail closed. An actual geofence breach or `note_link(true)` latches ESTOP.
+
+For a finite, positive configured timeout `T`, sensor data becomes stale after
+`min(T, 60 s)`. The sustained-silence ESTOP deadline is
+`min(20 × min(T, 60 s), 60 s)` after the last finite sensor timestamp. An invalid
+or non-positive timeout sets configuration fail-closed. With a canonical
+attributable stream/session envelope and a representable bounded safe frame, that
+invalid timeout makes a non-ESTOP input return HOLD without applying the silence
+formula. An existing or inbound ESTOP latch remains dominant. This syntax check is
+not exact-route or live-generation admission. This is a receiver-local
+sensor-freshness rule. It does not identify link failure or jamming.
+
+The governor does not authenticate the sender, create a session, issue an authority
+lease, load a plant profile, execute an actuator action, issue a receipt, or prove
+physical effect. On success, it returns a normalized, bounded wire-shape candidate
+in Active, HOLD, or ESTOP mode. It owns no publisher position allocator or
+high-water mark. A normalized `seq=1` satisfies local wire shape only. It does not
+establish freshness and must not enter an existing declared stream. The owning
+publisher must assign and admit the next fresh position. An unattributable
+stream/session envelope or an inability to construct a bounded safe output latches
+local ESTOP and returns an error, not a wire frame. Deployment actuation still
+requires the verified transport principal, default-deny manifest, exact route and
+plane, live session generation, matching bounded lease, admitted command, and
+content-addressed plant profile.
+
+An installed body-owned executor must map each successfully returned HOLD or ESTOP
+frame to the action declared by that plant profile. The mapped action does not
+necessarily de-energize a device.
+`SafetyGovernor::reset()` is a body-local primitive, not a stable wire RPC or an
+authority transition. A deployment-level reset must retire the old generation,
+authority, lease, and stream state before it constructs fresh admission state.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)"  srcset="docs/diagrams/fsm-dark.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/fsm-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/fsm-light.svg">
-  <img alt="NCP plant-side safety and admission state machine. INIT validates configuration and enters non-actuating HOLD when valid or CONFIG-FAIL-CLOSED when invalid. ACTIVE requires fresh in-bounds sensor data, a live session generation, matching authority lease, and admitted active command. HOLD is non-latching but cannot restore actuation until all gates pass. ESTOP is latched and executes the plant profile's declared ESTOP action. A successful body-local or out-of-band reset retires the old generation and returns through non-actuating HOLD; fresh SessionOpened, streams, authority, command, and plant gates are required before ACTIVE. NCP assumes no universal zero-safe or de-energized action." src="docs/diagrams/fsm-light.svg" width="820">
+  <img alt="Informative NCP plant-admission model for the UNRELEASED, release-blocked 1.0.0-rc.1 candidate; not a release or physical-safety certification. A canonical attributable stream/session envelope can produce a normalized, bounded wire-shape candidate. The standalone governor owns no publisher allocator or high-water mark; normalized sequence 1 is not freshness evidence. The owning publisher separately assigns and admits the next fresh position, exact route, and live generation. An unattributable envelope or the absence of any representable bounded safe-frame tier latches local ESTOP and returns an error without a wire frame. The body maps successful HOLD or ESTOP output through the exact plant profile. Reset retires the generation; fresh session, streams, authority, command, and plant gates are required before ACTIVE. NCP defines no universal zero-safe action." src="docs/diagrams/fsm-light.svg" width="820">
 </picture>
 
-**The hard PHY boundary, stated plainly:** no application-layer scheme — not PPC,
-not duplication, not coding — recovers data when a wideband jammer drives delivered
-goodput to ~0 for longer than the PPC horizon. App-layer mitigates *partial/burst*
-loss only; it buys exactly `N · horizon_dt_ms` of ride-through and nothing more.
-Frequency-hopping/DSSS is the radio's job. Under a sustained full-band jam the
-*only* correct behavior is the fail-safe — **detect goodput collapse and fail safe
-honestly**, do not pretend more redundancy helps.
+## Link telemetry: detection is not causation
 
-## Is PID (Partial Information Decomposition) useful here, beyond Shannon?
+`LinkMonitor` observes accepted stream sequence positions. It estimates missing
+positions over the observed span, reconciles bounded reordering, and applies a
+CUSUM change detector. It emits `LinkStatus`; it never actuates.
 
-**Yes — as an offline design tool for the perception plane, complementary to
-Shannon information theory.** The two answer different questions:
+The detector sees arriving frames only. It has no `max_silence_ms` field, heartbeat,
+or clock input, so it cannot distinguish "no change" from a link that went silent
+after the last frame. The reference governor has a separate derived timer for
+sensor freshness. A deployment that needs an independent link-silence policy must
+implement and validate it locally. Adding a stable wire field would be a separate
+wire-visible change.
 
-- **Shannon / channel & control info theory** (data-rate theorem, capacity, AoI,
-  Sinopoli `p_c`) sizes the link and decides *whether* control is feasible and
-  *how much* reliability you need — it is plane-agnostic about *content*.
-- **PID** decomposes the information that the sensor channels {S₁…Sₙ} *jointly*
-  carry about the control target/action into **Unique**, **Redundant**, and
-  **Synergistic** atoms (Williams–Beer and successors). That is exactly the missing
-  half under a poor (low-bandwidth) connection: *which channels to send, drop, or
-  replicate*:
-  - **Redundant** info across channels → safe to drop/compress the redundant ones
-    under a bandwidth squeeze without losing control-relevant information (the
-    cheapest, safest rate cut).
-  - **Unique** info → must be preserved; each unique-bearing channel is
-    irreplaceable.
-  - **Synergistic** info → channels must travel *together* (dropping one destroys
-    the synergy) — tells you what to bundle and co-prioritize.
-  - Conversely, to *gain* loss-robustness you can deliberately add **redundant**
-    encodings, with PID quantifying how much robustness each costs in bandwidth.
+A CUSUM burst is compatible with congestion, routing failure, interference, sender
+failure, or jamming. It is not proof of an attacker. The current
+LinkMonitor-to-governor trip is only the boolean `burst` signal passed to
+`note_link`; the separate governor silence rule derives from sensor freshness.
+Plant-specific arrival-probability, goodput, or estimator-feasibility thresholds
+remain design targets and must not be described as current runtime gates.
 
-  This operationalizes "Value of Information" *per source*, which raw mutual
-  information cannot do (MI gives totals, not the unique/redundant/synergistic
-  split).
+## Channel prioritization is an offline design candidate
 
-**The elegant part:** an information-theoretic analysis client can compute PID
-directly on NCP's read-only observation tap. So the loop closes —
-the analysis client measures the PID structure of
-{sensor channels → action} **offline**, and feeds back a channel
-priority/drop/replicate policy that the perception codec applies **online**.
-NCP ↔ the analysis client becomes a closed design loop.
+Partial Information Decomposition can help an analyst ask which sources contribute
+unique, redundant, or synergistic information about a declared target. The result
+depends on the estimator, data, target, operating regime, and chosen decomposition.
+It does not establish that a channel is safe to drop.
 
-**Honest caveats (from PID's own domain):** PID is computationally expensive
-(the redundancy lattice is super-exponential; estimating it from finite,
-continuous, high-dimensional data is hard — bias, estimator choice, the
-`I_min`-vs-alternatives debate — which is an open research problem). So
-PID is **offline / design-time**, never a per-tick online computation: you run it to
-*set* static channel priorities, then apply those cheaply online. It informs the
-codec; it is not a runtime control primitive.
+NCP currently has no PID computation or policy-feedback path. A future workflow
+could compute candidate priorities from a read-only observation dataset, then
+validate a static policy offline and under closed-loop fault tests before a codec
+uses it. The policy remains non-normative and cannot grant identity, authority,
+capability, or plant action.
 
-## Honest scope
+## Duplication and coding require a deployment study
 
-**Build (high-value, auditable, fits existing fields):** enforce `ttl_ms`
-(shipped: `CommandWatchdog`); PPC horizon capped by `ttl_ms`; seq-gap + CUSUM
-detector + `LinkStatus`; staged fail-safe HOLD→ESTOP gated on `p_c` + goodput
-collapse; PID-informed perception priorities (offline analysis client → online codec);
-whole-frame duplication as an adaptive lever.
+NCP ships no Reed-Solomon, RLNC, RaptorQ, or streaming-FEC module. It also does not
+prove that coding is unnecessary. Independent-path duplication, small systematic
+codes, selective protection, retransmission, or predictive replay can have different
+latency and correlated-failure behavior. Select only from measurements for the
+exact payload, deadline, topology, outage distribution, and plant.
 
-**Do not build (overkill / redundant / unimplementable on current code):** RS /
-CRLNC / streaming-FEC modules and RaptorQ (overkill for K≈1–3 symbols, redundant
-with PPC); event-triggered/send-on-delta sampling (fights the existing Zenoh DROP,
-adapter-side replace-latest, and rate-codec design); layered/scalable coding (no maps/trajectories on the bus);
-deep-RL / game-theoretic anti-jam (its levers are PHY, not NCP); an autonomous-RTL
-mode rung (needs MAVROS SET_MODE wiring that doesn't exist); using `H`/anytime as
-redundancy-sizing formulas (rigor-theater for this payload); a client's own
-KF/EKF/UKF state estimator is **not** wired into the NCP path, so don't predicate AoII on it.
+No application-layer technique recovers data when delivered goodput remains near
+zero beyond the validated replay window. Radio-layer anti-jamming mechanisms are
+outside NCP. The plant must enter its declared fail-safe behavior when application
+freshness or authority expires.
 
-**The bottom line the theory insists on:** these are *feasibility and fail-safe*
-criteria — not a stability certificate for the SNN controller, whose effective
-closed-loop decay rate must be *measured*, not assumed. Under a strong jam the most
-important thing NCP can do is detect goodput collapse and fail safe honestly.
+## Consumer integration order
 
-## Minimal first implementation (corrected order)
+1. Bind the payload identity to the verified transport principal, default-deny
+   manifest, route, plane, and live session generation.
+2. Validate the complete `CommandFrame`, authority lease, stream epoch/position,
+   negotiated channel contract, and plant profile. Do not attach lifecycle
+   operation or idempotency context to the action frame.
+3. Apply `CommandWatchdog` in the final actuator-owning loop.
+4. Use `ActionBuffer` only for a measured and validated predictive horizon.
+5. Feed `LinkMonitor` telemetry into an explicit plant policy. If the policy uses
+   the current governor hook, document that only `burst=true` causes the latch.
+6. Validate operation context, idempotency, and `ResponderReceipt` separately for
+   lifecycle step, run, and close RPCs.
+7. Map HOLD and ESTOP through the exact plant profile. Label any applied-command or
+   body-boundary receipt as deployment-local. Do not infer physical action from
+   transport success.
+8. Run live fault, delay/loss/reordering, restart, duration, and soak campaigns on
+   the installed consumer before making a resilience claim.
 
-> **Candidate implementation status (wire 1.0).** Steps 0–2 exist as tested `ncp-core` primitives,
-> re-exported from the crate root: `CommandWatchdog` (the `ttl_ms` deadline
-> backstop), `ActionBuffer` + `max_horizon_len` (PPC horizon replay, capped at
-> `N ≤ ttl_ms / horizon_dt_ms` and `N ≤ 65_536`), and `LinkMonitor` (seq-gap loss + CUSUM burst →
-> `LinkStatus`). Step 3's jam latch ships as `SafetyGovernor::note_link(burst)`
-> (today the trip is the CUSUM `burst` flag; the `p̂ < p_c` / goodput-collapse
-> gating remains the documented target). What is *not* done: step 4's PID
-> priorities (offline) and — crucially — the **consumer wiring**. NCP ships and
-> unit-tests the mechanism; it cannot HOLD an actuator it does not own, so every
-> actuator-owning commander/body integration must call these in its actuator loop.
-> A read-only observer such as Prisoma consumes the telemetry and never calls an
-> actuator primitive. TTL/horizon enforcement is
-> bounded and non-finite values fail closed. The numbered list below
-> therefore now reads as the *integration* order, not a from-scratch build list.
-
-
-0. **Enforce `ttl_ms`** plant-side (`CommandWatchdog` in `ncp-core::safety` — done;
-   wire it into the actuator handler).
-1. **PPC horizon** on `CommandFrame` (`horizon` field), actuator buffer keyed on
-   `seq`, **N ≤ ttl_ms/horizon_dt_ms and N ≤ 65,536**, per-entry expiry, HOLD on drain.
-2. **seq-gap + CUSUM detector + `LinkStatus`** telemetry.
-3. **Staged SafetyGovernor**: HOLD→ESTOP on `p̂<p_c` / goodput collapse (no RTL rung
-   until the `Mode` variant + MAVROS path exist).
-4. **PID-informed perception priorities** (offline via an analysis client) + optional adaptive
-   duplication.
-
-No new dependencies, no wire-breaking edits — additive `Option`/`Vec` fields and
-`ncp-core` logic only.
-
-## First-principles: the three plant-side primitives
-
-Stripped to essentials, degraded-link resilience in NCP is three small,
-dependency-light primitives plus one cap. They are deliberately *library*
-primitives in `ncp-core` (`ActionBuffer`, `CommandWatchdog`, `LinkMonitor`,
-`max_horizon_len`, and `SafetyGovernor::note_link`): NCP is a generic, shared
-contract, so it ships and tests the **mechanism**, while each consumer wires the
-**policy** into the loop it actually owns. Understanding *why* each exists matters
-more than the code.
-
-### Why horizon replay works — and why it must be bounded
-First principle: a sampled-data control loop diverges not the instant a packet is
-lost, but when the plant has *no fresh setpoint to actuate on* before its state
-escapes the basin the last good command put it in. So the cheapest robustness is
-not retransmission (too slow for a deadline) and not parity/FEC (pointless for a
-1–3-symbol payload) — it is **having the next setpoints already in hand**.
-Packetized predictive control sends a short *horizon* of future setpoints per
-`CommandFrame`; the plant-side `ActionBuffer` replays `horizon[i]` on tick `i`
-through a dropout, so one lost packet — and, via overlapping horizons, a short
-burst — becomes a non-event. This is the anytime/causal-streaming structure for
-free, using only the `seq` already on the wire; no new redundancy field.
-
-The load-bearing catch: a replayed prediction is **open-loop dead-reckoning**. If a
-disturbance hits during the blackout, replay actively commands the wrong thing and,
-on an unstable mode, diverges. Hence `max_horizon_len` enforces both
-`N ≤ floor(min(ttl_ms, MAX_TTL_MS) / horizon_dt_ms)` and `N ≤ 65,536`: replay can
-never outlive the deadline or allocate an unbounded prediction. The deadline says "this
-command is stale" and expires inclusively at that boundary. Each entry's applicability
-is derived from the cadence and TTL; on drain, `ActionBuffer`
-returns `None` and the plant HOLDs. Ride-through is therefore *at most*
-`N · horizon_dt_ms` and not one tick more — a property you can state, bound, and
-test, which is the whole point of putting it in the contract.
-
-Remote actor/plane and exact route/session-generation admission always comes first;
-the local `ActionBuffer` is not a network ingress bypass. Within that already
-admitted context, fail-safe handling outranks replay discipline: every non-`Active`
-mode clears buffered actuation before local replay checks, and `ESTOP` also latches.
-Only a complete accepted `Active` frame can add or refresh actuation authority.
-
-The stable Zenoh publisher also treats delivery ambiguity explicitly. Its one
-transport-owned allocator covers Active, HOLD, and ESTOP. Once a put is attempted,
-that position is consumed. If a fail-safe attempt is ambiguous, Active stays blocked
-until the caller submits a new logical fail-safe at a new position and it succeeds;
-the dispatcher never busy-retries the ambiguous bytes at the old position.
-
-### Why the ttl watchdog is the backstop everything else rests on
-First principle: every layer above assumes a deadline beneath it. PPC is only safe
-*because* HOLD fires when the horizon outlives `ttl_ms`; the staged fail-safe is
-only meaningful *because* a missing command eventually counts as expired. The
-`CommandWatchdog` is that floor. Three design choices make it trustworthy: it uses
-the **plant's own clock** (no controller↔plant clock-skew to exploit); it refreshes
-the deadline **only on a strictly-advancing `seq`**, so a trickle of
-replayed/stale frames cannot keep the plant "fresh" forever; and it treats a
-**non-finite clock as expired** — failing *closed* on a bad clock rather than
-letting `NaN` comparisons read as "not expired."
-
-Since **wire 0.6** a positive sequence has been normative; wire 0.8 made it the
-typed `stream.seq`. Every data/status publisher starts at 1 and strictly advances
-within one declaration-bound epoch, so an unstamped (`stream.seq < 1`) frame is
-rejected. Timeout, HOLD, or expiry never reopens a lower sequence and a foreign
-epoch never rebinds the current receiver. Publisher restart requires fresh
-authenticated route/session declaration state. ESTOP priority applies only after
-the complete envelope and exact current session generation pass ingress binding.
-A reset retires the entire generation and its buffer/authority objects; every old-
-generation frame, including ESTOP, is rejected before latch or control processing.
-
-> **Bounded deadline (fixed).** `CommandWatchdog` maps non-finite TTL to immediate
-> expiry and clamps enforcement to `MAX_TTL_MS`; `max_horizon_len` returns zero for
-> non-finite/invalid TTL or step size and caps finite output at 65,536. No hostile command can create an infinite
-> liveness or predictive-replay horizon.
-
-### Why the link monitor only detects, and the governor decides
-First principle: separate measurement from policy so each is independently
-testable. `LinkMonitor` does measurement only — it estimates loss from `seq`-gaps
-(as a fraction of the seqs that *should* have arrived, reconciling out-of-order
-arrivals so a merely-reordered link is not slandered) and runs a **CUSUM**
-change-point test to separate ordinary random loss (poor connection) from a
-sustained burst (possible jam), emitting a `LinkStatus`. It never actuates. The
-*decision* lives in one place: `SafetyGovernor::note_link(burst)` latches ESTOP on
-a jam burst, so a jammed craft de-energizes instead of coasting on stale
-predictions. This keeps the detector free of safety side-effects and the fail-safe
-policy auditable in a single state machine.
-
-The PHY boundary still bounds all three: app-layer schemes buy exactly the PPC
-ride-through window and no more. Under a wideband jam that drives goodput to ~0 for
-longer than `N · horizon_dt_ms`, the only correct behavior is the fail-safe —
-detect the collapse and HOLD→ESTOP honestly; frequency-hopping/DSSS is the radio's
-job, not NCP's.
+A read-only observer can consume telemetry but must not call actuator primitives.
+None of these steps supplies a stability certificate, hardware ESTOP certification,
+paper reproduction, posterior calibration, or release authorization.

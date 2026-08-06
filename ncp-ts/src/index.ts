@@ -1,14 +1,15 @@
 /**
- * Canonical NCP (Neuro-Cybernetic Protocol) for TypeScript: the generated,
- * wire-identical message types plus a transport-agnostic client.
+ * NCP (Neuro-Cybernetic Protocol) for TypeScript: generated reference JSON
+ * projection types plus a transport-agnostic client.
  *
- * The types are generated (via ts-rs) from the `ncp-core` reference types, which
- * conform to the normative `proto/ncp.proto` wire contract (proto-native); the
- * client/transport add orchestration only. Rust, Python and TS peers are therefore
- * wire-identical. Do not re-declare these types downstream — import them from here.
+ * The types are generated (via ts-rs) from the informative `ncp-core` reference
+ * types and checked against the normative source set. Generated shape parity
+ * reduces drift; it does not by itself qualify an installed peer or prove
+ * independent interoperability. Import these maintained shapes instead of
+ * re-declaring them downstream.
  */
 
-// Canonical, generated message types + enums (the JSON projection of proto/ncp.proto).
+// Generated reference message types and enums for the canonical JSON projection.
 export type * from './generated/index.js'
 export {
   NCP_BUILD_IDENTITY,
@@ -74,6 +75,7 @@ export {
 export {
   ActionBuffer,
   CommandWatchdog,
+  SafetyGovernError,
   SafetyGovernor,
   assertWireFrame,
   maxHorizonLen,

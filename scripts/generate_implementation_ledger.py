@@ -21,6 +21,7 @@ from check_implementation_ledger import (
 
 LEDGER_VIEW = ROOT / "docs" / "implementation" / "NCP_1_0_TASK_LEDGER.md"
 RESUMPTION_VIEW = ROOT / "docs" / "implementation" / "NCP_1_0_RESUMPTION.md"
+V11_ATLAS_OWNER_TASK_IDS = ("N10", "E06", "H04", "G02", "C04", "P02")
 
 
 def _cell(value: object) -> str:
@@ -49,6 +50,26 @@ def _next_tasks(data: dict[str, object]) -> list[str]:
             for dependency in task["dependencies"]
         )
     ]
+
+
+def _v11_task_groups(
+    tasks: list[dict[str, object]],
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    by_id = {task["id"]: task for task in tasks}
+    missing = [task_id for task_id in V11_ATLAS_OWNER_TASK_IDS if task_id not in by_id]
+    if missing:
+        raise LedgerError(f"missing V11 atlas owner tasks: {', '.join(missing)}")
+    owners = [by_id[task_id] for task_id in V11_ATLAS_OWNER_TASK_IDS]
+    for task in owners:
+        if "V11" not in task["requirement_ids"]:
+            raise LedgerError(f"V11 atlas owner {task['id']} does not carry V11 scope")
+    owner_ids = set(V11_ATLAS_OWNER_TASK_IDS)
+    consumers = [
+        task
+        for task in tasks
+        if "V11" in task["requirement_ids"] and task["id"] not in owner_ids
+    ]
+    return owners, consumers
 
 
 def _render_active_task_recovery(
@@ -1861,19 +1882,62 @@ def render_ledger(data: dict[str, object]) -> str:
             "",
             "## Dependency-ordered tasks",
             "",
-            "| Task | Status | Claim tier | Required evidence class | Scope | Dependencies | Repository | Source commit | Residual risks |",
-            "|---|---|---|---|---|---|---|---|---:|",
+            "Requirement IDs identify coordination scope. They do not grant runtime authority,",
+            "close a requirement, or change a task's evidence floor.",
+            "",
+            "| Task | Status | Claim tier | Required evidence class | Requirement IDs | Scope | Dependencies | Repository | Source commit | Residual risks |",
+            "|---|---|---|---|---|---|---|---|---|---:|",
         ]
     )
     for task in tasks:
         dependencies = (
             ", ".join(f"`{dependency}`" for dependency in task["dependencies"]) or "—"
         )
+        requirement_ids = ", ".join(
+            f"`{requirement_id}`" for requirement_id in task["requirement_ids"]
+        )
         lines.append(
             f"| `{task['id']}` | `{task['status']}` | `{task['claim_tier']}` | "
-            f"`{task['minimum_terminal_class']}` | {_cell(task['title'])} | "
-            f"{dependencies} | {_cell(task['repository'])} | `{_short(task['source_commit'])}` | "
-            f"{len(task['residual_risks'])} |"
+            f"`{task['minimum_terminal_class']}` | {requirement_ids} | "
+            f"{_cell(task['title'])} | {dependencies} | {_cell(task['repository'])} | "
+            f"`{_short(task['source_commit'])}` | {len(task['residual_risks'])} |"
+        )
+    v11_owners, v11_consumers = _v11_task_groups(tasks)
+    lines.extend(
+        [
+            "",
+            "## V11 ecosystem-atlas ownership",
+            "",
+            "V11 remains coordination scope until each owning task reaches its required evidence",
+            "class. Only NCP and the five exact consumer producers own atlas work. Cortexel",
+            "is an excluded non-peer and receives no atlas task, NCP role receipt, authority,",
+            "observer grant, or runtime edge.",
+            "",
+            "| Task | Status | Repository | Owned atlas slice |",
+            "|---|---|---|---|",
+        ]
+    )
+    for task in v11_owners:
+        lines.append(
+            f"| `{task['id']}` | `{task['status']}` | {_cell(task['repository'])} | "
+            f"{_cell(task['title'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "### V11 evidence consumers",
+            "",
+            "These tasks consume, check, or publish owner-produced atlas evidence. They do not",
+            "own a semantic graph or its generated variants.",
+            "",
+            "| Task | Status | Repository | Consumer scope |",
+            "|---|---|---|---|",
+        ]
+    )
+    for task in v11_consumers:
+        lines.append(
+            f"| `{task['id']}` | `{task['status']}` | {_cell(task['repository'])} | "
+            f"{_cell(task['title'])} |"
         )
     lines.extend(
         [
@@ -2005,6 +2069,10 @@ def render_resumption(data: dict[str, object]) -> str:
         "- pid-rs remains a protocol-neutral leaf library. Galadriel/Prisoma may depend on it",
         "  through exact optional consumer-owned adapters; pid-rs never depends on NCP or an",
         "  application, and no PID result/log grants identity, capability or authority.",
+        "- V11 assigns source-owned atlas work only to NCP and each exact consumer producer.",
+        "  Cortexel is outside that ownership set and has no NCP atlas import task, protocol,",
+        "  runtime, semantic, evidence, observer, authority, or role-receipt edge. Its existing",
+        "  `FigureRequestV1` workflow remains unrelated to NCP architecture assets.",
         "",
         "The complete build/start/runtime/trust matrix, orthogonal deployment state, handover",
         "sequence, monotonicity proof and failure campaign are in blueprint section 7.15. This",

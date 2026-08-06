@@ -190,17 +190,17 @@ schema versions registered to exact types, not runtime class names.
 
 | ADR | Proposed decision | Required reviewer roles before acceptance |
 |---|---|---|
-| [ADR-001](0001-separate-simulation-and-plant-sessions.md) | Separate simulation-service and plant-control session contracts. | NCP maintainer, Engram owner, Crebain body owner, independent protocol reviewer |
-| [ADR-002](0002-contract-identity-and-release-authorization.md) | Separate wire, stable-core, release, corpus, extension, and authorization identities. | Protocol reviewer, release/supply-chain reviewer |
-| [ADR-003](0003-authenticated-production-ingress.md) | Use an authenticated terminating ingress, with signed forwarding only as an explicit two-axis forwarding profile. | Two independent security/cryptography reviewers, transport implementer |
-| [ADR-004](0004-observer-attach-grants-and-revocation.md) | Add authenticated bounded observer attach, descriptors, grants, privacy, and revocation. | Prisoma owner, Galadriel owner, security reviewer |
-| [ADR-005](0005-declared-stream-lifecycle.md) | Declare, retire, and redeclare every stream; exhaustion never rotates implicitly. | Distributed-systems reviewer, all stream consumer owners |
-| [ADR-006](0006-body-issued-authority-and-time.md) | Make plant authority body-issued, term-fenced, bounded, and monotonic-time enforced. | Safety reviewer, distributed-systems reviewer, Haldir owner, Crebain owner |
-| [ADR-007](0007-command-disposition-journal.md) | Add body-issued bounded command dispositions, durable query, and explicit ambiguity. | Plant/safety reviewer, Haldir owner, Crebain owner |
-| [ADR-008](0008-extension-namespace-and-galadriel-separation.md) | Separate stable NCP routes from registered Galadriel extension routes and credentials. | Protocol reviewer, Galadriel owner, Haldir owner, Crebain owner |
-| [ADR-009](0009-security-state-rotation-and-revocation.md) | Bind semantic security state, key rotation, revocation, and reattachment explicitly. | Security reviewer, operations reviewer, supply-chain reviewer |
-| [ADR-010](0010-plane-qos-retention-and-overload.md) | Specify finite per-plane QoS, retention, priority, overload, and observer isolation. | Real-time/performance reviewer, consumer reviewers |
-| [ADR-011](0011-ecosystem-topology-and-handover.md) | Ratify standalone-first dependency direction, per-surface migration identity, exclusive commander modes, body-coordinated handover, deny-only assessment, and pid-rs neutrality. | Every named consumer owner, pid-rs owner, independent security/distributed-systems reviewer, release/package-tooling reviewer, Crebain plant/safety reviewer |
+| [ADR-001](0001-separate-simulation-and-plant-sessions.md) | Separate simulation-service and plant-control session contracts. | NCP maintainer; Engram owner; Crebain body owner; independent protocol reviewer |
+| [ADR-002](0002-contract-identity-and-release-authorization.md) | Separate wire, stable-core, release, corpus, extension, and authorization identities. | Protocol reviewer; release and supply-chain reviewer |
+| [ADR-003](0003-authenticated-production-ingress.md) | Use an authenticated terminating ingress, with signed forwarding only as an explicit two-axis forwarding profile. | Security and cryptography reviewer (two distinct independent identities); transport implementer |
+| [ADR-004](0004-observer-attach-grants-and-revocation.md) | Add authenticated bounded observer attach, descriptors, grants, privacy, and revocation. | Prisoma owner; Galadriel owner; security reviewer; NCP/source-provider owner; observer-anchor infrastructure owner/operator; independent anchor security/distributed-systems reviewer |
+| [ADR-005](0005-declared-stream-lifecycle.md) | Declare, retire, and redeclare every stream; exhaustion never rotates implicitly. | Distributed-systems reviewer; Engram stream owner; Haldir stream owner; Galadriel stream owner; Crebain stream owner; Prisoma stream owner |
+| [ADR-006](0006-body-issued-authority-and-time.md) | Make plant authority body-issued, term-fenced, bounded, and monotonic-time enforced. | Safety reviewer; distributed-systems reviewer; Haldir owner; Crebain owner |
+| [ADR-007](0007-command-disposition-journal.md) | Add body-issued bounded command dispositions, durable query, and explicit ambiguity. | Plant and safety reviewer; Haldir owner; Crebain owner |
+| [ADR-008](0008-extension-namespace-and-galadriel-separation.md) | Separate stable NCP routes from registered Galadriel extension routes and credentials. | Protocol reviewer; Galadriel owner; Haldir owner; Crebain owner |
+| [ADR-009](0009-security-state-rotation-and-revocation.md) | Bind semantic security state, key rotation, revocation, and reattachment explicitly. | Security reviewer; operations reviewer; supply-chain reviewer; security-artifact-anchor infrastructure owner/operator; independent anchor security reviewer |
+| [ADR-010](0010-plane-qos-retention-and-overload.md) | Specify finite per-plane QoS, retention, priority, overload, and observer isolation. | Real-time and performance reviewer; Engram consumer reviewer; Haldir consumer reviewer; Galadriel consumer reviewer; Crebain consumer reviewer; Prisoma consumer reviewer |
+| [ADR-011](0011-ecosystem-topology-and-handover.md) | Ratify standalone-first dependency direction, per-surface migration identity, exclusive commander modes, body-coordinated handover, deny-only assessment, and pid-rs neutrality. | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; Cortexel owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
 
 Two decisions use maintained companion modules:
 

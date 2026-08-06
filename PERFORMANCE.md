@@ -5,128 +5,96 @@
 > `1.0.0-rc.1` artifacts. The final installed-package, platform, secure-transport,
 > fault-load, memory, and queue profile is **NOT RUN**.
 
-**Release answer: not established.** Historical developer measurements suggest
-that protocol processing was not the dominant term in the tested configurations,
-after one reference-backend readback defect was fixed. NEST advances simulation
-time *during* `nest.Run(chunk)`;
-between chunks NCP does its work (read recorders, serialize, transport, inject
-stimulus). So the effective throughput is
+**Release answer: not established.** Historical NEST measurements characterize
+specific simulator workloads and chunking choices. They do not establish the cost
+of the complete NCP boundary.
+
+NEST advances simulation time during `nest.Run(chunk)`. A chunked provider can do
+recorder readback, stimulus injection, validation, serialization, and transport
+work outside that call. The exact boundary is provider-specific. Two useful models
+are:
 
 ```
-effective_rate ≈ chunk_ms / (T_run + T_ncp)
+real_time_factor ≈ chunk_ms / (T_run + T_boundary)
+chunk_frequency ≈ 1 / (T_run + T_boundary)
 ```
 
-NCP becomes a material throughput term when its per-chunk overhead `T_ncp` is
-comparable to or larger than the integration time `T_run`. Whether that happens is
-deployment-, workload-, transport-, and platform-specific; the candidate has no
+Here, `T_boundary` is the complete measured work outside `nest.Run`. Boundary work
+becomes material when it is comparable to `T_run`. The result depends on the
+workload, transport, security profile, provider, and platform. The candidate has no
 release-bound performance profile.
 
-## One reference-backend readback defect — fixed
+## Reference-backend readback boundary
 
-The reference NEST backend's `step` previously called `device.get("events")` for
-**every** record port on **every** step and sliced `[last:]`. `get("events")`
-materialises the recorder's **entire history** each call, so per-step cost grew
-**O(total events recorded)** — linearly with retained history. That creates an
-avoidable duration-dependent cost even though each step needs only the latest
-chunk; no long-duration bound was measured.
+The NCP [implementation ledger](docs/implementation/NCP_1_0_TASK_LEDGER.md)
+records Engram's native-1.0 provider migration as open. NCP retains no public,
+installed, source-bound performance receipt for that consumer backend. Private
+consumer source is not a public citation or release artifact, so this document
+does not make source-bound complexity claims about it.
 
-Fixed (in the reference NEST backend's `step`):
-- **`RATE`** (the common control observable): difference the **`n_events`
-  counter** — **O(1)** counter read/difference per step, without materializing the
-  events array.
-- **`SPIKES` / `V_m`**: fetch the events, return the `[last:]` tail, then
-  **best-effort drain** the recorder (`set(n_events=0)`) so the next read is
-  **O(new)**; if the NEST build doesn't support clearing, fall back to index
-  tracking (correct output, but fetching the growing array remains O(history) per
-  step—prefer `RATE` for long loops).
+A counter-difference rate path can be O(1) per step. An event path can be O(new
+events) only when the installed recorder proves bounded drain or equivalent tail
+access; a fallback that fetches retained history can remain O(history). Measure the
+exact installed provider. No retained long-duration profile establishes either
+cost for the candidate stack.
 
-Result: per-step readback is **O(1)** for rate. Spikes/V_m are **O(new events)** and
-independent of run length only on a build where recorder drain succeeds; the
-index-tracking fallback remains O(history).
-
-## Per-tick cost model (after the fix)
+## Component cost model
 
 | Term | Cost | Notes |
 |---|---|---|
-| stimulus inject (`generator.set`) | O(#stimulus ports), µs | a few `set()` calls |
-| **`nest.Run(chunk)`** | **dominant in the retained fixtures; model-size dependent** | simulator work; the candidate does not alter it |
-| readback | **O(1)** rate / **O(new)** spikes-V_m with supported drain; otherwise O(history) | drain capability is deployment-dependent |
-| encode/decode (codec) | workload-dependent | linear rate map in the measured example |
-| serialize | rates: hundreds of bytes; raw spikes: O(events) | **prefer rate for the loop**; raw spikes are the analysis path. Current canonical JSON frame serialization is **~0.5–0.6 µs** and deserialization **~1.0 µs** on the reference machine (measured — see [NCP's own per-tick overhead](#historical-local-measurement-ncps-rust-per-tick-operations)) |
-| transport | deployment-dependent | secure profile, topology, payload, load, queues, and failure behavior were not measured as one release-bound matrix |
+| stimulus injection | O(number of stimulus ports) | backend, model, and build dependent |
+| `nest.Run(chunk)` | model and configuration dependent | simulator work is outside the NCP contract |
+| readback | provider and path dependent | prove counter, bounded drain, tail-access, and retained-history behavior on the installed build |
+| codec mapping | workload dependent | channel count, record kind, and model shape affect cost |
+| canonical JSON boundary | payload and validation dependent | full ingress includes bounded raw parsing and semantic validation |
+| transport | deployment dependent | security profile, topology, load, queues, and failure behavior affect cost |
 
-The historical measurements below must not be generalized to a UAV, secure
-deployment, installed package, or other consumer without an exact bound profile.
+No retained run measures all rows together for one current installed source and
+artifact set. Do not infer a per-tick NCP cost from one component.
 
-## Historical local measurement: NCP's Rust per-tick operations
+## Rust component-measurement boundary
 
-The sections above ask whether NCP slows *NEST*. A complementary question is what
-the contract, codec, and safety gate cost. One developer microbenchmark gives a
-local estimate only. [`ncp-core/examples/overhead.rs`](ncp-core/examples/overhead.rs)
-times the exact hot-path operations a controller runs **every tick** — JSON
-(de)serialization of the action/perception frames, the safety governor, and the
-reflex controller — on the **release** build, with warmup and `black_box` to
-defeat dead-code elimination.
+[`ncp-core/examples/overhead.rs`](ncp-core/examples/overhead.rs) is an exploratory
+component harness. It applies `serde_json` to constructed typed frames. It also
+calls `SafetyGovernor::govern` and `ReflexController::step` as separate operations.
 
-| hot-path op (per tick)                | cost   | frame size |
-|---------------------------------------|--------|------------|
-| `CommandFrame` serialize (serde_json) | ~0.56 µs | 403 B   |
-| `CommandFrame` deserialize            | ~1.00 µs | 403 B   |
-| `SensorFrame` serialize               | ~0.52 µs | 337 B   |
-| `SensorFrame` deserialize             | ~0.96 µs | 337 B   |
-| `SafetyGovernor::govern`              | ~0.81 µs | —       |
-| `ReflexController::step`              | ~0.48 µs | —       |
+Those operations are not a complete ingress or control tick. In particular, a
+typed `serde_json` decode does not exercise the bounded raw-JSON ingress path. That
+path checks byte limits, duplicate decoded keys, Unicode, nesting, node counts,
+member counts, and semantic limits before admission.
 
-A full closed-loop tick — deserialize the inbound `SensorFrame`, step the reflex
-controller, run the safety governor, serialize the outbound `CommandFrame` — sums
-to **≈2.8 µs** of CPU (0.96 + 0.48 + 0.81 + 0.56 µs). The measured canonical
-frames are **337 B** (perception) and **403 B** (action). Those CPU timings do not
-include transport, contention, allocator variance, security, queues, retries, or
-consumer work.
+The harness also excludes transport-principal binding, manifest policy, route and
+plane admission, session and stream fencing, authority leases, idempotency,
+security-state validation, queue behavior, transport, and body integration. Its
+constructed frame sizes are not a release payload profile.
 
-> **Reproduce:** `cargo run -p ncp-core --release --example overhead`
-> (`--release` is load-bearing — a debug build is 10–50× slower and not
-> representative of shipped overhead). The rounded values above are from two
-> July 14, 2026 runs on the reference machine; individual nanosecond timings are
-> load-sensitive, while serialized sizes are deterministic. This is a developer
-> microbenchmark, not cross-platform release evidence. The three NEST-side Python benchmarks are documented under
-> [Benchmark methodology & reproducibility](#benchmark-methodology--reproducibility).
+No exact-environment receipt, retained raw samples, uncertainty analysis, or
+installed-artifact run supports a numeric NCP tick budget from this harness. The
+release-bound CPU, allocation, memory, frame-size, throughput, and latency profile
+is **NOT RUN**.
 
-This local result supports retaining readable JSON as the candidate runtime default
-(see [`RATIONALE.md`](RATIONALE.md)); it does not prove that JSON is optimal or
-non-bottlenecking for every payload, rate, platform, or consumer.
+Canonical JSON remains the candidate runtime representation because the current
+contract specifies it. This is not a performance conclusion. See
+[`RATIONALE.md`](RATIONALE.md) for the protocol design boundary.
+
 The protobuf schema in [`proto/ncp.proto`](proto/ncp.proto) (+ `gen/rust`) is the
 normative field-number/message-shape IDL within the repository's documented
-contract-registry precedence, *not* the shipped runtime encoding or the sole
-contract source. The `prost` bindings are not compiled into the runtime path. Binary protobuf would
-be worth negotiating only as an opt-in for a kHz / bandwidth-constrained consumer.
-The bounded local/offline `BulkBlock` codec is also measured as more compact than
-JSON for the same numeric array (≈2× smaller with `f32`/`i32` columns). It is not a
-transport frame: JSON `ObservationFrame` remains the only shipped observation-plane
-representation.
+contract-registry precedence. It is not a shipped runtime encoding or the sole
+contract source. The `prost` bindings are not compiled into the runtime path.
 
-### Local budget illustration
+A future binary encoding requires explicit negotiation, conformance, and measured
+need. The bounded local/offline `BulkBlock` codec is not a transport frame. JSON
+`ObservationFrame` remains the only shipped observation-plane representation.
 
-For illustration only, dividing the retained ≈2.8 µs local estimate by example
-20–1000 Hz periods gives:
+### Release-bound budget
 
-| control rate | period | NCP CPU tax (≈2.8 µs) |
-|--------------|--------|---------------------|
-| 20 Hz        | 50 ms  | ≈0.006 %            |
-| 100 Hz       | 10 ms  | ≈0.028 %            |
-| 1000 Hz      | 1 ms   | ≈0.28 %             |
+NCP has no current release-bound CPU percentage or end-to-end control-loop budget.
+A valid budget must measure the complete installed path under the selected security
+profile, payload, topology, queue load, simulator, plant integration, and platform.
+It must retain sample distributions and tail latency. This work is **NOT RUN**.
 
-These ratios are arithmetic projections, not measured end-to-end loop budgets.
-Transport and simulator/consumer work are separate and may dominate or may not;
-the required release-bound load/resource matrix is `NOT RUN`.
-
-What that measured ≈2.8 µs path is intended to buy is a stable cross-language
-**contract**, per-tick **safety gating** (`SafetyGovernor`: speed / geofence /
-timeout / health), and a generic four-plane **hub-interop** surface. Engram's
-native-1.0 migration is in progress while crebain and prisoma remain wire 0.8, so
-the multi-consumer shape is a design and certification target, not current
-interoperability evidence. The retained microbenchmark is useful for hypothesis
-formation; release-bound platform and consumer measurements remain required.
+Engram's native-1.0 migration is in progress. Crebain and Prisoma remain on wire
+0.8. The multi-consumer shape is a target, not interoperability evidence.
 
 ### Candidate optimization: avoid one owned-buffer copy
 
@@ -155,28 +123,19 @@ bypass) are fixed and regression-tested; the live ledger retains unresolved work
 
 ## Secondary implementation considerations
 
-- **Hot loop bypasses the gateway.** The streaming control plane is
-  `ZenohControlTransport` pub/sub (sensor→command); it does **not** go through the
-  gateway's per-request RPC. The gateway's localhost-TCP-per-request is only the
-  lifecycle RPC (open/close); it is not on the per-tick streaming path. Connection
-  reuse remains an unmeasured optimization candidate.
-- **WebSocket single-thread executor.** The reference WebSocket endpoint runs
-  `handle_json` on one shared worker thread — this serialises all connections'
-  NEST work, matching the one-kernel reference-backend design and keeping the event
-  loop free. Its multi-client queueing and latency still require measurement.
-- **Raw spike streaming** at high rate produces large JSON. Use `RATE`/counts for
-  the control loop; stream raw spikes only on the observation/analysis plane
-  (an analysis/observer client), which is loss-tolerant.
-- **Bulk column codec for the observation plane (#6).** When raw spikes/V_m traces
-  *are* streamed on the analysis plane, the JSON/`repeated double` serialize cost
-  scales O(events) (~11 ms for 50k spikes). `ncp-core::bulk` packs those arrays as
-  a self-describing little-endian **column block** (proto `BulkObservation.block`):
-  fixed-width, parse-free (bulk `copy_from_slice`, no tokenizer), random-access via
-  a column directory, and ~2× smaller with the `f32`/`i32` column widths. It is a
-  bounded local/offline codec today, not a transported frame. A future negotiated
-  `BulkObservation` envelope could carry it only on the observation/analysis
-  plane—never the hot action loop—but must first ship across every SDK. The
-  canonical JSON `ObservationFrame` remains the only available wire representation.
+- **Consumer transports are unqualified.** A local or bridge test does not
+  establish installed streaming performance, authenticated principal binding, or
+  gateway behavior.
+- **Provider scheduling is workload dependent.** Measure multi-client queueing,
+  concurrency, throughput, and tail latency for the exact installed provider.
+- **Raw spike JSON grows with event count.** Use only an observation stream whose
+  declared consumer can accept gaps. The stable observation transport uses DROP,
+  and its bounded adapter queue drops the oldest item and counts the loss. This is
+  not a loss-free trace-transfer channel.
+- **The bulk column codec is local and offline.** `ncp-core::bulk` packs bounded
+  numeric arrays in fixed-width columns with a column directory. It is not a
+  transported frame. `BulkObservation` is excluded from the stable 1.0 transport
+  surface. Canonical JSON `ObservationFrame` is the available wire representation.
 
 ## Cross-system comparison boundary
 
@@ -207,25 +166,24 @@ Reproduce with [`scripts/bench_chunk_overhead.py`](scripts/bench_chunk_overhead.
 [Benchmark methodology & reproducibility](#benchmark-methodology--reproducibility)
 below.
 
-### Per-chunk readback overhead — already ~free
+### Historical per-chunk readback observation
 
-The earlier readback fix (above) made per-step readback **O(1)** for rate and, when
-recorder drain is supported, **O(new events)** for spikes/V_m. The real-time sweep
-recorded from a 1000-neuron readout subset (an NCP `RecordSpec`) and saw recording
-overhead stay negligible in that measured environment—the numbers are raw integrate
-+ spike-delivery throughput, not dominated by readback. This does not bound an
-O(history) fallback on a different NEST build.
+The historical real-time sweep used a 1,000-neuron readout subset. It did not
+isolate readback cost from integration and spike delivery. It therefore cannot
+establish a readback budget or bound the O(history) fallback on another NEST build.
 
-### Scaling: the binding constraint is the real-time factor
+### Scaling: simulator feasibility is necessary, not sufficient
 
 In the retained sweep, a Brunel-style balanced net (~500 syn/neuron, ~13 Hz
 async-irregular) reached `rt >= 1` only for N=10000 at T>=4; no sampled N>=50000
-configuration reached it. The unsampled crossing between 10k and 50k must not be
-reported as a measured capacity. Ratios above 100% apparent efficiency occurred in
-some retained minima, but with at most three repetitions, no uncertainty, and no
-independent reproduction, cache effects are only one hypothesis. These values may
-guide a new campaign; they do not establish a practical live ceiling or prescribe
-thread/chunk settings for another deployment.
+configuration reached it. This condition is necessary only for the measured NEST
+work. A complete loop also requires `T_run + T_boundary <= chunk_ms`. The unsampled
+crossing between 10k and 50k must not be reported as a measured capacity. Ratios
+above 100% apparent efficiency occurred in some retained minima, but with at most
+three repetitions, no uncertainty, and no independent reproduction, cache effects
+are only one hypothesis. These values may guide a new campaign; they do not
+establish a practical live ceiling or prescribe thread/chunk settings for another
+deployment.
 
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/realtime_dark.svg">
@@ -263,7 +221,7 @@ Its wall-clock result used an off-GIL busy-spin transport stand-in
   <img alt="Historical synthetic overlap illustration. The left panel shows an analytic ceiling versus modeled work; the right panel compares retained serial and Python-thread values with a hatched 1.68x off-GIL busy-spin stand-in. This is not measured NCP transport or release performance evidence." src="docs/plots/overlap_light.svg">
 </picture>
 
-<sub>**The I/O-overlap ceiling, read honestly.** Left: the analytic ceiling `(compute+work)/max(compute,work)` falls from 1.80× at 10 ms transport-work to ~1.01× at 0.1 ms — at a sub-ms rate-loop `T_ncp` the gain is single-digit-%. Right: the 1.68× native-thread bar is **hatched** because it is an idealized off-GIL `ctypes` ceiling, *not* a measured transport result; a naive Python-serialize thread lands at 1.08×. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
+<sub>**Historical I/O-overlap illustration.** The left panel shows the analytic ceiling `(compute+work)/max(compute,work)` for modeled work. The ceiling approaches one as modeled work becomes small relative to compute. The hatched native-thread bar is an idealized off-GIL `ctypes` result, not measured NCP transport. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
 
 The 1.68× value is an idealized local ceiling, not measured NCP transport. Real
 serialization, queues, synchronization, and Zenoh behavior could erase or reverse
@@ -349,8 +307,9 @@ known caveats so a future release-bound campaign can replace the historical valu
 ### 2. Real-time factor & sizing — [`scripts/bench_realtime.py`](scripts/bench_realtime.py)
 
 * **Measures:** the real-time factor `rt = bio_time / wall_time` of a NEST network
-  vs network size N and thread count — the binding constraint for a live loop
-  (`rt ≥ 1` ⇒ can be driven faster than real time).
+  versus network size N and thread count. `rt = 1` means exactly real time and
+  `rt > 1` means faster than real time for the measured NEST work only. A complete
+  loop still requires `T_run + T_boundary <= chunk_ms`.
 * **Network:** Brunel-style balanced random net (the NEST standard scaling
   benchmark): `iaf_psc_alpha`, 0.8N E / 0.2N I, **fixed indegree** held constant
   across N (`fixed_indegree`, CE=400 from E, CI=CE/4=100 from I ⇒ ~500 recurrent
@@ -394,16 +353,16 @@ known caveats so a future release-bound campaign can replace the historical valu
   substantially more activity; a held GIL would starve it. The retained NEST 3.8.0
   observations were ~0.4–1.3%. Scheduler behavior and probe interference prevent
   treating that threshold as a formal GIL proof.
-* **Overlap-loop method:** a chunked `Run` loop run two ways with the **same total
-  work** (same chunk count, same per-chunk serialize-I/O): (a) **serial** —
-  `serialize_io(); Run()` per chunk; (b) **overlapped** — a `ThreadPoolExecutor`
-  (1 worker) that submits `serialize_io(chunk N)` and calls `Run(chunk N+1)` on the
-  main thread, joining the previous future each iteration. `serialize_io` does a
-  **real JSON round-trip** (`json.loads(json.dumps(...))` of a `CommandFrame` and a
-  `SensorFrame`) **plus** a modeled transport RTT via `time.sleep(io_ms/1000)`,
-  swept over several `io_ms`. Speedup = `serial_period / overlapped_period`; ~1.0×
-  means no observed overlap. Retained ratios were **0.92–1.10×**. The experiment
-  does not isolate all causal factors or establish a mandatory architecture.
+* **Overlap-loop method:** a chunked `Run` loop uses the same modeled work in two
+  arrangements. The serial arrangement runs `serialize_io(); Run()` for each
+  chunk. The overlap arrangement submits `serialize_io` to one worker while the
+  main thread calls the next `Run`.
+
+  `serialize_io` uses Python's standard JSON library on constructed frame-shaped
+  values. It also uses `time.sleep` as a modeled transport delay. It does not call
+  NCP's bounded raw-JSON ingress, semantic admission, or a transport. The retained
+  ratios were **0.92–1.10×**. The experiment does not establish a required
+  architecture.
 * **Command:**
   ```bash
   python -u scripts/bench_overlap.py \
@@ -425,10 +384,11 @@ known caveats so a future release-bound campaign can replace the historical valu
 
 ## Honest remaining items
 
-- The spikes/V_m **drain is best-effort** — confirm `set(n_events=0)` clears on
-  the exact installed NEST build; otherwise that path stays O(history) (use `RATE`).
-- Large-population multimeter recording is intrinsically heavy regardless of NCP;
-  record from a representative subset (the backend already pins V_m to one neuron).
+- Confirm bounded recorder drain or tail access on the exact installed provider.
+  Otherwise, an event-readback path can remain O(history).
+- Large-population analog recording can be expensive. An explicit member ID can
+  select one neuron when the provider supports it; without IDs, a provider can
+  record the declared population. Measure and bound the exact installed selection.
 - Continuing adversarial audits of NCP (correctness, safety, robustness, overhead)
   are catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). Its old numeric
   summary is retired; treat the per-finding ledger as the live status register. The

@@ -1,82 +1,70 @@
-# Single neuron, populations, custom parameters, and plasticity over NCP
+# Plasticity vocabulary and integration boundary
 
-> **Candidate boundary:** this is an informative model/integration note. It does not
-> claim that the unreleased NCP `1.0.0-rc.1` candidate reproduces a paper, provides
-> a calibrated posterior, validates learning, or has been exercised against the
-> in-progress Engram native-1.0 migration. Any backend must pass native 1.0
-> conformance and retained integration evidence before these flows count as
-> candidate evidence.
+> **Candidate boundary:** this is an informative design note for the unreleased,
+> release-blocked NCP `1.0.0-rc.1` candidate. It does not claim that NCP reproduces
+> a paper, validates learning, provides a calibrated posterior, or has completed a
+> native-1.0 plasticity integration.
 
-NCP records and stimulates at the granularity of **a single neuron, a synapse, or
-a whole population**, with **custom neuron parameters**, and supports closing a
-**learning loop** — short- and long-term synaptic plasticity driven by feedback
-from the plant (e.g. a UAV). The wire vocabulary for all of this already exists;
-this note maps it and records what the NEST backend now implements.
+NCP can describe neural populations, record requests, and stimulus requests. The
+wire also reserves `weight` and `weight_set` vocabulary. Vocabulary is not runtime
+support: a provider must declare, implement, test, and retain evidence for each
+accepted observable and stimulus.
 
-## Single neuron vs population
+## Current wire vocabulary
 
-- **Single neuron:** `NetworkRef.population_sizes = {"n0": 1}` builds one neuron.
-- **Population:** `{"pop": 64}` builds 64. Same contract, any size.
-- **Pick which neuron(s) to record:** `RecordTarget.ids` selects indices; for an
-  analog `V_m` multimeter the backend records `ids[0]` (or neuron 0) so a single
-  neuron *or* a representative of a population gives an unambiguous trace
-  (a multimeter on N>1 returns interleaved rows). Spikes/rate record the whole
-  target population.
+- `NetworkRef.population_sizes` names populations and their sizes. A size of `1`
+  can describe one neuron.
+- `NetworkRef.params` carries bounded model parameters. Their meaning is
+  provider-specific and must be declared.
+- `RecordTarget.ids` can select members of a target when the provider supports
+  that selection.
+- `RecordTarget.observable="weight"` can request a weight observation.
+- `StimulusTarget.kind="weight_set"` can request a weight mutation.
+- `current_pA`, `rate_hz`, `spike_times`, and `rate_inject` describe input
+  mechanisms. They do not assign reward, error, or neuromodulation semantics by
+  themselves.
 
-## Custom-parameter neurons + the multimeter
+An unknown/default value cannot grant mutation authority or make an unsupported
+operation succeed. Negotiation and provider validation must reject a request that
+the installed backend cannot execute.
 
-- **`kind=builtin`:** `NetworkRef.params` (e.g. `{"V_th": -50.0, "tau_m": 15.0,
-  "E_L": -65.0}`) are applied at `nest.Create` — so the single neuron or the whole
-  population is built with custom parameters. Read their `V_m` over time with an
-  `Observable::V_m` record target (the multimeter), at `cadence_ms`.
-- **`kind=handle`:** parameters come from the NESTML-generated model (Engram's
-  generate→compile path); `params` is not used for neuron creation. This is the
-  path for fully custom neuron/synapse dynamics.
-- The `multimeter` records `V_m`; the same mechanism extends to other recordables
-  a model exposes via `RecordTarget.recordables[]` (`g_ex`/`g_in`/`w`/`rate`, …),
-  resolved as the multimeter's `record_from` list (landed in #10).
+## Provider evidence boundary
 
-## Plasticity — long-term, short-term, and reward-modulated (UAV feedback)
+The NCP [implementation ledger](docs/implementation/NCP_1_0_TASK_LEDGER.md)
+records Engram's native-1.0 provider migration as open. NCP retains no public,
+installed, source-bound qualification receipt for that provider's record,
+stimulus, or plasticity support. Private consumer source is not a public citation
+or NCP release artifact.
 
-**The vocabulary is already in the protocol** — no new wire field is needed:
-- `Observable::Weight` — **read synaptic weights** (now implemented: the backend
-  reads `GetConnections(source=pop).get("weight")` each step).
-- `StimulusKind::WeightSet` — set/reset weights directly.
-- the ordinary `rate_hz` / `current_pA` stimulus — **the reward/modulation
-  channel** (drives a neuromodulatory source; see R-STDP below).
+Do not infer support from similar names. A neuron-model recordable named `w` can
+be an analog state variable; it is not evidence that a provider reads or changes
+synaptic connection weights. NCP has no retained native-1.0 evidence for explicit
+spike-train injection, weight readback, weight mutation, or a closed plasticity
+loop.
 
-| Plasticity | NEST mechanism | NCP mapping |
-|---|---|---|
-| **Short-term (STP)** — facilitation/depression | `tsodyks2_synapse` (intrinsic, activity-driven) | choose the synapse in the network (handle/NESTML); read with `Observable::Weight`; modulated indirectly by the input drive |
-| **Long-term (LTP/LTD)** — Hebbian STDP | `stdp_synapse` (spike-timing-driven) | plastic synapses in the network; read weight trajectories with `Observable::Weight` |
-| **Reward-modulated (R-STDP)** — *the UAV-feedback loop* | `stdp_dopamine_synapse` + `volume_transmitter` fed by a dopaminergic source | the UAV's outcome (reward/error scalar) → set the source population's `rate_hz`/`current_pA` via the **existing stimulus** → neuromodulation gates the weight update → read with `Observable::Weight` |
+## What a plasticity integration would require
 
-### The closed learning loop (feedback from the UAV)
-```
-sensor → SNN(controller) → command → UAV acts → outcome (reward/error)
-   ▲                                                      │
-   └──────  Observable::Weight (read learned weights)     │
-                                                          ▼
-      NCP reward stimulus (rate_hz/current_pA) → volume_transmitter
-            → modulates stdp_dopamine_synapse weights  ─────────────┘
-```
-So a UAV-derived reward signal closes a **reinforcement-learning-style plasticity
-loop** entirely within NCP's existing messages: perception in, command out, reward
-back in as a stimulus, weights observable out — `calibrated_posterior=false`
-throughout (this is a control/learning artifact, never a validated claim). This is
-the substrate an SNN-RL controller trains against.
+Short-term plasticity, spike-timing-dependent plasticity, and reward-modulated
+plasticity can live inside a simulator or device model. NCP can carry the inputs
+and outputs only after the provider defines an exact mapping.
 
-## What the backend implements vs. what the network must declare
+| Required surface | Minimum evidence |
+|---|---|
+| Plastic network | Content-addressed model and topology, supported synapse types, parameter bounds, and deterministic construction rules |
+| Weight observation | Exact connection selection, ordering, units, output bounds, and tests that exclude recorder/device connections |
+| Weight mutation | Exact target selection, authority and idempotency context, finite bounds, mutation receipt, and replay behavior |
+| Reward mapping | Explicit mapping from a named input channel to a declared modulation mechanism; ordinary rate/current input is not implicitly a reward |
+| Learning loop | Installed provider and consumer, session/lease enforcement, bounded timing, retained traces, and scientific validation separate from protocol conformance |
 
-- **Implemented in `NestBackend`:** custom neuron params at `Create` (`builtin`),
-  `ids`-selected `V_m` recording, and `Observable::Weight` readback.
-- **Declared by the network (`kind=handle` / NESTML / PyNEST):** the *plastic
-  synapses themselves* (STP/STDP/R-STDP) and the dopaminergic source +
-  `volume_transmitter`. The single-population quick path has no synapses, so
-  `Observable::Weight` returns empty there — plasticity needs a network with plastic
-  connections, which is exactly what the handle/generate path builds.
+A possible application can map a body outcome to a declared modulation input and
+observe a declared plastic state after simulation steps. That is an application
+design, not behavior supplied automatically by NCP. The body remains final actuator
+authority, and learning output cannot bypass the plant profile, live session generation,
+authority lease, or command safety gates.
 
-Honest scope: NCP provides the *interface* to plastic networks (read/observe
-weights, inject reward, set weights) and the closed loop around them; the plastic
-network is built via Engram's generate→compile machinery, not auto-synthesized by
-the quick built-in path.
+## Scientific boundary
+
+Plasticity traces are simulation or control artifacts. Keep
+`is_simulation_output=true` and `calibrated_posterior=false` on wire-1.0
+observations. Protocol success does not prove learning efficacy, biological
+validity, posterior calibration, paper reproduction, or safe physical behavior.

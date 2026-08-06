@@ -56,18 +56,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one immutable final artifact set is actually built and independently verified.
 - Patched both NCP Zenoh dependency roots to the reviewed immutable
   `zenoh-transport 1.9.0` backport at
-  `6b93b15d0795748b7f76c72eae07f1cda517e762`. The backport selects fixed
-  `lz4_flex 0.11.6` and removes `RUSTSEC-2026-0041` from both locks. Exact source,
-  checksum, feature, cargo-deny, SBOM, and hostile verifier gates cover the change.
-  Cargo does not verify the Git SSH signature, and root patches do not propagate
-  from a published library dependency. The archive checker executes Cargo metadata
-  against each normalized `ncp-zenoh` and `ncp-gateway` archive and observes the
-  registry fallback to affected `lz4_flex 0.10.0`. It then applies and verifies the
-  exact patch at the consuming test root before compilation. A clean-cache run
-  prefetches only exact locked inputs; it never compiles the affected fallback, and
-  all qualification compilation runs offline. The receipt schema is v2 and records
-  that boundary. The result is only `CONDITIONAL_PASS`; self-contained distribution
-  remains `OPEN_FAIL_CLOSED` and `NO_GO`, and the candidate remains release-blocked.
+  `9045545b72a77602a87f40203cb614b48157b4bc`. The backport selects fixed
+  `lz4_flex 0.11.6`, updates its `twox-hash` dependency to `2.1.3`, and selects
+  non-yanked `spin 0.9.9` and `0.10.1`. Its qualification lock also selects fixed
+  `crossbeam-epoch 0.9.20`, `rand 0.8.6` and `0.9.4`, `quinn-proto 0.11.15`,
+  `rustls-webpki 0.103.13`, and `serde_with 3.21.0`. Its pinned
+  `cargo-deny 0.19.9` gate rejects yanked lock entries and current RustSec
+  vulnerabilities. This removes `RUSTSEC-2026-0041` from both root locks. The
+  checker verifies the exact fork
+  revision, tree, tracked files, and reviewed delta from the checksum-bound
+  registry source. Cargo does not verify Git signatures. Root patches do not
+  propagate from a published library dependency. Without the consuming-root patch,
+  each normalized source archive resolves registry `zenoh-transport 1.9.0` to
+  advisory-affected `lz4_flex 0.10.0` and its `twox-hash 1.6.3` dependency. The
+  checker does not compile that fallback. It applies the exact patch at each
+  consuming test root before compilation. Exact resolution and fetch can use
+  network access. Cargo dependency access is offline only during compile and test.
+  The checker claims no host or child-process network isolation and no host
+  filesystem isolation. Receipt schema v3 retains the exact conditioned locks and
+  three checksum-bound registry crates. It classifies fork source verification and
+  upstream delta verification as point-in-time local-process attestations and does
+  not retain the exact fork source bytes.
+  It runs the fork's compression-enabled library tests and exact
+  `security_backport` regression. It records point-in-time source comparisons for
+  both consumers before and after the compile phase. It does not retain a
+  compiler-input trace or command transcript. The result is only
+  `CONDITIONAL_PASS`, with `package_self_contained=false`,
+  `self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and
+  `release_authorized=false`. The candidate remains release-blocked.
+- Hardened candidate package construction against Git replacement refs,
+  repository-local export attributes, ambient Python imports, caller Cargo
+  configuration, credential environment variables, archive path attacks, and
+  unbounded archive expansion. Crate inspection bounds GNU and PAX extension
+  metadata before parsing and streams regular members from validated extents in
+  fixed chunks. Thus, Python tar read-ahead cannot reject a valid crate or relax
+  the metadata limits. The builder now binds each archived file to the exact
+  replacement-disabled Git blob and mode. The npm builder materializes the same
+  type of exact tree directly. Outer package stages use isolated Python and a fresh,
+  config-free Cargo home that receives one locked fetch before compilation is
+  forced offline. The npm receipt now binds all 132 files in the installed
+  TypeScript package to a reviewed Bun-lock, registry-integrity, and normalized
+  package-tree control before and after compilation. It also distinguishes the
+  45-byte compiler launcher from the complete compiler package and binds the Node
+  executable. The normalized tree covers regular-file contents only. The registry
+  tarball digest is a reviewed expected association: its bytes are neither retained
+  nor read by the builder, so the receipt does not claim build-observed derivation.
+  Receipts retain tool hashes but no local absolute paths. The
+  dossier verifier recomputes retained bytes and receipt consistency; it does not
+  rebuild packages or reexecute builder-local comparison, install, or behavior
+  attestations.
 - Ran exact hosted CI `29414498370` and held-dossier workflow `29414924349`
   successfully for source `ef357d20692f707e185495dcfd16b16556fec264`. The held
   artifact `8342883563` has SHA-256
@@ -136,6 +173,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added one universal bounded-JSON policy, four-plane queue semantics, audit/event
   registries, a mandatory self-describing exact-set corpus, and an independent
   TypeScript validator/client.
+- Made Rust and TypeScript safety-governor output pass semantic validation and
+  bounded-JSON preflight over exact serialized bytes. Safe frames now use an
+  atomic full-union, negotiated-only, then empty-channel fallback. A missing or
+  noncanonical attributable stream/session envelope latches locally and returns a
+  non-wire error. A successful standalone result is a bounded wire-shape
+  candidate, not publisher admission. The governor owns no stream-position
+  allocator or high-water mark, and existing fail-safe normalization to `seq=1`
+  does not establish freshness. The owning publisher must assign and admit the
+  next fresh position together with the exact route and live generation. Python
+  maps the error to `ValueError`; the C ABI returns `NULL`. This changes
+  informative candidate APIs, not wire 1.0.
+- Changed the breaking candidate API `NeuroControlLoop::tick` from `CommandFrame`
+  to `Result<CommandFrame, ControlLoopTickError>`. Errors distinguish loop-local
+  candidate exhaustion, transport-owned stream exhaustion, synchronous transport
+  rejection, a panic during transport admission, invalid or inconsistent
+  transport-admission positions, and `SafetyGovernError`. Loop-local exhaustion
+  occurs before the controller runs. The other errors occur after controller or
+  governor work but before local admission success and status emission. An unwind
+  or invalid admitted result has ambiguous transport-side effects and never grants
+  local operation success. The loop contains the panic and permanently retires
+  that loop/transport binding; later ticks perform no sensor, controller, command,
+  or status work, and recovery requires fresh construction. `Ok` with an
+  accepted sensor carries a wire-valid transport position that stays on one epoch,
+  strictly advances for a new slot, and exactly repeats for pending replacement;
+  it means bounded local slot admission, not network delivery. Before the first
+  accepted sensor, `Ok` is only the local governed fallback plus status; the
+  command is not offered to the transport. A trustworthy tick-clock high-water
+  sample is retained even when governance or
+  command admission returns an error, so a later rewind cannot re-anchor liveness.
+  A controller panic latches retirement of that controller within the loop. It is
+  never stepped or trusted again, later ticks remain non-Active, and recovery
+  requires a fresh loop/controller generation because unwind containment cannot
+  prove partially mutated controller state safe.
+  This changes the informative Rust API, not wire 1.0.
 - Corrected the plane registry to expose named sensor/command routes but only one
   exact observation route, and made action overflow explicitly retain the highest
   fail-safe severity (`ESTOP` over HOLD/non-active over Active) with equal-severity
@@ -221,17 +292,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   can reopen, reacquire, renew, reconnect, or reactivate; fresh `SessionOpened`
   state is required. Python adds `ActionBuffer.is_retired()`, and the C ABI adds
   `ncp_action_buffer_is_retired`.
-- Removed all expiry-based stream re-anchoring. Watchdogs, action buffers, and the
-  reference loop bind one declaration to one epoch/high-water forever; lower/equal
-  positions and foreign epochs remain rejected after expiry, and restart requires a
-  fresh declaration.
+- Removed all expiry-based stream re-anchoring. Action buffers and the reference
+  loop bind one declaration to one epoch/high-water forever. A
+  `CommandWatchdog` tracks sequence within a caller-scoped stream context and
+  requires a fresh instance for a fresh declaration. Lower or equal positions and
+  foreign epochs remain rejected after expiry at the complete admission boundary,
+  and restart requires a fresh declaration.
 - Required positive own-stream positions for `ControlStatus` and `LinkStatus`, made
   the reference loop publish 1..2^53−1 without repeating the maximum, and enforced
   `LinkStatus.observed_stream`/`last_arrival_seq` joint presence and high-water
   coherence in Rust and TypeScript.
 - Changed `ControlTransport::send_command` to return `CommandSendOutcome` so the loop
-  distinguishes accepted slots, prepublication replacement, and rejection without
-  falsely advancing its caller-side position.
+  distinguishes accepted slots, prepublication replacement, exhausted
+  transport-owned streams, and synchronous rejection. Accepted and replaced
+  outcomes carry the exact transport-assigned position. The loop does not falsely
+  advance its caller-side candidate position after replacement or rejection.
 - Reworked `ZenohControlTransport` around one transport-owned action epoch/sequence
   allocator shared by Active, HOLD, and ESTOP. An attempted put consumes its
   position. Ambiguous fail-safe delivery latches Active rejection until a newly
@@ -411,16 +486,17 @@ coordinated consumer pins establish it as the latest immutable release.
 - Every non-Active command clears `ActionBuffer` actuation before envelope/sequence
   rejection, so a duplicate or malformed HOLD cannot leave the previous Active
   horizon running. Total-silence escalation and current geofence evaluation run
-  before command-mode validation, so a controller's safe HOLD cannot mask a
-  collapsed link or an already-breached boundary and suppress ESTOP.
+  before command-mode validation, so a controller's HOLD cannot mask sustained
+  sensor silence or an already-breached boundary and suppress ESTOP.
 - `CommandWatchdog` retains a local clock high-water mark: a backward/non-finite
   step revokes authority until time catches up **and a fresh command arrives**;
   merely reaching the old timestamp cannot revive a stale setpoint.
 - `NeuroControlLoop` rejects invalid sensors/rates, does not step a controller on
-  stale input, resets it on a sensor epoch restart, contains controller panics,
-  detects cross-tick and mid-tick clock reversal, echoes sensor seq/t/frame, and
-  normalizes TTL before geofence projection. It publishes no action before a
-  truthful stamped sensor exists and never turns invalid output into actuation.
+  stale input, rejects an in-place sensor epoch restart, permanently retires a
+  controller after panic, detects cross-tick and mid-tick clock reversal, echoes
+  sensor seq/t/frame, and normalizes TTL before geofence projection. It publishes
+  no action before a truthful stamped sensor exists and never turns invalid output
+  into actuation. A restart requires a fresh declaration and loop/controller.
 - `LinkMonitor` rejects unstamped/precision-unsafe sequence values, uses an
   inclusive CUSUM threshold, and caps JSON counters.
 - Bulk encoding/decoding is fallible and bounded: duplicate/control-character

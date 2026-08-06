@@ -3719,7 +3719,7 @@ dependencies = [
 [[package]]
 name = "zenoh-transport"
 version = "1.9.0"
-source = "git+https://github.com/sepahead/zenoh-transport-lz4-backport?rev=6b93b15d0795748b7f76c72eae07f1cda517e762#6b93b15d0795748b7f76c72eae07f1cda517e762"
+source = "git+https://github.com/sepahead/zenoh-transport-lz4-backport?rev=9045545b72a77602a87f40203cb614b48157b4bc#9045545b72a77602a87f40203cb614b48157b4bc"
 dependencies = [
  "async-trait",
  "crossbeam-utils",

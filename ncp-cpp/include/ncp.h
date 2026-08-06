@@ -1,15 +1,16 @@
 /*
  * ncp.h — C / C++ ABI for the Neuro-Cybernetic Protocol (NCP) Rust core.
  *
- * So C and C++ projects use the canonical Rust implementation (version guard,
- * key scheme, rate codec, action-plane safety governor, message validation)
- * rather than reimplementing the wire — the same guarantee the Python (PyO3) and
- * TypeScript (ts-rs) bindings give. Link against `ncp_cpp` (staticlib or cdylib
- * built by `cargo build -p ncp-cpp`).
+ * C and C++ projects can reuse the informative Rust reference implementation for
+ * version guards, keys, rate codecs, the action-plane safety governor, and
+ * message validation. This reduces reimplementation drift; it does not by itself
+ * qualify an installed peer or prove independent interoperability. Link against
+ * `ncp_cpp` (staticlib or cdylib built by `cargo build -p ncp-cpp`).
  *
  * Memory: every `char*` return is a heap-allocated UTF-8 C string the caller
- * MUST release with `ncp_string_free`. A NULL return signals malformed input or
- * an internal error. String arguments are NUL-terminated UTF-8; JSON args/returns
+ * MUST release with `ncp_string_free`. A NULL return signals malformed input, a
+ * documented local safety failure, or an internal error. String arguments are
+ * NUL-terminated UTF-8; JSON args/returns
  * match the NCP wire exactly (see ncp.proto / schemas). Every JSON argument is
  * structurally preflighted against the normative byte/depth/node/string/number
  * budgets and duplicate-key rule before typed decoding; a violation returns the
@@ -91,26 +92,38 @@ char *ncp_decode_command(const char *codec_json, const char *rates_json,
 
 /* Action-plane safety governor, ONE-SHOT: a fresh governor per call, so the
  * ESTOP latch cannot persist across calls (stateless/corpus use only — a real
- * plant must hold a persistent NcpGovernor, below). last_sensor_s < 0 =>
- * "no sensor yet" (HOLD). NULL on malformed input. Caller frees. */
+ * plant must hold a persistent NcpGovernor, below). now_s and last_sensor_s must
+ * be readings from the same receiver-local monotonic clock. last_sensor_s < 0
+ * means "no sensor yet" (HOLD). NULL on malformed input or a local safety
+ * failure for which no attributable bounded wire-shape candidate exists. Success
+ * does not prove publisher-position freshness. The standalone governor has no
+ * allocator or stream high-water and can normalize an invalid seq to 1. Never
+ * publish that normalized position into an existing stream; supply and admit
+ * the owning publisher's next fresh position. Caller frees. */
 char *ncp_govern(const char *limits_json, const char *command_json, double now_s,
                  const char *sensor_json, double last_sensor_s);
 
-/* PERSISTENT (latching) safety governor: a geofence breach / inbound ESTOP /
- * link collapse keeps every later ncp_governor_govern at ESTOP until a local
- * ncp_governor_reset after external operator/interlock authorization. The
- * method does not authenticate or restore session authority. NOT thread-safe:
- * synchronize access to one handle. Free with ncp_governor_free. */
+/* PERSISTENT (latching) safety governor: a geofence breach, inbound ESTOP,
+ * reported loss burst, or sustained sensor silence forces ESTOP on each later
+ * frame that ncp_governor_govern returns successfully. A local
+ * ncp_governor_reset after external operator/interlock authorization clears the
+ * latch. The method does not authenticate or restore session authority. NOT
+ * thread-safe: synchronize access to one handle. Free with ncp_governor_free. */
 typedef struct NcpGovernor NcpGovernor;
 NcpGovernor *ncp_governor_new(const char *limits_json);
-/* Same argument semantics as ncp_govern; NULL on NULL handle/malformed input.
- * Caller frees the returned string. */
+/* Same argument semantics as ncp_govern. While latched, each successfully
+ * returned frame uses ESTOP. NULL means a NULL handle, malformed input, or a
+ * local safety failure that produced no wire frame. A successful result has the
+ * same publisher-position limitation as ncp_govern. Caller frees. */
 char *ncp_governor_govern(NcpGovernor *gov, const char *command_json,
                           double now_s, const char *sensor_json,
                           double last_sensor_s);
 void ncp_governor_reset(NcpGovernor *gov);
 /* 1 latched / 0 not / -1 NULL handle. */
 int32_t ncp_governor_is_estopped(const NcpGovernor *gov);
+/* Latch ESTOP for a reported sustained loss burst. Possible causes include
+ * congestion, interference, sender failure, and jamming. This input does not
+ * identify the cause or define the plant action. */
 void ncp_governor_note_link(NcpGovernor *gov, bool burst);
 /* 1 safe / 0 not / -1 NULL handle. */
 int32_t ncp_governor_safety_ok(const NcpGovernor *gov);
@@ -126,6 +139,8 @@ typedef struct NcpActionBuffer NcpActionBuffer;
 NcpActionBuffer *ncp_action_buffer_new(void);
 /* 0 = parsed/processed (the core may safely ignore an invalid/replayed frame),
  * -1 = NULL handle or malformed/non-UTF-8 JSON. */
+/* now_s is the receiver-local monotonic arrival time. Use the same clock for
+ * ncp_action_buffer_active and ncp_action_buffer_should_hold. */
 int32_t ncp_action_buffer_on_command(NcpActionBuffer *buffer, double now_s,
                                      const char *command_json);
 /* Returns an allocated channel-map JSON object or the JSON literal `null` when

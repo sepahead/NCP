@@ -3,20 +3,21 @@
 //! Demonstrates, end to end and deterministically:
 //!   1. Closed-loop flight: NeuroControlLoop + ReflexController fly a simulated
 //!      quad from an offset to the target (velocity setpoints, speed-clamped).
-//!   2. SafetyGovernor gates: speed clamp, geofence -> latched ESTOP, stale-sensor
-//!      HOLD, ESTOP-mode passthrough, non-finite clock fail-safe, horizon clamp.
+//!   2. SafetyGovernor gates: speed clamp, geofence -> latched ESTOP, one missed
+//!      sensor deadline -> HOLD, ESTOP-mode passthrough, non-finite clock
+//!      fail-safe, horizon clamp.
 //!   3. ActionBuffer predictive horizon replay through a dropout + ttl expiry.
 //!   4. CommandWatchdog ttl deadline + out-of-order seq must not refresh it.
 //!
 //! Run: cargo run -p ncp-core --example uav_control_safety
 
 use ncp_core::{
-    ActionBuffer, ChannelValue, CommandFrame, CommandWatchdog, InProcessTransport, Map, Mode,
-    NeuroControlLoop, ReflexController, SafetyGovernor, SafetyLimits, SensorFrame, SessionRef,
-    StreamPosition,
+    ActionBuffer, AuthorityLease, ChannelValue, CommandFrame, CommandWatchdog, InProcessTransport,
+    Map, Mode, NeuroControlLoop, ReflexController, SafetyGovernor, SafetyLimits, SensorFrame,
+    SessionRef, StreamPosition,
 };
 
-// Canonical example identity (wire 0.8): a valid lowercase UUIDv4 epoch/generation.
+// Canonical example identifiers: valid lowercase UUIDv4 epoch and generation.
 const EX_EPOCH: &str = "00000000-0000-4000-8000-000000000001";
 const EX_GEN: &str = "00000000-0000-4000-8000-0000000000a2";
 fn ex_stream(seq: i64) -> StreamPosition {
@@ -30,6 +31,18 @@ fn ex_session() -> SessionRef {
         generation: EX_GEN.into(),
     }
 }
+fn ex_authority() -> AuthorityLease {
+    AuthorityLease {
+        session_epoch: EX_GEN.into(),
+        term: 1,
+        lease_id: "00000000-0000-4000-8000-0000000000b1".into(),
+        issuer_principal_id: "commander-principal".into(),
+        holder_principal_id: "commander-principal".into(),
+        holder_entity_id: "controller-1".into(),
+        issued_at_utc_ms: 1_000,
+        expires_at_utc_ms: 61_000,
+    }
+}
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -40,6 +53,17 @@ fn vel_map(x: f64, y: f64, z: f64) -> Map<ChannelValue> {
         ChannelValue::vec3(x, y, z, Some("m/s")),
     );
     m
+}
+fn ex_command(seq: i64, mode: Mode, channels: Map<ChannelValue>) -> CommandFrame {
+    CommandFrame {
+        stream: ex_stream(seq),
+        session: ex_session(),
+        session_id: "uav1".into(),
+        authority: Some(ex_authority()),
+        mode,
+        channels,
+        ..Default::default()
+    }
 }
 fn sensor_at(seq: i64, t: f64, p: [f64; 3], v: [f64; 3]) -> SensorFrame {
     let mut ch = Map::new();
@@ -108,6 +132,7 @@ fn main() {
         ex_session(),
     )
     .expect("example session binding is canonical")
+    .with_authority(ex_authority())
     .with_clock(Box::new(move || ck.load(Ordering::Relaxed) as f64 / 1000.0));
 
     let dt = 0.05_f64; // 20 Hz
@@ -115,24 +140,21 @@ fn main() {
     let mut vel: [f64; 3] = [0.0, 0.0, 0.0];
     let start_dist = (pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]).sqrt();
     let mut max_speed_seen = 0.0_f64; // vector magnitude
-    let mut max_axis_seen = 0.0_f64; // per-component
-    for k in 1..=120 {
+    for k in 1..=140 {
         clock.fetch_add((dt * 1000.0) as u64, Ordering::Relaxed);
         loop_
             .transport
             .push_sensor(sensor_at(k, k as f64 * dt, pos, vel));
-        let cmd = loop_.tick();
+        let cmd = loop_
+            .tick()
+            .expect("example command identity remains attributable");
         let v = vget(&cmd.channels);
         max_speed_seen = max_speed_seen.max((v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt());
-        max_axis_seen = max_axis_seen
-            .max(v[0].abs())
-            .max(v[1].abs())
-            .max(v[2].abs());
         vel = v;
         for i in 0..3 {
             pos[i] += v[i] * dt;
         }
-        if k % 30 == 0 {
+        if k % 30 == 0 || k == 140 {
             println!(
                 "    t={:.2}s pos=({:5.2},{:5.2},{:5.2}) v=({:5.2},{:5.2},{:5.2})",
                 k as f64 * dt,
@@ -152,11 +174,10 @@ fn main() {
         format!("dist {start_dist:.2}m -> {end_dist:.3}m"),
     );
     t.check(
-        "ReflexController per-axis clamp (<=1.5)",
-        max_axis_seen <= 1.5 + 1e-9,
-        format!("peak |axis|={max_axis_seen:.3} m/s"),
+        "ReflexController vector-magnitude clamp (<=1.5)",
+        max_speed_seen <= 1.5 + 1e-9,
+        format!("peak |velocity|={max_speed_seen:.3} m/s"),
     );
-    println!("    NOTE: ReflexController clamps PER-AXIS, so vector speed reached {max_speed_seen:.3} m/s (up to sqrt(3)*max_speed); SafetyGovernor magnitude-clamps. [finding]");
 
     // ── 2. SafetyGovernor gates ─────────────────────────────────────────────
     println!("\n[2] SafetyGovernor gates");
@@ -168,12 +189,10 @@ fn main() {
         command_timeout_ms: 1000.0,
         ..Default::default()
     });
-    let cmd = CommandFrame {
-        mode: Mode::Active,
-        channels: vel_map(100.0, 0.0, 0.0),
-        ..Default::default()
-    };
-    let out = gov.govern(&cmd, Some(&fresh), 1.0, Some(0.99));
+    let cmd = ex_command(1, Mode::Active, vel_map(100.0, 0.0, 0.0));
+    let out = gov
+        .govern(&cmd, Some(&fresh), 1.0, Some(0.99))
+        .expect("example command identity remains attributable");
     let mag = vmag(out.channels.get("velocity_setpoint").unwrap());
     t.check(
         "over-speed command clamped",
@@ -188,16 +207,14 @@ fn main() {
         ..Default::default()
     });
     let beyond = sensor_at(1, 1.0, [20.0, 0.0, 0.0], [0.0, 0.0, 0.0]);
-    let out = gov_g.govern(
-        &CommandFrame {
-            mode: Mode::Active,
-            channels: vel_map(1.0, 0.0, 0.0),
-            ..Default::default()
-        },
-        Some(&beyond),
-        1.0,
-        Some(0.99),
-    );
+    let out = gov_g
+        .govern(
+            &ex_command(1, Mode::Active, vel_map(1.0, 0.0, 0.0)),
+            Some(&beyond),
+            1.0,
+            Some(0.99),
+        )
+        .expect("example command identity remains attributable");
     t.check(
         "geofence breach -> ESTOP latch",
         out.mode == Mode::Estop && gov_g.is_estopped(),
@@ -209,7 +226,9 @@ fn main() {
         command_timeout_ms: 500.0,
         ..Default::default()
     });
-    let out = gov_s.govern(&cmd, Some(&fresh), 10.0, Some(0.0));
+    let out = gov_s
+        .govern(&cmd, Some(&fresh), 1.6, Some(1.0))
+        .expect("example command identity remains attributable");
     t.check(
         "stale sensor -> HOLD",
         out.mode == Mode::Hold && !gov_s.is_estopped(),
@@ -222,16 +241,14 @@ fn main() {
         command_timeout_ms: 1000.0,
         ..Default::default()
     });
-    let out = gov_e.govern(
-        &CommandFrame {
-            mode: Mode::Estop,
-            channels: vel_map(9.0, 9.0, 9.0),
-            ..Default::default()
-        },
-        Some(&fresh),
-        1.0,
-        Some(0.99),
-    );
+    let out = gov_e
+        .govern(
+            &ex_command(1, Mode::Estop, vel_map(9.0, 9.0, 9.0)),
+            Some(&fresh),
+            1.0,
+            Some(0.99),
+        )
+        .expect("example command identity remains attributable");
     let z = vget(&out.channels);
     t.check(
         "inbound ESTOP latched + propagated, channels zeroed",
@@ -248,7 +265,9 @@ fn main() {
         command_timeout_ms: 500.0,
         ..Default::default()
     });
-    let out = gov_n.govern(&cmd, Some(&fresh), f64::NAN, Some(0.0));
+    let out = gov_n
+        .govern(&cmd, Some(&fresh), f64::NAN, Some(0.0))
+        .expect("example command identity remains attributable");
     t.check(
         "NaN clock -> HOLD (fail-safe)",
         out.mode == Mode::Hold,
@@ -262,13 +281,13 @@ fn main() {
         ..Default::default()
     });
     let cmd_h = CommandFrame {
-        mode: Mode::Active,
-        channels: vel_map(1.0, 0.0, 0.0),
         horizon: vec![vel_map(50.0, 0.0, 0.0)],
         horizon_dt_ms: Some(100.0),
-        ..Default::default()
+        ..ex_command(1, Mode::Active, vel_map(1.0, 0.0, 0.0))
     };
-    let out = gov_h.govern(&cmd_h, Some(&fresh), 1.0, Some(0.99));
+    let out = gov_h
+        .govern(&cmd_h, Some(&fresh), 1.0, Some(0.99))
+        .expect("example command identity remains attributable");
     let hmag = out
         .horizon
         .first()
@@ -284,15 +303,10 @@ fn main() {
     println!("\n[3] ActionBuffer horizon replay + ttl");
     let mut ab = ActionBuffer::new();
     let cmd_p = CommandFrame {
-        stream: ex_stream(1), // wire 0.8: an unstamped (stream.seq 0) command is never buffered
-        session: ex_session(),
-        session_id: "uav1".into(),
-        mode: Mode::Active,
         ttl_ms: 500.0,
-        channels: vel_map(1.0, 0.0, 0.0),
         horizon: vec![vel_map(2.0, 0.0, 0.0), vel_map(3.0, 0.0, 0.0)],
         horizon_dt_ms: Some(100.0),
-        ..Default::default()
+        ..ex_command(1, Mode::Active, vel_map(1.0, 0.0, 0.0))
     };
     ab.on_command(0.0, cmd_p);
     let a0 = ab

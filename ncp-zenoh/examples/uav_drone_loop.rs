@@ -12,8 +12,9 @@
 //! the command is for the configured live session, its locally measured age is
 //! strictly below the example's bounded watchdog TTL, it carries the exact locally
 //! active authority lease, and its only channel is a finite world-frame vec3 in
-//! `m/s`. HOLD/unknown/invalid inputs de-energize. ESTOP latches for the remainder
-//! of this session generation; this example intentionally exposes no reset path.
+//! `m/s`. HOLD/unknown/invalid inputs select this simulated model's inert output.
+//! ESTOP latches for the remainder of this session generation; this example
+//! intentionally exposes no reset path.
 //! Restart only after a lifecycle authority has opened a fresh generation.
 //! Zero velocity is merely this simulated model's inert output, not a claim that
 //! any physical plant has a universal zero-safe action.

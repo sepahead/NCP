@@ -18,7 +18,7 @@
   },
   "audit_inputs": {
     "path": "docs/handoff/max-effort-audit-inputs.v2.json",
-    "sha256": "2b3f771be6dbcad140570a5c889def17510b3f36840ed35e53acc4daaa53513b",
+    "sha256": "18b18684b24f8464ac2b305f48d85bc2404a1bb7844030e7f36179a08dcadc02",
     "reviewed_source_commit": "ef357d20692f707e185495dcfd16b16556fec264",
     "handoff_frozen_commit": "0ba5ff6e963225b0635f8fec349278f1ac287df3"
   },
@@ -3613,7 +3613,7 @@
         ],
         "commands": [
           "python3 scripts/check_behavior_vectors.py",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T080 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3655,7 +3655,7 @@
         ],
         "commands": [
           "python3 scripts/check_behavior_vectors.py",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T081 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3697,7 +3697,7 @@
         ],
         "commands": [
           "python3 scripts/check_behavior_vectors.py",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T082 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3739,7 +3739,7 @@
         ],
         "commands": [
           "python3 scripts/check_behavior_vectors.py",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T083 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3781,7 +3781,7 @@
         ],
         "commands": [
           "python3 scripts/check_behavior_vectors.py",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T084 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3823,7 +3823,7 @@
         ],
         "commands": [
           "cargo test -p ncp-cpp --locked",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T085 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3865,7 +3865,7 @@
         ],
         "commands": [
           "cargo test -p ncp-cpp --locked",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T086 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3907,7 +3907,7 @@
         ],
         "commands": [
           "cargo test -p ncp-cpp --locked",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T087 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3949,7 +3949,7 @@
         ],
         "commands": [
           "cargo test -p ncp-cpp --locked",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T088 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -3991,7 +3991,7 @@
         ],
         "commands": [
           "cargo test -p ncp-cpp --locked",
-          "python3 scripts/check_rust_packages.py --offline"
+          "python3 -I scripts/check_rust_packages.py"
         ]
       },
       "residual_risk": "Treating local coverage of T089 as closure could overstate the candidate and bypass its dependency, evidence, or independent-review requirements.",
@@ -6089,7 +6089,7 @@
           "evidence/supply-chain/sbom.cdx.json"
         ],
         "commands": [
-          "python3 scripts/build_candidate_dossier.py --self-test",
+          "python3 -I scripts/build_candidate_dossier.py --self-test",
           "python3 scripts/generate_supply_chain_evidence.py --check",
           "python3 scripts/check_max_effort_handoff_review.py --self-test",
           "NOT RUN: release-authorized multi-platform artifacts, publisher signatures, and independent clean-room reproduction"

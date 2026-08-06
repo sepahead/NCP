@@ -8835,11 +8835,11 @@
       "version": "1.9.0"
     },
     {
-      "bom-ref": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%406b93b15d0795748b7f76c72eae07f1cda517e762",
+      "bom-ref": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%409045545b72a77602a87f40203cb614b48157b4bc",
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "6b93b15d0795748b7f76c72eae07f1cda517e762"
+          "content": "9045545b72a77602a87f40203cb614b48157b4bc"
         }
       ],
       "licenses": [
@@ -8851,10 +8851,10 @@
       "properties": [
         {
           "name": "ncp:cargo-source",
-          "value": "git+https://github.com/sepahead/zenoh-transport-lz4-backport?rev=6b93b15d0795748b7f76c72eae07f1cda517e762#6b93b15d0795748b7f76c72eae07f1cda517e762"
+          "value": "git+https://github.com/sepahead/zenoh-transport-lz4-backport?rev=9045545b72a77602a87f40203cb614b48157b4bc#9045545b72a77602a87f40203cb614b48157b4bc"
         }
       ],
-      "purl": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%406b93b15d0795748b7f76c72eae07f1cda517e762",
+      "purl": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%409045545b72a77602a87f40203cb614b48157b4bc",
       "type": "library",
       "version": "1.9.0"
     },
@@ -11781,7 +11781,7 @@
         "pkg:cargo/zenoh-task@1.9.0",
         "pkg:cargo/zenoh-util@1.9.0"
       ],
-      "ref": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%406b93b15d0795748b7f76c72eae07f1cda517e762"
+      "ref": "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%409045545b72a77602a87f40203cb614b48157b4bc"
     },
     {
       "dependsOn": [
@@ -11851,7 +11851,7 @@
         "pkg:cargo/zenoh-shm@1.9.0",
         "pkg:cargo/zenoh-sync@1.9.0",
         "pkg:cargo/zenoh-task@1.9.0",
-        "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%406b93b15d0795748b7f76c72eae07f1cda517e762",
+        "pkg:cargo/zenoh-transport@1.9.0?vcs_url=git%2Bhttps%3A%2F%2Fgithub.com%2Fsepahead%2Fzenoh-transport-lz4-backport%409045545b72a77602a87f40203cb614b48157b4bc",
         "pkg:cargo/zenoh-util@1.9.0"
       ],
       "ref": "pkg:cargo/zenoh@1.9.0"
@@ -11981,7 +11981,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:b35bb053-442d-5205-9c51-71670d9b0475",
+  "serialNumber": "urn:uuid:5d5438fa-e020-5c29-9868-9c01203354e8",
   "specVersion": "1.6",
   "version": 1
 }

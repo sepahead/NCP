@@ -37,6 +37,12 @@ thread-safe. A live body uses both a persistent `NcpGovernor` and
 `NcpActionBuffer`; the one-shot governor cannot preserve an ESTOP latch between
 calls.
 
+A successful governor call proves a bounded, semantically valid wire shape, not
+publisher-position freshness. The governor has no allocator or stream high-water
+and can normalize an invalid sequence to `1`; never publish that fallback into an
+existing stream. Supply the owning publisher's next fresh position in the input,
+then admit that position, the exact route, and the live session generation.
+
 `NcpActionBuffer` is declaration-bound: equal/lower sequence remains rejected after
 TTL expiry, and a foreign epoch requires a fresh handle. The C ABI's
 `ncp_action_buffer_reset` is a body-local primitive for an already-authorized
@@ -45,7 +51,7 @@ session-generation cut. It clears the latch and permanently retires that handle;
 authorized operator or restore authority. Allocate a new buffer only for the new
 `SessionOpened` generation.
 
-Every JSON argument first passes the canonical universal bounded-JSON preflight
+Every JSON argument first passes the generic bounded-JSON preflight
 (1 MiB frame ceiling, nesting/node/string/number budgets, valid Unicode, and
 duplicate-key rejection) before typed decoding. This includes request digests,
 codec and rate maps, optional sensors and authority leases, governor configuration
@@ -56,6 +62,13 @@ active authority, operations/receipts, and scientific flags. The ABI itself does
 not bind a cryptographic transport principal, and a caller must still enforce the
 deployment authority manifest, exact route/session-generation admission before the
 local action buffer, and the plant-owned safety case.
+
+The generic object-entry ceiling does not close the open trusted-message-class and
+decoded-path allocation or equal Rust, TypeScript, and Python preallocation rule.
+The codec, governor, and buffer are necessary but not sufficient for plant-eligible
+Active output: checked codecs can still invent values, accept sparse components,
+select units by mapping order, and erase units in `PlantCommand`. Require
+unit-preserving installed-profile validation at the body before Active admission.
 
 The header is [`include/ncp.h`](include/ncp.h). These accessors are package
 introspection, not provenance certification; the complete normative digest and

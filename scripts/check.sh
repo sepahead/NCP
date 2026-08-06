@@ -160,7 +160,7 @@ NCP_REQUIRE_BINDING=1 "$tmp_dir/venv/bin/python" scripts/check_behavior_vectors.
 
 step "Python sdist locked-source closure"
 PATH="$tmp_dir/venv/bin:$PATH" \
-    "$tmp_dir/venv/bin/python" scripts/build_candidate_dossier.py \
+    "$tmp_dir/venv/bin/python" -I scripts/build_candidate_dossier.py \
         --sdist-preflight "$(git rev-parse HEAD)"
 
 step "TypeScript generated source + prebuilt dist are reproducible"
@@ -191,8 +191,7 @@ python3 scripts/check_handoff_review.py --self-test
 python3 scripts/generate_max_effort_handoff_index.py --self-test
 python3 scripts/check_max_effort_handoff_review.py --self-test
 python3 scripts/generate_max_effort_review_template.py --check
-python3 scripts/generate_file_review_ledger.py --self-test
-python3 scripts/generate_file_review_ledger.py --check
+python3 scripts/generate_file_review_ledger.py --self-test --check
 python3 scripts/generate_convergence_manifest.py --self-test --check
 python3 scripts/check_markdown_links.py --self-test
 python3 scripts/check_markdown_links.py
@@ -230,9 +229,9 @@ scripts/check-version-coherence.sh --self-test
 scripts/check-version-coherence.sh
 
 step "Rust candidate archives + conditional Zenoh consumption"
-python3 scripts/check_rust_packages.py --self-test
-python3 scripts/check_rust_packages.py
-python3 scripts/build_candidate_dossier.py --self-test
+python3 -I scripts/check_rust_packages.py --self-test
+python3 -I scripts/check_rust_packages.py
+python3 -I scripts/build_candidate_dossier.py --self-test
 
 step "dependency, license, and source policy"
 python3 scripts/check_dependency_exposure.py --self-test
@@ -278,7 +277,7 @@ HOME="$pinned_advisory_home" \
 
 step "repo-less exact-commit candidate preflight"
 export NCP_PINNED_ADVISORY_HOME="$pinned_advisory_home"
-python3 scripts/build_candidate_dossier.py \
+python3 -I scripts/build_candidate_dossier.py \
     --archive-preflight "$(git rev-parse HEAD)"
 
 step "protobuf lint + build"

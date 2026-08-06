@@ -16,15 +16,54 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseUniqueJsonObject } from './strict-json.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ncpTsRoot = join(here, '..')
 const repositoryRoot = join(ncpTsRoot, '..')
-const rootManifest = JSON.parse(readFileSync(join(repositoryRoot, 'package.json'), 'utf8'))
-const nestedManifest = JSON.parse(readFileSync(join(ncpTsRoot, 'package.json'), 'utf8'))
+const rootManifest = parseUniqueJsonObject(
+  readFileSync(join(repositoryRoot, 'package.json'), 'utf8'),
+  'root package.json',
+)
+const nestedManifest = parseUniqueJsonObject(
+  readFileSync(join(ncpTsRoot, 'package.json'), 'utf8'),
+  'ncp-ts/package.json',
+)
 
 const SENTINEL_BUILD_IDENTITY = 'unreleased-worktree'
 const SOURCE_REVISION = /^[0-9a-f]{40}$/
+const NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS = [
+  'dependencies',
+  'optionalDependencies',
+  'peerDependencies',
+  'peerDependenciesMeta',
+  'bundleDependencies',
+  'bundledDependencies',
+  'workspaces',
+  'overrides',
+  'resolutions',
+  'trustedDependencies',
+  'patchedDependencies',
+  'catalog',
+  'catalogs',
+  'packageExtensions',
+]
+
+function assertExactDependencySurface(manifest, context) {
+  const unexpected = NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(manifest, field),
+  )
+  assert.deepEqual(
+    unexpected,
+    [],
+    `${context} contains unreviewed dependency or package-graph fields`,
+  )
+  assert.deepEqual(
+    manifest.devDependencies,
+    { typescript: '5.9.2' },
+    `${context} development dependency surface drifted`,
+  )
+}
 
 function parseOptions(argv) {
   if (argv.length === 0) {
@@ -74,6 +113,8 @@ const typescriptBin = process.env.NCP_TYPESCRIPT_BIN
   : join(repositoryRoot, 'node_modules', 'typescript', 'bin', 'tsc')
 
 assert.ok(Number(process.versions.node.split('.')[0]) >= 18, 'package smoke requires Node >=18')
+assertExactDependencySurface(rootManifest, 'root package.json')
+assertExactDependencySurface(nestedManifest, 'ncp-ts/package.json')
 
 for (const key of [
   'name',

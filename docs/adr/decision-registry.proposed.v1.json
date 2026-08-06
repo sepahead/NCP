@@ -28,8 +28,8 @@
   },
   "review_packet": {
     "path": "docs/adr/B01_REVIEW_PACKET.md",
-    "sha256": "c82e8a0cc1eb92adfc37cb006165d8691578a2a023856427e546f06a31105f2a",
-    "bytes": 44340
+    "sha256": "97b97508288cd0e5fee5e9fe9e2a83f678dfdcdbdada2622f1d707f8e2b55a48",
+    "bytes": 44349
   },
   "review_packet_lifecycle": {
     "schema": "ncp.b01-review-packet-lifecycle.v1",
