@@ -92,9 +92,9 @@
       },
       {
         "path": ".github/workflows/ci.yml",
-        "bytes": 25117,
-        "sha256": "4ffae4e599f278bfd00e1c465b6e8f1337cddf9f3f4ef93987527a72566862e4",
-        "git_blob_oid": "ddf29f2fc0424631e1daa52df2cad56406b3a714",
+        "bytes": 25165,
+        "sha256": "3a10e16a0168bba8e9d5d2f25dc28e4b3abae5c20ae9c3a23af06a29ea8807af",
+        "git_blob_oid": "ccaf263730bc9319b19f71e5ebbc1d21c985d170",
         "indexed": true
       },
       {
@@ -2339,9 +2339,9 @@
       },
       {
         "path": "evidence/supply-chain/inventory.v1.json",
-        "bytes": 127526,
-        "sha256": "238c836c19d7cff85daa7bfac9cebd3d09e09ac4d9866e99f9545e8689910f63",
-        "git_blob_oid": "f95107b649f76e9ac3d4d80cbee007a67634a9ea",
+        "bytes": 127520,
+        "sha256": "b52a0fcab8a0e7e0a411a765b424bebb81b4a335e86a819dbedd73f7bbac76cc",
+        "git_blob_oid": "75317944cbc18b7bcf1c55ab73fce6be12742f47",
         "indexed": true
       },
       {

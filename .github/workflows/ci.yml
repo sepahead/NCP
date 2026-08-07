@@ -323,9 +323,11 @@ jobs:
           # checkout cannot prove that immutable-history boundary.
           fetch-depth: 0
       - name: Install buf
-        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
+        uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
         with:
+          version: "1.50.0"
           github_token: ${{ github.token }}
+          setup_only: true
 
       # One release-owned, read-only block keeps every machine contract and its
       # hostile self-test visible together. These checks are stdlib/shell/Buf only;

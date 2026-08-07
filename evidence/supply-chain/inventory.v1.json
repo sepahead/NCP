@@ -2519,8 +2519,8 @@
         "workflow": ".github/workflows/ci.yml"
       },
       {
-        "action": "bufbuild/buf-setup-action",
-        "revision": "a47c93e0b1648d5651a065437926377d060baa99",
+        "action": "bufbuild/buf-action",
+        "revision": "8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3",
         "workflow": ".github/workflows/ci.yml"
       },
       {
