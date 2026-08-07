@@ -70,7 +70,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `57408a610dff52199875a070f95210c5f86d6b1db0923f3cb63d296df47f12e6`.
+Blueprint SHA-256: `61f7facffcef66de115caffe5e463a8867baf33f4a778693d80162066fef5ba7`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -167,12 +167,32 @@ These perspectives summarize—not replace—the blueprint's mandatory ten-lens 
 
 ## Commands before handoff
 
+The focused ledger commands require a disposable environment built from the
+hash-locked evidence-tool requirements. The checker intentionally rejects an
+ambient Python environment that has missing or unexpected packages. Run the
+focused commands in a fail-closed subshell so that it removes the environment
+after success or failure.
+
 ```bash
-python3 scripts/check_implementation_ledger.py --self-test
-python3 scripts/generate_implementation_ledger.py --check
-python3 scripts/check_markdown_links.py
-scripts/check.sh
+(
+    set -euo pipefail
+    ncp_ledger_root="$(mktemp -d)"
+    cleanup_ncp_ledger() { rm -r -- "$ncp_ledger_root"; }
+    trap cleanup_ncp_ledger EXIT
+    python3 -m venv "$ncp_ledger_root/venv"
+    ncp_ledger_python="$ncp_ledger_root/venv/bin/python"
+    "$ncp_ledger_python" -m pip install \
+        --disable-pip-version-check --require-hashes --only-binary=:all: \
+        -r scripts/requirements-evidence-schema.txt
+    "$ncp_ledger_python" scripts/check_implementation_ledger.py --self-test
+    "$ncp_ledger_python" scripts/generate_implementation_ledger.py --check
+    python3 scripts/check_markdown_links.py
+    scripts/check.sh
+)
 ```
+
+`scripts/check.sh` creates the same pinned evidence environment and then runs
+the complete local gate. A focused pass does not replace that handoff gate.
 
 The final handoff must state exactly what is locally established, externally
 established, independently reproduced, blocked, and not run. Never call NCP perfect,

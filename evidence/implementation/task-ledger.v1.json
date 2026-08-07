@@ -1,7 +1,7 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "57408a610dff52199875a070f95210c5f86d6b1db0923f3cb63d296df47f12e6"
+    "sha256": "61f7facffcef66de115caffe5e463a8867baf33f4a778693d80162066fef5ba7"
   },
   "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
@@ -225,7 +225,7 @@
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "7db3ed580d943fcfc2b420be0661bef0a82110fcda88225a14f485773d98a6e3"
+      "sha256": "c2ae6ff4a79966b45aafb68ce546ffb86349b778280d312bb7d5eec59786dfeb"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",

@@ -98,6 +98,43 @@ def _render_active_task_recovery(
         lines.extend(f"- {risk}" for risk in task["residual_risks"])
 
 
+def _verification_lines(*, include_markdown_links: bool) -> list[str]:
+    lines = [
+        "The focused ledger commands require a disposable environment built from the",
+        "hash-locked evidence-tool requirements. The checker intentionally rejects an",
+        "ambient Python environment that has missing or unexpected packages. Run the",
+        "focused commands in a fail-closed subshell so that it removes the environment",
+        "after success or failure.",
+        "",
+        "```bash",
+        "(",
+        "    set -euo pipefail",
+        '    ncp_ledger_root="$(mktemp -d)"',
+        '    cleanup_ncp_ledger() { rm -r -- "$ncp_ledger_root"; }',
+        "    trap cleanup_ncp_ledger EXIT",
+        '    python3 -m venv "$ncp_ledger_root/venv"',
+        '    ncp_ledger_python="$ncp_ledger_root/venv/bin/python"',
+        '    "$ncp_ledger_python" -m pip install \\',
+        "        --disable-pip-version-check --require-hashes --only-binary=:all: \\",
+        "        -r scripts/requirements-evidence-schema.txt",
+        '    "$ncp_ledger_python" scripts/check_implementation_ledger.py --self-test',
+        '    "$ncp_ledger_python" scripts/generate_implementation_ledger.py --check',
+    ]
+    if include_markdown_links:
+        lines.append("    python3 scripts/check_markdown_links.py")
+    lines.extend(
+        [
+            "    scripts/check.sh",
+            ")",
+            "```",
+            "",
+            "`scripts/check.sh` creates the same pinned evidence environment and then runs",
+            "the complete local gate. A focused pass does not replace that handoff gate.",
+        ]
+    )
+    return lines
+
+
 def render_ledger(data: dict[str, object]) -> str:
     tasks = data["tasks"]
     repositories = data["repositories"]
@@ -127,8 +164,9 @@ def render_ledger(data: dict[str, object]) -> str:
         "# NCP 1.0 implementation task ledger",
         "",
         "> **Generated file — do not edit.** Edit",
-        "> [`task-ledger.v1.json`](../../evidence/implementation/task-ledger.v1.json), run",
-        "> `python3 scripts/generate_implementation_ledger.py --write`, then run the checker.",
+        "> [`task-ledger.v1.json`](../../evidence/implementation/task-ledger.v1.json), then",
+        "> use the pinned workflow in **Update and verification** to regenerate with",
+        "> `--write` and verify with `--check`.",
         "> This is evidence bookkeeping, not release authorization or certification.",
         "",
         f"Blueprint SHA-256: `{data['blueprint']['sha256']}`.",
@@ -1983,11 +2021,11 @@ def render_ledger(data: dict[str, object]) -> str:
             "",
             "## Update and verification",
             "",
-            "```bash",
-            "python3 scripts/check_implementation_ledger.py --self-test",
-            "python3 scripts/generate_implementation_ledger.py --check",
-            "scripts/check.sh",
-            "```",
+        ]
+    )
+    lines.extend(_verification_lines(include_markdown_links=False))
+    lines.extend(
+        [
             "",
             "Raw logs referenced by future receipts must be bounded, repository-relative, and",
             "content-addressed. Credentials, private keys, absolute workstation paths, mutable",
@@ -2199,12 +2237,11 @@ def render_resumption(data: dict[str, object]) -> str:
             "",
             "## Commands before handoff",
             "",
-            "```bash",
-            "python3 scripts/check_implementation_ledger.py --self-test",
-            "python3 scripts/generate_implementation_ledger.py --check",
-            "python3 scripts/check_markdown_links.py",
-            "scripts/check.sh",
-            "```",
+        ]
+    )
+    lines.extend(_verification_lines(include_markdown_links=True))
+    lines.extend(
+        [
             "",
             "The final handoff must state exactly what is locally established, externally",
             "established, independently reproduced, blocked, and not run. Never call NCP perfect,",
@@ -2230,8 +2267,8 @@ def _write_or_check(path: Path, content: str, *, write: bool) -> None:
         ) from error
     if current != encoded:
         raise LedgerError(
-            f"generated view is stale: {path.relative_to(ROOT)}; run "
-            "python3 scripts/generate_implementation_ledger.py --write"
+            f"generated view is stale: {path.relative_to(ROOT)}; rerun this generator "
+            "with --write inside the pinned evidence environment"
         )
 
 

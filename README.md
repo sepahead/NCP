@@ -29,9 +29,9 @@ Four planes have distinct ownership and queue policies:
 | Plane | Publisher | Key family | Queue policy |
 |---|---|---|---|
 | Control | commander or body | `{realm}/rpc/{request_kind}` | bounded; reject overflow |
-| Perception | body | `{realm}/session/{id}/sensor[/{channel}]` | replace latest |
-| Action | commander or operator | `{realm}/session/{id}/command[/{channel}]` | highest fail-safe severity: ESTOP, then HOLD/non-active, then Active; equal severity replaces latest |
-| Observation | body | `{realm}/session/{id}/observation` | drop oldest and count |
+| Perception | body | `{realm}/session/{session_id}/sensor[/{channel}]` | replace latest |
+| Action | commander or operator | `{realm}/session/{session_id}/command[/{channel}]` | highest fail-safe severity: ESTOP, then HOLD/non-active, then Active; equal severity replaces latest |
+| Observation | body | `{realm}/session/{session_id}/observation` | drop oldest and count |
 
 Every typed data-plane boundary requires the live `SessionRef` returned by
 `SessionOpened`, verifies that the payload `session_id` equals the concrete route,

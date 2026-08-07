@@ -929,13 +929,14 @@ incompatible wires. The complete quiesced body-profile cut remains mandatory.
 
 B01 is responsible for ratifying eleven ADRs, but the current non-normative
 registry permits only `PROPOSED` decisions and zero review records. The generic
-implementation ledger can retain independent reviewer identities, but it cannot
-prove that all 48 exact ADR role obligations reviewed the same bytes or that a
-conditional review was closed. B01 also names the normative decision registry as
-its output and requires owner authorization for a candidate rebaseline, while B02
-owns that authorization and depends on B01. B03 can write normative allocations
-after B01 without depending on B02. The resulting state machine is either
-uncloseable or can be bypassed by an optimistic status edit.
+implementation ledger can retain independent reviewer identities. The ledger
+cannot prove that all 52 exact ADR role obligations, with 53 minimum identity
+slots, reviewed the same bytes. It also cannot prove that a conditional review
+was closed. B01 also names the normative decision registry as its output and
+requires owner authorization for a candidate rebaseline. B02 owns that
+authorization and depends on B01. B03 can write normative allocations after B01
+without depending on B02. The resulting state machine is either uncloseable or
+can be bypassed by an optimistic status edit.
 
 Keep B01 review state outside `contract/`. Compute one domain-separated decision-set
 digest over the ordered current ADR identities and structured role obligations.
@@ -8211,7 +8212,8 @@ Implementation:
   task and dependency. Keep `pid` and `ncp` independently default-off and prove
   each builds without the other;
 - move `SidecarEnvelope` and `MonitorEnvelope` off
-  `{realm}/session/{id}/sensor/{name}` to the registered Galadriel extension keys;
+  `{realm}/session/{session_id}/sensor/{channel}` to the registered Galadriel
+  extension keys;
   they are not NCP `SensorFrame`s and must not use stable core routes;
 - version/sign the extension envelope and bind producer, extension ID/schema digest,
   actual route, plant session/generation, security epoch and source correlation;
@@ -9782,7 +9784,7 @@ At declared worst-case observer rate, run independent action/control traffic on 
 reserved path while saturating observer queues, router subscriptions, network,
 scheduler and memory bounds. Verify explicit observer gaps or detachment, bounded
 action/control latency, no shared-queue growth, and no watchdog or fail-safe
-interference. Replay deterministic cases twice. Verify the P01 four-artifact bundle,
+interference. Replay deterministic cases twice. Verify the P01 five-artifact bundle,
 receipt-last output, and the P02 fail-before-analysis partition rule through the
 installed CLI. Run Prisoma repository-integrity and NCP capture-specific
 publication, missingness, and claim-boundary gates. Scientific freeze, population,
