@@ -77,8 +77,8 @@ native-1.0 interoperability evidence:
   call it, but it receives no NCP role receipt.
 - **Cortexel** is historical intake inventory only. It is not an NCP dependency,
   consumer, commander, atlas owner, documentation-import target, or authority.
-  ADR-011's content-bound review subject still contains an unratified optional
-  export question; it grants no implementation task or work authority.
+  ADR-011's superseded content-bound review subject contains an unratified
+  optional export question. It grants no implementation task or work authority.
 
 The intended first-principles payoff is that a conformant body and brain can
 interoperate without either knowing the other's implementation—the same property

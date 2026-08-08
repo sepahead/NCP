@@ -47,10 +47,10 @@ of truth, control-path component, consumer, commander, or atlas owner. This plan
 authorizes no NCP implementation or documentation-import work in Cortexel, and it
 receives no NCP role receipt.
 
-The content-bound current ADR-011 review subject still asks reviewers to adjudicate
-an optional labeled-export boundary. That proposal remains unratified and grants no
-task or work authority. Removing it from the ADR requires a separately reviewed B01
-subject supersession and reissue; this plan does not rewrite that review history.
+The content-bound superseded ADR-011 review subject asked reviewers to adjudicate
+an optional labeled-export boundary. That proposal remains unratified and grants
+no task or work authority. A later B01 subject must bind any removal. This plan
+retains the superseded review history.
 
 The 2026-08-01 local discovery also found directories that are not canonical
 inventory entries. `engram-origin-corpus-review.MymUYE` is a non-Git review

@@ -1,24 +1,23 @@
-# B01 current architecture review packet
+# B01 superseded architecture review packet
 
-> **CURRENT REVIEW SUBJECT — PROPOSED DECISIONS ONLY.** This packet binds the
-> eleven proposed ADRs to clean pushed source commit
+> **SUPERSEDED REVIEW SUBJECT — REVIEW CAPTURE DISABLED.** This historical
+> packet binds the eleven proposed ADRs to clean pushed source commit
 > `99672dd48bffe3f8504d4fb66d5a7c9140b122cf`. It contains zero review records.
-> It does not accept an ADR, satisfy B01, authorize a rebaseline, certify
-> interoperability or plant safety, or release NCP 1.0. B01 remains
-> `IN_PROGRESS` until all exact external review and independent evidence
-> requirements pass.
+> It was superseded before semantic-closure work. It cannot receive review
+> records, accept an ADR, satisfy B01, authorize a rebaseline, certify
+> interoperability or plant safety, or release NCP 1.0.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "CURRENT"
+  "state": "SUPERSEDED"
 }
 ```
 
 ```json
 {
-  "schema": "ncp.b01-review-subject.v1",
-  "state": "CURRENT",
+  "schema": "ncp.b01-review-subject-history.v1",
+  "state": "SUPERSEDED",
   "normative": false,
   "claim_boundary": "This generated registry records non-normative architecture decisions and structurally checked review claims. It cannot prove external authorship, role authority, or independence. It cannot satisfy B01 by itself, authorize the pre-release rebaseline or publication, or grant runtime identity, authority, plant action, safety, interoperability, or a scientific claim.",
   "promotion_blocked": true,
@@ -712,9 +711,9 @@ exactly one matching `CURRENT` review-subject block before it can receive review
 records. A `SUPERSEDED` or `TEMPLATE` packet cannot contain that block or receive
 review records.
 
-## Current packet bindings
+## Superseded packet bindings
 
-The generated review subject binds `decision_set.sha256`. The
+The archived review subject binds `decision_set.sha256`. The
 decision-set digest covers all exact ADR bytes, role obligations, defect
 mappings, review-policy version, and exact generator and output-schema
 identities. It excludes review records, so later review capture does not change
@@ -749,19 +748,16 @@ review record content-address the immutable packet bytes with
 `review_packet_sha256`. This acyclic rule lets the generator compare that digest
 with the current packet file.
 
-The JSON block above has schema `ncp.b01-review-subject.v1` and state `CURRENT`.
-It contains the exact decision-set and review-policy identities, source commit
-and tree, claim boundary, promotion block, and all ADR digests, byte lengths,
-role obligations, and defect mappings. It does not contain
-`review_packet_sha256`.
+The archival JSON block above has schema
+`ncp.b01-review-subject-history.v1` and state `SUPERSEDED`. It retains the exact
+decision-set and review-policy identities, source commit and tree, claim
+boundary, promotion block, ADR digests, byte lengths, role obligations, and
+defect mappings. It is not a review-capture subject.
 
-The source currently has zero review records. The generator validates this
-review-subject block immediately so reviewers do not receive an unchecked
-subject. Once any record exists, it rejects a missing, duplicate, superseded,
-template, or mismatched `CURRENT` block. It resolves every ADR in the block from
-the named Git commit. It also requires that commit to contain the exact current
-generator, output schema, and zero-review decision source. A record that claims
-the current packet must match that block.
+The bound source had zero review records. The generator ignores the archival
+subject and rejects review records while the machine-readable packet lifecycle
+is not `CURRENT`. A later packet can become current only through the acyclic
+source-commit and packet-commit sequence below.
 
 Composite local runs at the bound source commit covered every command in
 `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed

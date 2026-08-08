@@ -14,9 +14,9 @@ and Prisoma and their one-way pid-rs library dependencies. pid-rs remains
 protocol-neutral and is not an NCP peer. Cortexel is retained only as historical
 intake inventory: it is not an NCP dependency, consumer, commander, atlas owner,
 or authorized documentation-import target, and it receives no NCP role receipt.
-The content-bound current ADR-011 subject still presents an optional labeled-export
-boundary for review. It is unratified, grants no work authority, and requires a
-separate B01 subject supersession before its bytes can change.
+The content-bound superseded ADR-011 subject presents an optional labeled-export
+boundary in historical review material. It had zero reviews and grants no work
+authority. A later B01 subject must bind any change.
 The blueprint's task states require
 evidence receipts and do not close or replace either audit below, authorize
 publication, or turn a consumer worktree into installed interoperability evidence.
