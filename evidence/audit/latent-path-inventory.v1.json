@@ -6357,9 +6357,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/decision_probe.py",
-        "bytes": 333325,
-        "sha256": "71165e93bf340d630eac725351ff075d36eed483e368b42f98413a02097dc03c",
-        "git_blob_oid": "5a65581b0e5adc0af5fcf53f875055b8c9a413f3",
+        "bytes": 334474,
+        "sha256": "8a1ecd467b167e5711a4d16c185f9547a63d5e497fc44fa720e7b4fdff5c7bb0",
+        "git_blob_oid": "0270f0c1d361b25286edf9149afc3f521693e7e2",
         "indexed": true
       },
       {

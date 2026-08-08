@@ -8996,18 +8996,19 @@ def _validate_result_against_canonical(
         )
 
 
-def _validated_replay_canonical(value: Any) -> str:
-    actual_canonical = _canonical_result(value)
-    expected_canonical = _canonical_result(build_result())
-    if actual_canonical != expected_canonical:
-        raise ProbeError(
-            "decision-probe result differs from deterministic semantic replay"
-        )
+def _validated_replay_canonical(
+    value: Any,
+    replay_builder: Callable[[], dict[str, Any]],
+) -> str:
+    if not isinstance(value, dict):
+        raise ProbeError("decision-probe result is not an object")
+    expected_canonical = _canonical_result(replay_builder())
+    _validate_result_against_canonical(value, expected_canonical)
     return expected_canonical
 
 
 def validate_result(value: Any) -> None:
-    _validated_replay_canonical(value)
+    _validated_replay_canonical(value, build_result)
 
 
 def _set_path(value: dict[str, Any], path: tuple[str, ...], replacement: Any) -> None:
@@ -9032,8 +9033,41 @@ def _must_reject_result(
     raise ProbeError(f"self-test result mutation passed: {'.'.join(path)}")
 
 
+def _self_test_replay_oracle_ordering() -> None:
+    replay_state = {"phase": "before"}
+    builder_observations: list[str] = []
+
+    class MutatingResult(dict[str, str]):
+        def items(self):
+            replay_state["phase"] = "after"
+            return super().items()
+
+    def replay_builder() -> dict[str, str]:
+        builder_observations.append(replay_state["phase"])
+        return {"phase": replay_state["phase"]}
+
+    hostile = MutatingResult({"phase": "after"})
+    try:
+        _validated_replay_canonical(
+            hostile,
+            replay_builder,
+        )
+    except ProbeError:
+        if builder_observations != ["before"]:
+            raise ProbeError(
+                "self-test replay oracle was not built exactly once before validation"
+            ) from None
+        if replay_state["phase"] != "after":
+            raise ProbeError(
+                "self-test did not serialize the hostile replay candidate"
+            ) from None
+        return
+    raise ProbeError("caller-controlled result influenced the replay oracle")
+
+
 def self_test(result: dict[str, Any]) -> None:
-    expected_canonical = _validated_replay_canonical(result)
+    expected_canonical = _validated_replay_canonical(result, build_result)
+    _self_test_replay_oracle_ordering()
     _validate_result_against_canonical(
         json.loads(json.dumps(result, separators=(",", ":"), sort_keys=True)),
         expected_canonical,
