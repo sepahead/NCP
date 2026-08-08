@@ -2,7 +2,7 @@
 
 > **CURRENT REVIEW SUBJECT — PROPOSED DECISIONS ONLY.** This packet binds the
 > eleven proposed ADRs to clean pushed source commit
-> `d6d10df3d30d9803d53eccc144d03969665b7795`. It contains zero review records.
+> `99672dd48bffe3f8504d4fb66d5a7c9140b122cf`. It contains zero review records.
 > It does not accept an ADR, satisfy B01, authorize a rebaseline, certify
 > interoperability or plant safety, or release NCP 1.0. B01 remains
 > `IN_PROGRESS` until all exact external review and independent evidence
@@ -44,8 +44,8 @@
     }
   },
   "source": {
-    "commit": "d6d10df3d30d9803d53eccc144d03969665b7795",
-    "tree": "b83c99367d2b2fd304844878d24a3b54349f39f3",
+    "commit": "99672dd48bffe3f8504d4fb66d5a7c9140b122cf",
+    "tree": "b0c8858503753747ded585b91dd48095776dc241",
     "decision_source": {
       "path": "docs/adr/decision-registry.source.v1.json",
       "sha256": "fe4c81e1bdd32889f396f72bcc9ef094977d8f065a3ac814e90a43a013769a2b",
@@ -763,16 +763,27 @@ the named Git commit. It also requires that commit to contain the exact current
 generator, output schema, and zero-review decision source. A record that claims
 the current packet must match that block.
 
-At the bound source commit, `scripts/check.sh` passed the complete local gate.
-The clean command `./prototypes/b01-architecture-evidence/run.sh` also passed.
-It covered 15,379 composition states and 169 observer-authorization hostile
-inputs. It also covered 444 observer-capture hostile inputs, 547 freshness and
-acceptance cases, and 188 source-index hostile cases. Separate Rust and
-TypeScript engines agreed on 22 content-bound ADR-example semantic cases. They
-rejected all 90 registered bounded mutations. The verifier rejected all
-registered hostile mutations. These results are local preliminary evidence
-only. They do not satisfy an external, independent, consumer, safety,
-performance, or release gate.
+Composite local runs at the bound source commit covered every command in
+`scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed
+out during the Python source-distribution build. The exact failed step and
+remaining suffix then passed separately. This is composite coverage, not one
+uninterrupted complete-gate receipt.
+
+The clean command `./prototypes/b01-architecture-evidence/run.sh` passed at that
+commit. It covered 15,379 composition states and 169 observer-authorization
+hostile inputs. It also covered 444 observer-capture hostile inputs, 547
+freshness and acceptance cases, and 188 source-index hostile cases. Separate
+Rust and TypeScript engines agreed on 22 content-bound ADR-example semantic
+cases. They rejected all 90 registered bounded mutations. The verifier rejected
+all registered hostile mutations.
+
+The decision-probe verifier builds and canonicalizes a fresh replay oracle
+before it serializes caller-controlled values. A hostile `dict`-subclass
+self-test mutates shared state during caller serialization. It requires exactly
+one oracle build before that serialization. It rejects candidate influence on
+the oracle. These results are local preliminary evidence only. They do not
+satisfy an external, independent, consumer, safety, performance, or release
+gate.
 
 Review capture follows an acyclic sequence:
 

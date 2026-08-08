@@ -8,7 +8,7 @@ external evidence state.
 
 [`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is the current review packet. It
 binds the eleven proposed ADRs to clean pushed source commit
-`d6d10df3d30d9803d53eccc144d03969665b7795` and decision-set digest
+`99672dd48bffe3f8504d4fb66d5a7c9140b122cf` and decision-set digest
 `794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a`.
 It contains no review records. No qualifying review or independent
 adjudication is recorded. All eleven decisions remain **PROPOSED**, and B01

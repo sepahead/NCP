@@ -1800,9 +1800,9 @@
       },
       {
         "path": "docs/adr/B01_REVIEW_PACKET.md",
-        "bytes": 44522,
-        "sha256": "3a7ec8b66abee8227b43b249d831ce21f3292b69a713e3617e7aff431627a6e9",
-        "git_blob_oid": "177d4373396952a8d57a1d9ef7e83e83ec69ee2a",
+        "bytes": 45115,
+        "sha256": "a3c236ed4212878c083732b58ccdcbb4eb82cf4b7b2d1429a5c4d293d9e9709f",
+        "git_blob_oid": "5ee9fb39c5098f065e14b29070f62d1c0ba7dfa3",
         "indexed": true
       },
       {
@@ -1815,8 +1815,8 @@
       {
         "path": "docs/adr/README.md",
         "bytes": 21820,
-        "sha256": "6befbd966d8641191b3c3ec2e189c6659333aff3f3d504d816bdc800353ca3c4",
-        "git_blob_oid": "5a6b7cf34cd1f82b9bfbede085b8578c593bcdd2",
+        "sha256": "a2ffdc7f023b13aa35b3d1b6da775fc82ae4c74e5a02321e477db7110b8aa342",
+        "git_blob_oid": "f469c21cec4323588da6215249ef2a4b6a5b84a1",
         "indexed": true
       },
       {
@@ -1829,8 +1829,8 @@
       {
         "path": "docs/adr/decision-registry.proposed.v1.json",
         "bytes": 62235,
-        "sha256": "3169c5abb47320eb3659855bef160dc669a8e74270ceb268e091df909f338dcc",
-        "git_blob_oid": "e5c88fc755ce3395dbbe33b098ce46dcebb13a92",
+        "sha256": "99c60c2059ff61046176d11e82025982bd87b5a4db86f58a2d5ab53778532483",
+        "git_blob_oid": "cb37fe757529c215f4f7744838b6ec82d72f7bec",
         "indexed": true
       },
       {
@@ -2066,16 +2066,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 17215,
-        "sha256": "265aafe1b43b845d4e858cda00b40edbe62ea55856d0c845a119009a8f464828",
-        "git_blob_oid": "6b452cd08627eecd74fef5715870c6e9885bf0bf",
+        "bytes": 17116,
+        "sha256": "cac3be7a31989a8d10b474c5364a66280bbf8e7a197150d8b13e7309f0c9f25f",
+        "git_blob_oid": "f157353ccf9d6e29f816700bf92cca30952fc1de",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 152613,
-        "sha256": "adf0f03ca63469d144eb6edcb28a09c43561346e28ea6f5d86be1da13b83fbb7",
-        "git_blob_oid": "452812cbc6bfaa6df213cfe7cad1f09804de816c",
+        "bytes": 152514,
+        "sha256": "f8b67acd604054fbea9d5cd769a61279fd4e43343f8f7d0b03b34324c5dc13b6",
+        "git_blob_oid": "32d8be3605710b5d46292ccba2f911d059e8429f",
         "indexed": true
       },
       {
@@ -2311,9 +2311,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 161646,
-        "sha256": "3cc07371811c72f627b1b096ff225f3030cbd2f8cbdfb7a018fb198f8bdbd786",
-        "git_blob_oid": "e66a6c9821769c0197d94f4da66c72acc848e466",
+        "bytes": 161547,
+        "sha256": "b6215b85ccd49916f8d7059ee99160b8b1c96a38ecbb456448324e1cee13ffeb",
+        "git_blob_oid": "35a2a2da7200e0748f174778c1b986403634dc66",
         "indexed": true
       },
       {
@@ -8217,7 +8217,7 @@
       "column": 64,
       "token_id": "M008",
       "line_sha256": "246702ee4bb4d3fdea2ba110a136cdba3bf92aa06a8f32d5c48fc3ae538017ba",
-      "file_sha256": "6befbd966d8641191b3c3ec2e189c6659333aff3f3d504d816bdc800353ca3c4",
+      "file_sha256": "a2ffdc7f023b13aa35b3d1b6da775fc82ae4c74e5a02321e477db7110b8aa342",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
