@@ -28,8 +28,8 @@
   },
   "review_packet": {
     "path": "docs/adr/B01_REVIEW_PACKET.md",
-    "sha256": "97b97508288cd0e5fee5e9fe9e2a83f678dfdcdbdada2622f1d707f8e2b55a48",
-    "bytes": 44349
+    "sha256": "3a7ec8b66abee8227b43b249d831ce21f3292b69a713e3617e7aff431627a6e9",
+    "bytes": 44522
   },
   "review_packet_lifecycle": {
     "schema": "ncp.b01-review-packet-lifecycle.v1",
@@ -63,8 +63,8 @@
       }
     },
     "source": {
-      "commit": "f376f212268b2da4d43975052d692e5f1be50ecb",
-      "tree": "4b2695f9ff6d1754f45ea09d1911f7ce51670b69",
+      "commit": "d6d10df3d30d9803d53eccc144d03969665b7795",
+      "tree": "b83c99367d2b2fd304844878d24a3b54349f39f3",
       "decision_source": {
         "path": "docs/adr/decision-registry.source.v1.json",
         "sha256": "fe4c81e1bdd32889f396f72bcc9ef094977d8f065a3ac814e90a43a013769a2b",

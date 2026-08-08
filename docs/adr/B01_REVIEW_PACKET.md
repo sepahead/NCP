@@ -2,7 +2,7 @@
 
 > **CURRENT REVIEW SUBJECT — PROPOSED DECISIONS ONLY.** This packet binds the
 > eleven proposed ADRs to clean pushed source commit
-> `f376f212268b2da4d43975052d692e5f1be50ecb`. It contains zero review records.
+> `d6d10df3d30d9803d53eccc144d03969665b7795`. It contains zero review records.
 > It does not accept an ADR, satisfy B01, authorize a rebaseline, certify
 > interoperability or plant safety, or release NCP 1.0. B01 remains
 > `IN_PROGRESS` until all exact external review and independent evidence
@@ -44,8 +44,8 @@
     }
   },
   "source": {
-    "commit": "f376f212268b2da4d43975052d692e5f1be50ecb",
-    "tree": "4b2695f9ff6d1754f45ea09d1911f7ce51670b69",
+    "commit": "d6d10df3d30d9803d53eccc144d03969665b7795",
+    "tree": "b83c99367d2b2fd304844878d24a3b54349f39f3",
     "decision_source": {
       "path": "docs/adr/decision-registry.source.v1.json",
       "sha256": "fe4c81e1bdd32889f396f72bcc9ef094977d8f065a3ac814e90a43a013769a2b",
@@ -764,12 +764,15 @@ generator, output schema, and zero-review decision source. A record that claims
 the current packet must match that block.
 
 At the bound source commit, `scripts/check.sh` passed the complete local gate.
-The clean command `./prototypes/b01-architecture-evidence/run.sh` also passed
-with 15,379 composition states, 169 observer-authorization hostile inputs, 444
-observer-capture hostile inputs, 547 freshness and acceptance cases, 188
-source-index hostile cases, and all registered verifier hostile mutations
-rejected. These results are local preliminary evidence only. They do not satisfy
-an external, independent, consumer, safety, performance, or release gate.
+The clean command `./prototypes/b01-architecture-evidence/run.sh` also passed.
+It covered 15,379 composition states and 169 observer-authorization hostile
+inputs. It also covered 444 observer-capture hostile inputs, 547 freshness and
+acceptance cases, and 188 source-index hostile cases. Separate Rust and
+TypeScript engines agreed on 22 content-bound ADR-example semantic cases. They
+rejected all 90 registered bounded mutations. The verifier rejected all
+registered hostile mutations. These results are local preliminary evidence
+only. They do not satisfy an external, independent, consumer, safety,
+performance, or release gate.
 
 Review capture follows an acyclic sequence:
 
