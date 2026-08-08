@@ -35,8 +35,9 @@ import observer_capture_probe
 import source_issuance_index_probe
 from source_inventory import (
     B01_SUPPORT_RELATIVE_PATHS,
+    EXPECTED_B01_SOURCE_COUNT,
     SourceInventoryError,
-    build_source_inventory,
+    build_b01_source_inventory,
     read_bounded_relative_file,
 )
 
@@ -479,8 +480,8 @@ def _load_observer_authorization_probe() -> dict[str, Any]:
 
 def _verify_sources(value: dict[str, Any]) -> None:
     sources = value["sources"]
-    if not isinstance(sources, list) or len(sources) < 10:
-        raise ResultError("source inventory is incomplete")
+    if type(sources) is not list or len(sources) != EXPECTED_B01_SOURCE_COUNT:
+        raise ResultError("source inventory does not have the exact source count")
     paths: set[str] = set()
     for index, source in enumerate(sources):
         if not isinstance(source, dict):
@@ -503,11 +504,7 @@ def _verify_sources(value: dict[str, Any]) -> None:
             raise ResultError(f"sources[{index}] identity is invalid or duplicate")
         paths.add(path)
     try:
-        expected_sources = build_source_inventory(
-            ROOT,
-            REPOSITORY,
-            support_relative_paths=B01_SUPPORT_RELATIVE_PATHS,
-        )
+        expected_sources = build_b01_source_inventory(ROOT, REPOSITORY)
     except (OSError, SourceInventoryError) as error:
         raise ResultError(f"source inventory failed closed: {error}") from error
     if sources != expected_sources:
@@ -2545,6 +2542,12 @@ def _self_test(value: dict[str, Any]) -> int:
         ("contract digest", ("normative_contract_sha256",), "0" * 64),
         ("contract manifest", ("contract_manifest_sha256",), "0" * 64),
         ("source digest", ("sources", 0, "sha256"), "0" * 64),
+        (
+            "source path",
+            ("sources", 0, "path"),
+            "prototypes/b01-architecture-evidence/FORGED.py",
+        ),
+        ("source count", ("sources",), value["sources"][:-1]),
         (
             "ADR semantic independent-evidence claim",
             (

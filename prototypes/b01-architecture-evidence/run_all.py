@@ -29,9 +29,8 @@ import resource_probe
 import run_smt
 import source_issuance_index_probe
 from source_inventory import (
-    B01_SUPPORT_RELATIVE_PATHS,
     SourceInventoryError,
-    build_source_inventory,
+    build_b01_source_inventory,
     read_bounded_relative_file,
 )
 
@@ -84,11 +83,7 @@ def _git(*arguments: str) -> str:
 
 def _sources() -> list[dict[str, Any]]:
     try:
-        return build_source_inventory(
-            ROOT,
-            REPOSITORY,
-            support_relative_paths=B01_SUPPORT_RELATIVE_PATHS,
-        )
+        return build_b01_source_inventory(ROOT, REPOSITORY)
     except (OSError, SourceInventoryError) as error:
         raise AssemblyError(f"source inventory failed closed: {error}") from error
 

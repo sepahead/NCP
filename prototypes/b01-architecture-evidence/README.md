@@ -94,14 +94,14 @@ cargo fetch \
 python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test
 ```
 
-The coordinator uses Cargo offline after the locked fetch. The typecheck uses the
-root lock and compiler installation. Bun executes the TypeScript engine directly.
-Local Rust, Cargo, and Bun executable identities remain unretained. The root lock
-pins TypeScript 5.9.2, but the result inventories neither that lock nor the
-installed executable. Hosted CI pins Rust 1.88.0 and Bun 1.3.14. These pins do not
-establish toolchain provenance. The Rust reader rejects leaf links and in-read
-changes. It does not hold each parent directory through a directory file
-descriptor.
+The coordinator uses Cargo offline after the locked fetch. Typechecking uses the
+root dependency installation. Bun executes the TypeScript engine directly. The
+inventory includes the root `package.json` and `bun.lock`, which pin TypeScript
+5.9.2. It does not bind the installed compiler bytes. Local Rust, Cargo, and Bun
+executable identities remain unretained. Hosted CI pins Rust 1.88.0 and Bun
+1.3.14. These pins do not establish toolchain provenance. The Rust reader rejects
+leaf links and in-read changes. It does not hold each parent directory through a
+directory file descriptor.
 
 ## Bounded state enumerator
 
@@ -782,7 +782,8 @@ The runner:
   fences and 90 registered bounded mutations.
 - directly executes each standalone observer probe and freshness/acceptance
   probe.
-- loads each declared shared probe dependency from its exact bound bytes.
+- loads one bounded snapshot of `scripts/bounded_json.py` from exact bytes in
+  each fixed-loader coordinator process.
 - byte-replays observer authorization and capture under normal and optimized
   interpreters for two unrelated Python hash seeds.
 - byte-replays freshness/acceptance results under two unrelated Python hash
@@ -796,15 +797,21 @@ The runner:
   witnesses, and reconciles every emitted witness.
 - runs nineteen SMT checks and kills thirteen independent formula mutations.
 - runs the queue/parser/journal/real-Ed25519 resource screens.
-- inventories every prototype source, all eleven ADR Markdown inputs, and the
-  shared bounded-JSON implementation by SHA-256 through bounded, no-follow
-  directory and file descriptors. It limits entries during discovery and
-  rejects symlink and hard-link aliases.
+- inventories 69 files in the declared B01 source/support set
+  under a 72-file cap and an 8 MiB aggregate byte cap. Three file slots remain.
+- hashes each inventoried file through bounded, no-follow directory and file
+  descriptors. It limits discovery entries and rejects symlink and hard-link
+  aliases.
 - binds the result to a clean current Git commit/tree and exact current contract
   manifest bytes.
 - preflights the single bounded result line for depth, item, member, array,
   string, number, and aggregate limits before native JSON allocation, then
   passes it through [`verify_result.py`](verify_result.py).
+
+Python imports occur before `run_all.py` creates its first aggregate inventory
+snapshot. The runner compares the declared set with a second snapshot after the
+probes finish. This inventory is neither a pre-import attestation nor complete
+execution provenance.
 
 A green run is local preliminary evidence only. External mTLS/ACL,
 rotation/revocation, installed peers, live plants, fault/soak, fuzz/sanitizers,

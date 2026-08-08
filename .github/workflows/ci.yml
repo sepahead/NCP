@@ -60,6 +60,8 @@ jobs:
           "$evidence_schema_python" -m pip install \
             --disable-pip-version-check --require-hashes --only-binary=:all: \
             -r scripts/requirements-evidence-schema.txt
+          "$evidence_schema_python" \
+            prototypes/b01-architecture-evidence/source_inventory.py --self-test
           "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
           "$evidence_schema_python" scripts/check_implementation_ledger.py --self-test
           "$evidence_schema_python" scripts/generate_implementation_ledger.py --check

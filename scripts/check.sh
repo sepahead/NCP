@@ -41,6 +41,8 @@ evidence_schema_python="$evidence_schema_venv/bin/python"
 "$evidence_schema_python" -m pip install \
     --disable-pip-version-check --require-hashes --only-binary=:all: \
     -r scripts/requirements-evidence-schema.txt
+"$evidence_schema_python" \
+    prototypes/b01-architecture-evidence/source_inventory.py --self-test
 bun install --frozen-lockfile --backend=copyfile --force
 "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
 
