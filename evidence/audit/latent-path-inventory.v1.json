@@ -6147,9 +6147,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/README.md",
-        "bytes": 48435,
-        "sha256": "6f5743c155db8bf3a034221735ec662c4faf45ceeacab57e97db3132795a8f0f",
-        "git_blob_oid": "91b90d6bcfd337231ca187f3252dfb06f4db9190",
+        "bytes": 48671,
+        "sha256": "38abd9fddfe99dc8b4df22d634d638981ec14fa46e497d526a19d2722fad7c66",
+        "git_blob_oid": "4c775e697430d39ebe864ac87fa630b80afec0af",
         "indexed": true
       },
       {
@@ -6357,9 +6357,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/decision_probe.py",
-        "bytes": 332748,
-        "sha256": "9f1ff91049852655ba90f8b8ca41a695b3b6bb4fa0a2c30bdc5aa72b1c4e5539",
-        "git_blob_oid": "9a27b4a43a1d4f4cb3d1d0525e5b81a86d4292aa",
+        "bytes": 333325,
+        "sha256": "71165e93bf340d630eac725351ff075d36eed483e368b42f98413a02097dc03c",
+        "git_blob_oid": "5a65581b0e5adc0af5fcf53f875055b8c9a413f3",
         "indexed": true
       },
       {
@@ -10001,7 +10001,7 @@
       "column": 45,
       "token_id": "M008",
       "line_sha256": "3813bf29cd75d337da7b721cee700aea653af8bd41bcbaf4a43991aca136692d",
-      "file_sha256": "6f5743c155db8bf3a034221735ec662c4faf45ceeacab57e97db3132795a8f0f",
+      "file_sha256": "38abd9fddfe99dc8b4df22d634d638981ec14fa46e497d526a19d2722fad7c66",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [

@@ -632,12 +632,26 @@ closures, CI configuration, or live deployments.
 The deterministic result separates 24 killed executable logic mutants and 22
 semantic contrasts across 159,993 finite cases. It rejects 616 hostile inputs and
 reaches 119 invariant witnesses. It derives these totals from the complete emitted
-witness arrays. Its real `--self-test` mutates counts, identities, witnesses, and
-inventory digests. The
-aggregate verifier recomputes the complete canonical decision-probe result. It
-also reconciles those totals before it accepts the result. These remain bounded
-design probes, not the N07 pin-tool implementation, built-artifact qualification,
-live ACL evidence, or D18 closure.
+witness arrays.
+
+The `--self-test` builds one separate, fresh canonical replay oracle. It tests one
+JSON round trip and 13 result mutations against that immutable string. The 13
+mutations cover:
+
+- counts
+- identities
+- witnesses
+- inventory digests
+
+The oracle derives only from the fresh `build_result()` replay. The aggregate
+verifier separately recomputes the complete canonical decision-probe result. It
+also reconciles those totals before it accepts the result. These bounded design
+probes do not provide:
+
+- N07 pin-tool implementation evidence
+- built-artifact qualification
+- live ACL evidence
+- D18 closure
 
 Within this synthetic model, a scan snapshot binds each surface key to the
 canonical digest of the complete fixture `DiscoveryRecord`. This tests fixture

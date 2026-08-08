@@ -8980,18 +8980,34 @@ def build_result() -> dict[str, Any]:
     return result
 
 
-def validate_result(value: Any) -> None:
+def _canonical_result(value: Any) -> str:
     if not isinstance(value, dict):
         raise ProbeError("decision-probe result is not an object")
-    expected = build_result()
-    if json.dumps(value, separators=(",", ":"), sort_keys=True) != json.dumps(
-        expected,
-        separators=(",", ":"),
-        sort_keys=True,
-    ):
+    return json.dumps(value, separators=(",", ":"), sort_keys=True)
+
+
+def _validate_result_against_canonical(
+    value: Any,
+    expected_canonical: str,
+) -> None:
+    if _canonical_result(value) != expected_canonical:
         raise ProbeError(
             "decision-probe result differs from deterministic semantic replay"
         )
+
+
+def _validated_replay_canonical(value: Any) -> str:
+    actual_canonical = _canonical_result(value)
+    expected_canonical = _canonical_result(build_result())
+    if actual_canonical != expected_canonical:
+        raise ProbeError(
+            "decision-probe result differs from deterministic semantic replay"
+        )
+    return expected_canonical
+
+
+def validate_result(value: Any) -> None:
+    _validated_replay_canonical(value)
 
 
 def _set_path(value: dict[str, Any], path: tuple[str, ...], replacement: Any) -> None:
@@ -9005,20 +9021,22 @@ def _must_reject_result(
     baseline: dict[str, Any],
     path: tuple[str, ...],
     replacement: Any,
+    expected_canonical: str,
 ) -> None:
     hostile = copy.deepcopy(baseline)
     _set_path(hostile, path, replacement)
     try:
-        validate_result(hostile)
+        _validate_result_against_canonical(hostile, expected_canonical)
     except ProbeError:
         return
     raise ProbeError(f"self-test result mutation passed: {'.'.join(path)}")
 
 
 def self_test(result: dict[str, Any]) -> None:
-    validate_result(result)
-    validate_result(
-        json.loads(json.dumps(result, separators=(",", ":"), sort_keys=True))
+    expected_canonical = _validated_replay_canonical(result)
+    _validate_result_against_canonical(
+        json.loads(json.dumps(result, separators=(",", ":"), sort_keys=True)),
+        expected_canonical,
     )
     if (
         PYTHON_MIRROR_INPUT_MANIFEST_KEY != ".ncp-surface-inputs.v1.json"
@@ -9067,9 +9085,6 @@ def self_test(result: dict[str, Any]) -> None:
         raise ProbeError(
             "Python mirror context did not separate input and package manifests"
         )
-    repeated = build_result()
-    if json.dumps(result, sort_keys=True) != json.dumps(repeated, sort_keys=True):
-        raise ProbeError("decision probe is not deterministic")
     mutations = (
         (("schema",), "ncp.b01-decision-probe-result.v999"),
         (("counts", "logic_mutants_killed"), 0),
@@ -9086,11 +9101,11 @@ def self_test(result: dict[str, Any]) -> None:
         ),
     )
     for path, replacement in mutations:
-        _must_reject_result(result, path, replacement)
+        _must_reject_result(result, path, replacement, expected_canonical)
     missing_fault = copy.deepcopy(result)
     missing_fault["observer_projection"]["logic_mutants"].pop()
     try:
-        validate_result(missing_fault)
+        _validate_result_against_canonical(missing_fault, expected_canonical)
     except ProbeError:
         pass
     else:
@@ -9098,7 +9113,7 @@ def self_test(result: dict[str, Any]) -> None:
     missing_contrast = copy.deepcopy(result)
     missing_contrast["capture_action"]["semantic_contrasts"].pop()
     try:
-        validate_result(missing_contrast)
+        _validate_result_against_canonical(missing_contrast, expected_canonical)
     except ProbeError:
         pass
     else:
@@ -9108,7 +9123,7 @@ def self_test(result: dict[str, Any]) -> None:
         copy.deepcopy(duplicate_fault["surface_inventory"]["hostile_inputs"][0])
     )
     try:
-        validate_result(duplicate_fault)
+        _validate_result_against_canonical(duplicate_fault, expected_canonical)
     except ProbeError:
         pass
     else:
