@@ -63,6 +63,20 @@ TOKEN_PATTERN = re.compile(
 )
 TOKEN_ID = {value.casefold(): identifier for identifier, value in TOKEN_CATALOG.items()}
 
+B01_QOS_FALLBACK_GUARD_LINES = {
+    "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json": (
+        '"purpose": "Repairing only overload spelling must leave the receipt-free '
+        'fallback and other omissions closed.",'
+    ),
+    "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs": (
+        'if document.get("fallback").is_some() {'
+    ),
+    "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts": (
+        'if (Object.hasOwn(document, "fallback")) diagnostics.push('
+        '"QOS_FALLBACK_FORBIDDEN");'
+    ),
+}
+
 COUNTERFACTUALS = {
     "CF-01": "valid syntax with contradictory semantics",
     "CF-02": "authenticated but unauthorized producer",
@@ -2275,6 +2289,8 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
             ["contract/surface.v1.json", "docs/1.0-scope.md"],
         )
     if token_id == "M008":
+        if line.strip() == B01_QOS_FALLBACK_GUARD_LINES.get(path):
+            return "NEGATIVE_POLICY_GUARD", "FAIL_CLOSED_REQUIREMENT", [path]
         if path in {
             "KNOWN_LIMITATIONS.md",
             "RELEASE_READINESS.md",
@@ -2658,6 +2674,32 @@ def self_test() -> None:
             "FAIL_CLOSED_REQUIREMENT",
         ),
         (
+            "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+            (
+                b'"purpose": "Repairing only overload spelling must leave the '
+                b'receipt-free fallback and other omissions closed.",\n'
+            ),
+            "NEGATIVE_POLICY_GUARD",
+            "FAIL_CLOSED_REQUIREMENT",
+        ),
+        (
+            "prototypes/b01-architecture-evidence/adr-example-semantics/"
+            "rust/src/profiles.rs",
+            b'if document.get("fallback").is_some() {\n',
+            "NEGATIVE_POLICY_GUARD",
+            "FAIL_CLOSED_REQUIREMENT",
+        ),
+        (
+            "prototypes/b01-architecture-evidence/adr-example-semantics/"
+            "typescript/src/semantics.ts",
+            (
+                b'if (Object.hasOwn(document, "fallback")) diagnostics.push('
+                b'"QOS_FALLBACK_FORBIDDEN");\n'
+            ),
+            "NEGATIVE_POLICY_GUARD",
+            "FAIL_CLOSED_REQUIREMENT",
+        ),
+        (
             "ncp-core/src/safety.rs",
             b"A bounded fallback emits HOLD instead of Active.\n",
             "FAIL_SAFE_NON_WIDENING",
@@ -2697,6 +2739,20 @@ def self_test() -> None:
             or classified[0]["claim_effect"] != expected_effect
         ):
             raise AssertionError(f"exact reviewed latent-path class regressed: {path}")
+    for path in B01_QOS_FALLBACK_GUARD_LINES:
+        classified, is_text = _scan_content(
+            path,
+            b"A permissive fallback is available.\n",
+        )
+        if (
+            not is_text
+            or len(classified) != 1
+            or classified[0]["disposition"] != "UNREVIEWED_ACTION_PATH"
+            or classified[0]["claim_effect"] != "BLOCKS_LOCAL_CLOSURE"
+        ):
+            raise AssertionError(
+                f"B01 QoS fallback guard classification widened beyond its exact line: {path}"
+            )
     if _scan_content("binary.bin", b"TODO\0fallback")[1]:
         raise AssertionError("binary input was treated as tracked text")
 

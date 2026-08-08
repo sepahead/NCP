@@ -1,0 +1,2437 @@
+{
+  "schema": "ncp.b01-adr-example-semantics-corpus.v1",
+  "schema_version": 1,
+  "task": "B01",
+  "candidate": "1.0.0-rc.1",
+  "wire_version": "1.0",
+  "decision_set_binding": {
+    "schema": "ncp.b01-decision-set.v1",
+    "registry_path": "docs/adr/decision-registry.proposed.v1.json",
+    "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+    "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
+    "projection_encoding": "UTF8_JSON_SORTED_KEYS_COMPACT_ENSURE_ASCII_FALSE",
+    "projection_members": [
+      "schema",
+      "candidate",
+      "wire_version",
+      "review_policy",
+      "decisions"
+    ],
+    "decision_members": [
+      "id",
+      "title",
+      "path",
+      "module_paths",
+      "content_sha256",
+      "bytes",
+      "source_set",
+      "required_reviews",
+      "defect_ids"
+    ],
+    "projection_byte_length": 16383,
+    "projection_sha256": "40d52a56a3d561e118865f823cf55d1172e25b64f600e413e3635bf1b511f4f5",
+    "sha256": "794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a",
+    "effect": "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY"
+  },
+  "source_binding": {
+    "fence_language": "json",
+    "fence_capture": "content_between_exact_json_fence_markers_excluding_terminal_newline",
+    "path_root": "repository",
+    "sha256_encoding": "lowercase_hex"
+  },
+  "limits": {
+    "maximum_corpus_bytes": 262144,
+    "maximum_aggregate_adr_bytes": 2097152,
+    "maximum_adr_bytes": 262144,
+    "maximum_json_fence_bytes": 131072,
+    "maximum_json_depth": 32,
+    "maximum_json_nodes": 100000,
+    "maximum_object_members": 4096,
+    "maximum_array_items": 4096,
+    "maximum_key_utf8_bytes": 256,
+    "maximum_string_utf8_bytes": 65536,
+    "maximum_total_string_utf8_bytes": 131072,
+    "maximum_integer_characters": 32,
+    "allow_floats": false,
+    "expected_case_count": 22,
+    "expected_mutation_count": 90,
+    "minimum_mutations_per_case": 2,
+    "maximum_mutations_per_case": 16,
+    "maximum_engine_output_bytes": 262144,
+    "engine_timeout_seconds": 120
+  },
+  "closed_values": {
+    "scope": [
+      "AUTHENTICATED_WIRE_OBJECT",
+      "DECODED_HEADER_FRAGMENT",
+      "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+      "NON_WIRE_INTERNAL_STATE",
+      "PROPOSED_EXTENSION_ENVELOPE",
+      "PROPOSED_SEMANTIC_PROJECTION",
+      "PROPOSED_WIRE_FRAGMENT"
+    ],
+    "polarity": [
+      "NEGATIVE",
+      "POSITIVE"
+    ],
+    "profile_result": [
+      "MATCH_NON_AUTHORIZING_EXCERPT",
+      "MATCH_NON_WIRE_EXCERPT",
+      "REJECT"
+    ],
+    "production_admission": [
+      "NOT_APPLICABLE",
+      "NOT_EVALUATED",
+      "REJECT"
+    ],
+    "patch_target": [
+      "BOUNDED_FIXTURE",
+      "DOCUMENT"
+    ],
+    "patch_operation": [
+      "ADD",
+      "REMOVE",
+      "REPLACE"
+    ]
+  },
+  "diagnostic_registry": [
+    "ALGORITHM_LABEL_FORBIDDEN",
+    "ALGORITHM_LABEL_REQUIRED",
+    "ASSESSMENT_MAGNITUDE_REQUIRED",
+    "AUTHORITY_REALM_KEY_MISMATCH",
+    "AUTHORITY_REALM_KEY_MISSING",
+    "AUTHORITY_REALM_KEY_REQUIRED",
+    "AUTHORITY_REALM_MISMATCH",
+    "COMMANDER_PRINCIPAL_MISMATCH",
+    "COMMAND_AUTHORITY_ISSUER_NOT_BODY",
+    "COMMAND_IDENTITY_LAUNDERING",
+    "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY",
+    "DIGEST_ENCODING_INVALID",
+    "DISPOSITION_STATE_UNKNOWN",
+    "DISPOSITION_TERMINALITY_INVALID",
+    "EXTENSION_ID_MISMATCH",
+    "EXTENSION_POLICY_FIELD_FORBIDDEN",
+    "EXTENSION_PRODUCER_ROLE_INVALID",
+    "EXTENSION_RECEIVER_ROLE_INVALID",
+    "EXTENSION_SCHEMA_VERSION_MISMATCH",
+    "FAIL_SAFE_PRIORITY_INVALID",
+    "INTENT_AUDIENCE_MISMATCH",
+    "INTENT_EXPIRED",
+    "INTENT_ISSUER_MISMATCH",
+    "KEY_EPOCH_MEMBERSHIP_REQUIRED",
+    "KEY_ID_NOT_CONTENT_ADDRESSED",
+    "LEASE_ISSUER_NOT_BODY",
+    "LEASE_NOT_CURRENT",
+    "MESSAGE_KIND_MISMATCH",
+    "NCP_VERSION_MISMATCH",
+    "OUTPUT_ALLOCATION_FLAG_INVALID",
+    "PENDING_STATE_ALLOCATES_OUTPUT",
+    "PENDING_STATE_INVALID",
+    "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
+    "PLANT_PROFILE_MISSING",
+    "PLANT_SECURITY_CONTEXT_MISSING",
+    "PRINCIPAL_MEMBERSHIP_REQUIRED",
+    "PROTECTED_HEADER_AUDIENCE_MISMATCH",
+    "PROTECTED_HEADER_NOT_JSON",
+    "PUBLISHER_PRINCIPAL_MISMATCH",
+    "QOS_CAPACITY_INVALID",
+    "QOS_FAIL_SAFE_PRIORITY_REQUIRED",
+    "QOS_FALLBACK_FORBIDDEN",
+    "QOS_ORDERING_REQUIRED",
+    "QOS_OVERLOAD_INVALID",
+    "QOS_PLANE_REQUIRED",
+    "QOS_PROFILE_ID_REQUIRED",
+    "QOS_RETENTION_REQUIRED",
+    "QOS_ROUTE_REQUIRED",
+    "REALM_REQUIRED",
+    "REALM_ROUTE_MISMATCH",
+    "REMOTE_JKU_FORBIDDEN",
+    "REVOCATION_EPOCH_INVALID",
+    "SECURITY_ALGORITHM_NOT_EXACT",
+    "SECURITY_EPOCH_INVALID",
+    "SECURITY_PROFILE_INVALID",
+    "SESSION_KIND_MISMATCH",
+    "SIGNATURE_LENGTH_INVALID",
+    "SIGNATURE_NOT_VALID",
+    "STABLE_CORE_DIGEST_INVALID",
+    "STABLE_CORE_DIGEST_MISSING_OR_NULL",
+    "STREAM_DECLARATION_NOT_LIVE",
+    "STREAM_EPOCH_ALREADY_LIVE",
+    "STREAM_EPOCH_REQUIRED",
+    "STREAM_SEQUENCE_START_INVALID",
+    "UNPROTECTED_HEADER_FORBIDDEN",
+    "WIRE_VERSION_MISMATCH"
+  ],
+  "claim_boundary": {
+    "adrs_accepted": false,
+    "normative_contract_changed": false,
+    "production_admission_implemented": false,
+    "interoperability_established": false,
+    "independent_evidence_satisfied": false,
+    "external_gate_satisfied": false,
+    "release_authorized": false
+  },
+  "cases": [
+    {
+      "id": "adr001.open-plant-session.kind-separation.v1",
+      "source": {
+        "adr": "ADR-001",
+        "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 152215,
+        "adr_sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
+        "fence_byte_length": 545,
+        "fence_sha256": "3dc8f3c5c5010ac97c4361a9827e7a05c77aa6f333eafe4c3c4b041843b62074"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "expected_ncp_version": "1.0",
+        "expected_session_kind": "open_plant_session",
+        "expected_commander_principal_id": "engram-commander-a",
+        "digest_algorithm": "sha256"
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr001.open-plant-session.add-simulation-network.v1",
+          "purpose": "A plant fragment must reject one simulation-only member.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/network",
+            "value": {
+              "id": "engram-network"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr001.open-plant-session.remove-plant-profile.v1",
+          "purpose": "A plant fragment must not infer its plant profile.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/plant_profile_digest"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PLANT_PROFILE_MISSING"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr001.open-plant-session.version-substitution.v1",
+          "purpose": "A different NCP wire family must not retain plant-session meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/ncp_version",
+            "value": "0.8"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "NCP_VERSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr001.open-plant-session.kind-substitution.v1",
+          "purpose": "A simulation-open kind must not acquire plant-session meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/kind",
+            "value": "open_simulation_session"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SESSION_KIND_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr001.open-plant-session.commander-substitution.v1",
+          "purpose": "A different commander principal must not retain the fragment binding.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/commander_identity/principal_id",
+            "value": "attacker-commander"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "COMMANDER_PRINCIPAL_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr001.plant-session.simulation-field-confusion.v1",
+      "source": {
+        "adr": "ADR-001",
+        "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 152215,
+        "adr_sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
+        "fence_byte_length": 172,
+        "fence_sha256": "af66ee5c719b7b08e0ce71988fd2bbfe87e7385618560dc76c24bd0d1d8a3203"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "expected_ncp_version": "1.0",
+        "expected_session_kind": "open_plant_session",
+        "expected_commander_principal_id": "engram-commander-a",
+        "digest_algorithm": "sha256"
+      },
+      "expected_diagnostics": [
+        "COMMANDER_PRINCIPAL_MISMATCH",
+        "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
+        "PLANT_PROFILE_MISSING",
+        "PLANT_SECURITY_CONTEXT_MISSING"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr001.plant-session.repair-profile-only.v1",
+          "purpose": "Repairing only the plant profile must leave cross-kind and security failures closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/plant_profile_digest",
+            "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "COMMANDER_PRINCIPAL_MISMATCH",
+            "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
+            "PLANT_SECURITY_CONTEXT_MISSING"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr001.plant-session.repair-security-only.v1",
+          "purpose": "Repairing only the security reference must leave cross-kind and profile failures closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/security_state_digest",
+            "value": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "COMMANDER_PRINCIPAL_MISMATCH",
+            "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
+            "PLANT_PROFILE_MISSING"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr002.realm-bound-contract-identity.v1",
+      "source": {
+        "adr": "ADR-002",
+        "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 16004,
+        "adr_sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
+        "fence_byte_length": 645,
+        "fence_sha256": "a97bb9ecb63c4f027c284679455b4023cad5c331f919f14a1d4743fb0838456a"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "expected_wire_version": "1.0",
+        "digest_algorithm": "sha256"
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr002.contract-identity.realm-mismatch.v1",
+          "purpose": "A direct realm coordinate must match authenticated context.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/stable_realm_id",
+            "value": "realm-b"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr002.contract-identity.compact-core-substitution.v1",
+          "purpose": "The compact diagnostic hash must not replace a full stable-core digest.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/stable_core_digest",
+            "value": "163acc57d8a62b66"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "STABLE_CORE_DIGEST_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr002.contract-identity.wire-version-mismatch.v1",
+          "purpose": "A different wire family must not retain contract-identity meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/wire_version",
+            "value": "0.8"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "WIRE_VERSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr002.contract-identity.realm-extra-member.v1",
+          "purpose": "An AuthorityRealmKey must not acquire an unregistered selector member.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm_key/ambient_selector",
+            "value": "attacker-controlled"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr002.compact-hash-substitution.v1",
+      "source": {
+        "adr": "ADR-002",
+        "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 16004,
+        "adr_sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
+        "fence_byte_length": 96,
+        "fence_sha256": "3c42c6cd42f1e711559a97cfb3e9a172b3462b939a516b51dd1ed0c1f8d54c70"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "expected_wire_version": "1.0",
+        "digest_algorithm": "sha256"
+      },
+      "expected_diagnostics": [
+        "AUTHORITY_REALM_KEY_MISSING",
+        "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY",
+        "STABLE_CORE_DIGEST_MISSING_OR_NULL"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr002.compact-hash.repair-realm-only.v1",
+          "purpose": "Repairing only the realm must not authorize compact-hash substitution.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm_key",
+            "value": {
+              "server_authority_principal_id": "ncp-authority-a",
+              "stable_realm_id": "realm-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY",
+            "STABLE_CORE_DIGEST_MISSING_OR_NULL"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr002.compact-hash.repair-stable-digest-only.v1",
+          "purpose": "Repairing only the stable-core digest must leave missing realm and compact substitution closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/stable_core_digest",
+            "value": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_MISSING",
+            "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr003.flattened-jws-placeholder.v1",
+      "source": {
+        "adr": "ADR-003",
+        "path": "docs/adr/0003-authenticated-production-ingress.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 21273,
+        "adr_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+        "fence_byte_length": 213,
+        "fence_sha256": "dabc6aba928403e18ab60e51ec165f0b2695940424295693568eda0fee20ba58"
+      },
+      "scope": "AUTHENTICATED_WIRE_OBJECT",
+      "profile": "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "required_algorithm": "Ed25519",
+        "expected_signature_bytes": 64,
+        "signature_verifies": false
+      },
+      "expected_diagnostics": [
+        "PROTECTED_HEADER_NOT_JSON",
+        "SIGNATURE_NOT_VALID"
+      ],
+      "payload_interpreted": false,
+      "mutations": [
+        {
+          "id": "adr003.placeholder.add-unprotected-header.v1",
+          "purpose": "An unprotected header must add a closed failure without enabling payload interpretation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/header",
+            "value": {}
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PROTECTED_HEADER_NOT_JSON",
+            "SIGNATURE_NOT_VALID",
+            "UNPROTECTED_HEADER_FORBIDDEN"
+          ],
+          "payload_interpreted": false
+        },
+        {
+          "id": "adr003.placeholder.empty-signature.v1",
+          "purpose": "A zero-length signature must fail its structural bound before verification.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/signature",
+            "value": ""
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PROTECTED_HEADER_NOT_JSON",
+            "SIGNATURE_LENGTH_INVALID"
+          ],
+          "payload_interpreted": false
+        },
+        {
+          "id": "adr003.placeholder.protected-realm-substitution.v1",
+          "purpose": "A valid protected header must remain bound to the authenticated realm key.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/protected",
+            "value": "eyJhbGciOiJFZDI1NTE5IiwiYXV0aG9yaXR5X3JlYWxtX2tleSI6eyJzZXJ2ZXJfYXV0aG9yaXR5X3ByaW5jaXBhbF9pZCI6ImF0dGFja2VyLWF1dGhvcml0eSIsInN0YWJsZV9yZWFsbV9pZCI6InJlYWxtLWEifX0"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_MISMATCH",
+            "SIGNATURE_NOT_VALID"
+          ],
+          "payload_interpreted": false
+        }
+      ]
+    },
+    {
+      "id": "adr003.protected-header-required-member-projection.v1",
+      "source": {
+        "adr": "ADR-003",
+        "path": "docs/adr/0003-authenticated-production-ingress.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 21273,
+        "adr_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+        "fence_byte_length": 236,
+        "fence_sha256": "91adca487db813745f39a57deeb16457f710af0e92fbd40c3fe1641a6af8574d"
+      },
+      "scope": "DECODED_HEADER_FRAGMENT",
+      "profile": "ADR003_PROTECTED_HEADER_REQUIRED_MEMBER_PROJECTION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "required_algorithm": "Ed25519",
+        "expected_route": "realm-a/session/plant-alpha/command/controller-a",
+        "expected_audience": "plant-body-a"
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr003.protected-header.ambiguous-algorithm.v1",
+          "purpose": "The polymorphic EdDSA label must not substitute for exact Ed25519.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/alg",
+            "value": "EdDSA"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "ALGORITHM_LABEL_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr003.protected-header.remote-key-url.v1",
+          "purpose": "A message-supplied remote key URL must not select trust state.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/jku",
+            "value": "https://attacker.invalid/keyset.json"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REMOTE_JKU_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr003.protected-header.audience-substitution.v1",
+          "purpose": "A protected header must not retarget its authenticated audience.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/audience",
+            "value": "attacker-body"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PROTECTED_HEADER_AUDIENCE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr003.protected-header.same-realm-route-substitution.v1",
+          "purpose": "A same-realm route must not substitute for the exact protected route.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/route",
+            "value": "realm-a/session/plant-beta/command/controller-b"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr003.unauthenticated-forwarding-wrapper.v1",
+      "source": {
+        "adr": "ADR-003",
+        "path": "docs/adr/0003-authenticated-production-ingress.md",
+        "json_fence_ordinal": 3,
+        "adr_byte_length": 21273,
+        "adr_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+        "fence_byte_length": 149,
+        "fence_sha256": "40d293ccb4915186fcc91d016dace92026ee50f2a9bbb8fb3106f24599f5fcd3"
+      },
+      "scope": "AUTHENTICATED_WIRE_OBJECT",
+      "profile": "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "required_algorithm": "Ed25519",
+        "expected_signature_bytes": 64,
+        "signature_verifies": false
+      },
+      "expected_diagnostics": [
+        "ALGORITHM_LABEL_FORBIDDEN",
+        "AUTHORITY_REALM_KEY_MISSING",
+        "REMOTE_JKU_FORBIDDEN",
+        "SIGNATURE_LENGTH_INVALID",
+        "UNPROTECTED_HEADER_FORBIDDEN"
+      ],
+      "payload_interpreted": false,
+      "mutations": [
+        {
+          "id": "adr003.unauthenticated-wrapper.remove-unprotected-header.v1",
+          "purpose": "Removing only the unprotected header must leave algorithm, realm, and signature rejection closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/header"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "ALGORITHM_LABEL_FORBIDDEN",
+            "AUTHORITY_REALM_KEY_MISSING",
+            "SIGNATURE_LENGTH_INVALID"
+          ],
+          "payload_interpreted": false
+        },
+        {
+          "id": "adr003.unauthenticated-wrapper.empty-protected-header.v1",
+          "purpose": "An empty decoded protected header must remain closed despite valid JSON syntax.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/protected",
+            "value": "e30"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "ALGORITHM_LABEL_REQUIRED",
+            "AUTHORITY_REALM_KEY_MISSING",
+            "REMOTE_JKU_FORBIDDEN",
+            "SIGNATURE_LENGTH_INVALID",
+            "UNPROTECTED_HEADER_FORBIDDEN"
+          ],
+          "payload_interpreted": false
+        }
+      ]
+    },
+    {
+      "id": "adr004.pending-release-reservation-nonallocation.v1",
+      "source": {
+        "adr": "ADR-004",
+        "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 261552,
+        "adr_sha256": "a192232e3cf97bafec8e55a02ee8f411a7c298256639bec5fdc7fbcd47506904",
+        "fence_byte_length": 61,
+        "fence_sha256": "c91551ca802082ff0e4828da02884d24b13b968c090d93cd97eb27cfea72af2a"
+      },
+      "scope": "NON_WIRE_INTERNAL_STATE",
+      "profile": "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_WIRE_EXCERPT",
+      "production_admission": "NOT_APPLICABLE",
+      "bounded_fixture": {
+        "expected_state": "PENDING_INTENT_ONLY",
+        "output_allocation_permitted": false
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr004.pending-reservation.allocates-output.v1",
+          "purpose": "Pending intent state must not allocate an output slot.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/allocates_output_slot",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "NOT_APPLICABLE",
+          "expected_diagnostics": [
+            "PENDING_STATE_ALLOCATES_OUTPUT"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.pending-reservation.unknown-state.v1",
+          "purpose": "An unregistered internal state must not inherit pending semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/state",
+            "value": "RELEASED"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "NOT_APPLICABLE",
+          "expected_diagnostics": [
+            "PENDING_STATE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.pending-reservation.nonboolean-allocation.v1",
+          "purpose": "A string default must not acquire Boolean nonallocation meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/allocates_output_slot",
+            "value": "false"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "NOT_APPLICABLE",
+          "expected_diagnostics": [
+            "OUTPUT_ALLOCATION_FLAG_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr005.declare-stream.excerpt.v1",
+      "source": {
+        "adr": "ADR-005",
+        "path": "docs/adr/0005-declared-stream-lifecycle.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 38308,
+        "adr_sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
+        "fence_byte_length": 521,
+        "fence_sha256": "9233baceed111f44fec15a76464188e7408f5a59d1dbe9b64d0076586565bf18"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR005_DECLARE_STREAM_EXCERPT_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "authenticated_publisher_principal_id": "haldir-commander-a",
+        "live_declaration_epoch_ids": []
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr005.declare-stream.realm-route-mismatch.v1",
+          "purpose": "A direct realm must agree with the route projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/stable_realm_id",
+            "value": "realm-b"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.zero-sequence-start.v1",
+          "purpose": "A stream sequence must not start at the non-authorizing zero default.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/sequence_start",
+            "value": 0
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "STREAM_SEQUENCE_START_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.publisher-substitution.v1",
+          "purpose": "A different publisher principal must not retain stream ownership.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/publisher_principal_id",
+            "value": "attacker-publisher"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PUBLISHER_PRINCIPAL_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.reused-live-epoch.v1",
+          "purpose": "A new declaration must not reuse an already live stream epoch.",
+          "patch": {
+            "target": "BOUNDED_FIXTURE",
+            "op": "ADD",
+            "path": "/live_declaration_epoch_ids/0",
+            "value": "00000000-0000-4000-8000-000000000001"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "STREAM_EPOCH_ALREADY_LIVE"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.remove-epoch.v1",
+          "purpose": "A declaration profile must not infer a missing stream epoch.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/stream_epoch"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "STREAM_EPOCH_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.kind-substitution.v1",
+          "purpose": "An arbitrary action message must not acquire declaration semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/kind",
+            "value": "command_frame"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "MESSAGE_KIND_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.authority-principal-substitution.v1",
+          "purpose": "A realm authority principal substitution must not retain declaration meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/server_authority_principal_id",
+            "value": "attacker-authority"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.wire-version-substitution.v1",
+          "purpose": "A different wire family must not retain declaration semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/ncp_version",
+            "value": "0.8"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "NCP_VERSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.declare-stream.remove-route.v1",
+          "purpose": "A declaration must not infer a missing authenticated route.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/route"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr005.undeclared-frame.hostile.v1",
+      "source": {
+        "adr": "ADR-005",
+        "path": "docs/adr/0005-declared-stream-lifecycle.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 38308,
+        "adr_sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
+        "fence_byte_length": 215,
+        "fence_sha256": "35be78eeb271f6343de1f38c567a1667043c38ce4e7eedcbf10076b06cdcc841"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR005_UNDECLARED_FRAME_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "authenticated_publisher_principal_id": "haldir-commander-a",
+        "live_declaration_epoch_ids": []
+      },
+      "expected_diagnostics": [
+        "REALM_REQUIRED",
+        "STREAM_DECLARATION_NOT_LIVE"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr005.undeclared-frame.repair-realm-only.v1",
+          "purpose": "Repairing only the realm must leave an undeclared epoch closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm_key",
+            "value": {
+              "server_authority_principal_id": "ncp-authority-a",
+              "stable_realm_id": "realm-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "STREAM_DECLARATION_NOT_LIVE"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.undeclared-frame.install-declaration-only.v1",
+          "purpose": "Installing only a matching declaration must not supply a missing direct realm.",
+          "patch": {
+            "target": "BOUNDED_FIXTURE",
+            "op": "ADD",
+            "path": "/live_declaration_epoch_ids/0",
+            "value": "00000000-0000-4000-8000-000000000099"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_REQUIRED"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr006.body-lease.excerpt.v1",
+      "source": {
+        "adr": "ADR-006",
+        "path": "docs/adr/0006-body-issued-authority-and-time.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 55367,
+        "adr_sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
+        "fence_byte_length": 336,
+        "fence_sha256": "87df054a83dad934134d0ebd9fa3700cfa8947f513c26e91be5df4ed9866a42d"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR006_BODY_LEASE_EXCERPT_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "enrolled_body_principal_id": "crebain-body-a",
+        "current_lease": {
+          "session_generation": "00000000-0000-4000-8000-0000000000a2",
+          "term": 7,
+          "lease_id": "00000000-0000-4000-8000-0000000000b7",
+          "holder_principal_id": "haldir-commander-a",
+          "holder_entity_id": "controller-a"
+        },
+        "evaluation_utc_ms": 1784200020000
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr006.body-lease.nonbody-issuer.v1",
+          "purpose": "A commander must not acquire body-lease issuance authority.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/issuer_principal_id",
+            "value": "engram-commander-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "LEASE_ISSUER_NOT_BODY"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr006.body-lease.stale-term.v1",
+          "purpose": "A stale term must not match the installed current lease.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/term",
+            "value": 6
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "LEASE_NOT_CURRENT"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr006.body-lease.negative-issued-time.v1",
+          "purpose": "A negative timestamp must not become a current authority lease.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/issued_at_utc_ms",
+            "value": -1
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "LEASE_NOT_CURRENT"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr006.self-issued-stale-lease.hostile.v1",
+      "source": {
+        "adr": "ADR-006",
+        "path": "docs/adr/0006-body-issued-authority-and-time.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 55367,
+        "adr_sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
+        "fence_byte_length": 340,
+        "fence_sha256": "310d751075037df699649455b9e23d9845b2a7b66be4e69d90fd644358667612"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR006_STALE_SELF_ISSUED_LEASE_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "enrolled_body_principal_id": "crebain-body-a",
+        "current_lease": {
+          "session_generation": "00000000-0000-4000-8000-0000000000a2",
+          "term": 7,
+          "lease_id": "00000000-0000-4000-8000-0000000000b7",
+          "holder_principal_id": "haldir-commander-a",
+          "holder_entity_id": "controller-a"
+        },
+        "evaluation_utc_ms": 1784200020000
+      },
+      "expected_diagnostics": [
+        "LEASE_ISSUER_NOT_BODY",
+        "LEASE_NOT_CURRENT"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr006.self-issued-lease.repair-issuer-only.v1",
+          "purpose": "Repairing only the issuer must leave stale lease identity closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/issuer_principal_id",
+            "value": "crebain-body-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "LEASE_NOT_CURRENT"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr006.self-issued-lease.make-lease-current-only.v1",
+          "purpose": "Making only the lease coordinates current must leave self-issuance closed.",
+          "patch": {
+            "target": "BOUNDED_FIXTURE",
+            "op": "REPLACE",
+            "path": "/current_lease",
+            "value": {
+              "session_generation": "00000000-0000-4000-8000-0000000000a2",
+              "term": 6,
+              "lease_id": "00000000-0000-4000-8000-0000000000b6",
+              "holder_principal_id": "engram-commander-a",
+              "holder_entity_id": "controller-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "LEASE_ISSUER_NOT_BODY"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr007.received-disposition.excerpt.v1",
+      "source": {
+        "adr": "ADR-007",
+        "path": "docs/adr/0007-command-disposition-journal.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 221493,
+        "adr_sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
+        "fence_byte_length": 76,
+        "fence_sha256": "9fb90c954022d3448dee55e370e15feb86cbadd94c1c95a1eb03bba048a1065b"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "nonterminal_states": [
+          "received",
+          "admitted"
+        ],
+        "terminal_states": [
+          "applied",
+          "expired",
+          "failed",
+          "rejected",
+          "superseded",
+          "unknown_after_boundary"
+        ]
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr007.received-disposition.false-terminal-claim.v1",
+          "purpose": "A nonterminal received state must not become terminal by assertion.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/terminal",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_TERMINALITY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.received-disposition.unknown-safe-state.v1",
+          "purpose": "An unknown physical-safety label must not acquire disposition meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/state",
+            "value": "physically_safe"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_STATE_UNKNOWN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.received-disposition.kind-substitution.v1",
+          "purpose": "A different message kind must not acquire disposition meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/kind",
+            "value": "observation_frame"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "MESSAGE_KIND_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr007.unknown-disposition.hostile.v1",
+      "source": {
+        "adr": "ADR-007",
+        "path": "docs/adr/0007-command-disposition-journal.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 221493,
+        "adr_sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
+        "fence_byte_length": 72,
+        "fence_sha256": "fb3f044de5526c34da0a9754f90fe7f72af4b9d16fa586efd5891fe3df97d11d"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR007_INVALID_DISPOSITION_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "nonterminal_states": [
+          "received",
+          "admitted"
+        ],
+        "terminal_states": [
+          "applied",
+          "expired",
+          "failed",
+          "rejected",
+          "superseded",
+          "unknown_after_boundary"
+        ]
+      },
+      "expected_diagnostics": [
+        "DISPOSITION_STATE_UNKNOWN",
+        "DISPOSITION_TERMINALITY_INVALID"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr007.unknown-disposition.remove-terminal.v1",
+          "purpose": "Removing terminal assertion must not register an unknown state.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/terminal"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_STATE_UNKNOWN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unknown-disposition.repair-state-only.v1",
+          "purpose": "Repairing only the state must reject a terminal assertion on received.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/state",
+            "value": "received"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_TERMINALITY_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr008.evaluated-envelope.excerpt.v1",
+      "source": {
+        "adr": "ADR-008",
+        "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 170617,
+        "adr_sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
+        "fence_byte_length": 6928,
+        "fence_sha256": "fafcc078bb7ea1e4160fbf4f5591c0a75b2ff2dc263911878524b3961cbb4cf6"
+      },
+      "scope": "PROPOSED_EXTENSION_ENVELOPE",
+      "profile": "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "extension_assessor_principal_id": "galadriel-assessor-a",
+        "extension_receiver_principal_id": "haldir-assessment-receiver-a"
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr008.assessment-envelope.realm-route-mismatch.v1",
+          "purpose": "An extension envelope realm must agree with its route.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/stable_realm_id",
+            "value": "realm-b"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.observer-as-assessor.v1",
+          "purpose": "Observer credentials must not acquire assessor authority.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/producer_principal_id",
+            "value": "galadriel-observer-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_PRODUCER_ROLE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.missing-magnitude.v1",
+          "purpose": "An evaluated verdict must not invent a missing magnitude.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/lifecycle_outcome_evidence/assessments/0/report_evidence/verdict/magnitude"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "ASSESSMENT_MAGNITUDE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.uppercase-suite-digest.v1",
+          "purpose": "A registered lowercase-hex digest must reject uppercase substitution.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/release_suite_identity/digest",
+            "value": "F1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DIGEST_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.receiver-substitution.v1",
+          "purpose": "An assessment must not retarget a different extension receiver.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/audience_principal_id",
+            "value": "attacker-receiver"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_RECEIVER_ROLE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.extension-id-substitution.v1",
+          "purpose": "A different extension identifier must not acquire Galadriel assessment meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/extension_id",
+            "value": "org.sepahead.galadriel.policy"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ID_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.schema-version-substitution.v1",
+          "purpose": "A different extension schema version must not retain profile meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/schema_version",
+            "value": "2"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_SCHEMA_VERSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.release-domain-substitution.v1",
+          "purpose": "A raw digest under a different domain must not retain release-suite identity.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/release_suite_identity/domain",
+            "value": "attacker-release-suite-v1"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DIGEST_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.raw-manifest-digest.v1",
+          "purpose": "A manifest digest without its registered algorithm prefix must remain closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/manifest_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DIGEST_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.authority-principal-substitution.v1",
+          "purpose": "A realm authority principal substitution must not retain assessment meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/server_authority_principal_id",
+            "value": "attacker-authority"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.empty-assessments.v1",
+          "purpose": "An empty assessment array must not satisfy the evaluated-envelope profile.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/lifecycle_outcome_evidence/assessments",
+            "value": []
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "ASSESSMENT_MAGNITUDE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.binding-domain-substitution.v1",
+          "purpose": "An assessment binding under a different domain must remain closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/lifecycle_outcome_evidence/assessments/0/assessment_binding_identity/domain",
+            "value": "attacker-assessment-binding-v2"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DIGEST_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.assessment-envelope.remove-route.v1",
+          "purpose": "An assessment envelope must not infer a missing authenticated route.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/route"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr008.self-policy.hostile.v1",
+      "source": {
+        "adr": "ADR-008",
+        "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 170617,
+        "adr_sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
+        "fence_byte_length": 207,
+        "fence_sha256": "75752f4d4878d8905d90fe7b4f36da49cf4349e68dc4a8562ba1c05842d73e5f"
+      },
+      "scope": "PROPOSED_EXTENSION_ENVELOPE",
+      "profile": "ADR008_GALADRIEL_POLICY_INJECTION_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "extension_assessor_principal_id": "galadriel-assessor-a",
+        "extension_receiver_principal_id": "haldir-assessment-receiver-a"
+      },
+      "expected_diagnostics": [
+        "EXTENSION_POLICY_FIELD_FORBIDDEN",
+        "EXTENSION_PRODUCER_ROLE_INVALID",
+        "REALM_REQUIRED"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr008.self-policy.repair-realm-only.v1",
+          "purpose": "Repairing only the realm must leave role and policy injection closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm_key",
+            "value": {
+              "server_authority_principal_id": "ncp-authority-a",
+              "stable_realm_id": "realm-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_POLICY_FIELD_FORBIDDEN",
+            "EXTENSION_PRODUCER_ROLE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.self-policy.repair-producer-only.v1",
+          "purpose": "Repairing only the producer role must not supply a missing direct realm.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/producer_principal_id",
+            "value": "galadriel-assessor-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_POLICY_FIELD_FORBIDDEN",
+            "REALM_REQUIRED"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr009.security-state.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-009",
+        "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 257562,
+        "adr_sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
+        "fence_byte_length": 576,
+        "fence_sha256": "53d40bdfd3996def0e6f2485a19f1410c419c65538a0d780d0a2ff78edd565a5"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR009_SECURITY_STATE_PROJECTION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "authenticated_authority_realm": {
+          "server_authority_principal": "spiffe://ncp.example/body-server",
+          "stable_realm_id": "plant-a"
+        },
+        "required_profile": "ncp-production-ingress-v1",
+        "required_key_algorithm": "Ed25519",
+        "maximum_security_epoch": 9007199254740991
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr009.security-state.ambiguous-key-algorithm.v1",
+          "purpose": "A polymorphic algorithm label must not inherit exact Ed25519 meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/key_epochs/0/algorithm",
+            "value": "EdDSA"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SECURITY_ALGORITHM_NOT_EXACT"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.mutable-key-name.v1",
+          "purpose": "A mutable key alias must not replace content-addressed key identity.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/key_epochs/0/kid",
+            "value": "current"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "KEY_ID_NOT_CONTENT_ADDRESSED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.uuid-security-epoch.v1",
+          "purpose": "A UUID string must not acquire numeric security-epoch semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/security_epoch",
+            "value": "00000000-0000-4000-8000-00000000000c"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SECURITY_EPOCH_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.zero-revocation-epoch.v1",
+          "purpose": "A zero default must not create an installed revocation epoch.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/revocation_epoch",
+            "value": 0
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REVOCATION_EPOCH_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.remove-principal-role.v1",
+          "purpose": "A principal entry without a role must not satisfy installed membership.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/principals/0/role"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PRINCIPAL_MEMBERSHIP_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.zero-key-epoch.v1",
+          "purpose": "A zero key epoch must not satisfy installed key membership.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/key_epochs/0/epoch",
+            "value": 0
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "KEY_EPOCH_MEMBERSHIP_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.realm-extra-member.v1",
+          "purpose": "An authority realm projection must reject an ambient selector member.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm/ambient_selector",
+            "value": "attacker-controlled"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.duplicate-principal.v1",
+          "purpose": "A keyed principal membership set must reject a duplicate principal identity.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/principals/-",
+            "value": {
+              "principal_id": "crebain-body-a",
+              "role": "body",
+              "planes": [
+                "control",
+                "action",
+                "observation"
+              ]
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PRINCIPAL_MEMBERSHIP_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.security-state.duplicate-key-epoch.v1",
+          "purpose": "A keyed epoch set must reject duplicate epoch and key identities.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/key_epochs/-",
+            "value": {
+              "kid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "algorithm": "Ed25519",
+              "epoch": 3
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "KEY_EPOCH_MEMBERSHIP_REQUIRED"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr009.ambiguous-mutable-security-state.hostile.v1",
+      "source": {
+        "adr": "ADR-009",
+        "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 257562,
+        "adr_sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
+        "fence_byte_length": 165,
+        "fence_sha256": "3dca69faa4d256b441ea613fa448ef96f4e3921afba0062f8be697340a2a8e11"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR009_INVALID_SECURITY_STATE_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_authority_realm": {
+          "server_authority_principal": "spiffe://ncp.example/body-server",
+          "stable_realm_id": "plant-a"
+        },
+        "required_profile": "ncp-production-ingress-v1",
+        "required_key_algorithm": "Ed25519",
+        "maximum_security_epoch": 9007199254740991
+      },
+      "expected_diagnostics": [
+        "AUTHORITY_REALM_KEY_REQUIRED",
+        "KEY_EPOCH_MEMBERSHIP_REQUIRED",
+        "KEY_ID_NOT_CONTENT_ADDRESSED",
+        "PRINCIPAL_MEMBERSHIP_REQUIRED",
+        "REVOCATION_EPOCH_INVALID",
+        "SECURITY_ALGORITHM_NOT_EXACT",
+        "SECURITY_EPOCH_INVALID",
+        "SECURITY_PROFILE_INVALID"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr009.invalid-security-state.repair-realm-only.v1",
+          "purpose": "Repairing only the realm must leave ambiguous key and membership state closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm",
+            "value": {
+              "server_authority_principal": "spiffe://ncp.example/body-server",
+              "stable_realm_id": "plant-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "KEY_EPOCH_MEMBERSHIP_REQUIRED",
+            "KEY_ID_NOT_CONTENT_ADDRESSED",
+            "PRINCIPAL_MEMBERSHIP_REQUIRED",
+            "REVOCATION_EPOCH_INVALID",
+            "SECURITY_ALGORITHM_NOT_EXACT",
+            "SECURITY_EPOCH_INVALID",
+            "SECURITY_PROFILE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.invalid-security-state.repair-epoch-only.v1",
+          "purpose": "Repairing only the epoch type must leave realm, key, profile, and membership failures closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/security_epoch",
+            "value": 12
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "KEY_EPOCH_MEMBERSHIP_REQUIRED",
+            "KEY_ID_NOT_CONTENT_ADDRESSED",
+            "PRINCIPAL_MEMBERSHIP_REQUIRED",
+            "REVOCATION_EPOCH_INVALID",
+            "SECURITY_ALGORITHM_NOT_EXACT",
+            "SECURITY_PROFILE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr009.invalid-security-state.add-valid-key-epoch.v1",
+          "purpose": "A valid keyed entry must not legitimize ambiguous top-level key aliases.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/key_epochs",
+            "value": [
+              {
+                "kid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "algorithm": "Ed25519",
+                "epoch": 3
+              }
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "KEY_ID_NOT_CONTENT_ADDRESSED",
+            "PRINCIPAL_MEMBERSHIP_REQUIRED",
+            "REVOCATION_EPOCH_INVALID",
+            "SECURITY_ALGORITHM_NOT_EXACT",
+            "SECURITY_EPOCH_INVALID",
+            "SECURITY_PROFILE_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr010.action-qos-profile.excerpt.v1",
+      "source": {
+        "adr": "ADR-010",
+        "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 15683,
+        "adr_sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
+        "fence_byte_length": 488,
+        "fence_sha256": "16cd11d0629acf1ec658196ca5379c125c3e1b2c21f46d8cbb46dde66b95931c"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR010_ACTION_QOS_PROFILE_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "maximum_capacity_per_stream": 1,
+        "required_fail_safe_priority": [
+          "estop",
+          "hold",
+          "active"
+        ]
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr010.action-qos.realm-route-mismatch.v1",
+          "purpose": "A QoS binding must not cross its authenticated route realm.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/stable_realm_id",
+            "value": "realm-b"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.action-qos.zero-capacity.v1",
+          "purpose": "A zero default must not create an action queue profile.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/capacity_per_stream",
+            "value": 0
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "QOS_CAPACITY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.action-qos.reversed-fail-safe-priority.v1",
+          "purpose": "Active traffic must not outrank restrictive fail-safe traffic.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/fail_safe_priority",
+            "value": [
+              "active",
+              "hold",
+              "estop"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "FAIL_SAFE_PRIORITY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.action-qos.plane-substitution.v1",
+          "purpose": "A perception-plane label must not acquire action QoS meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/plane",
+            "value": "perception"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "QOS_PLANE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.action-qos.authority-principal-substitution.v1",
+          "purpose": "A realm authority principal substitution must not retain action QoS meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/server_authority_principal_id",
+            "value": "attacker-authority"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr010.best-effort-receipt-free-profile.hostile.v1",
+      "source": {
+        "adr": "ADR-010",
+        "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 15683,
+        "adr_sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
+        "fence_byte_length": 120,
+        "fence_sha256": "c0dc99e7de940d5ba3b2ee9eae6274dd104f34108996bb901ba20cdc563725cd"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR010_INVALID_ACTION_QOS_PROFILE_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "maximum_capacity_per_stream": 1,
+        "required_fail_safe_priority": [
+          "estop",
+          "hold",
+          "active"
+        ]
+      },
+      "expected_diagnostics": [
+        "AUTHORITY_REALM_KEY_REQUIRED",
+        "QOS_CAPACITY_INVALID",
+        "QOS_FAIL_SAFE_PRIORITY_REQUIRED",
+        "QOS_FALLBACK_FORBIDDEN",
+        "QOS_ORDERING_REQUIRED",
+        "QOS_OVERLOAD_INVALID",
+        "QOS_PROFILE_ID_REQUIRED",
+        "QOS_RETENTION_REQUIRED",
+        "QOS_ROUTE_REQUIRED"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr010.invalid-qos.repair-capacity-only.v1",
+          "purpose": "Repairing only capacity must leave best-effort and receipt-free behavior closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/capacity_per_stream",
+            "value": 1
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "QOS_FAIL_SAFE_PRIORITY_REQUIRED",
+            "QOS_FALLBACK_FORBIDDEN",
+            "QOS_ORDERING_REQUIRED",
+            "QOS_OVERLOAD_INVALID",
+            "QOS_PROFILE_ID_REQUIRED",
+            "QOS_RETENTION_REQUIRED",
+            "QOS_ROUTE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.invalid-qos.repair-overload-only.v1",
+          "purpose": "Repairing only overload spelling must leave the receipt-free fallback and other omissions closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/overload",
+            "value": "reject_new_active_and_emit_disposition"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "QOS_CAPACITY_INVALID",
+            "QOS_FAIL_SAFE_PRIORITY_REQUIRED",
+            "QOS_FALLBACK_FORBIDDEN",
+            "QOS_ORDERING_REQUIRED",
+            "QOS_PROFILE_ID_REQUIRED",
+            "QOS_RETENTION_REQUIRED",
+            "QOS_ROUTE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.invalid-qos.repair-realm-only.v1",
+          "purpose": "Repairing only the realm must leave all finite-profile failures closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm_key",
+            "value": {
+              "server_authority_principal_id": "ncp-authority-a",
+              "stable_realm_id": "realm-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "QOS_CAPACITY_INVALID",
+            "QOS_FAIL_SAFE_PRIORITY_REQUIRED",
+            "QOS_FALLBACK_FORBIDDEN",
+            "QOS_ORDERING_REQUIRED",
+            "QOS_OVERLOAD_INVALID",
+            "QOS_PROFILE_ID_REQUIRED",
+            "QOS_RETENTION_REQUIRED",
+            "QOS_ROUTE_REQUIRED",
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr011.gated-intent-correlation.excerpt.v1",
+      "source": {
+        "adr": "ADR-011",
+        "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "json_fence_ordinal": 1,
+        "adr_byte_length": 70553,
+        "adr_sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
+        "fence_byte_length": 386,
+        "fence_sha256": "8c0712e56bc03e6352ef87d80e81b6c51dcb4934174abda99a942cb7374d0f8e"
+      },
+      "scope": "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+      "profile": "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "expected_issuer": "engram-intent-a",
+        "expected_audience": "haldir-gate-a",
+        "evaluation_utc_ms": 1784200020000,
+        "native_gated_intent_version": 2
+      },
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr011.gated-intent.realm-context-mismatch.v1",
+          "purpose": "A local intent correlation fragment must not cross realm context.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/stable_realm_id",
+            "value": "realm-b"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.gated-intent.audience-substitution.v1",
+          "purpose": "An intent bound to Haldir must not be retargeted to the plant body.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/audience",
+            "value": "plant-body-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_AUDIENCE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.gated-intent.expired-at-boundary.v1",
+          "purpose": "Equality at an exclusive expiry boundary must not remain fresh.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/expires_at_utc_ms",
+            "value": 1784200020000
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_EXPIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.gated-intent.issuer-substitution.v1",
+          "purpose": "A different local issuer must not retain intent correlation meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/issuer",
+            "value": "attacker-intent"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_ISSUER_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.gated-intent.authority-principal-substitution.v1",
+          "purpose": "A realm authority principal substitution must not retain intent correlation meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority_realm_key/server_authority_principal_id",
+            "value": "attacker-authority"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr011.identity-laundering-command.hostile.v1",
+      "source": {
+        "adr": "ADR-011",
+        "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "json_fence_ordinal": 2,
+        "adr_byte_length": 70553,
+        "adr_sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
+        "fence_byte_length": 191,
+        "fence_sha256": "244001e4af0869ccc8d9631aef300044fe9576a68cc01a15623d8cd6f0a09a0e"
+      },
+      "scope": "PROPOSED_WIRE_FRAGMENT",
+      "profile": "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {
+        "authenticated_realm_key": {
+          "server_authority_principal_id": "ncp-authority-a",
+          "stable_realm_id": "realm-a"
+        },
+        "enrolled_body_principal_id": "crebain-body-a",
+        "gated_commander_principal_id": "haldir-gate-a"
+      },
+      "expected_diagnostics": [
+        "AUTHORITY_REALM_KEY_REQUIRED",
+        "COMMAND_AUTHORITY_ISSUER_NOT_BODY",
+        "COMMAND_IDENTITY_LAUNDERING"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr011.identity-laundering.repair-realm-only.v1",
+          "purpose": "Repairing only the realm must leave identity transfer and self-issued authority closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/authority_realm_key",
+            "value": {
+              "server_authority_principal_id": "ncp-authority-a",
+              "stable_realm_id": "realm-a"
+            }
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "COMMAND_AUTHORITY_ISSUER_NOT_BODY",
+            "COMMAND_IDENTITY_LAUNDERING"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.identity-laundering.repair-command-identity-only.v1",
+          "purpose": "Repairing only command identity must leave non-body authority issuance closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/identity/principal_id",
+            "value": "haldir-gate-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "COMMAND_AUTHORITY_ISSUER_NOT_BODY"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.identity-laundering.repair-authority-issuer-only.v1",
+          "purpose": "Repairing only the body issuer must leave realm omission and identity laundering closed.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authority/issuer_principal_id",
+            "value": "crebain-body-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "COMMAND_IDENTITY_LAUNDERING"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.identity-laundering.kind-substitution.v1",
+          "purpose": "A different message kind must add an independent fail-closed diagnostic.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/kind",
+            "value": "observation_frame"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "AUTHORITY_REALM_KEY_REQUIRED",
+            "COMMAND_AUTHORITY_ISSUER_NOT_BODY",
+            "COMMAND_IDENTITY_LAUNDERING",
+            "MESSAGE_KIND_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    }
+  ]
+}

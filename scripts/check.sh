@@ -10,6 +10,8 @@ cd "$(dirname "$0")/.."
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/ncp-check.XXXXXX")"
 cleanup() { rm -rf "$tmp_dir"; }
 trap cleanup EXIT
+export PYTHONPYCACHEPREFIX="$tmp_dir/pycache"
+export RUFF_CACHE_DIR="$tmp_dir/ruff-cache"
 
 step() { printf '\n=== %s ===\n' "$1"; }
 require_tool() {
@@ -39,6 +41,7 @@ evidence_schema_python="$evidence_schema_venv/bin/python"
 "$evidence_schema_python" -m pip install \
     --disable-pip-version-check --require-hashes --only-binary=:all: \
     -r scripts/requirements-evidence-schema.txt
+bun install --frozen-lockfile --backend=copyfile --force
 "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
 
 step "NCP 1.0 implementation ledger + mandatory resumption views"
@@ -48,6 +51,32 @@ step "NCP 1.0 implementation ledger + mandatory resumption views"
 
 step "B01 fail-closed review-candidate integrity (non-completion)"
 selector_closure_status=0
+# This Rust/TypeScript harness parses every bound ADR fence. Hosted CI runs the
+# older B04 syntax replay under its exact Node 26.3.0 engine.
+adr_semantics_root="prototypes/b01-architecture-evidence/adr-example-semantics"
+adr_semantics_manifest="$adr_semantics_root/rust/Cargo.toml"
+adr_semantics_typescript="$adr_semantics_root/typescript"
+cargo fetch --manifest-path "$adr_semantics_manifest" --locked \
+    || selector_closure_status=1
+cargo fmt --manifest-path "$adr_semantics_manifest" -- --check \
+    || selector_closure_status=1
+CARGO_TARGET_DIR="$tmp_dir/b01-adr-semantics-target" \
+    cargo clippy --manifest-path "$adr_semantics_manifest" \
+        --all-targets --locked --offline -- -D warnings \
+    || selector_closure_status=1
+CARGO_TARGET_DIR="$tmp_dir/b01-adr-semantics-target" \
+    cargo test --manifest-path "$adr_semantics_manifest" --locked --offline \
+    || selector_closure_status=1
+(
+    cd "$adr_semantics_typescript"
+    bun run typecheck
+) || selector_closure_status=1
+"$evidence_schema_python" \
+    prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test \
+    | "$evidence_schema_python" \
+        prototypes/b01-architecture-evidence/verify_result.py \
+        --adr-example-semantics-only \
+    || selector_closure_status=1
 "$evidence_schema_python" -m ruff format --check -- \
     prototypes/b01-architecture-evidence/*.py \
     || selector_closure_status=1
@@ -112,6 +141,7 @@ python3 -m py_compile \
     e2e/bounded_json.py e2e/nest_five_networks.py \
     e2e/run_cross_language_e2e.py e2e/test_bounded_json.py \
     e2e/test_runner_status.py scripts/check_implementation_ledger.py \
+    prototypes/b01-architecture-evidence/adr_example_semantics.py \
     scripts/generate_implementation_ledger.py \
     scripts/generate_decision_registry.py scripts/validate_evidence_schemas.py \
     scripts/check_adr_examples.py \
@@ -156,7 +186,8 @@ CARGO_INCREMENTAL=0 "$tmp_dir/venv/bin/maturin" build -m ncp-python/Cargo.toml \
 "$tmp_dir/venv/bin/python" -m pip install --disable-pip-version-check \
     --no-index --find-links "$tmp_dir/wheels" ncp
 NCP_REQUIRE_BINDING=1 "$tmp_dir/venv/bin/python" scripts/check_behavior_vectors.py
-"$tmp_dir/venv/bin/python" -m pytest ncp-python/tests -q
+"$tmp_dir/venv/bin/python" -m pytest ncp-python/tests -q \
+    -o "cache_dir=$tmp_dir/pytest-cache"
 
 step "Python sdist locked-source closure"
 PATH="$tmp_dir/venv/bin:$PATH" \
@@ -166,7 +197,6 @@ PATH="$tmp_dir/venv/bin:$PATH" \
 step "TypeScript generated source + prebuilt dist are reproducible"
 git diff --binary -- ncp-core/bindings ncp-ts/src/generated ncp-ts/dist \
     > "$tmp_dir/ts-before.diff"
-bun install --frozen-lockfile --backend=copyfile --force
 bun run regen
 git diff --binary -- ncp-core/bindings ncp-ts/src/generated ncp-ts/dist \
     > "$tmp_dir/ts-after.diff"
@@ -256,6 +286,9 @@ python3 scripts/prepare_current_advisory_database.py \
 HOME="$current_advisory_home" \
     cargo deny --locked --offline --all-features check --disable-fetch
 HOME="$current_advisory_home" \
+    cargo deny --manifest-path "$adr_semantics_manifest" \
+        --locked --offline --all-features check --disable-fetch
+HOME="$current_advisory_home" \
     python3 scripts/generate_supply_chain_evidence.py \
         --validate-current-advisories
 find "$current_advisory_home/.cargo/advisory-dbs" \
@@ -272,6 +305,9 @@ python3 scripts/prepare_advisory_database.py \
     --destination "$NCP_ADVISORY_DB_PATH"
 HOME="$pinned_advisory_home" \
     cargo deny --locked --offline --all-features check --disable-fetch
+HOME="$pinned_advisory_home" \
+    cargo deny --manifest-path "$adr_semantics_manifest" \
+        --locked --offline --all-features check --disable-fetch
 HOME="$pinned_advisory_home" \
     python3 scripts/generate_supply_chain_evidence.py --self-test --check
 

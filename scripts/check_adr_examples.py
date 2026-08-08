@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse every proposed ADR JSON fence with the two independent B04 parsers.
+"""Parse every proposed ADR JSON fence with the two separate B04 parsers.
 
 This is syntax, duplicate-member, UTF-8, numeric-grammar, and resource-bound
 evidence only. It does not implement the proposed messages, accept an ADR,
@@ -166,11 +166,11 @@ def node_parse(values: list[tuple[str, bytes]]) -> None:
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        raise ExampleError(f"cannot build independent Node parser: {error}") from error
+        raise ExampleError(f"cannot build separate Node parser: {error}") from error
     if build.returncode != 0:
         detail = (build.stderr or build.stdout).strip()[-2000:]
         raise ExampleError(
-            "independent Node parser build failed; install its exact lock first: "
+            "separate Node parser build failed; install its exact lock first: "
             + detail
         )
     request = json.dumps(
@@ -193,7 +193,7 @@ def node_parse(values: list[tuple[str, bytes]]) -> None:
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        raise ExampleError(f"cannot run independent Node parser: {error}") from error
+        raise ExampleError(f"cannot run separate Node parser: {error}") from error
     if result.returncode != 0:
         detail = result.stderr.decode("utf-8", errors="replace").strip()[-2000:]
         raise ExampleError(f"Node parser rejected the ADR corpus: {detail}")
@@ -266,7 +266,7 @@ def main() -> int:
         python_parse(corpus)
         node_parse(corpus)
         print(
-            f"OK ADR examples: {len(corpus)} JSON fences accepted by independent "
+            f"OK ADR examples: {len(corpus)} JSON fences accepted by separate "
             "Python and Node prototype parsers; semantic implementation not claimed"
         )
         return 0

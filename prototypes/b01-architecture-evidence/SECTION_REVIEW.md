@@ -57,6 +57,11 @@ remain PROPOSED and retain their exact hash-bound review requirements.
   counterexample query is credited.
 - Resource timings are machine-local observations with broad prototype screens,
   not SLOs or universal deadlines.
+- The 22 ADR JSON fences have content-addressed, bounded semantic profiles in
+  separate Rust and TypeScript engines. A profile match is not production
+  admission, ADR acceptance, interoperability, or independent evidence.
+- Several positive fences are illustrative fragments. The corpus preserves that
+  scope and rejects any attempt to promote them into complete wire evidence.
 - Ed25519 authenticates fixed bytes; it does not validate advice, simulation,
   PID quality, calibration, command usefulness, or physical effect.
 - Seven deterministic extraction receipts replay retained admitted bytes for

@@ -43,14 +43,65 @@ This prototype therefore asks narrower questions:
 7. Do freshness deadlines, acceptance linearization, protected-command
    idempotency, restrictive effects, Active watchdogs, retirement drains, and
    Haldir intent freshness remain fail-closed under bounded hostile mutations?
+8. Can separate Rust and TypeScript profile checkers classify all 22 proposed
+   ADR JSON fences and their bounded hostile mutations without production types?
 
 The strongest permitted result is:
 
 > No counterexample was found within the recorded finite models, decision,
-> observer-authorization, observer-capture, freshness-and-acceptance, and fixed
-> local resource probes; every registered executable mutant was detected, every
-> registered hostile input was rejected, and every registered invariant and
-> semantic-contrast witness was reached.
+> observer-authorization, observer-capture, freshness-and-acceptance,
+> source-issuance-index, fixed local resource, and ADR-example semantic probes.
+> The separate Rust and TypeScript profile engines agreed on 22 content-bound
+> semantic cases and rejected 90 registered bounded mutations. Every other
+> registered executable mutant was detected. Every registered hostile input was
+> rejected. Every registered invariant and semantic-contrast witness was reached
+> within those encoded finite cases.
+
+## ADR example semantic profiles
+
+[`adr-example-semantics/corpus.v1.json`](adr-example-semantics/corpus.v1.json)
+binds each proposed ADR JSON fence to its exact source bytes and one closed
+profile. It distinguishes proposed fragments, decoded header fragments,
+authenticated-wrapper shapes, and non-wire internal state.
+
+The corpus also records whether full production admission is rejected, not
+evaluated, or not applicable. A profile match is never production-message
+acceptance. It does not accept an ADR or change the normative contract.
+
+The Rust and TypeScript engines separately extract the Markdown fences. Each
+engine enforces bounded strict JSON, verifies the bound ADR and decision-set
+inputs, applies the registered fault-isolation mutations, and implements its own
+profile logic. The engines share no implementation or profile code. Both consume
+the corpus-bound ADR Markdown and proposed decision registry. Neither engine
+imports NCP production types, generated schemas, a consumer package, or the
+other engine.
+
+[`adr_example_semantics.py`](adr_example_semantics.py) only orchestrates the two
+engines and compares their bounded result objects. It makes no semantic
+decision. The complete local and hosted gates pipe its result through the exact
+nested verifier in [`verify_result.py`](verify_result.py). The dependency-rich
+runner also verifies the complete aggregate result. The older
+[`scripts/check_adr_examples.py`](../../scripts/check_adr_examples.py) remains the
+separate Python/Node syntax and resource-bound check.
+
+Run the content-bound profile comparison from the repository root:
+
+```bash
+bun install --frozen-lockfile --backend=copyfile --force
+cargo fetch \
+  --manifest-path prototypes/b01-architecture-evidence/adr-example-semantics/rust/Cargo.toml \
+  --locked
+python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test
+```
+
+The coordinator uses Cargo offline after the locked fetch. The typecheck uses the
+root lock and compiler installation. Bun executes the TypeScript engine directly.
+Local Rust, Cargo, and Bun executable identities remain unretained. The root lock
+pins TypeScript 5.9.2, but the result inventories neither that lock nor the
+installed executable. Hosted CI pins Rust 1.88.0 and Bun 1.3.14. These pins do not
+establish toolchain provenance. The Rust reader rejects leaf links and in-read
+changes. It does not hold each parent directory through a directory file
+descriptor.
 
 ## Bounded state enumerator
 
@@ -662,10 +713,10 @@ pre-ratification challenge material, not the F01/F02 source set.
    include outliers and wall time includes scheduler delay. The result binds exact
    clock properties, the project and lock bytes, the isolated Python executable
    and ABI, installed PyNaCl and CFFI file-manifest digests, the loaded native
-   Sodium and CFFI artifacts, and the `uv` runner. The outer resource process has
-   a separately bound executable and ABI; it need not have the same Python patch
-   release as the locked isolated cryptographic environment. A fresh isolated
-   subprocess must reproduce the cryptographic environment identity. The result
+   Sodium and CFFI artifacts, and the `uv` runner. CPython 3.14 runs the outer
+   resource process. Its separately bound executable, ABI, and patch release can
+   differ from the locked environment. A fresh isolated subprocess must reproduce
+   the cryptographic environment identity. The result
    validator rejects seeded metadata, executable, native-artifact, lock, clock,
    and budget mutations. These hashes identify the measured local executions.
    They do not establish package provenance, a production deadline, or
@@ -698,8 +749,11 @@ no reviewer or evidence floor.
 
 ## Run
 
-Prerequisites are the repository Python/toolchain, `ruff`, `uv`, exact Z3 4.16.0,
-and the already locked signed-forwarding prototype environment.
+Prerequisites are CPython 3.14 for the outer runner, `ruff`, `uv`, Rust and
+Cargo, Bun, exact Z3 4.16.0, and the signed-forwarding lock packages in the
+offline uv cache. Run the root frozen Bun install before this command. The
+runner provisions one external locked environment and disables implicit
+synchronization in each resource probe.
 
 ```bash
 ./run.sh
@@ -707,29 +761,33 @@ and the already locked signed-forwarding prototype environment.
 
 The runner:
 
-- compiles and lints the Python sources;
+- compiles and lints the Python sources.
+- fetches the standalone Rust lock's dependencies, then formats, lints, and
+  tests the Rust engine without source-tree build output.
+- typechecks the TypeScript engine and compares both engines across 22 exact ADR
+  fences and 90 registered bounded mutations.
 - directly executes each standalone observer probe and freshness/acceptance
-  probe;
-- loads each declared shared probe dependency from its exact bound bytes;
+  probe.
+- loads each declared shared probe dependency from its exact bound bytes.
 - byte-replays observer authorization and capture under normal and optimized
-  interpreters for two unrelated Python hash seeds;
+  interpreters for two unrelated Python hash seeds.
 - byte-replays freshness/acceptance results under two unrelated Python hash
-  seeds;
+  seeds.
 - executes 547 freshness/acceptance cases, rejects 369 hostile inputs, reaches
-  84 invariant witnesses, and kills all 144 registered single-defect mutants;
-- explores the three bounded models and kills thirty-eight mutations;
+  84 invariant witnesses, and kills all 144 registered single-defect mutants.
+- explores the three bounded models and kills thirty-eight mutations.
 - evaluates 159,993 observer/lifecycle/action cases plus four valid surfaces and
-  two reviewed exclusions; kills 24 executable logic mutants, reaches 22 semantic
-  contrasts, rejects 616 hostile inputs, reaches 119 invariant witnesses, and
-  reconciles every emitted witness;
-- runs nineteen SMT checks and kills thirteen independent formula mutations;
-- runs the queue/parser/journal/real-Ed25519 resource screens;
-- inventories every prototype source and the shared bounded-JSON implementation
-  by SHA-256 through bounded, no-follow directory and file descriptors; it
-  limits entries during discovery and rejects symlink and hard-link aliases;
+  two reviewed exclusions. It kills 24 executable logic mutants, reaches 22
+  semantic contrasts, rejects 616 hostile inputs, reaches 119 invariant
+  witnesses, and reconciles every emitted witness.
+- runs nineteen SMT checks and kills thirteen independent formula mutations.
+- runs the queue/parser/journal/real-Ed25519 resource screens.
+- inventories every prototype source, all eleven ADR Markdown inputs, and the
+  shared bounded-JSON implementation by SHA-256 through bounded, no-follow
+  directory and file descriptors. It limits entries during discovery and
+  rejects symlink and hard-link aliases.
 - binds the result to a clean current Git commit/tree and exact current contract
-  manifest bytes;
-  and
+  manifest bytes.
 - preflights the single bounded result line for depth, item, member, array,
   string, number, and aggregate limits before native JSON allocation, then
   passes it through [`verify_result.py`](verify_result.py).

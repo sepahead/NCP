@@ -1,0 +1,10 @@
+{
+  "name": "ncp-b01-adr-example-semantics-typescript",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "bun run src/main.ts --corpus ../corpus.v1.json --repo-root ../../../.. --self-test",
+    "run": "bun run src/main.ts --corpus ../corpus.v1.json --repo-root ../../../..",
+    "typecheck": "tsc --noEmit"
+  }
+}

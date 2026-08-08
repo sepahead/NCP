@@ -10,6 +10,7 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 import platform
 import re
 import shutil
@@ -22,17 +23,18 @@ from pathlib import Path
 from typing import Any
 
 from bounded_json_support import (
-    BOUNDED_JSON_SUPPORT_PATHS,
     BoundedJsonError,
     JsonLimits,
     parse_json_bytes,
 )
+import adr_example_semantics
 import decision_probe
 import freshness_acceptance_probe
 import observer_authorization_probe
 import observer_capture_probe
 import source_issuance_index_probe
 from source_inventory import (
+    B01_SUPPORT_RELATIVE_PATHS,
     SourceInventoryError,
     build_source_inventory,
     read_bounded_relative_file,
@@ -41,7 +43,9 @@ from source_inventory import (
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parents[1]
 PREFIX = "NCP_B01_PRELIMINARY_RESULT="
+ADR_EXAMPLE_SEMANTICS_PREFIX = "NCP_B01_ADR_EXAMPLE_SEMANTICS_RESULT="
 MAX_RESULT_BYTES = 2_000_000
+MAX_ADR_EXAMPLE_SEMANTICS_RESULT_BYTES = 262_144
 EXPECTED_CONTRACT_SHA256 = (
     "9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90"
 )
@@ -86,6 +90,19 @@ RESULT_JSON_LIMITS = JsonLimits(
     maximum_float_chars=64,
     allow_floats=True,
 )
+ADR_EXAMPLE_SEMANTICS_JSON_LIMITS = JsonLimits(
+    maximum_bytes=MAX_ADR_EXAMPLE_SEMANTICS_RESULT_BYTES,
+    maximum_depth=32,
+    maximum_items=16_384,
+    maximum_object_members=1_024,
+    maximum_array_items=256,
+    maximum_key_utf8_bytes=256,
+    maximum_string_utf8_bytes=131_072,
+    maximum_total_string_utf8_bytes=MAX_ADR_EXAMPLE_SEMANTICS_RESULT_BYTES,
+    maximum_integer_chars=32,
+    maximum_float_chars=64,
+    allow_floats=False,
+)
 SMALL_RUNTIME_JSON_LIMITS = JsonLimits(
     maximum_bytes=65_536,
     maximum_depth=32,
@@ -111,14 +128,6 @@ CONTRACT_MANIFEST_JSON_LIMITS = JsonLimits(
     maximum_integer_chars=32,
     maximum_float_chars=64,
     allow_floats=False,
-)
-STRONGEST_LOCAL_STATEMENT = (
-    "No counterexample was found within the recorded finite models, decision, "
-    "observer-authorization, observer-capture, freshness-and-acceptance, "
-    "source-issuance-index, and fixed local resource probes; every registered "
-    "executable mutant was detected, every registered hostile input was rejected, "
-    "and every registered invariant and semantic-contrast witness was reached "
-    "within those encoded finite cases."
 )
 MODEL_CLAIM_BOUNDARY = (
     "No counterexample was found only within this finite abstraction. "
@@ -164,6 +173,33 @@ def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def _canonical_json(value: Any) -> str:
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as error:
+        raise ResultError("value is not canonical bounded JSON data") from error
+
+
+def _strongest_local_statement(case_count: int, mutation_count: int) -> str:
+    return (
+        "No counterexample was found within the recorded finite models, decision, "
+        "observer-authorization, observer-capture, freshness-and-acceptance, "
+        "source-issuance-index, fixed local resource, and ADR-example semantic "
+        "probes. The separate Rust and TypeScript profile engines agreed on "
+        f"{case_count} content-bound semantic cases and rejected {mutation_count} "
+        "registered bounded mutations. Every other registered executable mutant "
+        "was detected, every registered hostile input was rejected, and every "
+        "registered invariant and semantic-contrast witness was reached within "
+        "those encoded finite cases."
+    )
+
+
 def _outer_runtime_identity() -> dict[str, Any]:
     executable = Path(sys.executable).resolve(strict=True)
     content = executable.read_bytes()
@@ -204,7 +240,31 @@ def _git(*arguments: str) -> str:
     return completed.stdout.strip()
 
 
+def _external_uv_environment() -> Path:
+    raw = os.environ.get("UV_PROJECT_ENVIRONMENT")
+    if not raw:
+        raise ResultError("UV_PROJECT_ENVIRONMENT is required")
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ResultError("UV_PROJECT_ENVIRONMENT is not absolute")
+    try:
+        resolved = path.resolve(strict=True)
+    except OSError as error:
+        raise ResultError("UV_PROJECT_ENVIRONMENT is unavailable") from error
+    repository = REPOSITORY.resolve(strict=True)
+    if (
+        not resolved.is_dir()
+        or resolved == repository
+        or repository in resolved.parents
+    ):
+        raise ResultError(
+            "UV_PROJECT_ENVIRONMENT is not an external environment directory"
+        )
+    return resolved
+
+
 def _current_crypto_environment() -> dict[str, Any]:
+    _external_uv_environment()
     uv = shutil.which("uv")
     if uv is None:
         raise ResultError("uv is unavailable")
@@ -213,6 +273,7 @@ def _current_crypto_environment() -> dict[str, Any]:
         [
             uv,
             "run",
+            "--no-sync",
             "--offline",
             "--locked",
             "--project",
@@ -346,6 +407,39 @@ def _load() -> dict[str, Any]:
     return value
 
 
+def _load_adr_example_semantics() -> dict[str, Any]:
+    raw = sys.stdin.buffer.read(MAX_ADR_EXAMPLE_SEMANTICS_RESULT_BYTES + 1)
+    if len(raw) > MAX_ADR_EXAMPLE_SEMANTICS_RESULT_BYTES:
+        raise ResultError(
+            "ADR-example semantic result exceeds the verifier input bound"
+        )
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ResultError("ADR-example semantic result is not strict UTF-8") from error
+    if "\r" in text:
+        raise ResultError("ADR-example semantic result contains a carriage return")
+    if text.endswith("\n"):
+        text = text[:-1]
+    if not text or "\n" in text or not text.startswith(ADR_EXAMPLE_SEMANTICS_PREFIX):
+        raise ResultError(
+            "expected exactly one prefixed ADR-example semantic result line"
+        )
+    try:
+        value = parse_json_bytes(
+            text[len(ADR_EXAMPLE_SEMANTICS_PREFIX) :].encode("utf-8"),
+            limits=ADR_EXAMPLE_SEMANTICS_JSON_LIMITS,
+            label="ADR-example semantic result",
+        )
+    except BoundedJsonError as error:
+        raise ResultError(
+            f"ADR-example semantic result is not bounded strict JSON: {error}"
+        ) from error
+    if type(value) is not dict:
+        raise ResultError("ADR-example semantic result root is not an object")
+    return value
+
+
 def _load_standalone_probe(*, label: str) -> dict[str, Any]:
     raw = sys.stdin.buffer.read(MAX_RESULT_BYTES + 1)
     if len(raw) > MAX_RESULT_BYTES:
@@ -397,7 +491,7 @@ def _verify_sources(value: dict[str, Any]) -> None:
             not isinstance(path, str)
             or (
                 not path.startswith("prototypes/b01-architecture-evidence/")
-                and path not in BOUNDED_JSON_SUPPORT_PATHS
+                and path not in B01_SUPPORT_RELATIVE_PATHS
             )
             or path in paths
             or not isinstance(source["bytes"], int)
@@ -412,7 +506,7 @@ def _verify_sources(value: dict[str, Any]) -> None:
         expected_sources = build_source_inventory(
             ROOT,
             REPOSITORY,
-            support_relative_paths=BOUNDED_JSON_SUPPORT_PATHS,
+            support_relative_paths=B01_SUPPORT_RELATIVE_PATHS,
         )
     except (OSError, SourceInventoryError) as error:
         raise ResultError(f"source inventory failed closed: {error}") from error
@@ -681,6 +775,114 @@ def _verify_model(value: Any) -> None:
         observed.add(identity)
     if observed != expected_mutations:
         raise ResultError("bounded model mutation identities differ")
+
+
+@lru_cache(maxsize=1)
+def _expected_adr_example_semantics_result() -> dict[str, Any]:
+    try:
+        result = adr_example_semantics.build_result(self_test=True)
+    except (
+        adr_example_semantics.CoordinatorError,
+        MemoryError,
+        OSError,
+        UnicodeError,
+    ) as error:
+        raise ResultError(
+            f"ADR-example semantic result recomputation failed: {error}"
+        ) from error
+    if type(result) is not dict:
+        raise ResultError("recomputed ADR-example semantic result is not an object")
+    return result
+
+
+def _verify_adr_example_semantics(value: Any) -> None:
+    if type(value) is not dict:
+        raise ResultError("ADR-example semantic result is not an exact object")
+    expected = _expected_adr_example_semantics_result()
+    _exact_keys(value, set(expected), "adr_example_semantics")
+    if _canonical_json(value) != _canonical_json(expected):
+        raise ResultError(
+            "ADR-example semantic result failed exact canonical recomputation"
+        )
+    if (
+        value.get("schema") != "ncp.b01-adr-example-semantics-coordinator-result.v1"
+        or value.get("task") != "B01"
+        or value.get("candidate") != "1.0.0-rc.1"
+        or value.get("wire_version") != "1.0"
+        or value.get("engines") != ["rust", "typescript"]
+        or value.get("case_count") != 22
+        or not isinstance(value.get("mutation_count"), int)
+        or isinstance(value.get("mutation_count"), bool)
+        or value["mutation_count"] <= 0
+        or value.get("exact_semantic_match") is not True
+        or value.get("exact_source_identity_match") is not True
+        or value.get("source_tree_build_output_absent") is not True
+    ):
+        raise ResultError("ADR-example semantic identity or coverage drifted")
+    for field in ("corpus_sha256", "semantic_parity_sha256"):
+        field_value = value.get(field)
+        if (
+            not isinstance(field_value, str)
+            or re.fullmatch(r"[0-9a-f]{64}", field_value) is None
+        ):
+            raise ResultError(f"ADR-example semantic {field} is not a SHA-256")
+    self_tests = value.get("coordinator_self_tests")
+    if type(self_tests) is not dict:
+        raise ResultError("ADR-example semantic self-test result is not an object")
+    _exact_keys(self_tests, {"detected", "executed"}, "semantic coordinator tests")
+    executed = _positive_int(self_tests.get("executed"), "semantic tests executed")
+    detected = _positive_int(self_tests.get("detected"), "semantic tests detected")
+    if executed != 10 or detected != 10:
+        raise ResultError("ADR-example semantic self-tests are incomplete")
+    claims = value.get("claim_boundary")
+    expected_claims = {
+        "adrs_accepted",
+        "external_gate_satisfied",
+        "independent_evidence_satisfied",
+        "interoperability_established",
+        "normative_contract_changed",
+        "production_admission_implemented",
+        "release_authorized",
+    }
+    if type(claims) is not dict:
+        raise ResultError("ADR-example semantic claim boundary is not an object")
+    _exact_keys(claims, expected_claims, "ADR-example semantic claim boundary")
+    if any(claims.get(field) is not False for field in expected_claims):
+        raise ResultError("ADR-example semantic claim boundary is optimistic")
+    sources = value.get("engine_source_identities")
+    if type(sources) is not dict:
+        raise ResultError("ADR-example engine source identities are not an object")
+    _exact_keys(sources, {"rust", "typescript"}, "semantic engine source identities")
+    for engine in ("rust", "typescript"):
+        identities = sources.get(engine)
+        if not isinstance(identities, list) or not identities:
+            raise ResultError(f"{engine} semantic source identities are incomplete")
+        paths: list[str] = []
+        for index, identity in enumerate(identities):
+            if type(identity) is not dict:
+                raise ResultError(f"{engine} semantic source {index} is not an object")
+            _exact_keys(
+                identity,
+                {"byte_length", "path", "sha256"},
+                f"{engine} semantic source {index}",
+            )
+            path = identity.get("path")
+            digest = identity.get("sha256")
+            if (
+                not isinstance(path, str)
+                or not path
+                or path in paths
+                or not isinstance(digest, str)
+                or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            ):
+                raise ResultError(f"{engine} semantic source {index} is malformed")
+            _positive_int(
+                identity.get("byte_length"),
+                f"{engine} semantic source {index} byte length",
+            )
+            paths.append(path)
+        if paths != sorted(paths):
+            raise ResultError(f"{engine} semantic source paths are not sorted")
 
 
 @lru_cache(maxsize=1)
@@ -2063,6 +2265,7 @@ def _verify_resources(value: Any) -> None:
         or runner["invocation"]
         != [
             "run",
+            "--no-sync",
             "--offline",
             "--locked",
             "--project",
@@ -2234,6 +2437,7 @@ def verify(value: dict[str, Any]) -> None:
             "contract_manifest_sha256",
             "compact_contract_hash",
             "sources",
+            "adr_example_semantics",
             "decision_probe",
             "observer_authorization_probe",
             "observer_capture_probe",
@@ -2247,7 +2451,7 @@ def verify(value: dict[str, Any]) -> None:
         "result",
     )
     if (
-        value.get("schema") != "ncp.b01-preliminary-architecture-evidence.v2"
+        value.get("schema") != "ncp.b01-preliminary-architecture-evidence.v3"
         or value.get("scope") != "proposed-adrs-only"
         or value.get("task") != "B01"
         or value.get("candidate") != "1.0.0-rc.1"
@@ -2282,6 +2486,7 @@ def verify(value: dict[str, Any]) -> None:
         raise ResultError("normative decision registry was created prematurely")
     _verify_timestamp(value.get("generated_at_utc"))
     _verify_sources(value)
+    _verify_adr_example_semantics(value["adr_example_semantics"])
     _verify_decision_probe(value["decision_probe"])
     _verify_observer_authorization_probe(value["observer_authorization_probe"])
     _verify_observer_capture_probe(value["observer_capture_probe"])
@@ -2317,7 +2522,11 @@ def verify(value: dict[str, Any]) -> None:
     }
     if any(claims.get(field) is not False for field in expected_false):
         raise ResultError("claim boundary contains an optimistic statement")
-    if claims.get("strongest_local_statement") != STRONGEST_LOCAL_STATEMENT:
+    semantic_result = value["adr_example_semantics"]
+    expected_statement = _strongest_local_statement(
+        semantic_result["case_count"], semantic_result["mutation_count"]
+    )
+    if claims.get("strongest_local_statement") != expected_statement:
         raise ResultError("strongest local statement drifted")
     if (
         _git("status", "--short", "--", relative_root) != ""
@@ -2330,12 +2539,66 @@ def verify(value: dict[str, Any]) -> None:
     _verify_sources(value)
 
 
-def _self_test(value: dict[str, Any]) -> None:
+def _self_test(value: dict[str, Any]) -> int:
     mutations = (
         ("release claim", ("claim_boundary", "release_authorized"), True),
         ("contract digest", ("normative_contract_sha256",), "0" * 64),
         ("contract manifest", ("contract_manifest_sha256",), "0" * 64),
         ("source digest", ("sources", 0, "sha256"), "0" * 64),
+        (
+            "ADR semantic independent-evidence claim",
+            (
+                "adr_example_semantics",
+                "claim_boundary",
+                "independent_evidence_satisfied",
+            ),
+            True,
+        ),
+        (
+            "ADR semantic case count",
+            ("adr_example_semantics", "case_count"),
+            21,
+        ),
+        (
+            "ADR semantic mutation count",
+            ("adr_example_semantics", "mutation_count"),
+            value["adr_example_semantics"]["mutation_count"] - 1,
+        ),
+        (
+            "ADR semantic parity digest",
+            ("adr_example_semantics", "semantic_parity_sha256"),
+            "0" * 64,
+        ),
+        (
+            "ADR semantic exact match",
+            ("adr_example_semantics", "exact_semantic_match"),
+            False,
+        ),
+        (
+            "ADR semantic Rust source digest",
+            (
+                "adr_example_semantics",
+                "engine_source_identities",
+                "rust",
+                0,
+                "sha256",
+            ),
+            "0" * 64,
+        ),
+        (
+            "ADR semantic coordinator detection count",
+            (
+                "adr_example_semantics",
+                "coordinator_self_tests",
+                "detected",
+            ),
+            0,
+        ),
+        (
+            "ADR semantic source-tree output claim",
+            ("adr_example_semantics", "source_tree_build_output_absent"),
+            False,
+        ),
         ("repository clean", ("repository_clean",), False),
         ("stale timestamp", ("generated_at_utc",), "1970-01-01T00:00:00Z"),
         ("model claim", ("model", "claim_boundary"), "release proven"),
@@ -2587,6 +2850,7 @@ def _self_test(value: dict[str, Any]) -> None:
             "production deadline proven",
         ),
     )
+    rejected = 0
     for label, path, replacement in mutations:
         hostile = copy.deepcopy(value)
         cursor: Any = hostile
@@ -2596,6 +2860,7 @@ def _self_test(value: dict[str, Any]) -> None:
         try:
             verify(hostile)
         except ResultError:
+            rejected += 1
             continue
         raise ResultError(f"self-test accepted hostile mutation: {label}")
 
@@ -2604,11 +2869,12 @@ def _self_test(value: dict[str, Any]) -> None:
     try:
         verify(hostile)
     except ResultError:
-        pass
+        rejected += 1
     else:
         raise ResultError("self-test accepted an unknown nested claim")
 
     for omitted in (
+        "adr_example_semantics",
         "freshness_acceptance_probe",
         "source_issuance_index_probe",
     ):
@@ -2617,8 +2883,10 @@ def _self_test(value: dict[str, Any]) -> None:
         try:
             verify(hostile)
         except ResultError:
+            rejected += 1
             continue
         raise ResultError(f"self-test accepted an omitted {omitted}")
+    return rejected
 
 
 def main() -> int:
@@ -2627,7 +2895,19 @@ def main() -> int:
     mode.add_argument("--self-test", action="store_true")
     mode.add_argument("--decision-only", action="store_true")
     mode.add_argument("--observer-authorization-only", action="store_true")
+    mode.add_argument("--adr-example-semantics-only", action="store_true")
     args = parser.parse_args()
+    if args.adr_example_semantics_only:
+        semantic_value = _load_adr_example_semantics()
+        _verify_adr_example_semantics(semantic_value)
+        print(
+            "OK B01 ADR-example semantics: "
+            f"{semantic_value['case_count']} exact cases, "
+            f"{semantic_value['mutation_count']} bounded mutations, "
+            f"{semantic_value['coordinator_self_tests']['detected']} coordinator "
+            "controls; PROPOSED only, no independent or release claim"
+        )
+        return 0
     if args.decision_only:
         decision_value = _load_decision_probe()
         _verify_decision_probe(decision_value)
@@ -2656,8 +2936,7 @@ def main() -> int:
         return 0
     value = _load()
     verify(value)
-    if args.self_test:
-        _self_test(value)
+    verifier_mutations_rejected = _self_test(value) if args.self_test else 0
     canonical = json.dumps(value, separators=(",", ":"), sort_keys=True)
     print(PREFIX + canonical)
     print(
@@ -2682,10 +2961,17 @@ def main() -> int:
         "source-index hostile cases, "
         f"{value['source_issuance_index_probe']['counts']['invariants']} "
         "source-index invariants, "
+        f"{value['adr_example_semantics']['case_count']} ADR-example semantic cases, "
+        f"{value['adr_example_semantics']['mutation_count']} ADR-example semantic "
+        "mutations rejected, "
         f"{value['smt']['counts']['checks']} SMT checks, "
-        f"{value['smt']['counts']['mutations_killed']} SMT mutations; "
-        "PROPOSED only, no independent or release claim"
-        + (", verifier hostile mutations rejected" if args.self_test else "")
+        f"{value['smt']['counts']['mutations_killed']} SMT mutations"
+        + (
+            f", {verifier_mutations_rejected} verifier hostile mutations rejected"
+            if args.self_test
+            else ""
+        )
+        + "; PROPOSED only, no independent or release claim"
     )
     return 0
 

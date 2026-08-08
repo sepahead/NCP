@@ -7,7 +7,7 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 
 | Script | Purpose |
 |---|---|
-| `check.sh` | complete local Rust/Python/C++/TypeScript/proto/schema/profile/package preflight; never release authorization |
+| `check.sh` | complete local Rust/Python/C++/TypeScript/proto/schema/profile/package preflight, including the non-authorizing B01 ADR-example profile harness. It never authorizes release. |
 | `check_implementation_ledger.py [--self-test]` | validate the exact 60-task implementation DAG, evidence floors, dependency receipts, reopen invalidations, bounded receipt formats, and required B03 allocation coverage. It rejects premature external or independent passes. It has no X05 trust parser, so X05 stays `OPEN` and **NOT RUN**. |
 | `generate_implementation_ledger.py [--check\|--write]` | generate the task-ledger view and cross-repository resumption brief from the checked JSON source. Do not edit the generated Markdown. |
 | `generate_decision_registry.py [--self-test] [--check\|--write]` | generate the non-normative B01 registry from exact `PROPOSED` ADR bytes. It rejects premature acceptance, rebaselining, or `contract/` promotion. |
@@ -21,7 +21,8 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `generate_selector_closure_matrix.py [--self-test] [--check]` | generate or compare the non-normative review matrix from a valid compact source. Only the exact fail-closed candidate can render with allocation-only incompleteness. |
 | `generate_selector_allocation_proposal.py [--self-test] [--check]` | compile owner-free v4 units into a deterministic review proposal with bound sources, origins, signals, matches, and ambiguity flags. Suggested routes cannot assign ownership, accept an ADR, or grant protocol or release authority. |
 | `verify_selector_allocation_portability.mjs [--self-test]` | recompute the declared allocation, semantic, provenance, proposal, and source commitments with only the Node.js standard library. This is local implementation-diversity evidence, not an independent peer or release gate. |
-| `check_adr_examples.py [--self-test]` | replay every proposed ADR JSON fence through the independent B04 Python and Node bounded parsers; syntax-only draft evidence, never semantic implementation or acceptance |
+| `check_adr_examples.py [--self-test]` | replay every proposed ADR JSON fence through the separately implemented B04 Python and Node bounded parsers; syntax-only draft evidence, never semantic implementation or acceptance |
+| `../prototypes/b01-architecture-evidence/adr_example_semantics.py [--self-test]` | compare separate Rust and TypeScript profile results for all 22 content-addressed ADR JSON fences and 90 bounded mutations. The local and hosted gates pipe this result through its exact nested verifier. This is local non-authorizing evidence only. |
 | `generate_contract_manifest.py [--write]` | exact normative source list and complete SHA-256 digest |
 | `generate_conformance_manifest.py [--write]` | mandatory vector inventory, clauses, applicability, source hashes, corpus digest |
 | `check_proto_schema_parity.py` | protobuf ↔ JSON Schema fields/types/enums |
@@ -37,7 +38,7 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check_schema_defaults.py` | reject optimistic or type-invalid generated defaults |
 | `check_release_gates.py [--self-test]` | validate distinct pre-release gates and non-blocking post-publication checks; `--require-release-allowed` fails closed in tag workflows while the candidate hold is set |
 | `check_dependency_exposure.py [--self-test]` | bind the reviewed Zenoh/lz4 versions and resolved Cargo features; fail if defaults or vulnerable transport compression becomes active |
-| `generate_supply_chain_evidence.py [--self-test] [--check]` | reproducibly inventory locked dependencies/features/generators/assets, CycloneDX 1.6 components, licenses, and applicable advisories; `NCP_ADVISORY_DB_PATH` can bind a prepared external database without changing `HOME`; local evidence only, never signed release provenance |
+| `generate_supply_chain_evidence.py [--self-test] [--check]` | reproducibly inventory root-workspace dependencies, features, generators, assets, CycloneDX 1.6 components, licenses, and applicable advisories. `NCP_ADVISORY_DB_PATH` can bind a prepared external database without changing `HOME`. The output is local evidence, never signed release provenance. |
 | `generate_convergence_manifest.py [--self-test] [--check]` | keep the local NO_GO boundary, open secure-adapter prerequisite, ten external pre-release handoffs, consumers, and post-publication checks machine-exact |
 | `generate_audit_artifacts.py [--self-test] [--check\|--write]` | check or deterministically replace the OPEN threat register, per-file latent-path inventory, and requirement traceability graph |
 | `check_audit_artifacts.py [--self-test]` | semantically validate generated audit artifacts and reject missing, stale, optimistic, or unreviewed entries |
@@ -310,9 +311,10 @@ scripts/check.sh
 ```
 
 Required tools are Cargo/Rust 1.88+, Python 3.11+, Node.js 18+, a C++17 compiler,
-Bun, npm, Buf, and `cargo-deny` 0.19.9. The gate invokes both Bun and npm. Hosted
-CI pins Node.js 24.18.0 and Bun 1.3.14. Any
-missing required tool is a failed local gate. External security,
+Bun, npm, Buf, and `cargo-deny` 0.19.9. The gate invokes Bun and npm. Hosted CI
+pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses Node.js
+26.3.0, then restores Node.js 24.18.0. Any missing required tool is a failed
+local gate. External security,
 independent-peer, fault/soak, fuzz/sanitizer, signature/SBOM, clean-room, publication,
 and consumer gates remain **NOT RUN** until separately evidenced.
 

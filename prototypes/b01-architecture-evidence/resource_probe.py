@@ -8,6 +8,7 @@ import copy
 import hashlib
 import io
 import json
+import os
 import platform
 import shutil
 import statistics
@@ -64,6 +65,29 @@ def _canonical_json(value: Any) -> bytes:
 
 def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _external_uv_environment() -> Path:
+    raw = os.environ.get("UV_PROJECT_ENVIRONMENT")
+    if not raw:
+        raise ResourceProbeError("UV_PROJECT_ENVIRONMENT is required")
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ResourceProbeError("UV_PROJECT_ENVIRONMENT is not absolute")
+    try:
+        resolved = path.resolve(strict=True)
+    except OSError as error:
+        raise ResourceProbeError("UV_PROJECT_ENVIRONMENT is unavailable") from error
+    repository = REPOSITORY.resolve(strict=True)
+    if (
+        not resolved.is_dir()
+        or resolved == repository
+        or repository in resolved.parents
+    ):
+        raise ResourceProbeError(
+            "UV_PROJECT_ENVIRONMENT is not an external environment directory"
+        )
+    return resolved
 
 
 def _outer_runtime_identity() -> dict[str, Any]:
@@ -454,6 +478,7 @@ def journal_probe() -> dict[str, Any]:
 
 def crypto_probe() -> dict[str, Any]:
     project = REPOSITORY / "prototypes/authenticated-ingress/signed-forwarding-envelope"
+    _external_uv_environment()
     uv = shutil.which("uv")
     if uv is None:
         raise ResourceProbeError("uv is unavailable")
@@ -474,6 +499,7 @@ def crypto_probe() -> dict[str, Any]:
         [
             uv,
             "run",
+            "--no-sync",
             "--offline",
             "--locked",
             "--project",
@@ -515,6 +541,7 @@ def crypto_probe() -> dict[str, Any]:
         "executable_sha256": _sha256(Path(uv).read_bytes()),
         "invocation": [
             "run",
+            "--no-sync",
             "--offline",
             "--locked",
             "--project",
@@ -530,6 +557,7 @@ def crypto_probe() -> dict[str, Any]:
 
 def _current_crypto_environment() -> dict[str, Any]:
     project = REPOSITORY / "prototypes/authenticated-ingress/signed-forwarding-envelope"
+    _external_uv_environment()
     uv = shutil.which("uv")
     if uv is None:
         raise ResourceProbeError("uv is unavailable")
@@ -537,6 +565,7 @@ def _current_crypto_environment() -> dict[str, Any]:
         [
             uv,
             "run",
+            "--no-sync",
             "--offline",
             "--locked",
             "--project",
@@ -682,6 +711,7 @@ def validate_result(value: Any) -> None:
         or ed25519["runner"].get("invocation")
         != [
             "run",
+            "--no-sync",
             "--offline",
             "--locked",
             "--project",

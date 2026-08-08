@@ -131,8 +131,9 @@ non-certifying sentinel, not a source revision or release provenance claim.
 ## Build and verify
 
 Required local tools are Rust 1.88+, Python 3.11+, Node.js 18+, a C++17 compiler,
-Bun, npm, Buf, and `cargo-deny` 0.19.9. The complete gate invokes both Bun and
-npm. Hosted CI pins Node.js 24.18.0 and Bun 1.3.14.
+Bun, npm, Buf, and `cargo-deny` 0.19.9. The complete gate invokes Bun and npm.
+Hosted CI pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses
+Node.js 26.3.0, then restores Node.js 24.18.0.
 
 ```bash
 scripts/check.sh

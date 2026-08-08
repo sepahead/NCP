@@ -15,11 +15,11 @@ from pathlib import Path
 from typing import Any
 
 from bounded_json_support import (
-    BOUNDED_JSON_SUPPORT_PATHS,
     BoundedJsonError,
     JsonLimits,
     parse_json_bytes,
 )
+import adr_example_semantics
 import decision_probe
 import freshness_acceptance_probe
 import model_check
@@ -29,6 +29,7 @@ import resource_probe
 import run_smt
 import source_issuance_index_probe
 from source_inventory import (
+    B01_SUPPORT_RELATIVE_PATHS,
     SourceInventoryError,
     build_source_inventory,
     read_bounded_relative_file,
@@ -86,7 +87,7 @@ def _sources() -> list[dict[str, Any]]:
         return build_source_inventory(
             ROOT,
             REPOSITORY,
-            support_relative_paths=BOUNDED_JSON_SUPPORT_PATHS,
+            support_relative_paths=B01_SUPPORT_RELATIVE_PATHS,
         )
     except (OSError, SourceInventoryError) as error:
         raise AssemblyError(f"source inventory failed closed: {error}") from error
@@ -119,6 +120,9 @@ def build_result() -> dict[str, Any]:
     if manifest.get("contract_digest_sha256") != EXPECTED_CONTRACT_SHA256:
         raise AssemblyError("current contract manifest digest changed")
     sources = _sources()
+    adr_example_semantics_result = adr_example_semantics.build_result(self_test=True)
+    semantic_case_count = adr_example_semantics_result["case_count"]
+    semantic_mutation_count = adr_example_semantics_result["mutation_count"]
     decision_result = decision_probe.build_result()
     authorization_result = observer_authorization_probe.build_result()
     capture_result = observer_capture_probe.build_result()
@@ -154,7 +158,7 @@ def build_result() -> dict[str, Any]:
     if final_manifest_bytes != manifest_bytes:
         raise AssemblyError("contract manifest changed during result assembly")
     return {
-        "schema": "ncp.b01-preliminary-architecture-evidence.v2",
+        "schema": "ncp.b01-preliminary-architecture-evidence.v3",
         "scope": "proposed-adrs-only",
         "task": "B01",
         "candidate": "1.0.0-rc.1",
@@ -173,6 +177,7 @@ def build_result() -> dict[str, Any]:
         "contract_manifest_sha256": _sha256(manifest_bytes),
         "compact_contract_hash": "163acc57d8a62b66",
         "sources": sources,
+        "adr_example_semantics": adr_example_semantics_result,
         "decision_probe": decision_result,
         "observer_authorization_probe": authorization_result,
         "observer_capture_probe": capture_result,
@@ -192,11 +197,15 @@ def build_result() -> dict[str, Any]:
             "strongest_local_statement": (
                 "No counterexample was found within the recorded finite models, "
                 "decision, observer-authorization, observer-capture, "
-                "freshness-and-acceptance, source-issuance-index, and fixed local "
-                "resource probes; every registered executable mutant was detected, "
-                "every registered hostile input was rejected, and every registered "
-                "invariant and semantic-contrast witness was reached within those "
-                "encoded finite cases."
+                "freshness-and-acceptance, source-issuance-index, fixed local "
+                "resource, and ADR-example semantic probes. The separate Rust and "
+                f"TypeScript profile engines agreed on {semantic_case_count} "
+                "content-bound semantic cases and rejected "
+                f"{semantic_mutation_count} registered "
+                "bounded mutations. Every other registered executable mutant was "
+                "detected, every registered hostile input was rejected, and every "
+                "registered invariant and semantic-contrast witness was reached "
+                "within those encoded finite cases."
             ),
         },
     }

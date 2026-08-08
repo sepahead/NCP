@@ -5,6 +5,8 @@ on:
   pull_request:
 
 env:
+  B01_ADR_SEMANTICS_MANIFEST: "prototypes/b01-architecture-evidence/adr-example-semantics/rust/Cargo.toml"
+  B04_NODE_VERSION: "26.3.0"
   BUN_VERSION: "1.3.14"
   CARGO_TERM_COLOR: always
   NODE_VERSION: "24.18.0"
@@ -40,6 +42,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Install Rust toolchain for quarantined B01 semantics
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable, pinned 2026-07-10
+        with:
+          toolchain: "1.88.0"
+          components: rustfmt, clippy
+
+      - name: Install Bun for quarantined B01 semantics
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
       - name: Evidence schemas, B01 Python tools, and implementation ledger
         run: |
           python3 -m venv "${RUNNER_TEMP}/ncp-evidence-schema"
@@ -52,6 +65,48 @@ jobs:
           "$evidence_schema_python" scripts/generate_implementation_ledger.py --check
           "$evidence_schema_python" scripts/generate_decision_registry.py \
             --self-test --check
+
+      # The quarantined B04 syntax parser declares this exact Node engine.
+      # This step does not claim its separate Node/OpenSSL crypto boundary.
+      # The syntax-only replay supplies no independent or release evidence.
+      - name: Set up exact Node.js for quarantined B04 syntax replay
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.B04_NODE_VERSION }}
+
+      - name: B01 ADR-example syntax and semantic profile parity
+        run: |
+          evidence_schema_python="${RUNNER_TEMP}/ncp-evidence-schema/bin/python"
+          semantics_root="prototypes/b01-architecture-evidence/adr-example-semantics"
+          test "$(node -p 'process.versions.node')" = "$B04_NODE_VERSION"
+          bun install --frozen-lockfile --backend=copyfile --force
+          npm --prefix \
+            prototypes/authenticated-ingress/signed-forwarding-envelope/node-verifier \
+            ci --ignore-scripts --no-audit
+          "$evidence_schema_python" scripts/check_adr_examples.py --self-test
+          cargo fetch --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" --locked
+          cargo fmt --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" -- --check
+          CARGO_TARGET_DIR="${RUNNER_TEMP}/ncp-b01-adr-semantics-target" \
+            cargo clippy --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" \
+              --all-targets --locked --offline -- -D warnings
+          CARGO_TARGET_DIR="${RUNNER_TEMP}/ncp-b01-adr-semantics-target" \
+            cargo test --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" \
+              --locked --offline
+          (
+            cd "${semantics_root}/typescript"
+            bun run typecheck
+          )
+          "$evidence_schema_python" \
+            prototypes/b01-architecture-evidence/adr_example_semantics.py \
+              --self-test \
+            | "$evidence_schema_python" \
+                prototypes/b01-architecture-evidence/verify_result.py \
+                  --adr-example-semantics-only
+
+      - name: Restore exact Node.js LTS for B01 portability
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: B01 fail-closed review-candidate integrity (non-completion)
         run: |
@@ -471,6 +526,7 @@ jobs:
           cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"
           test "$(cargo deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
           cargo fetch --locked
+          cargo fetch --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" --locked
       # The current database gate detects newly applicable findings. A local clone
       # is then rewound to the evidence-pinned revision for deterministic byte
       # replay and the repo-less Git-archive preflight.
@@ -485,6 +541,9 @@ jobs:
           mkdir -p "$current_home" "$pinned_home"
 
           HOME="$current_home" cargo deny --locked --all-features check
+          HOME="$current_home" \
+            cargo deny --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" \
+              --locked --offline --all-features check --disable-fetch
           HOME="$current_home" \
             python3 scripts/generate_supply_chain_evidence.py \
               --validate-current-advisories
@@ -502,6 +561,9 @@ jobs:
 
           HOME="$pinned_home" \
             cargo deny --locked --offline --all-features check --disable-fetch
+          HOME="$pinned_home" \
+            cargo deny --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" \
+              --locked --offline --all-features check --disable-fetch
           HOME="$pinned_home" \
             python3 scripts/generate_supply_chain_evidence.py --self-test --check
           python3 scripts/check_dependency_exposure.py --self-test

@@ -2223,7 +2223,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "e3921b6471ea5f6646a836e0b5e85b2da74610c312a2b1f225c10d36d563dc7e"
+      "sha256": "92443cc73d47b09d2c59dbe8437095194bf5e579bd461313e2450ae3d94eef09"
     },
     {
       "outputs": [
@@ -2509,6 +2509,16 @@
         "workflow": ".github/workflows/ci.yml"
       },
       {
+        "action": "actions/setup-node",
+        "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-node",
+        "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
         "action": "actions/setup-python",
         "revision": "ece7cb06caefa5fff74198d8649806c4678c61a1",
         "workflow": ".github/workflows/ci.yml"
@@ -2536,6 +2546,16 @@
       {
         "action": "dtolnay/rust-toolchain",
         "revision": "4be7066ada62dd38de10e7b70166bc74ed198c30",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "dtolnay/rust-toolchain",
+        "revision": "4be7066ada62dd38de10e7b70166bc74ed198c30",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "oven-sh/setup-bun",
+        "revision": "0c5077e51419868618aeaa5fe8019c62421857d6",
         "workflow": ".github/workflows/ci.yml"
       },
       {

@@ -1,0 +1,33 @@
+[workspace]
+members = ["."]
+resolver = "2"
+
+[package]
+name = "ncp-b01-adr-example-semantics-rust"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88.0"
+publish = false
+description = "Quarantined local Rust profiles for proposed NCP ADR JSON examples"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+
+[lints.rust]
+future_incompatible = { level = "deny", priority = -1 }
+nonstandard_style = { level = "deny", priority = -1 }
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"
+perf = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = true

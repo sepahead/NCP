@@ -11,7 +11,23 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-SOURCE_SUFFIXES = frozenset({".py", ".sh", ".smt2", ".md"})
+SOURCE_SUFFIXES = frozenset(
+    {".json", ".lock", ".md", ".py", ".rs", ".sh", ".smt2", ".toml", ".ts"}
+)
+B01_SUPPORT_RELATIVE_PATHS = (
+    "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+    "docs/adr/0002-contract-identity-and-release-authorization.md",
+    "docs/adr/0003-authenticated-production-ingress.md",
+    "docs/adr/0004-observer-attach-grants-and-revocation.md",
+    "docs/adr/0005-declared-stream-lifecycle.md",
+    "docs/adr/0006-body-issued-authority-and-time.md",
+    "docs/adr/0007-command-disposition-journal.md",
+    "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+    "docs/adr/0009-security-state-rotation-and-revocation.md",
+    "docs/adr/0010-plane-qos-retention-and-overload.md",
+    "docs/adr/0011-ecosystem-topology-and-handover.md",
+    "scripts/bounded_json.py",
+)
 MAX_SOURCE_FILES = 64
 MAX_SOURCE_DIRECTORIES = 64
 MAX_SOURCE_DIRECTORY_ENTRIES = 512
@@ -374,10 +390,24 @@ def self_test() -> None:
             (root / f"source_{index}.py").write_bytes(
                 f"VALUE = {index}\n".encode("ascii")
             )
+        additional_suffixes = sorted(SOURCE_SUFFIXES - {".py"})
+        for index, suffix in enumerate(additional_suffixes):
+            (root / f"language_source_{index}{suffix}").write_bytes(
+                f"source-{suffix}\n".encode("ascii")
+            )
+        (root / "ignored.bin").write_bytes(b"ignored\n")
         inventory = build_source_inventory(root, repository)
-        if len(inventory) != 10:
+        expected_count = 10 + len(additional_suffixes)
+        if len(inventory) != expected_count:
             raise SourceInventoryError(
                 "source inventory self-test lost a regular source"
+            )
+        included_suffixes = {
+            PurePosixPath(source["path"]).suffix for source in inventory
+        }
+        if included_suffixes != SOURCE_SUFFIXES:
+            raise SourceInventoryError(
+                "source inventory self-test lost one supported source suffix"
             )
         support = repository / "support"
         support.mkdir()
