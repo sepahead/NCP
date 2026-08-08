@@ -65,10 +65,12 @@ native-1.0 interoperability evidence:
   native-1.0 migration is in progress and not installed or live-qualified.
 - **Crebain** is an intended body and owns the Galadriel-producer surface. Both
   historical surfaces remain wire 0.8.
-- **Haldir** is an intended commander and Galadriel-assessment receiver. Its two
-  historical surfaces remain wire 0.8.
-- **Galadriel** is an intended NCP observer and raw-advisory publisher. Its two
-  historical surfaces remain wire 0.8.
+- **Haldir** is an intended commander and future Galadriel-assessment receiver.
+  Its only historical NCP surface remains wire 0.8. The native commander and
+  assessment receiver are absent.
+- **Galadriel** is an intended NCP observer and future raw-advisory publisher.
+  Its only historical NCP surface remains wire 0.8. The native observer and
+  publisher are absent.
 - **Prisoma** is an intended read-only analysis/observer client and remains wire
   0.8.
 - **pid-rs** remains a protocol-neutral library/CLI. Consumer-owned adapters can

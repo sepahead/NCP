@@ -71,9 +71,9 @@
       },
       {
         "path": ".github/PULL_REQUEST_TEMPLATE.md",
-        "bytes": 1571,
-        "sha256": "01fcee58478f52fdc40cfbfba26df6773ecc4f3b5455c02b71d08a1110ad254d",
-        "git_blob_oid": "de4e4b3110bf51135849c847f2ec5b2e0d0eb8cd",
+        "bytes": 1683,
+        "sha256": "773d2a2dd09248818a93b661260761e12ddef8dc9355baf6911cb00b70cece76",
+        "git_blob_oid": "d4b882310548da9bb77b91aec418d4c78562c8d8",
         "indexed": true
       },
       {
@@ -260,9 +260,9 @@
       },
       {
         "path": "RATIONALE.md",
-        "bytes": 25511,
-        "sha256": "7a2b51a2b8ae8efc763d15f8df5cc9f482fa84a233e90a7e1fb7e8acfc40d77b",
-        "git_blob_oid": "b042c4baaa862ce739be370c774e18dc3e5c9b65",
+        "bytes": 25642,
+        "sha256": "987d4aff6c505b876fd801dc226756974ec12b792cfff6c09257ea95242e4203",
+        "git_blob_oid": "bd43672c0e8bbc151023b042eef8d9e1f5dd00c6",
         "indexed": true
       },
       {
@@ -2332,9 +2332,9 @@
       },
       {
         "path": "evidence/supply-chain/README.md",
-        "bytes": 1600,
-        "sha256": "13e3005b7b0b0222a0db2d863b4255f70aae1260e2deac0840ac168c79e3a56c",
-        "git_blob_oid": "e1ad676095ccc6b30685bb2057c82eb1428b0f28",
+        "bytes": 1615,
+        "sha256": "116e7a07bf16ed8fc8c429bb14bac70235dd663e9c0d0c3ce986bbf2f2030f06",
+        "git_blob_oid": "aad94e3902565285464d9bf4d9cdde679ec9fccf",
         "indexed": true
       },
       {
@@ -7442,13 +7442,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-77B8FBDCCC25D511A15F",
+      "id": "NCP-LATENT-C0DDE010D8CC09CDD95D",
       "path": "RATIONALE.md",
-      "line": 185,
+      "line": 187,
       "column": 4,
       "token_id": "M007",
       "line_sha256": "1cb1dff7f8e280a3d423f82fb3d98a981668fd33886f5f67bcc8962ed48599c2",
-      "file_sha256": "7a2b51a2b8ae8efc763d15f8df5cc9f482fa84a233e90a7e1fb7e8acfc40d77b",
+      "file_sha256": "987d4aff6c505b876fd801dc226756974ec12b792cfff6c09257ea95242e4203",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -7457,13 +7457,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-2C43CEE5DFC7C041DE66",
+      "id": "NCP-LATENT-24C0362D594542212B58",
       "path": "RATIONALE.md",
-      "line": 308,
+      "line": 310,
       "column": 12,
       "token_id": "M007",
       "line_sha256": "7e0b6583251aa320dc3e787925ef47d5f6b62471541c88813c82a23235d0afb6",
-      "file_sha256": "7a2b51a2b8ae8efc763d15f8df5cc9f482fa84a233e90a7e1fb7e8acfc40d77b",
+      "file_sha256": "987d4aff6c505b876fd801dc226756974ec12b792cfff6c09257ea95242e4203",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -7472,13 +7472,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-B69C49E5E1CB9157EFAC",
+      "id": "NCP-LATENT-AD79998F8D84D6E1EFD7",
       "path": "RATIONALE.md",
-      "line": 376,
+      "line": 378,
       "column": 62,
       "token_id": "M007",
       "line_sha256": "f39a0b12044d641978224f0acb1c9c64200eaad6cb68def4d37f72ec566b73c4",
-      "file_sha256": "7a2b51a2b8ae8efc763d15f8df5cc9f482fa84a233e90a7e1fb7e8acfc40d77b",
+      "file_sha256": "987d4aff6c505b876fd801dc226756974ec12b792cfff6c09257ea95242e4203",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

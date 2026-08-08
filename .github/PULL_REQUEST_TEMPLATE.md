@@ -11,7 +11,10 @@ Please fill out the checklist below. Remove sections that genuinely don't apply,
 ## Checklist
 
 - [ ] Tests added or updated for the change
-- [ ] `scripts/check.sh` passes locally, or each intentionally unavailable gate is recorded as `NOT RUN`
+- [ ] `scripts/check.sh` passes locally
+- [ ] No required local tool is missing
+- [ ] No applicable local vector is skipped
+- [ ] Each separate external pre-release gate that was not executed is recorded as `NOT RUN`
 - [ ] The mandatory exact-set corpus has no applicable skips or unknown vectors
 - [ ] Generated schemas, bindings, manifests, full contract digest, and candidate baseline are current
 - [ ] Docs updated where behavior or public API changed
