@@ -18,7 +18,7 @@ use std::process::ExitCode;
 use serde::Serialize;
 use serde_json::{json, Value};
 
-use crate::decision::verify_decision_set;
+use crate::decision::{review_packet_binding_self_test, verify_decision_set};
 use crate::error::{EngineError, EngineResult};
 use crate::model::{
     validate_bounded_fixture, Corpus, DecisionSetBinding, PatchTarget, ProductionAdmission,
@@ -602,17 +602,15 @@ fn run_self_tests() -> EngineResult<SelfTestResult> {
         revocation_guard_detected,
         capacity_guard_detected,
     ];
-    let detected = controls.iter().filter(|detected| **detected).count();
-    if detected != controls.len() {
+    let review_packet_controls = review_packet_binding_self_test()?;
+    let executed = controls.len() + review_packet_controls;
+    let detected = controls.iter().filter(|detected| **detected).count() + review_packet_controls;
+    if detected != executed {
         return Err(EngineError::semantic(format!(
-            "self-test detected {detected} of {} hostile controls",
-            controls.len()
+            "self-test detected {detected} of {executed} hostile controls",
         )));
     }
-    Ok(SelfTestResult {
-        executed: controls.len(),
-        detected,
-    })
+    Ok(SelfTestResult { executed, detected })
 }
 
 #[cfg(test)]

@@ -9,6 +9,8 @@ use crate::sha256::sha256_hex;
 use crate::source::{read_bounded, resolve_regular_relative_file};
 use crate::strict_json::{canonicalize, parse_strict};
 
+const REVIEW_PACKET_LIFECYCLE_SCHEMA: &str = "ncp.b01-review-packet-lifecycle.v1";
+
 pub(crate) struct VerifiedDecisionSet {
     pub(crate) binding: DecisionSetBinding,
     sources: BTreeMap<String, DecisionSource>,
@@ -111,13 +113,16 @@ fn build_projection(
         ));
     }
     let registered_identity = decision_identity(binding);
-    if registry_object.get("decision_set") != Some(&registered_identity)
-        || registry.pointer("/review_packet_subject/decision_set") != Some(&registered_identity)
-    {
+    if registry_object.get("decision_set") != Some(&registered_identity) {
         return Err(EngineError::corpus(
-            "decision registry and review subject do not carry the bound identity",
+            "decision registry does not carry the bound identity",
         ));
     }
+    let registry_decision_set = registry_object
+        .get("decision_set")
+        .and_then(Value::as_object)
+        .ok_or_else(|| EngineError::corpus("decision registry decision_set must be an object"))?;
+    validate_review_packet_binding(registry_object, &registered_identity)?;
     let mut projection = Map::new();
     for member in &binding.projection_members {
         if member == "decisions" {
@@ -125,6 +130,11 @@ fn build_projection(
         }
         if member == "schema" {
             projection.insert(member.clone(), Value::String(binding.schema.clone()));
+        } else if member == "semantic_closure" {
+            let value = registry_decision_set.get(member).ok_or_else(|| {
+                EngineError::corpus("decision registry decision_set lacks semantic_closure")
+            })?;
+            projection.insert(member.clone(), value.clone());
         } else {
             let value = registry_object.get(member).ok_or_else(|| {
                 EngineError::corpus(format!("decision registry is missing member {member:?}"))
@@ -204,6 +214,181 @@ fn build_projection(
     Ok((Value::Object(projection), sources))
 }
 
+fn validate_review_packet_binding(
+    registry: &Map<String, Value>,
+    registered_identity: &Value,
+) -> EngineResult<()> {
+    let review_records = registry
+        .get("review_records")
+        .and_then(Value::as_array)
+        .ok_or_else(|| EngineError::corpus("review records must be an array"))?;
+    let lifecycle = registry
+        .get("review_packet_lifecycle")
+        .and_then(Value::as_object)
+        .ok_or_else(|| EngineError::corpus("review packet lifecycle must be an object"))?;
+    if lifecycle.len() != 2
+        || lifecycle.get("schema")
+            != Some(&Value::String(REVIEW_PACKET_LIFECYCLE_SCHEMA.to_owned()))
+    {
+        return Err(EngineError::corpus(
+            "review packet lifecycle has an invalid schema or member set",
+        ));
+    }
+    let state = lifecycle
+        .get("state")
+        .and_then(Value::as_str)
+        .ok_or_else(|| EngineError::corpus("review packet lifecycle state must be a string"))?;
+    match state {
+        "CURRENT" => {
+            let subject = registry
+                .get("review_packet_subject")
+                .and_then(Value::as_object)
+                .ok_or_else(|| {
+                    EngineError::corpus("CURRENT review packet subject must be an object")
+                })?;
+            if subject.get("decision_set") != Some(registered_identity) {
+                return Err(EngineError::corpus(
+                    "CURRENT review packet subject does not carry the bound identity",
+                ));
+            }
+        }
+        "SUPERSEDED" | "TEMPLATE" => {
+            if registry.get("review_packet_subject") != Some(&Value::Null) {
+                return Err(EngineError::corpus(
+                    "non-current review packet subject must be null",
+                ));
+            }
+            if !review_records.is_empty() {
+                return Err(EngineError::corpus(
+                    "non-current review packet cannot retain review records",
+                ));
+            }
+        }
+        _ => {
+            return Err(EngineError::corpus(
+                "review packet lifecycle state is not recognized",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
+    let registered_identity = serde_json::json!({
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "00",
+        "schema": "ncp.b01-decision-set.v1",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    });
+    let subject = serde_json::json!({"decision_set": registered_identity.clone()});
+    let mismatched_subject = serde_json::json!({
+        "decision_set": {
+            "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+            "domain_hex": "00",
+            "schema": "ncp.b01-decision-set.v1",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+    });
+    let mut wrong_schema = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
+    lifecycle_mut(&mut wrong_schema)?.insert(
+        "schema".to_owned(),
+        Value::String("ncp.b01-review-packet-lifecycle.v0".to_owned()),
+    );
+    let mut extra_member = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
+    lifecycle_mut(&mut extra_member)?.insert("unexpected".to_owned(), Value::Bool(false));
+    let mut missing_state = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
+    lifecycle_mut(&mut missing_state)?.remove("state");
+    let mut missing_subject = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
+    missing_subject.remove("review_packet_subject");
+    let mut missing_records = review_packet_registry("CURRENT", subject.clone(), vec![]);
+    missing_records.remove("review_records");
+    let controls = [
+        validate_review_packet_binding(
+            &review_packet_registry("CURRENT", subject.clone(), vec![serde_json::json!({})]),
+            &registered_identity,
+        )
+        .is_ok(),
+        validate_review_packet_binding(
+            &review_packet_registry("SUPERSEDED", Value::Null, vec![]),
+            &registered_identity,
+        )
+        .is_ok(),
+        validate_review_packet_binding(
+            &review_packet_registry("TEMPLATE", Value::Null, vec![]),
+            &registered_identity,
+        )
+        .is_ok(),
+        validate_review_packet_binding(
+            &review_packet_registry("CURRENT", Value::Null, vec![]),
+            &registered_identity,
+        )
+        .is_err(),
+        validate_review_packet_binding(
+            &review_packet_registry("CURRENT", mismatched_subject, vec![]),
+            &registered_identity,
+        )
+        .is_err(),
+        validate_review_packet_binding(
+            &review_packet_registry("SUPERSEDED", subject.clone(), vec![]),
+            &registered_identity,
+        )
+        .is_err(),
+        validate_review_packet_binding(
+            &review_packet_registry("TEMPLATE", subject, vec![]),
+            &registered_identity,
+        )
+        .is_err(),
+        validate_review_packet_binding(
+            &review_packet_registry("SUPERSEDED", Value::Null, vec![serde_json::json!({})]),
+            &registered_identity,
+        )
+        .is_err(),
+        validate_review_packet_binding(
+            &review_packet_registry("UNKNOWN", Value::Null, vec![]),
+            &registered_identity,
+        )
+        .is_err(),
+        validate_review_packet_binding(&wrong_schema, &registered_identity).is_err(),
+        validate_review_packet_binding(&extra_member, &registered_identity).is_err(),
+        validate_review_packet_binding(&missing_state, &registered_identity).is_err(),
+        validate_review_packet_binding(&missing_subject, &registered_identity).is_err(),
+        validate_review_packet_binding(&missing_records, &registered_identity).is_err(),
+    ];
+    let detected = controls.iter().filter(|detected| **detected).count();
+    if detected != controls.len() {
+        return Err(EngineError::corpus(format!(
+            "review packet binding self-test detected {detected} of {} controls",
+            controls.len()
+        )));
+    }
+    Ok(detected)
+}
+
+fn review_packet_registry(
+    state: &str,
+    subject: Value,
+    review_records: Vec<Value>,
+) -> Map<String, Value> {
+    Map::from_iter([
+        (
+            "review_packet_lifecycle".to_owned(),
+            serde_json::json!({
+                "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                "state": state
+            }),
+        ),
+        ("review_packet_subject".to_owned(), subject),
+        ("review_records".to_owned(), Value::Array(review_records)),
+    ])
+}
+
+fn lifecycle_mut(registry: &mut Map<String, Value>) -> EngineResult<&mut Map<String, Value>> {
+    registry
+        .get_mut("review_packet_lifecycle")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test lifecycle fixture is not an object"))
+}
+
 fn decision_identity(binding: &DecisionSetBinding) -> Value {
     let mut identity = Map::new();
     identity.insert("schema".to_owned(), Value::String(binding.schema.clone()));
@@ -216,6 +401,10 @@ fn decision_identity(binding: &DecisionSetBinding) -> Value {
         Value::String(binding.domain_hex.clone()),
     );
     identity.insert("sha256".to_owned(), Value::String(binding.sha256.clone()));
+    identity.insert(
+        "semantic_closure".to_owned(),
+        binding.semantic_closure.clone(),
+    );
     Value::Object(identity)
 }
 

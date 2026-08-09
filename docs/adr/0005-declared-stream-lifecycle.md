@@ -636,7 +636,12 @@ session as a whole; it cannot keep new frames with old implicit adoption.
 
 Exact interface names, sequence and reorder limits, and tombstone capacities remain implementation-allocation inputs. The lifecycle, admission, retirement, and no-reuse rules are closed.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Semantics: stream creation is an operation, not a frame side effect.

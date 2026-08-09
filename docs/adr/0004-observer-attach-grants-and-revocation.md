@@ -4005,7 +4005,12 @@ pair or disables the adapter; wildcard trust never returns.
 
 No semantic question remains in this decision. Unknown or default values deny.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Protocol semantics keep attach, grant, and outcome distinct.

@@ -419,12 +419,6 @@
           "requires_independence": false
         },
         {
-          "role_id": "cortexel-owner",
-          "label": "Cortexel owner",
-          "min_distinct_identities": 1,
-          "requires_independence": false
-        },
-        {
           "role_id": "pid-rs-owner",
           "label": "pid-rs owner",
           "min_distinct_identities": 1,

@@ -41,8 +41,7 @@ MAX_JSON_BYTES = 2 * 1024 * 1024
 MAX_SCHEMA_ERRORS = 64
 DRAFT_2020_12_ID = "https://json-schema.org/draft/2020-12/schema"
 LEDGER_SCHEMA_ID = (
-    "https://github.com/sepahead/NCP/evidence/implementation/"
-    "task-ledger.schema.v1.json"
+    "https://github.com/sepahead/NCP/evidence/implementation/task-ledger.schema.v1.json"
 )
 DECISION_REGISTRY_SCHEMA_ID = (
     "https://sepahead.github.io/NCP/schemas/proposed-decision-registry.v1.json"
@@ -603,6 +602,110 @@ def _must_fail(action: Any, label: str, expected: str) -> None:
     _fail(f"hostile schema test unexpectedly passed: {label}")
 
 
+def _open_decision_registry_fixture(registry: dict[str, Any]) -> dict[str, Any]:
+    """Return a schema fixture that makes no closure or review-pass claim."""
+
+    fixture = copy.deepcopy(registry)
+    closure_source = {
+        "path": "docs/adr/decision-closure.source.v1.json",
+        "sha256": "0" * 64,
+        "bytes": 1,
+    }
+    closure_schema = {
+        "path": "docs/adr/decision-closure.source.schema.v1.json",
+        "sha256": "1" * 64,
+        "bytes": 1,
+    }
+    decision_set_sha256 = "2" * 64
+    fixture["review_packet_lifecycle"] = {
+        "schema": "ncp.b01-review-packet-lifecycle.v1",
+        "state": "SUPERSEDED",
+    }
+    fixture["review_packet_subject"] = None
+    fixture["review_records"] = []
+    fixture["decision_set"]["sha256"] = decision_set_sha256
+    fixture["decision_set"]["semantic_closure"] = {
+        "source": copy.deepcopy(closure_source),
+        "json_schema": copy.deepcopy(closure_schema),
+    }
+    fixture["semantic_closure_evaluation"] = {
+        "schema": "ncp.b01-semantic-closure-evaluation.v1",
+        "decision_set_sha256": decision_set_sha256,
+        "state": "OPEN",
+        "source": copy.deepcopy(closure_source),
+        "json_schema": copy.deepcopy(closure_schema),
+        "wire_corpus": {
+            "required_path": (
+                "prototypes/b01-architecture-evidence/"
+                "adr-example-semantics/corpus.v1.json"
+            ),
+            "required_status": "COMPLETE_CURRENT",
+            "observed_status": "MISSING",
+            "observed_identity": None,
+            "case_count": 0,
+        },
+        "b03_deferrals": {
+            "required_question_count": 7,
+            "validated_question_count": 0,
+            "observed_status": "INCOMPLETE_FAIL_CLOSED",
+        },
+        "capture_workflow": {
+            "required_state": "IMPLEMENTED",
+            "observed_state": "NOT_IMPLEMENTED",
+            "required_engine_profile_state": "IMPLEMENTED",
+            "engine_profile_states": {
+                "RUST": "NOT_IMPLEMENTED",
+                "TYPESCRIPT": "NOT_IMPLEMENTED",
+            },
+            "command": (
+                "python3 scripts/generate_decision_registry.py "
+                "--capture-semantic-parser-results"
+            ),
+            "target_directory": (
+                "evidence/implementation/reviews/B01/semantic-closure"
+            ),
+            "write_policy": ("BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME"),
+            "failure_effect": "WRITE_NEITHER_RESULT",
+        },
+        "rust_parser_evidence": {
+            "engine": "RUST",
+            "required_result_path": (
+                "evidence/implementation/reviews/B01/semantic-closure/"
+                "rust-parser-result.v1.json"
+            ),
+            "required_status": "PASS",
+            "observed_status": "NOT_RUN",
+            "receipt": None,
+            "execution": None,
+        },
+        "typescript_parser_evidence": {
+            "engine": "TYPESCRIPT",
+            "required_result_path": (
+                "evidence/implementation/reviews/B01/semantic-closure/"
+                "typescript-parser-result.v1.json"
+            ),
+            "required_status": "PASS",
+            "observed_status": "NOT_RUN",
+            "receipt": None,
+            "execution": None,
+        },
+    }
+    fixture["counts"] = {"decisions": len(fixture["decisions"])}
+    for decision in fixture["decisions"]:
+        decision["status"] = "PROPOSED"
+        decision["acceptance_blockers"] = [
+            {
+                "code": "SEMANTIC_CLOSURE_OPEN",
+                "closure_id": "B01-SEMANTIC-CLOSURE",
+                "detail": (
+                    "synthetic schema fixture keeps semantic closure open and "
+                    "grants no acceptance"
+                ),
+            }
+        ]
+    return fixture
+
+
 def self_test() -> None:
     run_bounded_json_self_test()
     require_pinned_validator()
@@ -610,6 +713,7 @@ def self_test() -> None:
     ledger = load_json(LEDGER)
     registry_schema = load_json(DECISION_REGISTRY_SCHEMA)
     registry = load_json(DECISION_REGISTRY)
+    registry_fixture = _open_decision_registry_fixture(registry)
     validate_instance(
         ledger_schema,
         ledger,
@@ -618,7 +722,7 @@ def self_test() -> None:
     )
     validate_instance(
         registry_schema,
-        registry,
+        registry_fixture,
         "proposed decision registry",
         expected_schema_id=DECISION_REGISTRY_SCHEMA_ID,
     )
@@ -670,7 +774,7 @@ def self_test() -> None:
         "schema pattern silently excludes D20",
         "pattern",
     )
-    hostile_registry = copy.deepcopy(registry)
+    hostile_registry = copy.deepcopy(registry_fixture)
     del hostile_registry["decisions"][0]["source_set"]
     _must_fail(
         lambda: validate_instance(
@@ -680,6 +784,39 @@ def self_test() -> None:
         ),
         "generated decision omits its source set",
         "required",
+    )
+    hostile_registry = copy.deepcopy(registry_fixture)
+    del hostile_registry["semantic_closure_evaluation"]
+    _must_fail(
+        lambda: validate_instance(
+            registry_schema,
+            hostile_registry,
+            "hostile proposed decision registry",
+        ),
+        "generated decision registry omits semantic closure evaluation",
+        "required",
+    )
+    hostile_registry = copy.deepcopy(registry_fixture)
+    del hostile_registry["decision_set"]["semantic_closure"]
+    _must_fail(
+        lambda: validate_instance(
+            registry_schema,
+            hostile_registry,
+            "hostile proposed decision registry",
+        ),
+        "generated decision set omits semantic closure binding",
+        "required",
+    )
+    hostile_registry = copy.deepcopy(registry_fixture)
+    hostile_registry["decisions"][0]["status"] = "ACCEPTED"
+    _must_fail(
+        lambda: validate_instance(
+            registry_schema,
+            hostile_registry,
+            "hostile proposed decision registry",
+        ),
+        "open semantic closure fabricates decision acceptance",
+        "const",
     )
     hostile_schema = copy.deepcopy(ledger_schema)
     hostile_schema["$defs"]["commit"]["$ref"] = (
@@ -777,8 +914,7 @@ def self_test() -> None:
         "properties": {
             "value": {
                 "oneOf": [
-                    {"type": "string"}
-                    for _ in range(MAX_SCHEMA_COMBINATOR_WIDTH + 1)
+                    {"type": "string"} for _ in range(MAX_SCHEMA_COMBINATOR_WIDTH + 1)
                 ]
             }
         },

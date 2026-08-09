@@ -3374,9 +3374,19 @@ it cannot retain execution claims without dispositions.
 
 <a id="ncp-b01-selector-allocation-adr-007-v1"></a>
 
-Exact implementation names and bounded capacities remain allocation inputs. Journal ordering, disposition truth, physical authority, and fail-closed recovery rules are closed.
+One semantic question remains open. The decision does not yet define the exact
+request and result union for a disposition query that distinguishes retained
+evidence, retired evidence, and query failure. Retention loss or unavailable
+proof must stay non-authorizing and cannot fabricate a terminal outcome beyond
+the known boundary. Exact implementation names and bounded journal capacities
+remain B03 allocation inputs.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Protocol semantics separates receipt, admission, application, and effect.

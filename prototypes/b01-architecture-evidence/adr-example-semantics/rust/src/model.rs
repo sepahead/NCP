@@ -108,6 +108,7 @@ pub(crate) struct DecisionSetBinding {
     pub(crate) projection_byte_length: usize,
     pub(crate) projection_sha256: String,
     pub(crate) sha256: String,
+    pub(crate) semantic_closure: Value,
     pub(crate) effect: String,
 }
 
@@ -466,6 +467,7 @@ impl Corpus {
             "candidate",
             "wire_version",
             "review_policy",
+            "semantic_closure",
             "decisions",
         ];
         let expected_decision_members = [
@@ -486,10 +488,23 @@ impl Corpus {
             || binding.projection_encoding != "UTF8_JSON_SORTED_KEYS_COMPACT_ENSURE_ASCII_FALSE"
             || binding.projection_members != expected_projection_members.map(str::to_owned).to_vec()
             || binding.decision_members != expected_decision_members.map(str::to_owned).to_vec()
-            || binding.projection_byte_length != 16_383
+            || binding.projection_byte_length != 16_606
             || binding.projection_sha256
-                != "40d52a56a3d561e118865f823cf55d1172e25b64f600e413e3635bf1b511f4f5"
-            || binding.sha256 != "794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a"
+                != "2c9dc7b997d599ad6e533cfa5685c5dabd73bb60f32020f72ebe1bbeaefce881"
+            || binding.sha256 != "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331"
+            || binding.semantic_closure
+                != serde_json::json!({
+                    "source": {
+                        "path": "docs/adr/decision-closure.source.v1.json",
+                        "sha256": "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
+                        "bytes": 66_810
+                    },
+                    "json_schema": {
+                        "path": "docs/adr/decision-closure.source.schema.v1.json",
+                        "sha256": "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
+                        "bytes": 28_693
+                    }
+                })
             || binding.effect != "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY"
         {
             return Err(EngineError::corpus(

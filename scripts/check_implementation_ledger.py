@@ -15145,6 +15145,30 @@ def _source_file_identity(
     return hashlib.sha256(content).hexdigest(), len(content)
 
 
+def _require_all_b01_decisions_accepted(registry: dict[str, Any]) -> None:
+    expected_ids = [f"ADR-{number:03d}" for number in range(1, 12)]
+    counts = registry.get("counts")
+    if not isinstance(counts, dict):
+        _fail("B01 decision registry.counts must be an object")
+    _exact_keys(counts, {"decisions"}, "B01 decision registry.counts")
+    if _integer(counts["decisions"], "B01 decision registry.counts.decisions") != len(
+        expected_ids
+    ):
+        _fail("B01 decision registry has an inconsistent decision count")
+
+    decisions = registry.get("decisions")
+    if not isinstance(decisions, list) or len(decisions) != len(expected_ids):
+        _fail("B01 task subject requires all eleven exact ADRs to be accepted")
+    for expected_id, decision in zip(expected_ids, decisions, strict=True):
+        if (
+            not isinstance(decision, dict)
+            or decision.get("id") != expected_id
+            or decision.get("status") != "ACCEPTED"
+            or decision.get("acceptance_blockers") != []
+        ):
+            _fail("B01 task subject requires all eleven exact ADRs to be accepted")
+
+
 def _checked_decision_registry(
     *,
     require_gate: bool,
@@ -15174,22 +15198,7 @@ def _checked_decision_registry(
         or registry.get("promotion_blocked") is not True
     ):
         _fail("B01 decision registry crosses its non-normative claim boundary")
-    counts = registry.get("counts")
-    decisions = registry.get("decisions")
-    if (
-        not isinstance(counts, dict)
-        or counts.get("accepted") != 11
-        or counts.get("proposed") != 0
-        or not isinstance(decisions, list)
-        or [decision.get("id") for decision in decisions]
-        != [f"ADR-{number:03d}" for number in range(1, 12)]
-        or any(
-            decision.get("status") != "ACCEPTED"
-            or decision.get("acceptance_blockers") != []
-            for decision in decisions
-        )
-    ):
-        _fail("B01 task subject requires all eleven exact ADRs to be accepted")
+    _require_all_b01_decisions_accepted(registry)
     lifecycle = registry.get("review_packet_lifecycle")
     packet_subject = registry.get("review_packet_subject")
     if lifecycle != {
@@ -21176,6 +21185,44 @@ def self_test(data: dict[str, Any]) -> None:
     staging_registry = _load_bounded_json_file(
         DECISION_REGISTRY, "self-test staging decision registry"
     )
+    accepted_staging_registry = copy.deepcopy(staging_registry)
+    for decision in accepted_staging_registry["decisions"]:
+        decision["status"] = "ACCEPTED"
+        decision["acceptance_blockers"] = []
+    _require_all_b01_decisions_accepted(accepted_staging_registry)
+
+    for label, hostile_counts in (
+        ("obsolete accepted/proposed counts", {"accepted": 11, "proposed": 0}),
+        ("extra accepted count", {"decisions": 11, "accepted": 11}),
+        ("missing decisions count", {}),
+    ):
+        hostile_registry = copy.deepcopy(accepted_staging_registry)
+        hostile_registry["counts"] = hostile_counts
+        _must_fail(
+            lambda hostile_registry=hostile_registry: (
+                _require_all_b01_decisions_accepted(hostile_registry)
+            ),
+            f"B01 registry {label}",
+            "B01 decision registry.counts keys differ",
+        )
+
+    hostile_registry = copy.deepcopy(accepted_staging_registry)
+    hostile_registry["decisions"][0]["status"] = "PROPOSED"
+    _must_fail(
+        lambda: _require_all_b01_decisions_accepted(hostile_registry),
+        "B01 registry status-count substitution",
+        "all eleven exact ADRs to be accepted",
+    )
+    hostile_registry = copy.deepcopy(accepted_staging_registry)
+    hostile_registry["decisions"][0]["acceptance_blockers"] = [
+        {"code": "HOSTILE_BLOCKER"}
+    ]
+    _must_fail(
+        lambda: _require_all_b01_decisions_accepted(hostile_registry),
+        "B01 registry accepted decision with a blocker",
+        "all eleven exact ADRs to be accepted",
+    )
+
     promotion_generator_identity = {
         "path": "scripts/promote_decision_registry.py",
         "sha256": "a" * 64,

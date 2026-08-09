@@ -8,8 +8,8 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "ed2a717662531bac335a7ecb9dbeab78fcfa30ae05cb5b209e1d265a62225ed9",
-      "bytes": 446809,
+      "sha256": "bb92679908de89e910a22935e374a25c9db6d1598aa773813b6c11401a28a25e",
+      "bytes": 447377,
       "records": 280
     },
     {
@@ -48,8 +48,8 @@
     },
     {
       "path": "docs/adr/decision-registry.proposed.v1.json",
-      "sha256": "58529f618a904040dc94b4529825211aa91888d572375f0567c3f5bbf74dce02",
-      "bytes": 36746
+      "sha256": "bc3b4281e1726ef8cd874d1df7fd463e5b97225defde2bc25fe56623e46c99c9",
+      "bytes": 64170
     },
     {
       "path": "Cargo.lock",

@@ -1,0 +1,1039 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sepahead.github.io/NCP/schemas/decision-closure-source.v1.json",
+  "title": "NCP B01 non-normative semantic-closure requirements",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "normative",
+    "candidate",
+    "wire_version",
+    "task",
+    "claim_boundary",
+    "wire_case_contract",
+    "b03_parameter_contract",
+    "parser_replay_contract",
+    "excluded_no_edge_components",
+    "decisions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ncp.b01-decision-closure-source.v1"
+    },
+    "normative": {
+      "const": false
+    },
+    "candidate": {
+      "const": "1.0.0-rc.1"
+    },
+    "wire_version": {
+      "const": "1.0"
+    },
+    "task": {
+      "const": "B01"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 120,
+      "maxLength": 1024
+    },
+    "wire_case_contract": {
+      "$ref": "#/$defs/wireCaseContract"
+    },
+    "b03_parameter_contract": {
+      "$ref": "#/$defs/b03ParameterContract"
+    },
+    "parser_replay_contract": {
+      "$ref": "#/$defs/parserReplayContract"
+    },
+    "excluded_no_edge_components": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/excludedComponent"
+      }
+    },
+    "decisions": {
+      "description": "Structural envelope only. The bounded generator pins the exact ADR, question, parameter, test, anchor, and source-set inventories before deriving any closure state.",
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/decisionClosureRequirement"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "roleId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "closureId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{1,63}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$",
+      "maxLength": 256
+    },
+    "wireCaseContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "complete_positive",
+        "complete_hostile"
+      ],
+      "properties": {
+        "complete_positive": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "polarity",
+            "expected_profile_result",
+            "production_admission"
+          ],
+          "properties": {
+            "scope": {
+              "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
+            },
+            "polarity": {
+              "const": "POSITIVE"
+            },
+            "expected_profile_result": {
+              "const": "MATCH_COMPLETE_NON_AUTHORIZING"
+            },
+            "production_admission": {
+              "const": "NOT_EVALUATED"
+            }
+          }
+        },
+        "complete_hostile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "polarity",
+            "mutation_relation",
+            "expected_profile_result",
+            "production_admission"
+          ],
+          "properties": {
+            "scope": {
+              "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
+            },
+            "polarity": {
+              "const": "NEGATIVE"
+            },
+            "mutation_relation": {
+              "const": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE"
+            },
+            "expected_profile_result": {
+              "const": "REJECT"
+            },
+            "production_admission": {
+              "const": "REJECT"
+            }
+          }
+        }
+      }
+    },
+    "b03ParameterContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "value_kinds",
+        "envelope_fields",
+        "literal_integer_encoding",
+        "validated_envelope",
+        "future_b03_allocation_binding",
+        "future_allocation_constraint",
+        "selection_predicate_binding",
+        "selection_profile_semantics",
+        "identity_set_measure",
+        "identity_canonicalization",
+        "identity_eligibility_binding",
+        "identity_eligibility_digest_algorithm",
+        "identity_eligibility_digest_domain_hex",
+        "identity_eligibility_projection_encoding",
+        "identity_eligibility_projection_members",
+        "future_identity_selection_constraint",
+        "global_no_edge_inheritance",
+        "future_b03_selection_verifier",
+        "absence_and_unknown",
+        "required_test_suffixes_by_value_kind"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-b03-parameter-contract.v1"
+        },
+        "value_kinds": {
+          "const": [
+            "BOUNDED_INTEGER",
+            "EXACT_IDENTITY_SET"
+          ]
+        },
+        "envelope_fields": {
+          "const": [
+            "minimum",
+            "maximum"
+          ]
+        },
+        "literal_integer_encoding": {
+          "const": "POSITIVE_JSON_SAFE_INTEGER"
+        },
+        "validated_envelope": {
+          "const": "POSITIVE_LITERAL_MINIMUM_AND_FINITE_LITERAL_MAXIMUM_WITH_MINIMUM_LTE_MAXIMUM"
+        },
+        "future_b03_allocation_binding": {
+          "const": "OUTSIDE_B01_DECISION_SET"
+        },
+        "future_allocation_constraint": {
+          "const": "MUST_REMAIN_WITHIN_ACCEPTED_ENVELOPE_AND_MUST_NOT_CHANGE_ACCEPTED_MEANING"
+        },
+        "selection_predicate_binding": {
+          "const": "EXACT_PARAMETER_ID_SOURCE_ANCHOR_VALUE_KIND_PROFILE_AND_ELIGIBILITY"
+        },
+        "selection_profile_semantics": {
+          "const": {
+            "B03_BOUNDED_INTEGER_SELECTION_V1": "POSITIVE_JSON_SAFE_INTEGER_WITHIN_INCLUSIVE_ACCEPTED_ENVELOPE",
+            "B03_EXACT_IDENTITY_SET_SELECTION_V1": "CANONICAL_UNIQUE_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_GLOBAL_NO_EDGE_DENY"
+          }
+        },
+        "identity_set_measure": {
+          "const": "CARDINALITY_OF_CANONICAL_UNIQUE_IDENTITIES"
+        },
+        "identity_canonicalization": {
+          "const": "PRINTABLE_ASCII_U0021_TO_U007E_RAW_BYTE_ASCENDING_UNIQUE"
+        },
+        "identity_eligibility_binding": {
+          "const": "NONEMPTY_EXACT_B01_UNIVERSE_AND_CONTEXT_DIGEST_WHEN_VALIDATED"
+        },
+        "identity_eligibility_digest_algorithm": {
+          "const": "sha256(domain || u64be(projection_bytes) || projection)"
+        },
+        "identity_eligibility_digest_domain_hex": {
+          "const": "6e63702e6230312d6230332d656c69676962696c6974792d7365742e763100"
+        },
+        "identity_eligibility_projection_encoding": {
+          "const": "UTF8_JSON_SORTED_KEYS_COMPACT_ENSURE_ASCII_FALSE"
+        },
+        "identity_eligibility_projection_members": {
+          "const": [
+            "eligible_identities",
+            "parameter_id",
+            "question_id",
+            "value_kind"
+          ]
+        },
+        "future_identity_selection_constraint": {
+          "const": "CANONICAL_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_CARDINALITY_WITHIN_ACCEPTED_ENVELOPE"
+        },
+        "global_no_edge_inheritance": {
+          "const": "ALL_SELECTION_PREDICATES_REJECT_MATCHED_EXCLUDED_COMPONENT_ALIASES"
+        },
+        "future_b03_selection_verifier": {
+          "const": "REQUIRED_OUTSIDE_B01_DECISION_SET_BEFORE_ALLOCATION"
+        },
+        "absence_and_unknown": {
+          "const": "REJECT_BEFORE_ALLOCATION"
+        },
+        "required_test_suffixes_by_value_kind": {
+          "const": {
+            "BOUNDED_INTEGER": [
+              "MIN-EQUALITY",
+              "MAX-EQUALITY",
+              "BELOW-MINIMUM",
+              "ABOVE-MAXIMUM",
+              "PREDICATE-REJECT",
+              "OVERFLOW",
+              "UNKNOWN-DEFAULT-REJECT"
+            ],
+            "EXACT_IDENTITY_SET": [
+              "MIN-EQUALITY",
+              "MAX-EQUALITY",
+              "BELOW-MINIMUM",
+              "ABOVE-MAXIMUM",
+              "INELIGIBLE-MEMBER-REJECT",
+              "PROHIBITED-MEMBER-REJECT",
+              "OVERFLOW",
+              "UNKNOWN-DEFAULT-REJECT"
+            ]
+          }
+        }
+      }
+    },
+    "parserReplayContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "mode",
+        "result_schema",
+        "self_tests_required",
+        "timeout_seconds",
+        "maximum_stdout_bytes",
+        "maximum_stderr_bytes",
+        "process_group_cleanup",
+        "rust_command_profile",
+        "typescript_command_profile",
+        "engine_output_requirement",
+        "dependency_resolution_mode",
+        "process_network_isolation",
+        "dependency_cache_requirement",
+        "repository_execution_root",
+        "snapshot_postcondition",
+        "derived_registry_receipt_binding",
+        "tool_identity",
+        "source_tree_build_output",
+        "capture_command",
+        "capture_target_directory",
+        "capture_result_paths",
+        "capture_preconditions",
+        "capture_write_policy",
+        "capture_workflow_state",
+        "engine_profile_states",
+        "capture_failure_effect"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ncp.b01-semantic-parser-replay-contract.v1"
+        },
+        "mode": {
+          "const": "RETAINED_RESULT_PLUS_BOUNDED_DIRECT_REPLAY"
+        },
+        "result_schema": {
+          "const": "ncp.b01-semantic-parser-result.v1"
+        },
+        "self_tests_required": {
+          "const": true
+        },
+        "timeout_seconds": {
+          "const": 120
+        },
+        "maximum_stdout_bytes": {
+          "const": 2097152
+        },
+        "maximum_stderr_bytes": {
+          "const": 65536
+        },
+        "process_group_cleanup": {
+          "const": "TERM_THEN_KILL_PROCESS_GROUP"
+        },
+        "rust_command_profile": {
+          "const": "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1"
+        },
+        "typescript_command_profile": {
+          "const": "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1"
+        },
+        "engine_output_requirement": {
+          "const": "DIRECT_NCP_B01_SEMANTIC_PARSER_RESULT_V1_NO_ADAPTER"
+        },
+        "dependency_resolution_mode": {
+          "const": "RUST_CARGO_OFFLINE_LOCKED_TYPESCRIPT_BUN_NO_INSTALL"
+        },
+        "process_network_isolation": {
+          "const": "NOT_PROVIDED_LOCAL_REPLAY_ONLY"
+        },
+        "dependency_cache_requirement": {
+          "const": "RUST_AMBIENT_CARGO_HOME_PRESEEDED_BY_GATE_TYPESCRIPT_NONE"
+        },
+        "repository_execution_root": {
+          "const": "TEMPORARY_BOUND_INPUT_SNAPSHOT"
+        },
+        "snapshot_postcondition": {
+          "const": "EXACT_FILE_SET_AND_BYTES_UNCHANGED"
+        },
+        "derived_registry_receipt_binding": {
+          "const": "DECISION_SET_SHA256_ONLY_OUTPUT_BYTES_EXCLUDED_TO_PREVENT_SELF_REFERENCE"
+        },
+        "tool_identity": {
+          "const": "OBSERVED_VERSION_AND_EXECUTABLE_DIGEST_NOT_PROVENANCE"
+        },
+        "source_tree_build_output": {
+          "const": "ABSENT_BEFORE_AND_AFTER"
+        },
+        "capture_command": {
+          "const": "python3 scripts/generate_decision_registry.py --capture-semantic-parser-results"
+        },
+        "capture_target_directory": {
+          "const": "evidence/implementation/reviews/B01/semantic-closure"
+        },
+        "capture_result_paths": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "const": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json"
+            },
+            {
+              "const": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json"
+            }
+          ]
+        },
+        "capture_preconditions": {
+          "const": "CURRENT_EXACT_OPEN_REGISTRY_ONLY_DUAL_NOT_RUN_PARSER_CLOSURE_BLOCKERS_COMPLETE_CURRENT_CORPUS_VALIDATED_B03_DEFERRAL_ENVELOPES"
+        },
+        "capture_write_policy": {
+          "const": "BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME"
+        },
+        "capture_workflow_state": {
+          "const": "IMPLEMENTED"
+        },
+        "engine_profile_states": {
+          "const": {
+            "RUST": "NOT_IMPLEMENTED",
+            "TYPESCRIPT": "NOT_IMPLEMENTED"
+          }
+        },
+        "capture_failure_effect": {
+          "const": "WRITE_NEITHER_RESULT"
+        }
+      }
+    },
+    "excludedComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "canonical_aliases",
+        "identity_match_profile",
+        "prohibited_review_role_ids",
+        "prohibited_edge_classes"
+      ],
+      "properties": {
+        "component_id": {
+          "$ref": "#/$defs/roleId"
+        },
+        "canonical_aliases": {
+          "const": [
+            "cortexel",
+            "sepahead/cortexel"
+          ]
+        },
+        "identity_match_profile": {
+          "const": "ASCII_CASEFOLD_SPLIT_ON_NON_ALNUM_TOKEN_EQUALS_COMPONENT_ID"
+        },
+        "prohibited_review_role_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/roleId"
+          }
+        },
+        "prohibited_edge_classes": {
+          "type": "array",
+          "minItems": 19,
+          "maxItems": 19,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "CONTROL_DEPENDENCY",
+              "NCP_ATLAS_OWNER",
+              "NCP_AUTHORITY_EDGE",
+              "NCP_COMMANDER",
+              "NCP_CONSUMER",
+              "NCP_DOCUMENTATION_IMPORT_EDGE",
+              "NCP_EVIDENCE_EDGE",
+              "NCP_EXPORT_EDGE",
+              "NCP_IMPLEMENTATION_EDGE",
+              "NCP_PACKAGE_DEPENDENCY",
+              "NCP_PEER",
+              "NCP_RELEASE_EDGE",
+              "NCP_ROLE_RECEIPT",
+              "NCP_RUNTIME_EDGE",
+              "NCP_SEMANTIC_EDGE",
+              "NCP_WORK_AUTHORITY",
+              "OBSERVATION_EDGE",
+              "OBSERVER_GRANT_HOLDER",
+              "PROTOCOL_SOURCE_OF_TRUTH"
+            ]
+          }
+        }
+      }
+    },
+    "b03Parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parameter_id",
+        "value_kind",
+        "selection_predicate_id",
+        "selection_predicate_source_anchor",
+        "selection_profile",
+        "b03_selection_verifier_required",
+        "inherits_excluded_no_edge_components",
+        "minimum",
+        "maximum",
+        "required_tests"
+      ],
+      "properties": {
+        "parameter_id": {
+          "$ref": "#/$defs/closureId"
+        },
+        "value_kind": {
+          "enum": [
+            "BOUNDED_INTEGER",
+            "EXACT_IDENTITY_SET"
+          ]
+        },
+        "selection_predicate_id": {
+          "$ref": "#/$defs/closureId"
+        },
+        "selection_predicate_source_anchor": {
+          "$ref": "#/$defs/roleId"
+        },
+        "selection_profile": {
+          "$ref": "#/$defs/closureId"
+        },
+        "b03_selection_verifier_required": {
+          "const": true
+        },
+        "inherits_excluded_no_edge_components": {
+          "const": true
+        },
+        "minimum": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "maximum": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "required_tests": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/closureId"
+          }
+        }
+      }
+    },
+    "identityEligibilityUniverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parameter_id",
+        "eligible_identities",
+        "eligible_identities_sha256"
+      ],
+      "properties": {
+        "parameter_id": {
+          "$ref": "#/$defs/closureId"
+        },
+        "eligible_identities": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "eligible_identities_sha256": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "b03Deferral": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_task",
+        "owner_role_id",
+        "parameters",
+        "identity_eligibility_universes",
+        "identity_eligibility_required",
+        "equality_at_minimum",
+        "equality_at_maximum",
+        "below_minimum",
+        "above_maximum",
+        "arithmetic_overflow",
+        "permissive_default",
+        "failure_behavior",
+        "meaning_change",
+        "source_anchor",
+        "validation_state"
+      ],
+      "properties": {
+        "owner_task": {
+          "const": "B03"
+        },
+        "owner_role_id": {
+          "$ref": "#/$defs/roleId"
+        },
+        "parameters": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/b03Parameter"
+          }
+        },
+        "identity_eligibility_universes": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identityEligibilityUniverse"
+          }
+        },
+        "identity_eligibility_required": {
+          "type": "boolean"
+        },
+        "equality_at_minimum": {
+          "const": "PASS"
+        },
+        "equality_at_maximum": {
+          "const": "PASS"
+        },
+        "below_minimum": {
+          "const": "REJECT_BEFORE_ALLOCATION"
+        },
+        "above_maximum": {
+          "const": "REJECT_BEFORE_ALLOCATION"
+        },
+        "arithmetic_overflow": {
+          "const": "REJECT_BEFORE_ALLOCATION"
+        },
+        "permissive_default": {
+          "const": false
+        },
+        "failure_behavior": {
+          "const": "REJECT_BEFORE_ALLOCATION"
+        },
+        "meaning_change": {
+          "const": "FORBIDDEN"
+        },
+        "source_anchor": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128
+        },
+        "validation_state": {
+          "enum": [
+            "OPEN",
+            "VALIDATED"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "validation_state": {
+                "const": "OPEN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "parameters": {
+                "items": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/b03Parameter"
+                    },
+                    {
+                      "properties": {
+                        "minimum": {
+                          "type": "null"
+                        },
+                        "maximum": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "identity_eligibility_universes": {
+                "items": {
+                  "properties": {
+                    "eligible_identities": {
+                      "maxItems": 0
+                    },
+                    "eligible_identities_sha256": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "parameters": {
+                "items": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/b03Parameter"
+                    },
+                    {
+                      "properties": {
+                        "minimum": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        },
+                        "maximum": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "identity_eligibility_universes": {
+                "items": {
+                  "properties": {
+                    "eligible_identities": {
+                      "minItems": 1
+                    },
+                    "eligible_identities_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "identity_eligibility_required": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "identity_eligibility_universes": {
+                  "minItems": 1
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "identity_eligibility_universes": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_id",
+        "question_anchor",
+        "statement",
+        "state",
+        "resolution",
+        "resolution_anchor",
+        "b03_deferral"
+      ],
+      "properties": {
+        "question_id": {
+          "$ref": "#/$defs/closureId"
+        },
+        "question_anchor": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 512
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1024
+        },
+        "state": {
+          "enum": [
+            "OPEN",
+            "CLOSED",
+            "DEFERRED_B03"
+          ]
+        },
+        "resolution": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "minLength": 10,
+          "maxLength": 1024
+        },
+        "resolution_anchor": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "minLength": 16,
+          "maxLength": 512
+        },
+        "b03_deferral": {}
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "state": {
+                  "const": "OPEN"
+                },
+                "resolution": {
+                  "type": "null"
+                },
+                "resolution_anchor": {
+                  "type": "null"
+                },
+                "b03_deferral": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "CLOSED"
+                },
+                "resolution": {
+                  "type": "string",
+                  "minLength": 10,
+                  "maxLength": 1024
+                },
+                "resolution_anchor": {
+                  "type": "string",
+                  "minLength": 16,
+                  "maxLength": 512
+                },
+                "b03_deferral": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "DEFERRED_B03"
+                },
+                "resolution": {
+                  "type": "null"
+                },
+                "resolution_anchor": {
+                  "type": "null"
+                },
+                "b03_deferral": {
+                  "$ref": "#/$defs/b03Deferral"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "positiveWireCaseRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "source_path",
+        "required_scope",
+        "required_polarity"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "source_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "required_scope": {
+          "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
+        },
+        "required_polarity": {
+          "const": "POSITIVE"
+        }
+      }
+    },
+    "hostileWireCaseRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "source_path",
+        "positive_case_id",
+        "mutation_relation",
+        "required_scope",
+        "required_polarity"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "source_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "positive_case_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "mutation_relation": {
+          "const": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE"
+        },
+        "required_scope": {
+          "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
+        },
+        "required_polarity": {
+          "const": "NEGATIVE"
+        }
+      }
+    },
+    "parserRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine",
+        "result_path",
+        "required_status"
+      ],
+      "properties": {
+        "engine": {
+          "enum": [
+            "RUST",
+            "TYPESCRIPT"
+          ]
+        },
+        "result_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "required_status": {
+          "const": "PASS"
+        }
+      }
+    },
+    "wireRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corpus_path",
+        "required_corpus_status",
+        "required_source_paths",
+        "complete_positive",
+        "complete_hostile",
+        "rust_parser_evidence",
+        "typescript_parser_evidence"
+      ],
+      "properties": {
+        "corpus_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "required_corpus_status": {
+          "const": "COMPLETE_CURRENT"
+        },
+        "required_source_paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "complete_positive": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "items": {
+            "$ref": "#/$defs/positiveWireCaseRequirement"
+          }
+        },
+        "complete_hostile": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "items": {
+            "$ref": "#/$defs/hostileWireCaseRequirement"
+          }
+        },
+        "rust_parser_evidence": {
+          "$ref": "#/$defs/parserRequirement"
+        },
+        "typescript_parser_evidence": {
+          "$ref": "#/$defs/parserRequirement"
+        }
+      }
+    },
+    "decisionClosureRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "adr_source_set_sha256",
+        "questions",
+        "wire_requirements"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ADR-0(0[1-9]|1[01])$"
+        },
+        "adr_source_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/question"
+          }
+        },
+        "wire_requirements": {
+          "$ref": "#/$defs/wireRequirements"
+        }
+      }
+    }
+  }
+}

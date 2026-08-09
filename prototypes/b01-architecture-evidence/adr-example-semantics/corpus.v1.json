@@ -15,6 +15,7 @@
       "candidate",
       "wire_version",
       "review_policy",
+      "semantic_closure",
       "decisions"
     ],
     "decision_members": [
@@ -28,9 +29,21 @@
       "required_reviews",
       "defect_ids"
     ],
-    "projection_byte_length": 16383,
-    "projection_sha256": "40d52a56a3d561e118865f823cf55d1172e25b64f600e413e3635bf1b511f4f5",
-    "sha256": "794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a",
+    "projection_byte_length": 16606,
+    "projection_sha256": "2c9dc7b997d599ad6e533cfa5685c5dabd73bb60f32020f72ebe1bbeaefce881",
+    "sha256": "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331",
+    "semantic_closure": {
+      "source": {
+        "path": "docs/adr/decision-closure.source.v1.json",
+        "sha256": "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
+        "bytes": 66810
+      },
+      "json_schema": {
+        "path": "docs/adr/decision-closure.source.schema.v1.json",
+        "sha256": "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
+        "bytes": 28693
+      }
+    },
     "effect": "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY"
   },
   "source_binding": {
@@ -178,8 +191,8 @@
         "adr": "ADR-001",
         "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 152215,
-        "adr_sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
+        "adr_byte_length": 152293,
+        "adr_sha256": "c859d9745bbd089ce72cc891d7053cd401aae0277cf5412295778341dfe35499",
         "fence_byte_length": 545,
         "fence_sha256": "3dc8f3c5c5010ac97c4361a9827e7a05c77aa6f333eafe4c3c4b041843b62074"
       },
@@ -286,8 +299,8 @@
         "adr": "ADR-001",
         "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 152215,
-        "adr_sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
+        "adr_byte_length": 152293,
+        "adr_sha256": "c859d9745bbd089ce72cc891d7053cd401aae0277cf5412295778341dfe35499",
         "fence_byte_length": 172,
         "fence_sha256": "af66ee5c719b7b08e0ce71988fd2bbfe87e7385618560dc76c24bd0d1d8a3203"
       },
@@ -354,8 +367,8 @@
         "adr": "ADR-002",
         "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 16004,
-        "adr_sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
+        "adr_byte_length": 16082,
+        "adr_sha256": "cfe8edfa1b70f9d9b81a24ac5b87454edd55c8af106091d709df1ad21bb8f289",
         "fence_byte_length": 645,
         "fence_sha256": "a97bb9ecb63c4f027c284679455b4023cad5c331f919f14a1d4743fb0838456a"
       },
@@ -447,8 +460,8 @@
         "adr": "ADR-002",
         "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 16004,
-        "adr_sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
+        "adr_byte_length": 16082,
+        "adr_sha256": "cfe8edfa1b70f9d9b81a24ac5b87454edd55c8af106091d709df1ad21bb8f289",
         "fence_byte_length": 96,
         "fence_sha256": "3c42c6cd42f1e711559a97cfb3e9a172b3462b939a516b51dd1ed0c1f8d54c70"
       },
@@ -517,8 +530,8 @@
         "adr": "ADR-003",
         "path": "docs/adr/0003-authenticated-production-ingress.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 21273,
-        "adr_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+        "adr_byte_length": 21351,
+        "adr_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
         "fence_byte_length": 213,
         "fence_sha256": "dabc6aba928403e18ab60e51ec165f0b2695940424295693568eda0fee20ba58"
       },
@@ -602,8 +615,8 @@
         "adr": "ADR-003",
         "path": "docs/adr/0003-authenticated-production-ingress.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 21273,
-        "adr_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+        "adr_byte_length": 21351,
+        "adr_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
         "fence_byte_length": 236,
         "fence_sha256": "91adca487db813745f39a57deeb16457f710af0e92fbd40c3fe1641a6af8574d"
       },
@@ -696,8 +709,8 @@
         "adr": "ADR-003",
         "path": "docs/adr/0003-authenticated-production-ingress.md",
         "json_fence_ordinal": 3,
-        "adr_byte_length": 21273,
-        "adr_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
+        "adr_byte_length": 21351,
+        "adr_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
         "fence_byte_length": 149,
         "fence_sha256": "40d293ccb4915186fcc91d016dace92026ee50f2a9bbb8fb3106f24599f5fcd3"
       },
@@ -769,8 +782,8 @@
         "adr": "ADR-004",
         "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 261552,
-        "adr_sha256": "a192232e3cf97bafec8e55a02ee8f411a7c298256639bec5fdc7fbcd47506904",
+        "adr_byte_length": 261630,
+        "adr_sha256": "b366bc06139810c4490bd62fe8a5636e6a272afe546b14360bbb6c22b70cb38e",
         "fence_byte_length": 61,
         "fence_sha256": "c91551ca802082ff0e4828da02884d24b13b968c090d93cd97eb27cfea72af2a"
       },
@@ -842,8 +855,8 @@
         "adr": "ADR-005",
         "path": "docs/adr/0005-declared-stream-lifecycle.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 38308,
-        "adr_sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
+        "adr_byte_length": 38386,
+        "adr_sha256": "2a96a1b221da3335d15d13e3731ad852ba1d8c8ed7e7cedc09bfe30aec2be840",
         "fence_byte_length": 521,
         "fence_sha256": "9233baceed111f44fec15a76464188e7408f5a59d1dbe9b64d0076586565bf18"
       },
@@ -1013,8 +1026,8 @@
         "adr": "ADR-005",
         "path": "docs/adr/0005-declared-stream-lifecycle.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 38308,
-        "adr_sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
+        "adr_byte_length": 38386,
+        "adr_sha256": "2a96a1b221da3335d15d13e3731ad852ba1d8c8ed7e7cedc09bfe30aec2be840",
         "fence_byte_length": 215,
         "fence_sha256": "35be78eeb271f6343de1f38c567a1667043c38ce4e7eedcbf10076b06cdcc841"
       },
@@ -1080,8 +1093,8 @@
         "adr": "ADR-006",
         "path": "docs/adr/0006-body-issued-authority-and-time.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 55367,
-        "adr_sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
+        "adr_byte_length": 55445,
+        "adr_sha256": "4461a8927242468170ad0a6461accbf5c14fade1a5ea0c26dbb6db8bced0212e",
         "fence_byte_length": 336,
         "fence_sha256": "87df054a83dad934134d0ebd9fa3700cfa8947f513c26e91be5df4ed9866a42d"
       },
@@ -1160,8 +1173,8 @@
         "adr": "ADR-006",
         "path": "docs/adr/0006-body-issued-authority-and-time.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 55367,
-        "adr_sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
+        "adr_byte_length": 55445,
+        "adr_sha256": "4461a8927242468170ad0a6461accbf5c14fade1a5ea0c26dbb6db8bced0212e",
         "fence_byte_length": 340,
         "fence_sha256": "310d751075037df699649455b9e23d9845b2a7b66be4e69d90fd644358667612"
       },
@@ -1233,8 +1246,8 @@
         "adr": "ADR-007",
         "path": "docs/adr/0007-command-disposition-journal.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 221493,
-        "adr_sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
+        "adr_byte_length": 221815,
+        "adr_sha256": "26fe6b4e4f386a80f807d3b2f67406c8f0b4163c4b8b8b81981410a0269c2031",
         "fence_byte_length": 76,
         "fence_sha256": "9fb90c954022d3448dee55e370e15feb86cbadd94c1c95a1eb03bba048a1065b"
       },
@@ -1316,8 +1329,8 @@
         "adr": "ADR-007",
         "path": "docs/adr/0007-command-disposition-journal.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 221493,
-        "adr_sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
+        "adr_byte_length": 221815,
+        "adr_sha256": "26fe6b4e4f386a80f807d3b2f67406c8f0b4163c4b8b8b81981410a0269c2031",
         "fence_byte_length": 72,
         "fence_sha256": "fb3f044de5526c34da0a9754f90fe7f72af4b9d16fa586efd5891fe3df97d11d"
       },
@@ -1385,8 +1398,8 @@
         "adr": "ADR-008",
         "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 170617,
-        "adr_sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
+        "adr_byte_length": 170862,
+        "adr_sha256": "f01b209048830cb9816ce68d4a9c84e00364d85f3e1000d88792e1e17685f9ef",
         "fence_byte_length": 6928,
         "fence_sha256": "fafcc078bb7ea1e4160fbf4f5591c0a75b2ff2dc263911878524b3961cbb4cf6"
       },
@@ -1620,8 +1633,8 @@
         "adr": "ADR-008",
         "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 170617,
-        "adr_sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
+        "adr_byte_length": 170862,
+        "adr_sha256": "f01b209048830cb9816ce68d4a9c84e00364d85f3e1000d88792e1e17685f9ef",
         "fence_byte_length": 207,
         "fence_sha256": "75752f4d4878d8905d90fe7b4f36da49cf4349e68dc4a8562ba1c05842d73e5f"
       },
@@ -1690,8 +1703,8 @@
         "adr": "ADR-009",
         "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 257562,
-        "adr_sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
+        "adr_byte_length": 257780,
+        "adr_sha256": "070df9e141a866ca8fc4d2593b2f3269506bba0bba5a609e4c828b0e2738ef57",
         "fence_byte_length": 576,
         "fence_sha256": "53d40bdfd3996def0e6f2485a19f1410c419c65538a0d780d0a2ff78edd565a5"
       },
@@ -1875,8 +1888,8 @@
         "adr": "ADR-009",
         "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 257562,
-        "adr_sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
+        "adr_byte_length": 257780,
+        "adr_sha256": "070df9e141a866ca8fc4d2593b2f3269506bba0bba5a609e4c828b0e2738ef57",
         "fence_byte_length": 165,
         "fence_sha256": "3dca69faa4d256b441ea613fa448ef96f4e3921afba0062f8be697340a2a8e11"
       },
@@ -1989,8 +2002,8 @@
         "adr": "ADR-010",
         "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 15683,
-        "adr_sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
+        "adr_byte_length": 15836,
+        "adr_sha256": "7e9d460e773253e82dd317efa6e2bd9319ebd3086ffc1c547352e3e0e851ebeb",
         "fence_byte_length": 488,
         "fence_sha256": "16cd11d0629acf1ec658196ca5379c125c3e1b2c21f46d8cbb46dde66b95931c"
       },
@@ -2106,8 +2119,8 @@
         "adr": "ADR-010",
         "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 15683,
-        "adr_sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
+        "adr_byte_length": 15836,
+        "adr_sha256": "7e9d460e773253e82dd317efa6e2bd9319ebd3086ffc1c547352e3e0e851ebeb",
         "fence_byte_length": 120,
         "fence_sha256": "c0dc99e7de940d5ba3b2ee9eae6274dd104f34108996bb901ba20cdc563725cd"
       },
@@ -2222,8 +2235,8 @@
         "adr": "ADR-011",
         "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 70553,
-        "adr_sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
+        "adr_byte_length": 70419,
+        "adr_sha256": "c59085eee983c165524fb7f213c8ec99d33a0d36644edd3a2ea23c432de4fc9f",
         "fence_byte_length": 386,
         "fence_sha256": "8c0712e56bc03e6352ef87d80e81b6c51dcb4934174abda99a942cb7374d0f8e"
       },
@@ -2333,8 +2346,8 @@
         "adr": "ADR-011",
         "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 70553,
-        "adr_sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
+        "adr_byte_length": 70419,
+        "adr_sha256": "c59085eee983c165524fb7f213c8ec99d33a0d36644edd3a2ea23c432de4fc9f",
         "fence_byte_length": 191,
         "fence_sha256": "244001e4af0869ccc8d9631aef300044fe9576a68cc01a15623d8cd6f0a09a0e"
       },

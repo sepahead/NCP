@@ -1,4 +1,8 @@
 import { canonicalJsonText } from "./canonical-json.ts";
+import {
+  DecisionBindingError,
+  validateReviewPacketBinding,
+} from "./decision-binding.ts";
 import { applyPatch, JsonPointerError } from "./json-pointer.ts";
 import { evaluateSemantics, SemanticConfigurationError } from "./semantics.ts";
 import { strictJsonParse, StrictJsonError, type JsonLimits } from "./strict-json.ts";
@@ -110,6 +114,241 @@ export function runSelfTests(): SelfTestReport {
     throw new Error("per-object member guard rejected valid nested objects");
   }
   report.detected += 1;
+
+  const decisionSetIdentity = {
+    digest_algorithm: "sha256(domain || u64be(projection_bytes) || projection)",
+    domain_hex: "00",
+    schema: "ncp.b01-decision-set.v1",
+    sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  };
+  const mismatchedDecisionSetIdentity = {
+    ...decisionSetIdentity,
+    sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  };
+  report.executed += 1;
+  validateReviewPacketBinding(
+    {
+      review_packet_lifecycle: {
+        schema: "ncp.b01-review-packet-lifecycle.v1",
+        state: "CURRENT",
+      },
+      review_packet_subject: { decision_set: decisionSetIdentity },
+      review_records: [{}],
+    },
+    decisionSetIdentity,
+  );
+  report.detected += 1;
+  report.executed += 1;
+  validateReviewPacketBinding(
+    {
+      review_packet_lifecycle: {
+        schema: "ncp.b01-review-packet-lifecycle.v1",
+        state: "SUPERSEDED",
+      },
+      review_packet_subject: null,
+      review_records: [],
+    },
+    decisionSetIdentity,
+  );
+  report.detected += 1;
+  report.executed += 1;
+  validateReviewPacketBinding(
+    {
+      review_packet_lifecycle: {
+        schema: "ncp.b01-review-packet-lifecycle.v1",
+        state: "TEMPLATE",
+      },
+      review_packet_subject: null,
+      review_records: [],
+    },
+    decisionSetIdentity,
+  );
+  report.detected += 1;
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "CURRENT",
+          },
+          review_packet_subject: null,
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "CURRENT packet subject guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "CURRENT",
+          },
+          review_packet_subject: { decision_set: mismatchedDecisionSetIdentity },
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "CURRENT packet subject identity guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "SUPERSEDED",
+          },
+          review_packet_subject: { decision_set: decisionSetIdentity },
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "superseded packet subject guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "TEMPLATE",
+          },
+          review_packet_subject: { decision_set: decisionSetIdentity },
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "template packet subject guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "SUPERSEDED",
+          },
+          review_packet_subject: null,
+          review_records: [{}],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "non-current review-record guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "UNKNOWN",
+          },
+          review_packet_subject: null,
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "packet lifecycle state guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v0",
+            state: "SUPERSEDED",
+          },
+          review_packet_subject: null,
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "packet lifecycle schema guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "SUPERSEDED",
+            unexpected: false,
+          },
+          review_packet_subject: null,
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "packet lifecycle member-set guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+          },
+          review_packet_subject: null,
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "packet lifecycle missing-state guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "SUPERSEDED",
+          },
+          review_records: [],
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "packet lifecycle missing-subject guard",
+    report,
+  );
+  expectThrows(
+    () =>
+      validateReviewPacketBinding(
+        {
+          review_packet_lifecycle: {
+            schema: "ncp.b01-review-packet-lifecycle.v1",
+            state: "CURRENT",
+          },
+          review_packet_subject: { decision_set: decisionSetIdentity },
+        },
+        decisionSetIdentity,
+      ),
+    DecisionBindingError,
+    "packet lifecycle missing-review-records guard",
+    report,
+  );
 
   const patched = applyPatch(
     { a: { b: 1 }, list: ["x"] },

@@ -68,6 +68,14 @@ The corpus also records whether full production admission is rejected, not
 evaluated, or not applicable. A profile match is never production-message
 acceptance. It does not accept an ADR or change the normative contract.
 
+The proposed decision registry also binds the non-normative semantic-closure
+requirements in `docs/adr/decision-closure.source.v1.json` and its JSON Schema.
+The derived closure evaluation remains `OPEN` until every declared semantic
+question and bounded B03 deferral envelope passes. Every complete positive case,
+single-delta hostile wire case, and parser result must also pass. Later B03
+selections stay outside the B01 decision set and must not change accepted
+meaning. Reviews cannot bypass these blockers.
+
 The Rust and TypeScript engines separately extract the Markdown fences. Each
 engine enforces bounded strict JSON, verifies the bound ADR and decision-set
 inputs, applies the registered fault-isolation mutations, and implements its own
@@ -709,7 +717,7 @@ pre-ratification challenge material, not the F01/F02 source set.
    candidate capacities where available. One hundred thousand offers per
    observer-class queue must leave action state intact and cause zero control
    rejection. A seeded shared-budget design must fail.
-2. The independent Python bounded parser consumes approximately 32 KiB and
+2. The separate Python bounded parser consumes approximately 32 KiB and
    993 KiB valid arrays, accepts the exact depth limit, and rejects frame+1,
    depth+1, duplicate decoded keys, and unterminated input. Peak traced memory
    and local time are recorded under deliberately broad preliminary screens,
@@ -797,8 +805,8 @@ The runner:
   witnesses, and reconciles every emitted witness.
 - runs nineteen SMT checks and kills thirteen independent formula mutations.
 - runs the queue/parser/journal/real-Ed25519 resource screens.
-- inventories 69 files in the declared B01 source/support set
-  under a 72-file cap and an 8 MiB aggregate byte cap. Three file slots remain.
+- inventories 71 files in the declared B01 source/support set
+  under a 72-file cap and an 8 MiB aggregate byte cap. One file slot remains.
 - hashes each inventoried file through bounded, no-follow directory and file
   descriptors. It limits discovery entries and rejects symlink and hard-link
   aliases.

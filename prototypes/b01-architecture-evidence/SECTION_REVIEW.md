@@ -16,8 +16,8 @@ remain PROPOSED and retain their exact hash-bound review requirements.
   live lease holder.
 - Haldir issue creates a Haldir command. Engram intent has no authority field in
   the abstraction.
-- Simulation input, observer grants, pid-rs results, Cortexel exports, and
-  Galadriel assessments cannot substitute for the body lease.
+- Simulation input, observer grants, pid-rs results, and Galadriel assessments
+  cannot substitute for the body lease.
 - A live `ObserverReadCapability` is bounded current read authority. A sealed
   read decision is preflight evidence and requires an exact release-time recheck.
 - A delivered, admitted capsule is immutable historical evidence only. It grants

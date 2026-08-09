@@ -2655,9 +2655,19 @@ deny state is preserved until an authenticated widening transition resolves it.
 
 <a id="ncp-b01-selector-allocation-adr-008-v1"></a>
 
-Namespace ownership, exact schema identities, optional body-authority provenance, assessor replay identities, and Galadriel adapter-proof references remain allocation inputs. Extension isolation and non-authoritative assessment rules are closed.
+One semantic question remains open. The proposed extension ceilings must conform
+to the universal 1,048,576-byte structured-message frame limit. The
+`sha256:<hex>` content address needs one injective canonical route-segment
+encoding. Namespace ownership, exact
+schema identities, optional body-authority provenance, assessor replay
+identities, and Galadriel adapter-proof references remain B03 allocation inputs.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Semantics: stable and extension payloads have disjoint meanings.

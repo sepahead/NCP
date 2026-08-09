@@ -2251,7 +2251,7 @@
         "docs/adr/decision-registry.proposed.v1.json"
       ],
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "4970e98e6f6a84c088a0965ff5b10b5a4b4b5e222a7a6c0f761f66d1ffd990d7"
+      "sha256": "8973f45ae61edccc5e47527def01038974c16ac4dcab305f7a3f09897caad411"
     },
     {
       "outputs": [
@@ -2302,7 +2302,7 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "164f35e2571f76a3f81d4c04a2f21c7e5fb19c73e6b68baf26c836c192a537f1"
+      "sha256": "4303b2ed94db2d4ddf09ca73610e52dba0088f1e669474a8437684f882a7d4ad"
     },
     {
       "outputs": [

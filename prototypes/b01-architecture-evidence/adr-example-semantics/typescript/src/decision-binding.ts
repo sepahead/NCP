@@ -8,6 +8,7 @@ type JsonObject = { [key: string]: JsonValue };
 const DECISION_SOURCE_PATH =
   /^docs\/adr\/(000[1-9]|001[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 const SHA256 = /^[0-9a-f]{64}$/;
+const REVIEW_PACKET_LIFECYCLE_SCHEMA = "ncp.b01-review-packet-lifecycle.v1";
 const EXPECTED_DECISION_IDS = new Set(
   Array.from({ length: 11 }, (_, index) => `ADR-${String(index + 1).padStart(3, "0")}`),
 );
@@ -46,20 +47,16 @@ export async function verifyDecisionSetBinding(
     );
   }
   const registeredIdentity = decisionIdentity(binding);
-  requireExactJsonValue(
+  const registryDecisionSet = requiredObject(
     registry.decision_set,
+    "decision registry decision_set",
+  );
+  requireExactJsonValue(
+    registryDecisionSet,
     registeredIdentity,
     "decision registry decision_set",
   );
-  const reviewSubject = requiredObject(
-    registry.review_packet_subject,
-    "decision registry review_packet_subject",
-  );
-  requireExactJsonValue(
-    reviewSubject.decision_set,
-    registeredIdentity,
-    "review packet subject decision_set",
-  );
+  validateReviewPacketBinding(registry, registeredIdentity);
 
   const decisions = requiredArray(registry.decisions, "decision registry decisions");
   const ids = new Set<string>();
@@ -127,6 +124,7 @@ export async function verifyDecisionSetBinding(
   projection.candidate = registry.candidate as JsonValue;
   projection.wire_version = registry.wire_version as JsonValue;
   projection.review_policy = registry.review_policy as JsonValue;
+  projection.semantic_closure = registryDecisionSet.semantic_closure as JsonValue;
   projection.decisions = projectedDecisions;
 
   if (
@@ -159,12 +157,61 @@ export async function verifyDecisionSetBinding(
   return sources;
 }
 
+export function validateReviewPacketBinding(
+  registry: JsonObject,
+  registeredIdentity: JsonObject,
+): void {
+  const reviewRecords = requiredArray(
+    registry.review_records,
+    "decision registry review_records",
+  );
+  const lifecycle = requiredObject(
+    registry.review_packet_lifecycle,
+    "decision registry review_packet_lifecycle",
+  );
+  if (
+    Object.keys(lifecycle).length !== 2 ||
+    lifecycle.schema !== REVIEW_PACKET_LIFECYCLE_SCHEMA ||
+    !Object.hasOwn(lifecycle, "state")
+  ) {
+    throw new DecisionBindingError(
+      "review packet lifecycle has an invalid schema or member set",
+    );
+  }
+  const state = requiredString(lifecycle.state, "review packet lifecycle state");
+  if (state === "CURRENT") {
+    const reviewSubject = requiredObject(
+      registry.review_packet_subject,
+      "decision registry review_packet_subject",
+    );
+    requireExactJsonValue(
+      reviewSubject.decision_set,
+      registeredIdentity,
+      "review packet subject decision_set",
+    );
+    return;
+  }
+  if (state === "SUPERSEDED" || state === "TEMPLATE") {
+    if (registry.review_packet_subject !== null) {
+      throw new DecisionBindingError("non-current review packet subject must be null");
+    }
+    if (reviewRecords.length !== 0) {
+      throw new DecisionBindingError(
+        "non-current review packet cannot retain review records",
+      );
+    }
+    return;
+  }
+  throw new DecisionBindingError("review packet lifecycle state is not recognized");
+}
+
 function decisionIdentity(binding: DecisionSetBinding): JsonObject {
   const identity: JsonObject = Object.create(null) as JsonObject;
   identity.schema = binding.schema;
   identity.digest_algorithm = binding.digestAlgorithm;
   identity.domain_hex = binding.domainHex;
   identity.sha256 = binding.sha256;
+  identity.semantic_closure = binding.semanticClosure;
   return identity;
 }
 

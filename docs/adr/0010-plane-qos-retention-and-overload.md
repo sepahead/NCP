@@ -277,9 +277,18 @@ session lineage.
 
 <a id="ncp-b01-selector-allocation-adr-010-v1"></a>
 
-Exact numeric capacities and measured deadlines remain performance-gate inputs. Preallocation, authenticated lane keys, isolation, finiteness, priority, and explicit-loss rules are closed. The performance and saturation campaigns have not been executed.
+One semantic question remains open. The proposed quality-of-service wire object
+needs its exact numeric fields and plane-specific missing, unknown, and
+corrupt-profile failure behavior. Measured queue capacities and deadlines remain
+bounded B03 allocation inputs. The performance and saturation campaigns have
+not been executed.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Semantics: every plane defines ordering, loss, and receipt behavior.

@@ -4,8 +4,8 @@
 - Task: `B01`
 - Candidate: unreleased, release-blocked `1.0.0-rc.1`
 - Normative effect before authorized N01 promotion: none
-- Required reviewers: Engram, Haldir, Galadriel, Crebain, Prisoma, Cortexel, and
-  pid-rs owners; independent security/distributed-systems reviewer; release and
+- Required reviewers: Engram, Haldir, Galadriel, Crebain, Prisoma, and pid-rs
+  owners; independent security/distributed-systems reviewer; release and
   package-tooling reviewer; Crebain plant/safety reviewer
 
 ## Context
@@ -40,11 +40,10 @@ and startup.
 | Crebain | local body/research behavior without NCP | sole NCP body plus separate standard/extension telemetry producers | final software actuator admission and dispositions remain Crebain-owned |
 | Prisoma | offline research and run-log analysis | read-only capture of granted perception, command proposal, observation, and disposition routes | never publishes, commands, fills gaps, or enters the control path |
 | pid-rs | protocol-neutral library/CLI | called only inside consumer-owned optional adapters | result/log grants no identity, permission, authority, or NCP role receipt |
-| Cortexel | visualization/figure generation | consumes exported, labeled, non-authoritative artifacts if configured | never an NCP peer, observer grant holder, control dependency, or source of truth |
 
-pid-rs depends on none of NCP, Engram, Haldir, Galadriel, Crebain, Prisoma, or
-Cortexel. Cortexel does not become an NCP package dependency; producer-owned
-exports terminate the trust boundary and retain source/provenance labels.
+pid-rs depends on none of NCP, Engram, Haldir, Galadriel, Crebain, or Prisoma.
+NCP defines no package, runtime, evidence, observation, control, release, or
+documentation-import edge to or from Cortexel.
 
 ### Authority-realm identity
 
@@ -816,9 +815,8 @@ pid-rs operates on consumer-supplied protocol-neutral values. Its estimate can b
 one input to application policy but has no authenticated actor, lease, command,
 or outcome meaning.
 
-Cortexel receives only labeled exported snapshots/figures. It cannot feed
-runtime decisions unless a later separately reviewed application contract is
-created; no such NCP edge is proposed here.
+NCP defines no runtime, export, observation, control, release, or
+documentation-import edge to or from Cortexel.
 
 ## Rejected alternatives
 
@@ -1021,9 +1019,11 @@ Required invariants:
   and source admission, ALLOW and handoff cannot outlive the same deadline;
 - no simulation grant satisfies plant authority;
 - an observer read grant never satisfies action publication authority;
-- no observer grant, observer-role process, Prisoma, pid-rs, or Cortexel state
-  changes body admission or widens pre-command permission; the separate assessor
-  can only tighten Haldir's local decision;
+- NCP exposes no runtime, observation, control, evidence, release, or
+  documentation-import edge to or from Cortexel;
+- no observer grant, observer-role process, Prisoma, or pid-rs state changes body
+  admission or widens pre-command permission; the separate assessor can only
+  tighten Haldir's local decision;
 - every discovered executable, CI-built, or deployment-activated NCP consumer
   repository/root/target-kind/target/default-feature-mode/effective-feature-set/
   role/activation-profile/resolution-context-digest key has one explicit coherent
@@ -1128,7 +1128,12 @@ pin, copied file, or manifest-only repin establishes migration.
 
 Exact extension identities, package feature names, and consumer inventory allocations remain implementation inputs. Topology ownership, handover, package coherence, and fail-closed consumer qualification rules are closed.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Semantics: every edge, payload, role, and owner has one meaning.

@@ -1,0 +1,1455 @@
+{
+  "schema": "ncp.b01-decision-closure-source.v1",
+  "normative": false,
+  "candidate": "1.0.0-rc.1",
+  "wire_version": "1.0",
+  "task": "B01",
+  "claim_boundary": "This source records local, non-normative semantic-closure requirements for B01. It cannot accept an ADR, change the wire contract, prove parser independence, authorize promotion or release, grant runtime authority, or satisfy external evidence gates.",
+  "wire_case_contract": {
+    "complete_positive": {
+      "scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_COMPLETE_NON_AUTHORIZING",
+      "production_admission": "NOT_EVALUATED"
+    },
+    "complete_hostile": {
+      "scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+      "polarity": "NEGATIVE",
+      "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT"
+    }
+  },
+  "b03_parameter_contract": {
+    "schema": "ncp.b01-b03-parameter-contract.v1",
+    "value_kinds": [
+      "BOUNDED_INTEGER",
+      "EXACT_IDENTITY_SET"
+    ],
+    "envelope_fields": [
+      "minimum",
+      "maximum"
+    ],
+    "literal_integer_encoding": "POSITIVE_JSON_SAFE_INTEGER",
+    "validated_envelope": "POSITIVE_LITERAL_MINIMUM_AND_FINITE_LITERAL_MAXIMUM_WITH_MINIMUM_LTE_MAXIMUM",
+    "future_b03_allocation_binding": "OUTSIDE_B01_DECISION_SET",
+    "future_allocation_constraint": "MUST_REMAIN_WITHIN_ACCEPTED_ENVELOPE_AND_MUST_NOT_CHANGE_ACCEPTED_MEANING",
+    "selection_predicate_binding": "EXACT_PARAMETER_ID_SOURCE_ANCHOR_VALUE_KIND_PROFILE_AND_ELIGIBILITY",
+    "selection_profile_semantics": {
+      "B03_BOUNDED_INTEGER_SELECTION_V1": "POSITIVE_JSON_SAFE_INTEGER_WITHIN_INCLUSIVE_ACCEPTED_ENVELOPE",
+      "B03_EXACT_IDENTITY_SET_SELECTION_V1": "CANONICAL_UNIQUE_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_GLOBAL_NO_EDGE_DENY"
+    },
+    "identity_set_measure": "CARDINALITY_OF_CANONICAL_UNIQUE_IDENTITIES",
+    "identity_canonicalization": "PRINTABLE_ASCII_U0021_TO_U007E_RAW_BYTE_ASCENDING_UNIQUE",
+    "identity_eligibility_binding": "NONEMPTY_EXACT_B01_UNIVERSE_AND_CONTEXT_DIGEST_WHEN_VALIDATED",
+    "identity_eligibility_digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+    "identity_eligibility_digest_domain_hex": "6e63702e6230312d6230332d656c69676962696c6974792d7365742e763100",
+    "identity_eligibility_projection_encoding": "UTF8_JSON_SORTED_KEYS_COMPACT_ENSURE_ASCII_FALSE",
+    "identity_eligibility_projection_members": [
+      "eligible_identities",
+      "parameter_id",
+      "question_id",
+      "value_kind"
+    ],
+    "future_identity_selection_constraint": "CANONICAL_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_CARDINALITY_WITHIN_ACCEPTED_ENVELOPE",
+    "global_no_edge_inheritance": "ALL_SELECTION_PREDICATES_REJECT_MATCHED_EXCLUDED_COMPONENT_ALIASES",
+    "future_b03_selection_verifier": "REQUIRED_OUTSIDE_B01_DECISION_SET_BEFORE_ALLOCATION",
+    "absence_and_unknown": "REJECT_BEFORE_ALLOCATION",
+    "required_test_suffixes_by_value_kind": {
+      "BOUNDED_INTEGER": [
+        "MIN-EQUALITY",
+        "MAX-EQUALITY",
+        "BELOW-MINIMUM",
+        "ABOVE-MAXIMUM",
+        "PREDICATE-REJECT",
+        "OVERFLOW",
+        "UNKNOWN-DEFAULT-REJECT"
+      ],
+      "EXACT_IDENTITY_SET": [
+        "MIN-EQUALITY",
+        "MAX-EQUALITY",
+        "BELOW-MINIMUM",
+        "ABOVE-MAXIMUM",
+        "INELIGIBLE-MEMBER-REJECT",
+        "PROHIBITED-MEMBER-REJECT",
+        "OVERFLOW",
+        "UNKNOWN-DEFAULT-REJECT"
+      ]
+    }
+  },
+  "parser_replay_contract": {
+    "schema": "ncp.b01-semantic-parser-replay-contract.v1",
+    "mode": "RETAINED_RESULT_PLUS_BOUNDED_DIRECT_REPLAY",
+    "result_schema": "ncp.b01-semantic-parser-result.v1",
+    "self_tests_required": true,
+    "timeout_seconds": 120,
+    "maximum_stdout_bytes": 2097152,
+    "maximum_stderr_bytes": 65536,
+    "process_group_cleanup": "TERM_THEN_KILL_PROCESS_GROUP",
+    "rust_command_profile": "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1",
+    "typescript_command_profile": "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1",
+    "engine_output_requirement": "DIRECT_NCP_B01_SEMANTIC_PARSER_RESULT_V1_NO_ADAPTER",
+    "dependency_resolution_mode": "RUST_CARGO_OFFLINE_LOCKED_TYPESCRIPT_BUN_NO_INSTALL",
+    "process_network_isolation": "NOT_PROVIDED_LOCAL_REPLAY_ONLY",
+    "dependency_cache_requirement": "RUST_AMBIENT_CARGO_HOME_PRESEEDED_BY_GATE_TYPESCRIPT_NONE",
+    "repository_execution_root": "TEMPORARY_BOUND_INPUT_SNAPSHOT",
+    "snapshot_postcondition": "EXACT_FILE_SET_AND_BYTES_UNCHANGED",
+    "derived_registry_receipt_binding": "DECISION_SET_SHA256_ONLY_OUTPUT_BYTES_EXCLUDED_TO_PREVENT_SELF_REFERENCE",
+    "tool_identity": "OBSERVED_VERSION_AND_EXECUTABLE_DIGEST_NOT_PROVENANCE",
+    "source_tree_build_output": "ABSENT_BEFORE_AND_AFTER",
+    "capture_command": "python3 scripts/generate_decision_registry.py --capture-semantic-parser-results",
+    "capture_target_directory": "evidence/implementation/reviews/B01/semantic-closure",
+    "capture_result_paths": [
+      "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+      "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json"
+    ],
+    "capture_preconditions": "CURRENT_EXACT_OPEN_REGISTRY_ONLY_DUAL_NOT_RUN_PARSER_CLOSURE_BLOCKERS_COMPLETE_CURRENT_CORPUS_VALIDATED_B03_DEFERRAL_ENVELOPES",
+    "capture_write_policy": "BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME",
+    "capture_workflow_state": "IMPLEMENTED",
+    "engine_profile_states": {
+      "RUST": "NOT_IMPLEMENTED",
+      "TYPESCRIPT": "NOT_IMPLEMENTED"
+    },
+    "capture_failure_effect": "WRITE_NEITHER_RESULT"
+  },
+  "excluded_no_edge_components": [
+    {
+      "component_id": "cortexel",
+      "canonical_aliases": [
+        "cortexel",
+        "sepahead/cortexel"
+      ],
+      "identity_match_profile": "ASCII_CASEFOLD_SPLIT_ON_NON_ALNUM_TOKEN_EQUALS_COMPONENT_ID",
+      "prohibited_review_role_ids": [
+        "cortexel-owner"
+      ],
+      "prohibited_edge_classes": [
+        "CONTROL_DEPENDENCY",
+        "NCP_ATLAS_OWNER",
+        "NCP_AUTHORITY_EDGE",
+        "NCP_COMMANDER",
+        "NCP_CONSUMER",
+        "NCP_DOCUMENTATION_IMPORT_EDGE",
+        "NCP_EVIDENCE_EDGE",
+        "NCP_EXPORT_EDGE",
+        "NCP_IMPLEMENTATION_EDGE",
+        "NCP_PACKAGE_DEPENDENCY",
+        "NCP_PEER",
+        "NCP_RELEASE_EDGE",
+        "NCP_ROLE_RECEIPT",
+        "NCP_RUNTIME_EDGE",
+        "NCP_SEMANTIC_EDGE",
+        "NCP_WORK_AUTHORITY",
+        "OBSERVATION_EDGE",
+        "OBSERVER_GRANT_HOLDER",
+        "PROTOCOL_SOURCE_OF_TRUTH"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "adr_source_set_sha256": "cd026ae04cd4e56566f4ae3a3ddf2011406330f022afdbd977cb51342acc897c",
+      "questions": [
+        {
+          "question_id": "ADR-001-Q01",
+          "question_anchor": "docs/adr/0001-separate-simulation-and-plant-sessions.md#open-questions",
+          "statement": "Can an open question weaken the simulation and plant session separation or its fail-closed lineage rules?",
+          "state": "CLOSED",
+          "resolution": "No. The proposed decision fixes separate session kinds, authority domains, and lineage retirement.",
+          "resolution_anchor": "docs/adr/0001-separate-simulation-and-plant-sessions.md#proposed-decision",
+          "b03_deferral": null
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0001-separate-simulation-and-plant-sessions.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr001.complete-positive-wire.v1",
+            "source_path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr001.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+            "positive_case_id": "adr001.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-002",
+      "adr_source_set_sha256": "6f3d84678aaed63790db7f0b108ac46dd0e107ee24ffae17f45c0ca3da755e89",
+      "questions": [
+        {
+          "question_id": "ADR-002-Q01",
+          "question_anchor": "docs/adr/0002-contract-identity-and-release-authorization.md#open-questions",
+          "statement": "Which exact stable-core files can enter the post-acceptance contract identity set?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "protocol-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "STABLE_CORE_FILE_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-002-Q01-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-002-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-002-B03-P01-MIN-EQUALITY",
+                  "ADR-002-B03-P01-MAX-EQUALITY",
+                  "ADR-002-B03-P01-BELOW-MINIMUM",
+                  "ADR-002-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-002-B03-P01-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-002-B03-P01-PROHIBITED-MEMBER-REJECT",
+                  "ADR-002-B03-P01-OVERFLOW",
+                  "ADR-002-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [
+              {
+                "parameter_id": "STABLE_CORE_FILE_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              }
+            ],
+            "identity_eligibility_required": true,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-002-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0002-contract-identity-and-release-authorization.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr002.complete-positive-wire.v1",
+            "source_path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr002.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+            "positive_case_id": "adr002.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-003",
+      "adr_source_set_sha256": "d743372fbeeb12e12ec8c55394ceb01c726ba1ea8ac79c1f08a7ec41defee58b",
+      "questions": [
+        {
+          "question_id": "ADR-003-Q01",
+          "question_anchor": "docs/adr/0003-authenticated-production-ingress.md#open-questions",
+          "statement": "Does production ingress require a process-isolated direct-capability handoff in addition to authenticated fail-closed admission?",
+          "state": "OPEN",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": null
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0003-authenticated-production-ingress.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr003.complete-positive-wire.v1",
+            "source_path": "docs/adr/0003-authenticated-production-ingress.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr003.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0003-authenticated-production-ingress.md",
+            "positive_case_id": "adr003.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-004",
+      "adr_source_set_sha256": "d457c7bc686a564ef74877b06c3c513730d96eee03001d75c0e77e400cad4345",
+      "questions": [
+        {
+          "question_id": "ADR-004-Q01",
+          "question_anchor": "docs/adr/0004-observer-attach-grants-and-revocation.md#open-questions",
+          "statement": "Can an unknown or default observer value grant access, enrollment, currentness, or revocation success?",
+          "state": "CLOSED",
+          "resolution": "No. Unknown and default observer values deny before grant, enrollment, or state mutation.",
+          "resolution_anchor": "docs/adr/0004-observer-attach-grants-and-revocation.md#proposed-decision",
+          "b03_deferral": null
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0004-observer-attach-grants-and-revocation.md",
+          "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr004.complete-positive-wire.v1",
+            "source_path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          },
+          {
+            "case_id": "adr004.module-complete-positive-wire.v1",
+            "source_path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr004.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+            "positive_case_id": "adr004.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          },
+          {
+            "case_id": "adr004.module-complete-hostile-wire.v1",
+            "source_path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
+            "positive_case_id": "adr004.module-complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-005",
+      "adr_source_set_sha256": "355a167a11454281083dc79f276e4d0cc3fdc086dfa87909b3cb88808b0a105d",
+      "questions": [
+        {
+          "question_id": "ADR-005-Q01",
+          "question_anchor": "docs/adr/0005-declared-stream-lifecycle.md#open-questions",
+          "statement": "Which finite sequence, reorder, tombstone, and interface-name bounds implement the closed stream lifecycle?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "distributed-systems-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "INTERFACE_NAME_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-005-Q01-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-005-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-005-B03-P01-MIN-EQUALITY",
+                  "ADR-005-B03-P01-MAX-EQUALITY",
+                  "ADR-005-B03-P01-BELOW-MINIMUM",
+                  "ADR-005-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-005-B03-P01-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-005-B03-P01-PROHIBITED-MEMBER-REJECT",
+                  "ADR-005-B03-P01-OVERFLOW",
+                  "ADR-005-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "SEQUENCE_LIMIT",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-005-Q01-P02-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-005-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-005-B03-P02-MIN-EQUALITY",
+                  "ADR-005-B03-P02-MAX-EQUALITY",
+                  "ADR-005-B03-P02-BELOW-MINIMUM",
+                  "ADR-005-B03-P02-ABOVE-MAXIMUM",
+                  "ADR-005-B03-P02-PREDICATE-REJECT",
+                  "ADR-005-B03-P02-OVERFLOW",
+                  "ADR-005-B03-P02-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "REORDER_LIMIT",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-005-Q01-P03-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-005-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-005-B03-P03-MIN-EQUALITY",
+                  "ADR-005-B03-P03-MAX-EQUALITY",
+                  "ADR-005-B03-P03-BELOW-MINIMUM",
+                  "ADR-005-B03-P03-ABOVE-MAXIMUM",
+                  "ADR-005-B03-P03-PREDICATE-REJECT",
+                  "ADR-005-B03-P03-OVERFLOW",
+                  "ADR-005-B03-P03-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "TOMBSTONE_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-005-Q01-P04-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-005-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-005-B03-P04-MIN-EQUALITY",
+                  "ADR-005-B03-P04-MAX-EQUALITY",
+                  "ADR-005-B03-P04-BELOW-MINIMUM",
+                  "ADR-005-B03-P04-ABOVE-MAXIMUM",
+                  "ADR-005-B03-P04-PREDICATE-REJECT",
+                  "ADR-005-B03-P04-OVERFLOW",
+                  "ADR-005-B03-P04-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [
+              {
+                "parameter_id": "INTERFACE_NAME_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              }
+            ],
+            "identity_eligibility_required": true,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-005-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0005-declared-stream-lifecycle.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr005.complete-positive-wire.v1",
+            "source_path": "docs/adr/0005-declared-stream-lifecycle.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr005.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0005-declared-stream-lifecycle.md",
+            "positive_case_id": "adr005.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-006",
+      "adr_source_set_sha256": "cd4573f39a0a8921bc08e0b27683d283b5d7ddc99df1f25e8e8b37f1d17fd019",
+      "questions": [
+        {
+          "question_id": "ADR-006-Q01",
+          "question_anchor": "docs/adr/0006-body-issued-authority-and-time.md#open-questions",
+          "statement": "Which finite state capacities and implementation names realize body-issued authority without changing its meaning?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "distributed-systems-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "IMPLEMENTATION_NAME_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-006-Q01-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-006-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-006-B03-P01-MIN-EQUALITY",
+                  "ADR-006-B03-P01-MAX-EQUALITY",
+                  "ADR-006-B03-P01-BELOW-MINIMUM",
+                  "ADR-006-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-006-B03-P01-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-006-B03-P01-PROHIBITED-MEMBER-REJECT",
+                  "ADR-006-B03-P01-OVERFLOW",
+                  "ADR-006-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "AUTHORITY_STATE_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-006-Q01-P02-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-006-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-006-B03-P02-MIN-EQUALITY",
+                  "ADR-006-B03-P02-MAX-EQUALITY",
+                  "ADR-006-B03-P02-BELOW-MINIMUM",
+                  "ADR-006-B03-P02-ABOVE-MAXIMUM",
+                  "ADR-006-B03-P02-PREDICATE-REJECT",
+                  "ADR-006-B03-P02-OVERFLOW",
+                  "ADR-006-B03-P02-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [
+              {
+                "parameter_id": "IMPLEMENTATION_NAME_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              }
+            ],
+            "identity_eligibility_required": true,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-006-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0006-body-issued-authority-and-time.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr006.complete-positive-wire.v1",
+            "source_path": "docs/adr/0006-body-issued-authority-and-time.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr006.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0006-body-issued-authority-and-time.md",
+            "positive_case_id": "adr006.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-007",
+      "adr_source_set_sha256": "7d61095ec69cfa645cfd1173167bb2c56185913257769fc6ae87b2cf800ff6d0",
+      "questions": [
+        {
+          "question_id": "ADR-007-Q01",
+          "question_anchor": "docs/adr/0007-command-disposition-journal.md#illustrative-wire-example",
+          "statement": "What exact query-result union distinguishes a retained disposition from retention expiry without granting success by default?",
+          "state": "OPEN",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": null
+        },
+        {
+          "question_id": "ADR-007-Q02",
+          "question_anchor": "docs/adr/0007-command-disposition-journal.md#open-questions",
+          "statement": "Which finite journal capacities and implementation names realize the closed disposition lifecycle?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "plant-safety-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "IMPLEMENTATION_NAME_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-007-Q02-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-007-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-007-B03-P01-MIN-EQUALITY",
+                  "ADR-007-B03-P01-MAX-EQUALITY",
+                  "ADR-007-B03-P01-BELOW-MINIMUM",
+                  "ADR-007-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-007-B03-P01-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-007-B03-P01-PROHIBITED-MEMBER-REJECT",
+                  "ADR-007-B03-P01-OVERFLOW",
+                  "ADR-007-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "JOURNAL_ENTRY_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-007-Q02-P02-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-007-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-007-B03-P02-MIN-EQUALITY",
+                  "ADR-007-B03-P02-MAX-EQUALITY",
+                  "ADR-007-B03-P02-BELOW-MINIMUM",
+                  "ADR-007-B03-P02-ABOVE-MAXIMUM",
+                  "ADR-007-B03-P02-PREDICATE-REJECT",
+                  "ADR-007-B03-P02-OVERFLOW",
+                  "ADR-007-B03-P02-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [
+              {
+                "parameter_id": "IMPLEMENTATION_NAME_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              }
+            ],
+            "identity_eligibility_required": true,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-007-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0007-command-disposition-journal.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr007.complete-positive-wire.v1",
+            "source_path": "docs/adr/0007-command-disposition-journal.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr007.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0007-command-disposition-journal.md",
+            "positive_case_id": "adr007.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-008",
+      "adr_source_set_sha256": "bfaf2735b0721e65243548aba404928e2e487c5a031fe4d41f1a765fc035a575",
+      "questions": [
+        {
+          "question_id": "ADR-008-Q01",
+          "question_anchor": "docs/adr/0008-extension-namespace-and-galadriel-separation.md#bounds-and-resource-behavior",
+          "statement": "How do extension object limits and digest spelling conform to the universal JSON frame limit and one canonical content address?",
+          "state": "OPEN",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": null
+        },
+        {
+          "question_id": "ADR-008-Q02",
+          "question_anchor": "docs/adr/0008-extension-namespace-and-galadriel-separation.md#open-questions",
+          "statement": "Which exact namespace, schema, provenance, replay, and adapter-proof identities implement the closed extension isolation rule?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "protocol-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "NAMESPACE_OWNER_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-008-Q02-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-008-B03-P01-MIN-EQUALITY",
+                  "ADR-008-B03-P01-MAX-EQUALITY",
+                  "ADR-008-B03-P01-BELOW-MINIMUM",
+                  "ADR-008-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-008-B03-P01-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-008-B03-P01-PROHIBITED-MEMBER-REJECT",
+                  "ADR-008-B03-P01-OVERFLOW",
+                  "ADR-008-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "SCHEMA_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-008-Q02-P02-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-008-B03-P02-MIN-EQUALITY",
+                  "ADR-008-B03-P02-MAX-EQUALITY",
+                  "ADR-008-B03-P02-BELOW-MINIMUM",
+                  "ADR-008-B03-P02-ABOVE-MAXIMUM",
+                  "ADR-008-B03-P02-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-008-B03-P02-PROHIBITED-MEMBER-REJECT",
+                  "ADR-008-B03-P02-OVERFLOW",
+                  "ADR-008-B03-P02-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "BODY_AUTHORITY_PROVENANCE_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-008-Q02-P03-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-008-B03-P03-MIN-EQUALITY",
+                  "ADR-008-B03-P03-MAX-EQUALITY",
+                  "ADR-008-B03-P03-BELOW-MINIMUM",
+                  "ADR-008-B03-P03-ABOVE-MAXIMUM",
+                  "ADR-008-B03-P03-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-008-B03-P03-PROHIBITED-MEMBER-REJECT",
+                  "ADR-008-B03-P03-OVERFLOW",
+                  "ADR-008-B03-P03-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "ASSESSOR_REPLAY_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-008-Q02-P04-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-008-B03-P04-MIN-EQUALITY",
+                  "ADR-008-B03-P04-MAX-EQUALITY",
+                  "ADR-008-B03-P04-BELOW-MINIMUM",
+                  "ADR-008-B03-P04-ABOVE-MAXIMUM",
+                  "ADR-008-B03-P04-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-008-B03-P04-PROHIBITED-MEMBER-REJECT",
+                  "ADR-008-B03-P04-OVERFLOW",
+                  "ADR-008-B03-P04-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "ADAPTER_PROOF_REFERENCE_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-008-Q02-P05-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-008-B03-P05-MIN-EQUALITY",
+                  "ADR-008-B03-P05-MAX-EQUALITY",
+                  "ADR-008-B03-P05-BELOW-MINIMUM",
+                  "ADR-008-B03-P05-ABOVE-MAXIMUM",
+                  "ADR-008-B03-P05-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-008-B03-P05-PROHIBITED-MEMBER-REJECT",
+                  "ADR-008-B03-P05-OVERFLOW",
+                  "ADR-008-B03-P05-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [
+              {
+                "parameter_id": "NAMESPACE_OWNER_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "SCHEMA_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "BODY_AUTHORITY_PROVENANCE_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "ASSESSOR_REPLAY_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "ADAPTER_PROOF_REFERENCE_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              }
+            ],
+            "identity_eligibility_required": true,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr008.complete-positive-wire.v1",
+            "source_path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr008.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+            "positive_case_id": "adr008.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-009",
+      "adr_source_set_sha256": "d025d498edb01899035f26bf502be2c9127eba2294ec479f3ceda77650044e9b",
+      "questions": [
+        {
+          "question_id": "ADR-009-Q01",
+          "question_anchor": "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md#cross-store-producer-audience-retention-and-compromise-rules",
+          "statement": "What finite numeric maximum replaces the symbolic opening-byte bound and covers the companion-module wire corpus?",
+          "state": "OPEN",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": null
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0009-security-state-rotation-and-revocation.md",
+          "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr009.complete-positive-wire.v1",
+            "source_path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          },
+          {
+            "case_id": "adr009.module-complete-positive-wire.v1",
+            "source_path": "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr009.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+            "positive_case_id": "adr009.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          },
+          {
+            "case_id": "adr009.module-complete-hostile-wire.v1",
+            "source_path": "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+            "positive_case_id": "adr009.module-complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-010",
+      "adr_source_set_sha256": "0846474a0b869d71a03e2bf60e6cb41a5b968dc897aac68607f9c952eda3bcae",
+      "questions": [
+        {
+          "question_id": "ADR-010-Q01",
+          "question_anchor": "docs/adr/0010-plane-qos-retention-and-overload.md#bounds-and-resource-behavior",
+          "statement": "Which exact numeric fields and default failure behavior make the proposed QoS wire object complete and fail closed?",
+          "state": "OPEN",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": null
+        },
+        {
+          "question_id": "ADR-010-Q02",
+          "question_anchor": "docs/adr/0010-plane-qos-retention-and-overload.md#open-questions",
+          "statement": "Which measured finite queue capacities and deadlines satisfy the closed per-plane overload rules?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "real-time-performance-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "CONTROL_RPC_QUEUE_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P01-MIN-EQUALITY",
+                  "ADR-010-B03-P01-MAX-EQUALITY",
+                  "ADR-010-B03-P01-BELOW-MINIMUM",
+                  "ADR-010-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P01-PREDICATE-REJECT",
+                  "ADR-010-B03-P01-OVERFLOW",
+                  "ADR-010-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "CONTROL_RPC_DEADLINE_NS",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P02-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P02-MIN-EQUALITY",
+                  "ADR-010-B03-P02-MAX-EQUALITY",
+                  "ADR-010-B03-P02-BELOW-MINIMUM",
+                  "ADR-010-B03-P02-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P02-PREDICATE-REJECT",
+                  "ADR-010-B03-P02-OVERFLOW",
+                  "ADR-010-B03-P02-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "ACTION_COMMAND_QUEUE_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P03-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P03-MIN-EQUALITY",
+                  "ADR-010-B03-P03-MAX-EQUALITY",
+                  "ADR-010-B03-P03-BELOW-MINIMUM",
+                  "ADR-010-B03-P03-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P03-PREDICATE-REJECT",
+                  "ADR-010-B03-P03-OVERFLOW",
+                  "ADR-010-B03-P03-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "ACTION_COMMAND_DEADLINE_NS",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P04-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P04-MIN-EQUALITY",
+                  "ADR-010-B03-P04-MAX-EQUALITY",
+                  "ADR-010-B03-P04-BELOW-MINIMUM",
+                  "ADR-010-B03-P04-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P04-PREDICATE-REJECT",
+                  "ADR-010-B03-P04-OVERFLOW",
+                  "ADR-010-B03-P04-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "OBSERVATION_DISPOSITION_QUEUE_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P05-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P05-MIN-EQUALITY",
+                  "ADR-010-B03-P05-MAX-EQUALITY",
+                  "ADR-010-B03-P05-BELOW-MINIMUM",
+                  "ADR-010-B03-P05-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P05-PREDICATE-REJECT",
+                  "ADR-010-B03-P05-OVERFLOW",
+                  "ADR-010-B03-P05-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "OBSERVATION_DISPOSITION_DEADLINE_NS",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P06-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P06-MIN-EQUALITY",
+                  "ADR-010-B03-P06-MAX-EQUALITY",
+                  "ADR-010-B03-P06-BELOW-MINIMUM",
+                  "ADR-010-B03-P06-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P06-PREDICATE-REJECT",
+                  "ADR-010-B03-P06-OVERFLOW",
+                  "ADR-010-B03-P06-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "EXTENSION_QUEUE_CAPACITY",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P07-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P07-MIN-EQUALITY",
+                  "ADR-010-B03-P07-MAX-EQUALITY",
+                  "ADR-010-B03-P07-BELOW-MINIMUM",
+                  "ADR-010-B03-P07-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P07-PREDICATE-REJECT",
+                  "ADR-010-B03-P07-OVERFLOW",
+                  "ADR-010-B03-P07-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "EXTENSION_DEADLINE_NS",
+                "value_kind": "BOUNDED_INTEGER",
+                "selection_predicate_id": "ADR-010-Q02-P08-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+                "selection_profile": "B03_BOUNDED_INTEGER_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-010-B03-P08-MIN-EQUALITY",
+                  "ADR-010-B03-P08-MAX-EQUALITY",
+                  "ADR-010-B03-P08-BELOW-MINIMUM",
+                  "ADR-010-B03-P08-ABOVE-MAXIMUM",
+                  "ADR-010-B03-P08-PREDICATE-REJECT",
+                  "ADR-010-B03-P08-OVERFLOW",
+                  "ADR-010-B03-P08-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [],
+            "identity_eligibility_required": false,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-010-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0010-plane-qos-retention-and-overload.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr010.complete-positive-wire.v1",
+            "source_path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr010.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+            "positive_case_id": "adr010.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    },
+    {
+      "id": "ADR-011",
+      "adr_source_set_sha256": "2104763977e7ac5cbf82d5ff3f226fe705a8b075cc6f5722c95ad50df627570f",
+      "questions": [
+        {
+          "question_id": "ADR-011-Q01",
+          "question_anchor": "docs/adr/0011-ecosystem-topology-and-handover.md#open-questions",
+          "statement": "Which exact extension identities, package features, and consumer inventory allocations preserve the no-edge topology?",
+          "state": "DEFERRED_B03",
+          "resolution": null,
+          "resolution_anchor": null,
+          "b03_deferral": {
+            "owner_task": "B03",
+            "owner_role_id": "release-package-tooling-reviewer",
+            "parameters": [
+              {
+                "parameter_id": "EXTENSION_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-011-Q01-P01-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-011-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-011-B03-P01-MIN-EQUALITY",
+                  "ADR-011-B03-P01-MAX-EQUALITY",
+                  "ADR-011-B03-P01-BELOW-MINIMUM",
+                  "ADR-011-B03-P01-ABOVE-MAXIMUM",
+                  "ADR-011-B03-P01-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-011-B03-P01-PROHIBITED-MEMBER-REJECT",
+                  "ADR-011-B03-P01-OVERFLOW",
+                  "ADR-011-B03-P01-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "PACKAGE_FEATURE_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-011-Q01-P02-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-011-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-011-B03-P02-MIN-EQUALITY",
+                  "ADR-011-B03-P02-MAX-EQUALITY",
+                  "ADR-011-B03-P02-BELOW-MINIMUM",
+                  "ADR-011-B03-P02-ABOVE-MAXIMUM",
+                  "ADR-011-B03-P02-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-011-B03-P02-PROHIBITED-MEMBER-REJECT",
+                  "ADR-011-B03-P02-OVERFLOW",
+                  "ADR-011-B03-P02-UNKNOWN-DEFAULT-REJECT"
+                ]
+              },
+              {
+                "parameter_id": "CONSUMER_INVENTORY_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-011-Q01-P03-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-011-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": null,
+                "maximum": null,
+                "required_tests": [
+                  "ADR-011-B03-P03-MIN-EQUALITY",
+                  "ADR-011-B03-P03-MAX-EQUALITY",
+                  "ADR-011-B03-P03-BELOW-MINIMUM",
+                  "ADR-011-B03-P03-ABOVE-MAXIMUM",
+                  "ADR-011-B03-P03-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-011-B03-P03-PROHIBITED-MEMBER-REJECT",
+                  "ADR-011-B03-P03-OVERFLOW",
+                  "ADR-011-B03-P03-UNKNOWN-DEFAULT-REJECT"
+                ]
+              }
+            ],
+            "identity_eligibility_universes": [
+              {
+                "parameter_id": "EXTENSION_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "PACKAGE_FEATURE_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "CONSUMER_INVENTORY_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              }
+            ],
+            "identity_eligibility_required": true,
+            "equality_at_minimum": "PASS",
+            "equality_at_maximum": "PASS",
+            "below_minimum": "REJECT_BEFORE_ALLOCATION",
+            "above_maximum": "REJECT_BEFORE_ALLOCATION",
+            "arithmetic_overflow": "REJECT_BEFORE_ALLOCATION",
+            "permissive_default": false,
+            "failure_behavior": "REJECT_BEFORE_ALLOCATION",
+            "meaning_change": "FORBIDDEN",
+            "source_anchor": "ncp-b01-selector-allocation-adr-011-v1",
+            "validation_state": "OPEN"
+          }
+        }
+      ],
+      "wire_requirements": {
+        "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "required_corpus_status": "COMPLETE_CURRENT",
+        "required_source_paths": [
+          "docs/adr/0011-ecosystem-topology-and-handover.md"
+        ],
+        "complete_positive": [
+          {
+            "case_id": "adr011.complete-positive-wire.v1",
+            "source_path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "POSITIVE"
+          }
+        ],
+        "complete_hostile": [
+          {
+            "case_id": "adr011.complete-hostile-wire.v1",
+            "source_path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+            "positive_case_id": "adr011.complete-positive-wire.v1",
+            "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
+            "required_scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
+            "required_polarity": "NEGATIVE"
+          }
+        ],
+        "rust_parser_evidence": {
+          "engine": "RUST",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
+          "required_status": "PASS"
+        },
+        "typescript_parser_evidence": {
+          "engine": "TYPESCRIPT",
+          "result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
+          "required_status": "PASS"
+        }
+      }
+    }
+  ]
+}

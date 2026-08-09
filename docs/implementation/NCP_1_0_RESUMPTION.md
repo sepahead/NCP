@@ -70,7 +70,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `d9bed647de517726ce9149aed76933be6b3a83875d27b16cfe378787d4235a4d`.
+Blueprint SHA-256: `df3e412ff000e7e7970d8129e8333790c38b1305d95ff2afa09c47e8142a0246`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -88,9 +88,9 @@ Current residual risks:
 
 - All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
-- The 22 JSON fences remain proposed profile excerpts, not accepted production wire. Separate content-bound Rust and TypeScript profile engines agree on all 22 semantic cases. They reject 90 registered bounded mutations under local non-authorizing profiles.
-- The harness identifies incomplete or non-wire examples instead of promoting them. Complete production examples, the syntax-only Python/Node replay, and preliminary model/resource results do not satisfy B01.
-- B01 inventories a declared 69-file source/support set under a 72-file cap, leaving three slots. Python imports precede the first snapshot. This is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript compiler, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without proving provenance. The reader rejects leaf links and in-read changes. Privileged parent-directory replacement is outside this filesystem claim.
+- The 22 JSON fences remain proposed profile excerpts, not accepted production wire. The current exact-cut local replay passes all 22 cases and rejects 90 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence; no passing B01 receipt exists.
+- The semantic-closure gate is OPEN. The current 22-case corpus contains excerpts, not complete proposed wire positives and single-delta hostile counterparts for every ADR source. Open semantic questions, unbounded B03 deferral envelopes, and absent parser-result artifacts block acceptance. Later B03 selections remain downstream.
+- B01 inventories a declared 71-file source/support set under a 72-file cap, leaving one slot. Python imports precede the first snapshot. This is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript compiler, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without proving provenance. The reader rejects leaf links and in-read changes. Privileged parent-directory replacement is outside this filesystem claim.
 - The latest review subject binds clean pushed source commit 99672dd48bffe3f8504d4fb66d5a7c9140b122cf, has zero reviews, and is superseded. Review capture is disabled during semantic-closure work. No owner review, independent review, external adjudication, or passing B01 receipt exists. Canonical formal work, refinement, and every downstream implementation remain open.
 - The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.
 - Checked codec paths can invent missing midpoint or zero values, accept sparse components, and select a unit by mapping order. The existing plant helper is not integrated into Active admission, and the `PlantCommand` projection erases units. ADR-007 restrictive effect ordering must remain unchanged. N01, N03, N05, N07, N08, B02, B03, E04, H02, and C02 remain open.

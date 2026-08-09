@@ -42,15 +42,17 @@ reviewed intake inventory is:
 - `sepahead/cortexel`, as an inspected and explicitly excluded non-peer; and
 - the public `sepahead` profile/selected-work presentation.
 
-Cortexel is not an NCP package dependency, NCP peer, observer grant holder, source
-of truth, control-path component, consumer, commander, or atlas owner. This plan
-authorizes no NCP implementation or documentation-import work in Cortexel, and it
+Cortexel has no role in the NCP topology. NCP defines no Cortexel package
+dependency, peer status, observer grant, control-path role, consumer role,
+commander role, source-of-truth status, or atlas ownership. This plan authorizes
+no NCP implementation or documentation-import work in Cortexel. Cortexel
 receives no NCP role receipt.
 
 The content-bound superseded ADR-011 review subject asked reviewers to adjudicate
-an optional labeled-export boundary. That proposal remains unratified and grants
-no task or work authority. A later B01 subject must bind any removal. This plan
-retains the superseded review history.
+an optional labeled-export boundary. That unsupported proposal remains unratified
+and grants no task or work authority. The current B01 source removes the proposal.
+A later B01 subject must bind this correction. This plan retains the superseded
+review history.
 
 The 2026-08-01 local discovery also found directories that are not canonical
 inventory entries. `engram-origin-corpus-review.MymUYE` is a non-Git review
@@ -930,13 +932,13 @@ incompatible wires. The complete quiesced body-profile cut remains mandatory.
 B01 is responsible for ratifying eleven ADRs, but the current non-normative
 registry permits only `PROPOSED` decisions and zero review records. The generic
 implementation ledger can retain independent reviewer identities. The ledger
-cannot prove that all 52 exact ADR role obligations, with 53 minimum identity
+cannot prove that all 51 exact ADR role obligations, with 52 minimum identity
 slots, reviewed the same bytes. It also cannot prove that a conditional review
 was closed. B01 also names the normative decision registry as its output and
 requires owner authorization for a candidate rebaseline. B02 owns that
-authorization and depends on B01. B03 can write normative allocations after B01
-without depending on B02. The resulting state machine is either uncloseable or
-can be bypassed by an optimistic status edit.
+authorization and depends on B01. Under the earlier graph, B03 could write
+normative allocations after B01 without depending on B02. That state machine was
+either uncloseable or vulnerable to an optimistic status edit.
 
 Keep B01 review state outside `contract/`. Compute one domain-separated decision-set
 digest over the ordered current ADR identities and structured role obligations.
@@ -2786,7 +2788,7 @@ ten lens decisions.
 | ADR-008 | extension namespace and Galadriel sidecar separation | protocol reviewer; Galadriel owner; Haldir owner; Crebain owner |
 | ADR-009 | security-state semantic digest, key rotation and revocation | security reviewer; operations reviewer; supply-chain reviewer; security-artifact-anchor infrastructure owner/operator; independent anchor security reviewer |
 | ADR-010 | exact per-plane QoS, retention and overload semantics | real-time and performance reviewer; Engram consumer reviewer; Haldir consumer reviewer; Galadriel consumer reviewer; Crebain consumer reviewer; Prisoma consumer reviewer |
-| ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; Cortexel owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
+| ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
 
 Ratification is blocked until:
 
@@ -2794,8 +2796,8 @@ Ratification is blocked until:
 - every semantic decision is closed. A remaining concrete allocation is explicitly
   deferred to B03 with a closed owner, bound, fail-closed default, and no ability
   to change the accepted meaning;
-- wire examples and negative examples can be represented in Rust and independent
-  TypeScript without consumer-specific assumptions;
+- wire examples and negative examples can be represented in separate Rust and
+  TypeScript implementations without consumer-specific assumptions;
 - the proposed formal models have no obvious counterexample under their declared
   bounds;
 - resource estimates fit declared maxima and cryptographic deadlines in preliminary
@@ -4997,7 +4999,7 @@ current role obligations and required distinct identities are satisfied by
 exact-subject human records, with no active rejection or unresolved condition;
 the registry/schema, link/anchor,
 threat/requirement traceability, bounded decision/model/resource probes, and
-complete local gate pass; wire examples parse in two independent prototype
+complete local gate pass; wire examples parse in two separate prototype
 parsers; no unresolved semantic decision remains; the complete normative digest
 is unchanged; and `contract/decision-registry.v1.json` is absent. Commit each
 independent ADR or tightly coupled group professionally and push. Make a final

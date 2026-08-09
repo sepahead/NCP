@@ -24,8 +24,11 @@ is not edited or silently translated by these records.
 
 The generated non-normative review registry is
 [`decision-registry.proposed.v1.json`](decision-registry.proposed.v1.json). Its
-source is
-[`decision-registry.source.v1.json`](decision-registry.source.v1.json). Both live
+review source is
+[`decision-registry.source.v1.json`](decision-registry.source.v1.json). The
+decision set also binds the non-normative
+[`decision-closure.source.v1.json`](decision-closure.source.v1.json) requirements
+and their [JSON Schema](decision-closure.source.schema.v1.json). These files live
 outside `contract/` deliberately.
 
 The current contract-manifest generator includes every
@@ -33,9 +36,11 @@ The current contract-manifest generator includes every
 Therefore a proposed decision registry in `contract/` would silently become
 normative. That is forbidden.
 
-The registry can derive non-normative `ACCEPTED` without changing an ADR file.
-The source contains no manual decision status. This rule prevents a status-line
-edit from changing the reviewed digest.
+The registry can derive non-normative `ACCEPTED` without changing an ADR file
+only when the semantic-closure evaluation is `CLOSED` and every exact review
+obligation passes. The current evaluation is `OPEN`. The sources contain no
+manual decision status. This rule prevents a status-line edit from changing the
+reviewed digest.
 
 Promotion to `contract/decision-registry.v1.json` remains blocked even when all
 ADRs are accepted. N01 can promote only after all of these conditions hold:
@@ -43,7 +48,7 @@ ADRs are accepted. N01 can promote only after all of these conditions hold:
 1. every ADR is `ACCEPTED`;
 2. every role obligation has enough distinct same-subject acceptance records;
 3. no normative open question remains;
-4. the proposed wire examples parse in the two independent prototype parsers;
+4. the proposed wire examples parse in the two separate prototype parsers;
 5. the required preliminary models and resource probes have no unresolved
    counterexample under their declared bounds;
 6. B02 retains explicit owner authorization for the exact decision-set digest
@@ -202,7 +207,7 @@ schema versions registered to exact types, not runtime class names.
 | [ADR-008](0008-extension-namespace-and-galadriel-separation.md) | Separate stable NCP routes from registered Galadriel extension routes and credentials. | Protocol reviewer; Galadriel owner; Haldir owner; Crebain owner |
 | [ADR-009](0009-security-state-rotation-and-revocation.md) | Bind semantic security state, key rotation, revocation, and reattachment explicitly. | Security reviewer; operations reviewer; supply-chain reviewer; security-artifact-anchor infrastructure owner/operator; independent anchor security reviewer |
 | [ADR-010](0010-plane-qos-retention-and-overload.md) | Specify finite per-plane QoS, retention, priority, overload, and observer isolation. | Real-time and performance reviewer; Engram consumer reviewer; Haldir consumer reviewer; Galadriel consumer reviewer; Crebain consumer reviewer; Prisoma consumer reviewer |
-| [ADR-011](0011-ecosystem-topology-and-handover.md) | Ratify standalone-first dependency direction, per-surface migration identity, exclusive commander modes, body-coordinated handover, deny-only assessment, and pid-rs neutrality. | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; Cortexel owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
+| [ADR-011](0011-ecosystem-topology-and-handover.md) | Ratify standalone-first dependency direction, per-surface migration identity, exclusive commander modes, body-coordinated handover, deny-only assessment, and pid-rs neutrality. | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
 
 Two decisions use maintained companion modules:
 

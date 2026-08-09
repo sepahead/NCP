@@ -28,6 +28,8 @@ B01_SUPPORT_RELATIVE_PATHS = (
     "docs/adr/0009-security-state-rotation-and-revocation.md",
     "docs/adr/0010-plane-qos-retention-and-overload.md",
     "docs/adr/0011-ecosystem-topology-and-handover.md",
+    "docs/adr/decision-closure.source.schema.v1.json",
+    "docs/adr/decision-closure.source.v1.json",
     "docs/adr/decision-registry.proposed.v1.json",
     "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
     "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
@@ -39,7 +41,7 @@ B01_SUPPORT_RELATIVE_PATHS = (
     "scripts/bounded_json.py",
 )
 B01_SOURCE_ROOT_RELATIVE_PATH = "prototypes/b01-architecture-evidence"
-EXPECTED_B01_SOURCE_COUNT = 69
+EXPECTED_B01_SOURCE_COUNT = 71
 EXPECTED_B01_SOURCE_RELATIVE_PATHS = (
     "bun.lock",
     "contract/limits.v1.json",
@@ -54,6 +56,8 @@ EXPECTED_B01_SOURCE_RELATIVE_PATHS = (
     "docs/adr/0009-security-state-rotation-and-revocation.md",
     "docs/adr/0010-plane-qos-retention-and-overload.md",
     "docs/adr/0011-ecosystem-topology-and-handover.md",
+    "docs/adr/decision-closure.source.schema.v1.json",
+    "docs/adr/decision-closure.source.v1.json",
     "docs/adr/decision-registry.proposed.v1.json",
     "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
     "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",

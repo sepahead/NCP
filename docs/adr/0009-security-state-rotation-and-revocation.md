@@ -4063,9 +4063,17 @@ history remains auditable even when deployment is prohibited.
 
 <a id="ncp-b01-selector-allocation-adr-009-v1"></a>
 
-No semantic question remains in this decision. Unknown or default security, currentness, audience, producer, disclosure, or retirement values deny.
+One semantic question remains open. The companion module must define a finite
+numeric maximum for cross-store exact-opening bytes and add complete
+source-bound wire cases for that limit. Unknown or default security, currentness,
+audience, producer, disclosure, or retirement values deny.
 
-B03 allocation names and reviewed exclusions are maintained in the [external selector-allocation inventory](selector-allocation.authoring.v1.json) under this stable ADR anchor. That B01 inventory is coordination evidence only. It does not authorize a release or satisfy an external gate.
+Future B03 allocation names and reviewed exclusions will be maintained in the
+[external selector-allocation inventory](selector-allocation.authoring.v1.json)
+under this stable ADR anchor. The current inventory is incomplete, has not been
+reviewed, and contains no allocation or exclusion rows. It is coordination
+evidence only and grants no release or gate status.
+
 ## Ten-lens review
 
 1. Semantics: state identity covers meaning, not one filename.

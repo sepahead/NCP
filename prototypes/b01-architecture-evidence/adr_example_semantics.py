@@ -43,6 +43,7 @@ TYPESCRIPT_MAIN = TYPESCRIPT_ROOT / "src" / "main.ts"
 CORPUS_SCHEMA = "ncp.b01-adr-example-semantics-corpus.v1"
 ENGINE_RESULT_SCHEMA = "ncp.b01-adr-example-semantics-result.v1"
 COORDINATOR_RESULT_SCHEMA = "ncp.b01-adr-example-semantics-coordinator-result.v1"
+REVIEW_PACKET_LIFECYCLE_SCHEMA = "ncp.b01-review-packet-lifecycle.v1"
 SEMANTIC_CLAIM = "local-prototype-only"
 MAX_CORPUS_BYTES = 262_144
 MAX_ENGINE_OUTPUT_BYTES = 262_144
@@ -55,7 +56,7 @@ MAX_FIXTURE_BYTES = 16_384
 MAX_ENGINE_SOURCE_BYTES = 262_144
 MAX_AGGREGATE_ENGINE_SOURCE_BYTES = 2_097_152
 EXPECTED_CASE_COUNT = 22
-EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 10, "typescript": 25}
+EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 24, "typescript": 39}
 EXPECTED_ADR_IDS = tuple(f"ADR-{index:03d}" for index in range(1, 12))
 JSON_FENCE = re.compile(rb"```json\n(.*?)\n```", re.DOTALL)
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
@@ -124,6 +125,7 @@ EXPECTED_DECISION_SET_BINDING = {
         "candidate",
         "wire_version",
         "review_policy",
+        "semantic_closure",
         "decisions",
     ],
     "decision_members": [
@@ -137,11 +139,27 @@ EXPECTED_DECISION_SET_BINDING = {
         "required_reviews",
         "defect_ids",
     ],
-    "projection_byte_length": 16_383,
+    "projection_byte_length": 16_606,
     "projection_sha256": (
-        "40d52a56a3d561e118865f823cf55d1172e25b64f600e413e3635bf1b511f4f5"
+        "2c9dc7b997d599ad6e533cfa5685c5dabd73bb60f32020f72ebe1bbeaefce881"
     ),
-    "sha256": "794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a",
+    "sha256": "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331",
+    "semantic_closure": {
+        "source": {
+            "path": "docs/adr/decision-closure.source.v1.json",
+            "sha256": (
+                "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122"
+            ),
+            "bytes": 66_810,
+        },
+        "json_schema": {
+            "path": "docs/adr/decision-closure.source.schema.v1.json",
+            "sha256": (
+                "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee"
+            ),
+            "bytes": 28_693,
+        },
+    },
     "effect": "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY",
 }
 
@@ -327,15 +345,20 @@ def _verify_decision_set_binding(
 
     registered_identity = {
         key: binding[key]
-        for key in ("schema", "digest_algorithm", "domain_hex", "sha256")
+        for key in (
+            "schema",
+            "digest_algorithm",
+            "domain_hex",
+            "sha256",
+            "semantic_closure",
+        )
     }
-    if registry.get("decision_set") != registered_identity:
-        _fail("decision registry has a different decision-set identity")
-    review_subject = _object(
-        registry.get("review_packet_subject"), "review_packet_subject"
+    registry_decision_set = _object(
+        registry.get("decision_set"), "decision registry decision_set"
     )
-    if review_subject.get("decision_set") != registered_identity:
-        _fail("review subject has a different decision-set identity")
+    if registry_decision_set != registered_identity:
+        _fail("decision registry has a different decision-set identity")
+    _verify_review_packet_binding(registry, registered_identity)
 
     raw_decisions = _array(registry.get("decisions"), "decision registry decisions")
     projected_decisions: list[dict[str, Any]] = []
@@ -366,6 +389,7 @@ def _verify_decision_set_binding(
         "candidate": registry.get("candidate"),
         "wire_version": registry.get("wire_version"),
         "review_policy": registry.get("review_policy"),
+        "semantic_closure": registry_decision_set.get("semantic_closure"),
         "decisions": projected_decisions,
     }
     if list(projection) != binding["projection_members"]:
@@ -383,6 +407,36 @@ def _verify_decision_set_binding(
     if tuple(sorted(identities)) != EXPECTED_ADR_IDS:
         _fail("decision-set projection does not cover exactly ADR-001 through ADR-011")
     return identities
+
+
+def _verify_review_packet_binding(
+    registry: dict[str, Any], registered_identity: dict[str, Any]
+) -> None:
+    review_records = _array(registry.get("review_records"), "review_records")
+    lifecycle = _object(
+        registry.get("review_packet_lifecycle"), "review_packet_lifecycle"
+    )
+    _exact_keys(lifecycle, {"schema", "state"}, "review_packet_lifecycle")
+    if lifecycle.get("schema") != REVIEW_PACKET_LIFECYCLE_SCHEMA:
+        _fail("review_packet_lifecycle has a different schema")
+    state = _string(lifecycle.get("state"), "review_packet_lifecycle state")
+    if state == "CURRENT":
+        review_subject = _object(
+            registry.get("review_packet_subject"), "review_packet_subject"
+        )
+        if review_subject.get("decision_set") != registered_identity:
+            _fail("review subject has a different decision-set identity")
+        return
+    if state in {"SUPERSEDED", "TEMPLATE"}:
+        if (
+            "review_packet_subject" not in registry
+            or registry["review_packet_subject"] is not None
+        ):
+            _fail("non-current review packet subject is not null")
+        if review_records:
+            _fail("non-current review packet retains review records")
+        return
+    _fail("review_packet_lifecycle state is not recognized")
 
 
 def _validate_expected_diagnostics(
@@ -1123,6 +1177,240 @@ def _expect_failure(
 def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
     executed = 0
 
+    decision_set_identity = {
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "00",
+        "schema": "ncp.b01-decision-set.v1",
+        "sha256": "a" * 64,
+    }
+    mismatched_decision_set_identity = {
+        **decision_set_identity,
+        "sha256": "b" * 64,
+    }
+    executed += 1
+    _verify_review_packet_binding(
+        {
+            "review_packet_lifecycle": {
+                "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                "state": "CURRENT",
+            },
+            "review_packet_subject": {"decision_set": decision_set_identity},
+            "review_records": [{}],
+        },
+        decision_set_identity,
+    )
+    executed += 1
+    _verify_review_packet_binding(
+        {
+            "review_packet_lifecycle": {
+                "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                "state": "SUPERSEDED",
+            },
+            "review_packet_subject": None,
+            "review_records": [],
+        },
+        decision_set_identity,
+    )
+    executed += 1
+    _verify_review_packet_binding(
+        {
+            "review_packet_lifecycle": {
+                "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                "state": "TEMPLATE",
+            },
+            "review_packet_subject": None,
+            "review_records": [],
+        },
+        decision_set_identity,
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "CURRENT",
+                },
+                "review_packet_subject": None,
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "CURRENT packet without a subject",
+        CoordinatorError,
+        "review_packet_subject is not an exact JSON object",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "CURRENT",
+                },
+                "review_packet_subject": {
+                    "decision_set": mismatched_decision_set_identity
+                },
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "CURRENT packet with a mismatched subject",
+        CoordinatorError,
+        "review subject has a different decision-set identity",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "SUPERSEDED",
+                },
+                "review_packet_subject": {"decision_set": decision_set_identity},
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "superseded packet with a review subject",
+        CoordinatorError,
+        "non-current review packet subject is not null",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "TEMPLATE",
+                },
+                "review_packet_subject": {"decision_set": decision_set_identity},
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "template packet with a review subject",
+        CoordinatorError,
+        "non-current review packet subject is not null",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "SUPERSEDED",
+                },
+                "review_packet_subject": None,
+                "review_records": [{}],
+            },
+            decision_set_identity,
+        ),
+        "non-current packet with a review record",
+        CoordinatorError,
+        "non-current review packet retains review records",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "UNKNOWN",
+                },
+                "review_packet_subject": None,
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "unknown packet lifecycle",
+        CoordinatorError,
+        "review_packet_lifecycle state is not recognized",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": "ncp.b01-review-packet-lifecycle.v0",
+                    "state": "SUPERSEDED",
+                },
+                "review_packet_subject": None,
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "packet lifecycle with a wrong schema",
+        CoordinatorError,
+        "review_packet_lifecycle has a different schema",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "SUPERSEDED",
+                    "unexpected": False,
+                },
+                "review_packet_subject": None,
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "packet lifecycle with an extra member",
+        CoordinatorError,
+        "review_packet_lifecycle does not have the closed v1 member set",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                },
+                "review_packet_subject": None,
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "packet lifecycle without a state",
+        CoordinatorError,
+        "review_packet_lifecycle does not have the closed v1 member set",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "SUPERSEDED",
+                },
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "non-current packet without a subject member",
+        CoordinatorError,
+        "non-current review packet subject is not null",
+    )
+    executed += 1
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "CURRENT",
+                },
+                "review_packet_subject": {"decision_set": decision_set_identity},
+            },
+            decision_set_identity,
+        ),
+        "packet without review_records",
+        CoordinatorError,
+        "review_records is not an exact JSON array",
+    )
+
     executed += 1
     _expect_failure(
         lambda: parse_json_bytes(
@@ -1136,10 +1424,12 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
 
     executed += 1
     altered_binding = deepcopy(prepared.value)
-    altered_binding["decision_set_binding"]["sha256"] = "0" * 64
+    altered_binding["decision_set_binding"]["semantic_closure"]["source"]["sha256"] = (
+        "0" * 64
+    )
     _expect_failure(
         lambda: _prepare_corpus_value(b"{}", altered_binding),
-        "altered decision-set binding",
+        "altered semantic-closure decision-set binding",
         CoordinatorError,
     )
 

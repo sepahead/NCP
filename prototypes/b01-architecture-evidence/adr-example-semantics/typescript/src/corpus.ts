@@ -66,6 +66,7 @@ export interface DecisionSetBinding {
   readonly projectionByteLength: number;
   readonly projectionSha256: string;
   readonly sha256: string;
+  readonly semanticClosure: JsonObject;
   readonly effect: "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY";
   readonly json: JsonObject;
 }
@@ -142,6 +143,7 @@ const DECISION_BINDING_KEYS = [
   "projection_sha256",
   "registry_path",
   "schema",
+  "semantic_closure",
   "sha256",
 ] as const;
 
@@ -150,8 +152,12 @@ const PROJECTION_MEMBERS = [
   "candidate",
   "wire_version",
   "review_policy",
+  "semantic_closure",
   "decisions",
 ] as const;
+
+const SEMANTIC_CLOSURE_KEYS = ["json_schema", "source"] as const;
+const ARTIFACT_IDENTITY_KEYS = ["bytes", "path", "sha256"] as const;
 
 const DECISION_MEMBERS = [
   "id",
@@ -388,6 +394,7 @@ function validateDecisionSetBinding(
     DECISION_MEMBERS,
     "decision_set_binding.decision_members",
   );
+  const semanticClosure = validateSemanticClosureBinding(value.semantic_closure);
   const projectionByteLength = positiveInteger(
     value.projection_byte_length,
     "decision_set_binding.projection_byte_length",
@@ -409,9 +416,46 @@ function validateDecisionSetBinding(
       "decision_set_binding.projection_sha256",
     ),
     sha256: sha256String(value.sha256, "decision_set_binding.sha256"),
+    semanticClosure,
     effect: "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY",
     json: value,
   };
+}
+
+function validateSemanticClosureBinding(value: JsonValue | undefined): JsonObject {
+  const closure = requiredObject(value, "decision_set_binding.semantic_closure");
+  exactKeys(closure, SEMANTIC_CLOSURE_KEYS, "decision_set_binding.semantic_closure");
+  validateArtifactIdentity(
+    closure.source,
+    "decision_set_binding.semantic_closure.source",
+    "docs/adr/decision-closure.source.v1.json",
+    66_810,
+    "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
+  );
+  validateArtifactIdentity(
+    closure.json_schema,
+    "decision_set_binding.semantic_closure.json_schema",
+    "docs/adr/decision-closure.source.schema.v1.json",
+    28_693,
+    "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
+  );
+  return closure;
+}
+
+function validateArtifactIdentity(
+  value: JsonValue | undefined,
+  label: string,
+  path: string,
+  byteLength: number,
+  digest: string,
+): void {
+  const identity = requiredObject(value, label);
+  exactKeys(identity, ARTIFACT_IDENTITY_KEYS, label);
+  exactString(identity, "path", path, label);
+  exactInteger(identity, "bytes", byteLength, label);
+  if (sha256String(identity.sha256, `${label}.sha256`) !== digest) {
+    fail(`${label}.sha256 differs from the registered closure artifact`);
+  }
 }
 
 function validateSourceBinding(value: JsonObject): void {
