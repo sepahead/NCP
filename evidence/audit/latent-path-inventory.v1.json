@@ -1947,16 +1947,16 @@
       },
       {
         "path": "docs/diagrams/admission-dark.svg",
-        "bytes": 25124,
-        "sha256": "f9ff3f11ad69e5fa15746b30ec5b365fb3748ccc0ddb434ea305d0de852e00ae",
-        "git_blob_oid": "1ef87be9d7e6d3b999145b246aa563ca50e49960",
+        "bytes": 25125,
+        "sha256": "153754bbbc370469b58ce3fef7af84c44d30f9afe3c4938cfd255065d504a013",
+        "git_blob_oid": "9ed387c90ce7484c0ef21929d1e2829dae260fbc",
         "indexed": true
       },
       {
         "path": "docs/diagrams/admission-light.svg",
-        "bytes": 25050,
-        "sha256": "bf815e3dbca0b9c7b5630008fb95ec6b27a214e04c68ece2e5fa375f867eb47d",
-        "git_blob_oid": "e703bb2c50b5c066b24e2f21336a5c96768f02c0",
+        "bytes": 25051,
+        "sha256": "dda2dd204f3b7620b402dc887073f81ac78d814ca1b17e457fba9189935f44da",
+        "git_blob_oid": "42d4b2c0214a5b0aef026e4af14da155868091a0",
         "indexed": true
       },
       {
@@ -2094,9 +2094,9 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-        "bytes": 100969,
-        "sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-        "git_blob_oid": "693e0875f0a3636e86e8a126746b8c46af3595e0",
+        "bytes": 101029,
+        "sha256": "3e9d5665ebe0a1dacaa63496497de82820f359e4066caf0efd0af2e6789e2041",
+        "git_blob_oid": "43265fab0bb56806d4c99668d37970b18cb3d765",
         "indexed": true
       },
       {
@@ -2375,8 +2375,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 128195,
-        "sha256": "ae859c7809388536a0aedd585ab223bf31eed41090167a8bd3155747b321756e",
-        "git_blob_oid": "ca0a3903996e91cbbe64e911c9c0c06987dee77d",
+        "sha256": "a251a1e2dd849c9a776389eba004cf88efb641bc9a1ba758631da0374a1e9cfb",
+        "git_blob_oid": "712628b9d076b622e707a430a49b1723248772d1",
         "indexed": true
       },
       {
@@ -6854,9 +6854,9 @@
       },
       {
         "path": "scripts/gen_diagrams.py",
-        "bytes": 94590,
-        "sha256": "318d549b159bb3448bda96bb76945f7e1cfc03459189275bc7066f666b3a1cea",
-        "git_blob_oid": "c95ff8c2b1eb50d0c98328f727d39a78be7de73d",
+        "bytes": 94592,
+        "sha256": "427250a3bb705c312ed06819b1c7141b29fa3e6481e8bcd02f9b6dc7dece7ee6",
+        "git_blob_oid": "9c92e4af20637bb371ab3800c73c417294d600b6",
         "indexed": true
       },
       {
@@ -7311,7 +7311,7 @@
   "counts": {
     "text_files": 1009,
     "binary_or_non_utf8_files": 25,
-    "occurrences": 294,
+    "occurrences": 281,
     "by_token_id": {
       "M001": 6,
       "M002": 3,
@@ -7320,7 +7320,7 @@
       "M005": 5,
       "M006": 22,
       "M007": 74,
-      "M008": 181
+      "M008": 168
     },
     "by_disposition": {
       "AUDIT_CONTROL_TEXT": 63,
@@ -7330,13 +7330,12 @@
       "GENERATED_MIRROR": 10,
       "HANDOFF_OPEN_EVIDENCE": 44,
       "HISTORICAL_OR_INFORMATIVE": 15,
-      "NEGATIVE_POLICY_GUARD": 34,
+      "NEGATIVE_POLICY_GUARD": 32,
       "NEUTRAL_ROUTING_DEFAULT": 1,
       "PACKAGE_RESOLUTION_BOUNDARY": 45,
       "PROCESS_CLEANUP_GUARD": 1,
       "PROPOSED_FAIL_CLOSED_STATE": 14,
       "RETAINED_IMPLEMENTATION_EVIDENCE": 2,
-      "UNREVIEWED_ACTION_PATH": 11,
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
@@ -8277,34 +8276,6 @@
       ]
     },
     {
-      "id": "NCP-LATENT-F6A5FF31A42E0B4627E1",
-      "path": "docs/diagrams/admission-dark.svg",
-      "line": 58,
-      "column": 18742,
-      "token_id": "M008",
-      "line_sha256": "1860f47d0248b0540d13276d339ef3bd68d80e35aaedd185d71ee25f3048e0b8",
-      "file_sha256": "f9ff3f11ad69e5fa15746b30ec5b365fb3748ccc0ddb434ea305d0de852e00ae",
-      "disposition": "NEGATIVE_POLICY_GUARD",
-      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
-      "evidence_paths": [
-        "docs/diagrams/admission-dark.svg"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-DA31A48F80F323F85209",
-      "path": "docs/diagrams/admission-light.svg",
-      "line": 58,
-      "column": 18742,
-      "token_id": "M008",
-      "line_sha256": "eb28738f3d262539b46dbfabdc2278bdee140ea08060d157c3ea35b1b24ce763",
-      "file_sha256": "bf815e3dbca0b9c7b5630008fb95ec6b27a214e04c68ece2e5fa375f867eb47d",
-      "disposition": "NEGATIVE_POLICY_GUARD",
-      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
-      "evidence_paths": [
-        "docs/diagrams/admission-light.svg"
-      ]
-    },
-    {
       "id": "NCP-LATENT-73674F8B7024E34CB8E8",
       "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
       "line": 144,
@@ -8918,132 +8889,6 @@
       "claim_effect": "NO_RELEASE_AUTHORIZATION",
       "evidence_paths": [
         "docs/handoff/README.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-CE226918BDC0C31B3A5E",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 221,
-      "column": 55,
-      "token_id": "M008",
-      "line_sha256": "6d79c3e104d0181664e0e6c8b7b7be89e867a175ff1d613d6bba4d5c42c993f0",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-D34C3149DC444E244B34",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 483,
-      "column": 8,
-      "token_id": "M008",
-      "line_sha256": "d386acefff1b05145d0838634f2382f057ce3c1bc13f921eb3c7da72ea8e8f44",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-EE1642C7CC0A2B0C7C61",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 483,
-      "column": 72,
-      "token_id": "M008",
-      "line_sha256": "d386acefff1b05145d0838634f2382f057ce3c1bc13f921eb3c7da72ea8e8f44",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-4129DA3F4D54BC73ECB8",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 770,
-      "column": 50,
-      "token_id": "M008",
-      "line_sha256": "fbb109921074f64984e8c05993b4b8c811d012cf8327763ba7ea23b882febeb0",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-DFDB25176187F8A22836",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 883,
-      "column": 56,
-      "token_id": "M008",
-      "line_sha256": "6769fc0e1db44ccc654f317c1e71dc746722d99765f0170f6da86a3a4d8b0da4",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-7A93A4AB2863D4662A08",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 924,
-      "column": 28,
-      "token_id": "M008",
-      "line_sha256": "98707bab407ebded8e54e72bae9ef0a3675622aa47468ef3e3c9a8629c340044",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-9AFF40522F293981382B",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 1122,
-      "column": 55,
-      "token_id": "M008",
-      "line_sha256": "dc4adc90176ca333b71776b9c3826c9955645606e6c5b02105e03f4b19d191ab",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-078377AC657F61538DFC",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 1147,
-      "column": 66,
-      "token_id": "M008",
-      "line_sha256": "a0f471e44a34edd782b1daa0f9f037ec4dd82441466b355e6334b1cd59079fa2",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-B91385E7539214C5BA24",
-      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-      "line": 1448,
-      "column": 8,
-      "token_id": "M008",
-      "line_sha256": "4d04fee63c74e4df82b914fa7946d46243ea66800e8e3b032e8c50b825b63f3a",
-      "file_sha256": "1fab178da635bdeeb8acee8bee2dda3117b4d5f402e22095c6086742b10612bc",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
       ]
     },
     {
@@ -10906,34 +10751,6 @@
         "KNOWN_LIMITATIONS.md",
         "RELEASE_READINESS.md",
         "scripts/check_rust_packages.py"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-F8971C33E9F5D160D6D3",
-      "path": "scripts/gen_diagrams.py",
-      "line": 2331,
-      "column": 29,
-      "token_id": "M008",
-      "line_sha256": "830b70b94e86334f629de17529ea083674bc5b1633df6e4d9a4f083e7b06e2b2",
-      "file_sha256": "318d549b159bb3448bda96bb76945f7e1cfc03459189275bc7066f666b3a1cea",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
-      ]
-    },
-    {
-      "id": "NCP-LATENT-E9EB8A4D2FF5F720899E",
-      "path": "scripts/gen_diagrams.py",
-      "line": 2364,
-      "column": 24,
-      "token_id": "M008",
-      "line_sha256": "04cbde5d724f9351d87a27b0e658a24a349620de2541399d33a270e26d70ed88",
-      "file_sha256": "318d549b159bb3448bda96bb76945f7e1cfc03459189275bc7066f666b3a1cea",
-      "disposition": "UNREVIEWED_ACTION_PATH",
-      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
-      "evidence_paths": [
-        "KNOWN_LIMITATIONS.md"
       ]
     },
     {

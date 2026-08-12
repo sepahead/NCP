@@ -218,7 +218,7 @@ DeploymentRuntime
     │           ├── AuthorityMachine
     │           ├── declared action stream + position no-reuse state
     │           ├── priority command slot + executor handoff slot
-    │           ├── restrictive state + ESTOP latch + fallback no-reuse slot
+    │           ├── restrictive state + ESTOP latch + rejection no-reuse slot
     │           └── bounded DispositionJournal
     ├── bounded ControlForwardingOutbox entries
     ├── bounded ObserverGrantRuntime entries with separate release slots and queues
@@ -480,8 +480,9 @@ older Active command cannot look newer than a restrictive command.
 A receiver validates the declaration and syntactic position before lower
 semantics. An ordinary stream retains a high-water mark and bounded gap evidence.
 An action stream also retains digest-bound state for journaled positions and the
-latest fallback rejection. Its high-water mark prevents reuse of older fallback
-positions after their exact digest evidence becomes unavailable. A restart that
+latest restrictive resource rejection. Its high-water mark prevents reuse of
+older resource-rejected positions after their exact digest evidence becomes
+unavailable. A restart that
 cannot restore required action no-reuse state retires the stream or generation.
 
 Position exhaustion never rotates implicitly. The publisher stops, the session
@@ -767,9 +768,9 @@ found these avoidable costs:
   A future projection must compare each incoming channel unit with the prepared
   profile before it discards names or units.
 - `SafetyGovernor::with_channels` invents the configured velocity channel when
-  the supplied command-channel set is empty. Its fallback can later emit an
-  empty channel map. Prepared plant admission must reject an empty required set
-  instead of manufacturing or erasing required channels.
+  the supplied command-channel set is empty. Safe-frame construction can later
+  emit an empty channel map. Prepared plant admission must reject an empty
+  required set instead of manufacturing or erasing required channels.
 - idempotency capacity pressure can evict a terminal or unavailable entry before
   its retention deadline. A later non-retry call can then reserve the same
   operation identity again when another state check does not stop it.
@@ -880,7 +881,7 @@ The body processes a complete authenticated command in this order:
     restrictive obligation, and result.
 15. Without journal capacity, bind the new ESTOP position and digest in the fixed
     restrictive-rejection slot.
-16. Advance the action-stream high-water mark with the fallback binding.
+16. Advance the action-stream high-water mark with the rejection binding.
 17. Return a resource rejection and attribute the local latch separately.
 18. Reject a conflicting ESTOP as a command.
 19. For every other new command, consume a new syntactically valid position even
@@ -921,9 +922,10 @@ authorization rejects before the latch boundary.
 Action admission has a dedicated execution budget. Observation, extension,
 control, and perception work cannot consume it. A verified ESTOP enters the same
 short body transition even when the ordinary executor slot or journal is full.
-The preallocated latch and fallback no-reuse slot make that path independent of
-new heap or queue allocation. Transport and CPU rate limits remain per principal
-and plane, so one publisher cannot borrow another publisher's reserved budget.
+The preallocated latch and restrictive-rejection no-reuse slot make that path
+independent of new heap or queue allocation. Transport and CPU rate limits
+remain per principal and plane, so one publisher cannot borrow another
+publisher's reserved budget.
 
 No durable or externally visible ESTOP position binding can exist without its
 retained latch or an explicit unresolved restrictive obligation. The fixed
@@ -1119,7 +1121,8 @@ Every bound command reserves its complete terminal record before it can enter a
 slot. A slot replacement terminalizes the displaced command as `SUPERSEDED`
 using that reservation in the same body-owned transition. An ordinary newcomer
 that cannot reserve its own record rejects without changing the slot. An ESTOP
-newcomer can still install the preallocated latch and fallback rejection binding.
+newcomer can still install the preallocated latch and restrictive-rejection
+binding.
 That restrictive transition invalidates a weaker unconsumed token, whose own
 reserved record remains available for terminalization.
 
@@ -1144,7 +1147,7 @@ authority. This behavior performs one durable reservation per session opening.
 It does not perform one synchronous storage write per high-rate command.
 
 An optional durable-continuity behavior can resume the same generation. Before
-resumption, it atomically restores the high-water mark, journal, fallback slot,
+resumption, it atomically restores the high-water mark, journal, rejection slot,
 ESTOP latch, predecessor owner-incarnation fence, and exclusive actuator state.
 It then installs a fresh owner incarnation, so no pre-crash token can be used.
 It persists required no-reuse state before exposing a new effect token. A
@@ -1445,7 +1448,7 @@ wider deployment surface.
 Generated language bindings have one NCP-owned source and are checked into an
 authorized release subject. Consumer builds do not regenerate or patch them.
 Consumer-specific convenience code stays in the consumer and cannot add a wire
-field, fallback, identity, or authority path.
+field, implicit behavior, identity, or authority path.
 
 ## Performance and evidence boundary
 

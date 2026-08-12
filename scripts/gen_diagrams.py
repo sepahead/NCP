@@ -2328,7 +2328,7 @@ def admission(th):
         T(
             128,
             522,
-            "High-water and fallback state bind no-reuse. Capacity still rejects.",
+            "High-water and rejection state bind no-reuse. Capacity still rejects.",
             10,
             600,
             th["tsec"],
@@ -2361,7 +2361,7 @@ ADMISSION_ALT = (
     "and resource-rejected ESTOP intents can cause that latch. A stale generation, epoch, "
     "security state, route, or authorization rejects before this boundary. Journal capacity "
     "cannot suppress the latch. Without journal "
-    "capacity, a fixed fallback slot binds the new position and exact digest while advancing "
+    "capacity, a fixed rejection slot binds the new position and exact digest while advancing "
     "the stream high-water mark. The command returns a resource rejection. That separately "
     "attributed latch is not a STOP_LATCHED command disposition. When journal capacity "
     "exists, one body-owned transition installs the position binding, restrictive obligation, "
