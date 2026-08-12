@@ -14,6 +14,10 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   transport-authenticated remote principal to bind to `IdentityClaim`.
   `ZenohBus::open_secure` fails closed. A replacement binding is required before
   the still-missing live mTLS/ACL/validity/rotation/revocation campaign can run.
+- **Current authority-manifest grants are plane-wide.** `PrincipalGrant` has no
+  exact route, audience, frame-class, session-kind, or operation allow-list.
+  Production admission needs a receiver-owned prepared context that narrows each
+  authenticated principal to those installed values before typed delivery.
 - **Independent live peers are missing.** TypeScript has independent validation and
   safety decisions, but live installed cross-host interoperability with two
   non-Rust implementations has not been certified. Python and C/C++ call Rust FFI
@@ -73,9 +77,19 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   accept steps beyond 60 seconds and can accept a nonempty horizon when a tiny
   positive cadence makes the ratio non-finite. N07 implementation parity and the
   dependency-gated corpus, proto, identity, and rebaseline workflow remain open.
+- `LinkMonitor::new` replaces or clamps invalid loss parameters but permits an
+  arbitrarily large finite CUSUM threshold. One sequence jump evaluates at most
+  256 missing samples, so a higher threshold can miss an arbitrarily large gap.
+  Its received and lost counters can also saturate without a visible saturation
+  state. The prepared resilience profile must reject unsupported parameters and
+  preserve a restrictive bounded-work result.
 - The compact 16-hex `CONTRACT_HASH` is advisory and covers canonical protobuf
-  structure, not the complete normative set. Release evidence must use the SHA-256
-  digest in `contract/manifest.v1.json`.
+  structure, not the complete normative set. Default Rust and TypeScript
+  negotiation accepts any `1.x` wire and does not reject an absent or different
+  compact hash. It therefore does not establish the exact stable-core identity
+  required by the proposed prepared-session architecture. Release evidence must
+  use the SHA-256 digest in `contract/manifest.v1.json` until the deliberate
+  rebaseline selects the runtime identity.
 - Standalone `SafetyGovernor::govern` normalizes an invalid input
   `stream.seq` to `1` when it constructs a HOLD or ESTOP fallback. This preserves
   the current mandatory `unstamped_active_command_holds` behavior and does not
@@ -88,6 +102,11 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   Resolving the standalone Rust, FFI, and TypeScript behavior requires the
   dependency-gated normative and conformance-corpus workflow. Until then, direct
   publication of a normalized fallback is an open candidate limitation.
+- `SafetyGovernor::with_channels` replaces an empty command-channel set with the
+  configured velocity channel. Its later fallback tiers can instead emit an
+  empty channel map. Neither behavior proves the required plant channel set.
+  Prepared plant admission must reject an empty required set and preserve exact
+  installed channel semantics.
 - The declared `max_metadata_entries=256` ceiling has no accepted message-class
   and decoded-path assignment. ADR-003 proposes applying it to each
   `OpenSession.bindings[*].entity.meta` object. Rust and TypeScript apply only the
@@ -144,10 +163,11 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 - The legacy translator currently specifies only explicit channel requirement
   mapping. It rejects missing/null/malformed/mixed fields and cannot invent
   identity, security, session, authority, operation, receipt, or plant context.
-- WebSocket/JSON is experimental. Zenoh is the only stable transport binding. gRPC,
+- WebSocket/JSON is experimental. Zenoh is the only `stable-1.0` transport binding. gRPC,
   delegation, transparent proxying, protobuf runtime wire, `BulkObservation`, and
-  bare `NCPB` transport are excluded. Stable here names the canonical wire/key/QoS
-  binding, not a completed `production-secure` implementation.
+  bare `NCPB` transport are excluded. `stable-1.0` names the selected
+  wire/key/QoS surface. It does not mean that the candidate is released or that
+  a `production-secure` implementation is complete.
 - `BulkBlock` remains a bounded local/offline codec. It has no stable transport
   envelope and must never be published bare.
 - `ZenohBus::put` currently clones each serialized payload with `to_vec()` before
@@ -156,7 +176,26 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   the shipped copy rather than claim zero-copy.
 - The reference idempotency cache is bounded and snapshot-capable, but exactly-once
   claims require server integration and durable restart evidence. If an outcome
-  cannot be proved, the only valid response is `outcome_unknown`.
+  cannot be proved, the only valid response is `outcome_unknown`. Pending entries
+  have no runtime terminalization deadline, while capacity pressure can evict a
+  completed entry before its configured retention deadline. Retained lookup also
+  revalidates the expired request deadline and live lease before cache access.
+- `OpenSession` has no operation or idempotency context. A timeout or overlapping
+  client open can create a server generation whose reply the client discards.
+  The contract requires a server-issued UUIDv4, but no selected durable realm
+  issuer proves generation no-reuse across process restart. Session creation
+  needs one logical-session owner, reserve-once operation identity, retained
+  results, and a checked generation reservation in the deliberate rebaseline.
+- The reference runtime has no single body-generation owner or deployment-wide
+  physical effect-path registry. Process-local ownership and a network lease do
+  not exclude another realm or failover process from the same hardware path.
+  The selected architecture requires one deployment fence before a plant
+  generation opens. This is a software exclusivity requirement, not a physical-
+  safety claim.
+- Forwarded mutating control operations have no selected durable exact-byte
+  outbox, and observer projection release has no source-owned order against
+  revocation. A restart can otherwise create a fresh remote mutation, while a
+  receiver-only grant check cannot prove whether revoked bytes already escaped.
 - Wire-1.0 `ResponderReceipt` covers lifecycle step, run, and close operations. A
   `CommandFrame` has no operation context, idempotency context, applied-command
   acknowledgement, or physical-stop acknowledgement. A Zenoh put success is not

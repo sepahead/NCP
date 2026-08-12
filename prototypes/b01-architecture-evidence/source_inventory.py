@@ -33,6 +33,7 @@ B01_SUPPORT_RELATIVE_PATHS = (
     "docs/adr/decision-registry.proposed.v1.json",
     "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
     "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+    "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
     "e2e/__init__.py",
     "e2e/bounded_json.py",
     "package.json",
@@ -41,7 +42,7 @@ B01_SUPPORT_RELATIVE_PATHS = (
     "scripts/bounded_json.py",
 )
 B01_SOURCE_ROOT_RELATIVE_PATH = "prototypes/b01-architecture-evidence"
-EXPECTED_B01_SOURCE_COUNT = 71
+EXPECTED_B01_SOURCE_COUNT = 72
 EXPECTED_B01_SOURCE_RELATIVE_PATHS = (
     "bun.lock",
     "contract/limits.v1.json",
@@ -61,6 +62,7 @@ EXPECTED_B01_SOURCE_RELATIVE_PATHS = (
     "docs/adr/decision-registry.proposed.v1.json",
     "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
     "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+    "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
     "e2e/__init__.py",
     "e2e/bounded_json.py",
     "package.json",

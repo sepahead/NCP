@@ -20,6 +20,13 @@ The current candidate remains wire `1.0` with compact proto contract hash
 `163acc57d8a62b66`. The immutable `v0.8.0` release remains a different wire and
 is not edited or silently translated by these records.
 
+[`../implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md`](../implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md)
+is the maintainer-side low-overhead operational recommendation for B01 review.
+It distinguishes logical proof obligations from deployed wire and store shapes,
+records direct implementation gaps, and defines the intended runtime ownership
+architecture. It does not override an ADR, close a question, allocate wire
+values, or satisfy the required independent review.
+
 ## Staging rule
 
 The generated non-normative review registry is

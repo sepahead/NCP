@@ -1,8 +1,8 @@
 # `ncp-zenoh`
 
-`ncp-zenoh` is the stable transport binding named by the unreleased,
+`ncp-zenoh` is the `stable-1.0` transport binding named by the unreleased,
 release-blocked NCP `1.0.0-rc.1` candidate. It carries validated NCP JSON over Zenoh
-queryable RPC and per-session pub/sub keys; it does not change the normative wire.
+queryable RPC and per-session pub/sub keys. It does not change the normative wire.
 It re-exports the coordinated package, wire, compact-proto, complete-contract, and
 build identity constants from `ncp-core`; the RC build identity is the
 non-certifying `unreleased-worktree` sentinel.
@@ -32,16 +32,20 @@ each actual concrete route independently. Redeclare both ends deliberately when
 adopting a restarted stream epoch. Bare `NCPB` is rejected. Every remote ESTOP needs
 a complete envelope and live binding; it may omit only the authority lease.
 
-`ZenohControlTransport` owns one command epoch and one JSON-safe sequence allocator
-across Active, HOLD, and ESTOP; caller and emergency positions are always replaced by
-that single action-stream identity. `send_command()` reports the result of bounded slot admission
+The current `stable-1.0` `ZenohControlTransport` owns one command epoch and one
+JSON-safe sequence allocator across Active, HOLD, and ESTOP. Caller and emergency
+positions are always replaced by that single action-stream identity.
+`send_command()` reports the result of bounded slot admission
 (`Accepted`, `ReplacedPending`, `StreamExhausted`, or `Rejected`), not Zenoh
-delivery. The admitted variants carry the exact transport-assigned position. A pending
-pre-publication replacement reuses the slot's position so local replacement creates no fake
-gap. Once a put is attempted, the position is consumed. If a fail-safe put is
-rejected or delivery-ambiguous, `fail_safe_delivery_pending()` remains true and
-Active admission is rejected until the caller submits a new logical fail-safe at a
-new position and it publishes successfully. The dispatcher does not busy-loop or
+delivery. The admitted variants carry the exact transport-assigned position. A
+pending pre-publication replacement reuses that position, so it creates no local
+gap. This also means an earlier `Accepted` result does not durably identify the
+bytes that will later use that position. It is not body admission or the selected
+low-overhead publisher boundary. Once a put is attempted, the position is consumed.
+If a fail-safe put is rejected or delivery-ambiguous,
+`fail_safe_delivery_pending()` remains true. Active admission then rejects until
+the caller submits a new logical fail-safe at a new position and it publishes
+successfully. The dispatcher does not busy-loop or
 requeue the same bytes/position.
 
 The typed observation subscriber owns the normative 64-frame bounded queue: on

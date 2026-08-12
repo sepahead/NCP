@@ -2216,7 +2216,7 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "e2cde2f2a2cd4b37b27cef9a182200bd29f2cec251e70b89cf49374a402d4565"
+      "sha256": "318d549b159bb3448bda96bb76945f7e1cfc03459189275bc7066f666b3a1cea"
     },
     {
       "outputs": [
@@ -2341,12 +2341,12 @@
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
     "deny.toml": "5f8e204e16ae8ed3bf7f9d98defc370d211545944490843f9347c2a6a2c0056d",
     "ncp-core/Cargo.toml": "417da09809280b86a5294dab9dd841813c41c1ac815f9b29253fc9f37ae2f5e2",
-    "ncp-cpp/Cargo.toml": "b219c4fa2de9f5523fa68f68a0ebbb85fc50a398ae4f9dac090cc40146d555ac",
+    "ncp-cpp/Cargo.toml": "e531941f58cdb34900601384b49c9f1f6ac624c64843cff0c60c37e763259e38",
     "ncp-gateway/Cargo.toml": "dc511c267ac3e2453a26b0eb3baf51a4275402528855ca2fc363db84f47c9f64",
     "ncp-python/Cargo.toml": "bf45c47a23cdf60a1ef74cd14238011e72555308a1b0d7cc26d7c855296004af",
     "ncp-python/pyproject.toml": "3ffae253db4b3054ae8127212d8d39be3bf9f3bcf46216204fdf2864c56424f6",
     "ncp-ts/package.json": "990317ce7a974b5b42ed7e17a2a5033f34a4db43a013b33da2f1dad5c9ef30c4",
-    "ncp-zenoh/Cargo.toml": "0262de88c05ab8658599bfbc3693092987d8c02650f9445610e14f8d87c3e7bd",
+    "ncp-zenoh/Cargo.toml": "b11f38dc4aad334f3f8b588a5ed83eb56122a97554889be29dde4e637cf45c58",
     "package.json": "038f45047bd6974face3d62ce1b39524ad3486d85a535449cb33116a327de255",
     "scripts/requirements-candidate-build-linux-x86_64.txt": "47be8dcd4992a79a31c7609e1d41f561c2bbf4299fb452138ae95c0fe3691f7d",
     "scripts/requirements-plot.txt": "8a2d128f9a70eeb03f40747984f7eac9c7e0efe8638b362b28f97d01dcc5b072",

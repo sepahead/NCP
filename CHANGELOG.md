@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   review-candidate validation. B01 remains `IN_PROGRESS`; the allocation state
   remains `INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED`; external, independent,
   consumer, and release gates remain **NOT RUN**.
+- Added a non-normative B01 low-overhead runtime and ecosystem recommendation.
+  It selects prepared contexts, bounded single-owner state, one-decode data
+  paths, an allocation-independent local ESTOP latch, and provider-first role
+  adapters. It also records current implementation conflicts. It does not close
+  an ADR, authorize the rebaseline, or change the candidate wire.
 - Reopened B01 candidate claims after cross-repository review found two unresolved
   boundaries. The declared metadata-entry ceiling has no accepted message-class
   and decoded-path assignment or equal preallocation enforcement. Checked codec

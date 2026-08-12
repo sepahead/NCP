@@ -11,9 +11,10 @@ The package exports wire `NCP_VERSION = "1.0"` and compact proto hash
 ordinary builds honestly use `unreleased-worktree`; it is not a source commit or
 release identity.
 
-`NeuroSimClient` requires precommitted negotiation state. The stable production
-profile additionally requires a transport adapter to bind that state to the
-authenticated peer; the loopback development profile below is intentionally
+`NeuroSimClient` requires precommitted negotiation state. The
+`production-secure` profile additionally requires a transport adapter to bind
+that state to the authenticated peer. No shipped adapter currently supplies that
+complete boundary. The loopback development profile below is intentionally
 unauthenticated:
 
 ```ts
@@ -90,10 +91,10 @@ second argument. A timeout after a send closes the FIFO transport so a late repl
 cannot satisfy a later request. Its UTF-8 byte gate counts without allocating a
 second full reply buffer; the browser WebSocket API itself delivers a complete
 message, so the server and deployment proxy must also enforce the normative frame
-ceiling before browser allocation. WebSocket is not a stable 1.0 transport; the
-stable binding is Zenoh. A deployment endpoint cannot answer this client natively
-until its full negotiation, lifecycle, authority, digest, and receipt contract
-passes retained integration evidence.
+ceiling before browser allocation. WebSocket is not a `stable-1.0` transport.
+The candidate's `stable-1.0` binding is Zenoh. A deployment endpoint cannot answer
+this client natively until its full negotiation, lifecycle, authority, digest,
+and receipt contract passes retained integration evidence.
 
 The package also exports `parseBoundedJson`, `assertNcpMessage`,
 `canonicalizeNcpJson`/`canonicalizeNcpMessage`,

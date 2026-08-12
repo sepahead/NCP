@@ -56,13 +56,15 @@ replay exception: each declared sensor, command, or status stream remains bound 
 one epoch and strictly increasing high-water mark until fresh declaration state is
 created. Status sequence zero is invalid.
 
-Zenoh is the only stable 1.0 transport binding. WebSocket/JSON remains
-experimental. gRPC, transparent proxying, delegation, protobuf as a runtime wire,
+Zenoh is the only `stable-1.0` transport binding in the unreleased candidate.
+WebSocket/JSON remains experimental. gRPC, transparent proxying, delegation,
+protobuf as a runtime wire,
 `BulkObservation`, and bare `NCPB` transport frames are excluded. The bounded
 `BulkBlock` codec remains available only for local/offline experiments. See
 [`docs/1.0-scope.md`](docs/1.0-scope.md).
 
-The stable Zenoh action wrapper owns one command epoch/sequence allocator across
+The current `stable-1.0` Zenoh action wrapper owns one command epoch/sequence
+allocator across
 Active, HOLD, and ESTOP. An attempted put consumes its position. If fail-safe
 delivery is ambiguous, Active admission stays blocked until the caller submits a
 new logical fail-safe at a new position and it publishes successfully; the adapter
@@ -70,8 +72,8 @@ never busy-retries the ambiguous bytes at the old position.
 
 The current `ncp-zenoh` adapter cannot obtain a transport-authenticated remote
 principal from its callback surface and therefore cannot bind `IdentityClaim` to
-the verified peer. Its `open_secure` path fails closed; the stable transport shape
-and QoS implementation must not be confused with an available
+the verified peer. Its `open_secure` path fails closed. The `stable-1.0`
+transport shape and QoS implementation must not be confused with an available
 `production-secure` adapter.
 
 ## Scientific and safety boundary
@@ -108,7 +110,7 @@ normative source set; it describes that set but is not itself one of its inputs.
 | Package | Candidate role | Independence |
 |---|---|---|
 | [`ncp-core`](ncp-core/) | Rust reference types, validators, limits, authority, idempotency, safety | reference |
-| [`ncp-zenoh`](ncp-zenoh/) | stable Zenoh wire/QoS binding; production peer-identity binding unavailable | Rust reference |
+| [`ncp-zenoh`](ncp-zenoh/) | `stable-1.0` Zenoh wire/QoS binding. Production peer-identity binding unavailable. | Rust reference |
 | [`@sepahead/ncp`](ncp-ts/) | independent TypeScript validator/client and experimental WebSocket binding | independent decision code; live external certification **NOT RUN** |
 | [`ncp-python`](ncp-python/) | Python/PyO3 interface | Rust FFI, not independent |
 | [`ncp-cpp`](ncp-cpp/) | C ABI and C++ header | Rust FFI, not independent |
@@ -214,6 +216,9 @@ baseline.
 - [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md): normative prose.
 - [`SECURITY.md`](SECURITY.md): profiles, trust boundary, and deployment checks.
 - [`RELEASE_READINESS.md`](RELEASE_READINESS.md): evidence ledger and blockers.
+- [`docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md`](docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md):
+  non-normative B01 low-overhead runtime and ecosystem architecture recommendation,
+  direct implementation gaps, and explicit later-task boundary.
 - [`docs/research/authenticated-ingress-feasibility.md`](docs/research/authenticated-ingress-feasibility.md):
   non-normative B04 source review, prototype decisions, hostile matrix, and explicit
   local-versus-external evidence boundary; direct Zenoh remains fail-closed.

@@ -1,6 +1,6 @@
 [package]
 name = "ncp-cpp"
-description = "C ABI for the NCP Rust core — so C and C++ projects use the canonical implementation (version guard, key scheme, rate codec, safety governor, message validation) via a stable `extern \"C\"` interface and the ncp.h header."
+description = "C ABI for the informative NCP Rust reference: version guards, keys, codecs, safety helpers, and validation."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

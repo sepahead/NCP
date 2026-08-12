@@ -126,16 +126,16 @@ compiler-input trace or command transcript. The patched result is
 `self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and
 `release_authorized=false`.
 
-The stable Zenoh adapter still cannot bind a callback-visible authenticated
-transport principal for `production-secure`. This implementation prerequisite and
-the external pre-release gates keep the candidate at `NO_GO`.
+The candidate's `stable-1.0` Zenoh adapter still cannot bind a callback-visible
+authenticated transport principal for `production-secure`. This implementation
+prerequisite and the external pre-release gates keep the candidate at `NO_GO`.
 
 Per-task receipts and their exact residual acceptance gaps are indexed in
 [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md).
 
 ## Required implementation prerequisite
 
-The stable Zenoh callback API used by `ncp-zenoh` does not expose a
+The Zenoh callback API currently used by `ncp-zenoh` does not expose a
 transport-authenticated remote principal to the subscriber/queryable handler. The
 adapter therefore cannot bind the payload `IdentityClaim` to verified transport
 identity through the default-deny authority manifest. `ZenohBus::open_secure`

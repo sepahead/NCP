@@ -805,8 +805,9 @@ The runner:
   witnesses, and reconciles every emitted witness.
 - runs nineteen SMT checks and kills thirteen independent formula mutations.
 - runs the queue/parser/journal/real-Ed25519 resource screens.
-- inventories 71 files in the declared B01 source/support set
-  under a 72-file cap and an 8 MiB aggregate byte cap. One file slot remains.
+- inventories 72 files in the declared B01 source/support set
+  under a 72-file cap and an 8 MiB aggregate byte cap. The set includes the
+  low-overhead operational architecture.
 - hashes each inventoried file through bounded, no-follow directory and file
   descriptors. It limits discovery entries and rejects symlink and hard-link
   aliases.
