@@ -989,6 +989,10 @@ found these avoidable costs:
   epoch in their local context. The selected prepared-stream owner must supply
   the declared epoch, so an admitted frame can compare with it but never establish
   it.
+- `LinkMonitor::on_seq` replaces its stored epoch with a newly allocated copy on
+  every valid sample. It relies on its caller to preserve the declaration. A
+  prepared monitor must own one immutable epoch and receive only the changing
+  sequence on the hot path.
 - `LocalBus` and `InProcessTransport` intentionally remain co-process or test
   helpers. Their registrations and retained command or status histories have no
   production capacity profile. Deployed ingress must use prepared bounded
