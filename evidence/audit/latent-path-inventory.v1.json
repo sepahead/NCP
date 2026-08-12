@@ -1947,16 +1947,16 @@
       },
       {
         "path": "docs/diagrams/admission-dark.svg",
-        "bytes": 25125,
-        "sha256": "153754bbbc370469b58ce3fef7af84c44d30f9afe3c4938cfd255065d504a013",
-        "git_blob_oid": "9ed387c90ce7484c0ef21929d1e2829dae260fbc",
+        "bytes": 25077,
+        "sha256": "5f4a70216e73a0b54b6995add70c5cd538e2ed0419947f0cd9ad0d87e5392076",
+        "git_blob_oid": "b357262fa39139db735263af17c65c73bf65e655",
         "indexed": true
       },
       {
         "path": "docs/diagrams/admission-light.svg",
-        "bytes": 25051,
-        "sha256": "dda2dd204f3b7620b402dc887073f81ac78d814ca1b17e457fba9189935f44da",
-        "git_blob_oid": "42d4b2c0214a5b0aef026e4af14da155868091a0",
+        "bytes": 25003,
+        "sha256": "14bb429226d83671b9144c4ca38c2f8ceb3dd482bfe11c934fdb4c6b098e6487",
+        "git_blob_oid": "099e8a49ff7914f0a19c72b94dee52ecbca43fc9",
         "indexed": true
       },
       {
@@ -2094,23 +2094,23 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-        "bytes": 101029,
-        "sha256": "3e9d5665ebe0a1dacaa63496497de82820f359e4066caf0efd0af2e6789e2041",
-        "git_blob_oid": "43265fab0bb56806d4c99668d37970b18cb3d765",
+        "bytes": 142852,
+        "sha256": "e482bf4801041d00bab7d95b5f1a1b8163fe8b780350c806d4384d4b2a36d738",
+        "git_blob_oid": "1d0b131ca51bb640846f328360e3d69fe3385127",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 23587,
-        "sha256": "ed59b08e7e03b56d1c44b8a607c59530b9ad14b95fd8cdde2c8bc0ef89682d25",
-        "git_blob_oid": "3627c0a1a8a2f914e6e7fc2fb718be2d4497c56b",
+        "bytes": 28693,
+        "sha256": "ee8b8fb59ef3cd836ea203cf3507086c6ea536a95a6b6e7a45b692079848adb3",
+        "git_blob_oid": "32e3d491a43530d2a3396ce560888776c5075452",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 158985,
-        "sha256": "c7ac466a7c76629a9e29793e33d79a0095fd4930df8c8d33fb90c7b56b6d7595",
-        "git_blob_oid": "87e80a0998c72ec367fc4f14da1de6b3eb19a81c",
+        "bytes": 164091,
+        "sha256": "133c4e18fb8b47d6c5e78a03766e3cd6c054f0a47aefa9ea92af866b24412b6f",
+        "git_blob_oid": "9becb2889464d069d99668e8fac9813ecb423313",
         "indexed": true
       },
       {
@@ -2346,9 +2346,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 168841,
-        "sha256": "16fbd8422e87607662e23310c8b94ef017c36e87594aa67ade3d452d0c3c593a",
-        "git_blob_oid": "3063646cafd5ef4e01863e14bdc6139857af3b2f",
+        "bytes": 175215,
+        "sha256": "cb29c59a93afdad7ffac1c5c6c5cf2cb8023d91ef191b415404dee32bb113063",
+        "git_blob_oid": "1d19aa5f034d83555b2e31b9eb8701a3fb33d98d",
         "indexed": true
       },
       {
@@ -2375,8 +2375,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 128195,
-        "sha256": "a251a1e2dd849c9a776389eba004cf88efb641bc9a1ba758631da0374a1e9cfb",
-        "git_blob_oid": "712628b9d076b622e707a430a49b1723248772d1",
+        "sha256": "1b69f3dda2f67e498fc30278712430e18b8458bf9a7e235e32f2ce26e23f4d38",
+        "git_blob_oid": "56c7704495622e5c1369356e1c1eec192fc6b715",
         "indexed": true
       },
       {
@@ -6763,9 +6763,9 @@
       },
       {
         "path": "scripts/check_implementation_ledger.py",
-        "bytes": 1058644,
-        "sha256": "3d5fc3e2a8470f0b1dee100c104044613d50dbbebe31a96c3b1cf8c9530e89de",
-        "git_blob_oid": "f9610ac868e18cb960afc5521b31eba49b5b5194",
+        "bytes": 1059378,
+        "sha256": "88734b9483bc25e1bafa5630b58d2cbf979dba9c70aa5c9c8e1e5d306d403898",
+        "git_blob_oid": "ffb0e1166739bb20e760f1787c8f54f41f016795",
         "indexed": true
       },
       {
@@ -6854,9 +6854,9 @@
       },
       {
         "path": "scripts/gen_diagrams.py",
-        "bytes": 94592,
-        "sha256": "427250a3bb705c312ed06819b1c7141b29fa3e6481e8bcd02f9b6dc7dece7ee6",
-        "git_blob_oid": "9c92e4af20637bb371ab3800c73c417294d600b6",
+        "bytes": 84854,
+        "sha256": "426a262e00ac4ab35ed30b28f71459e5a545c52725fdf17e13bf05cc4cbeaad0",
+        "git_blob_oid": "36ef89e102f6ba1cf17b023792dee63aed66a9d4",
         "indexed": true
       },
       {
@@ -7311,7 +7311,7 @@
   "counts": {
     "text_files": 1009,
     "binary_or_non_utf8_files": 25,
-    "occurrences": 281,
+    "occurrences": 284,
     "by_token_id": {
       "M001": 6,
       "M002": 3,
@@ -7320,7 +7320,7 @@
       "M005": 5,
       "M006": 22,
       "M007": 74,
-      "M008": 168
+      "M008": 171
     },
     "by_disposition": {
       "AUDIT_CONTROL_TEXT": 63,
@@ -7330,7 +7330,7 @@
       "GENERATED_MIRROR": 10,
       "HANDOFF_OPEN_EVIDENCE": 44,
       "HISTORICAL_OR_INFORMATIVE": 15,
-      "NEGATIVE_POLICY_GUARD": 32,
+      "NEGATIVE_POLICY_GUARD": 35,
       "NEUTRAL_ROUTING_DEFAULT": 1,
       "PACKAGE_RESOLUTION_BOUNDARY": 45,
       "PROCESS_CLEANUP_GUARD": 1,
@@ -8892,6 +8892,48 @@
       ]
     },
     {
+      "id": "NCP-LATENT-735C49AE1932BA7398C6",
+      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+      "line": 89,
+      "column": 31,
+      "token_id": "M008",
+      "line_sha256": "a906e0356a3c923d69500cda3e06db4ee2ae98bb845a2c0a87794dfe2eac0e8d",
+      "file_sha256": "e482bf4801041d00bab7d95b5f1a1b8163fe8b780350c806d4384d4b2a36d738",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-0A4E1567160763A9260D",
+      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+      "line": 576,
+      "column": 68,
+      "token_id": "M008",
+      "line_sha256": "b1af1f988a26f5346bf767c0ffc32d2d5e1400110c0b1f5d397b220952679708",
+      "file_sha256": "e482bf4801041d00bab7d95b5f1a1b8163fe8b780350c806d4384d4b2a36d738",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-22AF98777A75F32477E0",
+      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+      "line": 2111,
+      "column": 428,
+      "token_id": "M008",
+      "line_sha256": "af0eea488f7f66f0ce6484143c747d4c8c9f92b3ace269cdabcd5ada70c96d56",
+      "file_sha256": "e482bf4801041d00bab7d95b5f1a1b8163fe8b780350c806d4384d4b2a36d738",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+      ]
+    },
+    {
       "id": "NCP-LATENT-FB0A278314FDC900667C",
       "path": "docs/plots/data/README.md",
       "line": 3,
@@ -10132,13 +10174,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-7E9994B0D71CEFF7F345",
+      "id": "NCP-LATENT-14CCE2B96C87D5DD8B44",
       "path": "scripts/check_implementation_ledger.py",
-      "line": 11643,
+      "line": 11641,
       "column": 6,
       "token_id": "M007",
       "line_sha256": "94a068adc081fc0218562be78267b3cbdbf05e4ec3bcc5118790e5ce17e4403f",
-      "file_sha256": "3d5fc3e2a8470f0b1dee100c104044613d50dbbebe31a96c3b1cf8c9530e89de",
+      "file_sha256": "88734b9483bc25e1bafa5630b58d2cbf979dba9c70aa5c9c8e1e5d306d403898",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -10147,13 +10189,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-1EC5802B2B4DD09FD497",
+      "id": "NCP-LATENT-A7F82F4B8BB56F80FDF6",
       "path": "scripts/check_implementation_ledger.py",
-      "line": 16202,
+      "line": 16185,
       "column": 10,
       "token_id": "M007",
       "line_sha256": "05750a51f227030f2a88ff64ac69bd1c2256ddbd8b29e552996df724401d9c10",
-      "file_sha256": "3d5fc3e2a8470f0b1dee100c104044613d50dbbebe31a96c3b1cf8c9530e89de",
+      "file_sha256": "88734b9483bc25e1bafa5630b58d2cbf979dba9c70aa5c9c8e1e5d306d403898",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

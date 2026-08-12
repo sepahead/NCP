@@ -47,14 +47,16 @@ diagram, or local benchmark cannot promote it to the third state.
    profiles.
 3. A peer validates deployment configuration once and compiles a session handle.
 4. A hot frame is bounded before semantic allocation and decoded once.
-5. A publisher owns one stream epoch and one increasing sequence allocator.
-   Assignment consumes a position. Later local failure creates a visible gap.
+5. One receiver-recognized publisher incarnation owns one stream epoch and one
+   increasing sequence allocator. Assignment consumes a position. Later local
+   failure creates a visible gap.
 6. A body is the final software authority before an actuator boundary.
 7. Serialized lease possession never creates live authority.
 8. Unknown or default values never grant identity, authority, capability,
    lifecycle success, or action.
 9. ESTOP is restrictive. Replay policy must not suppress an authenticated,
-   current, structurally valid ESTOP latch. HOLD has no replay exception.
+   authorized, current, fresh, structurally valid ESTOP latch. HOLD has no replay
+   exception.
 10. Every queue is finite and has one declared overload policy.
 11. NCP remains project-neutral. Ecosystem projects depend on NCP, not the reverse.
 12. Local evidence never becomes a release, safety, or interoperability claim.
@@ -79,6 +81,15 @@ diagram, or local benchmark cannot promote it to the third state.
     Receiver checks cannot repair an unauthorized source release.
 21. A deployment owner excludes overlapping physical effect paths across every
     realm, session, process, and failover generation.
+22. Receiver arrival never starts or refreshes remote command freshness. The
+    body issues a bounded absolute freshness grant before the publisher sends.
+23. Stream positions are ordered only inside one declared stream. The body-owned
+    event order, not a cross-stream sequence comparison, merges command streams.
+24. Source correlation resolves through a bounded retained publication record.
+    A timestamp, latest-value fallback, or reused position cannot replace it.
+25. A native stable message has a closed member set. An unknown member rejects
+    before typed conversion, replay lookup, signing, or effect. Evolution uses a
+    negotiated wire/profile or an explicit bounded extension member.
 
 ## Runtime layers
 
@@ -93,7 +104,7 @@ Each layer has one job. A later layer cannot repair a failed earlier layer.
 | Typed frame | Kind, numeric bounds, exact layout, finite values, and source correlation |
 | Plant profile | Command channels, units, arity, ranges, and body-local restrictive actions |
 | Authority | Current authenticated commander lease and receiver-local monotonic deadline |
-| Safety | TTL, freshness, geofence, rate limits, link state, HOLD, and ESTOP latch |
+| Safety | Body-issued absolute command freshness, geofence, rate limits, link state, HOLD, and ESTOP latch |
 | Body executor | Deployment-specific actuator mapping and physical safety case |
 
 The actuator interface accepts a body-issued admission token. It does not accept a
@@ -112,6 +123,18 @@ wait behind observation, extension, or control queues. The transition never
 runs network, application, or device code. Other planes can use separate bounded
 mailboxes with their declared overload policies.
 
+The body owner has fixed reserved cells for lifecycle cuts, local restrictive
+escalation, and the enrolled ESTOP-only lane. It observes a closed security or
+session currentness gate before ordinary command work. It services those cells,
+then any ready ESTOP, then HOLD or Active, then perception. Normal traffic cannot
+replace or consume a cut or emergency cell. This priority check uses fixed state,
+not a shared queue scan.
+
+The prepared scheduler caps consecutive ordinary command transitions and gives
+pending perception a finite service bound. That fairness rule cannot delay a
+lifecycle cut, local restrictive escalation, or ready ESTOP. B03 selects the
+numeric cap with the other local QoS values.
+
 ### Current implementation boundary
 
 The current candidate implementation does not yet implement the complete runtime
@@ -126,6 +149,10 @@ above:
 - `PrincipalGrant` authorizes a complete plane. It carries no exact route,
   audience, frame class, session kind, or operation allow-list. The selected
   prepared ingress context must narrow every grant before typed delivery.
+- `AuthorityManifest` validates `certificate_identity` with the NCP key-segment
+  grammar. A transport-native identity such as a SPIFFE URI is not a route
+  segment. The selected security profile must bound and compare its native form,
+  then map it once to a canonical NCP principal.
 - Generic Zenoh cannot expose the verified remote principal. Its
   `production-secure` path remains unavailable.
 - Generic Zenoh open methods can also accept an arbitrary non-loopback config
@@ -140,6 +167,11 @@ above:
 - The current command wire defaults an omitted mode to HOLD. Unknown and `Init`
   modes also reach a local HOLD result. This conflicts with the selected rule
   for explicit remote intent.
+- The same command shape carries predictive-horizon fields plus publisher and
+  source timestamps for every mode. The selected compact command represents one
+  setpoint and omits both timestamps. HOLD and ESTOP also contain no remote value
+  vector or source coordinate. Their actions come only from the installed plant
+  profile.
 - The current plant path does not require the live holder lease for an explicit
   HOLD. It also permits replayed ESTOP without an exact-byte binding.
 - The current authority lease omits the direct realm, plant profile, declared
@@ -151,12 +183,21 @@ above:
   selected body owner must issue and renew leases. Reset must also satisfy the
   enrolled local interlock and profile state.
 - The current Rust and TypeScript negotiation paths accept any `1.x` wire and
-  treat an absent or different compact proto hash as advisory. They do not
-  require the exact supported wire and stable-core identity selected here.
+  also accept both `1` and `1.0`. They treat an absent or different compact proto
+  hash as advisory. They do not require the exact supported wire literal and
+  stable-core identity selected here.
+- Rust message structs accept and discard unknown members within a compatible
+  major. The generic validator repeats that policy. Exact native `1.0` admission
+  must instead reject a member outside the selected closed shape, so signing,
+  replay, typed semantics, and forwarding cannot observe different objects.
 - The compatibility governor still returns wire-shaped substitute commands. It
   does not return the selected body-local decision type.
+- The Zenoh compatibility publisher assigns lease commands and normalized local
+  ESTOP to one locally minted command stream. It has no separately authenticated
+  emergency publisher, declaration, or drain grant.
 - No accepted compact data-plane encoding, complete live command no-reuse owner,
-  optional durable-continuity store, or complete disposition journal exists.
+  body-issued command freshness-grant registry, optional durable-continuity
+  store, or complete disposition journal exists.
 - Stable key builders reject delimiters and wildcards but set no UTF-8 byte
   ceiling for a realm, realm segment, session ID, or channel name. Current JSON
   schemas also leave those identity strings at the universal per-string limit.
@@ -212,13 +253,20 @@ DeploymentRuntime
     │   └── current immutable SecuritySnapshot + one-way currentness gate
     ├── bounded SessionDirectory
     │   ├── SimulationSessionRuntime
+    │   │   ├── immutable PreparedSession
+    │   │   └── SimulationStepOwner
+    │   │       ├── strict next-execution position
+    │   │       ├── bounded request window + no-reuse state
+    │   │       └── bounded retained response slots
     │   └── PlantSessionRuntime
     │       ├── immutable PreparedSession
     │       └── PlantBodyOwner
     │           ├── AuthorityMachine
-    │           ├── declared action stream + position no-reuse state
+    │           ├── bounded command declarations and freshness grants
+    │           ├── per-stream position no-reuse state
+    │           ├── bounded source-publication windows
     │           ├── priority command slot + executor handoff slot
-    │           ├── restrictive state + ESTOP latch + rejection no-reuse slot
+    │           ├── restrictive state + ESTOP latch + emergency drain budget
     │           └── bounded DispositionJournal
     ├── bounded ControlForwardingOutbox entries
     ├── bounded ObserverGrantRuntime entries with separate release slots and queues
@@ -231,9 +279,12 @@ object owns body authority. Observer and extension callbacks receive only their
 least-privilege capabilities.
 
 The session handle contains only state fixed by session admission. Each accepted
-stream declaration creates a separate immutable prepared stream context. The
-session directory publishes or retires those contexts atomically. A data frame
-cannot create or alter either object.
+stream declaration creates a separate immutable prepared stream context. That
+context binds one receiver-owned publisher incarnation.
+
+For A-direct traffic, the incarnation is inseparable from the verified connection
+instance. A payload cannot select it. The session directory publishes or retires
+those contexts atomically. A data frame cannot create or alter either object.
 
 Variable names, routes, grants, layouts, units, and parser profiles are compiled
 into the immutable prepared objects. A hot operation uses fixed identities,
@@ -247,7 +298,7 @@ mutable map or hold a lock across a callback.
 |---|---|---|---|
 | Control | authenticated role authority | bounded request, idempotent mutation, retained receipt | reject overflow |
 | Perception | body | newest valid sample wins | replace latest |
-| Action | commander or operator | direct bounded body admission, then preserve strongest unconsumed mode | one body priority slot |
+| Action | lease holder or enrolled emergency principal | direct bounded body admission, then preserve strongest unconsumed mode | one body priority slot |
 | Observation | body or declared producer | read-only delivery | drop oldest and count |
 | Extension | manifest-authorized producer | isolated reassembly and parser callback | reject or follow the selected delivery profile |
 
@@ -257,8 +308,11 @@ mutable map or hold a lock across a callback.
   <img alt="Informative topology for the unreleased, release-blocked NCP 1.0 candidate. It shows the commander, body, observer, and four bounded planes. The body remains final software authority. The diagram is not a release, interoperability, or physical-safety certification claim." src="../diagrams/topology-light.svg" width="860">
 </picture>
 
-Control messages are low-rate, descriptive, and audit-relevant. Bounded canonical
-JSON is appropriate there.
+Lifecycle and management control messages are low-rate, descriptive, and
+audit-relevant. Bounded canonical JSON is appropriate there. A compact simulation
+step remains under control authority, but it uses a separately declared frame
+class, stream, route, and resource partition. It cannot inherit plant-action
+authority or occupy the lifecycle mutation queue.
 
 Every mutating control operation uses one opaque idempotency key. Its scope binds
 the realm, authenticated transport principal and entity, operation class, and
@@ -271,11 +325,32 @@ one generation, and an exact retry returns that retained `SessionOpened` result.
 Timeout, cancellation, or a concurrent local open never starts a second
 generation under the same operation identity.
 
+One local durable transaction binds the operation identity, canonical request
+digest, namespace reservation, and never-reused generation before the response
+becomes visible. Ambiguous storage completion keeps that namespace closed until
+recovery proves the retained result or permanent retirement. It never allocates
+a replacement generation for the same unresolved operation.
+
 The session directory also serializes all opens for the same realm, session
 kind, and logical namespace. This rule is independent of the caller's operation
 ID. While one open is pending or live, a different operation ID rejects without
 allocating another generation. Reopening is possible only after terminal
 retirement, and it always receives a new reserved generation.
+
+Session close is an authenticated idempotent control operation against one exact
+live generation. Its winning transition first closes that generation to new
+streams, grants, callbacks, and mutations. It then starts the kind-specific
+bounded retirement outside the directory lock.
+
+A plant retirement enters its installed restrictive policy and closes lease,
+command, source, token, and executor admission. A simulation retirement closes
+new steps and terminalizes later reservations. Observer and extension retirement
+close currentness before subscription, parser, and callback cleanup.
+
+`SessionClosed` is terminal success only after every effect or mutation right is
+definitive or permanently fenced. A deadline can return pending or outcome-unknown
+state, but it cannot manufacture clean closure. Exact retry and query read the
+same retained operation. They never reopen the generation or start cleanup again.
 
 The receiver stores one canonical request digest with the terminal response.
 The same key and digest return that response only through the explicit retry or
@@ -369,6 +444,12 @@ prose without changing the stable-core identity. An explicit terminating gateway
 can join different wires, but it has separate source and target identities and
 does not report a native match.
 
+Each native JSON profile selects one exact version literal. The recommended
+`stable-1.0` literal is `1.0`. An alternate spelling or unselected same-major
+minor rejects rather than creating a second digest spelling for the same claimed
+profile. Compact hot frames bind that literal through their prepared context and
+do not repeat it.
+
 Runtime peers compare prepared fixed-size identities. They do not hash a source
 tree during handshake or frame admission. B03 must select each exact source set,
 domain, algorithm, framing rule, and field layout before implementation.
@@ -402,6 +483,8 @@ The session handle binds:
   epoch, and audience.
 - permitted data-plane encodings.
 - permitted sensor and command channel layouts.
+- for a simulation session, the prepared step request and response layouts,
+  advance unit, execution order, pipeline window, and retained-result limits.
 - exact units, arities, numeric ranges, and plant profile digest.
 - queue capacities and overload policies.
 - receiver clock incarnation and local deadline ceilings.
@@ -450,6 +533,12 @@ an attacker-sized string array. It compares the installed route byte for byte.
 Display labels can use a separate bounded Unicode field, but a display label is
 never an authority, route, session, principal, or registry identity.
 
+A verified transport identity is also a separate class. Its selected transport
+profile defines the bounded canonical certificate, URI, or operating-system
+identity form. The receiver compares that form without rewriting it, then maps it
+to one canonical NCP principal during context preparation. A transport identity
+is never interpolated into a route or accepted as a caller-supplied principal.
+
 These values are a B01 recommendation, not current allocations. B03 must freeze
 the accepted classes and ceilings before generated schemas or bindings change.
 
@@ -457,9 +546,15 @@ the accepted classes and ceilings before generated schemas or bindings change.
 
 An authenticated idempotent control operation declares each stream before data
 traffic can use it. The declaration binds the complete session, plane, literal
-route, authenticated publisher, frame class, random epoch, encoding, and layout.
-It also binds the position ceiling, gap policy, overload policy, and security
-state.
+route, authenticated publisher, receiver-owned publisher incarnation, frame
+class, random epoch, encoding, and layout. It also binds the position ceiling,
+gap policy, overload policy, and security state.
+
+Only one live connection or authenticated handoff can hold that incarnation. A
+second connection for the same principal cannot share its allocator or grants.
+Reconnect, process handoff, or publisher failover retires the declaration through
+control state before a successor declaration receives a new incarnation and
+epoch. Copied payload fields cannot perform that handoff.
 
 One stable stream slot has at most one declared or live epoch. Data can move a
 declaration from declared to live. Data cannot create, replace, renew, or retire
@@ -469,21 +564,99 @@ returns to live state.
 An action declaration either binds one live perception declaration as its source
 or marks the action profile open-loop. The source binding includes its route,
 publisher, frame class, session generation, and epoch. A source sequence without
-that prepared binding rejects. A source-bound command without one positive source
-sequence also rejects. An open-loop command cannot carry a source sequence.
+that prepared binding rejects. A source-bound Active command requires one positive
+source sequence. Open-loop Active, HOLD, and ESTOP carry no source sequence.
+Restrictive admission never depends on source evidence.
 
-The publisher assigns each positive increasing position before serialization or
-queue admission. Assignment is irreversible. A later local failure creates a
-visible gap. Active, HOLD, and ESTOP share one action-stream allocator so an
-older Active command cannot look newer than a restrictive command.
+The body retains a finite correlation window for each bound source declaration.
+Each entry binds the exact admitted source position, frame digest, publisher,
+session generation, declaration, receiver-arrival sample, and currentness state.
+It also carries the exact bounded safety projection required by the plant profile.
+The profile bounds entry count, aggregate bytes, and receiver-local lifetime.
+Eviction never enables a timestamp, bare sequence, or latest-value fallback. A
+command whose source record is absent or expired rejects as unavailable.
+
+Sensor admission sends that small prepared projection through a bounded
+replace-latest perception slot. The source window is subordinate state of the
+`PlantBodyOwner`, not a second lock owner. Perception events cannot consume the
+action slot, and the owner processes a pending action event first. It does not
+retain the complete compatibility frame merely for command correlation.
+
+For a new source-bound Active position, one body transition copies the exact
+matching projection and record digest into its grant-reserved source-pin slot.
+It installs that pin atomically with the command-position binding, before the
+window can advance. The pin binds the grant range, command position, source
+declaration, source position, record digest, and prepared projection. Exact
+retry observes the same pin even after window eviction.
+
+Changed coordinates or bytes conflict and cannot replace it. A missing, changed,
+expired, or consumed record rejects without consulting the latest sensor value.
+No second owner or cross-owner lock is required.
+
+One lease-bound command declaration accepts Active, explicit HOLD, and any ESTOP
+permitted for its authenticated publisher. A separately enrolled emergency
+principal uses a distinct ESTOP-only declaration and can receive only
+ESTOP-mode grants. Its bounded transport receive lane through authentication
+dispatch, authenticated ingress context, raw-frame slot, and decode budget are
+separate from the lease-bound command path. Ordinary command traffic cannot
+consume them.
+
+Ordinary capacity rules apply while normal grant admission is open. The one-use
+drain budget preserves or installs the sole final ESTOP slot under its restrictive
+entry conditions. Each declaration has its own epoch, allocator, replay fence,
+and no-reuse state. Sequence values from different declarations are never
+compared. The body owner merges their accepted events in one local order. An
+ESTOP latch then prevents later Active admission without a global cross-principal
+sequence.
+
+Before publication, the body issues a bounded freshness grant for one declaration.
+It binds the authenticated publisher, receiver-owned publisher incarnation,
+declaration, epoch, receiver clock incarnation, and a non-overlapping position
+range. It also binds permitted modes, issue tick, exclusive maximum tick, and the
+complete reserved disposition budget. For each permitted lease-bound mode, it
+also binds the exact holder, term, lease ID, and authority version current at
+issue.
+
+The publisher can consume only positions in that range through the same prepared
+incarnation. Exact grant-request retry returns the same range. Ambiguity never
+allocates a replacement range.
+
+The resource profile caps positions per grant, simultaneously live normal grants
+per declaration, and aggregate reserved bytes. A normal publisher can prefetch a
+bounded successor grant over a disjoint range before the current grant expires.
+The command position selects at most one live grant because the ranges cannot
+overlap. The high-rate path therefore repeats no grant reference and waits for no
+control round trip on each tick. No prefetch extends an existing deadline or
+permits overlapping positions.
+
+The first normal grant for a declaration starts at position one. Each successor
+starts at the prior allocated range's exclusive end. The body allocates that
+contiguous range with checked arithmetic. A publisher can leave visible gaps by
+not sending assigned positions, but it cannot choose another range start.
+
+The body keeps the current and one prefetched live range in fixed slots. A new
+command checks those slots directly rather than searching historical grants.
+Range tombstones remain in the bounded no-reuse state for stale and recovery
+decisions, but they cannot become live again.
+
+Grant installation claims concrete entries from preallocated no-reuse,
+disposition, source-pin, and fail-safe pools. Open-loop or non-Active-only ranges
+need no source pins. A soft accounting counter is insufficient. Expiry or
+completion can release only the difference permitted by the selected retention
+profile, after the range tombstone remains installed.
+
+The publisher assigns each positive increasing granted position before
+serialization or queue admission. Assignment is irreversible. A later local
+failure creates a visible gap. Active, HOLD, and ESTOP in the same declaration
+share its allocator. Restrictive priority across declarations comes only from the
+body-owned event order.
 
 A receiver validates the declaration and syntactic position before lower
 semantics. An ordinary stream retains a high-water mark and bounded gap evidence.
-An action stream also retains digest-bound state for journaled positions and the
-latest restrictive resource rejection. Its high-water mark prevents reuse of
-older resource-rejected positions after their exact digest evidence becomes
-unavailable. A restart that
-cannot restore required action no-reuse state retires the stream or generation.
+A command stream also retains its grant-range tombstones and digest-bound state
+for consumed positions. Its high-water mark and tombstones prevent reuse after
+complete result evidence becomes unavailable. A restart that cannot restore
+required command no-reuse state retires the stream or generation.
 
 Position exhaustion never rotates implicitly. The publisher stops, the session
 authority retires the declaration, and a new random epoch requires a new
@@ -491,11 +664,24 @@ declaration. The old retirement record remains non-authorizing evidence.
 
 ## Receiver time and deadlines
 
-The receiver samples monotonic arrival time after authenticated ingress and
-before retention. It requires a finite positive command TTL no greater than the
-prepared maximum. Checked arithmetic derives one exclusive local deadline from
-that TTL and the arrival sample. Queue delay consumes the deadline. It never
-extends it.
+The body issues each command freshness grant from its receiver-owned monotonic
+clock. The grant records its clock incarnation, issue tick, and exclusive maximum
+tick. It also reserves the complete no-reuse and disposition capacity for every
+position in its range before the grant becomes visible.
+
+A command carries only its granted stream position. That position resolves at
+most one live range or retained range tombstone inside its declared stream. The
+grant's exclusive maximum tick is the command deadline. Equality is expired.
+
+Transit, transport buffering, decode, and queue delay all consume this unchanged
+lifetime. Receiver arrival never starts or refreshes it. A shorter application
+deadline requires a separately prepared grant rather than caller-selected frame
+metadata.
+
+The receiver still samples monotonic arrival after authenticated ingress and
+before retention. That sample is bounded correlation and operational evidence.
+It does not grant freshness. A retry uses the original grant, slot, and deadline.
+Restart changes the clock incarnation and invalidates every old live grant.
 
 Publisher monotonic time orders one publisher's evidence. UTC supports audit and
 bounded duration derivation. Neither clock is compared directly with another
@@ -558,9 +744,20 @@ Every mutating B-over-A operation first reserves one bounded durable outbox
 item. The item binds the stable signer, security state, exact protected bytes,
 target, route, audience, realm, session, operation class, and idempotency key.
 Installation and the no-reuse binding are one local transaction. A retry or
-restart resumes or queries that item. Changed bytes or coordinates conflict. A
-timeout without authenticated non-acceptance remains pending and cannot start
-fresh work. This low-rate control work never enters the hot tick path.
+restart resumes or queries that item.
+
+Changed bytes or coordinates conflict. A timeout without authenticated
+non-acceptance remains pending and cannot start fresh work. This low-rate control
+work never enters the hot tick path.
+
+Each external send attempt uses one short outbox-owner transition. The owner
+rechecks the bound security snapshot, revocation state, target permission, and
+operation deadline. It then marks the exact attempt active before network work.
+
+If a security cut wins first, the owner terminalizes unsent work without a send.
+If the attempt wins first, network work runs outside the lock. Timeout or process
+loss leaves that same attempt unresolved. It cannot become a new outbox item or a
+second send attempt without authenticated non-acceptance from the target.
 
 Portable control objects and exported evidence carry their direct
 `AuthorityRealmKey`. A future compact hot frame can bind that key through its
@@ -636,13 +833,21 @@ A corrected compatibility receiver performs this work:
 1. reject an oversized segmented transport payload.
 2. borrow contiguous bytes, or flatten a segmented payload once within the bound.
 3. obtain the verified prepared ingress context without copying the payload.
-4. apply raw JSON limits before typed allocation.
-5. require every intent-selecting field that the route profile marks explicit.
-6. create one typed frame.
-7. check route, session, stream, role, and frame semantics.
-8. move the frame into its bounded consumer slot.
+4. start one bounded typed decode and enforce each JSON limit before its related
+   allocation.
+5. reject every member outside the route profile's closed message shape.
+6. require every intent-selecting field that the route profile marks explicit.
+7. create one typed frame.
+8. check route, session, stream, role, and frame semantics.
+9. move the frame into its bounded consumer slot.
 
 No application should parse an already admitted typed callback again.
+
+The typed decoder counts depth, objects, arrays, members, keys, decoded string
+bytes, numeric tokens, and aggregate bytes as it consumes input. Escape handling
+checks remaining per-string and aggregate budgets before appending decoded bytes.
+It rejects an unknown member while parsing the selected shape. It never builds a
+generic value tree or performs a separate full preflight parse.
 
 ### Direct implementation audit
 
@@ -653,9 +858,26 @@ found these avoidable costs:
   identity, and authority data on each JSON frame.
 - `ControlTransport::latest_sensor` returns an owned clone. The in-process
   command path also clones before and during queue replacement.
+- the reusable stream fence hashes the complete route, message kind, and session
+  generation for every frame before a tree lookup. It also adopts the first
+  admitted epoch. A prepared stream context must instead provide a fixed slot and
+  declared epoch, so the hot path performs neither string hashing nor discovery.
+- `AuthorityManifest` applies the route-segment grammar to
+  `certificate_identity`. That grammar cannot represent common transport-native
+  identities such as a SPIFFE URI without rewriting them. A prepared security
+  profile must validate the native identity type once. It then maps that identity
+  to an NCP principal without using it as a route field.
+- `AuthorityManifest::authenticate` scans the principal list and clones the
+  principal, certificate, and entity strings on every call. Prepared ingress
+  must resolve the verified native identity once and retain fixed or borrowed
+  actor coordinates instead of repeating that work for each frame.
 - the control loop commits its command position only after local transport-slot
   acceptance. Governance or serialization failure can therefore reuse an
   already assigned candidate position.
+- the Zenoh control transport rewrites lease commands and locally normalized
+  ESTOP into one transport-owned stream. That compatibility path cannot represent
+  the selected separately authenticated emergency principal and ESTOP-only
+  declaration.
 - the Zenoh pending slot reports its first position as accepted. A later local
   replacement can put different command bytes at that same reported position
   before publication.
@@ -691,10 +913,15 @@ found these avoidable costs:
   it checks the decoded per-string and aggregate limits. The raw frame bound
   caps this cost, but the scanner does not enforce those limits incrementally.
 - the core `decode_validated` path builds a generic JSON value. Its generic
-  validator clones and deserializes that value to prove the typed shape, and the
+  validator clones and deserializes that value to prove the typed shape. The
   caller then deserializes the original value into the same type again. An
   accepted frame therefore pays for one generic tree and two typed
   materializations.
+- the Rust message structs and generic validator deliberately ignore unknown
+  members for major-version forward compatibility. Typed conversion then drops
+  bytes that a replay digest, signature, gateway, or another implementation can
+  still observe. The selected exact `1.0` profile closes each stable shape and
+  reserves extensibility for explicit bounded members or a negotiated profile.
 - the TypeScript request-digest writer retains projection bytes as JavaScript
   numbers. It copies them into a `Uint8Array` and then into a padded hash buffer.
   A bounded streaming hash avoids the representation expansion and both full
@@ -707,6 +934,11 @@ found these avoidable costs:
   payload bytes. Its 128 legal pending frames can retain roughly 128 MiB before
   string and promise overhead. The selected profile needs one checked byte
   reservation across queued payloads and transport buffering.
+- the same WebSocket client assigns replies to waiters in FIFO order instead of
+  by an authenticated request identity. A server that completes legal requests
+  out of order can make each reply fail the wrong caller's correlation check. The
+  selected control path needs one bounded identity lookup and must not consume an
+  unrelated waiter on mismatch.
 - the Zenoh adapter bounds each observation queue to 64 entries and concurrent
   RPC requests to 128. It does not reserve aggregate payload bytes for either
   class. Maximum legal frames can therefore retain roughly 64 MiB of observation
@@ -742,6 +974,11 @@ found these avoidable costs:
   complete wire validation. This is conservative only inside their documented
   trusted local context. They are not remote admission APIs. The selected body
   entry authenticates, decodes, and validates the command before the latch path.
+- the Rust and TypeScript watchdog helpers start a command TTL from local frame
+  arrival. They also normalize a binary64 duration inside the helper. A delayed
+  remote command can therefore receive a new lifetime. The selected compact body
+  path carries no per-frame TTL. It uses only the unchanged absolute deadline
+  from the body-issued freshness grant.
 - `LinkMonitor::new` silently clamps or replaces invalid loss parameters and
   accepts any positive finite CUSUM threshold. One sequence jump evaluates at
   most 256 missing samples, so a larger threshold can miss an arbitrarily large
@@ -767,10 +1004,19 @@ found these avoidable costs:
 - the plant-profile command validator is not integrated into action admission.
   A future projection must compare each incoming channel unit with the prepared
   profile before it discards names or units.
+- `PlantProfile::validate_active_command` revalidates, canonicalizes, and hashes
+  the complete profile for each call. It then rebuilds a channel-name set. A
+  prepared plant profile must validate once and expose indexed borrowed command
+  checks without per-command profile hashing or name-set allocation.
 - `SafetyGovernor::with_channels` invents the configured velocity channel when
   the supplied command-channel set is empty. Safe-frame construction can later
   emit an empty channel map. Prepared plant admission must reject an empty
   required set instead of manufacturing or erasing required channels.
+- `ActionBuffer` retains a complete command. Its polling path clones a
+  channel map on every tick and replays tick-zero or horizon values from receiver
+  arrival time. One remote position can therefore drive several later values
+  without the selected per-position admission token and disposition boundary.
+  This helper remains local compatibility code, not the selected executor path.
 - idempotency capacity pressure can evict a terminal or unavailable entry before
   its retention deadline. A later non-retry call can then reserve the same
   operation identity again when another state check does not stop it.
@@ -790,9 +1036,16 @@ found these avoidable costs:
   production prepared session needs an exact supported wire and selected
   stable-core identity before it creates runtime resources.
 - `OpenSession` has no idempotency context. The TypeScript client can send a
-  second open while an earlier request for the same logical session is still in
-  flight, and it discards the older reply without retiring any server generation
-  that request created.
+  second open while the earlier request remains in flight. It discards the older
+  reply without retiring the server generation that request created.
+- `CloseSession` carries an operation context, but the core has no session owner
+  that closes child authority first and proves every mutation right definitive or
+  fenced before `SessionClosed`. Adapter reply correlation is not that owner.
+- the simulation `StepRequest` repeats session and authority objects, carries a
+  nullable binary64 advance, and nests a string-keyed stimulus map. Its
+  `ObservationFrame` reply uses the TypeScript client's FIFO waiter path. There
+  is no prepared fixed-layout step pair, strict execution cursor, or retained
+  response slot keyed by the request position.
 
 These findings do not authorize a B01 runtime edit. They set implementation
 targets for the dependency-ready descendant tasks. Preparation must move static
@@ -818,31 +1071,184 @@ changing values and the minimum correlation data.
 A compact sensor frame needs:
 
 - stream sequence.
-- producer monotonic time.
+- one fixed-width unsigned producer-monotonic tick in the descriptor's registered
+  time unit.
 - ordered finite binary64 channel values.
 
 A compact command frame needs:
 
-- stream sequence.
-- one sequence in its prepared source stream when the action declaration is
-  source-bound, and no source sequence when it is open-loop.
-- producer monotonic time.
-- mode and bounded TTL.
-- current lease term and lease ID reference for Active or explicit HOLD.
-- ordered finite binary64 channel values.
-- an optional bounded predictive horizon.
+- one positive increasing stream position.
+- mode.
+- for Active, ordered finite binary64 channel values.
+- for source-bound Active, one sequence in its prepared source stream.
+- for explicit HOLD, no source or value vector.
+- for ESTOP, no lease, source, or value vector.
+
+The stream position selects at most one non-overlapping body grant range. That
+grant carries the absolute body-clock deadline and any lease coordinate required
+by the selected mode. The compact frame repeats neither value. A grant cannot
+renew a lease, and a frame cannot select a different grant or lease.
 
 The body resolves a source position through its retained publication record.
 The command does not repeat the source timestamp because that copy cannot replace
 the exact retained source identity or prove freshness.
 
+The compact command also omits the publisher's local timestamp. Its stream
+sequence already orders publisher evidence. The body-issued grant and body clock
+govern every live deadline. A deployment can carry publisher timing in a separate
+bounded diagnostic stream, but that value grants no command authority.
+
 The prepared context binds the route, session generation, publisher, frame class,
 layout, profile, manifest, security state, and any source-stream declaration.
 Those values do not need to repeat inside each compact payload.
 
-Binary64 values use one fixed network byte order and preserve exact bits. Decoders
-reject a length that differs from the prepared layout. They never truncate, pad,
-invent a unit, or fabricate a missing component.
+Binary64 values use one fixed network byte order and preserve exact bits. Each
+mode has one prepared exact length. Decoders never truncate, pad, invent a unit,
+or fabricate a missing component.
+
+The lean core carries one setpoint per command position. It does not replay
+tick-zero or a predictive horizon after publication. A future trajectory profile
+must be a separate registered object with exact per-step authority, source,
+deadline, admission, application, and disposition rules. It requires its own
+deliberate rebaseline and cannot inherit the compatibility helper's behavior.
+
+A fixed numeric observer projection can use a third compact frame. Its prepared
+grant binds the observer output declaration, exact source declaration, field
+projection, numeric layout, units, privacy policy, and security state. The frame
+carries:
+
+- observer output sequence.
+- exact source sequence and fixed source-frame digest.
+- one fixed-width unsigned producer-monotonic tick when the projection permits it.
+- ordered finite binary64 projected values.
+
+The source and output sequences remain different coordinates. The receiver never
+infers their relation from arrival or equality. A variable, nested, or text-heavy
+observation stays on a bounded JSON or registered extension path. A bare `NCPB`
+block remains local or offline data and cannot substitute for this authenticated
+frame.
+
+### Compact simulation tick path
+
+Simulation opening, configuration, and retirement remain bounded idempotent
+control operations. A prepared simulation session can separately negotiate one
+fixed-layout compact step profile for high-rate numeric work. The profile binds:
+
+- requester and simulator principals.
+- session generation, request-publisher incarnation, and request stream epoch.
+- request and response routes and frame classes.
+- step-grant profile and bounded live-grant count.
+- exact stimulus and observation layouts, units, and numeric domains.
+- advance unit, queue window, response retention, and gap-wait duration.
+- maximum step-execution duration, backend isolation, and security state.
+
+The receiver issues a bounded simulation-operation authority lease called a step
+grant. It binds the prepared stream, clock incarnation, non-overlapping position
+range and exclusive deadline. The range length is the exact mutation quota.
+Before publication, grant installation
+reserves every fixed request slot, response slot, digest entry, no-reuse record,
+and byte budget for that range.
+
+The first grant starts at position one. Each successor starts at the prior
+allocated range's exclusive end. Checked allocation therefore makes every issued
+range contiguous even when the publisher never sends an assigned position. The
+owner checks only the current and one prefetched range on the request path.
+
+The step grant authorizes only the declared simulation mutation. It grants no
+plant, observer, extension, or lifecycle authority. The request position selects
+exactly one installed non-overlapping grant range, so the compact frame repeats
+no lease object or grant identifier. Exact grant-request replay returns the same
+range. A publisher can prefetch one bounded successor before the current range
+closes. Prefetch does not refresh the old grant or change its stream context.
+
+A compact step request carries:
+
+- one positive increasing fixed-width unsigned step position.
+- one positive fixed-width unsigned advance value.
+- ordered finite binary64 stimulus values.
+
+The matching compact step response carries:
+
+- the exact request step position.
+- one fixed result code and simulation-time tick.
+- ordered finite binary64 observation values for a successful step.
+
+The result code is closed. The simulation-time tick is a checked fixed-width
+unsigned integer in the prepared unit. No integer field accepts a floating-point
+alternate, negative value, saturation, wrap, or default.
+
+Each result code has one prepared exact frame length. A non-success result
+structurally forbids observation values. The request position is both the reply
+correlation coordinate and the response no-reuse coordinate. A second responder
+sequence would duplicate state without adding identity.
+
+Raw bounds, authenticated context, exact frame length, closed shape, and position
+syntax run before slot lookup. The owner rechecks current security and exact
+lookup permission before it reveals any slot result. An exact retained digest
+returns or joins its prior result without renewing authority or starting work.
+Different bytes at an occupied position conflict.
+
+For a new position, the owner atomically rechecks the security state, step grant,
+range, and unchanged receiver-clock deadline. It then consumes the position,
+binds its exact frame digest, and selects its already reserved response slot
+before numeric-domain checks or mutation. A semantic rejection therefore keeps
+the position and exact retained response.
+
+A terminal pre-mutation rejection advances the execution cursor exactly once.
+It permits the next retained position to run without treating the rejection as a
+simulator mutation. An unresolved execution instead retires the generation.
+
+The server executes accepted requests in strict step order. It can retain a
+bounded prepared window of later requests, but it cannot skip a missing position
+or let arrival order choose simulator state. A request beyond the advertised
+window rejects without allocation and cannot evict an earlier position.
+
+Immediately before simulator entry, the owner rechecks the security state, step
+grant, and exclusive grant deadline. The same transition changes the exact
+request from reserved to in flight. It samples the receiver clock once and
+derives a checked exclusive completion deadline from the profile's maximum
+duration. Failed currentness terminalizes the response without a simulator call.
+
+Simulator work runs outside the owner lock. One completion can fill only that
+request's pre-reserved response slot. It writes directly into the final fixed-size
+response buffer and then freezes that buffer. Retention and outgoing transport
+refer to the same immutable bytes rather than cloning a second response.
+
+A backend success first requires the exact tick, arity, finite-value, and
+numeric-domain checks. An invalid backend result fills a closed failure response
+with no values. A backend with no finite execution contract runs behind the
+selected terminable isolation boundary.
+
+A duplicate or uncorrelated completion cannot fill a slot or start the step
+again. If no exact completion arrives before the completion deadline, the result
+becomes outcome unknown. A lost isolation boundary has the same result. The owner
+retires the simulation generation and terminalizes every later request without
+execution.
+
+The first retained request beyond a gap starts one checked receiver-local
+exclusive gap deadline from the prepared profile. Later arrivals do not refresh
+it. If the missing position does not arrive in time, the server terminalizes the
+reserved requests and retires the simulation generation. It never guesses or
+executes a later state transition. After a completed response leaves its bounded
+retention window, the monotonic high-water state still prevents another mutation
+at that position. A later query reports evidence unavailable rather than running
+the step again.
+
+The client can pipeline only within that advertised window. It correlates each
+response by the exact request position, not FIFO waiter order. Cancellation does
+not free a mutation identity or permit reuse. Restart retires the simulation
+generation unless an explicitly selected durable profile restores the exact
+simulator state, request index, and retained results.
+
+The prepared response context fixes `calibrated_posterior=false` and
+`is_simulation_output=true`. A compact step proves only ordered protocol work. It
+does not create plant authority, paper-reproduction evidence, or posterior
+calibration. Variable-size artifacts use a separate bounded extension or offline
+transfer profile rather than changing the compact step layout.
+
+This is a session-local high-rate frame class with its own finite request,
+response, and byte capacity. It does not create a new authority plane and cannot
+borrow plant-action, observer, extension, or lifecycle-control capacity.
 
 JSON and compact encodings must use distinct negotiated route or context values.
 An endpoint never guesses the encoding from input bytes and never falls back after
@@ -853,7 +1259,7 @@ a failed compact decode.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/admission-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/admission-light.svg">
-  <img alt="Informative NCP body command-admission path. It shows bounded authentication, one decode, the idempotent ESTOP latch, digest-bound position no-reuse, semantic admission, and the body effect gate. The diagram is not a release, interoperability, physical-achievement, or safety-certification claim." src="../diagrams/admission-light.svg" width="980">
+  <img alt="Informative proposed B01 NCP body command-admission target. It shows bounded authentication, one decode, the idempotent ESTOP latch, digest-bound position no-reuse, semantic admission, and the body effect gate. It is not the implemented contract or a release, interoperability, physical-achievement, or safety-certification claim." src="../diagrams/admission-light.svg" width="980">
 </picture>
 
 The body processes a complete authenticated command in this order:
@@ -863,74 +1269,112 @@ The body processes a complete authenticated command in this order:
    for the exact route, audience, direct realm, session, and command class.
 3. Match the session generation and declared stream.
 4. Verify the current security state.
-5. Sample receiver-monotonic arrival and decode the bounded command envelope
-   once.
+5. Sample receiver-monotonic arrival for evidence and decode the bounded command
+   envelope once.
 6. Preserve an absent or unknown mode as an explicit non-authorizing state.
 7. Validate the complete stream identity, syntactic position, and bounded frame
-   digest. These checks identify the no-reuse key without granting action.
-8. Enter the body state owner and find any retained position binding.
-9. For a new position, check the complete no-reuse and disposition budget.
-10. Apply mode-specific actor authorization.
-11. Classify an absent, unknown, structurally invalid, or unauthorized mode as a
-    non-authorizing rejection.
-12. For an authorized valid ESTOP, recheck currentness and install or retain the
-    preallocated idempotent local latch.
-13. Apply the ESTOP latch rule to new, exact-replayed, stale-position,
-    conflicting, and resource-rejected intents.
-14. When journal capacity exists, atomically retain the ESTOP position binding,
-    restrictive obligation, and result.
-15. Without journal capacity, bind the new ESTOP position and digest in the fixed
-    restrictive-rejection slot.
-16. Advance the action-stream high-water mark with the rejection binding.
-17. Return a resource rejection and attribute the local latch separately.
-18. Reject a conflicting ESTOP as a command.
-19. For every other new command, consume a new syntactically valid position even
-    when journal capacity is exhausted.
-20. On that capacity rejection, advance the high-water mark without command or
-    effect state.
-21. Otherwise bind the position to the exact frame digest before lower semantic
-    checks.
-22. Return the retained result for an exact replay.
-23. Record a changed digest as a conflict.
-24. Apply the declared stream monotonicity rule to HOLD and Active without a
+   digest. These checks derive candidate lookup coordinates without granting
+   action.
+8. Enter the body state owner and find the primary position binding plus the
+    generation's optional restrictive-conflict attribution.
+9. Recheck the current security snapshot and lookup permission. If the digest
+    matches either slot, return or join that retained state. This path creates no
+    second action, latch, position, or deadline refresh even when the grant is now
+    cut or expired. It never starts or resumes executor work. An earlier in-flight
+    operation can resolve through its original slot. Recovery can also preserve
+    only the same installed restrictive obligation.
+10. Classify different bytes at an occupied primary position as a command
+    conflict without replacing that primary digest.
+11. Return that conflict immediately unless explicit, structurally valid ESTOP
+    bytes can qualify for the local latch.
+12. For a new candidate or possible conflicting ESTOP, resolve the position to
+    exactly one live receiver-installed grant range. Match its publisher
+    incarnation, declaration, stream epoch, receiver clock, and permitted mode.
+13. If no live range matches, return the occupied-position conflict or reject a
+    new position without state. Neither result reaches a remote fail-safe effect.
+14. Atomically recheck the security snapshot, exact permission, grant currentness,
+    and unchanged exclusive deadline. A cut or expiry causes no remote fail-safe
+    effect. Its reserved range remains unavailable under the grant tombstone.
+15. For a new candidate, consume the granted position and bind its exact digest
+    and preserved mode before lower semantic checks. For source-bound Active,
+    atomically copy a present matching body-owned source record into the
+    pre-reserved pin. Absence leaves no pin and the lower source check rejects.
+16. Apply the grant's permitted-mode constraint and mode-specific actor
+    authorization.
+17. Classify an absent, unknown, structurally invalid, or unauthorized mode as a
+    non-authorizing rejection. Terminalize a newly bound candidate, or retain a
+    conflict for changed bytes. Neither branch continues to the latch.
+18. For an authorized, fresh, structurally valid ESTOP, select its preallocated
+    idempotent local latch slot.
+19. Install or retain that latch for a new, stale-position, or conflicting intent
+    from the still-live grant and context.
+20. For a new ESTOP, including one that is stale in stream order, retain the
+    obligation in its primary position record.
+21. If a conflicting ESTOP first changes the latch, fill the one
+    preallocated generation-wide restrictive-conflict attribution.
+22. Bind that attribution to the complete coordinate, digest, rejection, and
+    separate latch result.
+23. Never replace the primary digest at an occupied position. If the attribution
+    slot already contains another conflict, reject different conflicting bytes
+    without another invocation or allocation. A different new position still
+    uses its own reserved primary record.
+24. Apply stream monotonicity to ESTOP command acceptance after latch selection.
+    Reject a stale-position or conflicting ESTOP as a command and attribute any
+    local latch separately. This branch then terminates.
+25. Apply the declared stream monotonicity rule to HOLD and Active without a
     replay exception.
-25. Prevent a stale HOLD from clearing newer admitted output.
-26. Terminalize every newly bound semantic rejection as `REJECTED` with a reason
+26. Prevent a stale HOLD from clearing newer admitted output.
+27. Terminalize every newly bound semantic rejection as `REJECTED` with a reason
     that separates any body-local restrictive transition.
-27. Require a live matching holder lease for HOLD and Active.
-28. Map a newly admitted HOLD to the installed HOLD action.
-29. Associate an admitted ESTOP with its retained latch without invoking it
+28. Require the grant's actor and lease coordinate to match the live body lease
+    for HOLD and Active.
+29. Invoke a newly admitted HOLD through the installed bounded HOLD path and
+    retain its association result.
+30. Associate an admitted ESTOP with its retained latch without invoking it
     again.
-30. For Active, match the actor and lease reference to the live body lease.
-31. Validate the plant profile, retained source publication, TTL, link state,
-    freshness, and safety policy.
-32. Issue one short-lived, single-use body admission token.
-33. Consume that token through the body state owner and its bounded executor
-    slot.
+31. For Active, validate the plant profile, link state, freshness, and safety
+    policy. A source-bound profile also requires its retained source publication.
+32. For Active, issue one short-lived, single-use body admission token.
+33. For Active, consume that token through the body state owner and its bounded
+    executor slot.
+
+The owner derives the token's exclusive acceptance deadline with checked
+receiver-clock arithmetic. It selects the earliest command-grant, live-lease,
+source-pin, and applicable prepared safety deadline. An open-loop profile omits
+only the source-pin term. No payload timestamp can extend this deadline.
 
 The final bounded handoff rechecks the security snapshot, exclusive deadline,
-restrictive state, authority version, and live lease. An invalidating transition
-and acceptance therefore have one order. If invalidation wins, the token cannot
-expose command values. If acceptance wins, its evidence records the exact
-earlier state. The executor performs no application callback while holding a
-realm or body lock.
+source pin, safety state, restrictive state, authority version, and live lease.
+An invalidating transition and acceptance therefore have one order. If
+invalidation wins, the token cannot expose command values. If acceptance wins,
+its evidence records the exact earlier state. The executor performs no
+application callback while holding a realm or body lock.
 
-A stale-position ESTOP is older only within the current declared action stream.
-A stale session generation, stream epoch, security state, route, or
-authorization rejects before the latch boundary.
+A stale-position ESTOP is older only within its current declared action stream.
+It can reach the latch only while its body-issued grant and absolute deadline are
+still live. A stale session generation, stream epoch, security state, route,
+grant, deadline, or authorization rejects before the latch boundary.
 
 Action admission has a dedicated execution budget. Observation, extension,
-control, and perception work cannot consume it. A verified ESTOP enters the same
-short body transition even when the ordinary executor slot or journal is full.
-The preallocated latch and restrictive-rejection no-reuse slot make that path
-independent of new heap or queue allocation. Transport and CPU rate limits
-remain per principal and plane, so one publisher cannot borrow another
-publisher's reserved budget.
+control, and perception work cannot consume it. Freshness-grant installation
+reserves the worst-case no-reuse, disposition, and fail-safe state for every
+granted position. A verified ESTOP therefore enters the short body transition
+without new heap or queue allocation.
+
+The generation also reserves one enrolled ESTOP-only ingress slot, drain-grant
+budget, and complete escalation capacity before normal command capacity can
+fill. This reservation grants no authority. Only an authenticated, current,
+separately enrolled emergency principal can receive or use the grant. Transport
+and CPU rate limits remain per principal and declaration, so one publisher cannot
+borrow another publisher's reserved budget.
+
+Network loss, process loss, CPU starvation, and power loss can still prevent
+delivery. The reserved software path is not a physical-availability claim.
 
 No durable or externally visible ESTOP position binding can exist without its
-retained latch or an explicit unresolved restrictive obligation. The fixed
-restrictive-rejection slot is a no-reuse binding, not effect evidence. The
-obligation blocks Active admission until recovery resolves it.
+retained latch or an explicit unresolved restrictive obligation. A grant or
+position tombstone is no-reuse evidence, not effect evidence. An unresolved
+restrictive obligation blocks Active admission until recovery resolves it.
 
 The body rejects Active at or after the local monotonic lease deadline. UTC is
 audit metadata and an initial duration bound. It never drives ongoing expiry.
@@ -973,14 +1417,21 @@ before then.
 
 One body-owned authority machine holds at most one live commander lease for a
 plant generation. The lease binds holder identity, positive increasing term,
-random lease ID, plant profile, declared action stream, security state, and an
-exclusive receiver-local monotonic deadline.
+random lease ID, plant profile, one lease-bound command declaration, security
+state, and an exclusive receiver-local monotonic deadline.
 
 Serialized lease bytes do not recreate authority. Active and explicit HOLD must
-match the machine's live holder, term, lease ID, session, profile, stream, and
-security state. ESTOP is the only remote mode that can omit the live lease. It
-still requires authenticated and authorized action ingress, a live session, a
-declared stream, current security state, and explicit ESTOP intent.
+use a grant whose retained lease coordinate matches the machine's live lease.
+That match includes holder, term, lease ID, session, profile, stream, and security
+state. Those values do not repeat in the compact command.
+
+ESTOP is the only remote mode that can omit the live lease. It still requires
+authenticated and authorized action ingress, a live session, and a declared
+command stream. It also requires a live body-issued freshness grant, current
+security state, and explicit ESTOP intent. A separate emergency principal uses
+only its enrolled ESTOP-only declaration and an installed ESTOP-only grant. That
+grant can come from ordinary reserved capacity or the one-use restrictive drain
+path.
 
 Acquire, renew, transfer, revoke, and reset are authenticated idempotent control
 operations. A command never renews a lease. Renewal must finish before the local
@@ -1005,10 +1456,12 @@ A commander handover uses one body-owned operation:
 1. Enter the installed HOLD or ESTOP policy.
 2. Stop new Active admission from the old holder.
 3. Revoke the old lease and terminalize pending old-holder work.
-4. Retire the old action stream.
-5. Prepare the new topology, holder, greater term, lease ID, and stream.
-6. Atomically install the new lease and declaration.
-7. Return the retained terminal result.
+4. Retire the old lease-bound command stream and its normal freshness grants.
+5. Preserve an emergency ESTOP-only right only through its explicit manifest
+   policy and the same ordered restrictive transition.
+6. Prepare the new topology, holder, greater term, lease ID, and stream.
+7. Atomically install the new lease and declaration.
+8. Return the retained terminal result.
 
 No earlier step grants the new holder. Failure leaves no live commander. A new
 plant generation is the recovery path when exact prior state is unavailable.
@@ -1017,17 +1470,21 @@ plant generation is the recovery path when exact prior state is unavailable.
 
 The body admission token is a receiver-owned, non-serializable capability. It
 references one reserved executor slot instead of copying the command and its
-proof fields. That slot binds the body generation and owner incarnation, command
-coordinate and digest, plant profile, security snapshot, authority version,
-restrictive-state version, and exclusive local deadline.
+proof fields. That slot binds body generation, owner incarnation, command
+coordinate, digest, plant profile, security snapshot, and authority version. It
+also binds the optional source-pin digest, safety and restrictive-state versions,
+and exclusive local deadline.
 
 Only the body owner can mint the token. The executor consumes it once through
 the same owner. Consumption changes the reserved slot to one in-flight executor
-operation before external work begins. It does not release that slot or permit a
-second device operation. A wrong slot generation, completed slot, expired
-deadline, retired owner, or invalidated state rejects without exposing command
-values. Restart and handover change the owner incarnation and invalidate every
-unconsumed token.
+operation before external work begins. That transition samples the receiver clock
+and derives one checked completion deadline from the executor profile's maximum
+duration. It does not release that slot or permit a second device operation. A
+wrong slot generation, completed slot, expired admission deadline, retired owner,
+or invalidated state rejects without exposing command values.
+
+Restart and handover change the owner incarnation and invalidate every unconsumed
+token.
 
 Each plant generation has one serialized actuator lane. Device work runs outside
 the body lock. Executor acceptance first reserves the lane's one preallocated
@@ -1040,11 +1497,12 @@ A duplicate or late result cannot target a successor operation. The body can
 retain one bounded next command while work is in flight, subject to the priority
 and supersession rules below. It cannot invoke that command early.
 
-The installed executor profile sets a finite software-handoff deadline. A driver
-that can block indefinitely cannot satisfy this interface. Deadline or executor
-loss keeps Active closed and leaves a known failure or unresolved boundary
-result. It retires or isolates the affected lane before any successor generation
-can use the device. It never frees the lane for an uncorrelated retry.
+The installed executor profile sets a finite maximum software-handoff duration.
+A driver that can block indefinitely cannot satisfy this interface. Completion
+deadline or executor loss keeps Active closed and leaves a known failure or
+unresolved boundary result. It retires or isolates the affected lane before any
+successor generation can use the device. It never frees the lane for an
+uncorrelated retry.
 
 The preallocated ESTOP latch is also visible through a dedicated local
 restrictive signal. It does not wait behind the ordinary actuator lane. That
@@ -1069,6 +1527,7 @@ Process ownership is not enough when two realms or sessions can address the
 same hardware. A deployment owner reserves the content-addressed set of physical
 effect paths before it opens a plant generation. Two live reservations with an
 overlapping path conflict, even when their realms, sessions, or processes differ.
+
 Handover and failover preserve that fence. Unknown reservation state keeps the
 path unavailable and cannot be repaired with a network lease. Every process that
 can write a path must share this fencing authority. Otherwise, that path cannot
@@ -1088,12 +1547,20 @@ The runtime needs finite state with explicit ownership:
 - one authority machine inside that owner.
 - one idempotency cache and bounded no-reuse state per mutating control boundary.
 - one replay fence entry per declared stream.
-- one digest-bound no-reuse result per finalized command position.
+- one bounded body-issued command freshness-grant registry with range tombstones.
+- one digest-bound primary result per finalized command position.
 - one latest sensor slot per controller.
+- one finite source-publication correlation window per bound perception stream.
 - one outgoing command slot per publisher.
 - one priority command slot per plant body generation.
-- one fixed restrictive-rejection slot per plant body generation.
+- one ESTOP-only drain-grant budget that can be used once per plant body
+  generation.
+- one dedicated drain escalation capacity per plant body generation.
+- one fixed capacity-cut record per plant body generation.
+- one preallocated restrictive-conflict attribution per plant body generation.
 - one finite observation queue per subscriber.
+- one strict simulation execution cursor, bounded request window, exact request
+  digest, and retained response slot per accepted compact simulation step.
 - one bounded disposition journal per body session.
 
 Every authority, replay, generation, term, epoch, sequence, state-version, and
@@ -1103,13 +1570,13 @@ implicitly, or grants a default successor. A telemetry-only counter can
 saturate only when the saturated state is explicit and cannot grant authority
 or hide queue, loss, or overload state.
 
-The disposition journal and its compact no-reuse entries share one declared
-capacity. A live generation does not evict an entry if eviction could permit a
-second effect or conflicting reuse. When the capacity cannot admit the complete
-next record, it rejects new action commands. The receiver still advances the
-authenticated stream high-water mark, so later bytes cannot reuse that rejected
-position. Retirement can release the state only after that generation becomes
-permanently unable to resume.
+The disposition journal, grant registry, and compact no-reuse entries share one
+declared capacity. A live generation does not evict an entry if eviction could
+permit a second effect or conflicting reuse. Grant installation reserves the
+complete worst-case record budget for its range. When capacity cannot admit that
+reservation, the body rejects the new grant before it becomes visible. It does
+not issue positions that can later fail for ordinary journal capacity. Retirement
+can release state only after the generation becomes permanently unable to resume.
 
 The body priority slot orders ESTOP above HOLD and HOLD above Active. Equal
 severity can replace only work that has not crossed body admission. A reserved
@@ -1117,41 +1584,65 @@ or in-flight executor operation is never overwritten. Its owner expires an
 unconsumed reservation or resolves an in-flight operation from one completion
 event.
 
-Every bound command reserves its complete terminal record before it can enter a
-slot. A slot replacement terminalizes the displaced command as `SUPERSEDED`
-using that reservation in the same body-owned transition. An ordinary newcomer
-that cannot reserve its own record rejects without changing the slot. An ESTOP
-newcomer can still install the preallocated latch and restrictive-rejection
-binding.
-That restrictive transition invalidates a weaker unconsumed token, whose own
-reserved record remains available for terminalization.
+Every granted command position reserves its complete primary terminal record
+before the publisher can use it. Separately, body-generation creation allocates
+one restrictive-conflict attribution beside the ESTOP latch. The attribution can
+hold only the qualified changed ESTOP at an occupied position that first changes
+the latch.
 
-The ESTOP latch and one restrictive-rejection slot are fixed state allocated
-when the body generation is created. Journal, queue, or heap pressure cannot
-make either transition depend on a new allocation. The slot retains the latest
-resource-rejected ESTOP position, exact digest, and rejection reason. A newer
-position can replace it only while advancing the stream high-water mark. An
-older position remains stale. Once the slot advances, a query for its former
-position returns `EVIDENCE_UNAVAILABLE` rather than guessing whether later bytes
-were exact.
+A stale but previously unseen position uses its own primary record. It binds the
+complete coordinate, digest, command rejection, and separate latch result. It
+never replaces a primary digest or creates another `RECEIVED` record. A later
+exact replay returns that retained result. Different bytes reject without another
+latch invocation or allocation.
 
-A resource-rejected ESTOP can cause the local latch, but it cannot
-claim the `STOP_LATCHED` command disposition without the required retained
-association record.
+A slot replacement terminalizes the displaced command as `SUPERSEDED` using the
+primary reservation in the same body-owned transition. An ordinary grant request
+that cannot reserve its complete range rejects without changing the slot. An
+ESTOP from an installed drain grant can still install the preallocated latch and
+its exact no-reuse binding through the dedicated capacity. That restrictive
+transition invalidates a weaker unconsumed token, whose own reserved record
+remains available for terminalization.
 
-The default retire-on-restart behavior lets its high-water mark, journal,
-restrictive-rejection slot, pending tokens, and live lease remain memory-only.
-A process restart treats the old body generation as permanently retired. The
-restored realm issuer reserves a different generation before it creates new
-authority. This behavior performs one durable reservation per session opening.
-It does not perform one synchronous storage write per high-rate command.
+The ESTOP latch, one-use drain-grant budget, dedicated escalation capacity, and
+capacity-cut record are fixed state allocated when the body generation is
+created. Journal, queue, or heap pressure cannot make those transitions depend
+on a new allocation.
+
+When normal grant capacity is exhausted, the body closes normal command admission
+and enters its installed restrictive drain policy. The same transition can
+preserve exactly one policy-authorized, unexpired, unused position from an
+installed ESTOP-only grant. It tombstones every other unconsumed remote position.
+
+If no eligible position exists, the transition can use the untouched budget to
+issue exactly one grant with one position to the enrolled emergency principal.
+Use, expiry, rejection, or tombstoning closes that remote edge permanently. It
+never mints a successor grant inside the generation.
+
+A rejected or conflicting ESTOP can cause the separately attributed local latch.
+It cannot claim the `STOP_LATCHED` command disposition without the required
+retained association record.
+
+The default retire-on-restart behavior lets its high-water marks, freshness
+grants, journal, drain-grant budget and any installed drain slot, pending tokens,
+and live lease remain memory-only. A process restart treats the old body
+generation as permanently retired. The restored realm issuer reserves a
+different generation before it creates new authority. This behavior performs
+one durable reservation per session opening. It does not perform one synchronous
+storage write per high-rate command.
 
 An optional durable-continuity behavior can resume the same generation. Before
-resumption, it atomically restores the high-water mark, journal, rejection slot,
-ESTOP latch, predecessor owner-incarnation fence, and exclusive actuator state.
-It then installs a fresh owner incarnation, so no pre-crash token can be used.
-It persists required no-reuse state before exposing a new effect token. A
-missing, corrupt, ambiguous, or partially restored record retires the
+resumption, it atomically restores every high-water mark, grant record, range
+tombstone, and source-correlation record. It also restores the journal, drain
+budget and slot, ESTOP latch, predecessor owner-incarnation fence, and exclusive
+actuator state.
+
+It converts every pre-restart live grant to an exact clock-restart expiry
+tombstone before admission can reopen. A source record from the former clock
+incarnation remains historical evidence and cannot satisfy command freshness.
+The behavior then installs a fresh owner incarnation, so no pre-crash token can
+be used. It persists required no-reuse state before exposing a new effect token.
+A missing, corrupt, ambiguous, or partially restored record retires the
 generation. B03 must select the exact storage, profile identifier, and recovery
 contract before implementation.
 
@@ -1160,12 +1651,12 @@ read lock around arbitrary callbacks. The runtime does not need cross-store proo
 envelopes, selector forests, recursive receipt DAGs, or global transaction
 machinery on the public wire.
 
-After authenticated envelope checks identify a declared stream and position,
-the receiver never accepts different bytes at that position. Ordinary data
-streams can consume the position in their monotonic high-water state. Action
-commands also bind the exact frame digest to bounded no-reuse and disposition
-state before lower-priority semantic checks. This extra state supports exact
-replay results without permitting a second command at the same position.
+After bounded closed-shape decode and authenticated context identify a declared
+stream and position, the receiver never accepts different bytes at that position.
+An object with unknown members never becomes such a frame. Ordinary data streams
+can consume an identified position in their monotonic high-water state. Action
+commands also bind the exact frame digest before lower-priority semantic checks.
+That state supports exact replay without permitting a second command there.
 
 A process restart never restores Active from serialized state alone. A durable
 profile restores restrictive and no-reuse state, then requires an explicit
@@ -1183,9 +1674,11 @@ cannot do so, the affected session generation cannot resume.
 
 Orderly shutdown first closes new Active and HOLD admission. The body enters its
 installed restrictive policy, expires unconsumed tokens, terminalizes reserved
-records, retires authority, and then releases transport resources. Observer and
-extension owners close currentness before they stop subscriptions and callbacks.
-No cleanup step holds a body or realm lock while it waits for external work.
+records, retires authority, and then releases transport resources. A simulation
+owner closes new steps, terminalizes later reserved requests, and resolves its
+single in-flight step or retires it as outcome unknown. Observer and extension
+owners close currentness before they stop subscriptions and callbacks. No cleanup
+step holds a body or realm lock while it waits for external work.
 
 The body transition code is finite and contains no user callback, network I/O,
 device I/O, dynamic schema lookup, or panic-based control flow. An internal state
@@ -1260,42 +1753,77 @@ package digest, total length, index, count, and chunk length. It does not
 base64-encode package bytes or repeat variable route and identity strings.
 
 The installed resource profile fixes a positive maximum chunk payload `C`.
+The fixed header plus one chunk payload must fit the authenticated transport's
+complete delivered-byte limit. The profile derives `C` from that limit rather
+than applying the universal structured-JSON limit to reassembled package bytes.
 For a positive total length `L`, the declared count must equal `ceil(L / C)` and
 remain within the profile maximum. Chunk `i` has checked offset `i * C` and exact
 length `min(C, L - i * C)`. Any overflow, alternate count, overlap, gap, or
 non-final short chunk rejects before reservation.
 
 Raw header arithmetic and the authenticated context match run before slot
-lookup. The slot key binds the prepared activation context and package digest.
-When that slot is absent, the receiver reserves the complete package bytes,
-fixed per-chunk metadata, and the greater of active-state or terminal-tombstone
+lookup. The stable slot key binds the prepared activation context and package
+digest. The slot also retains the complete immutable wrapper metadata. An
+existing slot compares that metadata exactly before duplicate or conflict
+handling. Changed length, count, version, class, or context cannot allocate a
+parallel assembly under the same slot.
+
+When the slot is absent, the receiver reserves the complete package bytes, fixed
+per-chunk metadata, and the greater of active-state or terminal-tombstone
 overhead. Capacity failure creates no slot. Any valid first index can create the
 reserved slot after those checks.
 
+The receiver rechecks current security and exact lookup permission before it
+reveals an active-slot or tombstone result. A closed context cannot use replay to
+read retained state. That rejection allocates no slot and changes no tombstone.
+
 The receiver then copies each new raw chunk once into its checked offset in one
 final package buffer and tracks a bitmap with fixed fingerprints. An exact
-duplicate compares without another package copy.
+duplicate compares without another package copy. Different bytes at an accepted
+index terminalize the slot as a conflict without overwriting package bytes.
 
 The first accepted chunk records one receiver-clock incarnation, admitted tick,
 and checked exclusive expiry derived from the installed resource profile. Later
 chunks recheck the activation, security state, route, producer, audience, and
 receiver clock before retention. A duplicate does not extend the expiry. A
 receiver-owned timer can expire an incomplete slot without waiting for more
-traffic. Rotation, revocation, expiry, conflict, and completion release package
-bytes and leave only the selected compact no-reuse tombstone.
+traffic.
+
+Rotation, revocation, expiry, conflict, and completion release package bytes and
+leave only the selected compact no-reuse tombstone. The activation owner
+terminalizes every active slot when a rotation or revocation cut wins. It does
+not wait for another chunk or callback attempt. That tombstone retains the
+terminal cause, result, and bounded accepted-index fingerprints. An exact replay
+of an accepted chunk returns the retained result. Altered or absent-index replay
+remains a conflict and cannot create another assembly or callback.
 
 The receiver checks the complete length and hashes the completed buffer once. It
 rechecks currentness and expiry before bounded schema parsing and again
-immediately before callback entry. A schema-specific parser runs only after
-complete authentication and digest verification. This recommendation is not
-wire until the deliberate rebaseline and B03 allocation authorize it.
+immediately before callback entry. Before parsing, it reserves the complete
+schema-specific node, string, item, decoded-byte, and callback-slot budgets from
+the activation profile.
+
+Capacity failure terminalizes the package without parser or callback work. The
+reservation selects a concrete bounded arena and callback slot, not only an
+accounting value. A schema-specific parser runs only after complete authentication,
+digest verification, and that reservation. This recommendation is not wire until
+the deliberate rebaseline and B03 allocation authorize it.
+
+Callback entry consumes the reserved slot once and marks the package in flight
+before extension code can run. A lost or timed-out result remains unresolved and
+cannot invoke the same package again inside that activation. Restart without the
+exact activation no-reuse state retires the activation and reports no callback
+success. A callback that needs no-repeat behavior across distinct activations
+must use its own durable idempotency identity and selected recovery profile.
 
 An at-most-once activation retains package no-reuse state until the activation
 retires. Capacity exhaustion rejects a new package before callback work. An
 activation can use shorter evidence retention without permitting execution
 again. Only an explicitly selected at-least-once profile can discard no-reuse
 state earlier, and its callback must be idempotent by activation and package
-digest.
+digest. The profile also bounds accepted packages per activation. A long-lived
+at-most-once activation therefore rotates explicitly or stops accepting new
+packages when its no-reuse budget fills.
 
 Galadriel is one extension producer. It is not part of core NCP authority, plant
 control, or simulation truth.
@@ -1317,12 +1845,26 @@ source-only fields before that frame enters the observer queue. The callback
 cannot access the unprojected source object. The receiver rechecks currentness
 before callback entry.
 
-The source owner also orders release against revocation. It rechecks the current
-grant, creates only the permitted projection, and transfers the exact projected
-bytes into one bounded outgoing slot in a single local transition. No lock spans
-the network. Bytes released before revocation can still arrive and remain
-historical evidence. Revocation can claim quiescence only after every earlier
-outgoing slot is terminal or explicitly unresolved.
+The source owner also orders release against revocation. A first short transition
+rechecks the grant and reserves one bounded projection and outgoing slot for an
+immutable source record. It also irreversibly assigns the observer output
+position. The reservation pins an already owned immutable record. It neither
+clones the complete frame under the owner lock nor aliases a mutable producer
+buffer. Projection and encoding run outside the owner lock.
+
+A second short transition rechecks the same grant and either commits the exact
+projected bytes for release or discards them.
+
+Projection, encoding, or commit failure leaves a visible output gap and never
+reuses the assigned position. The projector writes once into the reserved final
+JSON or compact buffer and retains no second full projection tree. No bytes become
+visible between those transitions, and no lock spans projection, encoding, or the
+network.
+
+Bytes committed before revocation can still arrive and remain historical
+evidence. Revocation can claim release quiescence only after every earlier
+uncommitted reservation is discarded and every earlier committed slot is terminal
+or explicitly unresolved.
 
 Revocation first closes the grant's one-way currentness state. Subscription and
 queue cleanup follows outside application callbacks. A bounded callback that
@@ -1471,8 +2013,10 @@ The implementation review uses these structural budgets:
 | Contiguous receive payload | Borrow once, bound once, decode once, and move one typed result. |
 | Segmented receive payload | Permit one bounded flattening buffer, then follow the contiguous path. |
 | Publish slot | Retain one exact payload buffer and fixed metadata. A queue adapter does not clone the full payload. |
+| Command freshness | Amortize one bounded grant across a fixed position range. Keep only the current and one disjoint prefetched range live. Let the position select the range, with no repeated grant field or per-frame round trip. |
 | Body admission | Use one bounded event and one body-owned transition. No external work runs under its state lock. |
 | Replay and disposition | Use one bounded key lookup and one retained record. Do not traverse a receipt graph on the hot path. |
+| Simulation step | Prepare the complete fixed request and response window. Move one request into its reserved slot and mark it in flight before mutation. Execute once outside the owner lock. Correlate by request position, not FIFO arrival. |
 | Extension reassembly | Reserve the complete budget first. Store package bytes once and fixed per-chunk state. |
 
 For a fixed-layout compact core, steady-state codec work should require no heap
@@ -1545,22 +2089,31 @@ result or generated decision matrix cannot complete those tasks.
 |---|---|---|
 | Realm identity on hot frames | Several ADRs require both realm strings in every frame. The compact path binds them through prepared authenticated context. | Keep direct realm fields in control objects and portable evidence. Permit an authenticated prepared-context binding for hot frames. |
 | Stable-core identity | ADR-002 leaves the exact stable-core source set for later enumeration. A complete release digest also changes for packaging and maintained prose. | Register one ordered source set containing only accepted wire, security, safety, and semantic behavior. Exclude packaging and maintained prose. Prepare its fixed digest before runtime admission. |
-| Identifier grammar and bounds | Route helpers block delimiter injection but omit portable character, segment-byte, realm-segment-count, and complete-route limits. | Select exact UTF-8 or ASCII grammar and checked byte limits for each identity class. Enforce the complete route limit before allocation in every binding. |
+| Version spelling | Current negotiation accepts both `1` and `1.0`, plus every parseable same-major minor. Exact replay and signature inputs can then carry different strings for one claimed profile. | Select one literal per native JSON profile. Use exact `1.0` for the recommended stable profile. Require a separately negotiated successor profile for another minor. Compact frames inherit the selected literal from prepared context. |
+| Identifier grammar and bounds | Route helpers block delimiter injection but omit portable character, segment-byte, realm-segment-count, and complete-route limits. The manifest also treats a transport certificate identity as an NCP key segment. | Select exact UTF-8 or ASCII grammar and checked byte limits for each NCP identity class. Give transport-native identities a separate bounded profile and map them once to canonical principals. Enforce the complete route limit before allocation in every binding. |
+| Unknown stable members | Rust and TypeScript use major-version forward compatibility, while Rust typed conversion discards unknown members. A signer, replay digest, gateway, and typed receiver can therefore observe different objects. | Close every exact native `1.0` message shape. Reject unknown members before typed conversion. Add evolution only through a negotiated wire/profile or an explicit bounded extension member whose bytes and semantics are bound. |
 | Forwarded authentication | ADR-003 proposes flattened JWS and rejects custom signature framing. Per-frame application signatures also add avoidable hot-path work. | Use A-direct for hot traffic and B-over-A only for explicit forwarding. Keep custom signature carriers outside `stable-1.0` and the default runtime. |
-| Forwarded mutation recovery | Authentication alone does not prevent a crash between forwarding and recording the result. A fresh retry can duplicate a remote mutation. | Install exact protected bytes, target coordinates, signer, and idempotency key in one bounded durable outbox before send. Resume or query the same item after ambiguity. |
+| Forwarded mutation recovery | Authentication alone does not prevent a crash between forwarding and recording the result. A fresh retry can duplicate a remote mutation. | Install exact protected bytes, target coordinates, signer, and idempotency key in one bounded durable outbox. Recheck security and mark one attempt active before each external send. Resume or query the same item after ambiguity. |
 | Ingress process isolation | ADR-003 leaves process-isolated direct-capability handoff open. A same-process verified transport does not need an extra process or byte envelope merely to prove isolation. | Require an opaque receiver-owned capability in the same trust process. If transport termination is separate, require an authenticated OS-protected handoff or B-over-A. Plain caller-supplied identity bytes never substitute. |
 | Local ordering | Expanded ADR models require selector forests and broad transaction graphs. The runtime needs deterministic local ownership with bounded cross-store import. | Use one state owner per local authority boundary. Keep distributed evidence outside the hot public wire. |
 | Security currentness | The core has no installed security-snapshot owner or inseparable actor/currentness capability. It also lacks one body-owned event order for every security and effect transition. | Use one-way snapshot currentness and serialized body/executor admission. Never hold synchronization across external work. |
-| Observer release ordering | Receiver-side currentness does not define whether source release or revocation won. | Order projection and bounded outgoing-slot transfer under the source owner. Treat earlier released bytes as historical and wait for terminal or unresolved slots before claiming quiescence. |
-| Remote restrictive modes | `CommandFrame` defaults missing mode to HOLD. Explicit HOLD lacks a live-holder check. The body result merges remote HOLD with a local response. | Require an explicit known mode and a live holder for HOLD. Reserve the lease exemption and early idempotent latch for ESTOP. Separate rejection from the body-local response. |
+| Observer release ordering | Receiver-side currentness does not define whether source release or revocation won. Building a maximum projection inside the source-owner lock can also block action work. | Reserve an immutable source record and slot in one short transition. Project outside the lock, then recheck and commit or discard in a second short transition. Drain uncommitted reservations. Treat earlier committed bytes as historical and wait for terminal or unresolved slots before claiming quiescence. |
+| Remote restrictive modes | `CommandFrame` defaults missing mode to HOLD and carries remote values, horizon fields, and a source timestamp for every mode. Explicit HOLD lacks a live-holder check. The body result merges remote HOLD with a local response. ADR-007 also selects the remote HOLD side effect before stream replay and the live-lease check. Its complete ESTOP gate names source evidence. | Require an explicit known mode and a live holder for HOLD. HOLD obeys stream monotonicity before it can request the installed HOLD action. Reserve the lease exemption and early idempotent latch for ESTOP. HOLD and ESTOP structurally forbid source, value-vector, and horizon fields. Their actions come from the installed profile. Separate rejection from the body-local response. |
 | Physical effect-path ownership | A session-local lease or process-local owner cannot exclude another realm or process from the same device path. | Reserve the content-addressed physical effect-path set at deployment scope. Reject overlapping live reservations and preserve the fence through handover and failover. |
-| Control retry deadline | The compatibility idempotency API rejects every call after the request deadline, including a read of an existing terminal result. | Use the deadline only to start new mutation work. Permit authenticated exact retry and query of retained state without extending the deadline. |
+| Control retry and correlation | The compatibility idempotency API rejects every call after the request deadline, including a read of an existing terminal result. The TypeScript WebSocket client also assigns replies by FIFO waiter order. | Use the deadline only to start new mutation work. Permit authenticated exact retry and query of retained state without extending the deadline. Correlate each reply through one bounded exact request identity and leave unrelated waiters untouched. |
+| Remote command freshness | The compatibility watchdog starts a binary64 TTL at receiver arrival and normalizes it locally. A delayed command therefore receives a new lifetime, while ADR-007 defines an unchanged body-clock deadline. | Issue a bounded body freshness grant before publication. Bind its clock incarnation, absolute window, mode, lease coordinate, position range, and reserved state. Allocate position one first and successors contiguously. Let the position select that non-overlapping range. Repeat no grant, lease, or TTL field in the compact command. Arrival records evidence only. |
+| Command-stream scope | A single action-stream phrase cannot cover both the current lease holder and a separately enrolled emergency principal. Sequence values from different publishers are not comparable. Principal identity alone also cannot serialize two simultaneous publisher connections. Shared ingress capacity can suppress the reserved emergency body slot. | Use one lease-bound command declaration plus a bounded ESTOP-only declaration when policy enrolls an emergency principal. Bind each declaration and grant to one receiver-owned publisher incarnation. Reserve separate emergency ingress work. Keep per-stream allocators and merge them only through the body-owned event order. |
+| Predictive command replay | `ActionBuffer` retains a complete command, clones values on each poll, and replays tick-zero or horizon values from receiver arrival. One command can therefore drive several later values while the selected body model has one position, token, application attempt, and disposition. | Keep one setpoint per compact command position. Do not replay it implicitly. Define any future trajectory as a separate registered profile with per-step authority, deadlines, source binding, application, and disposition. |
+| Observation hot path | Observer grants define exact projections, but the selected architecture previously named compact sensor and command frames only. The local `BulkBlock` has no transport identity or provenance envelope. | Add a grant-bound compact numeric observer projection with exact source position and digest. Keep nested and variable observations on bounded JSON or registered extension paths. Never transport a bare `NCPB` block as an NCP frame. |
+| Simulation tick overhead | Stateful simulation steps currently use descriptive JSON lifecycle requests and responses. Repeated names, generic trees, binary64 durations, and FIFO reply handling add work to every tick. | Keep lifecycle operations on control JSON. Add a grant-bound fixed-layout step pair with pre-reserved ranges, strict execution order, exact request-digest replay, retained responses, request-position correlation, and a terminable backend boundary. |
 | Publisher position | The current control loop commits a candidate command position only after local slot acceptance. Earlier failure can reuse that candidate. | Consume a position when it is assigned. Record a visible gap after any later local failure. |
 | Stream retry | Current wire has no digest-bound receiver result for a command position. It cannot distinguish retained admission from delivery ambiguity. | Never reassign a position. Bind an action position before lower semantic checks. Permit retransmission only after an accepted profile defines exact digest-bound replay state and retained outcomes. |
+| Source-correlation retention | The selected Active path requires an exact retained source publication, but the bounded-state list previously named only a latest sensor slot. A fast source can overwrite evidence before a valid command arrives. | Reserve a finite per-declaration correlation window by count, bytes, and receiver time. Absent or evicted source evidence rejects without timestamp, bare-sequence, or latest-value fallback. |
 | Disposition query | ADR-007 leaves retained, retired, and unavailable query results open. | Reconcile the three-way union in this document and bind every branch to the exact query coordinate. |
 | Extension size | ADR-008 allows packages larger than the universal structured-frame limit without a selected outer transport. | Select raw bounded chunk framing before package bytes become a stable profile. |
 | Security and activation context | ADR-009 commits accepted extension manifest identities. ADR-008 makes installed activation realm-scoped but does not select a compact prepared-context identity. | Derive a prepared activation-context digest from the completed security-state digest. Keep its exact name and projection in B03 allocation work. |
 | Extension no-reuse | A finite evidence tombstone can expire while an at-most-once activation remains live. | Retain compact no-reuse state for the activation lifetime, or use an explicit idempotent at-least-once profile. |
+| Extension parser capacity | Package reassembly bounds do not reserve schema-tree or callback work. A complete authenticated package can otherwise trigger a second unreserved allocation domain. | Reserve the schema-specific semantic and callback budgets after digest verification and before parsing. Terminalize without callback when that reservation cannot be made. |
 | Cross-store audit opening | ADR-009's companion module leaves its exact-opening byte maximum symbolic. A proposed JSON capsule cannot evade the universal structured-frame ceiling. | Derive and freeze one numeric payload maximum from the complete canonical capsule shell, encoding expansion, and the universal frame bound. Test exact, one-below, one-above, and aggregate optional-scope cases. |
 | QoS profile completeness | ADR-010 names the semantics but leaves its exact numeric fields and corrupt-profile behavior open. Transport defaults cannot fill either gap. | Select capacity, aggregate bytes, deadline, retention, and bounded retry fields for each class. Missing, unknown, corrupt, zero-authority, or uninstalled profiles reject before queue allocation. B03 selects measured values without changing those meanings. |
 
@@ -1580,13 +2133,13 @@ review required by B01.
 | Identity and correlation | Realm, session generation, stream, request, command, package, and contract identities have explicit scopes. | Exact field layouts, digest domains, and the durable generation issuer remain B03 work. The current transport path does not supply the selected prepared-context binding. |
 | Authentication and authorization | Direct transport context and explicit forwarded signing are default-deny and non-downgrading. | A-direct is not implemented. The current actor helper trusts caller-supplied transport evidence, and manifest grants are plane-wide. Live identity, route ACL, custody, rotation, and revocation remain external gates. |
 | Error precedence | Raw bounds and profile selection precede identity-sensitive diagnostics. Exact conflicts cannot become fresh admissions. | The selected diagnostic map remains B03 work. The current governor still merges some remote rejection and body-local responses. |
-| Freshness and replay | Receiver-local deadlines, declared epochs, one action sequence, and post-admission rechecks fail closed. | Exact limits, digest-bound command replay, control retry-after-deadline behavior, and restart profiles remain B03 and implementation work. |
-| Lifecycle and concurrency | One owner defines session, stream, lease, security, restrictive, disposition, and executor ordering. | The reference runtime does not yet have that complete owner or atomic handover. |
-| Resource and denial of service | Raw limits precede semantic allocation, every queue is finite, and planes cannot borrow action capacity. | B03 must select numeric profiles and aggregate budgets. Current bounded queues do not form one accepted end-to-end profile. |
-| Hot-path overhead | Prepared contexts avoid manifest scans, payloads decode once, and extension bytes use one raw package buffer. | A-direct and compact framing are absent. Performance qualification remains **NOT RUN**. |
+| Freshness and replay | Body-issued absolute freshness grants, per-stream positions, declared epochs, and post-admission rechecks fail closed. Receiver arrival never refreshes command lifetime. | Exact limits, grant encoding, digest-bound command replay, control retry-after-deadline behavior, and restart profiles remain B03 and implementation work. |
+| Lifecycle and concurrency | One-way session and security currentness feed one body owner that orders stream, lease, restrictive, disposition, and executor transitions. | The reference runtime does not yet have those owners, their complete order, or atomic handover. |
+| Resource and denial of service | Raw limits precede semantic allocation, command grants reserve completion state, every queue is finite, and planes cannot borrow action capacity. | B03 must select numeric profiles and aggregate budgets. Current bounded queues do not form one accepted end-to-end profile. |
+| Hot-path overhead | Prepared contexts avoid manifest scans. Compact sensor, command, simulation-step, and numeric-observer frames decode once. Extension bytes use one raw package buffer. | A-direct and compact framing are absent. Performance qualification remains **NOT RUN**. |
 | Failure and crash recovery | Restart grants no Active authority, retired identities do not revive, and ambiguity never becomes success. | The durable generation issuer, no-reuse state, and disposition recovery profiles are not implemented. The compatibility idempotency key is narrower than the selected target. Fault campaigns remain later work. |
 | Plant safety and effect claims | Crebain owns final software admission, restrictive modes remain plant-specific, and protocol receipts stop at software boundaries. | The current body path is incomplete. Consumer safety cases and physical qualification remain external. |
-| QoS and overload | Control, action, perception, observation, and extension resources have separate finite policies. | Exact scheduler, aggregate byte budgets, non-wrapping metrics, transport mappings, and load evidence remain B03 and implementation work. |
+| QoS and overload | Lifecycle control, simulation-step, action, perception, observation, and extension resources have separate finite policies. Source correlation, step responses, and extension parsing have explicit reservations. | Exact scheduler, aggregate byte budgets, non-wrapping metrics, transport mappings, and load evidence remain B03 and implementation work. |
 | SDK buffering | Per-request bounds compose with a checked aggregate byte reservation and one finite pending-request count. | The TypeScript WebSocket client currently bounds only count. Browser and installed-peer load qualification remain later work. |
 | Extension isolation | A prepared activation and raw binary chunks keep extension parsing and load outside stable action semantics. | B03 must select the exact activation-context identity, its one-way derivation, and the delivery profile. Galadriel schemas and installed qualification remain later work. |
 | Evolution and compatibility | Stable-core, release, corpus, extension, and publication identities remain distinct. | B02 must authorize the rebaseline before any normative or generated contract change. |
@@ -1603,9 +2156,40 @@ current semantic questions. Every B03 deferral must also have a finite selection
 predicate that cannot change accepted meaning.
 
 The ADR set must also order mutating forwarding against durable outbox
-installation, observer release against revocation, and plant generation opening
+installation and each external attempt against a security cut. It must order
+observer release against revocation. It must order plant generation opening
 against deployment-wide effect-path reservation. These are control-plane
 invariants. They add no per-tick proof object or network round trip.
+
+ADR-002 and every stable message profile must require the exact supported wire,
+stable-core identity, and closed member set. Unknown stable members reject before
+typed conversion. Explicit bounded extension members and negotiated successor
+profiles are the only extensibility paths.
+
+ADR-004 must bind any compact numeric observer projection to the exact grant,
+source position, source digest, and prepared layout. It must not authorize bare
+`NCPB` transport or infer provenance from delivery order.
+
+ADR-001, ADR-005, and ADR-010 must define:
+
+- the compact simulation step pair and bounded authority grant.
+- strict mutation order and digest-bound no-reuse.
+- bounded retained responses and finite pre-reserved pipeline capacity.
+- response correlation by request position.
+
+They must not infer simulator order from arrival or a FIFO waiter. An unresolved
+backend call retires the generation and never executes again.
+
+ADR-005 through ADR-007 must agree that command freshness comes from a
+body-issued absolute grant, not receiver arrival. They must define the
+lease-bound and ESTOP-only command-stream scopes, per-stream position ordering,
+contiguous body grant allocation, reserved completion capacity, and finite
+source-publication correlation window.
+Only ESTOP can bypass ordinary stream replay and live-lease checks for its
+separately attributed restrictive latch. One command position selects one
+setpoint and one application attempt. A future trajectory cannot inherit
+compatibility horizon replay. ADR-008 must reserve schema and callback work
+separately from raw reassembly.
 
 The ADRs must distinguish required wire/runtime behavior from retained
 proof-model analysis. The retained analysis does not need to be deleted. Each

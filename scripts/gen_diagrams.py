@@ -94,11 +94,10 @@ SVG_ACCESSIBILITY = {
     ),
     "admission": (
         "NCP body command admission",
-        f"Informative body command-admission path for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. It shows raw bounds, authenticated currentness, one decode, "
-        "digest-bound no-reuse, explicit mode rejection, ESTOP latching, semantic "
-        "admission, and the body effect "
-        "gate. It is not a release, interoperability, or physical-safety certification claim.",
+        f"Informative proposed B01 low-overhead target for the UNRELEASED {CANDIDATE_VERSION} "
+        "candidate. It is not the implemented contract. It shows raw bounds, authentication, "
+        "one decode, no-reuse, ESTOP latching, admission, and the body effect gate. "
+        "It is not a release, interoperability, or physical-safety certification claim.",
     ),
 }
 
@@ -857,25 +856,6 @@ def topology(th):
     return "".join(s)
 
 
-TOPOLOGY_ALT = (
-    "NCP topology: one Commander (a NEST-brain neuromorphic controller, U1) coordinates one "
-    "Body/plant (robot or UAV, U2) over four QoS planes, plus a read-only Observer client (O1) that "
-    "must be authorized by the transport-bound manifest. The safety-gated ACTION plane is the focal "
-    "element — the heaviest, brightest "
-    f"vermillion trace running dead-center from Commander to Body, carrying {COMMAND_ROUTE} as "
-    "express, RealTime, safety-gated traffic with a visible mode enum (init, active, hold, "
-    "estop — estop flagged danger-red) and ttl_ms. The Body is final actuator authority and executes "
-    "plant-profile-declared safe actions; NCP defines no universal zero-safe action. CONTROL "
-    f"({RPC_ROUTE}) is a reliable, bidirectional request/reply rail; the server declares "
-    f"{{realm}}/rpc/*. PERCEPTION ({SENSOR_ROUTE}) is a dashed best-effort-replace-latest plane "
-    f"from Body to Commander. OBSERVATION ({OBSERVATION_ROUTE}) "
-    "is a dotted read-only tap canonically published by the Body to the Observer. This depicts the "
-    f"unreleased {CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash "
-    f"{CONTRACT_HASH}; it is not a "
-    "release or certification claim."
-)
-
-
 # ───────────────────────────── 2. ECOSYSTEM ─────────────────────────────
 def ecosystem(th):
     W, H = 820, 520
@@ -1115,20 +1095,6 @@ def ecosystem(th):
     return "".join(s)
 
 
-ECOSYSTEM_ALT = (
-    "NCP ecosystem: a single highlighted NCP wire-contract node at center (crates ncp-core, "
-    "ncp-zenoh, ncp-gateway; Python, C/C++, and TypeScript/npm bindings and packages) depicts the unreleased "
-    f"{CANDIDATE_VERSION} candidate, wire {WIRE_VERSION}, compact proto hash {CONTRACT_HASH}. "
-    "Three example consumers "
-    "appear in a left column. Engram has an explicit native-1.0 migration in progress and is not "
-    "certified. Crebain and Prisoma are labelled immutable wire-0.8 historical migration input, not "
-    "native-1.0 consumers or certification evidence. No consumer shown is certified for 1.0. A separate "
-    "pid-rs node (PID estimators science library) links to Prisoma by a distinct dashed grey edge labelled "
-    "'git submodule · NOT an NCP wire consumer' and does not connect to the contract. The candidate hub "
-    "does not imply release, migration completion, interoperability, or certification."
-)
-
-
 # ───────────────────────────── 3. VERSIONING ─────────────────────────────
 def versioning(th):
     W, H = 820, 520
@@ -1344,20 +1310,6 @@ def versioning(th):
         lx += 248
     s.append("</svg>")
     return "".join(s)
-
-
-VERSIONING_ALT = (
-    f"NCP version-compatibility handshake for the unreleased {CANDIDATE_VERSION} "
-    f"candidate, wire {WIRE_VERSION}, compact proto hash {CONTRACT_HASH}. The immutable wire-0.8 "
-    "line is historical migration input "
-    f"and the move to native {WIRE_VERSION} is an intentional major break. check_version is a hard fail-closed gate. "
-    "A version has one or two canonical ASCII-decimal unsigned 64-bit components; 1 is the canonical "
-    f"shorthand for {WIRE_MAJOR}.0. Native peers with major {WIRE_MAJOR}, including later {WIRE_MAJOR}.x additive minors, may open the "
-    "session. A wire-0.8 peer is rejected on a native 1.x session; translation requires an explicitly "
-    "labelled terminating gateway and is not native interoperability. Separately, a contract_hash "
-    "difference on the same major is advisory only — reported, not rejected. The candidate depiction is "
-    "not a release or certification claim."
-)
 
 
 # ───────────────────────────── 4. SAFETY FSM ─────────────────────────────
@@ -1787,39 +1739,6 @@ def fsm(th):
     return "".join(s)
 
 
-FSM_ALT = (
-    "Informative NCP plant-side admission state model. Four states: ACTIVE (nominal only while "
-    "a fresh in-bounds sensor, live session and authority lease, and admitted active command all remain "
-    "valid), HOLD (non-latching and represented by a normalized zeroed HOLD frame until every active gate "
-    "passes), ESTOP (latched and represented by a normalized zeroed ESTOP frame; the emphasized vermillion "
-    "glowing state with corner lock-ticks), and "
-    "CONFIG-FAIL-CLOSED (a limit cites an undeclared channel; permanent for the session, safety_ok=false, "
-    "and represented by a zeroed HOLD frame). For a canonical attributable stream/session envelope, "
-    "successful governor output is normalized and bounded; the governor does not load or execute the plant "
-    "profile. An unattributable envelope or the absence of any representable bounded safe-frame tier "
-    "latches local ESTOP and returns an error without a wire frame. "
-    "The standalone governor owns no publisher allocator or high-water mark; normalized sequence 1 is wire "
-    "shape, not freshness evidence. The owning publisher separately assigns and admits the next fresh position, "
-    "exact route, and live generation. An installed body-owned "
-    "executor must map each successful HOLD and ESTOP output through that exact profile. "
-    "Transitions: INIT validates configuration and enters non-actuating HOLD when valid or "
-    "CONFIG-FAIL-CLOSED when invalid. ACTIVE self-loops only while all active gates remain valid; ACTIVE "
-    "moves to HOLD on a stale or missing sensor, non-finite clock, velocity, or position, bad timeout, or "
-    "absent geofence channel. HOLD enters ACTIVE only on fresh in-bounds sensor data plus a live session, "
-    "matching lease, and admitted active command. ACTIVE and HOLD both latch to ESTOP on an actual geofence breach, "
-    "a reported link-loss burst, or sustained sensor silence at the bounded derived threshold (the heaviest strokes); "
-    "these inputs do not identify a network cause. ESTOP self-loops while latched. Wire 1.0 has no stable reset "
-    "RPC. A successful authorized body-local or out-of-band reset is a session-generation cut: the old "
-    "session, authority and lease, streams, sequence state, deadlines, and buffered actuation are retired. It never "
-    "restores old authority. The Body remains in non-actuating HOLD until a fresh SessionOpened creates a new "
-    "generation, publishers establish fresh streams, a new matching authority lease is acquired, and all "
-    "active gates pass. CONFIG-FAIL-CLOSED self-loops for the invalid session. "
-    "Invariant: an installed body executor maps the profile-declared actions; NCP defines no universal "
-    f"zero-safe action and does not certify physical stopping. This depicts the unreleased {CANDIDATE_VERSION} "
-    "candidate, not a release or certification."
-)
-
-
 # ───────────────────────────── 5. SEQUENCE ─────────────────────────────
 def sequence(th):
     W, H = 820, 640
@@ -2114,24 +2033,6 @@ def sequence(th):
     return "".join(s)
 
 
-SEQUENCE_ALT = (
-    "NCP session-lifecycle sequence diagram. Two lifelines: CLIENT (commander) and SERVER (sim "
-    "backend or Body). Three grouped phases run top to bottom. OPEN: CLIENT sends OpenSession with wire "
-    "version, contract hash, identity claim, security profile and security-state digest, network, record, "
-    "stimulus, and simulation configuration. SERVER applies the hard fail-closed same-major-1.x version "
-    "gate plus an advisory contract-hash comparison, then replies SessionOpened. A successful reply "
-    "issues session.generation and authoritative state_version with provenance; a failed reply creates no "
-    "session. STEP/OBSERVE loop: CLIENT sends StepRequest or RunRequest with the live session reference, "
-    "idempotent operation context, matching bounded authority lease, and stimulus. SERVER replies with an "
-    "ObservationFrame carrying the live session reference, its own stream epoch and sequence, required "
-    "responder receipt for a mutating RPC result, simulation time, and records. It asserts "
-    "is_simulation_output=true and calibrated_posterior=false on every frame. CLOSE: CLIENT sends "
-    "CloseSession with session, operation, and authority; SERVER replies SessionClosed with the session "
-    f"and responder receipt. This depicts the unreleased {CANDIDATE_VERSION} candidate, wire "
-    f"{WIRE_VERSION}, compact proto hash {CONTRACT_HASH}; it is not a release or certification claim."
-)
-
-
 # ───────────────────────────── 6. BODY ADMISSION ─────────────────────────────
 def admission(th):
     W, H = 980, 600
@@ -2140,7 +2041,7 @@ def admission(th):
         title_block(
             th,
             "BODY COMMAND ADMISSION",
-            "BOUND ONCE · PREALLOCATED LATCH · ONE EFFECT LINEARIZATION GATE",
+            "PROPOSED B01 TARGET · BOUND ONCE · PREALLOCATED LATCH",
             W,
         )
     )
@@ -2169,22 +2070,22 @@ def admission(th):
             "principal · manifest",
             "snapshot capability",
         ),
-        (408, active, "D1", "DECODE ONCE", "prepared layout", "finite · preserve mode"),
+        (408, active, "D1", "DECODE ONCE", "prepared layout", "closed · preserve mode"),
         (
             598,
             hold,
-            "P1",
-            "POSITION STATE",
-            "lookup · budget",
-            "digest · replay · no-reuse",
+            "C1",
+            "CONTEXT / LOOKUP",
+            "route · session · position",
+            "publisher · digest",
         ),
         (
             788,
             active,
             "S1",
-            "AUTHORIZE / CHECK",
-            "mode · profile · lease",
-            "stream · TTL · current",
+            "GRANT / CHECK",
+            "range · replay · no-reuse",
+            "mode · source · lease",
         ),
     )
     for values in stages:
@@ -2217,7 +2118,7 @@ def admission(th):
         T(
             486,
             375,
-            "authorized · current · preallocated",
+            "authorized · fresh · preallocated",
             9,
             600,
             th["tsec"],
@@ -2228,7 +2129,7 @@ def admission(th):
         T(
             486,
             393,
-            "new / stale / conflict / capacity",
+            "new · stale · conflict",
             9,
             500,
             th["tmut"],
@@ -2318,7 +2219,7 @@ def admission(th):
         T(
             128,
             500,
-            "Journal capacity cannot suppress the preallocated ESTOP latch.",
+            "Grant reserves completion. One conflict attribution is fixed.",
             10,
             600,
             th["tsec"],
@@ -2328,7 +2229,7 @@ def admission(th):
         T(
             128,
             522,
-            "High-water and rejection state bind no-reuse. Capacity still rejects.",
+            "Per-stream high-water and grant tombstones bind no-reuse.",
             10,
             600,
             th["tsec"],
@@ -2349,39 +2250,13 @@ def admission(th):
     return "".join(s)
 
 
-ADMISSION_ALT = (
-    "Informative NCP body command-admission path. Raw size and class bounds run before "
-    "authentication and semantic state. Verified principal, manifest, route, audience, "
-    "session generation, and security currentness select one prepared layout. The receiver "
-    "decodes once, preserves absent or unknown mode as non-authorizing state, and binds the "
-    "stream position to the exact command digest when record capacity exists. Exact replay "
-    "returns retained state. Changed bytes conflict. A missing or unknown mode rejects after "
-    "the position is bound. An authenticated, authorized, valid, and current ESTOP uses a "
-    "preallocated idempotent local latch. New, exact-replayed, stale-position, conflicting, "
-    "and resource-rejected ESTOP intents can cause that latch. A stale generation, epoch, "
-    "security state, route, or authorization rejects before this boundary. Journal capacity "
-    "cannot suppress the latch. Without journal "
-    "capacity, a fixed rejection slot binds the new position and exact digest while advancing "
-    "the stream high-water mark. The command returns a resource rejection. That separately "
-    "attributed latch is not a STOP_LATCHED command disposition. When journal capacity "
-    "exists, one body-owned transition installs the position binding, restrictive obligation, "
-    "and result. HOLD and Active receive no replay exception. Semantic admission checks "
-    "the plant profile, live lease, and TTL. The body "
-    "effect gate orders token consumption or ESTOP latching with lease, security, restrictive, "
-    "handover, and retirement invalidations. Token consumption creates one in-flight executor "
-    "operation. Its bounded completion terminalizes and releases the lane. The handoff proves "
-    f"software admission only. This depicts the unreleased {CANDIDATE_VERSION} candidate and is not a release, "
-    "interoperability, physical-achievement, or safety-certification claim."
-)
-
-
 DIAGRAMS = {
-    "topology": (topology, TOPOLOGY_ALT),
-    "ecosystem": (ecosystem, ECOSYSTEM_ALT),
-    "versioning": (versioning, VERSIONING_ALT),
-    "fsm": (fsm, FSM_ALT),
-    "sequence": (sequence, SEQUENCE_ALT),
-    "admission": (admission, ADMISSION_ALT),
+    "topology": topology,
+    "ecosystem": ecosystem,
+    "versioning": versioning,
+    "fsm": fsm,
+    "sequence": sequence,
+    "admission": admission,
 }
 
 PUBLIC_SVG_PATHS = (
@@ -2635,7 +2510,7 @@ def main():
     if not args.check:
         os.makedirs(outdir, exist_ok=True)
     stale = []
-    for name, (fn, _alt) in DIAGRAMS.items():
+    for name, fn in DIAGRAMS.items():
         for th in (LIGHT, DARK):
             svg = fn(th)
             p = os.path.join(outdir, f"{name}-{th['name']}.svg")

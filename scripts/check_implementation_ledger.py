@@ -247,9 +247,7 @@ RECEIPT_ARTIFACT_FORBIDDEN_CONTROL = re.compile(
     r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]"
 )
 RECEIPT_ARTIFACT_PDF_HEADER = b"%PDF-"
-RECEIPT_ARTIFACT_LINE_BREAK = re.compile(
-    r"\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]"
-)
+RECEIPT_ARTIFACT_LINE_BREAK = re.compile(r"\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]")
 UNSUPPORTED_RECEIPT_ARTIFACT_SIGNATURES = (
     (b"PK\x03\x04", "ZIP"),
     (b"\xfd7zXZ\x00", "XZ"),
@@ -12231,7 +12229,7 @@ DEFECT_CLOSURE_RULES: dict[str, str] = {
     "D07": "Close only when body-issued dispositions, query and replay tests, and composed live traces pass; every authority/lifecycle/latch, action-command declaration, disposition, attempt, side-effect, clock, retention, rebind, and terminal transition compare-and-swaps the sole BodySessionControlState selector, and generic plus specialized post-CAS receipts bind identical prior and installed composite and subordinate heads; each normal plant command append constructs receipt-free LocalSecurityCurrentnessCASCondition over the exact operation and authority scopes, expected operation predecessor, local durable transaction-store identity, security-authority domain and lineage incarnation, authority-state version, security and revocation epochs, semantic security-state and installed authority-head digests, installed selector incarnation/version/digest, and authenticated installed authority head/selector/commit source; the security-dependent consumer successor and generic plus specialized post-CAS receipts bind the exact condition digest, and the winning composite CAS uses the identified local store to conditionally compare the exact security selector; unavailable, omitted-condition, wrong-store, wrong-source, separate-check, planned-stop, and concurrent-security mutants fail closed.",
     "D08": "Close only when acquire, conflict, transfer, expiry, restart, and multi-writer campaigns pass; each operation uses pre-CAS PlantAuthorityTransitionFact, installs authority under the sole composite CAS, and emits generic, authority-commit, and live-lease currentness receipts; stale security version, unavailable common local transactional state, separate remote or before/after security checks, planned stop, concurrent declaration/journal/security change, sibling, and candidate-lease-as-current mutants reject.",
     "D09": "Close only when the extension route is registered and disjoint, core-route rejection passes, and visuals are corrected; Galadriel and Haldir release paths must each follow receipt-free commitment, successor composite head, generic commit plus specialized post-CAS release, then complete item binding that release in one local transaction; successor heads exclude complete items and post-CAS receipts, and head-item, head-release, partial-item, and crash-cut mutants reject; Galadriel FINALIZE binds a trusted assessor-clock sample in the current incarnation in its winning CAS and requires strict time before not-after, while equality, later time, or restart without the exact GALADRIEL_ASSESSOR_CLOCK_RESTART fact-to-successor-to-commit chain cancels with no item; its local queue result is exactly CANCELED_BEFORE_LOCAL_QUEUE or RELEASED_TO_LOCAL_DURABLE_EXTENSION_QUEUE, and only a separate later external disposition may be DELIVERED, REJECTED, or AMBIGUOUS_AFTER_EXTERNAL_TRANSPORT; Haldir source admission is pre-CAS fact, successor policy head, generic commit, then source-admission receipt; commander preflight is receipt-free until its local head CAS consumes the position and emits the generic plus installation receipts; NO_PROFILE terminal H2 newly binds only the ingress stamp and closed outcome and excludes both post-CAS receipts; a selected-profile barrier follows receipt-free HaldirAssessmentEvaluationBarrierFact, a winning policy CAS that reverifies the current authority-clock incarnation and sample strictly before deadline, H2 binding that exact fact, generic policy commit binding fact and H2, then post-CAS barrier receipt binding fact/H2/selector/commit; exact HALDIR_POLICY_CLOCK_RESTART and HALDIR_COMMANDER_CLOCK_RESTART fact-to-successor-to-generic-to-specialized receipt chains preserve or tighten every pending deadline, otherwise cancel pending allow/publication while preserving deny, fail-safe, consumed-position, and evidence state; deadline equality is expired, policy and commander clocks never substitute, and NCP queue transfer proves neither Crebain admission nor application.",
-    "D10": "Close only when the bypass is deleted and the ingress-attempt, fail-safe side-effect, resolution, model, hostile mutants, and crash recovery pass: the exact minimum current-context gate and a durable attempt precede the separate non-authorizing side effect; invalid fresh same-session HOLD and ESTOP can apply that body-local effect before remaining stream, replay, and semantic checks, then reject; side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched; ESTOP queue priority, admission, and stop_latched require the full envelope, manifest, route, audience, session, stream, replay, operation, TTL, source, channel, profile, authority, and semantic gates, with only exact permitted ESTOP lease absence omitted; exact replay and identity conflict create no second received; invalid Active and wrong-context, unsigned, oversize, unverifiable, or ambiguous candidates cause no effect; ambiguous or unresolved fail-safe state blocks Active; every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts; independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
+    "D10": "Close only when the bypass deletion, ingress-attempt, ESTOP side-effect, resolution, model, hostile mutants, and crash recovery pass. The exact minimum current-context gate and a durable attempt precede the separate non-authorizing ESTOP side effect. An authenticated, authorized, fresh same-session ESTOP can apply that body-local latch before ordinary stream replay, lease, and lower semantic checks, then reject as a command. Remote HOLD must pass stream monotonicity and the exact live-holder lease before it can request the installed HOLD action. It structurally forbids source and remote value-vector fields. An independently attributed body-local policy action remains possible. Side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched. ESTOP queue priority, admission, and stop_latched require the full envelope, manifest, route, audience, session, stream, replay, operation, body-grant deadline, profile, authority, and semantic gates. They also require the structural absence of source, lease, and remote value-vector fields selected for ESTOP. Core command admission consumes one setpoint and one application attempt per position. Compatibility tick-zero or horizon replay cannot satisfy it. Exact replay creates no second received or latch invocation. A primary position record is immutable. A stale but unseen ESTOP uses its own pre-reserved primary record. Body-generation creation preallocates one separate restrictive-conflict attribution for the qualified changed ESTOP at an occupied position that performs the generation's first latch transition. It binds the complete coordinate, digest, command rejection, and attributed latch result. It never replaces a primary digest or creates a second received record. Exact replay returns that retained restrictive result. Once the latch or attribution exists, a different later conflict rejects without another latch invocation or allocation. Invalid Active or HOLD and wrong-context, unsigned, oversize, unverifiable, ambiguous, or expired candidates cause no remote effect. Ambiguous or unresolved fail-safe state blocks Active. Every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts. Independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
     "D11": "Close only when missingness mapping, producer_declared_resolved_source non-causality, the closed neural/categorical/excluded Prisoma numeric contracts, exhaustive environment manifest and applicability branches, authenticated executor state, pre-CAS execution fact, and post-CAS one-use evidence, shared execution-receipt branches, canonical binary64 recomputation, environment/executable/dependency/state/fact-cycle/map/output/exclusion/nondeterminism mutants, and independent statistical and scientific claim review pass; PrisomaNumericExecutorStateHead binds exact imported trust_state_digest and policy_head_digest, ordinary successors preserve both byte-identical, and any trust/policy change fences the process state and requires a fresh never-used incarnation; each native capture event follows receipt-free fact, segment/composite successor plus generic commit and complete event/outbox item in one local transaction, and an idempotent worker drains only that exact immutable item.",
     "D12": "Close only when bounded models, witnesses, refinement, and mutation evidence are retained and reviewed.",
     "D13": "Close only when names are owned, clean installs and advisory resolution pass, and SBOM and publication receipts exist.",
@@ -13197,8 +13195,7 @@ def _receipt_json_scalar_views(
                     encoded_value,
                     limits=RECEIPT_ARTIFACT_JSON_LIMITS,
                     label=(
-                        f"{label} decoded JSON scalar {scalar_index - 1} "
-                        "embedded JSON"
+                        f"{label} decoded JSON scalar {scalar_index - 1} embedded JSON"
                     ),
                 )
             except BoundedJsonError:
@@ -13437,10 +13434,7 @@ def _png_receipt_artifact_text_views(
             except ValueError:
                 _fail(f"{chunk_label} has no text-keyword separator")
             validate_keyword(keyword, chunk_label)
-            if (
-                not compressed
-                or compressed[0] != 0
-            ):
+            if not compressed or compressed[0] != 0:
                 _fail(f"{chunk_label} has an unsupported compression method")
             append_view(
                 f"{chunk_label} keyword",
@@ -13466,11 +13460,7 @@ def _png_receipt_artifact_text_views(
             except ValueError:
                 _fail(f"{chunk_label} has no text-keyword separator")
             validate_keyword(keyword, chunk_label)
-            if (
-                len(remainder) < 2
-                or remainder[0] not in {0, 1}
-                or remainder[1] != 0
-            ):
+            if len(remainder) < 2 or remainder[0] not in {0, 1} or remainder[1] != 0:
                 _fail(f"{chunk_label} has invalid compression fields")
             compression_flag = remainder[0]
             remainder = remainder[2:]
@@ -13554,14 +13544,10 @@ def _png_receipt_artifact_text_views(
             (0, 1, 1, 2),
         ):
             pass_width = (
-                0
-                if width <= x_start
-                else (width - x_start + x_step - 1) // x_step
+                0 if width <= x_start else (width - x_start + x_step - 1) // x_step
             )
             pass_height = (
-                0
-                if height <= y_start
-                else (height - y_start + y_step - 1) // y_step
+                0 if height <= y_start else (height - y_start + y_step - 1) // y_step
             )
             if pass_width and pass_height:
                 layouts.append(
@@ -13657,9 +13643,7 @@ def _reject_unsupported_receipt_payload(content: bytes, label: str) -> None:
         (b"{\\rtf", "RTF"),
     ):
         if content.find(header, 0, 1024 + len(header) - 1) >= 0:
-            _fail(
-                f"{label} uses unsupported opaque or container format {format_name}"
-            )
+            _fail(f"{label} uses unsupported opaque or container format {format_name}")
 
 
 def _non_url_text_contains_host_path(text: str) -> bool:
@@ -13675,8 +13659,7 @@ def _non_url_text_contains_host_path(text: str) -> bool:
         return True
     decoded = unquote(current)
     return bool(
-        decoded != current
-        or RECEIPT_ARTIFACT_ENCODED_PATH_SEPARATOR.search(current)
+        decoded != current or RECEIPT_ARTIFACT_ENCODED_PATH_SEPARATOR.search(current)
     )
 
 
@@ -18833,17 +18816,11 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
         )
     check(
         (
-            '{"path":"relative/result.log",'
-            '"url":"https://example.test/秘密/result"}\n'
+            '{"path":"relative/result.log","url":"https://example.test/秘密/result"}\n'
         ).encode(),
         relative_path="evidence/implementation/receipts/B01/future.v1.json",
     )
-    check(
-        (
-            "https://[::1]/home/result\n"
-            "https://example.test/🔥/result\n"
-        ).encode()
-    )
+    check(("https://[::1]/home/result\nhttps://example.test/🔥/result\n").encode())
     for label, hostile in (
         (
             "Unicode-escaped JSON host path",
@@ -18888,10 +18865,7 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
     )
     _must_fail(
         lambda: check(
-            (
-                b"1\n"
-                b'{"path":"\\u002fUsers\\u002fexample\\u002fresult.log"}\n'
-            ),
+            (b'1\n{"path":"\\u002fUsers\\u002fexample\\u002fresult.log"}\n'),
             relative_path="evidence/implementation/receipts/B01/future.log",
         ),
         "scalar-first JSONL document hidden behind a log suffix",
@@ -18900,9 +18874,9 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
     _must_fail(
         lambda: check(
             (
-                b'{"payload":"{\\\"path\\\":\\\"'
+                b'{"payload":"{\\"path\\":\\"'
                 b"\\\\u002fUsers\\\\u002fexample\\\\u002fresult.log"
-                b'\\\"}"}\n'
+                b'\\"}"}\n'
             ),
             relative_path="evidence/implementation/receipts/B01/future.v1.json",
         ),
@@ -18923,7 +18897,7 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
     )
     nested_positive_views = _receipt_json_scalar_views(
         "future.json",
-        b'{"payload":"{\\\"status\\\":\\\"PASS\\\"}"}\n',
+        b'{"payload":"{\\"status\\":\\"PASS\\"}"}\n',
         "positive nested JSON",
     )
     if (
@@ -19267,9 +19241,7 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
         "compressed PNG text host path",
         "absolute host path",
     )
-    escaped_png_json = (
-        b'{"path":"\\u002fUsers\\u002fexample\\u002fresult.log"}'
-    )
+    escaped_png_json = b'{"path":"\\u002fUsers\\u002fexample\\u002fresult.log"}'
     for chunk_type, payload, label in (
         (b"tEXt", b"Comment\x00" + escaped_png_json, "PNG JSON text"),
         (
@@ -19412,9 +19384,7 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
         "forbidden textual control character",
     )
     indexed_ihdr = (
-        (1).to_bytes(4, "big")
-        + (1).to_bytes(4, "big")
-        + bytes((8, 3, 0, 0, 0))
+        (1).to_bytes(4, "big") + (1).to_bytes(4, "big") + bytes((8, 3, 0, 0, 0))
     )
     _must_fail(
         lambda: check(
@@ -19573,9 +19543,7 @@ def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
         "stale pre-policy exception",
         "inventory differs from the exact pre-policy set",
     )
-    first_policy = LEGACY_NONPORTABLE_RECEIPT_ARTIFACTS[
-        (first_task_id, first_path)
-    ]
+    first_policy = LEGACY_NONPORTABLE_RECEIPT_ARTIFACTS[(first_task_id, first_path)]
     original_host_path_lines = first_policy["host_path_lines"]
     first_policy["host_path_lines"] = int(original_host_path_lines) + 1
     try:
