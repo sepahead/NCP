@@ -1,10 +1,15 @@
-import { canonicalJsonText } from "./canonical-json.ts";
+import {
+  canonicalJsonBytes,
+  CanonicalJsonError,
+  canonicalJsonText,
+} from "./canonical-json.ts";
 import {
   DecisionBindingError,
   validateReviewPacketBinding,
 } from "./decision-binding.ts";
 import { applyPatch, JsonPointerError } from "./json-pointer.ts";
 import { evaluateSemantics, SemanticConfigurationError } from "./semantics.ts";
+import { extractExactJsonFences, SourceFileError } from "./file-io.ts";
 import { strictJsonParse, StrictJsonError, type JsonLimits } from "./strict-json.ts";
 
 const encoder = new TextEncoder();
@@ -16,6 +21,26 @@ export interface SelfTestReport {
 
 export function runSelfTests(): SelfTestReport {
   const report = { executed: 0, detected: 0 };
+  report.executed += 1;
+  const exactFences = extractExactJsonFences(
+    encoder.encode(
+      '```text\n```json\n{"ignored":true}\n```\n' +
+        '```json\r\n{"accepted":true}\r\n```\r\n',
+    ),
+  );
+  if (
+    exactFences.length !== 1 ||
+    new TextDecoder().decode(exactFences[0]) !== '{"accepted":true}'
+  ) {
+    throw new Error("exact JSON fence scanner accepted a nested marker");
+  }
+  report.detected += 1;
+  expectThrows(
+    () => extractExactJsonFences(encoder.encode("```json\n{}\n")),
+    SourceFileError,
+    "unclosed exact JSON fence",
+    report,
+  );
   const limits: JsonLimits = {
     maxBytes: 256,
     maxDepth: 4,
@@ -39,10 +64,11 @@ export function runSelfTests(): SelfTestReport {
   expectStrictRejection('{"a":9007199254740992}', limits, "safe-integer guard", report);
   expectStrictRejection('{"a":"123456789"}', limits, "string-byte guard", report);
   expectStrictRejection('{"a":{"b":{"c":{"d":0}}}}', limits, "depth guard", report);
-  expectStrictRejection(
-    '{"a":1,"b":2,"c":3,"d":4,"e":5}',
+  expectStrictRejectionContaining(
+    '{"a":1,"b":2,"c":3,"d":4,"oversized":5}',
     limits,
-    "member guard",
+    "member guard before excess-key decoding",
+    "object member count exceeds",
     report,
   );
   expectStrictRejection(
@@ -55,6 +81,12 @@ export function runSelfTests(): SelfTestReport {
     '{"a":"12345678","b":"12345678","c":"12345678","d":"12345678"}',
     limits,
     "total-string-byte guard",
+    report,
+  );
+  expectStrictRejection(
+    '{"a":"\\uD83D\\uDE00x"}',
+    { ...limits, maxTotalStringBytes: 5 },
+    "incremental escaped total-string-byte guard",
     report,
   );
   expectStrictRejection(
@@ -138,6 +170,31 @@ export function runSelfTests(): SelfTestReport {
     decisionSetIdentity,
   );
   report.detected += 1;
+  let extraSubjectMemberRejected = false;
+  try {
+    validateReviewPacketBinding(
+      {
+        review_packet_lifecycle: {
+          schema: "ncp.b01-review-packet-lifecycle.v1",
+          state: "CURRENT",
+        },
+        review_packet_subject: {
+          decision_set: decisionSetIdentity,
+          unexpected: false,
+        },
+        review_records: [],
+      },
+      decisionSetIdentity,
+    );
+  } catch (error) {
+    if (!(error instanceof DecisionBindingError)) {
+      throw new Error("CURRENT packet extra-subject-member guard threw the wrong error");
+    }
+    extraSubjectMemberRejected = true;
+  }
+  if (!extraSubjectMemberRejected) {
+    throw new Error("CURRENT packet extra-subject-member guard did not reject");
+  }
   report.executed += 1;
   validateReviewPacketBinding(
     {
@@ -392,6 +449,16 @@ export function runSelfTests(): SelfTestReport {
     "root-mutation guard",
     report,
   );
+  let oversizedPointerRejected = false;
+  try {
+    applyPatch({ a: 1 }, [{ op: "remove", path: `/${"x".repeat(512)}` }]);
+  } catch (error) {
+    if (!(error instanceof JsonPointerError)) throw error;
+    oversizedPointerRejected = true;
+  }
+  if (!oversizedPointerRejected) {
+    throw new Error("JSON Pointer byte-bound guard did not reject");
+  }
   const prototypeKey = applyPatch({}, [
     { op: "add", path: "/__proto__", value: { polluted: true } },
   ]);
@@ -450,8 +517,230 @@ export function runSelfTests(): SelfTestReport {
   }
   report.detected += 1;
 
-  if (canonicalJsonText({ z: 1, a: "é" }) !== '{"a":"é","z":1}') {
+  report.executed += 1;
+  const malformedQosRealm = evaluateSemantics({
+    sourcePath: "docs/adr/0010-plane-qos-retention-and-overload.md",
+    ordinal: 1,
+    profile: "ADR010_ACTION_QOS_PROFILE_V1",
+    document: {
+      authority_realm_key: { server_authority_principal_id: "ncp-authority-a" },
+      plane: "action",
+      route: "realm-a/session/a/command/b",
+      profile_id: "ncp-action-v1",
+      capacity_per_stream: 1,
+      ordering: "strict_stream_sequence",
+      retention: "until_terminal_disposition_or_expiry",
+      overload: "reject_new_active_and_emit_disposition",
+      fail_safe_priority: ["estop", "hold", "active"],
+    },
+    fixture: {
+      authenticated_realm_key: {
+        server_authority_principal_id: "ncp-authority-a",
+        stable_realm_id: "realm-a",
+      },
+      expected_route: "realm-a/session/a/command/b",
+      maximum_capacity_per_stream: 1,
+      required_fail_safe_priority: ["estop", "hold", "active"],
+    },
+  });
+  const unsafeKeyEpoch = evaluateSemantics({
+    sourcePath: "docs/adr/0009-security-state-rotation-and-revocation.md",
+    ordinal: 1,
+    profile: "ADR009_SECURITY_STATE_PROJECTION_V1",
+    document: {
+      authority_realm: {
+        server_authority_principal: "spiffe://ncp.example/body-server",
+        stable_realm_id: "plant-a",
+      },
+      profile: "ncp-production-ingress-v1",
+      security_epoch: 12,
+      revocation_epoch: 12,
+      principals: [{ principal_id: "body-a", role: "body", planes: ["action"] }],
+      key_epochs: [{
+        kid: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        algorithm: "Ed25519",
+        epoch: 9_007_199_254_740_992,
+      }],
+    },
+    fixture: {
+      authenticated_authority_realm: {
+        server_authority_principal: "spiffe://ncp.example/body-server",
+        stable_realm_id: "plant-a",
+      },
+      maximum_security_epoch: 9_007_199_254_740_991,
+      required_key_algorithm: "Ed25519",
+      required_profile: "ncp-production-ingress-v1",
+    },
+  });
+  const missingKeyEpochs = evaluateSemantics({
+    sourcePath: "docs/adr/0009-security-state-rotation-and-revocation.md",
+    ordinal: 1,
+    profile: "ADR009_SECURITY_STATE_PROJECTION_V1",
+    document: {
+      authority_realm: {
+        server_authority_principal: "spiffe://ncp.example/body-server",
+        stable_realm_id: "plant-a",
+      },
+      profile: "ncp-production-ingress-v1",
+      security_epoch: 12,
+      revocation_epoch: 12,
+      principals: [{ principal_id: "body-a", role: "body", planes: ["action"] }],
+    },
+    fixture: {
+      authenticated_authority_realm: {
+        server_authority_principal: "spiffe://ncp.example/body-server",
+        stable_realm_id: "plant-a",
+      },
+      maximum_security_epoch: 9_007_199_254_740_991,
+      required_key_algorithm: "Ed25519",
+      required_profile: "ncp-production-ingress-v1",
+    },
+  });
+  if (
+    malformedQosRealm.result !== "REJECT" ||
+    malformedQosRealm.diagnostics.join(",") !== "AUTHORITY_REALM_KEY_REQUIRED" ||
+    unsafeKeyEpoch.result !== "REJECT" ||
+    unsafeKeyEpoch.diagnostics.join(",") !== "KEY_EPOCH_MEMBERSHIP_REQUIRED" ||
+    missingKeyEpochs.result !== "REJECT" ||
+    missingKeyEpochs.diagnostics.join(",") !== "KEY_EPOCH_MEMBERSHIP_REQUIRED"
+  ) {
+    throw new Error("cross-language identity or exact-integer guard failed");
+  }
+  report.detected += 1;
+
+  const contractFixture = {
+    authenticated_realm_key: {
+      server_authority_principal_id: "ncp-authority-a",
+      stable_realm_id: "realm-a",
+    },
+    digest_algorithm: "sha256",
+    expected_stable_core_digest:
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  };
+  const contractDocument = {
+    authority_realm_key: contractFixture.authenticated_realm_key,
+    stable_core_digest:
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  };
+  report.executed += 1;
+  const compatibleMinor = evaluateSemantics({
+    sourcePath: "docs/adr/0002-contract-identity-and-release-authorization.md",
+    ordinal: 1,
+    profile: "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+    document: { ...contractDocument, wire_version: "1.18446744073709551615" },
+    fixture: contractFixture,
+  });
+  if (
+    compatibleMinor.result !== "MATCH_NON_AUTHORIZING_EXCERPT" ||
+    compatibleMinor.diagnostics.length !== 0
+  ) {
+    throw new Error("canonical same-major wire version was rejected");
+  }
+  report.detected += 1;
+
+  report.executed += 1;
+  const shorthand = evaluateSemantics({
+    sourcePath: "docs/adr/0002-contract-identity-and-release-authorization.md",
+    ordinal: 1,
+    profile: "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+    document: {
+      ...contractDocument,
+      wire_version: "1",
+      contract_hash: "163acc57d8a62b66",
+    },
+    fixture: contractFixture,
+  });
+  if (shorthand.result !== "MATCH_NON_AUTHORIZING_EXCERPT" || shorthand.diagnostics.length !== 0) {
+    throw new Error("canonical 1 shorthand or advisory compact hash was rejected");
+  }
+  report.detected += 1;
+
+  report.executed += 1;
+  const malformedMinor = evaluateSemantics({
+    sourcePath: "docs/adr/0002-contract-identity-and-release-authorization.md",
+    ordinal: 1,
+    profile: "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+    document: { ...contractDocument, wire_version: "1.00" },
+    fixture: contractFixture,
+  });
+  const oversizedMinor = evaluateSemantics({
+    sourcePath: "docs/adr/0002-contract-identity-and-release-authorization.md",
+    ordinal: 1,
+    profile: "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+    document: { ...contractDocument, wire_version: "1.184467440737095516150" },
+    fixture: contractFixture,
+  });
+  if (
+    malformedMinor.result !== "REJECT" ||
+    malformedMinor.diagnostics.join(",") !== "WIRE_VERSION_MISMATCH" ||
+    oversizedMinor.result !== "REJECT" ||
+    oversizedMinor.diagnostics.join(",") !== "WIRE_VERSION_MISMATCH"
+  ) {
+    throw new Error("noncanonical same-major wire version escaped its guard");
+  }
+  report.detected += 1;
+
+  report.executed += 1;
+  const hierarchicalRealm = evaluateSemantics({
+    sourcePath: "docs/adr/0005-declared-stream-lifecycle.md",
+    ordinal: 1,
+    profile: "ADR005_DECLARE_STREAM_EXCERPT_V1",
+    document: {
+      ncp_version: "1",
+      kind: "declare_stream",
+      authority_realm_key: {
+        server_authority_principal_id: "ncp-authority-a",
+        stable_realm_id: "region-a/plant-a",
+      },
+      route: "region-a/plant-a/session/plant-alpha/action/controller-a",
+      sequence_start: 1,
+      publisher_principal_id: "haldir-commander-a",
+      stream_epoch: "00000000-0000-4000-8000-000000000001",
+    },
+    fixture: {
+      authenticated_publisher_principal_id: "haldir-commander-a",
+      authenticated_realm_key: {
+        server_authority_principal_id: "ncp-authority-a",
+        stable_realm_id: "region-a/plant-a",
+      },
+      expected_route: "region-a/plant-a/session/plant-alpha/action/controller-a",
+      live_declaration_epoch_ids: [],
+    },
+  });
+  if (
+    hierarchicalRealm.result !== "MATCH_NON_AUTHORIZING_EXCERPT" ||
+    hierarchicalRealm.diagnostics.length !== 0
+  ) {
+    throw new Error("hierarchical stable realm did not bind the complete route prefix");
+  }
+  report.detected += 1;
+
+  const canonicalFixture = { z: 1, a: "é" };
+  const canonicalExpected = '{"a":"é","z":1}';
+  const canonicalExpectedBytes = encoder.encode(canonicalExpected);
+  const canonicalBytes = canonicalJsonBytes(
+    canonicalFixture,
+    canonicalExpectedBytes.byteLength,
+  );
+  if (
+    canonicalJsonText(canonicalFixture, canonicalExpectedBytes.byteLength) !==
+      canonicalExpected ||
+    canonicalBytes.byteLength !== canonicalExpectedBytes.byteLength ||
+    canonicalBytes.some((byte, index) => byte !== canonicalExpectedBytes[index])
+  ) {
     throw new Error("canonical JSON self-test returned unstable bytes");
+  }
+  let canonicalBoundRejected = false;
+  try {
+    canonicalJsonBytes(canonicalFixture, canonicalExpectedBytes.byteLength - 1);
+  } catch (error) {
+    if (!(error instanceof CanonicalJsonError)) {
+      throw new Error("canonical JSON byte-bound self-test threw the wrong error");
+    }
+    canonicalBoundRejected = true;
+  }
+  if (!canonicalBoundRejected) {
+    throw new Error("canonical JSON byte-bound self-test did not reject");
   }
   report.executed += 1;
   if (
@@ -476,6 +765,26 @@ function expectStrictRejection(
     label,
     report,
   );
+}
+
+function expectStrictRejectionContaining(
+  source: string,
+  limits: JsonLimits,
+  label: string,
+  detail: string,
+  report: { executed: number; detected: number },
+): void {
+  report.executed += 1;
+  try {
+    strictJsonParse(encoder.encode(source), limits);
+  } catch (error) {
+    if (error instanceof StrictJsonError && error.message.includes(detail)) {
+      report.detected += 1;
+      return;
+    }
+    throw new Error(`${label} threw the wrong error`);
+  }
+  throw new Error(`${label} did not reject`);
 }
 
 function expectThrows(

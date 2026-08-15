@@ -16,17 +16,24 @@ evidence.
 
 ## Proposed decision
 
-NCP shall define one finite QoS profile per plane and message class. The minimum
-semantics are:
+NCP shall define one finite QoS profile for each core-plane/message-class pair.
+The minimum semantics are:
 
-| Plane | Queue/retention | Overload behavior |
+| Core plane and message class | Queue/retention | Overload behavior |
 |---|---|---|
-| control RPC | bounded request/reply and idempotency journal | reject before mutation with explicit overload/deadline result |
-| action command | capacity one per declared stream plus bounded in-flight receipt state | newest eligible command may supersede only by explicit rule; fail-safe severity has priority; ambiguous fail-safe blocks later Active |
-| perception/sensor | bounded latest/history policy declared by stream | explicit gaps/drop counters; never fabricate continuity |
-| observation/disposition | bounded priority journal and subscriber queues | body journal cannot block; slow observers gap or detach |
-| extension | separate bounded queue and CPU budget | drop/reject with extension-specific gap; never borrow control/action reserve |
-| bulk/offline | negotiated bounded transfer/window | throttle or abort without holding real-time resources |
+| control / RPC | bounded request/reply and idempotency journal | reject before mutation with explicit overload/deadline result |
+| action / command | capacity one per declared stream plus bounded in-flight receipt state | newest eligible command may supersede only by explicit rule. Fail-safe severity has priority. Ambiguous fail-safe blocks later Active |
+| perception / sensor | bounded latest/history policy declared by stream | explicit gaps/drop counters. Never fabricate continuity |
+| observation / disposition | bounded priority journal and subscriber queues | body journal cannot block. Slow observers gap or detach |
+
+The NCP `Plane` enum has exactly four recognized core operational values plus the
+fail-closed `unknown` sentinel. Extension traffic is not a fifth operational
+plane and does not enter a core-plane QoS object. ADR-008 gives extension traffic
+a separate installed resource profile for ingress, reassembly, parsing, and
+callback work. That profile remains under the same finite endpoint or deployment
+envelope and cannot borrow control or action capacity. A future non-core traffic
+class requires its own registered profile and does not widen the `Plane` enum by
+default.
 
 ADR-001 `AuthorityRealmKey` is the canonical tuple of server authority principal
 and stable realm ID. It excludes credential/security epochs, queue/store
@@ -58,15 +65,21 @@ priority arbitration, or callback. A route's realm segment is only the canonical
 projection of the stable realm ID; it cannot supply the server-authority
 principal or authorize an installed binding.
 
-One action allocator spans Active, HOLD, and ESTOP attempts so a severity change
-cannot bypass sequence/idempotency accounting. ESTOP receives action-queue
-priority, admission, and a `stop_latched` disposition only after full envelope,
-manifest actor/plane, route, audience, session, stream, and semantic validation;
-it may omit only the authority lease as separately specified. ADR-007's distinct
-body-local fail-safe side-effect reservation can clear/latch after its exact
-minimum current-context gate but before the remaining stream/replay/semantic
-checks. That side effect grants no queue entry, command admission, or disposition,
-and an ambiguous reservation blocks later Active admission.
+Each declared action stream has one allocator across every mode that its scope
+permits. A severity change inside that stream cannot bypass sequence or
+idempotency accounting. The lease-bound declaration and an optional ESTOP-only
+declaration keep separate allocators because positions from different publisher
+incarnations are not comparable. The body-owned event order merges their
+attempts and applies severity priority.
+
+ESTOP receives action-queue priority, admission, and a `stop_latched`
+disposition only after full envelope, manifest actor/plane, route, audience,
+session, stream, and semantic validation. It may omit only the authority lease
+as separately specified. ADR-007's distinct body-local early ESTOP reservation
+can latch after its complete pre-replay restrictive gate but before the
+remaining stream checks. That latch grants no queue entry, command admission,
+or disposition, and an ambiguous reservation blocks later Active admission.
+HOLD has no pre-replay exception.
 
 Priority after verification does not prevent verifier starvation. Action ingress
 therefore uses two bounded scheduling stages before semantic severity arbitration:
@@ -82,10 +95,14 @@ therefore uses two bounded scheduling stages before semantic severity arbitratio
    realm/principal/route. A reserved emergency lane is usable only by a
    separately enrolled emergency transport credential/principal in the exact
    realm and on its exact manifest route; bytes that merely decode to HOLD/ESTOP
-   cannot enter it. Both lanes still perform complete envelope signature,
-   manifest, grant, realm, route, audience, session, stream and semantic
-   verification. Only then does the verified severity arbiter order ESTOP, HOLD
-   and Active.
+   cannot enter it. Both lanes perform the complete bounded-envelope,
+   authentication, manifest, realm, route, audience, session, grant, mode,
+   deadline, and installed-profile checks in ADR-007's pre-replay restrictive
+   gate. Only then can the verified severity arbiter classify ESTOP, HOLD, and
+   Active. A qualified fresh ESTOP can reserve its early body-local latch before
+   the remaining stream, lease, channel, and source checks. Those checks still
+   determine command admission and disposition. HOLD and Active receive no early
+   side effect.
 
 After ratification and rebaseline, the proposed predecode budget would include
 each accepted class/path collection ceiling. Trusted route or typed API context
@@ -99,10 +116,11 @@ same-named maps would not inherit that class-specific ceiling.
 For an Active command, checked-codec completeness and installed-profile
 admission are finite work bounded by mapping, channel, component, and horizon
 ceilings. They complete before Active admission and cannot invent missing
-midpoints, zeros, range endpoints, components, or units. Restrictive attempts
-retain ADR-007's separate body-local effect ordering: later codec or profile
-semantic failure cannot suppress an already reserved current-context HOLD or
-ESTOP effect, and it still grants no queue entry or success disposition.
+midpoints, zeros, range endpoints, components, or units. A qualified early ESTOP
+latch remains separately attributed when later stream admission rejects its
+command. Remote HOLD reaches its installed effect only after ordinary command
+admission. A separate body-local fail-safe response never converts rejected
+remote bytes into a successful command disposition.
 
 The emergency lane grants verifier service only, never authority, admission or a
 side effect. Invalid signatures, wrong-context traffic and lane misuse consume a
@@ -122,6 +140,70 @@ deduplicate realm B's installed action capacity.
 Every profile names reliability, ordering, durability, queue capacity, retention,
 deadline, retry, supersession, drop/gap behavior, shutdown behavior, and evidence
 emission. Defaults are non-authorizing and fail closed.
+
+## Low-overhead QoS reconciliation
+
+Every installed QoS profile has a closed shape. It names:
+
+- the plane, message class, route, and audience.
+- reliability, ordering, and durability.
+- item and aggregate byte capacity.
+- admission deadline, retention, and bounded retry.
+- supersession, gap or drop behavior, and shutdown behavior.
+- the evidence result.
+
+The profile is selected from trusted prepared context before payload decoding or
+queue allocation. Missing, unknown, corrupt, uninstalled, zero-authority, or
+mismatched profiles reject before reservation. Transport defaults cannot supply
+a missing field or widen a profile.
+
+Every variable-size queue reserves item count and aggregate bytes. A request can
+enter only when both reservations succeed. Each plane remains under one finite
+endpoint or deployment cap, so adding realms, principals, routes, or subscribers
+cannot multiply capacity without bound. ADR-008 extension resources remain in a
+separate finite partition under that outer cap.
+
+Action ingress reserves separate normal and enrolled emergency verification
+work. Raw bytes that look like ESTOP cannot select the emergency lane. Complete
+envelope authentication and the checks required to classify an enrolled
+emergency candidate run before severity arbitration. Command admission then
+runs its remaining stream and authority checks. Only ADR-007's separately
+attributed early ESTOP latch can precede them. The body keeps fixed capacity for
+lifecycle cuts, local restriction, and the sole final ESTOP path.
+
+Lifecycle cuts, local restrictive escalation, and ready ESTOP work remain
+preemptive. When perception work is ready, the installed profile's positive
+`active_burst_max` caps consecutive Active body transitions. Reaching that cap
+requires service of one ready perception event before another Active transition.
+HOLD and ESTOP do not consume the Active burst count and cannot be delayed by
+this fairness rule. The counter is body-owned, bounded, and reset only by the
+selected service transition or a lifecycle-generation cut.
+
+Control mutation deadlines govern only the start of new work. An authenticated
+exact retry or query can return retained state after that deadline without
+refreshing authority. Replies correlate through one exact bounded request
+identity. A mismatch leaves unrelated pending requests untouched.
+
+Prepared simulation steps use a separate finite request window, response window,
+aggregate byte reservation, strict execution cursor, and one non-refreshing gap
+deadline. Observer and extension work cannot consume those slots or action
+capacity.
+
+B03 selects a finite installed QoS-profile set and values within one shared outer
+envelope. The envelope bounds item capacity, aggregate bytes, admission deadline,
+retention, total attempts, pending-request count, gap wait, and work resolution.
+It also bounds the consecutive Active transitions permitted while perception is
+ready.
+Every selected value must pass equality, overflow, exhaustion, and
+corrupt-profile tests. A measured value cannot change ordering, authority, drop,
+retry, or shutdown meaning.
+
+The work-resolution duration covers normal completion plus any required
+isolation termination before a worker slot can be reused. Timeout or task
+cancellation without proved termination leaves the slot reserved. A profile
+whose callback or backend cannot meet that bound is ineligible for a reclaimable
+worker pool. An external effect that can remain outcome-unknown instead fences
+its finite lane and cannot be retried under a new identity.
 
 ## Rejected alternatives
 
@@ -154,6 +236,8 @@ emission. Defaults are non-authorizing and fail closed.
   ]
 }
 ```
+
+This excerpt is not a complete installed profile.
 
 ## Invalid or hostile example
 
@@ -246,6 +330,10 @@ capacity.
   saturation cannot consume its reserved service budget. Without that separation,
   same-principal ESTOP nonstarvation is not claimed.
 - A lower-severity action cannot pass an unresolved higher-severity attempt.
+- While perception is ready, no more than the installed positive
+  `active_burst_max` consecutive Active transitions occur before one perception
+  event is serviced. This bound never delays a lifecycle cut, local restrictive
+  escalation, HOLD, or ESTOP.
 - Every accepted or rejected mutation has a terminal receipt/query path.
 - Gaps are explicit and never replaced with invented observations.
 
@@ -277,11 +365,27 @@ session lineage.
 
 <a id="ncp-b01-selector-allocation-adr-010-v1"></a>
 
-One semantic question remains open. The proposed quality-of-service wire object
-needs its exact numeric fields and plane-specific missing, unknown, and
-corrupt-profile failure behavior. Measured queue capacities and deadlines remain
-bounded B03 allocation inputs. The performance and saturation campaigns have
-not been executed.
+The quality-of-service semantic question is closed by the low-overhead
+reconciliation. Measured queue capacities and deadlines remain bounded B03
+allocation inputs. No performance or saturation campaign evidence exists.
+
+B03 selects 1 through 32 quality-of-service profile identities that match
+`[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. The shared outer envelope permits:
+
+- 1 through 65,536 queue items.
+- 1 through 1,073,741,824 aggregate bytes.
+- 1 through 300,000,000,000 admission nanoseconds.
+- 1 through 86,400,000,000,000 retention nanoseconds.
+- 1 through 1,025 total attempts.
+- 1 through 65,536 consecutive Active transitions while perception is ready.
+- 1 through 65,536 pending requests.
+- 1 through 300,000,000,000 receiver-local nanoseconds for gap waiting.
+- 1 through 300,000,000,000 receiver-local nanoseconds for work resolution.
+
+One total attempt means no retry. Validity requires the plane-specific count,
+bytes, scheduler work, terminal state, emergency reserve, and shutdown path fit
+their installed endpoint or deployment cap. Deadlines cannot start, refresh, or
+extend protocol authority.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)
@@ -293,7 +397,8 @@ evidence only and grants no release or gate status.
 
 1. Semantics: every plane defines ordering, loss, and receipt behavior.
 2. Security: overload cannot invoke a permissive path.
-3. Safety: fail-safe priority follows full validation and one allocator.
+3. Safety: fail-safe priority follows the required checks, per-stream allocation,
+   and the body-owned event order.
 4. Lifecycle: restart, shutdown, ambiguity, and supersession are explicit.
 5. Resources: all queues/work are finite and reserved by plane.
 6. Migration: portable profiles replace transport-default inference.

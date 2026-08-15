@@ -77,6 +77,7 @@ ALLOWED_SCHEMA_PATTERNS = frozenset(
         r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
         r"^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
         r"^[a-z0-9][a-z0-9._:-]{2,127}$",
+        r"^adr(?:00[1-9]|01[01])\.[a-z0-9][a-z0-9.-]*\.v1$",
         r"^[a-z][a-z0-9+.-]*:[!-~]+$",
         r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$",
         (
@@ -634,7 +635,7 @@ def _open_decision_registry_fixture(registry: dict[str, Any]) -> dict[str, Any]:
         "state": "OPEN",
         "source": copy.deepcopy(closure_source),
         "json_schema": copy.deepcopy(closure_schema),
-        "wire_corpus": {
+        "semantic_corpus": {
             "required_path": (
                 "prototypes/b01-architecture-evidence/"
                 "adr-example-semantics/corpus.v1.json"
@@ -643,51 +644,12 @@ def _open_decision_registry_fixture(registry: dict[str, Any]) -> dict[str, Any]:
             "observed_status": "MISSING",
             "observed_identity": None,
             "case_count": 0,
+            "mutation_count": 0,
         },
         "b03_deferrals": {
-            "required_question_count": 7,
+            "required_question_count": 8,
             "validated_question_count": 0,
             "observed_status": "INCOMPLETE_FAIL_CLOSED",
-        },
-        "capture_workflow": {
-            "required_state": "IMPLEMENTED",
-            "observed_state": "NOT_IMPLEMENTED",
-            "required_engine_profile_state": "IMPLEMENTED",
-            "engine_profile_states": {
-                "RUST": "NOT_IMPLEMENTED",
-                "TYPESCRIPT": "NOT_IMPLEMENTED",
-            },
-            "command": (
-                "python3 scripts/generate_decision_registry.py "
-                "--capture-semantic-parser-results"
-            ),
-            "target_directory": (
-                "evidence/implementation/reviews/B01/semantic-closure"
-            ),
-            "write_policy": ("BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME"),
-            "failure_effect": "WRITE_NEITHER_RESULT",
-        },
-        "rust_parser_evidence": {
-            "engine": "RUST",
-            "required_result_path": (
-                "evidence/implementation/reviews/B01/semantic-closure/"
-                "rust-parser-result.v1.json"
-            ),
-            "required_status": "PASS",
-            "observed_status": "NOT_RUN",
-            "receipt": None,
-            "execution": None,
-        },
-        "typescript_parser_evidence": {
-            "engine": "TYPESCRIPT",
-            "required_result_path": (
-                "evidence/implementation/reviews/B01/semantic-closure/"
-                "typescript-parser-result.v1.json"
-            ),
-            "required_status": "PASS",
-            "observed_status": "NOT_RUN",
-            "receipt": None,
-            "execution": None,
         },
     }
     fixture["counts"] = {"decisions": len(fixture["decisions"])}

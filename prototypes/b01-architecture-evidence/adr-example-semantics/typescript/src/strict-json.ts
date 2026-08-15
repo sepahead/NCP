@@ -125,6 +125,9 @@ class Parser {
     }
 
     while (true) {
+      if (memberCount >= this.limits.maxMembers) {
+        this.fail(`JSON object member count exceeds ${this.limits.maxMembers}`);
+      }
       if (this.text[this.index] !== '"') {
         this.fail("object member name must be a JSON string");
       }
@@ -134,9 +137,6 @@ class Parser {
       }
       seen.add(key);
       memberCount += 1;
-      if (memberCount > this.limits.maxMembers) {
-        this.fail(`JSON object member count exceeds ${this.limits.maxMembers}`);
-      }
       this.skipWhitespace();
       if (!this.consume(":")) {
         this.fail("expected ':' after object member name");
@@ -180,23 +180,12 @@ class Parser {
   private parseString(isKey: boolean): string {
     this.index += 1;
     let result = "";
+    let byteLength = 0;
     while (this.index < this.text.length) {
       const code = this.text.charCodeAt(this.index);
       if (code === 0x22) {
         this.index += 1;
-        const byteLength = encoder.encode(result).byteLength;
-        const individualLimit = isKey
-          ? this.limits.maxKeyBytes
-          : this.limits.maxStringBytes;
-        if (byteLength > individualLimit) {
-          this.fail(`decoded string exceeds ${individualLimit} bytes`);
-        }
         this.totalStringBytes += byteLength;
-        if (this.totalStringBytes > this.limits.maxTotalStringBytes) {
-          this.fail(
-            `total decoded string bytes exceed ${this.limits.maxTotalStringBytes}`,
-          );
-        }
         return result;
       }
       if (code < 0x20) {
@@ -204,7 +193,13 @@ class Parser {
       }
       if (code === 0x5c) {
         this.index += 1;
-        result += this.parseEscape();
+        const fragment = this.parseEscape();
+        byteLength = this.checkedStringAppend(
+          byteLength,
+          utf8ScalarStringBytes(fragment),
+          isKey,
+        );
+        result += fragment;
         continue;
       }
       if (isHighSurrogate(code)) {
@@ -212,6 +207,7 @@ class Parser {
         if (!isLowSurrogate(low)) {
           this.fail("unpaired high surrogate in JSON string");
         }
+        byteLength = this.checkedStringAppend(byteLength, 4, isKey);
         result += this.text.slice(this.index, this.index + 2);
         this.index += 2;
         continue;
@@ -219,10 +215,32 @@ class Parser {
       if (isLowSurrogate(code)) {
         this.fail("unpaired low surrogate in JSON string");
       }
+      byteLength = this.checkedStringAppend(
+        byteLength,
+        utf8CodeUnitBytes(code),
+        isKey,
+      );
       result += this.text[this.index] as string;
       this.index += 1;
     }
     this.fail("unterminated JSON string");
+  }
+
+  private checkedStringAppend(
+    currentBytes: number,
+    fragmentBytes: number,
+    isKey: boolean,
+  ): number {
+    const nextBytes = currentBytes + fragmentBytes;
+    const individualLimit = isKey ? this.limits.maxKeyBytes : this.limits.maxStringBytes;
+    if (!Number.isSafeInteger(nextBytes) || nextBytes > individualLimit) {
+      this.fail(`decoded string exceeds ${individualLimit} bytes`);
+    }
+    const nextTotal = this.totalStringBytes + nextBytes;
+    if (!Number.isSafeInteger(nextTotal) || nextTotal > this.limits.maxTotalStringBytes) {
+      this.fail(`total decoded string bytes exceed ${this.limits.maxTotalStringBytes}`);
+    }
+    return nextBytes;
   }
 
   private parseEscape(): string {
@@ -347,4 +365,17 @@ function isHighSurrogate(value: number): boolean {
 
 function isLowSurrogate(value: number): boolean {
   return value >= 0xdc00 && value <= 0xdfff;
+}
+
+function utf8CodeUnitBytes(value: number): number {
+  if (value <= 0x7f) return 1;
+  if (value <= 0x7ff) return 2;
+  return 3;
+}
+
+function utf8ScalarStringBytes(value: string): number {
+  if (value.length === 2) return 4;
+  const code = value.charCodeAt(0);
+  if (!Number.isFinite(code)) throw new StrictJsonError("empty decoded string fragment");
+  return utf8CodeUnitBytes(code);
 }

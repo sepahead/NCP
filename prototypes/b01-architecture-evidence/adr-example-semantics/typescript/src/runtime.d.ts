@@ -32,6 +32,8 @@ declare module "node:fs/promises" {
     readonly mtimeMs: number;
     readonly ctimeMs: number;
     isFile(): boolean;
+    isDirectory(): boolean;
+    isSymbolicLink(): boolean;
   }
 
   interface FileHandle {
@@ -59,6 +61,9 @@ declare module "node:fs/promises" {
     path: string | URL,
     options: { readonly withFileTypes: true },
   ): Promise<Dirent[]>;
+
+  export function lstat(path: string | URL): Promise<FileStat>;
+  export function realpath(path: string | URL): Promise<string>;
 }
 
 declare module "node:path" {

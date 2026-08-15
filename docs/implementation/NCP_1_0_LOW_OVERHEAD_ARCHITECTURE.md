@@ -79,17 +79,18 @@ diagram, or local benchmark cannot promote it to the third state.
     before network send. Ambiguity never creates a fresh operation.
 20. An observer source owner orders projection release against grant revocation.
     Receiver checks cannot repair an unauthorized source release.
-21. A deployment owner excludes overlapping physical effect paths across every
-    realm, session, process, and failover generation.
+21. A deployment owner normalizes physical effect paths and excludes every
+    overlap across realms, sessions, processes, and failover generations. Each
+    write uses the current enforced domain-incarnation and term pair.
 22. Receiver arrival never starts or refreshes remote command freshness. The
     body issues a bounded absolute freshness grant before the publisher sends.
 23. Stream positions are ordered only inside one declared stream. The body-owned
     event order, not a cross-stream sequence comparison, merges command streams.
 24. Source correlation resolves through a bounded retained publication record.
     A timestamp, latest-value fallback, or reused position cannot replace it.
-25. A native stable message has a closed member set. An unknown member rejects
-    before typed conversion, replay lookup, signing, or effect. Evolution uses a
-    negotiated wire/profile or an explicit bounded extension member.
+25. A native stable message has a closed interpreted member set. The universal
+    budget applies before an additive same-major unknown field is retained or
+    ignored. Such a field cannot supply required or authorizing meaning.
 
 ## Runtime layers
 
@@ -130,10 +131,11 @@ then any ready ESTOP, then HOLD or Active, then perception. Normal traffic canno
 replace or consume a cut or emergency cell. This priority check uses fixed state,
 not a shared queue scan.
 
-The prepared scheduler caps consecutive ordinary command transitions and gives
-pending perception a finite service bound. That fairness rule cannot delay a
-lifecycle cut, local restrictive escalation, or ready ESTOP. B03 selects the
-numeric cap with the other local QoS values.
+When no lifecycle cut, local restrictive escalation, ready ESTOP, or ready HOLD
+remains, the prepared scheduler caps consecutive Active transitions and gives
+pending perception a finite service bound. The fairness rule cannot delay those
+higher-priority transitions. B03 selects the numeric cap with the other local
+QoS values.
 
 ### Current implementation boundary
 
@@ -182,14 +184,15 @@ above:
   grant but not the installed plant profile or deployment interlock. The
   selected body owner must issue and renew leases. Reset must also satisfy the
   enrolled local interlock and profile state.
-- The current Rust and TypeScript negotiation paths accept any `1.x` wire and
-  also accept both `1` and `1.0`. They treat an absent or different compact proto
-  hash as advisory. They do not require the exact supported wire literal and
-  stable-core identity selected here.
-- Rust message structs accept and discard unknown members within a compatible
-  major. The generic validator repeats that policy. Exact native `1.0` admission
-  must instead reject a member outside the selected closed shape, so signing,
-  replay, typed semantics, and forwarding cannot observe different objects.
+- The current Rust and TypeScript negotiation paths accept same-major `1.x`
+  versions in canonical `1` or `1.<minor>` form. They treat an absent or
+  different compact proto hash as advisory. The selected target preserves that
+  canonical version rule and also requires the stable-core identity.
+- Rust message structs can discard bounded additive unknown members under the
+  stable-line policy. A signing, replay, or forwarding path must bind the exact
+  admitted object before that projection. Otherwise, it must terminate the
+  identity and construct a new object. An ignored field never gains interpreted
+  meaning.
 - The compatibility governor still returns wire-shaped substitute commands. It
   does not return the selected body-local decision type.
 - The Zenoh compatibility publisher assigns lease commands and normalized local
@@ -292,15 +295,20 @@ indexes, and bounded slots. Mutable ownership does not cross the object graph.
 Cross-owner work uses a bounded event or an immutable result. It does not share a
 mutable map or hold a lock across a callback.
 
-## Planes and ownership
+## Core planes and isolated traffic
 
-| Plane | Normal publisher | Consumer behavior | Queue |
+| Traffic class | Normal publisher | Consumer behavior | Queue |
 |---|---|---|---|
-| Control | authenticated role authority | bounded request, idempotent mutation, retained receipt | reject overflow |
-| Perception | body | newest valid sample wins | replace latest |
-| Action | lease holder or enrolled emergency principal | direct bounded body admission, then preserve strongest unconsumed mode | one body priority slot |
-| Observation | body or declared producer | read-only delivery | drop oldest and count |
-| Extension | manifest-authorized producer | isolated reassembly and parser callback | reject or follow the selected delivery profile |
+| Core control plane | authenticated role authority | bounded request, idempotent mutation, retained receipt | reject overflow |
+| Core perception plane | body | newest valid sample wins | replace latest |
+| Core action plane | lease holder or enrolled emergency principal | direct bounded body admission, then preserve strongest unconsumed mode | one body priority slot |
+| Core observation plane | body or declared producer | read-only delivery | drop oldest and count |
+| Non-core extension traffic | manifest-authorized producer | isolated reassembly and parser callback | reject or follow the selected delivery profile |
+
+NCP has exactly four core planes. The `unknown` plane is a
+non-authorizing sentinel. Extension traffic uses a separate manifest-authorized
+namespace and resource class. It is not another operational `Plane` enum value
+and cannot inherit a core plane's authority or reserved capacity.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/topology-dark.svg">
@@ -370,6 +378,11 @@ terminable process or equivalent isolation boundary. Losing that boundary
 terminalizes a known pre-effect failure or an outcome-unknown obligation. It
 never turns the same request into new work.
 
+The installed QoS profile bounds both gap waiting and complete work resolution.
+Work resolution includes any isolation termination required before reuse. A
+deadline or canceled waiter without proved termination does not release the
+worker slot.
+
 The request deadline controls whether a new mutation can start. It does not
 erase a reserved operation identity. An authenticated exact retry or query can
 read the retained state at or after that deadline when current authorization
@@ -438,21 +451,35 @@ extension manifests, and publication authorization are different identities.
 The compact protobuf hash is a diagnostic only. It cannot establish native
 compatibility or authorize publication.
 
-A native session requires an explicitly supported wire and exact stable-core
-identity. The complete release identity can change for packaging or maintained
-prose without changing the stable-core identity. An explicit terminating gateway
-can join different wires, but it has separate source and target identities and
-does not report a native match.
+A native session requires a canonical compatible `1` or `1.<minor>` wire and
+exact stable-core identity. Each present decimal component has one canonical
+spelling, and `1` is the defined shorthand for `1.0`. The
+complete release identity can change for packaging or maintained prose without
+changing the stable-core identity. An explicit terminating gateway can join
+different wires, but it has separate source and target identities and does not
+report a native match.
 
-Each native JSON profile selects one exact version literal. The recommended
-`stable-1.0` literal is `1.0`. An alternate spelling or unselected same-major
-minor rejects rather than creating a second digest spelling for the same claimed
-profile. Compact hot frames bind that literal through their prepared context and
-do not repeat it.
+Prepared context binds the parsed stable-line compatibility result and the exact
+stable-core identity. Compact hot frames inherit that context and do not repeat a
+version string. Before a typed projection can discard additive unknown members,
+the digest binds the exact admitted canonical object. This rule applies when an
+operation signs, replays, or forwards the JSON object.
 
 Runtime peers compare prepared fixed-size identities. They do not hash a source
-tree during handshake or frame admission. B03 must select each exact source set,
-domain, algorithm, framing rule, and field layout before implementation.
+tree during handshake or frame admission. The stable-core digest covers a frozen
+canonical major-semantics projection. The release digest covers exact source
+bytes. B03 must select the projection inputs, extraction profile, domain,
+algorithm, framing rule, and field layout before implementation.
+
+The following figure shows the proposed native session gate. It is informative
+and does not establish implementation, interoperability, qualification, or
+release status.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../diagrams/versioning-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../diagrams/versioning-light.svg">
+  <img alt="Informative proposed NCP native session gate for the unreleased, release-blocked 1.0 candidate. Canonical same-major wire parsing and an exact stable-core digest are both required. Release, corpus, extension, package, and compact-proto identities do not independently authorize a native session." src="../diagrams/versioning-light.svg" width="820">
+</picture>
 
 ### Wire migration
 
@@ -484,7 +511,8 @@ The session handle binds:
 - permitted data-plane encodings.
 - permitted sensor and command channel layouts.
 - for a simulation session, the prepared step request and response layouts,
-  advance unit, execution order, pipeline window, and retained-result limits.
+  nanosecond advance encoding, execution order, pipeline window, and
+  retained-result limits.
 - exact units, arities, numeric ranges, and plant profile digest.
 - queue capacities and overload policies.
 - receiver clock incarnation and local deadline ceilings.
@@ -516,22 +544,32 @@ change its source stream.
 ### Machine identifiers and routes
 
 The recommended portable machine-identifier grammar is lowercase ASCII. A
-segment starts and ends with `a-z` or `0-9`. An internal byte can also be `.`,
-`_`, or `-`. Empty segments, alternate spellings, percent encoding, Unicode,
-whitespace, controls, wildcards, and key-expression delimiters reject.
+general identifier starts and ends with `a-z` or `0-9`. An internal byte can
+also be `.`, `_`, or `-`. A stable-realm segment instead permits only `.`, `-`,
+and lowercase alphanumeric bytes. A content-address route segment is exactly
+`sha256-` plus 64 lowercase hexadecimal digits. Empty segments, alternate
+spellings, percent encoding, Unicode, whitespace, controls, wildcards, and
+key-expression delimiters reject.
 
 The recommended B03 ceilings are:
 
-- 128 bytes for one general identity segment.
-- 64 bytes for a logical session, channel, or scope segment.
-- 8 segments and 512 bytes for a realm.
-- 1,024 bytes for one complete literal route.
+- 64 bytes for one logical session identifier.
+- 128 bytes for one other general identity segment.
+- 63 bytes for one stable-realm segment.
+- 32 segments and 2,048 bytes for a realm.
+- 4,096 bytes for one complete literal route.
 
 Every applicable ceiling must pass at the same time. An implementation scans
 untrusted bytes once with checked arithmetic. It does not split the realm into
 an attacker-sized string array. It compares the installed route byte for byte.
 Display labels can use a separate bounded Unicode field, but a display label is
 never an authority, route, session, principal, or registry identity.
+
+The selected grammar is a migration target, not a normalization rule for an
+identifier that the current candidate accepts. An adapter cannot case-fold,
+transliterate, percent-encode, truncate, or alias an existing value. B02 and the
+affected N-series task migrate the runtime, descriptor, fixtures, and transport
+behavior together, or the new profile rejects that value.
 
 A verified transport identity is also a separate class. Its selected transport
 profile defines the bounded canonical certificate, URI, or operating-system
@@ -835,7 +873,8 @@ A corrected compatibility receiver performs this work:
 3. obtain the verified prepared ingress context without copying the payload.
 4. start one bounded typed decode and enforce each JSON limit before its related
    allocation.
-5. reject every member outside the route profile's closed message shape.
+5. reject an unknown value in a closed field and prevent every bounded additive
+   unknown member from supplying interpreted meaning.
 6. require every intent-selecting field that the route profile marks explicit.
 7. create one typed frame.
 8. check route, session, stream, role, and frame semantics.
@@ -846,8 +885,10 @@ No application should parse an already admitted typed callback again.
 The typed decoder counts depth, objects, arrays, members, keys, decoded string
 bytes, numeric tokens, and aggregate bytes as it consumes input. Escape handling
 checks remaining per-string and aggregate budgets before appending decoded bytes.
-It rejects an unknown member while parsing the selected shape. It never builds a
-generic value tree or performs a separate full preflight parse.
+It records or skips a bounded additive unknown member without converting it into
+typed state. A path that must preserve the exact object hashes canonical input
+before that projection. The decoder never builds a generic value tree or
+performs a separate full preflight parse.
 
 ### Direct implementation audit
 
@@ -920,8 +961,9 @@ found these avoidable costs:
 - the Rust message structs and generic validator deliberately ignore unknown
   members for major-version forward compatibility. Typed conversion then drops
   bytes that a replay digest, signature, gateway, or another implementation can
-  still observe. The selected exact `1.0` profile closes each stable shape and
-  reserves extensibility for explicit bounded members or a negotiated profile.
+  still observe. The selected stable-line rule bounds additive members before
+  projection and prevents them from supplying interpreted meaning. Signing,
+  replay, and forwarding bind the exact admitted object before projection.
 - the TypeScript request-digest writer retains projection bytes as JavaScript
   numbers. It copies them into a `Uint8Array` and then into a padded hash buffer.
   A bounded streaming hash avoids the representation expansion and both full
@@ -1037,8 +1079,8 @@ found these avoidable costs:
   interlock input.
 - Rust and TypeScript treat a matching wire major as compatible. The compact
   proto hash is optional and advisory in their default handshake paths. A
-  production prepared session needs an exact supported wire and selected
-  stable-core identity before it creates runtime resources.
+  production prepared session needs canonical supported same-major wire parsing
+  and the exact selected stable-core identity before it creates runtime resources.
 - `OpenSession` has no idempotency context. The TypeScript client can send a
   second open while the earlier request remains in flight. It discards the older
   reply without retiring the server generation that request created.
@@ -1138,12 +1180,21 @@ Simulation opening, configuration, and retirement remain bounded idempotent
 control operations. A prepared simulation session can separately negotiate one
 fixed-layout compact step profile for high-rate numeric work. The profile binds:
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../diagrams/sequence-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../diagrams/sequence-light.svg">
+  <img alt="Informative proposed simulation-session sequence for the unreleased, release-blocked NCP 1.0 candidate. A compatible canonical wire and exact stable-core identity gate session opening. An authorized client opens one simulation session, uses bounded position-correlated step or run operations, receives results with fixed non-calibration provenance, and closes the session. The path grants no plant authority and is not an implemented wire, release, interoperability, or certification claim." src="../diagrams/sequence-light.svg" width="820">
+</picture>
+
+The compact profile binds:
+
 - requester and simulator principals.
 - session generation, request-publisher incarnation, and request stream epoch.
 - request and response routes and frame classes.
 - step-grant profile and bounded live-grant count.
 - exact stimulus and observation layouts, units, and numeric domains.
-- advance unit, queue window, response retention, and gap-wait duration.
+- nanosecond advance encoding, queue window, response retention, and gap-wait
+  duration.
 - maximum step-execution duration, backend isolation, and security state.
 
 The receiver issues a bounded simulation-operation authority lease called a step
@@ -1164,11 +1215,15 @@ exactly one installed non-overlapping grant range, so the compact frame repeats
 no lease object or grant identifier. Exact grant-request replay returns the same
 range. A publisher can prefetch one bounded successor before the current range
 closes. Prefetch does not refresh the old grant or change its stream context.
+The current range closes only after every position has a definitive terminal
+response. An expired open range retires the generation and rejects its
+unconsumed positions and prefetched successor. After exact close activates that
+successor, the predecessor deadline has no further authority.
 
 A compact step request carries:
 
 - one positive increasing fixed-width unsigned step position.
-- one positive fixed-width unsigned advance value.
+- one positive fixed-width unsigned `advance_ns` value.
 - ordered finite binary64 stimulus values.
 
 The matching compact step response carries:
@@ -1220,8 +1275,10 @@ refer to the same immutable bytes rather than cloning a second response.
 
 A backend success first requires the exact tick, arity, finite-value, and
 numeric-domain checks. An invalid backend result fills a closed failure response
-with no values. A backend with no finite execution contract runs behind the
-selected terminable isolation boundary.
+with no values. `FAILED_AFTER_START` retires the generation unless a selected
+transactional backend proves the exact defined successor state. A backend with
+no finite execution contract runs behind the selected terminable isolation
+boundary.
 
 A duplicate or uncorrelated completion cannot fill a slot or start the step
 again. If no exact completion arrives before the completion deadline, the result
@@ -1275,7 +1332,8 @@ The body processes a complete authenticated command in this order:
 4. Verify the current security state.
 5. Sample receiver-monotonic arrival for evidence and decode the bounded command
    envelope once.
-6. Preserve an absent or unknown mode as an explicit non-authorizing state.
+6. Preserve an absent, `Init`, or unknown mode as an explicit non-authorizing
+   state.
 7. Validate the complete stream identity, syntactic position, and bounded frame
    digest. These checks derive candidate lookup coordinates without granting
    action.
@@ -1292,26 +1350,37 @@ The body processes a complete authenticated command in this order:
 11. Return that conflict immediately unless explicit, structurally valid ESTOP
     bytes can qualify for the local latch.
 12. For a new candidate or possible conflicting ESTOP, resolve the position to
-    exactly one live receiver-installed grant range. Match its publisher
-    incarnation, declaration, stream epoch, receiver clock, and permitted mode.
-13. If no live range matches, return the occupied-position conflict or reject a
-    new position without state. Neither result reaches a remote fail-safe effect.
-14. Atomically recheck the security snapshot, exact permission, grant currentness,
-    and unchanged exclusive deadline. A cut or expiry causes no remote fail-safe
-    effect. Its reserved range remains unavailable under the grant tombstone.
+    exactly one live receiver-installed grant range. A possible ESTOP after an
+    admitted HOLD can instead resolve through that HOLD's bounded escalation
+    snapshot. The snapshot supplies only an unused ESTOP-permitted position.
+13. Match the publisher incarnation, declaration, stream epoch, receiver clock,
+    and reserved position. A post-HOLD escalation snapshot can match only an
+    explicit, structurally valid ESTOP. If no range or snapshot matches, return
+    the occupied-position conflict or reject a new position without state.
+    Neither result reaches a remote fail-safe effect.
+14. Atomically recheck the security snapshot, exact permission, grant or
+    escalation-snapshot currentness, and unchanged exclusive deadline. A cut or
+    expiry causes no remote fail-safe effect. Its reserved range remains
+    unavailable under the grant tombstone.
 15. For a new candidate, consume the granted position and bind its exact digest
     and preserved mode before lower semantic checks. For source-bound Active,
     atomically copy a present matching body-owned source record into the
     pre-reserved pin. Absence leaves no pin and the lower source check rejects.
-16. Apply the grant's permitted-mode constraint and mode-specific actor
-    authorization.
-17. Classify an absent, unknown, structurally invalid, or unauthorized mode as a
-    non-authorizing rejection. Terminalize a newly bound candidate, or retain a
-    conflict for changed bytes. Neither branch continues to the latch.
+16. Apply the grant's permitted-mode constraint, mode-specific actor
+    authorization, and exact current installed plant-profile action binding.
+    A missing, stale, or mismatched action rejects before HOLD reservation or
+    ESTOP latching.
+17. Classify an absent, `Init`, unknown, structurally invalid, or unauthorized
+    mode as a non-authorizing rejection. Terminalize a newly bound candidate, or
+    retain a conflict for changed bytes. Neither branch continues to the latch.
 18. For an authorized, fresh, structurally valid ESTOP, select its preallocated
     idempotent local latch slot.
-19. Install or retain that latch for a new, stale-position, or conflicting intent
-    from the still-live grant and context.
+19. Immediately recheck the security snapshot, manifest permission, grant or
+    escalation-snapshot currentness, unchanged deadline, and installed profile
+    action. In the same body-owner transition, install or retain the one-use
+    latch operation for a new, stale-position, or conflicting intent. Boundary
+    acceptance repeats its applicable currentness and deadline checks. A cut
+    that wins either order installs no new remote effect.
 20. For a new ESTOP, including one that is stale in stream order, retain the
     obligation in its primary position record.
 21. If a conflicting ESTOP first changes the latch, fill the one
@@ -1325,27 +1394,53 @@ The body processes a complete authenticated command in this order:
 24. Apply stream monotonicity to ESTOP command acceptance after latch selection.
     Reject a stale-position or conflicting ESTOP as a command and attribute any
     local latch separately. This branch then terminates.
-25. Apply the declared stream monotonicity rule to HOLD and Active without a
+25. Recheck currentness and the unchanged deadline before an admitted ESTOP
+    result. If a cut or expiry wins after boundary acceptance, reject the command
+    and retain only the separately attributed latch evidence.
+26. Apply the declared stream monotonicity rule to HOLD and Active without a
     replay exception.
-26. Prevent a stale HOLD from clearing newer admitted output.
-27. Terminalize every newly bound semantic rejection as `REJECTED` with a reason
+27. Prevent a stale HOLD from clearing newer admitted output.
+28. Terminalize every newly bound semantic rejection as `REJECTED` with a reason
     that separates any body-local restrictive transition.
-28. Require the grant's actor and lease coordinate to match the live body lease
+29. Require the grant's actor and lease coordinate to match the live body lease
     for HOLD and Active.
-29. Invoke a newly admitted HOLD through the installed bounded HOLD path and
-    retain its association result.
-30. Associate an admitted ESTOP with its retained latch without invoking it
+30. In one owner transition, reserve the admitted HOLD and cut Active authority.
+    Immediately before that transition, recheck the bound security state,
+    manifest permission, grant and declaration currentness, unchanged deadline,
+    installed profile action, and live lease.
+    The transition also preserves the bounded ESTOP-only escalation snapshot and
+    installs the one-use HOLD operation. Invoke the installed bounded HOLD path
+    outside the owner lock and retain its association result.
+31. Associate an admitted ESTOP with its retained latch without invoking it
     again.
-31. For Active, validate the plant profile, link state, freshness, and safety
+32. For Active, validate the plant profile, link state, freshness, and safety
     policy. A source-bound profile also requires its retained source publication.
-32. For Active, issue one short-lived, single-use body admission token.
-33. For Active, consume that token through the body state owner and its bounded
+33. For Active, issue one short-lived, single-use body admission token.
+34. For Active, consume that token through the body state owner and its bounded
     executor slot.
+
+Only exact Active, HOLD, and ESTOP modes can authorize remote command work in
+this target. `Init` remains a valid compatibility-wire value, but it is not a
+remote action request. A rejected `Init` can coincide with an independently
+selected body-local HOLD policy action. Rejected bytes and their claimed mode do
+not select or parameterize that action. It is not an admitted HOLD command and
+cannot produce `HOLD_EFFECTIVE` for the rejected command.
 
 The owner derives the token's exclusive acceptance deadline with checked
 receiver-clock arithmetic. It selects the earliest command-grant, live-lease,
 source-pin, and applicable prepared safety deadline. An open-loop profile omits
 only the source-pin term. No payload timestamp can extend this deadline.
+
+The HOLD reservation retires the live command declaration and makes later
+Active admission impossible before it invokes plant-specific work. Exact replay
+joins the installed HOLD operation. A timeout or unknown boundary result keeps
+the generation restrictive and cannot create another invocation identity.
+
+The optional escalation snapshot grants no new position or authority. It retains
+only explicitly policy-authorized, unused ESTOP slots from the cut declaration.
+A later ESTOP must still match the current session, security state, permission,
+publisher, preserved slot, and original exclusive deadline. The snapshot cannot
+admit Active or HOLD, refresh freshness, or survive its bounded one-use profile.
 
 The final bounded handoff rechecks the security snapshot, exclusive deadline,
 source pin, safety state, restrictive state, authority version, and live lease.
@@ -1355,9 +1450,10 @@ its evidence records the exact earlier state. The executor performs no
 application callback while holding a realm or body lock.
 
 A stale-position ESTOP is older only within its current declared action stream.
-It can reach the latch only while its body-issued grant and absolute deadline are
-still live. A stale session generation, stream epoch, security state, route,
-grant, deadline, or authorization rejects before the latch boundary.
+It can reach the latch only while its body-issued grant or preserved escalation
+snapshot and absolute deadline are still live. A stale session generation,
+stream epoch, security state, route, grant or snapshot, deadline, or
+authorization rejects before the latch boundary.
 
 Action admission has a dedicated execution budget. Observation, extension,
 control, and perception work cannot consume it. Freshness-grant installation
@@ -1455,9 +1551,10 @@ inspection and interlock procedure retires that generation. NCP reset success
 does not certify a physical device or permit remote software to invent a local
 interlock result.
 
-A commander handover uses one body-owned operation:
+A commander handover uses one body-owned operation. Its restrictive transition
+is local lifecycle policy and never fabricates a remote command or disposition:
 
-1. Enter the installed HOLD or ESTOP policy.
+1. Enter the installed body-local HOLD or ESTOP policy.
 2. Stop new Active admission from the old holder.
 3. Revoke the old lease and terminalize pending old-holder work.
 4. Retire the old lease-bound command stream and its normal freshness grants.
@@ -1527,20 +1624,30 @@ cannot prove that fence and restore the required no-reuse state, it creates a
 new generation and leaves the old generation retired. A network lease or
 serialized token alone cannot fence an actuator or establish physical safety.
 
-Process ownership is not enough when two realms or sessions can address the
-same hardware. A deployment owner reserves the content-addressed set of physical
-effect paths before it opens a plant generation. Two live reservations with an
-overlapping path conflict, even when their realms, sessions, or processes differ.
+Process ownership is not enough when two realms or sessions can address the same
+hardware. A deployment owner normalizes endpoint aliases to an enrolled physical
+resource and independently enforced fencing domains. It reserves bounded
+canonical channel sets or half-open output intervals before it opens a plant
+generation. Two reservations in one domain conflict even when their described
+outputs are disjoint. Concurrent domains require proven non-overlap and separate
+effect-boundary term enforcement.
 
-Handover and failover preserve that fence. Unknown reservation state keeps the
-path unavailable and cannot be repaired with a network lease. Every process that
-can write a path must share this fencing authority. Otherwise, that path cannot
-open for NCP control. This is software exclusivity, not a physical-safety claim.
+The reservation installs a strictly increasing, never-reused term for each
+domain. The body-issued executor and driver require every exact current
+domain-incarnation and term pair at each write. Re-enrollment installs a fresh
+incarnation at the effect boundary and proves that old-incarnation tokens reject.
+If a device cannot enforce the pair, a replacement stays unavailable until the
+old executor is terminated and the physical write path is isolated.
 
-When the executor is in another process, B01 must select an authenticated,
-bounded handoff that preserves the same owner-incarnation fence. A plain byte
-encoding of the local token is not that handoff. The exact cross-process profile
-remains B03 allocation and later implementation work.
+Handover closes old admission before it advances the term or proves isolation.
+Unknown reservation state keeps the path unavailable and cannot be repaired with
+a network lease. The prepared write path performs one current-term comparison.
+This is software exclusivity, not a physical-safety claim.
+
+When the executor is in another process, the proposed ADR set requires an
+authenticated, bounded handoff that preserves the same owner-incarnation fence.
+A plain byte encoding of the local token is not that handoff. The exact
+cross-process profile remains B03 allocation and later implementation work.
 
 ## Bounded state and recovery
 
@@ -1553,7 +1660,8 @@ The runtime needs finite state with explicit ownership:
 - one replay fence entry per declared stream.
 - one bounded body-issued command freshness-grant registry with range tombstones.
 - one digest-bound primary result per finalized command position.
-- one latest sensor slot per controller.
+- one latest sensor slot per controller for monitoring only. It cannot satisfy a
+  source-bound Active command.
 - one finite source-publication correlation window per bound perception stream.
 - one outgoing command slot per publisher.
 - one priority command slot per plant body generation.
@@ -1657,16 +1765,18 @@ machinery on the public wire.
 
 After bounded closed-shape decode and authenticated context identify a declared
 stream and position, the receiver never accepts different bytes at that position.
-An object with unknown members never becomes such a frame. Ordinary data streams
-can consume an identified position in their monotonic high-water state. Action
-commands also bind the exact frame digest before lower-priority semantic checks.
-That state supports exact replay without permitting a second command there.
+An object with an unknown closed value never becomes such a frame. A bounded
+additive unknown member remains non-authorizing and is included in any exact
+frame digest before typed projection. Ordinary data streams can consume an
+identified position in their monotonic high-water state. Action commands also
+bind the exact frame digest before lower-priority semantic checks. That state
+supports exact replay without permitting a second command there.
 
 A process restart never restores Active from serialized state alone. A durable
 profile restores restrictive and no-reuse state, then requires an explicit
 continuity proof and a newer lease. Ambiguous command delivery consumes its
-stream position. A publisher
-cannot issue different bytes or a second application at that position. An exact
+stream position. A publisher cannot issue different bytes or a second
+application at that position. An exact
 transport retry or query returns retained state when its digest binding remains.
 When only the high-water mark remains, the receiver rejects the position as
 stale and reports evidence unavailable without another effect.
@@ -1720,7 +1830,7 @@ achievement. A retained commitment can prove only its exact historical terminal
 label and no-reuse identity. It cannot prove application, HOLD association,
 ESTOP association, or physical effect without the retained body-local chain.
 
-The B01 recommendation for the query result is a closed three-way union:
+ADR-007 selects a closed three-way query-result union for B01 review:
 
 - `RETAINED_DISPOSITION` carries the complete retained chain and current
   membership evidence.
@@ -1731,8 +1841,8 @@ The B01 recommendation for the query result is a closed three-way union:
 Each result uses an exact receipt-free canonical projection. Its digest excludes
 itself, signatures, transport metadata, and the later receipt. The receipt then
 binds that digest and the complete query coordinate. This order prevents a hash
-cycle and command substitution. ADR-007 must reconcile and close this question
-before B01 can pass.
+cycle and command substitution. This selection remains proposed until ADR-007 is
+accepted. B03 still owns the finite journal capacities and implementation names.
 
 ## Extensions
 
@@ -1743,7 +1853,9 @@ manifest entry rejects the route before extension allocation.
 Extension packages are opaque to the core reassembly layer. The recommended
 prepared path derives an activation-context digest. It commits the publisher,
 audience, realm, scope, extension manifest, route, package class, parser,
-security-state digest, and resource profile.
+callback, resource, frame, and route-encoding profiles. It also commits the
+security-state digest, receiver-clock incarnation, exclusive activation expiry,
+and one never-reused receiver activation incarnation.
 
 The security-state projection commits accepted extension manifest identities.
 It does not commit a derived activation-context digest. The receiver computes
@@ -1751,12 +1863,24 @@ It does not commit a derived activation-context digest. The receiver computes
 This one-way order prevents a hash cycle. The digest name and projection remain
 B03 allocation work.
 
-The recommended low-overhead B03 target uses a fixed binary header followed by
-raw bytes. It carries a magic value, wrapper version, activation-context digest,
-package digest, total length, index, count, and chunk length. It does not
-base64-encode package bytes or repeat variable route and identity strings.
+The activation registry retains the exact canonical projection bytes for the
+activation lifetime. One digest resolves to exactly one installed byte sequence.
+A different projection with the same digest rejects without changing the
+existing activation. This collision check is activation work and adds no chunk
+hot-path comparison or field.
 
-The installed resource profile fixes a positive maximum chunk payload `C`.
+The selected B01 transport direction uses a fixed binary header followed by
+raw bytes. It carries a magic value, wrapper version, activation-context digest,
+package class, package digest, total length, index, count, and chunk length. It
+does not base64-encode package bytes or repeat variable route and identity strings.
+
+The selected frame and resource profiles jointly provide a closed package-class
+registry. Each literal class has one positive hard package-byte ceiling. Unknown
+or default classes reject. Payload bytes cannot create a class or select a
+ceiling.
+
+The installed resource profile fixes one positive chunk payload `C` and a
+positive chunk-count maximum no greater than 65,536.
 The fixed header plus one chunk payload must fit the authenticated transport's
 complete delivered-byte limit. The profile derives `C` from that limit rather
 than applying the universal structured-JSON limit to reassembled package bytes.
@@ -1765,41 +1889,63 @@ remain within the profile maximum. Chunk `i` has checked offset `i * C` and exac
 length `min(C, L - i * C)`. Any overflow, alternate count, overlap, gap, or
 non-final short chunk rejects before reservation.
 
-Raw header arithmetic and the authenticated context match run before slot
-lookup. The stable slot key binds the prepared activation context and package
-digest. The slot also retains the complete immutable wrapper metadata. An
-existing slot compares that metadata exactly before duplicate or conflict
-handling. Changed length, count, version, class, or context cannot allocate a
-parallel assembly under the same slot.
+The header package class must be one closed registry entry and exactly match the
+class in the resolved prepared activation context. That class selects its hard
+positive package-byte ceiling.
+The installed resource profile can only tighten it. `L` must not exceed either
+ceiling. An unknown or mismatched class, unavailable ceiling, or oversized `L`
+rejects before slot lookup or reservation.
+
+Raw header structure, class binding, arithmetic, bounds, and verified transport
+identity run before slot lookup. The stable slot key binds the prepared
+activation-context digest and package digest. Lookup precedes activation
+currentness that could admit work. It does not allocate or call extension code.
+
+The slot retains the complete immutable wrapper metadata. An active slot changes
+state only after its identity and current authorization match. An authorized
+metadata mismatch becomes a conflict. Changed length, count, version, class, or
+context cannot allocate a parallel assembly under the same slot.
 
 When the slot is absent, the receiver reserves the complete package bytes, fixed
 per-chunk metadata, and the greater of active-state or terminal-tombstone
 overhead. Capacity failure creates no slot. Any valid first index can create the
 reserved slot after those checks.
 
-The receiver rechecks current security and exact lookup permission before it
-reveals an active-slot or tombstone result. A closed context cannot use replay to
-read retained state. That rejection allocates no slot and changes no tombstone.
+The receiver rechecks current security and exact disclosure permission before it
+reveals an active-slot or tombstone result. A retired or revoked context receives
+only a generic terminal no-reuse result. It cannot read protected retained state.
+That result allocates no slot, changes no tombstone, and admits no new work.
 
 The receiver then copies each new raw chunk once into its checked offset in one
 final package buffer and tracks a bitmap with fixed fingerprints. An exact
 duplicate compares without another package copy. Different bytes at an accepted
 index terminalize the slot as a conflict without overwriting package bytes.
 
-The first accepted chunk records one receiver-clock incarnation, admitted tick,
-and checked exclusive expiry derived from the installed resource profile. Later
-chunks recheck the activation, security state, route, producer, audience, and
-receiver clock before retention. A duplicate does not extend the expiry. A
-receiver-owned timer can expire an incomplete slot without waiting for more
-traffic.
+Chunk retention uses two short activation-owner transitions. The first rechecks
+currentness and expiry, claims an empty index, and pins the slot buffer. The
+bounded copy runs outside the owner lock. The second transition repeats the
+checks and commits or discards the copied index. A same-index arrival while that
+claim is in flight returns a generic in-progress result without waiting or
+allocation. A cut marks the claim as draining and retains the buffer until the
+copy returns. It cannot advance that slot into schema work.
 
-Rotation, revocation, expiry, conflict, and completion release package bytes and
-leave only the selected compact no-reuse tombstone. The activation owner
-terminalizes every active slot when a rotation or revocation cut wins. It does
-not wait for another chunk or callback attempt. That tombstone retains the
-terminal cause, result, and bounded accepted-index fingerprints. An exact replay
-of an accepted chunk returns the retained result. Altered or absent-index replay
-remains a conflict and cannot create another assembly or callback.
+Activation records one receiver-clock incarnation, admitted tick, and checked
+exclusive expiry derived from the installed resource profile. Each slot binds
+that unchanged activation context. Later chunks recheck the activation, security
+state, route, producer, audience, receiver clock, and expiry before retention. A
+duplicate does not extend the expiry. A receiver-owned timer can expire an
+incomplete slot without waiting for more traffic.
+
+Before callback entry, rotation, revocation, expiry, conflict, or capacity
+rejection can release package bytes and leave a compact no-reuse tombstone.
+Successful reassembly completion transfers its reservation into parsing and
+callback state. It releases no buffer while either can reference it. After
+callback entry, a currentness cut prevents new work and result use. The receiver
+keeps the bounded arena and resolution obligation until callback return or
+proved isolation termination. No owner lock waits for that resolution. An exact
+replay returns a retained result only under current disclosure authorization.
+Altered or absent-index replay remains a conflict and cannot create another
+assembly or callback.
 
 The receiver checks the complete length and hashes the completed buffer once. It
 rechecks currentness and expiry before bounded schema parsing and again
@@ -1813,12 +1959,18 @@ accounting value. A schema-specific parser runs only after complete authenticati
 digest verification, and that reservation. This recommendation is not wire until
 the deliberate rebaseline and B03 allocation authorize it.
 
-Callback entry consumes the reserved slot once and marks the package in flight
-before extension code can run. A lost or timed-out result remains unresolved and
-cannot invoke the same package again inside that activation. Restart without the
-exact activation no-reuse state retires the activation and reports no callback
-success. A callback that needs no-repeat behavior across distinct activations
-must use its own durable idempotency identity and selected recovery profile.
+The final currentness and expiry recheck and callback entry are one indivisible
+activation-owner transition. It installs a boundary state and consumes the one
+callback right before extension code can run. A cut wins before that transition,
+or callback entry wins before the cut. A restart-resumable profile persists the
+state before entry. The default memory-only profile instead retires the
+activation on restart and reports no callback success. Both forms bind the
+package, activation, callback profile, and entry state. A normal return installs
+its bounded terminal result. A proved process exit, confirmed isolation
+termination, or lost result after either event becomes
+`UNKNOWN_AFTER_CALLBACK_BOUNDARY`. Timeout or task cancellation alone cannot
+free callback-owned state or prove completion. The at-most-once profile never
+re-enters the callback.
 
 An at-most-once activation retains package no-reuse state until the activation
 retires. Capacity exhaustion rejects a new package before callback work. An
@@ -2083,27 +2235,27 @@ latency without adding evidence about the changed claim.
 
 ## B01 design corrections recommended
 
-Direct review found the conflicts below. The table records a maintainer-side
-recommendation for B01 reconciliation. It does not assert that the current ADR
-bytes already agree, and it does not close an open question. Exact wire schemas,
-numeric allocations, implementation, and independent review remain open. A test
-result or generated decision matrix cannot complete those tasks.
+Direct review found the conflicts below. The table records the maintainer-side
+direction now reconciled into the proposed ADR set. That reconciliation does not
+accept an ADR or satisfy independent review. Exact wire schemas, numeric
+allocations, and implementation remain open. A test result or generated decision
+matrix cannot complete those tasks.
 
 | Area | Conflict found during direct review | Recommended direction for review |
 |---|---|---|
 | Realm identity on hot frames | Several ADRs require both realm strings in every frame. The compact path binds them through prepared authenticated context. | Keep direct realm fields in control objects and portable evidence. Permit an authenticated prepared-context binding for hot frames. |
-| Stable-core identity | ADR-002 leaves the exact stable-core source set for later enumeration. A complete release digest also changes for packaging and maintained prose. | Register one ordered source set containing only accepted wire, security, safety, and semantic behavior. Exclude packaging and maintained prose. Prepare its fixed digest before runtime admission. |
-| Version spelling | Current negotiation accepts both `1` and `1.0`, plus every parseable same-major minor. Exact replay and signature inputs can then carry different strings for one claimed profile. | Select one literal per native JSON profile. Use exact `1.0` for the recommended stable profile. Require a separately negotiated successor profile for another minor. Compact frames inherit the selected literal from prepared context. |
-| Identifier grammar and bounds | Route helpers block delimiter injection but omit portable character, segment-byte, realm-segment-count, and complete-route limits. The manifest also treats a transport certificate identity as an NCP key segment. | Select exact UTF-8 or ASCII grammar and checked byte limits for each NCP identity class. Give transport-native identities a separate bounded profile and map them once to canonical principals. Enforce the complete route limit before allocation in every binding. |
-| Unknown stable members | Rust and TypeScript use major-version forward compatibility, while Rust typed conversion discards unknown members. A signer, replay digest, gateway, and typed receiver can therefore observe different objects. | Close every exact native `1.0` message shape. Reject unknown members before typed conversion. Add evolution only through a negotiated wire/profile or an explicit bounded extension member whose bytes and semantics are bound. |
+| Stable-core identity | ADR-002 leaves the exact stable-core projection inputs for later enumeration. A complete release digest also changes for additive definitions, packaging, and maintained prose. | Generate one frozen canonical major-semantics projection from accepted inputs. Exclude additive profiles, packaging, and maintained prose. Prepare its fixed digest before runtime admission. |
+| Version compatibility | Current negotiation accepts the defined `1` shorthand and `1.0`. Careless string equality or rewriting can split equivalent semantics. | Parse either canonical spelling under the same-major rule and retain the admitted spelling in signed, replayed, or forwarded objects. Prepared context binds the parsed result and stable-core identity. Compact frames inherit the context. |
+| Identifier grammar and bounds | Route helpers block delimiter injection but omit portable character, segment-byte, realm-segment-count, and complete-route limits. The manifest also treats a transport certificate identity as an NCP key segment. | Use the selected ADR-002 ASCII identifier types, hierarchical realm bounds, and 4,096-byte complete-route ceiling. Keep transport-native identities separate and map them once to canonical principals. |
+| Unknown stable members | Rust and TypeScript use same-major forward compatibility, while typed conversion can discard additive unknown members. | Apply universal limits first. Unknown closed values reject. Additive unknown members stay non-authorizing, and exact signing, replay, or forwarding binds the admitted object before projection. |
 | Forwarded authentication | ADR-003 proposes flattened JWS and rejects custom signature framing. Per-frame application signatures also add avoidable hot-path work. | Use A-direct for hot traffic and B-over-A only for explicit forwarding. Keep custom signature carriers outside `stable-1.0` and the default runtime. |
 | Forwarded mutation recovery | Authentication alone does not prevent a crash between forwarding and recording the result. A fresh retry can duplicate a remote mutation. | Install exact protected bytes, target coordinates, signer, and idempotency key in one bounded durable outbox. Recheck security and mark one attempt active before each external send. Resume or query the same item after ambiguity. |
-| Ingress process isolation | ADR-003 leaves process-isolated direct-capability handoff open. A same-process verified transport does not need an extra process or byte envelope merely to prove isolation. | Require an opaque receiver-owned capability in the same trust process. If transport termination is separate, require an authenticated OS-protected handoff or B-over-A. Plain caller-supplied identity bytes never substitute. |
+| Ingress process isolation | The runtime has no receiver-owned direct-capability boundary. A same-process verified transport does not need an extra process or byte envelope merely to prove isolation. | Require an opaque receiver-owned capability in the same trust process. If transport termination is separate, require an authenticated OS-protected handoff or B-over-A. Plain caller-supplied identity bytes never substitute. |
 | Local ordering | Expanded ADR models require selector forests and broad transaction graphs. The runtime needs deterministic local ownership with bounded cross-store import. | Use one state owner per local authority boundary. Keep distributed evidence outside the hot public wire. |
 | Security currentness | The core has no installed security-snapshot owner or inseparable actor/currentness capability. It also lacks one body-owned event order for every security and effect transition. | Use one-way snapshot currentness and serialized body/executor admission. Never hold synchronization across external work. |
 | Observer release ordering | Receiver-side currentness does not define whether source release or revocation won. Building a maximum projection inside the source-owner lock can also block action work. | Reserve an immutable source record and slot in one short transition. Project outside the lock, then recheck and commit or discard in a second short transition. Drain uncommitted reservations. Treat earlier committed bytes as historical and wait for terminal or unresolved slots before claiming quiescence. |
-| Remote restrictive modes | `CommandFrame` defaults missing mode to HOLD and carries remote values, horizon fields, and a source timestamp for every mode. Explicit HOLD lacks a live-holder check. The body result merges remote HOLD with a local response. ADR-007 also selects the remote HOLD side effect before stream replay and the live-lease check. Its complete ESTOP gate names source evidence. | Require an explicit known mode and a live holder for HOLD. HOLD obeys stream monotonicity before it can request the installed HOLD action. Reserve the lease exemption and early idempotent latch for ESTOP. HOLD and ESTOP structurally forbid source, value-vector, and horizon fields. Their actions come from the installed profile. Separate rejection from the body-local response. |
-| Physical effect-path ownership | A session-local lease or process-local owner cannot exclude another realm or process from the same device path. | Reserve the content-addressed physical effect-path set at deployment scope. Reject overlapping live reservations and preserve the fence through handover and failover. |
+| Remote restrictive modes | `CommandFrame` defaults missing mode to HOLD and carries remote values, horizon fields, and a source timestamp for every mode. Explicit HOLD lacks a live-holder check. The body result merges remote HOLD with a local response. The old pre-replay HOLD ordering is no longer the proposed ADR-007 target. | Require an explicit known mode and a live holder for HOLD. HOLD obeys stream monotonicity before it can request the installed HOLD action. Reserve the lease exemption and early idempotent latch for ESTOP. HOLD and ESTOP structurally forbid source, value-vector, and horizon fields. Their actions come from the installed profile. Separate rejection from the body-local response. |
+| Physical effect-path ownership | A session-local lease, descriptor hash, or process-local owner cannot detect aliases, partial range overlap, or fence an old writer. | Normalize aliases into one physical-resource namespace. Reject set or interval intersection. Enforce the current domain-incarnation and term pair at each write, or require old-path isolation before replacement. |
 | Control retry and correlation | The compatibility idempotency API rejects every call after the request deadline, including a read of an existing terminal result. The TypeScript WebSocket client also assigns replies by FIFO waiter order. | Use the deadline only to start new mutation work. Permit authenticated exact retry and query of retained state without extending the deadline. Correlate each reply through one bounded exact request identity and leave unrelated waiters untouched. |
 | Remote command freshness | The compatibility watchdog starts a binary64 TTL at receiver arrival and normalizes it locally. A delayed command therefore receives a new lifetime, while ADR-007 defines an unchanged body-clock deadline. | Issue a bounded body freshness grant before publication. Bind its clock incarnation, absolute window, mode, lease coordinate, position range, and reserved state. Allocate position one first and successors contiguously. Let the position select that non-overlapping range. Repeat no grant, lease, or TTL field in the compact command. Arrival records evidence only. |
 | Command-stream scope | A single action-stream phrase cannot cover both the current lease holder and a separately enrolled emergency principal. Sequence values from different publishers are not comparable. Principal identity alone also cannot serialize two simultaneous publisher connections. Shared ingress capacity can suppress the reserved emergency body slot. | Use one lease-bound command declaration plus a bounded ESTOP-only declaration when policy enrolls an emergency principal. Bind each declaration and grant to one receiver-owned publisher incarnation. Reserve separate emergency ingress work. Keep per-stream allocators and merge them only through the body-owned event order. |
@@ -2113,20 +2265,30 @@ result or generated decision matrix cannot complete those tasks.
 | Publisher position | The current control loop commits a candidate command position only after local slot acceptance. Earlier failure can reuse that candidate. | Consume a position when it is assigned. Record a visible gap after any later local failure. |
 | Stream retry | Current wire has no digest-bound receiver result for a command position. It cannot distinguish retained admission from delivery ambiguity. | Never reassign a position. Bind an action position before lower semantic checks. Permit retransmission only after an accepted profile defines exact digest-bound replay state and retained outcomes. |
 | Source-correlation retention | The selected Active path requires an exact retained source publication, but the bounded-state list previously named only a latest sensor slot. A fast source can overwrite evidence before a valid command arrives. | Reserve a finite per-declaration correlation window by count, bytes, and receiver time. Absent or evicted source evidence rejects without timestamp, bare-sequence, or latest-value fallback. |
-| Disposition query | ADR-007 leaves retained, retired, and unavailable query results open. | Reconcile the three-way union in this document and bind every branch to the exact query coordinate. |
-| Extension size | ADR-008 allows packages larger than the universal structured-frame limit without a selected outer transport. | Select raw bounded chunk framing before package bytes become a stable profile. |
+| Disposition query | Earlier ADR-007 text left retained, retired, and unavailable query results open. | Keep the selected three-way union and bind every branch to the exact query coordinate. B03 selects finite journal capacities. |
+| Extension size | Earlier ADR-008 text allowed packages larger than the universal structured-frame limit without a selected outer transport. | Keep the selected raw bounded chunk framing. B03 allocates its exact identities and numeric limits. |
 | Security and activation context | ADR-009 commits accepted extension manifest identities. ADR-008 makes installed activation realm-scoped but does not select a compact prepared-context identity. | Derive a prepared activation-context digest from the completed security-state digest. Keep its exact name and projection in B03 allocation work. |
 | Extension no-reuse | A finite evidence tombstone can expire while an at-most-once activation remains live. | Retain compact no-reuse state for the activation lifetime, or use an explicit idempotent at-least-once profile. |
 | Extension parser capacity | Package reassembly bounds do not reserve schema-tree or callback work. A complete authenticated package can otherwise trigger a second unreserved allocation domain. | Reserve the schema-specific semantic and callback budgets after digest verification and before parsing. Terminalize without callback when that reservation cannot be made. |
 | Cross-store audit opening | ADR-009's companion module leaves its exact-opening byte maximum symbolic. A proposed JSON capsule cannot evade the universal structured-frame ceiling. | Derive and freeze one numeric payload maximum from the complete canonical capsule shell, encoding expansion, and the universal frame bound. Test exact, one-below, one-above, and aggregate optional-scope cases. |
-| QoS profile completeness | ADR-010 names the semantics but leaves its exact numeric fields and corrupt-profile behavior open. Transport defaults cannot fill either gap. | Select capacity, aggregate bytes, deadline, retention, and bounded retry fields for each class. Missing, unknown, corrupt, zero-authority, or uninstalled profiles reject before queue allocation. B03 selects measured values without changing those meanings. |
+| QoS profile completeness | Earlier ADR-010 text left the required field set and corrupt-profile behavior open. Transport defaults cannot fill either gap. | Keep the selected count, aggregate-byte, deadline, retention, retry, overload, and shutdown fields. Missing, unknown, corrupt, zero-authority, or uninstalled profiles reject before queue allocation. B03 selects measured values without changing those meanings. |
 
 The detailed ADR proof models remain useful design analysis. They are not, by
 their presence alone, required public wire objects or required runtime stores.
-The maintained ADR files remain unchanged until B01 reconciles these
-recommendations through its exact review process.
+Each maintained ADR now has a low-overhead reconciliation section that selects
+the applicable direction above. Those edits remain proposed. B01 still needs a
+new exact review subject and its configured independent review floor.
 
-## Author review lenses
+The selector-closure authoring artifact is retained as a non-gating historical
+diagnostic. Its semantic allocation predates this reconciliation and still
+models remote HOLD effects before ordinary admission finishes. The maintained
+architecture, ADRs, source-linked examples, and finite B03 envelopes supersede
+that allocation. The selector artifact cannot accept or block a decision and
+does not need reconstruction for B01. Its generated matrix remains
+`INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED` so nobody can mistake it for current
+allocation or review evidence.
+
+## 18-lens maintainer review
 
 This table records the maintainer-side design review. It is not the independent
 review required by B01.
@@ -2134,7 +2296,7 @@ review required by B01.
 | Lens | Selected target | Current gap or later evidence |
 |---|---|---|
 | Role and type separation | Simulation, plant, observer, extension, and local-library roles are disjoint. | B03 must allocate the required identities, and later N-series work must select exact schemas and role descriptors. The current wire still uses the older session shape. |
-| Identity and correlation | Realm, session generation, stream, request, command, package, and contract identities have explicit scopes. | Exact field layouts, digest domains, and the durable generation issuer remain B03 work. The current transport path does not supply the selected prepared-context binding. |
+| Identity and correlation | Realm, session generation, stream, request, command, package, and contract identities have explicit scopes and bounded portable grammars. | Exact field layouts, digest domains, and the durable generation issuer remain implementation work. The current transport path does not supply the selected prepared-context binding. |
 | Authentication and authorization | Direct transport context and explicit forwarded signing are default-deny and non-downgrading. | A-direct is not implemented. The current actor helper trusts caller-supplied transport evidence, and manifest grants are plane-wide. Live identity, route ACL, custody, rotation, and revocation remain external gates. |
 | Error precedence | Raw bounds and profile selection precede identity-sensitive diagnostics. Exact conflicts cannot become fresh admissions. | The selected diagnostic map remains B03 work. The current governor still merges some remote rejection and body-local responses. |
 | Freshness and replay | Body-issued absolute freshness grants, per-stream positions, declared epochs, and post-admission rechecks fail closed. Receiver arrival never refreshes command lifetime. | Exact limits, grant encoding, digest-bound command replay, control retry-after-deadline behavior, and restart profiles remain B03 and implementation work. |
@@ -2154,10 +2316,14 @@ review required by B01.
 
 ## B01 closure criteria
 
-B01 is ready for independent review when the eleven ADRs express this
-architecture. ADR-003, ADR-007, ADR-008, ADR-009, and ADR-010 must close their
-current semantic questions. Every B03 deferral must also have a finite selection
-predicate that cannot change accepted meaning.
+B01 is ready for independent review only when the eleven ADRs express this
+architecture and the source-linked semantic examples reflect it. The maintained
+closure source records closed semantic questions and finite allocation questions
+deferred to B03. Each B03 deferral must retain a finite selection predicate that
+cannot change accepted meaning. Local semantic closure verifies only that design,
+example, and envelope relationship. It does not accept an ADR or satisfy review.
+The retained selector model remains a non-gating diagnostic outside that
+relationship.
 
 The ADR set must also order mutating forwarding against durable outbox
 installation and each external attempt against a security cut. It must order
@@ -2165,10 +2331,12 @@ observer release against revocation. It must order plant generation opening
 against deployment-wide effect-path reservation. These are control-plane
 invariants. They add no per-tick proof object or network round trip.
 
-ADR-002 and every stable message profile must require the exact supported wire,
-stable-core identity, and closed member set. Unknown stable members reject before
-typed conversion. Explicit bounded extension members and negotiated successor
-profiles are the only extensibility paths.
+ADR-002 and every stable message profile must preserve canonical same-major
+compatibility and require the exact stable-core identity. Unknown closed values
+reject. Bounded additive members cannot supply interpreted meaning, and exact
+signing, replay, or forwarding binds them before typed projection. Separately
+negotiated extension and additive-profile identities remain the extensibility
+paths.
 
 ADR-004 must bind any compact numeric observer projection to the exact grant,
 source position, source digest, and prepared layout. It must not authorize bare
@@ -2200,6 +2368,12 @@ proof-model analysis. The retained analysis does not need to be deleted. Each
 ADR must clearly identify its selected decision, invariants, bounds, recovery,
 rejected alternatives, and open allocations. An explored receipt or store object
 is not automatically a mandatory runtime surface.
+
+B01 uses the bounded source-linked semantic corpus as challenge evidence. Those
+examples remain non-authorizing excerpts. B01 does not require complete future
+wire objects before B02 authorizes rebaseline and B03 selects the bounded
+allocations that N01 will encode. The two prototype engines must agree on every
+registered case and mutation, but they do not implement production admission.
 
 B01 still requires its configured independent evidence floor. A local rewrite or
 green test suite cannot close it. B02 and later implementation tasks remain blocked

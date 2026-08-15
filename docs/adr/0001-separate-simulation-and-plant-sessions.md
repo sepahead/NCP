@@ -2008,6 +2008,69 @@ its own policy, but any resulting NCP command is a new command under the
 commander's plant principal and current Crebain lease. No simulation receipt,
 principal, route, or store can be converted into plant authority.
 
+## Low-overhead runtime reconciliation
+
+The proof objects above specify invariants. They do not require one public wire
+object, store, service, or network exchange for each named fact or receipt. A
+local implementation can retain one bounded immutable record and one atomic
+owner transition when that shape preserves every observable binding and result.
+
+Portable control objects and exported evidence carry their direct
+`AuthorityRealmKey`. A prepared authenticated hot-frame context can bind the
+same realm without repeating both realm strings in every compact frame. Caller
+bytes cannot select or replace that context.
+
+Simulation lifecycle operations remain bounded canonical JSON. A prepared
+simulation session can also select one fixed-layout numeric step profile. That
+profile has these requirements:
+
+- One receiver-issued step grant reserves a positive contiguous request range.
+  It binds one receiver-clock incarnation and one non-refreshing exclusive
+  deadline.
+- The first range starts at position one. Later ranges start at the prior
+  exclusive end.
+- Grant installation reserves every request slot, response slot, digest entry,
+  no-reuse record, and byte budget for the range.
+- Each request carries one positive position, one positive `advance_ns`, and the
+  prepared finite stimulus vector.
+- Each response carries the exact request position and exactly one result code:
+  `COMPLETED`, `REJECTED_BEFORE_STEP`, `FAILED_AFTER_START`, or
+  `UNKNOWN_AFTER_BOUNDARY`.
+- Only `COMPLETED` carries one checked simulation tick and the prepared finite
+  result vector.
+- The owner binds the request digest before simulation work and executes accepted
+  requests in strict position order.
+- Exact retry returns or joins the retained response. Different bytes at an
+  occupied position conflict.
+- A later request cannot pass an unresolved gap. The first retained request
+  beyond that gap starts one non-refreshing receiver-local deadline.
+- Gap expiry rejects each retained later request and retires the simulation
+  generation. A later range cannot repair or reuse the gap.
+- Grant expiry while its range is still open rejects every unconsumed position
+  in that range and every prefetched successor. It retires the simulation
+  generation. A range closes only after all of its positions have definitive
+  terminal responses. Its later deadline cannot invalidate an activated
+  successor after that close.
+- An authorized exact-result lookup can return a retained response after grant
+  expiry. It cannot renew or create simulation mutation authority.
+- Simulator work runs outside the owner lock and has a finite completion
+  contract or a terminable isolation boundary.
+- The selected QoS profile derives checked exclusive gap and work-resolution
+  deadlines from its receiver clock. Work resolution includes any isolation
+  termination needed before the worker slot can be reused.
+- `FAILED_AFTER_START` and `UNKNOWN_AFTER_BOUNDARY` retire the simulation
+  generation. A profile can continue after a started failure only when its
+  transactional backend proves the exact defined successor state. An unresolved
+  execution never runs again under another request identity.
+- Clients correlate responses by request position. FIFO arrival order is not a
+  correlation rule.
+
+The compact step path is simulation authority only. It grants no plant,
+observer, extension, lifecycle, or release authority. B03 selects its installed
+resource values through the bounded ADR-010 profile envelope. N01 assigns the
+exact frame identity, layout, and result encoding without changing these
+meanings.
+
 ## Rejected alternatives
 
 - One generic `OpenSession` with a `session_type` enum and optional union-like
@@ -2394,7 +2457,10 @@ artifacts remain immutable.
 
 <a id="ncp-b01-selector-allocation-adr-001-v1"></a>
 
-No open question can change the simulation/plant separation or the fail-closed lineage decision.
+No open question can change the simulation/plant separation or the fail-closed
+lineage decision. Exact simulation-step resource values remain bounded ADR-010
+allocation inputs. The fixed frame layout remains later implementation work
+after architecture rebaseline and resource allocation.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

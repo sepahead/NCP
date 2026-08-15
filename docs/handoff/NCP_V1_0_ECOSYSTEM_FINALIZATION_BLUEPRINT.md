@@ -14,9 +14,9 @@
 > coherent, passing part with a professional message. Never use a status edit as a
 > substitute for implementation or independent review.
 >
-> **Current reconciliation note (2026-08-01):** the producer branch/worktree rows
+> **Current reconciliation note (2026-08-13):** the producer branch/worktree rows
 > below are preserved intake history. Canonical Crebain `origin/main` is now
-> `43df8418f1b17b773acdc85533b7fba431dc5468` and contains the producer lineage.
+> `6b82095c4443c2c2d49b5c2a8b2bd71c446e73ff` and contains the producer lineage.
 > No current local or remote branch ref contains the intake commit
 > `113ee70d5660daf90bb373bd7857d4b3f2f56784`. GitHub's retained
 > `refs/pull/31/head` pull-request ref still exposes it as merged PR history. C04
@@ -289,6 +289,34 @@ physical-safety, independent-peer, fault, soak, performance, and release gate
 at **NOT RUN**. R01 is not dependency-ready, so this audit authorizes no
 consumer edit. The smallest coherent implementation order remains R01, then
 E01/H01/G01/P01, followed by each downstream role and its exact evidence floor.
+
+### 2.6 Primary-maintainer ecosystem refresh
+
+The primary maintainer refreshed the local ecosystem worktrees at
+2026-08-15 09:54:10 UTC. This was a read-only source inspection. It is not an
+installed-peer, qualification, interoperability, or release result.
+
+| Project | Branch | Observed HEAD | Tracked/untracked changes | Ahead/behind upstream | Relevant state |
+|---|---|---|---:|---:|---|
+| NCP | `main` | `1a04294c90c1b50eba06ae1c6afe9c951319250d` | 71 / 0 | 0 / 0 | B01 source and evidence edits remain uncommitted, release-blocked candidate |
+| Engram | `main` | `4bbc98dd1a8ffa31a63a6e8b6037b4dc88a9b1b1` | 3 / 2 | 0 / 0 | inherited active ingestion and provider-pilot work. Preserve it before any cleanup. Installed qualification remains separate |
+| Haldir | `main` | `60da945d087d6ed65a5c43e950adde1292c3bd10` | 0 / 0 | 0 / 0 | clean source, immutable wire-0.8 adapter remains active |
+| Galadriel | `main` | `7d0483f44af22eaa8272a7e753bb15021b0ed817` | 0 / 0 | 1 / 0 | clean source with one unpushed local commit. Preserve and review it before any cleanup or promotion |
+| Crebain | `main` | `6b82095c4443c2c2d49b5c2a8b2bd71c446e73ff` | 0 / 0 | 0 / 0 | clean source, wire-0.8 body integration remains active |
+| Prisoma | `main` | `efcad9943af818913702f11c47ed0c280a2a1f13` | 24 / 5 | 0 / 0 | inherited dirty observer and scientific work. Preserve it before any cleanup |
+| pid-rs | `review/sx-count-event-bridge-r2` | `9bbcf5ef04d26b0fd5ec552fe6a065f9a474fd56` | 69 / 56 | no upstream | inherited review work, protocol-neutral and outside NCP role qualification |
+| Cortexel | `main` | `437f2a718dbdedaec66b949a66f802ba5138ad8f` | 0 / 0 | 0 / 0 | clean source, explicitly excluded non-peer with no NCP role |
+
+Read-only live-ref checks matched each listed `main` HEAD to its authorized
+remote except Galadriel, whose local `main` is one commit ahead. The pid-rs
+review branch has no upstream, and remote `main` is
+`bc3aa80fb6025e709c2906a08bce25a4fac40578`. These facts authorize no merge,
+push, reset, or cleanup in a sibling repository.
+
+The consumer-pin scan remains fail-closed because active surfaces still mix the
+wire-0.8 and wire-1.x lines. Hidden historical Engram work directories also
+duplicate candidate observations. They grant no consumer status and must not be
+treated as current installed surfaces.
 
 ## 3. Authority, precedence, and completion semantics
 
@@ -587,7 +615,8 @@ surface. It must bind the exact command publisher stream position, original fram
 and content digests, session/transcript, plant body identity, body clock and
 journal incarnations, monotonic disposition sequence, exact predecessor digest,
 and one closed state: `received`, `rejected`, `admitted`, `applied`,
-`superseded`, `expired`, `failed`, `unknown_after_boundary`, or `stop_latched`.
+`hold_effective`, `superseded`, `expired`, `failed`,
+`unknown_after_boundary`, or `stop_latched`.
 Every chain starts at `received`; application or a later terminal requires the
 exact `admitted` predecessor. One separately authenticated installed current
 journal head rejects historical tips and sibling forks. Define terminal states and
@@ -598,15 +627,27 @@ requested state. Separate boundary-application evidence binds the exact admitted
 record to a later body event. A stop disposition can report the boundary latch but
 cannot certify a universal physical zero-safe condition.
 
-Do not encode the action buffer's earlier fail-safe priority as a disposition
-shortcut. After authenticated actor/plane and exact current route/session/security
-context but before stream/replay and remaining semantic admission, a non-Active
-candidate can clear buffered Active output and ESTOP can assert the local latch.
-Record that orthogonal fact in a body-local, non-authorizing fail-safe side-effect
-record/resolution bound to a distinct ingress-attempt identity. A new command
-still finishes `received -> rejected` or `received -> admitted`; an exact replay
-references its existing command chain and cannot mint another `received`. Only
-an admitted chain can later report `stop_latched`.
+Do not encode fail-safe priority as a disposition shortcut. Before the early
+ESTOP path, require:
+
+- raw bounds and protected-envelope verification.
+- the verified transport principal and default-deny actor/action permission.
+- canonical frame kind and version.
+- the exact route, audience, and direct realm.
+- the live session generation and exact publisher, declaration, and stream epoch.
+- a positive syntactic position, current security, and structurally valid ESTOP.
+- the installed plant-profile action and either an authorized unexpired live
+  grant slot or one exact current post-HOLD escalation-snapshot slot. The
+  snapshot preserves the same publisher, declaration, epoch, security state,
+  and unchanged deadline.
+
+ESTOP can then reserve its early latch path. HOLD has no pre-replay exception. It
+can clear buffered Active output only after ordinary admission installs
+`received -> admitted`. Record either qualified effect in a body-local,
+non-authorizing fail-safe side-effect record and resolution bound to a distinct
+ingress-attempt identity. An exact replay references its existing command chain
+and cannot mint another `received`. Only an admitted chain can later report
+`hold_effective` or `stop_latched`.
 
 ### D08 — authority coordination does not yet close multi-writer topology
 
@@ -678,20 +719,30 @@ permits authenticated ESTOP to omit only the authority lease. It does not permit
 wrong-session, wrong-route, wrong-principal/audience, unsigned/unverifiable,
 oversized, or duplicate/ambiguous-mode envelope to reach the latch.
 
-Delete the bypass during native-1.0 migration. Apply byte/structure limits,
-duplicate-key rejection, protected-envelope verification, verified actor/plane,
-exact actual route/audience/live session generation, current security state, and
-one unambiguous typed mode before local fail-safe mutation. Append a distinct
-durable ingress-attempt record in that context. Preserve the normative body-local
-rule that non-Active clears and ESTOP latches before stream epoch/sequence/replay
-and remaining command-semantic checks. Record it in the separate fail-safe side-
-effect chain. Exact replay references the existing command chain and cannot mint
-a second `received`; a new candidate can then reject a
-wrong kind/version, stale/duplicate/sequence-zero/foreign-epoch, invalid lease/
-TTL/source/channel/profile, or other semantic failure through
-`received -> rejected`. Only a fully admitted command can reach `admitted` or a
-later `stop_latched` disposition. An authenticated ESTOP can omit a lease only;
-that exception does not bypass any other admission check.
+Delete the bypass during native-1.0 migration. Before local fail-safe mutation,
+apply byte and structure limits, duplicate-key rejection, protected-envelope
+verification, and canonical kind and version. Require the verified transport
+principal, default-deny actor/action permission, and exact route, audience, and
+direct realm. Require the live session generation, publisher incarnation,
+declaration, stream epoch, positive syntactic position, current security,
+structurally valid ESTOP, and installed plant-profile action. Require either an
+authorized unexpired live grant slot or one exact current post-HOLD
+escalation-snapshot slot with the same unchanged deadline. Append a distinct
+durable ingress-attempt record in that context. A qualified ESTOP can reserve
+and invoke its early latch path before stream replay and the remaining command
+checks.
+HOLD must pass ordinary replay, lease, freshness, declaration, source, channel,
+and profile admission before it can request its installed clear action. Record a
+qualified effect in the separate fail-safe side-effect chain. Exact replay joins
+the existing attempt and command chain without another effect or `received`.
+A qualified ESTOP can still latch and then reject on stream order, an occupied
+position, command-identity conflict, or a currentness/deadline race after
+boundary acceptance. Wrong kind, version, declaration, epoch, position syntax,
+grant, initial deadline, structure, profile, or authorization rejects before the
+latch. The equivalent invalid HOLD has no side effect. Only a fully admitted
+command can reach `admitted` or a later `stop_latched` disposition. An
+authenticated ESTOP can omit a lease only. That exception does not bypass any
+other admission check.
 
 ### D11 — Engram, NCP probe, and Prisoma variable semantics conflict
 
@@ -1075,12 +1126,15 @@ Haldir cannot be a transparent NCP identity proxy because native 1.0 does not gr
 delegation. It must be the enrolled NCP commander/lease holder/command publisher;
 upstream signed controller intents remain Haldir-local inputs.
 
-The native adapter must bind the exact live generation, session transcript, plant
-profile, security state, declared command stream, authority lease, source frame,
-channels/units, and route. Preserve one allocator across Active/HOLD/ESTOP. After
-an ambiguous fail-safe publish, block Active until a fresh-position fail-safe is
-definitely accepted at the declared boundary. Use NCP command dispositions when
-available, while keeping Haldir's local CBOR evidence out of NCP stable wire.
+The native adapter must bind the exact live generation, session transcript,
+plant profile, security state, declared command stream, authority lease, source
+frame, channels/units, and route. Preserve one allocator across every mode
+permitted by that declared stream. Keep a separately enrolled ESTOP-only stream
+on its own allocator and merge streams only through the body-owned event order.
+After an ambiguous fail-safe publish, block Active until a fresh-position
+fail-safe is definitely accepted at the declared boundary. Use NCP command
+dispositions when available, while keeping Haldir's local CBOR evidence out of
+NCP stable wire.
 
 ### 6.3 Galadriel
 
@@ -1249,8 +1303,8 @@ separate purposes:
 
 | Identity | Construction | Wire role | Compatibility rule |
 |---|---|---|---|
-| `wire_version` | literal `1.0` | major stable protocol selector | exact match |
-| `stable_core_digest_sha256` | SHA-256 over a generated manifest of every stable wire-semantic source | hard native-1.0 compatibility identity | exact match before session success |
+| `wire_version` | canonical `u64` components in `1` or `1.<minor>` | major stable protocol selector | canonical same-major parsing under the stable-line rule |
+| `stable_core_digest_sha256` | SHA-256 over the frozen canonical major-semantics projection | hard native-1.x stable-line compatibility identity | exact match before session success |
 | `normative_release_digest_sha256` | current complete normative manifest digest | release/citation identity | exact in release-qualified artifact sets; diagnostic during explicitly labeled development only |
 | `corpus_digest_sha256` | mandatory conformance manifest/corpus | proves tested expectation set | exact in conformance and qualification reports |
 | `compact_proto_hash` | existing FNV proto hash | short diagnostic and migration aid | never sufficient to authorize compatibility |
@@ -1258,17 +1312,18 @@ separate purposes:
 | package build identity | immutable source/tag/attestation subject | installed implementation identity | retained in evidence, not used as protocol authority |
 
 `stable_core_digest_sha256` must be generated, not typed into multiple files. Its
-input manifest must include at least the stable proto, message schemas, canonical
-encoding rules, typed digest projections, key grammar, planes/QoS, limits, closed
-registries, security envelope/profile, authority/lifecycle/idempotency rules,
-plant-profile rules, and mandatory behavioral requirements. It must exclude
-candidate gate status, generated copies, informative prose, performance results,
-and package metadata. The generator records ordered paths and individual SHA-256
-digests so two implementations can reproduce it.
+canonical projection includes native required wire shapes, canonical encoding,
+typed digest projections, identifier grammar, planes, limits, closed registries,
+security, authority, lifecycle, idempotency, plant-profile, and mandatory behavior
+meaning. It excludes additive profiles, optional extensions, candidate gate state,
+package metadata, performance results, and informative prose. The generator binds
+the accepted inputs, projection schema, domain, and framing. Independent
+implementations must reproduce the same projection bytes and digest.
 
-After stable `v1.0.0`, those core inputs are immutable. Errata that change behavior
-require a new major wire; explanatory text can change only outside the stable-core
-input. A vulnerability may deprecate or revoke 1.0 without silently redefining it.
+After stable `v1.0.0`, the projected core members, projection recipe, and their
+meaning are immutable. Errata that change that meaning require a new major wire.
+Explanatory text and non-core sources can change without changing the projection.
+A vulnerability may deprecate or revoke 1.0 without silently redefining it.
 
 ### 7.3 Shared session substrate
 
@@ -1933,8 +1988,8 @@ reservation, cancel, release, drain and quiescence transition compare-and-swaps
 this selector and emits `TrustedDeliveryReleaseStateCommitReceipt`; entry
 transitions also emit `TrustedDeliveryBoundaryGrantMapCommitReceipt` with sibling
 preservation. Referenced subsystem selectors are evidence only until installed
-here. The closed transition union in ADR-004 and the B01 selector-closure matrix
-controls every grant, release, drain, restart, retention, and eviction event.
+here. The closed transition union in ADR-004 controls every grant, release,
+drain, restart, retention, and eviction event.
 Drain and finalized outbox-retention transitions change only the outer
 partition. Quiescent grant-entry eviction changes one map entry and installs its
 permanent full-key tombstone. Only the exact installed keyed live phase can
@@ -2238,7 +2293,8 @@ open-admission race.
 
 Safety rules:
 
-- initial open state is HOLD/INIT without authority;
+- The initial open state has no authority. Body-local policy enters HOLD.
+  Wire `Init` is non-authorizing and does not request HOLD.
 - only one unexpired holder exists per session generation and authority plane;
 - acquisition requires a term greater than every current/retired term;
 - renewal at equality with the enforcement deadline fails and transitions to HOLD;
@@ -2257,8 +2313,9 @@ Safety rules:
   route, actor, session, stream, and security admission; and
 - lease query/status is non-authorizing and cannot be replayed as a grant.
 
-The “current lease” rule is domain-specific: Active/HOLD/ESTOP command admission
-uses `PlantAuthorityLease` as specified, while Step/Run and simulation Close use
+The “current lease” rule is domain-specific. Active and HOLD command admission
+use `PlantAuthorityLease`. ESTOP uses that lease when present or the exact
+ratified lease-absence branch. Step/Run and simulation Close use
 `SimulationAuthorityLease`. Plant Close uses the exact plant lease unless a
 ratified body-local/operator retirement rule authorizes a narrower non-actuating
 close. Unknown domains and cross-domain bytes reject before mutation.
@@ -2508,9 +2565,10 @@ Closed states and required semantics:
 | `received` | bounded authenticated current-session command candidate reached the named software ingress; semantic/stream admission is not implied | no |
 | `rejected` | body rejected it before application; closed reason required | yes |
 | `superseded` | a newer admitted command made it inapplicable | yes |
-| `expired` | TTL/watchdog made it inapplicable | yes |
+| `expired` | the unchanged body-issued grant or application deadline elapsed | yes |
 | `admitted` | plant governor accepted it for the named application boundary | no |
 | `applied` | the named boundary accepted/wrote the setpoint at the recorded instant | yes for that boundary |
+| `hold_effective` | an admitted explicit HOLD was associated with its confirmed body-local HOLD effect | yes for that association only |
 | `failed` | a definite boundary error prevented application | yes |
 | `unknown_after_boundary` | body cannot distinguish application from failure after an ambiguous boundary | yes; never promote later by guess |
 | `stop_latched` | named body-local stop latch entered | yes for the latch only |
@@ -2519,6 +2577,11 @@ Unknown/default state is invalid and non-success. Every chain starts at
 `received`; only `received -> rejected` or `received -> admitted` can follow.
 Every application or later terminal state requires the exact authenticated
 `admitted` predecessor chain. No plant profile can skip that evidence edge.
+Only exact Active, HOLD, and ESTOP modes can authorize remote command work.
+`Init`, absent, default, unknown, and ambiguous modes reject as commands. A
+separate body-local HOLD policy action uses only current local policy and body
+state. Rejected bytes and their claimed mode cannot select or parameterize it,
+and it cannot make that rejected command `hold_effective`.
 The raw authority candidate and verified body authority are different closed
 types. `received` carries `CANDIDATE_NOT_EVALUATED`. A successor carries
 `VERIFIED_BODY_LEASE`, exact `PERMITTED_ESTOP_LEASE_ABSENCE`, or
@@ -2533,23 +2596,31 @@ Strict bounded canonical decode recomputes all record, content and predecessor
 digests from the authenticated delivered bytes; contradictory wrapper metadata
 rejects.
 
-Fail-safe side effects form a second, orthogonal body-local state machine. Before
-any side effect, the body requires raw bounds, protected-envelope verification,
-manifest authorization of the authenticated actor/plane for the exact command
-route, actual route, audience, exact live
-session/generation, current security state, and one unambiguous typed mode. It
-then atomically reserves a fresh body-local attempt identity and appends
-`CommandIngressAttemptRecord` over the exact bytes/context/clock and durable
-closed side-effect intent. `NONE_ACTIVE` forbids reservation fields;
-`CLEAR_ACTIVE` and `CLEAR_AND_LATCH_ESTOP` each require the matching durable
-`BodyFailSafeSideEffectReservation`. Unknown/mixed intent, reservation-on-Active,
-or missing reservation on HOLD/ESTOP rejects. Attempt identity is not command
-identity. Before stream
-epoch/sequence/replay, lease, TTL, source, channel, plant-profile, and remaining
-semantic checks, every non-`Active` mode clears buffered active output and ESTOP
-asserts the local stop latch. An old generation, wrong principal/route/audience,
-unsigned or unverifiable envelope, oversized input, duplicate/ambiguous mode, or
-unclassifiable bytes causes no attempt record or local side effect.
+Fail-safe side effects form a second body-local state machine. Before any remote
+side effect, the body requires raw bounds, protected-envelope verification,
+canonical frame kind and version, and the verified transport principal. It also
+requires default-deny actor/action permission, the exact route, audience, and
+direct realm, and the exact live session and generation. The publisher
+incarnation, declaration, stream epoch, positive syntactic position, current
+security state, structurally valid mode, and installed plant-profile action must
+all match. ESTOP also requires an authorized unexpired live grant slot or one
+exact current post-HOLD escalation-snapshot slot with the same publisher,
+declaration, epoch, security state, and unchanged deadline.
+Immediately before ESTOP reservation and again at the buffer or latch boundary,
+the body rechecks the applicable security, permission, grant or escalation,
+deadline, and installed-action state. A cut that wins either order installs no
+new remote effect.
+A qualified ESTOP can then reserve a fresh body-local attempt identity and append
+`CommandIngressAttemptRecord` before ordinary stream replay and lease checks.
+HOLD first passes every ordinary admission check. Its reservation CAS appends the
+exact `received -> admitted` predecessor and then requests `CLEAR_ACTIVE`.
+`NONE_ACTIVE` forbids reservation fields. Unknown or mixed intent,
+reservation-on-Active, or a missing reservation rejects. The latter applies to
+an otherwise-qualified admitted HOLD effect or qualified ESTOP effect. Attempt
+identity is not command identity. An old generation,
+wrong principal/route/audience, unverifiable envelope, oversized input,
+duplicate/ambiguous mode, invalid grant/slot, or unclassifiable bytes causes no
+attempt record or local side effect.
 
 `BodyFailSafeSideEffectRecord` is a distinct non-command global-journal append.
 It binds the exact protected envelope/candidate bytes and digests, ingress-attempt
@@ -2570,22 +2641,33 @@ same bytes and the installed existing chain without another disposition.
 `CONFLICTING_COMMAND_IDENTITY_REJECTED` and
 `REJECTED_BEFORE_COMMAND_IDENTITY` create no chain. A later non-command
 `BodyFailSafeSideEffectResolution` binds the exact side-effect and attempt
-resolution without changing either machine. Thus a fresh stale, sequence-zero,
-foreign-epoch, invalid-authority, or otherwise semantic-invalid same-session
-HOLD/ESTOP can clear/latch and be rejected. Exact replay or same-identity
-conflict can also clear/latch but cannot mint a second `received`. Invalid Active
-has no side-effect record. Only a valid admitted ESTOP can later reach the
-`stop_latched` disposition. Attempt, attempt-resolution, fail-safe side-effect,
-and side-effect-resolution appends leave the per-command active-tip and
-retained-terminal maps unchanged, but each advances exactly one entry in the
-separate bounded ingress-operation map. Closed
-`CommandIngressAttemptOperationState` is
-`ACTIVE_ATTEMPT_PENDING | SIDE_EFFECT_RESERVED |
-SIDE_EFFECT_OUTCOME_PENDING_RESOLUTION |
-ATTEMPT_RESOLVED_PENDING_SIDE_EFFECT | TERMINAL`. Active attempts are tracked
-even when they have no fail-safe side effect. A terminal transition moves the
-operation to retained commitments; compaction cannot erase an unresolved entry
-or its identity tombstone.
+resolution without changing either machine. Thus a qualified fresh ESTOP can
+latch and later reject on stream order, an occupied position, command-identity
+conflict, or a currentness/deadline race after boundary acceptance. The
+equivalent invalid HOLD has no side effect because it never completes ordinary
+admission. Exact replay joins or returns retained state. A same-slot conflict
+cannot invoke an equal or lower effect. Invalid Active has no side-effect record.
+Only a valid admitted HOLD or ESTOP can later reach `hold_effective` or
+`stop_latched`, respectively.
+
+The closed `CommandIngressAttemptOperationState` is:
+
+- `ACTIVE_ATTEMPT_PENDING`.
+- `SIDE_EFFECT_RESERVED`.
+- `SIDE_EFFECT_OUTCOME_PENDING_RESOLUTION`.
+- `SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION`.
+- `RESTRICTIVE_COMMAND_ADMITTED_PENDING_ASSOCIATION`.
+- `TERMINAL`.
+
+An Active attempt moves from pending to terminal without a fail-safe side
+effect. HOLD atomically installs its admitted predecessor with the reservation.
+Its path reaches pending association after the side-effect result, or terminal
+after a definitive no-effect result. ESTOP alone uses
+`SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION` before its command result. Pure
+attempt, effect, and resolution appends preserve the per-command maps. The HOLD
+reservation is the one exception because it atomically installs the admitted
+command tip. Each transition advances exactly one bounded ingress-operation
+entry. Compaction cannot erase an unresolved entry or its no-reuse tombstone.
 
 Dispositions are authenticated, ordered on their own stream, retained in a
 bounded body journal, and queryable by exact session/command position/digest
@@ -2716,7 +2798,7 @@ route does not infer a kind.
 Project-owned extensions live outside `/session`:
 
 ```text
-{realm}/extension/{extension_id}/{manifest_digest}/{deployment_or_session_segment}/...
+{realm}/extension/{extension_id}/{manifest_content_address}/{typed_scope}/...
 ```
 
 `extension_id` is an owned, registry-safe reverse-domain identifier or another
@@ -2732,15 +2814,46 @@ For Galadriel, use an owned extension ID such as
 reviewed. If an adapter emits stable NCP, it publishes a separately declared
 standard frame; it does not wrap the project envelope on a core route.
 
+The selected extension outer transport is a bounded raw chunk frame. It is not a
+generic JSON wrapper and does not base64-encode package bytes. A prepared
+activation-context digest binds the producer, audience, direct realm, complete
+scope, manifest, literal route, package class, security state, processing
+profiles, receiver-clock incarnation, exclusive activation expiry, and
+never-reused receiver activation incarnation.
+
+The fixed header carries only the wrapper profile, package class, activation
+context digest, package digest and length, and chunk index, count, and length.
+The installed frame/resource profile derives one fixed chunk payload from the
+authenticated transport limit. It also binds a closed package-class registry,
+hard package ceilings, and exact parser mapping. Unknown class, invalid
+arithmetic, oversized package, or alternate chunk geometry rejects before slot
+reservation.
+
+One slot is keyed by activation-context and package digests. It reserves the
+complete package, per-chunk no-reuse state, larger active-or-terminal overhead,
+before it copies a chunk. Each new chunk moves once into its final offset. Exact
+duplicates do not copy. Conflicts never overwrite. Completion hashes the final
+buffer once.
+
+Chunk retention claims an index and pins the buffer in one short owner
+transition. It copies outside the lock, then rechecks currentness and commits or
+discards the index in a second transition. A cut drains an in-flight claim
+without waiting under the lock. The receiver then reserves the schema arena and
+callback obligation before parsing. The final currentness recheck and callback
+entry are one indivisible owner transition. Entry consumes one right before
+extension code starts, and unresolved work keeps its reserved state until return
+or proved isolation termination. Rotation, revocation, expiry, replay, and
+disclosure remain fail closed.
+
 ### 7.12 Plane, QoS, and backpressure contract
 
-Retain four authority planes but make subprofiles executable:
+Retain four core planes but make subprofiles executable:
 
 | Plane | Publisher | Core queue | Required behavior |
 |---|---|---|---|
 | control | enrolled commander/body; observer only for attach, detach and permitted read-only query | bounded 128 default | reliable request/reply, explicit overload rejection, operation deadline and idempotency; observer grant never authorizes session mutation |
 | perception | enrolled body | capacity 1 per declared stream | replace latest; count overwritten positions and expose gaps, never synthesize |
-| action | current commander or enrolled operator for allowed fail-safe | capacity 1 per declared stream | severity priority, one allocator across Active/HOLD/ESTOP, consume ambiguous attempts, block Active after ambiguous fail-safe |
+| action | current commander or enrolled operator for allowed fail-safe | capacity 1 per declared stream | one allocator per declared stream. The body event order applies severity across streams, consumes ambiguous attempts, and blocks Active after ambiguous fail-safe |
 | observation data | enrolled body | bounded 64 default | drop oldest and count; scientific consumers mark incomplete |
 | observation disposition subprofile | enrolled body | bounded journal plus bounded delivery queue | never silently drop retained terminal state; backpressure/replay query and explicit retention exhaustion |
 
@@ -2748,7 +2861,8 @@ All capacities are negotiated only downward from protocol/deployment maxima; a
 remote offer cannot allocate. Each metric is bounded and low-cardinality. Sequence
 loss, local queue drop, transport rejection, retry, redelivery, and journal eviction
 are distinct counters. Control overload returns a registered error without partial
-state. A data-plane overload never refreshes TTL, lease, watchdog, or liveness.
+state. A data-plane overload never refreshes a freshness grant, lease, watchdog,
+or liveness state.
 
 ### 7.13 Extension and future-evolution rules
 
@@ -2756,8 +2870,9 @@ To make stable 1.0 durable without pretending requirements never change:
 
 1. Freeze core messages, field meanings, keys, digest projections, error meanings,
    and behavioral vectors after release.
-2. Permit additive unknown JSON fields only as bounded non-authorizing metadata;
-   old peers ignore them and no core decision depends on them.
+2. Permit additive unknown JSON fields only as bounded non-authorizing metadata.
+   Old peers ignore them, and no core decision depends on them. Exact signing,
+   replay, or forwarding binds the admitted object before typed projection.
 3. Add optional functionality through exact extension manifests and separate routes.
 4. Reject unknown required extensions; explicitly decline unknown optional ones.
 5. Never promote an extension into core under wire `1.0`; a future core change is a
@@ -2816,8 +2931,17 @@ authorization.
 
 This topology is the proposed input to ADR-011, not an accepted normative decision.
 Implementation remains blocked until the named human/independent reviewers accept
-the same content digest. It was derived from repository manifests, runtime surfaces
-and trust boundaries, then challenged from three required perspectives:
+the same content digest. The figure shows dependency direction and authority
+boundaries. It does not show completed migration or qualification.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../diagrams/ecosystem-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../diagrams/ecosystem-light.svg">
+  <img alt="Informative proposed NCP ecosystem map for the unreleased, release-blocked 1.0 candidate. Engram, Haldir, Crebain, Galadriel, and Prisoma own optional thin NCP adapters. Crebain remains final software body authority. Direct Engram and Haldir-gated command are mutually exclusive per term. Galadriel advice cannot widen permission. Observers gain no command authority. pid-rs remains protocol-neutral, and Cortexel has no NCP edge. No consumer qualification is complete." src="../diagrams/ecosystem-light.svg" width="980">
+</picture>
+
+The topology was derived from repository manifests, runtime surfaces and trust
+boundaries, then challenged from three required perspectives:
 
 - **P1 — protocol/security/plant:** no identity laundering, authority creation,
   split brain, route confusion, downgrade, stale epoch or observer actuation;
@@ -2847,11 +2971,12 @@ ADR, authorize a rebaseline, or satisfy a consumer role.
   codec/plant/governor implementation, N07 binding parity, N08 vectors, B02 the
   rebaseline, E04 and H02 producer behavior, and C02 the final body check.
 
-B01 reviewers must challenge decoy metadata paths, member reordering, escaped and
-duplicate keys, independent map instances, and the exact 256/257 boundary. They
-must also challenge missing decoder populations, short sensors, sparse components,
-unit conflicts, fallback Active output, and any codec/profile check that runs soon
-enough to suppress ADR-007's current-context HOLD/ESTOP effect.
+B01 reviewers must challenge decoy metadata paths, member reordering, escaped
+and duplicate keys, independent map instances, and the exact 256/257 boundary.
+They must also challenge missing decoder populations, short sensors, sparse
+components, unit conflicts, fallback Active output, and any codec/profile check
+that suppresses ADR-007's qualified early ESTOP latch. The same failures must
+prevent ordinary HOLD admission and its later effect.
 
 #### Dependency and trust matrix
 
@@ -2982,8 +3107,9 @@ Handover is the only `DIRECT_ENGRAM ↔ GATED_HALDIR` path:
    publication. The old commander halts on any fencing reject and never
    blind-retries.
 
-If the old commander is unreachable, TTL expiry performs step 3 without waiting for
-an acknowledgement. After durable transfer acceptance, a Crebain restart resumes
+If the old commander is unreachable, the receiver-local lease deadline performs
+step 3 without waiting for an acknowledgement. After durable transfer acceptance,
+a Crebain restart resumes
 the latched transfer and never reactivates the old holder. A restart with an exact
 clean `ACTIVE` snapshot enters HOLD/RECONNECTING before continuity proof. If
 continuity or transfer-phase storage is corrupt or ambiguous, Crebain retires the
@@ -3515,7 +3641,7 @@ reuse uncertainty stops publication. Haldir retains bounded high-water/retired-
 incarnation/unfinished-operation evidence and disables the affected profile or
 rotates to a non-replayable producer/manifest security context before eviction.
 The initial extension allocation rejects before corresponding allocation above
-20 MiB for the complete protected envelope and attachments, 16 KiB for the
+20 MiB for the complete protected package and attachments, 16 KiB for the
 lifecycle receipt, 16 MiB for the raw assessment vector, 1,024 members, or
 256 KiB for one complete report. An otherwise valid larger Galadriel outcome is
 unpublishable and profile-ineligible, not truncated or cherry-picked. Larger
@@ -3591,7 +3717,7 @@ At minimum ADR-011, the formal composition model, consumer tests and X02 must co
 | Failure | Required safe result |
 |---|---|
 | authority state rolls back or restart continuity is unproved | retire the session generation and open a fresh opaque generation; old generation/term/lease/stream rejects |
-| old commander partitions during handover | TTL revocation, old-admission/stream retirement and safe hold precede the higher-term lease |
+| old commander partitions during handover | receiver-local lease expiry, old-admission/stream retirement, and safe hold precede the higher-term lease |
 | old commands arrive after new lease | stale generation/term/lease/holder/stream rejection; no application |
 | handover reply is lost | idempotent query returns durable original receipt |
 | Engram responder uses commander credentials | manifest/role/route rejection before semantic effects |
@@ -4013,7 +4139,7 @@ Required initial obligations:
 | `disposition_terminal.smt2` | `unsat` contradictory transition after an encoded terminal disposition; `sat` witnesses for every legal state |
 | `observer_non_authority.smt2` | `unsat` derivation of mutation/publish right from an observer grant |
 | `assessment_monotonicity.smt2` | `unsat` case where any accepted, absent or rejected Galadriel assessment widens Haldir's local decision under either configured absence mode; `sat` witness for each legal effect |
-| `security_admission_order.smt2` | `unsat` any local side effect before bounds, signature, manifest actor, actual route, audience, digest, live session/generation, security state, and unambiguous mode; `unsat` Active effect or admitted disposition before stream/replay/lease/TTL/source/channel/profile checks; `sat` witness for authenticated same-session invalid HOLD/ESTOP side effect followed by rejection |
+| `security_admission_order.smt2` | `unsat` any local side effect before bounds, signature, manifest actor, actual route, audience, digest, canonical kind/version, live session/generation, declaration/epoch, positive position, security state, grant/slot, initial deadline, installed profile, and unambiguous structurally valid mode. `unsat` Active or HOLD effect, or any admitted disposition, before stream/replay/lease/source/channel/profile checks. `sat` witnesses cover a qualified ESTOP latch followed by stream-order, occupied-position, command-identity, or post-boundary currentness/deadline rejection. `unsat` equivalent invalid HOLD effect. |
 | `typed_digest_prefix_free.smt2` | `unsat` ambiguous parse for the bounded typed canonical projection grammar; explicitly assumes SHA-256 collision resistance rather than proving it |
 | `queue_bounds.smt2` | `unsat` capacity excess under each encoded overflow transition; `sat` witness for every overflow branch |
 
@@ -4206,13 +4332,14 @@ queue depth/drop, and energy where the target can measure it.
 #### Acceptance threshold derivation
 
 Do not invent a universal latency number. For each exact plant profile under
-qualification, derive the protocol budget from its control period, command TTL,
+qualification, derive the protocol budget from its control period, unchanged
+command-grant deadline,
 watchdog, body-local governor/application budget, network budget and explicit
 safety margin. The owner signs the threshold before data collection. At minimum:
 
 ```text
 validation + security + queue budget
-  < min(declared control period, command TTL, watchdog interval)
+  < min(declared control period, command-grant deadline, watchdog interval)
     - body computation/application budget
     - network budget
     - preregistered safety margin
@@ -4321,19 +4448,19 @@ properties.
 
 At the original blueprint audit cut described in section 12.1, the repository
 tracked 47 Markdown files and 16 SVG files. At this living-document handoff
-revision, `git ls-files` tracks 80 Markdown files and the same 16 SVG files. The
+revision, `git ls-files` tracks 81 Markdown files and 18 SVG files. The
 documentation manifest must derive and bind the inventory at execution; neither
 historical count is an acceptance allowlist. The SVG set was:
 
 | Class | Tracked files | Current source | Current document use |
 |---|---:|---|---|
 | logos | 2 light/dark files in `assets/` | no documented deterministic generator | no Markdown reference found |
-| protocol diagrams | 10 files: five light/dark pairs in `docs/diagrams/` | `scripts/gen_diagrams.py` | only the safety FSM pair is embedded, in `RESILIENCE.md` |
+| protocol diagrams | 12 files: six light/dark pairs in `docs/diagrams/` | `scripts/gen_diagrams.py` | topology, versioning, simulation sequence, and admission are embedded in the low-overhead architecture. The safety FSM is embedded in `RESILIENCE.md`, and the ecosystem map is embedded in this blueprint. |
 | historical plots | 4 files: two light/dark pairs in `docs/plots/` | `scripts/plot_perf.py` plus optional recorded data | both pairs are embedded in `PERFORMANCE.md` |
 
 The deterministic diagram and pinned historical-plot checks passed during the
-current local repair. The diagram check establishes byte freshness for ten generated
-diagrams, the direct-view accessibility structure for the exact 16-SVG inventory,
+current local repair. The diagram check establishes byte freshness for 12 generated
+diagrams, the direct-view accessibility structure for the exact 18-SVG inventory,
 and at least 4.5:1 text contrast for the declared FSM text/background pairs,
 including each ESTOP gradient stop. The plot check reproduced all four historical
 SVGs from the explicitly labeled fallback constants. These local checks do not
@@ -4345,15 +4472,15 @@ The first rendered inspection found these open defects and review obligations:
 | ID | Asset | Finding | Required disposition |
 |---|---|---|---|
 | V01 | `versioning-{light,dark}.svg` | the original `VERSION HANDSHAKE` heading collided with the right-aligned metadata; the current generator uses the shorter `VERSION GATE` heading and the two retained theme renders no longer collide, but no exhaustive render-matrix evidence exists | retain the corrected layout; prove non-overlap in all required render matrices before closure |
-| V02 | versioning | it says same-major `1.x` opens and compact `contract_hash` differences are advisory | after ADR-002, depict the exact stable-core compatibility rule and distinct release/corpus identities; never imply an unreviewed future 1.x is compatible |
-| V03 | sequence | one lifeline is “body / simulation backend” and one `OpenSession` represents contradictory simulation and plant lifecycles | replace it with separate simulation-service, plant-control, and observer-attach sequences after ADR-001/004 |
-| V04 | topology | the single commander/body topology does not expose typed session edges, authenticated observer attach, declared streams, body-issued authority, disposition, or the production envelope | redraw from ratified ADR-001/003/004/005/006/007; keep plane and fail-safe boundaries explicit |
-| V05 | ecosystem | it omits Haldir and Galadriel, shows only one Crebain line, and does not distinguish the public Engram placeholder from the private reviewed Paper2Brain implementation | include every in-scope repository and label repository evidence, wire status, migration state, and qualification state independently |
+| V02 | versioning | the corrected source depicts canonical same-major parsing and exact stable-core identity as the two hard native-session checks. Other identities have no independent native-session authority. The full render matrix and human review remain open. | retain the corrected rule and verify it against accepted ADR-002/B03 identity inputs before release acceptance |
+| V03 | sequence | the corrected diagram isolates the simulation lifecycle and preserves non-calibration provenance. It remains informative, uses the current descriptive request names, and does not cover plant or observer lifecycles. | retain the simulation-only boundary. Add separate plant and observer sequences only after their accepted contract shapes exist. |
+| V04 | topology | the corrected diagram shows the commander, body, read-only observer, four planes, body gate, and body-grant deadline. It does not show typed session kinds, declared streams, the authenticated production boundary, dispositions, or the separate emergency lane. | update it from accepted ADR-001/003/004/005/006/007 shapes. Keep the current plane, authority, and non-certification boundaries explicit. |
+| V05 | ecosystem | the corrected map includes all in-scope repositories, role direction, command-mode exclusivity, advisory monotonicity, and the two explicit non-peers. It does not prove installed package pins, active wire versions, migration completion, or role qualification. | retain the authority and dependency direction. Bind exact consumer status only from the later reviewed inventory and qualification evidence. |
 | V06 | FSM | it is visually dense and represents only the current candidate admission model | perform bounding-box review and update it for body-issued authority, typed sessions, stream declaration, security epoch/rebind, disposition, and exact ESTOP-reset boundary |
-| V07 | topology, ecosystem, versioning, sequence | the generated pairs are not referenced by current Markdown | either embed each in an owner document with exact alt text or delete it and its generator branch; no orphaned release visual |
+| V07 | protocol diagrams | all six generated pairs are referenced by maintained owner documents at this cut. Embedding does not accept their semantics or complete the render matrix. | retain one explicit owner reference and exact alt text for each pair. Reject any future orphaned release visual. |
 | V08 | logos | the two variants require background/theme, reduced-motion, accessible-name, unused-definition, and deterministic-source review | define supported logo uses, make visual differences intentional, add a reproducible source or freeze reviewed source with exact provenance, and remove unused or unsafe SVG content |
 | V09 | historical plots | they are clearly labeled non-release historical material; the original overlap-plot title collision is corrected in the current source and retained theme renders, but visual inspection is not yet a retained gate | reproduce with pinned dependencies/data, audit labels/contrast/clipping/alt text across the required render matrix, and keep them separate from any release-bound benchmark figures |
-| V10 | all SVG | **OPEN:** all 16 current SVG roots now use `role="img"` and `aria-labelledby` with one direct, concise `<title>` and `<desc>`; the local deterministic check covers that structure and requires the direct `<desc>` to state `UNRELEASED` and non-certification status, but it does not prove a visible on-canvas qualifier, embedded accessibility trees, host-name conflicts, long-description policy, the atlas manifest, or independent acceptance | retain the local guard; complete and independently accept the direct-file and embedded-`<img>` accessibility matrix and atlas policy before closing V10 |
+| V10 | all SVG | **OPEN:** all 18 current SVG roots now use `role="img"` and `aria-labelledby` with one direct, concise `<title>` and `<desc>`. The local deterministic check covers that structure and requires the direct `<desc>` to state `UNRELEASED` and non-certification status. It does not prove a visible on-canvas qualifier, embedded accessibility trees, host-name conflicts, long-description policy, the atlas manifest, or independent acceptance. | retain the local guard. Complete and independently accept the direct-file and embedded-`<img>` accessibility matrix and atlas policy before closing V10. |
 | V11 | NCP and ecosystem atlas | NCP and the five exact consumer repositories lack one complete, source-bound, accessible static and finite-motion visual atlas | NCP and each exact consumer producer own one semantic graph and generated variants for their exact roles and limitations; excluded non-peers receive no atlas task or implied NCP relationship |
 
 These are release-blocking documentation findings, not permission to hand-edit the
@@ -4713,6 +4840,14 @@ exist.
 
 ### 10.1 Execution and repository-change protocol
 
+Use one low-lag edit loop for a dependency-ready task. Capture the repository
+snapshot once, edit canonical sources, run affected focused checks, and regenerate
+owned outputs once after the sources stabilize. Run the complete task gate on the
+coherent handoff candidate, then commit, push, and verify the remote object. Do not
+repeat unrelated exhaustive campaigns between local edits. Recheck the snapshot
+only when its branch, `HEAD`, ownership, dependencies, toolchain, or dirty state
+can have changed.
+
 The implementation agent must perform these steps for every task, in order:
 
 1. read this blueprint, the repository's `AGENTS.md`, and every prerequisite named
@@ -4962,7 +5097,8 @@ Implementation:
   decision, rejected alternatives, wire examples, invalid examples, actor/role and
   state transitions, bounds, threat/hazard changes, formal properties, migration,
   operational recovery, compatibility, rollback and open questions;
-- keep one generated selector-closure matrix from one machine-readable source.
+- retain one generated selector-closure matrix as a non-gating diagnostic.
+  It cannot substitute for an ADR, implementation review, or independent review.
   For each authority root, allocate every semantic event, transition kind,
   prior-to-successor branch, mutation footprint, pre-CAS fact, receipt family,
   owner, and fail-closed unknown/default result. This matrix is a non-normative
@@ -4994,14 +5130,13 @@ Implementation:
   `ACCEPTED`. Acceptance does not authorize a rebaseline or alter the complete
   normative digest.
 
-Acceptance: `generate_decision_registry.py --require-all-accepted` proves all
-current role obligations and required distinct identities are satisfied by
-exact-subject human records, with no active rejection or unresolved condition;
-the registry/schema, link/anchor,
-threat/requirement traceability, bounded decision/model/resource probes, and
-complete local gate pass; wire examples parse in two separate prototype
-parsers; no unresolved semantic decision remains; the complete normative digest
-is unchanged; and `contract/decision-registry.v1.json` is absent. Commit each
+Acceptance: `generate_decision_registry.py --require-all-accepted` proves that
+exact-subject human records satisfy the current role obligations and distinct
+identity requirements. It also proves that no active rejection, unresolved
+condition, or semantic-closure blocker remains. The separate complete local gate
+must pass the registry/schema, links, traceability, bounded probes, and both
+prototype semantic engines. The complete normative digest must remain unchanged,
+and `contract/decision-registry.v1.json` must remain absent. Commit each
 independent ADR or tightly coupled group professionally and push. Make a final
 `docs: ratify NCP 1.0 architecture decisions` commit only when all eleven derived
 states are accepted.
@@ -5051,8 +5186,9 @@ Implementation:
   different stable core;
 - define old-candidate disposition: unsupported development snapshot, no transparent
   gateway, and exact archive retention for audit only;
-- update compatibility prose so exact wire/stable-core checks are hard while
-  normative-release/corpus identities have their ratified diagnostic or gate role;
+- update compatibility prose so canonical same-major parsing and exact
+  stable-core checks are hard while normative-release/corpus identities have
+  their ratified diagnostic or gate role.
 - list every consumer that must move and preserve a known rollback pin until its
   native migration passes; and
 - do not create a v1.0.0 baseline, tag, or release row in this task.
@@ -5418,8 +5554,7 @@ Implementation:
   `TrustedDeliveryReleaseReceipt`,
   `TrustedDeliveryExternalTransportDrainFact`,
   `TrustedDeliveryExternalTransportDisposition`,
-  the closed release-state transition union in ADR-004 and the B01
-  selector-closure matrix, and closed
+  the closed release-state transition union in ADR-004, and closed
   `DELIVERED | REJECTED | AMBIGUOUS_AFTER_EXTERNAL_TRANSPORT`, plus
   `PREPARED_BOUNDARY_GRANT`, `LIVE_BOUNDARY_GRANT`,
   `TERMINAL_BOUNDARY_GRANT`, `TRANSPORT_QUIESCENT_BOUNDARY_GRANT`,
@@ -5470,8 +5605,7 @@ Implementation:
   `ObserverAdmissionStateCommitReceipt`, closed
   `PENDING_FIRST_ATTACH | LIVE | LIVE_RENEW_PENDING | DETACH_PENDING |
   TERMINAL`, and
-  the complete observer-admission transition union from ADR-004 and the B01
-  selector-closure matrix. Allocate
+  the complete observer-admission transition union from ADR-004. Allocate
   `ObserverGrantRequestAttempt`, `ObserverGrantRequestOperationResolution`,
   `ObserverGrantInstallationReceipt`, `ObserverGrantClockRestartBridge`, and
   `ObserverGrantClockRestartCommitReceipt`. The observer commits request start
@@ -5500,7 +5634,7 @@ Implementation:
   `HistoricalAdmissionHead`, terminal
   checkpoint and lineage-fence identities. Canonical heads bind prior state and
   exclude their own digest/receipt/successor selector. Allocate closed
-  generic receiver transitions from the B01 selector-closure matrix. Allocate
+  generic receiver transitions from ADR-005. Allocate
   subordinate declaration `GENESIS_FROM_UNINITIALIZED |
   COMMAND_DECLARATION_GENESIS_FROM_BODY_SESSION_CREATION |
   DECLARE_STREAM | RETIRE_STREAM | REDECLARE_STREAM`, frame admission
@@ -5609,12 +5743,18 @@ Implementation:
   `CommandIngressAttemptOperationState` with
   `ACTIVE_ATTEMPT_PENDING | SIDE_EFFECT_RESERVED |
   SIDE_EFFECT_OUTCOME_PENDING_RESOLUTION |
-  ATTEMPT_RESOLVED_PENDING_SIDE_EFFECT | TERMINAL`. A first command record adds
-  one command tip; a non-terminal successor changes one tip; a terminal
-  successor moves that command to retained state. Each ingress attempt,
-  side-effect reservation, side-effect outcome, attempt resolution and
-  side-effect resolution advances exactly one operation entry under the same
-  global journal compare-and-swap. Unrelated entries never change. Planned mode
+  SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION |
+  RESTRICTIVE_COMMAND_ADMITTED_PENDING_ASSOCIATION | TERMINAL`. An Active
+  attempt moves from pending to terminal without a fail-safe side effect. HOLD
+  atomically installs its admitted predecessor with the reservation and reaches
+  pending association after the effect result. ESTOP alone uses
+  `SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION`. A first command record adds
+  one command tip, a non-terminal successor changes one tip, and a terminal
+  successor moves that command to retained state. Each ingress-operation
+  transition changes exactly one operation entry under the same global journal
+  compare-and-swap. Pure attempt, effect, and resolution appends preserve command
+  maps. The HOLD reservation atomically adds its admitted tip. Unrelated entries
+  never change. Planned mode
   requires the active command map empty and every nonterminal ingress operation
   terminal and retained,
   while emergency mode fences old-state tips and every unresolved ingress/
@@ -5714,7 +5854,7 @@ Implementation:
   and coordinate mappings. Allocate complete-vector member
   selection/classification and aggregation rule/result, closed assessment
   handling, and separate permission-effect/meet results only in policy-authority
-  types. Allocate pre-parse ceilings of 20 MiB per complete envelope and
+  types. Allocate pre-parse ceilings of 20 MiB per complete protected package and
   attachments, 16 KiB per receipt, 16 MiB per raw vector, 1,024 members, and
   256 KiB per complete report;
 - allocate the Haldir receiver composite
@@ -6062,6 +6202,10 @@ Implementation:
 - add `ContractIdentity` to Rust/proto/JSON with exact fixed lowercase-hex lengths;
   reject missing, uppercase, truncated, prefixed, wrong-algorithm and conflicting
   identity values before session allocation;
+- materialize the B03-selected extension outer-frame profile as one fixed raw
+  header plus payload bytes. Generate its magic, version, package-class table,
+  field widths, byte order, digest domains, chunk arithmetic, and parser-profile
+  mapping from the accepted allocations. Do not create a JSON or base64 wrapper.
 - make the manifest generator derive all identities and emit one dependency graph;
   no Rust/TypeScript/Python hard-coded copy is accepted without generated equality;
 - add prefix-free projection test vectors including empty, Unicode, reordered,
@@ -6335,22 +6479,27 @@ Implementation:
   a separate close-before-change procedure is not a substitute;
 - require current generation, transcript, security epoch, exact actor/plane,
   unexpired live lease, operation context and plant gates for mutating/active paths;
-  implement the exact two-stage fail-safe boundary. Bounds, protected-envelope
-  verification, manifest authorization of the authenticated actor/plane for the
-  exact command route, actual route/audience, current session/generation/security
-  state and one unambiguous mode precede any local mutation. Append a
-  fresh `CommandIngressAttemptRecord`, then let non-Active clear and ESTOP latch
-  before stream/replay and remaining semantic checks. Resolve the attempt as an
-  exact new command chain, same-bytes replay of an existing chain,
-  same-identity conflict, or rejection before canonical identity. Record the
-  orthogonal transition through `BodyFailSafeSideEffectRecord`/resolution; a
-  semantic-invalid fresh candidate remains rejected, exact replay never creates
-  a second `received`, and only a fully admitted ESTOP can use the narrowly
+  implement the exact two-stage fail-safe boundary. Before any remote local
+  mutation, require bounds, the protected envelope, canonical kind and version,
+  and the verified transport principal. Also require default-deny actor/action
+  permission, exact route, audience, direct realm, live session generation,
+  publisher incarnation, declaration, stream epoch, positive syntactic position,
+  current security, a structurally valid mode, the installed plant-profile
+  action, and an authorized unexpired live grant slot or exact current post-HOLD
+  escalation-snapshot slot. A qualified ESTOP can append a fresh
+  `CommandIngressAttemptRecord` before stream replay and the remaining semantic
+  checks. HOLD must complete ordinary admission and install
+  `received -> admitted` before it can request its clear action. Resolve the
+  attempt as an exact new command chain, same-bytes replay of an existing chain,
+  same-identity conflict, or rejection before canonical identity. Record a
+  qualified effect through `BodyFailSafeSideEffectRecord`/resolution. A later-
+  invalid fresh ESTOP remains rejected, exact replay creates neither a new effect
+  nor a second `received`, and only a fully admitted ESTOP can use the narrowly
   ratified lease exception and later `stop_latched` disposition;
 - add body-only `CommandDisposition` stream/journal/query with the exact closed
-  `received`, `rejected`, `admitted`, `applied`, `superseded`, `expired`,
-  `failed`, `unknown_after_boundary`, and `stop_latched` states. Require the full
-  predecessor chain, separately authenticated current
+  `received`, `rejected`, `admitted`, `applied`, `hold_effective`, `superseded`,
+  `expired`, `failed`, `unknown_after_boundary`, and `stop_latched` states.
+  Require the full predecessor chain, separately authenticated current
   `BodySessionControlStateHead` and its subordinate
   `DispositionJournalHead`, one composite-selector compare-and-swap for append/
   retention, and acyclic post-CAS
@@ -6372,32 +6521,44 @@ Implementation:
 - specify queue ordering/backpressure so fail-safe traffic cannot be starved but
   also cannot cross session/actor boundaries.
 
-Acceptance: transition tables and vectors; Loom/property/concurrency tests;
-sequence maximum/ambiguous publish; cross-domain lease rejection; two-commanders
-handover and every crash cut; restart/clock/expiry;
-authority revoke/transfer/expiry, HOLD/ESTOP, action-command declaration
-retirement/replacement, descriptor/security change and command admission raced at
-every pre-CAS/fact/subordinate/composite/post-CAS cut; only one composite winner,
-and a stale checked command never appends;
-disposition terminality, strict payload recomputation, missing evidence,
-historical-head/sibling-fork/stale-tip rejection, retention atomicity, and
-application-before-admission, applied-before/without-evidence, losing-append, and
-stale-compaction-membership rejection; valid two-command interleaving,
-wrong-command adjacent-tip substitution, missing/losing restart bridge and
-cross-clock timestamp-order rejection; same-session malformed-semantic,
-stale/duplicate/sequence-zero/foreign-epoch HOLD/ESTOP clears/latches but stays
-`received -> rejected` when new; exact same-bytes replay after active or terminal
-state has a new attempt/side-effect but no second command chain; same-identity
-different-content rejects without a new chain; invalid Active has no side-effect
-record; unknown/mixed side-effect intent, reservation-on-Active and missing
-reservation-on-HOLD/ESTOP reject; absent/invalid/stale lease candidates never
-appear as verified authority;
-wrong-principal/route/audience/generation, unsigned, oversized and ambiguous-mode
-input causes no side effect; crash before/at/after side-effect reservation/effect/
-record/result/resolution; TLA authority/stream/disposition/side-effect traces
-replay. Commit/push in reviewable units such as `core: add declared stream
-lifecycle`, `core: separate simulation and plant authority`, and `core: add
-command disposition receipts`.
+Acceptance requires:
+
+- transition tables, vectors, Loom, property, and concurrency tests.
+- sequence-maximum and ambiguous-publish tests, cross-domain lease rejection,
+  two-commander handover, every crash cut, and restart/clock/expiry coverage.
+- authority revoke/transfer/expiry, HOLD/ESTOP, action-command declaration
+  retirement/replacement, descriptor/security change, and command admission
+  raced at every pre-CAS/fact/subordinate/composite/post-CAS cut. Only one
+  composite winner is permitted, and a stale checked command never appends.
+- disposition terminality, strict payload recomputation, missing-evidence,
+  historical-head, sibling-fork, stale-tip, retention-atomicity,
+  application-before-admission, applied-before-evidence, losing-append, and
+  stale-compaction-membership rejection.
+- valid two-command interleaving, wrong-command adjacent-tip substitution,
+  missing or losing restart bridges, and cross-clock timestamp-order rejection.
+- a fresh ESTOP that passes the exact pre-replay gate can latch and then receive
+  stream-order, occupied-position, command-identity, or post-boundary
+  currentness/deadline rejection. Zero position, foreign epoch, or any other
+  pre-replay failure cannot latch. The equivalent invalid HOLD has no side effect.
+- an admitted HOLD installs `received -> admitted`, the restrictive reservation,
+  fence, and one-use operation in one winning owner transition. A losing or stale
+  HOLD installs none of them. Only its retained confirmed association can append
+  `hold_effective`.
+- exact same-bytes replay after active or terminal state joins the retained
+  attempt without a new effect or command chain. Same-identity different-content
+  rejects without a new chain, and invalid Active has no side-effect record.
+- unknown or mixed side-effect intent, reservation-on-Active, and missing
+  reservation on a qualified HOLD/ESTOP effect reject. Absent, invalid, or stale
+  lease candidates never appear as verified authority.
+- wrong-principal, route, audience, generation, unsigned, oversized, or
+  ambiguous-mode input causes no side effect.
+- every crash point before, at, and after side-effect reservation, effect,
+  record, result, and resolution.
+- replay of the TLA authority, stream, disposition, and side-effect traces.
+
+Commit and push reviewable units such as `core: add declared stream lifecycle`,
+`core: separate simulation and plant authority`, and `core: add command
+disposition receipts`.
 
 Ten-lens record:
 
@@ -6446,6 +6607,10 @@ Implementation:
 - redesign security-state digest around normalized public trust anchors, public
   identity-key mappings, ACL/manifest rights, algorithm profile, revocation and
   epoch—not filesystem paths, private key bytes, timestamps or host-specific names;
+- derive extension activation contexts only after the complete security-state
+  digest. Bind the exact producer, audience, realm, scope, manifest, route,
+  package class, processing profiles, clock incarnation, exclusive expiry, and
+  never-reused receiver activation incarnation.
 - implement planned overlap rotation, emergency revocation, session rebind,
   descriptor revision and old-stream retirement; production never accepts raw
   unsigned messages and development never negotiates as production;
@@ -6497,11 +6662,11 @@ Implementation:
 - order transitions so validation/reservation/durable intent precede irreversible
   effects and success receipts follow the ratified commit boundary; represent
   ambiguous effect outcomes explicitly;
-- model fail-safe classification as a separate checked transition: minimum
-  authenticated current-session context precedes its durable reservation, local
-  clear/latch precedes command stream/replay admission, and its outcome/resolution
-  cannot create `admitted`. Restart with an unresolved reservation is
-  non-actuating and Active-blocked;
+- model fail-safe classification as a separate checked transition. The complete
+  pre-replay ESTOP gate precedes its durable reservation and latch. HOLD first
+  completes ordinary admission and installs its admitted predecessor before its
+  durable reservation and clear. Neither effect outcome can create `admitted`.
+  Restart with an unresolved reservation is non-actuating and Active-blocked.
 - remove optimistic `Default`, unchecked public field mutation, lossy casts,
   wrapping counters and stringly typed privilege decisions from critical paths;
 - add snapshot schema/version/digest with fail-closed restoration and migration;
@@ -6552,6 +6717,11 @@ Implementation:
   undeclare guards, and retire them on generation/security/grant/stream change;
 - implement per-plane queues, priority, congestion, retention and deadlines exactly;
   control/data overload cannot refresh leases/watchdogs or starve admitted fail-safe;
+- implement the selected raw extension chunk path with header/class/arithmetic
+  checks before slot reservation, one copy into each final offset, digest-once
+  completion, pre-reserved schema arena, one callback right, and compact
+  activation-lifetime tombstones. Rotation, revocation, expiry, conflict, and
+  unresolved callback work must preserve the ADR-008 resource and no-reuse rules.
 - expose development loopback/UDS only behind visibly insecure types/config; reject
   non-loopback endpoints and any production negotiation;
 - close and audit on ACL/cert expiry/revocation/rotation faults; no silent reconnect
@@ -6736,11 +6906,12 @@ Implementation:
   restart, stream exhaustion, authority transfer, observer revocation, key rotation,
   disposition ambiguity and overload;
 - preserve and extend the action-buffer corpus with the exact side-effect/
-  disposition split: authenticated current-session malformed-semantic,
-  stale/duplicate/sequence-zero/foreign-epoch HOLD/ESTOP clears/latches but is
-  rejected; invalid Active is rejected without a side effect; wrong principal,
-  route, audience, generation, security state, signature, bounds, or ambiguous
-  mode cannot mutate the buffer/latch. Cover every crash cut through reservation,
+  disposition split. A fresh ESTOP that passes the complete pre-replay gate can
+  latch and then receive stream-order, occupied-position, command-identity, or
+  post-boundary currentness/deadline rejection. The equivalent invalid
+  HOLD and invalid Active have no side effect. Wrong principal, route, audience,
+  generation, security state, signature, bounds, grant/slot, or ambiguous mode
+  cannot mutate the buffer/latch. Cover every crash cut through reservation,
   effect, side-effect record, command result, and resolution;
 - add malicious raw JSON/base64/Unicode/number/nesting/duplicate-key cases evaluated
   before semantic allocation;
@@ -6968,10 +7139,13 @@ Implementation:
 - add structured generators that preserve outer validity while mutating one
   semantic/security property; shrink failures without dropping the cause;
 - mutate the fail-safe boundary in both directions: delete or reorder each
-  minimum-context gate, suppress a same-session invalid non-Active clear/latch,
-  promote its rejected command to admitted/`stop_latched`, create a side effect
-  for invalid Active or wrong-context input, and lose/rebuild a crash reservation.
-  Each mutant must be killed by a distinct property/vector;
+  pre-replay ESTOP gate, suppress a qualified ESTOP latch before a later
+  stream-order, occupied-position, command-identity, or post-boundary
+  currentness/deadline rejection, move a
+  HOLD clear before ordinary admission, promote a rejected command to admitted/
+  `stop_latched`, create a side effect for invalid Active or wrong-context input,
+  and lose/rebuild a crash reservation. Each mutant must be killed by a distinct
+  property/vector.
 - fuzz bounded JSON, base64/JWS, schema/proto codecs, FFI pointers/lengths, route
   parsing, snapshots, state transitions and gateway labels with seed/coverage/crash
   retention;
@@ -7185,8 +7359,8 @@ Implementation:
 - preserve `is_simulation_output=true` and `calibrated_posterior=false` on every
   NEST-derived output and retain complete backend/network/seed/numerical provenance;
 - delete stale hard-coded candidate digests only after they are generated/validated
-  from the synchronized contract; remove permissive same-major/advisory-stable-core
-  language.
+  from the synchronized contract. Remove language that treats a same-major match
+  as sufficient or the stable-core identity as advisory.
 
 Acceptance: Python types/vectors match provider; cross-type calls fail before
 backend/plant effects; duplicate/lost reply/restart/close tests; API tests; NEST
@@ -7693,9 +7867,11 @@ Implementation:
   rolled-back or sibling state blocks publication;
 - coordinate multiple local writers through one publication coordinator and reject
   stale term/holder/generation; implement explicit transfer/release and body conflict;
-- use one allocator for every validated Active, HOLD, and ESTOP attempt and consume
-  positions whose byte exposure is ambiguous. Before priority selection, validate
-  version/kind, bounded structure, actor, actual route, plant session/generation,
+- use one allocator for every mode permitted by each declared stream, and consume
+  positions whose byte exposure is ambiguous. Never compare positions from
+  different publisher incarnations. The body-owned event order merges their
+  attempts. Before priority selection, validate version/kind, bounded structure,
+  actor, actual route, plant session/generation,
   stream/declaration, transcript, security state, plant profile, source,
   channel/unit contract, and semantics. Use bounded priority capacity, prevent
   Active from starving HOLD/ESTOP, and expose no raw-byte or caller-prevalidated
@@ -7786,10 +7962,11 @@ Implementation:
   post-CAS `BodyBoundaryApplicationEvidence` bound to the exact record and
   prior/installed heads. Reject historical/sibling heads, caller-selected tips,
   losing appends, stale compaction roots and standalone terminal records. An
-  authenticated `BodyFailSafeSideEffectRecord`/resolution for a rejected
-  HOLD/ESTOP proves only the named buffer/latch side effect; it never proves
-  command admission, `stop_latched` disposition, application, physical stop, or
-  permission. Verify its exact ingress-attempt and closed new-chain/exact-replay/
+  authenticated `BodyFailSafeSideEffectRecord`/resolution for an ESTOP that
+  latched before its command later rejected proves only the named latch side
+  effect. It never proves command admission, `stop_latched` disposition,
+  application, physical stop, or permission. Verify its exact ingress-attempt
+  and closed new-chain/exact-replay/
   conflict/pre-identity resolution bindings when present; exact replay cannot
   create a second command chain. An
   unresolved query remains `ACTIVE_BLOCKED`; if the body journal cannot resolve
@@ -8656,18 +8833,23 @@ Implementation:
   or credential replacement cannot transfer authority;
   restart without proved continuity invalidates sessions/leases and enters the
   profile-defined non-actuating state;
-- before any fail-safe side effect, verify bounds, protected envelope/signature,
-  manifest actor/plane, actual route/audience, live session/generation, current
-  security state, and one unambiguous typed mode. Append a fresh durable
-  `CommandIngressAttemptRecord`; then preserve the body-local rule that non-Active
-  clears and ESTOP latches before declared-stream epoch/sequence/replay and
-  remaining operation/TTL/source/channel/plant-profile semantics. Resolve a new
-  identity through its one disposition chain and resolve exact replay/conflict
-  through the attempt record without another `received`. Require every remaining
-  check and the exact verified live lease before `admitted` or application,
-  except the narrowly ratified exact lease-absence branch for an otherwise fully
-  admitted same-session ESTOP. Keep raw candidate authority fields separate from
-  verified body-issued term/lease/holder provenance;
+- before any remote fail-safe side effect, verify bounds, the protected envelope,
+  canonical kind and version, the transport principal, and default-deny
+  actor/action permission. Verify the exact route, audience, direct realm, live
+  session generation, publisher incarnation, declaration, stream epoch, positive
+  syntactic position, current security state, structurally valid mode, installed
+  plant-profile action, and an authorized unexpired live grant slot or exact
+  current post-HOLD escalation-snapshot slot. A
+  qualified ESTOP can append a fresh durable `CommandIngressAttemptRecord`
+  before declared-stream epoch/sequence/replay and remaining operation semantics.
+  HOLD must pass ordinary replay, lease, freshness, declaration, source, channel,
+  and profile admission before it can reserve or invoke its installed clear
+  action. Resolve a new identity through its one disposition chain and resolve
+  exact replay/conflict without another effect or `received`. Require every
+  remaining check and the exact verified live lease before `admitted` or
+  application, except the narrowly ratified exact lease-absence branch for an
+  otherwise fully admitted same-session ESTOP. Keep raw candidate authority
+  fields separate from verified body-issued term/lease/holder provenance.
 - remove `minimal_estop_command`, the raw JSON `mode == "estop"` bypass, and the
   early unauthenticated/wrong-context typed ESTOP bypass in
   `src-tauri/src/ncp/mod.rs`; unsigned, oversized, ambiguous-mode, wrong-principal/
@@ -8695,30 +8877,44 @@ Implementation:
 - never equate zero velocity with universal safe state; dispatch the content-addressed
   plant profile's HOLD/ESTOP actions and record limitations.
 
-Acceptance: raw/unverifiable/wrong-context/oversized/ambiguous-mode ESTOP rejects
-before state; authenticated current-session wrong-kind/version or otherwise
-semantic-invalid, stale/duplicate/sequence-zero/foreign-epoch HOLD/ESTOP
-clears/latches with exact attempt/side-effect evidence and, when a new identity,
-finishes `received -> rejected`; exact same-bytes replay after original terminal
-and later Active/HOLD state references the existing chain and cannot append a
-second `received`; invalid Active has no side-effect evidence; absent/invalid/
-stale lease candidates never appear as verified term/ID/holder; unknown/mixed
-side-effect intent, reservation-on-Active and missing reservation-on-HOLD/ESTOP
-reject; a valid fully
-admitted same-session ESTOP has priority with or without a lease exactly as ratified;
-active/hold/expiry/revocation/restart/transfer; direct-to-gated and gated-to-direct
-crash-point handover; old-commander partition and stale-buffer rejection;
-authority/lifecycle or action-command declaration transition raced against
-command admission at every fact/subordinate/composite/receipt cut, with no stale
-checked append;
-disposition journal/query, historical-head/fork/stale-tip rejection, strict
-payload recomputation, predecessor/application causality, applied-before/
-without-evidence, losing append, stale compaction membership, body-vs-consumer
-semantic-contract separation, and atomic retention;
-profile mutation; deadline and apply-boundary tests;
-every crash cut through side-effect reservation, local effect, record, rejected/
-admitted result and resolution;
-non-actuating hardware/mock campaign.
+Acceptance requires:
+
+- raw, unverifiable, wrong-context, oversized, or ambiguous-mode ESTOP input to
+  reject before state mutation.
+- a fresh ESTOP that passes the complete pre-replay gate can latch and then
+  receive stream-order, occupied-position, command-identity, or post-boundary
+  currentness/deadline rejection with exact attempt and side-effect evidence.
+  Wrong kind, version, declaration, epoch, position syntax, grant, initial
+  deadline, structure, profile, or authorization rejects before the latch. The
+  equivalent invalid HOLD has no side effect and finishes `received -> rejected`
+  for a new canonical identity.
+- exact same-bytes replay after the original terminal state and later
+  Active/HOLD state references the existing attempt and chain without another
+  effect or `received`. Invalid Active has no side-effect evidence.
+- absent, invalid, or stale lease candidates never appear as verified
+  term/ID/holder evidence. Unknown or mixed side-effect intent,
+  or reservation-on-Active rejects. A missing reservation also rejects an
+  otherwise-qualified admitted HOLD effect or qualified ESTOP effect.
+- a valid fully admitted same-session ESTOP has priority with or without a lease
+  exactly as ratified.
+- a valid HOLD atomically installs its admitted predecessor, restrictive
+  reservation, fence, and one-use operation. A losing or stale HOLD installs none
+  of them, and only confirmed retained association evidence reaches
+  `hold_effective`.
+- active, hold, expiry, revocation, restart, and transfer tests cover both
+  direct-to-gated and gated-to-direct handover crash points, old-commander
+  partitions, and stale-buffer rejection.
+- authority/lifecycle or action-command declaration transitions race command
+  admission at every fact, subordinate, composite, and receipt cut. No stale
+  checked append is permitted.
+- disposition journal/query, historical-head, fork, stale-tip, strict payload
+  recomputation, predecessor/application causality, applied-without-evidence,
+  losing-append, stale-compaction-membership, body-versus-consumer semantic
+  contract, and atomic-retention tests pass.
+- profile mutation, deadline, apply-boundary, and every side-effect reservation,
+  local effect, record, rejected/admitted result, and resolution crash cut pass.
+- the non-actuating hardware/mock campaign passes.
+
 Commit in units, including `plant: remove unauthenticated NCP ESTOP
 bypass` and `plant: issue NCP authority and command dispositions`, pushing each.
 
@@ -8766,7 +8962,7 @@ Implementation:
 Acceptance: core route rejects sidecar bytes; extension route rejects core confusion;
 source correlation, gap/reorder/restart/revocation, queue isolation and Galadriel
 interoperability; optional producer-off build. Commit/push
-`galadriel: publish advisory evidence on the NCP extension plane`.
+`galadriel: publish advisory evidence on the NCP extension traffic class`.
 
 Ten-lens record:
 
@@ -8845,10 +9041,10 @@ Ten-lens record:
 
 Run default-off and NCP-on complete Crebain gates, installed artifacts, Haldir and
 Engram commanders, authority conflict/transfer, signed commands, malformed ESTOP,
-fail-safe/deadline/profile/reset/disposition, including authenticated current-
-session invalid HOLD/ESTOP side effects followed by rejection, invalid Active
-without side effect, wrong-context no-mutation, and every side-effect crash cut;
-Galadriel extension, rotation/revocation, resource/fault/soak and clean-room
+fail-safe/deadline/profile/reset/disposition, including an authenticated current-
+session ESTOP latch followed by command rejection, invalid HOLD and Active with
+no remote side effect, wrong-context no-mutation, and every side-effect crash cut.
+Run the Galadriel extension, rotation/revocation, resource/fault/soak, and clean-room
 reproduction. Produce two receipts:
 Crebain body role and Crebain Galadriel-producer surface role. Neither receipt is
 physical safety, airworthiness, field deployment or research validity.
@@ -9961,7 +10157,8 @@ Execute compositions, not only pairs:
   mode, proving its principal/grants/state never enter plant authority;
 - direct Engram commander and gated Haldir commander contending for one Crebain
   body, including acquire/conflict, both handover directions, quiesce, crash at
-  every transition boundary, old-commander partition, TTL expiry, restart, stale
+  every transition boundary, old-commander partition, lease-deadline expiry,
+  restart, stale
   buffered commands and disposition query;
 - Engram-to-Haldir local signed intent, proving Haldir constructs a new command and
   never launders Engram identity/authority;
@@ -10881,7 +11078,7 @@ this living document, do not inherit these receipts or their render counts.
 | security, safety, science and release claims | `LOCAL_PASS` | the B00-bound revision separates simulation-resource authority from body-issued plant authority, makes direct Engram and Haldir-gated command mutually exclusive, gives only Crebain body authority over handover, makes Galadriel-to-Haldir input deny-only, keeps pid-rs protocol-neutral, and preserves standalone modes; the candidate remains `NO_GO`, implementation and external/formal work remain open or `NOT_RUN`, and no local/model result is promoted to release, qualification, physical-safety certification, posterior calibration, paper reproduction, perfection or permanence |
 | prose and Markdown | `LOCAL_PASS` | `codespell 2.4.1`, `cspell 10.0.1`, `proselint 0.14.0`, `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0`, candidate-link/anchor checks, JSON parsing and `git diff --check` report zero current findings under the narrow reviewed technical-name/Markdown configuration recorded by B00; long lines remain allowed only where tables, commands or digests require them |
 | browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` and direct pinned Chrome-for-Testing `149.0.7827.55` inspection of a temporary `marked 18.0.6` render exposed one H1, 12 H2, 80 H3, 83 H4, 26 tables and 31 code blocks in the blueprint; Playwright `1.61.0-alpha-1781023400000` sampled blueprint topology/receipt, ledger tasks and the resumption boundary at 1440×1000 and 390×844 with document scroll width equal to viewport, all table/code overflow confined to labeled scroll containers, zero page/console errors and no observed overlap, clipping, missing glyph or illegible text |
-| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 10 generated protocol diagrams current, audits the exact 16-SVG direct-view accessibility inventory, and checks declared FSM normal text against solid and gradient backgrounds at 4.5:1 or better; this local automation does not close V01–V11 or claim visual, atlas, accessibility-matrix, or release acceptance |
+| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 12 generated protocol diagrams current, audits the exact 18-SVG direct-view accessibility inventory, and checks declared FSM normal text against solid and gradient backgrounds at 4.5:1 or better. This local automation does not close V01–V11 or claim visual, atlas, accessibility-matrix, or release acceptance. |
 | historical clean committed-tree `scripts/check.sh` | `LOCAL_PASS` | from clean commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree `89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, the command exited zero with `NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN`; this receipt is historical and does not cover the 2026-07-16 revision |
 | historical B00-bound revision gate, commit, push and local remote observation | `LOCAL_PASS` | B00's transition receipt binds the exact checked source/target commits, artifact digests, commands, local-only evidence class, push assertion, and local remote-observation record; these local records do not prove configured-remote reachability, and the handoff reports the containing ledger-status commit because embedding it here would change it; no protocol, consumer, formal, live-security, release or publication gate is inferred |
 

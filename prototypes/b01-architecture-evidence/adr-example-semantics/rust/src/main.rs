@@ -27,7 +27,10 @@ use crate::model::{
 use crate::patch::apply_patch;
 use crate::profiles::{evaluate, Evaluation};
 use crate::sha256::sha256_hex;
-use crate::source::{read_bounded, resolve_regular_relative_file, SourceRepository};
+use crate::source::{
+    read_bounded, resolve_regular_relative_directory, resolve_regular_relative_file,
+    SourceRepository,
+};
 use crate::strict_json::{parse_strict, JsonLimits};
 
 const ENGINE_ROOT: &str = "prototypes/b01-architecture-evidence/adr-example-semantics/rust";
@@ -176,10 +179,14 @@ fn run() -> EngineResult<()> {
     let mut mutation_count = 0_usize;
 
     for case in &corpus.cases {
-        decision_set.verify_source(&case.source)?;
-        let document = repository.load_document(&case.source)?;
-        validate_bounded_fixture(&case.profile, &case.bounded_fixture)?;
-        let evaluation = evaluate(&case.profile, &document, &case.bounded_fixture)?;
+        let decision_source = decision_set.source(&case.source)?;
+        let document = repository.load_document(&case.source, decision_source)?;
+        let bounded_fixture = enforce_mutated_limits(
+            &case.bounded_fixture,
+            corpus.limits.json(corpus.limits.maximum_fixture_bytes),
+        )?;
+        validate_bounded_fixture(&case.profile, &bounded_fixture)?;
+        let evaluation = evaluate(&case.profile, &document, &bounded_fixture)?;
         verify_evaluation(
             &case.id,
             &evaluation,
@@ -192,23 +199,27 @@ fn run() -> EngineResult<()> {
 
         let mut mutation_results = Vec::with_capacity(case.mutations.len());
         for mutation in &case.mutations {
-            let mut mutated_document = document.clone();
-            let mut mutated_fixture = case.bounded_fixture.clone();
-            let target = match mutation.patch.target {
-                PatchTarget::Document => &mut mutated_document,
-                PatchTarget::BoundedFixture => &mut mutated_fixture,
+            let mutated = match mutation.patch.target {
+                PatchTarget::Document => {
+                    let mut mutated_document = document.clone();
+                    apply_patch(&mut mutated_document, &mutation.patch)?;
+                    let mutated_document = enforce_mutated_limits(
+                        &mutated_document,
+                        corpus.limits.json(corpus.limits.maximum_json_fence_bytes),
+                    )?;
+                    evaluate(&case.profile, &mutated_document, &bounded_fixture)?
+                }
+                PatchTarget::BoundedFixture => {
+                    let mut mutated_fixture = bounded_fixture.clone();
+                    apply_patch(&mut mutated_fixture, &mutation.patch)?;
+                    let mutated_fixture = enforce_mutated_limits(
+                        &mutated_fixture,
+                        corpus.limits.json(corpus.limits.maximum_fixture_bytes),
+                    )?;
+                    validate_bounded_fixture(&case.profile, &mutated_fixture)?;
+                    evaluate(&case.profile, &document, &mutated_fixture)?
+                }
             };
-            apply_patch(target, &mutation.patch)?;
-            mutated_document = enforce_mutated_limits(
-                &mutated_document,
-                corpus.limits.json(corpus.limits.maximum_json_fence_bytes),
-            )?;
-            mutated_fixture = enforce_mutated_limits(
-                &mutated_fixture,
-                corpus.limits.json(corpus.limits.maximum_json_fence_bytes),
-            )?;
-            validate_bounded_fixture(&case.profile, &mutated_fixture)?;
-            let mutated = evaluate(&case.profile, &mutated_document, &mutated_fixture)?;
             verify_evaluation(
                 &mutation.id,
                 &mutated,
@@ -232,10 +243,10 @@ fn run() -> EngineResult<()> {
 
         source_identities.push(SourceIdentity {
             case_id: case.id.clone(),
-            path: case.source.path.clone(),
+            path: decision_source.path.clone(),
             json_fence_ordinal: case.source.json_fence_ordinal,
-            adr_byte_length: case.source.adr_byte_length,
-            adr_sha256: case.source.adr_sha256.clone(),
+            adr_byte_length: decision_source.byte_length,
+            adr_sha256: decision_source.sha256.clone(),
             fence_byte_length: case.source.fence_byte_length,
             fence_sha256: case.source.fence_sha256.clone(),
         });
@@ -249,7 +260,6 @@ fn run() -> EngineResult<()> {
         });
     }
     repository.verify_exact_fence_coverage()?;
-
     let self_tests = if arguments.self_test {
         Some(run_self_tests()?)
     } else {
@@ -334,8 +344,10 @@ fn next_path(arguments: &mut impl Iterator<Item = OsString>, flag: &str) -> Engi
 }
 
 fn enforce_mutated_limits(value: &Value, limits: JsonLimits) -> EngineResult<Value> {
-    let encoded = serde_json::to_vec(value)
-        .map_err(|error| EngineError::json(format!("serializing mutated value: {error}")))?;
+    let mut encoded = BoundedOutput::new(limits.maximum_input_bytes);
+    serde_json::to_writer(&mut encoded, value)
+        .map_err(|error| EngineError::json(format!("serializing bounded value: {error}")))?;
+    let encoded = encoded.into_bytes();
     parse_strict(&encoded, limits)
         .map_err(|error| EngineError::corpus(format!("mutated JSON exceeds bounds: {error}")))
 }
@@ -370,7 +382,7 @@ fn verify_evaluation(
 
 fn collect_engine_source_identities(root: &Path) -> EngineResult<Vec<EngineSourceIdentity>> {
     let source_directory_relative = format!("{ENGINE_ROOT}/src");
-    let source_directory = root.join(&source_directory_relative);
+    let source_directory = resolve_regular_relative_directory(root, &source_directory_relative)?;
     let directory_metadata = fs::symlink_metadata(&source_directory).map_err(|error| {
         EngineError::io(
             format!("inspecting Rust source directory {source_directory:?}"),
@@ -498,8 +510,9 @@ fn run_self_tests() -> EngineResult<SelfTestResult> {
                 "server_authority_principal_id": "ncp-authority-a",
                 "stable_realm_id": "realm-a"
             },
-            "expected_wire_version": "1.0",
-            "digest_algorithm": "sha256"
+            "digest_algorithm": "sha256",
+            "expected_stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
         }),
     )?;
     let digest_guard_detected = contract.profile_result == ProfileResult::Reject
@@ -521,12 +534,110 @@ fn run_self_tests() -> EngineResult<SelfTestResult> {
                 "server_authority_principal_id": "ncp-authority-a",
                 "stable_realm_id": "realm-a"
             },
-            "expected_wire_version": "1.0",
-            "digest_algorithm": "sha256"
+            "digest_algorithm": "sha256",
+            "expected_stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
         }),
     )?;
     let wire_guard_detected = wire.profile_result == ProfileResult::Reject
         && wire.diagnostics == ["WIRE_VERSION_MISMATCH"];
+
+    let same_major_wire = evaluate(
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        &json!({
+            "authority_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "wire_version": "1.18446744073709551615",
+            "stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+        &json!({
+            "authenticated_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "digest_algorithm": "sha256",
+            "expected_stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+    )?;
+    let same_major_wire_accepted = same_major_wire.profile_result
+        == ProfileResult::MatchNonAuthorizingExcerpt
+        && same_major_wire.diagnostics.is_empty();
+
+    let shorthand_wire = evaluate(
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        &json!({
+            "authority_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "wire_version": "1",
+            "stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+        &json!({
+            "authenticated_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "digest_algorithm": "sha256",
+            "expected_stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+    )?;
+    let shorthand_wire_accepted = shorthand_wire.profile_result
+        == ProfileResult::MatchNonAuthorizingExcerpt
+        && shorthand_wire.diagnostics.is_empty();
+
+    let malformed_wire = evaluate(
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        &json!({
+            "authority_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "wire_version": "1.00",
+            "stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+        &json!({
+            "authenticated_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "digest_algorithm": "sha256",
+            "expected_stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+    )?;
+    let oversized_wire = evaluate(
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        &json!({
+            "authority_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "wire_version": "1.184467440737095516150",
+            "stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+        &json!({
+            "authenticated_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "digest_algorithm": "sha256",
+            "expected_stable_core_digest":
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }),
+    )?;
+    let malformed_wire_rejected = malformed_wire.profile_result == ProfileResult::Reject
+        && malformed_wire.diagnostics == ["WIRE_VERSION_MISMATCH"]
+        && oversized_wire.profile_result == ProfileResult::Reject
+        && oversized_wire.diagnostics == ["WIRE_VERSION_MISMATCH"];
 
     let security = evaluate(
         "ADR009_SECURITY_STATE_PROJECTION_V1",
@@ -583,12 +694,130 @@ fn run_self_tests() -> EngineResult<SelfTestResult> {
                 "server_authority_principal_id": "ncp-authority-a",
                 "stable_realm_id": "realm-a"
             },
+            "expected_route": "realm-a/session/a/command/b",
             "maximum_capacity_per_stream": 1,
             "required_fail_safe_priority": ["estop", "hold", "active"]
         }),
     )?;
     let capacity_guard_detected =
         qos.profile_result == ProfileResult::Reject && qos.diagnostics == ["QOS_CAPACITY_INVALID"];
+
+    let malformed_qos_realm = evaluate(
+        "ADR010_ACTION_QOS_PROFILE_V1",
+        &json!({
+            "authority_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a"
+            },
+            "plane": "action",
+            "route": "realm-a/session/a/command/b",
+            "profile_id": "ncp-action-v1",
+            "capacity_per_stream": 1,
+            "ordering": "strict_stream_sequence",
+            "retention": "until_terminal_disposition_or_expiry",
+            "overload": "reject_new_active_and_emit_disposition",
+            "fail_safe_priority": ["estop", "hold", "active"]
+        }),
+        &json!({
+            "authenticated_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "realm-a"
+            },
+            "expected_route": "realm-a/session/a/command/b",
+            "maximum_capacity_per_stream": 1,
+            "required_fail_safe_priority": ["estop", "hold", "active"]
+        }),
+    )?;
+    let unsafe_key_epoch = evaluate(
+        "ADR009_SECURITY_STATE_PROJECTION_V1",
+        &json!({
+            "authority_realm": {
+                "server_authority_principal": "spiffe://ncp.example/body-server",
+                "stable_realm_id": "plant-a"
+            },
+            "profile": "ncp-production-ingress-v1",
+            "security_epoch": 12,
+            "revocation_epoch": 12,
+            "principals": [{
+                "principal_id": "body-a",
+                "role": "body",
+                "planes": ["action"]
+            }],
+            "key_epochs": [{
+                "kid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "algorithm": "Ed25519",
+                "epoch": 9007199254740992_u64
+            }]
+        }),
+        &json!({
+            "authenticated_authority_realm": {
+                "server_authority_principal": "spiffe://ncp.example/body-server",
+                "stable_realm_id": "plant-a"
+            },
+            "required_profile": "ncp-production-ingress-v1",
+            "required_key_algorithm": "Ed25519",
+            "maximum_security_epoch": 9007199254740991_u64
+        }),
+    )?;
+    let missing_key_epochs = evaluate(
+        "ADR009_SECURITY_STATE_PROJECTION_V1",
+        &json!({
+            "authority_realm": {
+                "server_authority_principal": "spiffe://ncp.example/body-server",
+                "stable_realm_id": "plant-a"
+            },
+            "profile": "ncp-production-ingress-v1",
+            "security_epoch": 12,
+            "revocation_epoch": 12,
+            "principals": [{
+                "principal_id": "body-a",
+                "role": "body",
+                "planes": ["action"]
+            }]
+        }),
+        &json!({
+            "authenticated_authority_realm": {
+                "server_authority_principal": "spiffe://ncp.example/body-server",
+                "stable_realm_id": "plant-a"
+            },
+            "required_profile": "ncp-production-ingress-v1",
+            "required_key_algorithm": "Ed25519",
+            "maximum_security_epoch": 9007199254740991_u64
+        }),
+    )?;
+    let malformed_qos_realm_rejected = malformed_qos_realm.profile_result == ProfileResult::Reject
+        && malformed_qos_realm.diagnostics == ["AUTHORITY_REALM_KEY_REQUIRED"]
+        && unsafe_key_epoch.profile_result == ProfileResult::Reject
+        && unsafe_key_epoch.diagnostics == ["KEY_EPOCH_MEMBERSHIP_REQUIRED"]
+        && missing_key_epochs.profile_result == ProfileResult::Reject
+        && missing_key_epochs.diagnostics == ["KEY_EPOCH_MEMBERSHIP_REQUIRED"];
+
+    let hierarchical_realm = evaluate(
+        "ADR005_DECLARE_STREAM_EXCERPT_V1",
+        &json!({
+            "ncp_version": "1",
+            "kind": "declare_stream",
+            "authority_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "region-a/plant-a"
+            },
+            "route": "region-a/plant-a/session/plant-alpha/action/controller-a",
+            "sequence_start": 1,
+            "publisher_principal_id": "haldir-commander-a",
+            "stream_epoch": "00000000-0000-4000-8000-000000000001"
+        }),
+        &json!({
+            "authenticated_publisher_principal_id": "haldir-commander-a",
+            "authenticated_realm_key": {
+                "server_authority_principal_id": "ncp-authority-a",
+                "stable_realm_id": "region-a/plant-a"
+            },
+            "expected_route": "region-a/plant-a/session/plant-alpha/action/controller-a",
+            "live_declaration_epoch_ids": []
+        }),
+    )?;
+    let hierarchical_realm_accepted = hierarchical_realm.profile_result
+        == ProfileResult::MatchNonAuthorizingExcerpt
+        && hierarchical_realm.diagnostics.is_empty();
 
     let controls = [
         duplicate_rejected,
@@ -599,8 +828,13 @@ fn run_self_tests() -> EngineResult<SelfTestResult> {
         pending_guard_detected,
         digest_guard_detected,
         wire_guard_detected,
+        same_major_wire_accepted,
+        shorthand_wire_accepted,
+        malformed_wire_rejected,
         revocation_guard_detected,
         capacity_guard_detected,
+        malformed_qos_realm_rejected,
+        hierarchical_realm_accepted,
     ];
     let review_packet_controls = review_packet_binding_self_test()?;
     let executed = controls.len() + review_packet_controls;

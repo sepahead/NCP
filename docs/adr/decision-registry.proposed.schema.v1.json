@@ -477,574 +477,6 @@
         }
       }
     },
-    "semanticToolIdentity": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "version",
-        "executable_sha256",
-        "executable_bytes"
-      ],
-      "properties": {
-        "name": {
-          "enum": [
-            "bun",
-            "cargo",
-            "rustc"
-          ]
-        },
-        "version": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 128
-        },
-        "executable_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "executable_bytes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 67108864
-        }
-      }
-    },
-    "semanticParserReplay": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "schema",
-        "evidence_class",
-        "command_profile",
-        "argv",
-        "working_directory",
-        "fixed_environment",
-        "inherited_environment_keys",
-        "inherited_environment_sha256",
-        "isolated_environment_keys",
-        "isolated_cache_directory",
-        "isolated_cache_environment_key",
-        "dependency_resolution_mode",
-        "process_network_isolation",
-        "dependency_cache_mode",
-        "timeout_seconds",
-        "tools",
-        "engine_sources",
-        "repository_snapshot_inputs",
-        "repository_snapshot_postcondition",
-        "derived_registry_binding",
-        "stdout_sha256",
-        "stdout_bytes",
-        "stderr_bytes",
-        "exit_code",
-        "source_tree_build_output_absent"
-      ],
-      "properties": {
-        "schema": {
-          "const": "ncp.b01-semantic-parser-replay.v1"
-        },
-        "evidence_class": {
-          "const": "OBSERVED_LOCAL_REPLAY_NOT_PROVENANCE"
-        },
-        "command_profile": {
-          "enum": [
-            "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1",
-            "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1"
-          ]
-        },
-        "argv": {
-          "type": "array",
-          "minItems": 8,
-          "maxItems": 24,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
-          }
-        },
-        "working_directory": {
-          "const": "TEMPORARY_BOUND_INPUT_SNAPSHOT_ROOT"
-        },
-        "fixed_environment": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "CARGO_NET_OFFLINE",
-            "CARGO_TERM_COLOR",
-            "LANG",
-            "LC_ALL",
-            "NO_COLOR",
-            "TZ"
-          ],
-          "properties": {
-            "CARGO_NET_OFFLINE": {
-              "const": "true"
-            },
-            "CARGO_TERM_COLOR": {
-              "const": "never"
-            },
-            "LANG": {
-              "const": "C"
-            },
-            "LC_ALL": {
-              "const": "C"
-            },
-            "NO_COLOR": {
-              "const": "1"
-            },
-            "TZ": {
-              "const": "UTC"
-            }
-          }
-        },
-        "inherited_environment_keys": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 3,
-          "uniqueItems": true,
-          "items": {
-            "enum": [
-              "CARGO_HOME",
-              "PATH",
-              "RUSTUP_HOME"
-            ]
-          }
-        },
-        "inherited_environment_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "isolated_environment_keys": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "uniqueItems": true,
-          "items": {
-            "enum": [
-              "BUN_INSTALL_CACHE_DIR",
-              "CARGO_TARGET_DIR",
-              "HOME",
-              "TMPDIR"
-            ]
-          }
-        },
-        "isolated_cache_directory": {
-          "const": true
-        },
-        "isolated_cache_environment_key": {
-          "enum": [
-            "BUN_INSTALL_CACHE_DIR",
-            "CARGO_TARGET_DIR"
-          ]
-        },
-        "dependency_resolution_mode": {
-          "enum": [
-            "BUN_NO_INSTALL",
-            "CARGO_OFFLINE_LOCKED"
-          ]
-        },
-        "process_network_isolation": {
-          "const": "NOT_PROVIDED_LOCAL_REPLAY_ONLY"
-        },
-        "dependency_cache_mode": {
-          "enum": [
-            "AMBIENT_CARGO_HOME_OFFLINE",
-            "NOT_USED_NO_INSTALL"
-          ]
-        },
-        "timeout_seconds": {
-          "const": 120
-        },
-        "tools": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 2,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/semanticToolIdentity"
-          }
-        },
-        "engine_sources": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 16,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/fileIdentity"
-          }
-        },
-        "repository_snapshot_inputs": {
-          "type": "array",
-          "minItems": 31,
-          "maxItems": 32,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/fileIdentity"
-          }
-        },
-        "repository_snapshot_postcondition": {
-          "const": "EXACT_FILE_SET_AND_BYTES_UNCHANGED"
-        },
-        "derived_registry_binding": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "path",
-            "decision_set_sha256"
-          ],
-          "properties": {
-            "path": {
-              "const": "docs/adr/decision-registry.proposed.v1.json"
-            },
-            "decision_set_sha256": {
-              "$ref": "#/$defs/sha256"
-            }
-          }
-        },
-        "stdout_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "stdout_bytes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 2097152
-        },
-        "stderr_bytes": {
-          "const": 0
-        },
-        "exit_code": {
-          "const": 0
-        },
-        "source_tree_build_output_absent": {
-          "const": true
-        }
-      }
-    },
-    "rustSemanticParserReplay": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/semanticParserReplay"
-        },
-        {
-          "properties": {
-            "command_profile": {
-              "const": "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1"
-            },
-            "argv": {
-              "const": [
-                "cargo",
-                "run",
-                "--quiet",
-                "--offline",
-                "--locked",
-                "--manifest-path",
-                "prototypes/b01-architecture-evidence/adr-example-semantics/rust/Cargo.toml",
-                "--",
-                "--corpus",
-                "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
-                "--repo-root",
-                ".",
-                "--closure-source",
-                "docs/adr/decision-closure.source.v1.json",
-                "--result-schema",
-                "ncp.b01-semantic-parser-result.v1",
-                "--self-test"
-              ]
-            },
-            "inherited_environment_keys": {
-              "const": [
-                "CARGO_HOME",
-                "PATH",
-                "RUSTUP_HOME"
-              ]
-            },
-            "isolated_environment_keys": {
-              "const": [
-                "CARGO_TARGET_DIR",
-                "HOME",
-                "TMPDIR"
-              ]
-            },
-            "isolated_cache_environment_key": {
-              "const": "CARGO_TARGET_DIR"
-            },
-            "dependency_resolution_mode": {
-              "const": "CARGO_OFFLINE_LOCKED"
-            },
-            "dependency_cache_mode": {
-              "const": "AMBIENT_CARGO_HOME_OFFLINE"
-            },
-            "tools": {
-              "minItems": 2,
-              "maxItems": 2,
-              "prefixItems": [
-                {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/semanticToolIdentity"
-                    },
-                    {
-                      "properties": {
-                        "name": {
-                          "const": "cargo"
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/semanticToolIdentity"
-                    },
-                    {
-                      "properties": {
-                        "name": {
-                          "const": "rustc"
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            },
-            "engine_sources": {
-              "minItems": 11,
-              "maxItems": 11
-            },
-            "repository_snapshot_inputs": {
-              "minItems": 31,
-              "maxItems": 31
-            }
-          }
-        }
-      ]
-    },
-    "typescriptSemanticParserReplay": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/semanticParserReplay"
-        },
-        {
-          "properties": {
-            "command_profile": {
-              "const": "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1"
-            },
-            "argv": {
-              "const": [
-                "bun",
-                "run",
-                "--no-install",
-                "--no-env-file",
-                "--no-orphans",
-                "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/main.ts",
-                "--corpus",
-                "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
-                "--repo-root",
-                ".",
-                "--closure-source",
-                "docs/adr/decision-closure.source.v1.json",
-                "--result-schema",
-                "ncp.b01-semantic-parser-result.v1",
-                "--self-test"
-              ]
-            },
-            "inherited_environment_keys": {
-              "const": [
-                "PATH"
-              ]
-            },
-            "isolated_environment_keys": {
-              "const": [
-                "BUN_INSTALL_CACHE_DIR",
-                "HOME",
-                "TMPDIR"
-              ]
-            },
-            "isolated_cache_environment_key": {
-              "const": "BUN_INSTALL_CACHE_DIR"
-            },
-            "dependency_resolution_mode": {
-              "const": "BUN_NO_INSTALL"
-            },
-            "dependency_cache_mode": {
-              "const": "NOT_USED_NO_INSTALL"
-            },
-            "tools": {
-              "minItems": 1,
-              "maxItems": 1,
-              "prefixItems": [
-                {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/semanticToolIdentity"
-                    },
-                    {
-                      "properties": {
-                        "name": {
-                          "const": "bun"
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            },
-            "engine_sources": {
-              "minItems": 12,
-              "maxItems": 12
-            },
-            "repository_snapshot_inputs": {
-              "minItems": 32,
-              "maxItems": 32
-            }
-          }
-        }
-      ]
-    },
-    "semanticParserEvaluation": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "engine",
-        "required_result_path",
-        "required_status",
-        "observed_status",
-        "receipt",
-        "execution"
-      ],
-      "properties": {
-        "engine": {
-          "enum": [
-            "RUST",
-            "TYPESCRIPT"
-          ]
-        },
-        "required_result_path": {
-          "type": "string",
-          "pattern": "^evidence/implementation/reviews/B01/(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$",
-          "maxLength": 256
-        },
-        "required_status": {
-          "const": "PASS"
-        },
-        "observed_status": {
-          "enum": [
-            "NOT_RUN",
-            "STALE",
-            "FAIL",
-            "PASS"
-          ]
-        },
-        "receipt": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/$defs/fileIdentity"
-            }
-          ]
-        },
-        "execution": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/$defs/semanticParserReplay"
-            }
-          ]
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "observed_status": {
-                "const": "NOT_RUN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "receipt": {
-                "type": "null"
-              },
-              "execution": {
-                "type": "null"
-              }
-            }
-          },
-          "else": {
-            "properties": {
-              "receipt": {
-                "$ref": "#/$defs/fileIdentity"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "observed_status": {
-                "const": "PASS"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "execution": {
-                "$ref": "#/$defs/semanticParserReplay"
-              }
-            }
-          },
-          "else": {
-            "properties": {
-              "execution": {
-                "type": "null"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "engine": {
-                "const": "RUST"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "execution": {
-                "oneOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/$defs/rustSemanticParserReplay"
-                  }
-                ]
-              }
-            }
-          },
-          "else": {
-            "properties": {
-              "execution": {
-                "oneOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/$defs/typescriptSemanticParserReplay"
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ]
-    },
     "semanticClosureEvaluation": {
       "type": "object",
       "additionalProperties": false,
@@ -1054,11 +486,8 @@
         "state",
         "source",
         "json_schema",
-        "wire_corpus",
-        "b03_deferrals",
-        "capture_workflow",
-        "rust_parser_evidence",
-        "typescript_parser_evidence"
+        "semantic_corpus",
+        "b03_deferrals"
       ],
       "properties": {
         "schema": {
@@ -1101,7 +530,7 @@
             }
           ]
         },
-        "wire_corpus": {
+        "semantic_corpus": {
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -1109,7 +538,8 @@
             "required_status",
             "observed_status",
             "observed_identity",
-            "case_count"
+            "case_count",
+            "mutation_count"
           ],
           "properties": {
             "required_path": {
@@ -1122,7 +552,7 @@
               "enum": [
                 "MISSING",
                 "STALE_DECISION_SET",
-                "EXCERPTS_ONLY_NON_AUTHORIZING",
+                "INCOMPLETE_COVERAGE",
                 "COMPLETE_CURRENT"
               ]
             },
@@ -1139,6 +569,11 @@
             "case_count": {
               "type": "integer",
               "minimum": 0,
+              "maximum": 256
+            },
+            "mutation_count": {
+              "type": "integer",
+              "minimum": 0,
               "maximum": 4096
             }
           }
@@ -1153,12 +588,12 @@
           ],
           "properties": {
             "required_question_count": {
-              "const": 7
+              "const": 8
             },
             "validated_question_count": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 7
+              "maximum": 8
             },
             "observed_status": {
               "enum": [
@@ -1179,104 +614,8 @@
               "then": {
                 "properties": {
                   "validated_question_count": {
-                    "const": 7
+                    "const": 8
                   }
-                }
-              }
-            }
-          ]
-        },
-        "capture_workflow": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "required_state",
-            "observed_state",
-            "required_engine_profile_state",
-            "engine_profile_states",
-            "command",
-            "target_directory",
-            "write_policy",
-            "failure_effect"
-          ],
-          "properties": {
-            "required_state": {
-              "const": "IMPLEMENTED"
-            },
-            "observed_state": {
-              "enum": [
-                "NOT_IMPLEMENTED",
-                "IMPLEMENTED"
-              ]
-            },
-            "required_engine_profile_state": {
-              "const": "IMPLEMENTED"
-            },
-            "engine_profile_states": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "RUST",
-                "TYPESCRIPT"
-              ],
-              "properties": {
-                "RUST": {
-                  "enum": [
-                    "NOT_IMPLEMENTED",
-                    "IMPLEMENTED"
-                  ]
-                },
-                "TYPESCRIPT": {
-                  "enum": [
-                    "NOT_IMPLEMENTED",
-                    "IMPLEMENTED"
-                  ]
-                }
-              }
-            },
-            "command": {
-              "const": "python3 scripts/generate_decision_registry.py --capture-semantic-parser-results"
-            },
-            "target_directory": {
-              "const": "evidence/implementation/reviews/B01/semantic-closure"
-            },
-            "write_policy": {
-              "const": "BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME"
-            },
-            "failure_effect": {
-              "const": "WRITE_NEITHER_RESULT"
-            }
-          }
-        },
-        "rust_parser_evidence": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/semanticParserEvaluation"
-            },
-            {
-              "properties": {
-                "engine": {
-                  "const": "RUST"
-                },
-                "required_result_path": {
-                  "const": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json"
-                }
-              }
-            }
-          ]
-        },
-        "typescript_parser_evidence": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/semanticParserEvaluation"
-            },
-            {
-              "properties": {
-                "engine": {
-                  "const": "TYPESCRIPT"
-                },
-                "required_result_path": {
-                  "const": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json"
                 }
               }
             }
@@ -1294,7 +633,7 @@
           },
           "then": {
             "properties": {
-              "wire_corpus": {
+              "semantic_corpus": {
                 "properties": {
                   "observed_status": {
                     "const": "COMPLETE_CURRENT"
@@ -1304,56 +643,13 @@
                   }
                 }
               },
-          "b03_deferrals": {
+              "b03_deferrals": {
                 "properties": {
                   "validated_question_count": {
-                    "const": 7
+                    "const": 8
                   },
                   "observed_status": {
                     "const": "COMPLETE_ENVELOPES_VERIFIED"
-              }
-            }
-          },
-          "capture_workflow": {
-            "properties": {
-              "required_state": {
-                "const": "IMPLEMENTED"
-              },
-              "observed_state": {
-                "const": "IMPLEMENTED"
-              },
-              "required_engine_profile_state": {
-                "const": "IMPLEMENTED"
-              },
-              "engine_profile_states": {
-                "properties": {
-                  "RUST": {
-                    "const": "IMPLEMENTED"
-                  },
-                  "TYPESCRIPT": {
-                    "const": "IMPLEMENTED"
-                  }
-                }
-              }
-            }
-          },
-          "rust_parser_evidence": {
-                "properties": {
-                  "observed_status": {
-                    "const": "PASS"
-                  },
-                  "receipt": {
-                    "$ref": "#/$defs/fileIdentity"
-                  }
-                }
-              },
-              "typescript_parser_evidence": {
-                "properties": {
-                  "observed_status": {
-                    "const": "PASS"
-                  },
-                  "receipt": {
-                    "$ref": "#/$defs/fileIdentity"
                   }
                 }
               }
@@ -1613,12 +909,8 @@
             "SEMANTIC_CLOSURE_OPEN",
             "SEMANTIC_QUESTION_OPEN",
             "INVALID_B03_DEFERRAL",
-            "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-            "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-            "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-            "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-            "SEMANTIC_PARSER_CAPTURE_NOT_IMPLEMENTED",
-            "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED"
+            "SEMANTIC_EXAMPLE_CORPUS_NOT_CURRENT",
+            "SEMANTIC_EXAMPLE_MISSING"
           ]
         },
         "closure_id": {

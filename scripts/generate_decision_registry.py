@@ -12,21 +12,16 @@ from __future__ import annotations
 
 import argparse
 import copy
-import ctypes
-import errno
 import hashlib
 import ipaddress
 import json
 import os
 import re
-import selectors
 import shutil
-import signal
 import stat
 import subprocess
 import sys
 import tempfile
-import time
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -79,6 +74,12 @@ CLOSURE_SOURCE_RELATIVE = CLOSURE_SOURCE.relative_to(ROOT).as_posix()
 CLOSURE_SCHEMA_RELATIVE = CLOSURE_SCHEMA.relative_to(ROOT).as_posix()
 EXPECTED_IDS = tuple(f"ADR-{number:03d}" for number in range(1, 12))
 EXPECTED_DEFECTS = {f"D{number:02d}" for number in range(1, 21)}
+ADR_MAIN_PATH = re.compile(
+    r"docs/adr/(000[1-9]|001[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md\Z"
+)
+ADR_MODULE_PATH = re.compile(
+    r"docs/adr/modules/adr-(00[1-9]|01[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md\Z"
+)
 EXPECTED_MODULE_PATHS = {
     **{identifier: () for identifier in EXPECTED_IDS},
     "ADR-004": (
@@ -116,16 +117,16 @@ REGISTRY_JSON_LIMITS = JsonLimits(
     allow_floats=False,
 )
 ADR_FENCE_JSON_LIMITS = JsonLimits(
-    maximum_bytes=MAX_ADR_MARKDOWN_BYTES,
+    maximum_bytes=131_072,
     maximum_depth=32,
     maximum_items=100_000,
-    maximum_object_members=256,
+    maximum_object_members=4_096,
     maximum_array_items=4096,
     maximum_key_utf8_bytes=128,
-    maximum_string_utf8_bytes=4096,
-    maximum_total_string_utf8_bytes=MAX_ADR_MARKDOWN_BYTES,
-    maximum_integer_chars=128,
-    maximum_float_chars=128,
+    maximum_string_utf8_bytes=65_536,
+    maximum_total_string_utf8_bytes=131_072,
+    maximum_integer_chars=32,
+    maximum_float_chars=32,
     allow_floats=False,
 )
 REGISTRY_FILE_LIMITS = FileSnapshotLimits(
@@ -142,115 +143,196 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 ROLE_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REVIEW_ID = re.compile(r"^[a-z0-9][a-z0-9._:-]{2,127}$")
 CONDITION_ID = re.compile(r"^[A-Z0-9][A-Z0-9._-]{1,63}$")
-WIRE_CASE_ID = re.compile(r"^adr(?:00[1-9]|01[01])\.[a-z0-9-]+\.v1$")
+SEMANTIC_CASE_ID = re.compile(r"^adr(?:00[1-9]|01[01])\.[a-z0-9][a-z0-9.-]*\.v1$")
+SEMANTIC_PROFILE_ID = re.compile(r"^ADR(?:00[1-9]|01[01])_[A-Z0-9_]+_V1$")
+EXPECTED_SEMANTIC_CASE_IDENTITIES = {
+    "adr001.open-plant-session.kind-separation.v1": (
+        "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-001",
+        1,
+    ),
+    "adr001.plant-session.simulation-field-confusion.v1": (
+        "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-001",
+        2,
+    ),
+    "adr002.realm-bound-contract-identity.v1": (
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-002",
+        1,
+    ),
+    "adr002.compact-hash-substitution.v1": (
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-002",
+        2,
+    ),
+    "adr003.flattened-jws-placeholder.v1": (
+        "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+        "AUTHENTICATED_WIRE_OBJECT",
+        "NEGATIVE",
+        "ADR-003",
+        1,
+    ),
+    "adr003.protected-header-required-member-projection.v1": (
+        "ADR003_PROTECTED_HEADER_REQUIRED_MEMBER_PROJECTION_V1",
+        "DECODED_HEADER_FRAGMENT",
+        "POSITIVE",
+        "ADR-003",
+        2,
+    ),
+    "adr003.unauthenticated-forwarding-wrapper.v1": (
+        "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+        "AUTHENTICATED_WIRE_OBJECT",
+        "NEGATIVE",
+        "ADR-003",
+        3,
+    ),
+    "adr004.pending-release-reservation-nonallocation.v1": (
+        "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1",
+        "NON_WIRE_INTERNAL_STATE",
+        "POSITIVE",
+        "ADR-004",
+        1,
+    ),
+    "adr005.declare-stream.excerpt.v1": (
+        "ADR005_DECLARE_STREAM_EXCERPT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-005",
+        1,
+    ),
+    "adr005.undeclared-frame.hostile.v1": (
+        "ADR005_UNDECLARED_FRAME_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-005",
+        2,
+    ),
+    "adr006.body-lease.excerpt.v1": (
+        "ADR006_BODY_LEASE_EXCERPT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-006",
+        1,
+    ),
+    "adr006.self-issued-stale-lease.hostile.v1": (
+        "ADR006_STALE_SELF_ISSUED_LEASE_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-006",
+        2,
+    ),
+    "adr007.disposition-query.semantic-projection.v1": (
+        "ADR007_DISPOSITION_QUERY_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-007",
+        1,
+    ),
+    "adr007.received-disposition.excerpt.v1": (
+        "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-007",
+        2,
+    ),
+    "adr007.unknown-disposition.hostile.v1": (
+        "ADR007_INVALID_DISPOSITION_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-007",
+        3,
+    ),
+    "adr008.raw-chunk.semantic-projection.v1": (
+        "ADR008_RAW_CHUNK_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-008",
+        1,
+    ),
+    "adr008.evaluated-envelope.excerpt.v1": (
+        "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
+        "PROPOSED_EXTENSION_ENVELOPE",
+        "POSITIVE",
+        "ADR-008",
+        2,
+    ),
+    "adr008.self-policy.hostile.v1": (
+        "ADR008_GALADRIEL_POLICY_INJECTION_V1",
+        "PROPOSED_EXTENSION_ENVELOPE",
+        "NEGATIVE",
+        "ADR-008",
+        3,
+    ),
+    "adr009.security-state.semantic-projection.v1": (
+        "ADR009_SECURITY_STATE_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-009",
+        1,
+    ),
+    "adr009.ambiguous-mutable-security-state.hostile.v1": (
+        "ADR009_INVALID_SECURITY_STATE_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "NEGATIVE",
+        "ADR-009",
+        2,
+    ),
+    "adr010.action-qos-profile.excerpt.v1": (
+        "ADR010_ACTION_QOS_PROFILE_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-010",
+        1,
+    ),
+    "adr010.best-effort-receipt-free-profile.hostile.v1": (
+        "ADR010_INVALID_ACTION_QOS_PROFILE_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "NEGATIVE",
+        "ADR-010",
+        2,
+    ),
+    "adr011.gated-intent-correlation.excerpt.v1": (
+        "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
+        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+        "POSITIVE",
+        "ADR-011",
+        1,
+    ),
+    "adr011.identity-laundering-command.hostile.v1": (
+        "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-011",
+        2,
+    ),
+    "adr011.effect-path-fencing.semantic-projection.v1": (
+        "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-011",
+        3,
+    ),
+}
 IDENTITY_URI = re.compile(r"^[a-z][a-z0-9+.-]*:[\x21-\x7e]+$")
 DNS_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 MEDIA_TYPE = re.compile(r"^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$")
 RELATIVE_PATH = re.compile(r"^(?!/)(?!.*(?:^|/)\.\.(?:/|$)).+$")
 UTC_TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-JSON_FENCE = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
 
 SEMANTIC_CORPUS_SCHEMA = "ncp.b01-adr-example-semantics-corpus.v1"
-SEMANTIC_PARSER_RESULT_SCHEMA = "ncp.b01-semantic-parser-result.v1"
-SEMANTIC_PARSER_RESULT_MEMBERS = (
-    "schema",
-    "engine",
-    "decision_set_sha256",
-    "corpus_sha256",
-    "case_results",
-    "b03_results",
-    "status",
-    "claim_boundary",
-)
 SEMANTIC_CLOSURE_EVALUATION_SCHEMA = "ncp.b01-semantic-closure-evaluation.v1"
 SEMANTIC_CORPUS_PATH = (
     "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json"
 )
-RUST_PARSER_RESULT_PATH = (
-    "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json"
-)
-TYPESCRIPT_PARSER_RESULT_PATH = (
-    "evidence/implementation/reviews/B01/semantic-closure/"
-    "typescript-parser-result.v1.json"
-)
-SEMANTIC_CAPTURE_DIRECTORY = "evidence/implementation/reviews/B01/semantic-closure"
-SEMANTIC_CAPTURE_COMMAND = (
-    "python3 scripts/generate_decision_registry.py --capture-semantic-parser-results"
-)
-SEMANTIC_CAPTURE_WORKFLOW_STATE = "IMPLEMENTED"
-SEMANTIC_ENGINE_PROFILE_STATES = {
-    "RUST": "NOT_IMPLEMENTED",
-    "TYPESCRIPT": "NOT_IMPLEMENTED",
-}
-SEMANTIC_CAPTURE_RESULT_PATHS = {
-    "RUST": RUST_PARSER_RESULT_PATH,
-    "TYPESCRIPT": TYPESCRIPT_PARSER_RESULT_PATH,
-}
-SEMANTIC_PARSER_TIMEOUT_SECONDS = 120
-MAX_SEMANTIC_PARSER_STDERR_BYTES = 65_536
-MAX_SEMANTIC_TOOL_BYTES = 67_108_864
-SEMANTIC_FIXED_ENVIRONMENT = {
-    "CARGO_NET_OFFLINE": "true",
-    "CARGO_TERM_COLOR": "never",
-    "LANG": "C",
-    "LC_ALL": "C",
-    "NO_COLOR": "1",
-    "TZ": "UTC",
-}
-SEMANTIC_ENGINE_ROOT = "prototypes/b01-architecture-evidence/adr-example-semantics"
-RUST_ENGINE_SOURCE_PATHS = (
-    f"{SEMANTIC_ENGINE_ROOT}/rust/Cargo.lock",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/Cargo.toml",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/decision.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/error.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/main.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/model.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/patch.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/profiles.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/sha256.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/source.rs",
-    f"{SEMANTIC_ENGINE_ROOT}/rust/src/strict_json.rs",
-)
-TYPESCRIPT_ENGINE_SOURCE_PATHS = (
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/package.json",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/canonical-json.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/corpus.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/decision-binding.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/file-io.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/json-pointer.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/main.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/runtime.d.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/self-test.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/semantics.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/src/strict-json.ts",
-    f"{SEMANTIC_ENGINE_ROOT}/typescript/tsconfig.json",
-)
-SEMANTIC_ADR_SOURCE_PATHS = (
-    "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-    "docs/adr/0002-contract-identity-and-release-authorization.md",
-    "docs/adr/0003-authenticated-production-ingress.md",
-    "docs/adr/0004-observer-attach-grants-and-revocation.md",
-    "docs/adr/0005-declared-stream-lifecycle.md",
-    "docs/adr/0006-body-issued-authority-and-time.md",
-    "docs/adr/0007-command-disposition-journal.md",
-    "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-    "docs/adr/0009-security-state-rotation-and-revocation.md",
-    "docs/adr/0010-plane-qos-retention-and-overload.md",
-    "docs/adr/0011-ecosystem-topology-and-handover.md",
-    "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
-    "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
-)
-SEMANTIC_REPLAY_SUBJECT_PATHS = (
-    SOURCE_RELATIVE,
-    SCHEMA_RELATIVE,
-    CLOSURE_SOURCE_RELATIVE,
-    CLOSURE_SCHEMA_RELATIVE,
-    REVIEW_PACKET.relative_to(ROOT).as_posix(),
-    GENERATOR,
-    SEMANTIC_CORPUS_PATH,
-    *SEMANTIC_ADR_SOURCE_PATHS,
-)
-SEMANTIC_REPLAY_DERIVED_INPUT_PATHS = (OUTPUT.relative_to(ROOT).as_posix(),)
 EXPECTED_NO_EDGE_CLASSES = (
     "CONTROL_DEPENDENCY",
     "NCP_ATLAS_OWNER",
@@ -383,13 +465,20 @@ B03_TEST_SUFFIXES_BY_KIND = {
         "UNKNOWN-DEFAULT-REJECT",
     ),
 }
+ZERO_MINIMUM_BOUNDED_INTEGER_PARAMETERS = {
+    ("ADR-005-Q01", "REORDER_LIMIT"),
+}
 EXPECTED_B03_PARAMETER_CONTRACT = {
     "schema": "ncp.b01-b03-parameter-contract.v1",
     "value_kinds": ["BOUNDED_INTEGER", "EXACT_IDENTITY_SET"],
     "envelope_fields": ["minimum", "maximum"],
-    "literal_integer_encoding": "POSITIVE_JSON_SAFE_INTEGER",
+    "literal_integer_encoding": (
+        "NONNEGATIVE_JSON_SAFE_INTEGER_FOR_BOUNDED_INTEGER_AND_JSON_SAFE_"
+        "CARDINALITY_FOR_EXACT_IDENTITY_SET"
+    ),
     "validated_envelope": (
-        "POSITIVE_LITERAL_MINIMUM_AND_FINITE_LITERAL_MAXIMUM_WITH_MINIMUM_LTE_MAXIMUM"
+        "KIND_APPROPRIATE_LITERAL_MINIMUM_AND_FINITE_LITERAL_MAXIMUM_WITH_MINIMUM_"
+        "LTE_MAXIMUM"
     ),
     "future_b03_allocation_binding": "OUTSIDE_B01_DECISION_SET",
     "future_allocation_constraint": (
@@ -400,19 +489,22 @@ EXPECTED_B03_PARAMETER_CONTRACT = {
     ),
     "selection_profile_semantics": {
         "B03_BOUNDED_INTEGER_SELECTION_V1": (
-            "POSITIVE_JSON_SAFE_INTEGER_WITHIN_INCLUSIVE_ACCEPTED_ENVELOPE"
+            "NONNEGATIVE_JSON_SAFE_INTEGER_WITHIN_INCLUSIVE_ACCEPTED_ENVELOPE"
         ),
         "B03_EXACT_IDENTITY_SET_SELECTION_V1": (
-            "CANONICAL_UNIQUE_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_GLOBAL_"
-            "NO_EDGE_DENY"
+            "CANONICAL_UNIQUE_SET_SATISFYING_BOUND_SOURCE_PREDICATE_AND_OPTIONAL_"
+            "EXACT_B01_UNIVERSE_WITH_GLOBAL_NO_EDGE_DENY"
         ),
     },
     "identity_set_measure": "CARDINALITY_OF_CANONICAL_UNIQUE_IDENTITIES",
     "identity_canonicalization": (
-        "PRINTABLE_ASCII_U0021_TO_U007E_RAW_BYTE_ASCENDING_UNIQUE"
+        "SOURCE_PREDICATE_GRAMMAR_THEN_RAW_BYTE_ASCENDING_UNIQUE"
     ),
     "identity_eligibility_binding": (
-        "NONEMPTY_EXACT_B01_UNIVERSE_AND_CONTEXT_DIGEST_WHEN_VALIDATED"
+        "BOUND_SOURCE_PREDICATE_AND_OPTIONAL_EXACT_B01_UNIVERSE_WHEN_VALIDATED"
+    ),
+    "empty_identity_universe_semantics": (
+        "BOUND_SOURCE_PREDICATE_IS_THE_ELIGIBILITY_AUTHORITY"
     ),
     "identity_eligibility_digest_algorithm": (
         "sha256(domain || u64be(projection_bytes) || projection)"
@@ -428,8 +520,8 @@ EXPECTED_B03_PARAMETER_CONTRACT = {
         "value_kind",
     ],
     "future_identity_selection_constraint": (
-        "CANONICAL_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_CARDINALITY_WITHIN_"
-        "ACCEPTED_ENVELOPE"
+        "CANONICAL_SET_SATISFYING_BOUND_SOURCE_PREDICATE_OPTIONAL_EXACT_UNIVERSE_"
+        "AND_CARDINALITY_ENVELOPE"
     ),
     "global_no_edge_inheritance": (
         "ALL_SELECTION_PREDICATES_REJECT_MATCHED_EXCLUDED_COMPONENT_ALIASES"
@@ -442,50 +534,13 @@ EXPECTED_B03_PARAMETER_CONTRACT = {
         kind: list(suffixes) for kind, suffixes in B03_TEST_SUFFIXES_BY_KIND.items()
     },
 }
-EXPECTED_PARSER_REPLAY_CONTRACT = {
-    "schema": "ncp.b01-semantic-parser-replay-contract.v1",
-    "mode": "RETAINED_RESULT_PLUS_BOUNDED_DIRECT_REPLAY",
-    "result_schema": SEMANTIC_PARSER_RESULT_SCHEMA,
-    "self_tests_required": True,
-    "timeout_seconds": SEMANTIC_PARSER_TIMEOUT_SECONDS,
-    "maximum_stdout_bytes": MAX_JSON_BYTES,
-    "maximum_stderr_bytes": MAX_SEMANTIC_PARSER_STDERR_BYTES,
-    "process_group_cleanup": "TERM_THEN_KILL_PROCESS_GROUP",
-    "rust_command_profile": "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1",
-    "typescript_command_profile": "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1",
-    "engine_output_requirement": (
-        "DIRECT_NCP_B01_SEMANTIC_PARSER_RESULT_V1_NO_ADAPTER"
-    ),
-    "dependency_resolution_mode": (
-        "RUST_CARGO_OFFLINE_LOCKED_TYPESCRIPT_BUN_NO_INSTALL"
-    ),
-    "process_network_isolation": "NOT_PROVIDED_LOCAL_REPLAY_ONLY",
-    "dependency_cache_requirement": (
-        "RUST_AMBIENT_CARGO_HOME_PRESEEDED_BY_GATE_TYPESCRIPT_NONE"
-    ),
-    "repository_execution_root": "TEMPORARY_BOUND_INPUT_SNAPSHOT",
-    "snapshot_postcondition": "EXACT_FILE_SET_AND_BYTES_UNCHANGED",
-    "derived_registry_receipt_binding": (
-        "DECISION_SET_SHA256_ONLY_OUTPUT_BYTES_EXCLUDED_TO_PREVENT_SELF_REFERENCE"
-    ),
-    "tool_identity": "OBSERVED_VERSION_AND_EXECUTABLE_DIGEST_NOT_PROVENANCE",
-    "source_tree_build_output": "ABSENT_BEFORE_AND_AFTER",
-    "capture_command": SEMANTIC_CAPTURE_COMMAND,
-    "capture_target_directory": SEMANTIC_CAPTURE_DIRECTORY,
-    "capture_result_paths": list(SEMANTIC_CAPTURE_RESULT_PATHS.values()),
-    "capture_preconditions": (
-        "CURRENT_EXACT_OPEN_REGISTRY_ONLY_DUAL_NOT_RUN_PARSER_CLOSURE_"
-        "BLOCKERS_COMPLETE_CURRENT_CORPUS_VALIDATED_B03_DEFERRAL_ENVELOPES"
-    ),
-    "capture_write_policy": ("BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME"),
-    "capture_workflow_state": "IMPLEMENTED",
-    "engine_profile_states": copy.deepcopy(SEMANTIC_ENGINE_PROFILE_STATES),
-    "capture_failure_effect": "WRITE_NEITHER_RESULT",
-}
 EXPECTED_B03_BINDINGS = {
     "ADR-002-Q01": (
         "protocol-reviewer",
-        (("STABLE_CORE_FILE_IDENTITIES", "EXACT_IDENTITY_SET"),),
+        (
+            ("STABLE_CORE_FILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("STABLE_CORE_PROJECTION_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+        ),
     ),
     "ADR-005-Q01": (
         "distributed-systems-reviewer",
@@ -508,6 +563,8 @@ EXPECTED_B03_BINDINGS = {
         (
             ("IMPLEMENTATION_NAME_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("JOURNAL_ENTRY_CAPACITY", "BOUNDED_INTEGER"),
+            ("JOURNAL_AGGREGATE_BYTES", "BOUNDED_INTEGER"),
+            ("JOURNAL_RETENTION_NS", "BOUNDED_INTEGER"),
         ),
     ),
     "ADR-008-Q02": (
@@ -518,19 +575,35 @@ EXPECTED_B03_BINDINGS = {
             ("BODY_AUTHORITY_PROVENANCE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("ASSESSOR_REPLAY_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("ADAPTER_PROOF_REFERENCE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("CHUNK_FRAME_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("ROUTE_ENCODING_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("PARSER_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("CALLBACK_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("RESOURCE_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("ACTIVATION_LIFETIME_NS_MAX", "BOUNDED_INTEGER"),
+            ("CHUNK_COUNT_MAX", "BOUNDED_INTEGER"),
+        ),
+    ),
+    "ADR-009-Q01": (
+        "security-reviewer",
+        (
+            ("CROSS_STORE_EXACT_OPENING_MAX_BYTES", "BOUNDED_INTEGER"),
+            ("CROSS_STORE_CAPSULE_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
         ),
     ),
     "ADR-010-Q02": (
         "real-time-performance-reviewer",
         (
-            ("CONTROL_RPC_QUEUE_CAPACITY", "BOUNDED_INTEGER"),
-            ("CONTROL_RPC_DEADLINE_NS", "BOUNDED_INTEGER"),
-            ("ACTION_COMMAND_QUEUE_CAPACITY", "BOUNDED_INTEGER"),
-            ("ACTION_COMMAND_DEADLINE_NS", "BOUNDED_INTEGER"),
-            ("OBSERVATION_DISPOSITION_QUEUE_CAPACITY", "BOUNDED_INTEGER"),
-            ("OBSERVATION_DISPOSITION_DEADLINE_NS", "BOUNDED_INTEGER"),
-            ("EXTENSION_QUEUE_CAPACITY", "BOUNDED_INTEGER"),
-            ("EXTENSION_DEADLINE_NS", "BOUNDED_INTEGER"),
+            ("QOS_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("QUEUE_ITEM_CAPACITY_MAX", "BOUNDED_INTEGER"),
+            ("QUEUE_AGGREGATE_BYTES_MAX", "BOUNDED_INTEGER"),
+            ("ADMISSION_DEADLINE_NS_MAX", "BOUNDED_INTEGER"),
+            ("RETENTION_NS_MAX", "BOUNDED_INTEGER"),
+            ("ATTEMPT_COUNT_MAX", "BOUNDED_INTEGER"),
+            ("PENDING_REQUEST_CAPACITY_MAX", "BOUNDED_INTEGER"),
+            ("GAP_WAIT_NS_MAX", "BOUNDED_INTEGER"),
+            ("WORK_RESOLUTION_NS_MAX", "BOUNDED_INTEGER"),
+            ("ACTIVE_BURST_MAX", "BOUNDED_INTEGER"),
         ),
     ),
     "ADR-011-Q01": (
@@ -539,24 +612,105 @@ EXPECTED_B03_BINDINGS = {
             ("EXTENSION_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("PACKAGE_FEATURE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("CONSUMER_INVENTORY_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("EFFECT_PATH_DESCRIPTOR_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("EFFECT_PATH_RESERVATION_CAPACITY", "BOUNDED_INTEGER"),
+            ("HANDOVER_DEADLINE_NS", "BOUNDED_INTEGER"),
         ),
     ),
 }
-EXPECTED_WIRE_CASE_CONTRACT = {
-    "complete_positive": {
-        "scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
-        "polarity": "POSITIVE",
-        "expected_profile_result": "MATCH_COMPLETE_NON_AUTHORIZING",
-        "production_admission": "NOT_EVALUATED",
-    },
-    "complete_hostile": {
-        "scope": "COMPLETE_PROPOSED_WIRE_OBJECT",
-        "polarity": "NEGATIVE",
-        "mutation_relation": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE",
-        "expected_profile_result": "REJECT",
-        "production_admission": "REJECT",
-    },
+EXPECTED_SEMANTIC_EXAMPLE_CONTRACT = {
+    "schema": SEMANTIC_CORPUS_SCHEMA,
+    "coverage": "EVERY_MAIN_ADR_JSON_FENCE_HAS_A_SOURCE_BOUND_CASE_AND_REJECTION_OBSERVATION",
+    "rejection_observation": "NEGATIVE_CASE_OR_BOUNDED_MUTATION",
+    "engine_requirement": "REQUIRED_BY_COMPLETE_LOCAL_GATE_OUTSIDE_REGISTRY_CLOSURE",
+    "positive_authority": "NON_AUTHORIZING_EXCERPT_NOT_PRODUCTION_ADMISSION",
+    "external_effect": "NONE_LOCAL_CHALLENGE_EVIDENCE_ONLY",
 }
+EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 107
+EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 3_543
+EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
+    "f8e704286f7a0c30b6525e5835bcf2d46e21e5c1bc8db7bbef928cff17208d2d"
+)
+EXPECTED_SEMANTIC_SOURCE_BINDING = {
+    "fence_capture": (
+        "content_between_top_level_exact_json_fence_lines_excluding_one_terminal_line_ending"
+    ),
+    "fence_language": "json",
+    "path_root": "repository",
+    "sha256_encoding": "lowercase_hex",
+}
+EXPECTED_SEMANTIC_LIMITS = {
+    "allow_floats": False,
+    "engine_timeout_seconds": 120,
+    "expected_case_count": 25,
+    "expected_mutation_count": 132,
+    "maximum_adr_bytes": 262_144,
+    "maximum_aggregate_adr_bytes": 2_097_152,
+    "maximum_array_items": 4_096,
+    "maximum_corpus_bytes": 262_144,
+    "maximum_engine_output_bytes": 262_144,
+    "maximum_integer_characters": 32,
+    "maximum_json_depth": 32,
+    "maximum_json_fence_bytes": 131_072,
+    "maximum_fixture_bytes": 16_384,
+    "maximum_json_nodes": 100_000,
+    "maximum_key_utf8_bytes": 128,
+    "maximum_mutations_per_case": 24,
+    "maximum_object_members": 4_096,
+    "maximum_string_utf8_bytes": 65_536,
+    "maximum_total_string_utf8_bytes": 131_072,
+    "minimum_mutations_per_case": 2,
+}
+EXPECTED_SEMANTIC_CLOSED_VALUES = {
+    "patch_operation": ["ADD", "REMOVE", "REPLACE"],
+    "patch_target": ["BOUNDED_FIXTURE", "DOCUMENT"],
+    "polarity": ["NEGATIVE", "POSITIVE"],
+    "production_admission": ["NOT_APPLICABLE", "NOT_EVALUATED", "REJECT"],
+    "profile_result": [
+        "MATCH_NON_AUTHORIZING_EXCERPT",
+        "MATCH_NON_WIRE_EXCERPT",
+        "REJECT",
+    ],
+    "scope": [
+        "AUTHENTICATED_WIRE_OBJECT",
+        "DECODED_HEADER_FRAGMENT",
+        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+        "NON_WIRE_INTERNAL_STATE",
+        "PROPOSED_EXTENSION_ENVELOPE",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "PROPOSED_WIRE_FRAGMENT",
+    ],
+}
+SEMANTIC_CORPUS_JSON_LIMITS = JsonLimits(
+    maximum_bytes=EXPECTED_SEMANTIC_LIMITS["maximum_corpus_bytes"],
+    maximum_depth=EXPECTED_SEMANTIC_LIMITS["maximum_json_depth"],
+    maximum_items=EXPECTED_SEMANTIC_LIMITS["maximum_json_nodes"],
+    maximum_object_members=EXPECTED_SEMANTIC_LIMITS["maximum_object_members"],
+    maximum_array_items=EXPECTED_SEMANTIC_LIMITS["maximum_array_items"],
+    maximum_key_utf8_bytes=EXPECTED_SEMANTIC_LIMITS["maximum_key_utf8_bytes"],
+    maximum_string_utf8_bytes=EXPECTED_SEMANTIC_LIMITS["maximum_string_utf8_bytes"],
+    maximum_total_string_utf8_bytes=EXPECTED_SEMANTIC_LIMITS[
+        "maximum_total_string_utf8_bytes"
+    ],
+    maximum_integer_chars=EXPECTED_SEMANTIC_LIMITS["maximum_integer_characters"],
+    maximum_float_chars=EXPECTED_SEMANTIC_LIMITS["maximum_integer_characters"],
+    allow_floats=False,
+)
+SEMANTIC_OBJECT_JSON_LIMITS = JsonLimits(
+    maximum_bytes=EXPECTED_SEMANTIC_LIMITS["maximum_json_fence_bytes"],
+    maximum_depth=EXPECTED_SEMANTIC_LIMITS["maximum_json_depth"],
+    maximum_items=EXPECTED_SEMANTIC_LIMITS["maximum_json_nodes"],
+    maximum_object_members=EXPECTED_SEMANTIC_LIMITS["maximum_object_members"],
+    maximum_array_items=EXPECTED_SEMANTIC_LIMITS["maximum_array_items"],
+    maximum_key_utf8_bytes=EXPECTED_SEMANTIC_LIMITS["maximum_key_utf8_bytes"],
+    maximum_string_utf8_bytes=EXPECTED_SEMANTIC_LIMITS["maximum_string_utf8_bytes"],
+    maximum_total_string_utf8_bytes=EXPECTED_SEMANTIC_LIMITS[
+        "maximum_total_string_utf8_bytes"
+    ],
+    maximum_integer_chars=EXPECTED_SEMANTIC_LIMITS["maximum_integer_characters"],
+    maximum_float_chars=EXPECTED_SEMANTIC_LIMITS["maximum_integer_characters"],
+    allow_floats=False,
+)
 DECISION_PROJECTION_MEMBERS = (
     "id",
     "title",
@@ -628,7 +782,6 @@ CLOSURE_CLAIM_BOUNDARY = (
 )
 
 SubjectResolver = Callable[[str, str], tuple[str, bytes]]
-SemanticParserRunner = Callable[[str], tuple[bytes, dict[str, Any]]]
 
 
 class RegistryError(ValueError):
@@ -637,6 +790,44 @@ class RegistryError(ValueError):
 
 def fail(message: str) -> NoReturn:
     raise RegistryError(message)
+
+
+def extract_exact_json_fences(text: str, *, label: str) -> list[str]:
+    """Return top-level exact ```json fences under the closed B01 grammar."""
+    fences: list[str] = []
+    state: tuple[str, int] | None = None
+    line_start = 0
+    while line_start < len(text):
+        line_end = text.find("\n", line_start)
+        if line_end < 0:
+            line_end = len(text)
+        logical_end = line_end
+        if logical_end > line_start and text[logical_end - 1] == "\r":
+            logical_end -= 1
+        line = text[line_start:logical_end]
+        next_line = line_end + 1 if line_end < len(text) else len(text)
+
+        if state is None and line == "```json":
+            if line_end == len(text):
+                fail(f"{label} JSON fence opener has no following content line")
+            state = ("json", next_line)
+        elif state is None and line.startswith("```"):
+            state = ("other", 0)
+        elif state is not None and state[0] == "json" and line == "```":
+            content_end = line_start
+            if content_end > state[1] and text[content_end - 1] == "\n":
+                content_end -= 1
+                if content_end > state[1] and text[content_end - 1] == "\r":
+                    content_end -= 1
+            fences.append(text[state[1] : content_end])
+            state = None
+        elif state is not None and state[0] == "other" and line == "```":
+            state = None
+        line_start = next_line
+
+    if state is not None:
+        fail(f"{label} contains an unclosed Markdown fence")
+    return fences
 
 
 def load_json(path: Path, *, maximum_bytes: int = MAX_JSON_BYTES) -> dict[str, Any]:
@@ -741,7 +932,9 @@ def b03_eligibility_set_sha256(
     )
 
 
-def exact_keys(value: dict[str, Any], expected: set[str], path: str) -> None:
+def exact_keys(value: Any, expected: set[str], path: str) -> None:
+    if not isinstance(value, dict):
+        fail(f"{path} must be an object")
     actual = set(value)
     if actual != expected:
         fail(
@@ -1002,10 +1195,9 @@ def load_closure_requirements(
 ) -> dict[str, Any]:
     """Load and bind acyclic semantic-closure requirements.
 
-    The source declares stable requirements and paths only. Observed corpus and
-    parser-result bytes are evaluated after the decision set exists so no evidence
-    artifact can become a digest ancestor of itself. Future B03 selections remain
-    outside the B01 decision-set identity.
+    The source declares stable requirements and paths only. The corpus is
+    evaluated after the decision set exists, so it cannot become a digest ancestor
+    of itself. Future B03 selections remain outside the B01 decision-set identity.
     """
 
     if source_override is None:
@@ -1072,9 +1264,8 @@ def load_closure_requirements(
             "wire_version",
             "task",
             "claim_boundary",
-            "wire_case_contract",
+            "semantic_example_contract",
             "b03_parameter_contract",
-            "parser_replay_contract",
             "excluded_no_edge_components",
             "decisions",
         },
@@ -1092,12 +1283,13 @@ def load_closure_requirements(
         fail("closure candidate, wire version, or task differs from B01")
     if closure_source["claim_boundary"] != CLOSURE_CLAIM_BOUNDARY:
         fail("closure.claim_boundary differs from the fail-closed boundary")
-    if closure_source["wire_case_contract"] != EXPECTED_WIRE_CASE_CONTRACT:
-        fail("closure.wire_case_contract differs from the fail-closed contract")
+    if (
+        closure_source["semantic_example_contract"]
+        != EXPECTED_SEMANTIC_EXAMPLE_CONTRACT
+    ):
+        fail("closure.semantic_example_contract differs from the bounded contract")
     if closure_source["b03_parameter_contract"] != EXPECTED_B03_PARAMETER_CONTRACT:
         fail("closure.b03_parameter_contract differs from the fail-closed contract")
-    if closure_source["parser_replay_contract"] != EXPECTED_PARSER_REPLAY_CONTRACT:
-        fail("closure.parser_replay_contract differs from the direct replay contract")
 
     required_role_ids = {
         requirement["role_id"]
@@ -1107,7 +1299,7 @@ def load_closure_requirements(
     components = closure_source["excluded_no_edge_components"]
     component_ids: list[str] = []
     prohibited_roles: set[str] = set()
-    observed_components: dict[str, dict[str, set[str]]] = {}
+    observed_components: dict[str, dict[str, Any]] = {}
     for index, component in enumerate(components):
         path = f"closure.excluded_no_edge_components[{index}]"
         exact_keys(
@@ -1127,14 +1319,25 @@ def load_closure_requirements(
         if not ROLE_ID.fullmatch(component_id):
             fail(f"{path}.component_id is not canonical lowercase kebab case")
         component_ids.append(component_id)
-        roles = set(component["prohibited_review_role_ids"])
-        edge_classes = set(component["prohibited_edge_classes"])
+        role_values = component["prohibited_review_role_ids"]
+        edge_values = component["prohibited_edge_classes"]
         canonical_aliases = component["canonical_aliases"]
-        if len(roles) != len(component["prohibited_review_role_ids"]):
+        if not isinstance(role_values, list) or any(
+            not isinstance(role, str) or ROLE_ID.fullmatch(role) is None
+            for role in role_values
+        ):
+            fail(f"{path}.prohibited_review_role_ids contains an invalid role")
+        if not isinstance(edge_values, list) or any(
+            not isinstance(edge_class, str) for edge_class in edge_values
+        ):
+            fail(f"{path}.prohibited_edge_classes must contain strings")
+        roles = set(role_values)
+        edge_classes = set(edge_values)
+        if len(roles) != len(role_values):
             fail(f"{path}.prohibited_review_role_ids contains duplicates")
-        if len(edge_classes) != len(component["prohibited_edge_classes"]):
+        if len(edge_classes) != len(edge_values):
             fail(f"{path}.prohibited_edge_classes contains duplicates")
-        if tuple(component["prohibited_edge_classes"]) != EXPECTED_NO_EDGE_CLASSES:
+        if tuple(edge_values) != EXPECTED_NO_EDGE_CLASSES:
             fail(
                 f"{path}.prohibited_edge_classes differs from the exact "
                 "ASCII-ordered prohibited-edge taxonomy"
@@ -1145,9 +1348,6 @@ def load_closure_requirements(
             != "ASCII_CASEFOLD_SPLIT_ON_NON_ALNUM_TOKEN_EQUALS_COMPONENT_ID"
         ):
             fail(f"{path} has an incomplete canonical identity exclusion profile")
-        for role_id in roles:
-            if not isinstance(role_id, str) or not ROLE_ID.fullmatch(role_id):
-                fail(f"{path}.prohibited_review_role_ids contains an invalid role")
         prohibited_roles.update(roles)
         observed_components[component_id] = {
             "prohibited_review_role_ids": roles,
@@ -1173,7 +1373,7 @@ def load_closure_requirements(
     question_ids: list[str] = []
     document_anchors: list[str] = []
     b03_source_anchors: list[str] = []
-    wire_case_ids: list[str] = []
+    semantic_case_ids: list[str] = []
     generated_by_id = {decision["id"]: decision for decision in generated}
     anchor_content_cache: dict[str, str] = {}
 
@@ -1229,10 +1429,10 @@ def load_closure_requirements(
         path = f"closure.decisions[{index}]"
         exact_keys(
             closure,
-            {"id", "adr_source_set_sha256", "questions", "wire_requirements"},
+            {"id", "adr_source_set_sha256", "questions", "example_requirements"},
             path,
         )
-        identifier = closure["id"]
+        identifier = bounded_string(closure["id"], f"{path}.id", minimum=7, maximum=7)
         if identifier not in generated_by_id:
             fail(f"{path}.id is unknown")
         closure_ids.append(identifier)
@@ -1396,7 +1596,12 @@ def load_closure_requirements(
                     f"{question_path}.b03_deferral.source_anchor does not resolve "
                     "exactly one bound source anchor"
                 )
-            validation_state = deferral["validation_state"]
+            validation_state = bounded_string(
+                deferral["validation_state"],
+                f"{question_path}.b03_deferral.validation_state",
+                minimum=4,
+                maximum=9,
+            )
             if validation_state not in {"OPEN", "VALIDATED"}:
                 fail(f"{question_path}.b03_deferral.validation_state is invalid")
             parameters = deferral["parameters"]
@@ -1496,18 +1701,21 @@ def load_closure_requirements(
                             f"{universe_path} OPEN state must expose an unbound "
                             "eligibility universe"
                         )
-                else:
-                    if not eligible_identities or observed_digest != (
-                        b03_eligibility_set_sha256(
-                            question_id,
-                            parameter_id,
-                            eligible_identities,
-                        )
+                elif eligible_identities:
+                    if observed_digest != b03_eligibility_set_sha256(
+                        question_id,
+                        parameter_id,
+                        eligible_identities,
                     ):
                         fail(
-                            f"{universe_path} does not bind a nonempty exact "
-                            "eligibility universe and context digest"
+                            f"{universe_path} does not bind its exact eligibility "
+                            "universe and context digest"
                         )
+                elif observed_digest is not None:
+                    fail(
+                        f"{universe_path} source-predicate eligibility cannot carry "
+                        "an exact-universe digest"
+                    )
                 eligibility_by_parameter[parameter_id] = eligible_identities
             for parameter_index, parameter in enumerate(parameters, start=1):
                 parameter_path = (
@@ -1579,22 +1787,32 @@ def load_closure_requirements(
                             "deferral-envelope bounds"
                         )
                     continue
+                value_kind = parameter["value_kind"]
+                lower_bound = (
+                    0
+                    if value_kind == "EXACT_IDENTITY_SET"
+                    or (question_id, parameter_id)
+                    in ZERO_MINIMUM_BOUNDED_INTEGER_PARAMETERS
+                    else 1
+                )
                 bounded_integer(
                     minimum,
                     f"{parameter_path}.minimum",
-                    minimum=1,
+                    minimum=lower_bound,
                     maximum=MAX_B03_LITERAL_INTEGER,
                 )
                 bounded_integer(
                     maximum,
                     f"{parameter_path}.maximum",
-                    minimum=1,
+                    minimum=lower_bound,
                     maximum=MAX_B03_LITERAL_INTEGER,
                 )
                 if minimum > maximum:
                     fail(f"{parameter_path} has inverted bounds")
-                if parameter["value_kind"] == "EXACT_IDENTITY_SET" and maximum > len(
-                    eligibility_by_parameter[parameter_id]
+                if (
+                    value_kind == "EXACT_IDENTITY_SET"
+                    and eligibility_by_parameter[parameter_id]
+                    and maximum > len(eligibility_by_parameter[parameter_id])
                 ):
                     fail(
                         f"{parameter_path} envelope exceeds its exact B01-bound "
@@ -1606,128 +1824,46 @@ def load_closure_requirements(
                 }:
                     fail(f"{parameter_path}.value_kind is invalid")
 
-        wire = closure["wire_requirements"]
+        examples = closure["example_requirements"]
         exact_keys(
-            wire,
+            examples,
             {
                 "corpus_path",
                 "required_corpus_status",
                 "required_source_paths",
-                "complete_positive",
-                "complete_hostile",
-                "rust_parser_evidence",
-                "typescript_parser_evidence",
+                "required_case_ids",
             },
-            f"{path}.wire_requirements",
+            f"{path}.example_requirements",
         )
         if (
-            wire["corpus_path"] != SEMANTIC_CORPUS_PATH
-            or wire["required_corpus_status"] != "COMPLETE_CURRENT"
+            examples["corpus_path"] != SEMANTIC_CORPUS_PATH
+            or examples["required_corpus_status"] != "COMPLETE_CURRENT"
         ):
-            fail(f"{path}.wire_requirements does not require the complete corpus")
+            fail(f"{path}.example_requirements does not require the current corpus")
         expected_source_paths = [
             source_identity["path"]
             for source_identity in generated_by_id[identifier]["source_set"]["sources"]
         ]
-        if wire["required_source_paths"] != expected_source_paths:
-            fail(f"{path}.wire_requirements omits or reorders an ADR source")
-        positive_requirements = wire["complete_positive"]
-        hostile_requirements = wire["complete_hostile"]
+        if examples["required_source_paths"] != expected_source_paths:
+            fail(f"{path}.example_requirements omits or reorders an ADR source")
+        required_case_ids = examples["required_case_ids"]
         if (
-            not isinstance(positive_requirements, list)
-            or not isinstance(hostile_requirements, list)
-            or len(positive_requirements) != len(expected_source_paths)
-            or len(hostile_requirements) != len(expected_source_paths)
+            not isinstance(required_case_ids, list)
+            or not 1 <= len(required_case_ids) <= 16
         ):
-            fail(
-                f"{path}.wire_requirements must require one positive and one "
-                "hostile complete case for every ADR source"
-            )
-        positive_by_source: dict[str, str] = {}
-        for case_index, requirement in enumerate(positive_requirements):
-            case_path = f"{path}.wire_requirements.complete_positive[{case_index}]"
-            exact_keys(
-                requirement,
-                {"case_id", "source_path", "required_scope", "required_polarity"},
-                case_path,
-            )
-            case_id = requirement["case_id"]
+            fail(f"{path}.example_requirements must contain 1..16 case IDs")
+        for case_index, case_id in enumerate(required_case_ids):
+            case_path = f"{path}.example_requirements.required_case_ids[{case_index}]"
             if (
                 not isinstance(case_id, str)
-                or not WIRE_CASE_ID.fullmatch(case_id)
+                or not SEMANTIC_CASE_ID.fullmatch(case_id)
+                or len(case_id.encode("utf-8")) > 160
                 or not case_id.startswith(identifier.lower().replace("-", "") + ".")
             ):
                 fail(f"{case_path}.case_id is invalid")
-            wire_case_ids.append(case_id)
-            if (
-                requirement["required_scope"] != "COMPLETE_PROPOSED_WIRE_OBJECT"
-                or requirement["required_polarity"] != "POSITIVE"
-                or requirement["source_path"] not in expected_source_paths
-            ):
-                fail(f"{case_path} weakens source-bound completeness")
-            if requirement["source_path"] in positive_by_source:
-                fail(f"{case_path} duplicates a positive source requirement")
-            positive_by_source[requirement["source_path"]] = case_id
-        hostile_sources: set[str] = set()
-        for case_index, requirement in enumerate(hostile_requirements):
-            case_path = f"{path}.wire_requirements.complete_hostile[{case_index}]"
-            exact_keys(
-                requirement,
-                {
-                    "case_id",
-                    "source_path",
-                    "positive_case_id",
-                    "mutation_relation",
-                    "required_scope",
-                    "required_polarity",
-                },
-                case_path,
-            )
-            case_id = requirement["case_id"]
-            source_path = requirement["source_path"]
-            if (
-                not isinstance(case_id, str)
-                or not WIRE_CASE_ID.fullmatch(case_id)
-                or not case_id.startswith(identifier.lower().replace("-", "") + ".")
-            ):
-                fail(f"{case_path}.case_id is invalid")
-            wire_case_ids.append(case_id)
-            if (
-                source_path not in expected_source_paths
-                or source_path in hostile_sources
-                or requirement["positive_case_id"]
-                != positive_by_source.get(source_path)
-                or requirement["mutation_relation"]
-                != "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE"
-                or requirement["required_scope"] != "COMPLETE_PROPOSED_WIRE_OBJECT"
-                or requirement["required_polarity"] != "NEGATIVE"
-            ):
-                fail(f"{case_path} is not a one-delta source-bound hostile case")
-            hostile_sources.add(source_path)
-        if list(positive_by_source) != expected_source_paths or hostile_sources != set(
-            expected_source_paths
-        ):
-            fail(f"{path}.wire_requirements does not cover every ADR source")
-        for field, engine, result_path in (
-            ("rust_parser_evidence", "RUST", RUST_PARSER_RESULT_PATH),
-            (
-                "typescript_parser_evidence",
-                "TYPESCRIPT",
-                TYPESCRIPT_PARSER_RESULT_PATH,
-            ),
-        ):
-            requirement = wire[field]
-            exact_keys(
-                requirement,
-                {"engine", "result_path", "required_status"},
-                f"{path}.wire_requirements.{field}",
-            )
-            if requirement != {
-                "engine": engine,
-                "result_path": result_path,
-                "required_status": "PASS",
-            }:
-                fail(f"{path}.wire_requirements.{field} is not exact")
+            semantic_case_ids.append(case_id)
+        if len(required_case_ids) != len(set(required_case_ids)):
+            fail(f"{path}.example_requirements contains duplicate case IDs")
 
     if tuple(closure_ids) != EXPECTED_IDS:
         fail("closure.decisions IDs are missing or out of order")
@@ -1737,8 +1873,8 @@ def load_closure_requirements(
         fail("closure.decisions reuses a question or resolution anchor")
     if len(b03_source_anchors) != len(set(b03_source_anchors)):
         fail("closure.decisions reuses a B03 source anchor")
-    if len(wire_case_ids) != len(set(wire_case_ids)):
-        fail("closure.decisions contains duplicate required wire-case IDs")
+    if len(semantic_case_ids) != len(set(semantic_case_ids)):
+        fail("closure.decisions contains duplicate required semantic-case IDs")
 
     return {
         "source": closure_source,
@@ -1796,688 +1932,6 @@ def read_closure_artifact(
     )
 
 
-def semantic_engine_source_identities(engine: str) -> list[dict[str, Any]]:
-    paths = (
-        RUST_ENGINE_SOURCE_PATHS
-        if engine == "RUST"
-        else TYPESCRIPT_ENGINE_SOURCE_PATHS
-        if engine == "TYPESCRIPT"
-        else None
-    )
-    if paths is None:
-        fail(f"unknown semantic parser engine {engine}")
-    identities = [
-        repository_file_identity(
-            ROOT / path,
-            maximum_bytes=262_144,
-        )
-        for path in paths
-    ]
-    if [identity["path"] for identity in identities] != sorted(set(paths)):
-        fail(f"{engine} semantic parser source inventory is not canonical")
-    if sum(identity["bytes"] for identity in identities) > 2_097_152:
-        fail(f"{engine} semantic parser source inventory is too large")
-    return identities
-
-
-def semantic_replay_input_snapshot(
-    engine: str,
-) -> tuple[list[dict[str, Any]], dict[str, bytes]]:
-    """Read the exact bounded file set copied into a replay-only repository."""
-
-    engine_paths = (
-        RUST_ENGINE_SOURCE_PATHS
-        if engine == "RUST"
-        else TYPESCRIPT_ENGINE_SOURCE_PATHS
-        if engine == "TYPESCRIPT"
-        else None
-    )
-    if engine_paths is None:
-        fail(f"unknown semantic parser engine {engine}")
-    paths = sorted(
-        set(
-            (
-                *SEMANTIC_REPLAY_SUBJECT_PATHS,
-                *SEMANTIC_REPLAY_DERIVED_INPUT_PATHS,
-                *engine_paths,
-            )
-        )
-    )
-    if len(paths) != (
-        len(SEMANTIC_REPLAY_SUBJECT_PATHS)
-        + len(SEMANTIC_REPLAY_DERIVED_INPUT_PATHS)
-        + len(engine_paths)
-    ):
-        fail(f"{engine} semantic replay input inventory contains duplicates")
-    contents: dict[str, bytes] = {}
-    identities: list[dict[str, Any]] = []
-    total_bytes = 0
-    for relative in paths:
-        relative_path(relative, f"{engine} semantic replay input path")
-        maximum_bytes = (
-            MAX_ADR_MARKDOWN_BYTES if relative.endswith(".md") else MAX_JSON_BYTES
-        )
-        content = read_repository_regular_file(
-            relative,
-            maximum_bytes=maximum_bytes,
-            label=f"{engine} semantic replay input {relative}",
-        )
-        total_bytes += len(content)
-        if total_bytes > MAX_TOTAL_EVIDENCE_BYTES:
-            fail(f"{engine} semantic replay input set exceeds its aggregate bound")
-        contents[relative] = content
-        identities.append(
-            {
-                "path": relative,
-                "sha256": sha256_bytes(content),
-                "bytes": len(content),
-            }
-        )
-    return identities, contents
-
-
-def semantic_replay_registry_binding(registry_content: bytes) -> dict[str, str]:
-    registry_path = OUTPUT.relative_to(ROOT).as_posix()
-    registry = load_json_bytes(registry_content, f"semantic replay {registry_path}")
-    decision_identity = registry.get("decision_set")
-    if not isinstance(decision_identity, dict):
-        fail("semantic replay registry lacks a decision-set identity")
-    if (
-        decision_identity.get("schema") != DECISION_SET_SCHEMA
-        or decision_identity.get("digest_algorithm")
-        != "sha256(domain || u64be(projection_bytes) || projection)"
-        or decision_identity.get("domain_hex") != DECISION_SET_DOMAIN.hex()
-    ):
-        fail("semantic replay registry decision-set identity is invalid")
-    decision_set_sha256 = validate_hex(
-        decision_identity.get("sha256"),
-        HEX64,
-        "semantic replay registry decision_set.sha256",
-    )
-    return {
-        "path": registry_path,
-        "decision_set_sha256": decision_set_sha256,
-    }
-
-
-def materialize_semantic_replay_snapshot(
-    snapshot_root: Path,
-    contents: dict[str, bytes],
-) -> None:
-    for relative, content in contents.items():
-        destination = snapshot_root.joinpath(*PurePosixPath(relative).parts)
-        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        try:
-            descriptor = os.open(destination, flags, 0o400)
-        except OSError as error:
-            fail(f"cannot create isolated semantic replay input {relative}: {error}")
-        try:
-            with os.fdopen(descriptor, "wb", closefd=False) as stream:
-                stream.write(content)
-                stream.flush()
-                os.fsync(stream.fileno())
-        except OSError as error:
-            fail(f"cannot write isolated semantic replay input {relative}: {error}")
-        finally:
-            os.close(descriptor)
-
-
-def validate_semantic_replay_snapshot(
-    snapshot_root: Path,
-    expected_identities: list[dict[str, Any]],
-) -> None:
-    expected_paths = {identity["path"] for identity in expected_identities}
-    expected_directories = {"."}
-    for relative in expected_paths:
-        parent = PurePosixPath(relative).parent
-        while parent != PurePosixPath("."):
-            expected_directories.add(parent.as_posix())
-            parent = parent.parent
-    observed_paths: set[str] = set()
-    observed_directories: set[str] = set()
-    for directory, directories, files in os.walk(snapshot_root, followlinks=False):
-        directory_path = Path(directory)
-        relative_directory = directory_path.relative_to(snapshot_root).as_posix()
-        observed_directories.add(relative_directory)
-        for name in [*directories, *files]:
-            candidate = directory_path / name
-            try:
-                metadata = candidate.lstat()
-            except OSError as error:
-                fail(f"cannot inspect isolated semantic replay path: {error}")
-            if stat.S_ISLNK(metadata.st_mode):
-                fail("isolated semantic replay created a symbolic link")
-        for name in files:
-            relative = (directory_path / name).relative_to(snapshot_root).as_posix()
-            observed_paths.add(relative)
-    if observed_paths != expected_paths or observed_directories != expected_directories:
-        fail("isolated semantic replay changed its exact file or directory set")
-    observed_identities: list[dict[str, Any]] = []
-    for expected in expected_identities:
-        content = read_physical_regular_file(
-            snapshot_root,
-            expected["path"],
-            maximum_bytes=(
-                MAX_ADR_MARKDOWN_BYTES
-                if expected["path"].endswith(".md")
-                else MAX_JSON_BYTES
-            ),
-            label=f"isolated semantic replay input {expected['path']}",
-        )
-        observed_identities.append(
-            {
-                "path": expected["path"],
-                "sha256": sha256_bytes(content),
-                "bytes": len(content),
-            }
-        )
-    if observed_identities != expected_identities:
-        fail("isolated semantic replay changed an input byte identity")
-
-
-def require_semantic_source_tree_outputs_absent() -> None:
-    outputs = (
-        ROOT / SEMANTIC_ENGINE_ROOT / "rust" / "target",
-        ROOT / SEMANTIC_ENGINE_ROOT / "typescript" / "dist",
-        ROOT / SEMANTIC_ENGINE_ROOT / "typescript" / "node_modules",
-    )
-    present: list[str] = []
-    for output in outputs:
-        try:
-            output.lstat()
-        except FileNotFoundError:
-            continue
-        except OSError as error:
-            fail(f"cannot inspect semantic parser build-output path: {error}")
-        present.append(output.relative_to(ROOT).as_posix())
-    if present:
-        fail(f"semantic parser source tree contains build/cache output: {present}")
-
-
-def semantic_process_group_exists(process_group_id: int) -> bool:
-    try:
-        os.killpg(process_group_id, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
-
-
-def terminate_semantic_process(process: subprocess.Popen[bytes]) -> None:
-    process_group_id = process.pid
-    try:
-        os.killpg(process_group_id, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    deadline = time.monotonic() + 0.25
-    while (
-        semantic_process_group_exists(process_group_id) and time.monotonic() < deadline
-    ):
-        time.sleep(0.01)
-    if semantic_process_group_exists(process_group_id):
-        try:
-            os.killpg(process_group_id, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    try:
-        process.wait(timeout=1)
-    except subprocess.TimeoutExpired:
-        pass
-
-
-def bounded_semantic_process(
-    command: list[str],
-    *,
-    cwd: Path,
-    environment: dict[str, str],
-    stdout_limit: int,
-    timeout_seconds: int,
-    label: str,
-) -> bytes:
-    try:
-        process = subprocess.Popen(  # noqa: S603
-            command,
-            cwd=cwd,
-            env=environment,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
-        )
-    except OSError as error:
-        fail(f"cannot start {label}: {error}")
-    if process.stdout is None or process.stderr is None:
-        terminate_semantic_process(process)
-        fail(f"{label} did not expose bounded output pipes")
-    stream_selector = selectors.DefaultSelector()
-    streams = {
-        process.stdout: ("stdout", stdout_limit),
-        process.stderr: ("stderr", MAX_SEMANTIC_PARSER_STDERR_BYTES),
-    }
-    buffers = {"stdout": bytearray(), "stderr": bytearray()}
-    for stream in streams:
-        os.set_blocking(stream.fileno(), False)
-        stream_selector.register(stream, selectors.EVENT_READ)
-    deadline = time.monotonic() + timeout_seconds
-    try:
-        while stream_selector.get_map():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                terminate_semantic_process(process)
-                fail(f"{label} exceeded its {timeout_seconds}-second timeout")
-            for key, _mask in stream_selector.select(min(remaining, 0.25)):
-                stream = key.fileobj
-                name, limit = streams[stream]
-                try:
-                    chunk = os.read(stream.fileno(), 8192)
-                except BlockingIOError:
-                    continue
-                if not chunk:
-                    stream_selector.unregister(stream)
-                    continue
-                if len(buffers[name]) + len(chunk) > limit:
-                    terminate_semantic_process(process)
-                    fail(f"{label} {name} exceeds its {limit}-byte bound")
-                buffers[name].extend(chunk)
-        try:
-            return_code = process.wait(timeout=max(0.0, deadline - time.monotonic()))
-        except subprocess.TimeoutExpired:
-            terminate_semantic_process(process)
-            fail(f"{label} did not terminate within its timeout")
-        terminate_semantic_process(process)
-    finally:
-        stream_selector.close()
-        process.stdout.close()
-        process.stderr.close()
-    stderr = bytes(buffers["stderr"])
-    stdout = bytes(buffers["stdout"])
-    if return_code != 0:
-        detail = stderr.decode("utf-8", errors="replace").strip()[-2000:]
-        fail(f"{label} exited {return_code}: {detail or 'no diagnostic'}")
-    if stderr:
-        fail(f"{label} emitted stderr on a successful run")
-    if not stdout:
-        fail(f"{label} emitted no output")
-    return stdout
-
-
-def semantic_parser_command_contract(
-    engine: str,
-) -> tuple[tuple[str, ...], str, list[str]]:
-    if engine == "RUST":
-        tool_names = ("cargo", "rustc")
-        command_profile = "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1"
-        argv = [
-            "cargo",
-            "run",
-            "--quiet",
-            "--offline",
-            "--locked",
-            "--manifest-path",
-            f"{SEMANTIC_ENGINE_ROOT}/rust/Cargo.toml",
-            "--",
-            "--corpus",
-            SEMANTIC_CORPUS_PATH,
-            "--repo-root",
-            ".",
-            "--closure-source",
-            CLOSURE_SOURCE_RELATIVE,
-            "--result-schema",
-            SEMANTIC_PARSER_RESULT_SCHEMA,
-            "--self-test",
-        ]
-    elif engine == "TYPESCRIPT":
-        tool_names = ("bun",)
-        command_profile = "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1"
-        argv = [
-            "bun",
-            "run",
-            "--no-install",
-            "--no-env-file",
-            "--no-orphans",
-            f"{SEMANTIC_ENGINE_ROOT}/typescript/src/main.ts",
-            "--corpus",
-            SEMANTIC_CORPUS_PATH,
-            "--repo-root",
-            ".",
-            "--closure-source",
-            CLOSURE_SOURCE_RELATIVE,
-            "--result-schema",
-            SEMANTIC_PARSER_RESULT_SCHEMA,
-            "--self-test",
-        ]
-    else:
-        fail(f"unknown semantic parser engine {engine}")
-    return tool_names, command_profile, argv
-
-
-def run_semantic_parser(engine: str) -> tuple[bytes, dict[str, Any]]:
-    tool_names, command_profile, argv = semantic_parser_command_contract(engine)
-    tool_paths: dict[str, Path] = {}
-    for name in tool_names:
-        executable = shutil.which(name)
-        if executable is None:
-            fail(f"{name} is unavailable for {engine} semantic parser replay")
-        try:
-            tool_paths[name] = Path(executable).resolve(strict=True)
-        except OSError as error:
-            fail(f"cannot resolve {name} for {engine} semantic parser replay: {error}")
-    inherited_environment = {"PATH": os.environ.get("PATH", "")}
-    if not inherited_environment["PATH"]:
-        fail(f"{engine} semantic parser replay requires a nonempty PATH")
-    if engine == "RUST":
-        inherited_environment["CARGO_HOME"] = os.environ.get(
-            "CARGO_HOME", str(Path.home() / ".cargo")
-        )
-        inherited_environment["RUSTUP_HOME"] = os.environ.get(
-            "RUSTUP_HOME", str(Path.home() / ".rustup")
-        )
-    inherited_keys = tuple(sorted(inherited_environment))
-    environment = copy.deepcopy(inherited_environment)
-    fixed_environment = copy.deepcopy(SEMANTIC_FIXED_ENVIRONMENT)
-    environment.update(fixed_environment)
-    environment_commitment = sha256_bytes(
-        json.dumps(
-            inherited_environment,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    )
-
-    def tool_identities(cwd: Path) -> list[dict[str, Any]]:
-        observed: list[dict[str, str]] = []
-        for name in tool_names:
-            output = bounded_semantic_process(
-                [str(tool_paths[name]), "--version"],
-                cwd=cwd,
-                environment=environment,
-                stdout_limit=4096,
-                timeout_seconds=10,
-                label=f"{name} version probe",
-            )
-            version = output.decode("utf-8", errors="strict").strip()
-            version_pattern = (
-                r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]{1,64})?"
-                if name == "bun"
-                else rf"{name} [0-9]+\.[0-9]+\.[0-9]+(?:[-+ ][ -~]{{1,96}})?"
-            )
-            if not re.fullmatch(version_pattern, version):
-                fail(f"{name} emitted an unrecognized version identity")
-            try:
-                executable_content = read_bounded_regular_file(
-                    tool_paths[name],
-                    limits=FileSnapshotLimits(
-                        minimum_bytes=1,
-                        maximum_bytes=MAX_SEMANTIC_TOOL_BYTES,
-                    ),
-                    label=f"{name} resolved executable",
-                )
-            except BoundedJsonError as error:
-                fail(str(error))
-            observed.append(
-                {
-                    "name": name,
-                    "version": version,
-                    "executable_sha256": sha256_bytes(executable_content),
-                    "executable_bytes": len(executable_content),
-                }
-            )
-        return observed
-
-    require_semantic_source_tree_outputs_absent()
-    snapshot_identities, snapshot_contents = semantic_replay_input_snapshot(engine)
-    public_snapshot_identities = [
-        identity
-        for identity in snapshot_identities
-        if identity["path"] not in SEMANTIC_REPLAY_DERIVED_INPUT_PATHS
-    ]
-    registry_binding = semantic_replay_registry_binding(
-        snapshot_contents[OUTPUT.relative_to(ROOT).as_posix()]
-    )
-    source_identities = [
-        identity
-        for identity in snapshot_identities
-        if identity["path"]
-        in (
-            RUST_ENGINE_SOURCE_PATHS
-            if engine == "RUST"
-            else TYPESCRIPT_ENGINE_SOURCE_PATHS
-        )
-    ]
-    with tempfile.TemporaryDirectory(prefix="ncp-b01-semantic-replay-") as temporary:
-        temporary_root = Path(temporary)
-        snapshot_root = temporary_root / "repository"
-        isolated_home = temporary_root / "home"
-        isolated_tmp = temporary_root / "tmp"
-        isolated_cache = temporary_root / "build-cache"
-        for directory in (
-            snapshot_root,
-            isolated_home,
-            isolated_tmp,
-            isolated_cache,
-        ):
-            directory.mkdir(mode=0o700)
-        materialize_semantic_replay_snapshot(snapshot_root, snapshot_contents)
-        validate_semantic_replay_snapshot(snapshot_root, snapshot_identities)
-        environment["HOME"] = str(isolated_home)
-        environment["TMPDIR"] = str(isolated_tmp)
-        if engine == "RUST":
-            environment["CARGO_TARGET_DIR"] = str(isolated_cache)
-        else:
-            environment["BUN_INSTALL_CACHE_DIR"] = str(isolated_cache)
-        before_tools = tool_identities(snapshot_root)
-        try:
-            stdout = bounded_semantic_process(
-                [str(tool_paths[argv[0]]), *argv[1:]],
-                cwd=snapshot_root,
-                environment=environment,
-                stdout_limit=MAX_JSON_BYTES,
-                timeout_seconds=SEMANTIC_PARSER_TIMEOUT_SECONDS,
-                label=f"{engine} semantic parser replay",
-            )
-        finally:
-            validate_semantic_replay_snapshot(snapshot_root, snapshot_identities)
-            require_semantic_source_tree_outputs_absent()
-        after_tools = tool_identities(snapshot_root)
-    if after_tools != before_tools:
-        fail(f"{engine} semantic parser tool identity changed during replay")
-    current_snapshot_identities, _ = semantic_replay_input_snapshot(engine)
-    if current_snapshot_identities != snapshot_identities:
-        fail(f"{engine} semantic replay input bytes changed during replay")
-    return stdout, {
-        "schema": "ncp.b01-semantic-parser-replay.v1",
-        "evidence_class": "OBSERVED_LOCAL_REPLAY_NOT_PROVENANCE",
-        "command_profile": command_profile,
-        "argv": argv,
-        "working_directory": "TEMPORARY_BOUND_INPUT_SNAPSHOT_ROOT",
-        "fixed_environment": fixed_environment,
-        "inherited_environment_keys": list(inherited_keys),
-        "inherited_environment_sha256": environment_commitment,
-        "isolated_environment_keys": sorted(
-            {
-                "HOME",
-                "TMPDIR",
-                "CARGO_TARGET_DIR" if engine == "RUST" else "BUN_INSTALL_CACHE_DIR",
-            }
-        ),
-        "isolated_cache_directory": True,
-        "isolated_cache_environment_key": (
-            "CARGO_TARGET_DIR" if engine == "RUST" else "BUN_INSTALL_CACHE_DIR"
-        ),
-        "dependency_resolution_mode": (
-            "CARGO_OFFLINE_LOCKED" if engine == "RUST" else "BUN_NO_INSTALL"
-        ),
-        "process_network_isolation": "NOT_PROVIDED_LOCAL_REPLAY_ONLY",
-        "dependency_cache_mode": (
-            "AMBIENT_CARGO_HOME_OFFLINE" if engine == "RUST" else "NOT_USED_NO_INSTALL"
-        ),
-        "timeout_seconds": SEMANTIC_PARSER_TIMEOUT_SECONDS,
-        "tools": before_tools,
-        "engine_sources": source_identities,
-        "repository_snapshot_inputs": public_snapshot_identities,
-        "repository_snapshot_postcondition": "EXACT_FILE_SET_AND_BYTES_UNCHANGED",
-        "derived_registry_binding": registry_binding,
-        "stdout_sha256": sha256_bytes(stdout),
-        "stdout_bytes": len(stdout),
-        "stderr_bytes": 0,
-        "exit_code": 0,
-        "source_tree_build_output_absent": True,
-    }
-
-
-def validate_semantic_replay_receipt(receipt: dict[str, Any], engine: str) -> None:
-    path = f"semantic parser result {engine}.replay_receipt"
-    exact_keys(
-        receipt,
-        {
-            "schema",
-            "evidence_class",
-            "command_profile",
-            "argv",
-            "working_directory",
-            "fixed_environment",
-            "inherited_environment_keys",
-            "inherited_environment_sha256",
-            "isolated_environment_keys",
-            "isolated_cache_directory",
-            "isolated_cache_environment_key",
-            "dependency_resolution_mode",
-            "process_network_isolation",
-            "dependency_cache_mode",
-            "timeout_seconds",
-            "tools",
-            "engine_sources",
-            "repository_snapshot_inputs",
-            "repository_snapshot_postcondition",
-            "derived_registry_binding",
-            "stdout_sha256",
-            "stdout_bytes",
-            "stderr_bytes",
-            "exit_code",
-            "source_tree_build_output_absent",
-        },
-        path,
-    )
-    tool_names, command_profile, argv = semantic_parser_command_contract(engine)
-    if (
-        receipt["schema"] != "ncp.b01-semantic-parser-replay.v1"
-        or receipt["evidence_class"] != "OBSERVED_LOCAL_REPLAY_NOT_PROVENANCE"
-        or receipt["command_profile"] != command_profile
-        or receipt["argv"] != argv
-        or receipt["working_directory"] != "TEMPORARY_BOUND_INPUT_SNAPSHOT_ROOT"
-        or receipt["fixed_environment"] != SEMANTIC_FIXED_ENVIRONMENT
-        or receipt["isolated_environment_keys"]
-        != sorted(
-            {
-                "HOME",
-                "TMPDIR",
-                "CARGO_TARGET_DIR" if engine == "RUST" else "BUN_INSTALL_CACHE_DIR",
-            }
-        )
-        or receipt["isolated_cache_directory"] is not True
-        or receipt["isolated_cache_environment_key"]
-        != ("CARGO_TARGET_DIR" if engine == "RUST" else "BUN_INSTALL_CACHE_DIR")
-        or receipt["dependency_resolution_mode"]
-        != ("CARGO_OFFLINE_LOCKED" if engine == "RUST" else "BUN_NO_INSTALL")
-        or receipt["process_network_isolation"] != "NOT_PROVIDED_LOCAL_REPLAY_ONLY"
-        or receipt["dependency_cache_mode"]
-        != ("AMBIENT_CARGO_HOME_OFFLINE" if engine == "RUST" else "NOT_USED_NO_INSTALL")
-        or receipt["timeout_seconds"] != SEMANTIC_PARSER_TIMEOUT_SECONDS
-        or receipt["stderr_bytes"] != 0
-        or receipt["exit_code"] != 0
-        or receipt["repository_snapshot_postcondition"]
-        != "EXACT_FILE_SET_AND_BYTES_UNCHANGED"
-        or receipt["source_tree_build_output_absent"] is not True
-    ):
-        fail(f"{path} differs from the bounded direct-replay contract")
-    inherited_keys = receipt["inherited_environment_keys"]
-    expected_inherited_keys = (
-        ["CARGO_HOME", "PATH", "RUSTUP_HOME"] if engine == "RUST" else ["PATH"]
-    )
-    if (
-        not isinstance(inherited_keys, list)
-        or inherited_keys != expected_inherited_keys
-    ):
-        fail(f"{path}.inherited_environment_keys differs from the exact profile")
-    validate_hex(
-        receipt["inherited_environment_sha256"],
-        HEX64,
-        f"{path}.inherited_environment_sha256",
-    )
-    tools = receipt["tools"]
-    if (
-        not isinstance(tools, list)
-        or [tool.get("name") for tool in tools if isinstance(tool, dict)]
-        != list(tool_names)
-        or len(tools) != len(tool_names)
-    ):
-        fail(f"{path}.tools differs from the exact engine tool set")
-    for index, tool in enumerate(tools):
-        exact_keys(
-            tool,
-            {"name", "version", "executable_sha256", "executable_bytes"},
-            f"{path}.tools[{index}]",
-        )
-        version = bounded_string(
-            tool["version"], f"{path}.tools[{index}].version", maximum=128
-        )
-        version_pattern = (
-            r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]{1,64})?"
-            if tool["name"] == "bun"
-            else rf"{tool['name']} [0-9]+\.[0-9]+\.[0-9]+(?:[-+ ][ -~]{{1,96}})?"
-        )
-        if not re.fullmatch(version_pattern, version):
-            fail(f"{path}.tools[{index}] has an invalid observed version")
-        validate_hex(
-            tool["executable_sha256"],
-            HEX64,
-            f"{path}.tools[{index}].executable_sha256",
-        )
-        bounded_integer(
-            tool["executable_bytes"],
-            f"{path}.tools[{index}].executable_bytes",
-            minimum=1,
-            maximum=MAX_SEMANTIC_TOOL_BYTES,
-        )
-    current_inputs, _ = semantic_replay_input_snapshot(engine)
-    current_public_inputs = [
-        identity
-        for identity in current_inputs
-        if identity["path"] not in SEMANTIC_REPLAY_DERIVED_INPUT_PATHS
-    ]
-    if receipt["repository_snapshot_inputs"] != current_public_inputs:
-        fail(f"{path}.repository_snapshot_inputs differs from current exact inputs")
-    current_registry = read_repository_regular_file(
-        OUTPUT.relative_to(ROOT).as_posix(),
-        maximum_bytes=MAX_JSON_BYTES,
-        label="semantic replay derived registry",
-    )
-    if receipt["derived_registry_binding"] != semantic_replay_registry_binding(
-        current_registry
-    ):
-        fail(f"{path}.derived_registry_binding differs from the current decision set")
-    engine_paths = (
-        RUST_ENGINE_SOURCE_PATHS if engine == "RUST" else TYPESCRIPT_ENGINE_SOURCE_PATHS
-    )
-    expected_engine_sources = [
-        identity for identity in current_inputs if identity["path"] in engine_paths
-    ]
-    if receipt["engine_sources"] != expected_engine_sources:
-        fail(f"{path}.engine_sources differs from current exact source bytes")
-    validate_hex(receipt["stdout_sha256"], HEX64, f"{path}.stdout_sha256")
-    bounded_integer(
-        receipt["stdout_bytes"],
-        f"{path}.stdout_bytes",
-        minimum=1,
-        maximum=MAX_JSON_BYTES,
-    )
-
-
 def expected_corpus_decision_binding(
     current_set: dict[str, Any], projection_payload: bytes
 ) -> dict[str, Any]:
@@ -2497,7 +1951,7 @@ def expected_corpus_decision_binding(
     }
 
 
-def canonical_wire_bytes(value: dict[str, Any]) -> bytes:
+def canonical_json_bytes(value: Any) -> bytes:
     return json.dumps(
         value,
         ensure_ascii=False,
@@ -2506,7 +1960,7 @@ def canonical_wire_bytes(value: dict[str, Any]) -> bytes:
     ).encode("utf-8")
 
 
-def bound_wire_object(
+def bound_semantic_object(
     case: dict[str, Any],
     requirement: dict[str, Any],
     *,
@@ -2517,10 +1971,7 @@ def bound_wire_object(
         return None
     if set(source_value) != {
         "adr",
-        "path",
         "json_fence_ordinal",
-        "adr_byte_length",
-        "adr_sha256",
         "fence_byte_length",
         "fence_sha256",
     }:
@@ -2529,9 +1980,6 @@ def bound_wire_object(
     ordinal = source_value.get("json_fence_ordinal")
     if (
         source_value.get("adr") != requirement["decision_id"]
-        or source_value.get("path") != source_identity["path"]
-        or source_value.get("adr_byte_length") != source_identity["bytes"]
-        or source_value.get("adr_sha256") != source_identity["sha256"]
         or type(ordinal) is not int
         or not 1 <= ordinal <= 64
     ):
@@ -2539,7 +1987,7 @@ def bound_wire_object(
     content = read_repository_regular_file(
         source_identity["path"],
         maximum_bytes=MAX_ADR_MARKDOWN_BYTES,
-        label=f"{case_path} bound proposed-wire source",
+        label=f"{case_path} bound ADR source",
     )
     if (
         len(content) != source_identity["bytes"]
@@ -2547,7 +1995,9 @@ def bound_wire_object(
     ):
         return None
     try:
-        fences = JSON_FENCE.findall(content.decode("utf-8"))
+        fences = extract_exact_json_fences(
+            content.decode("utf-8"), label=f"{case_path} bound ADR source"
+        )
     except UnicodeDecodeError:
         return None
     if ordinal > len(fences):
@@ -2560,7 +2010,7 @@ def bound_wire_object(
     try:
         wire_object = parse_json_fence(
             fences[ordinal - 1],
-            label=f"{case_path} bound proposed-wire JSON fence",
+            label=f"{case_path} bound ADR JSON fence",
             limits=ADR_FENCE_JSON_LIMITS,
         )
     except RegistryError:
@@ -2568,29 +2018,40 @@ def bound_wire_object(
     return wire_object if isinstance(wire_object, dict) else None
 
 
-def apply_single_wire_mutation(
+def apply_single_semantic_mutation(
     positive: dict[str, Any], mutation: Any
 ) -> dict[str, Any] | None:
     if not isinstance(mutation, dict):
         return None
     operation = mutation.get("op")
+    if not isinstance(operation, str):
+        return None
     required_keys = {"target", "op", "path"}
     if operation in {"ADD", "REPLACE"}:
         required_keys.add("value")
-    if set(mutation) != required_keys or mutation.get("target") != "DOCUMENT":
+    target = mutation.get("target")
+    if not isinstance(target, str):
+        return None
+    if set(mutation) != required_keys or target not in {
+        "DOCUMENT",
+        "BOUNDED_FIXTURE",
+    }:
         return None
     if operation not in {"ADD", "REMOVE", "REPLACE"}:
         return None
-    scalar_types = (type(None), bool, int, str)
-    if (
-        operation in {"ADD", "REPLACE"}
-        and type(mutation.get("value")) not in scalar_types
-    ):
-        return None
+    if operation in {"ADD", "REPLACE"}:
+        try:
+            validate_native_json_tree(
+                mutation.get("value"),
+                limits=SEMANTIC_OBJECT_JSON_LIMITS,
+                label="semantic corpus patch value",
+            )
+        except BoundedJsonError:
+            return None
     path = mutation.get("path")
     if (
         not isinstance(path, str)
-        or not 1 <= len(path) <= 512
+        or not 1 <= len(path.encode("utf-8")) <= 512
         or not path.startswith("/")
     ):
         return None
@@ -2609,6 +2070,16 @@ def apply_single_wire_mutation(
             index += 2
         return "".join(decoded)
 
+    def array_index(segment: str) -> int | None:
+        if (
+            not segment
+            or (len(segment) > 1 and segment.startswith("0"))
+            or not segment.isascii()
+            or not segment.isdigit()
+        ):
+            return None
+        return int(segment)
+
     segments: list[str] = []
     for encoded in path[1:].split("/"):
         decoded = decode_pointer_segment(encoded)
@@ -2622,9 +2093,9 @@ def apply_single_wire_mutation(
     for segment in segments[:-1]:
         if isinstance(parent, dict) and segment in parent:
             parent = parent[segment]
-        elif isinstance(parent, list) and segment.isascii() and segment.isdigit():
-            offset = int(segment)
-            if offset >= len(parent):
+        elif isinstance(parent, list):
+            offset = array_index(segment)
+            if offset is None or offset >= len(parent):
                 return None
             parent = parent[offset]
         else:
@@ -2636,23 +2107,24 @@ def apply_single_wire_mutation(
             return None
         if operation in {"REMOVE", "REPLACE"} and not exists:
             return None
-        if exists and type(parent[leaf]) not in scalar_types:
-            return None
         if operation == "REMOVE":
             del parent[leaf]
         else:
             parent[leaf] = copy.deepcopy(mutation["value"])
     elif isinstance(parent, list):
-        if not leaf.isascii() or not leaf.isdigit():
-            return None
-        offset = int(leaf)
-        if operation == "ADD":
-            if offset > len(parent):
+        if operation == "ADD" and leaf == "-":
+            parent.append(copy.deepcopy(mutation["value"]))
+            offset = None
+        else:
+            offset = array_index(leaf)
+            if offset is None:
                 return None
-            parent.insert(offset, copy.deepcopy(mutation["value"]))
-        elif offset >= len(parent):
-            return None
-        elif type(parent[offset]) not in scalar_types:
+        if operation == "ADD":
+            if offset is not None and offset > len(parent):
+                return None
+            if offset is not None:
+                parent.insert(offset, copy.deepcopy(mutation["value"]))
+        elif offset is None or offset >= len(parent):
             return None
         elif operation == "REMOVE":
             parent.pop(offset)
@@ -2660,9 +2132,17 @@ def apply_single_wire_mutation(
             parent[offset] = copy.deepcopy(mutation["value"])
     else:
         return None
-    if not isinstance(mutated, dict) or canonical_wire_bytes(
-        mutated
-    ) == canonical_wire_bytes(positive):
+    if not isinstance(mutated, dict):
+        return None
+    try:
+        validate_native_json_tree(
+            mutated,
+            limits=SEMANTIC_OBJECT_JSON_LIMITS,
+            label="mutated semantic corpus object",
+        )
+    except BoundedJsonError:
+        return None
+    if mutated == positive:
         return None
     return mutated
 
@@ -2674,14 +2154,64 @@ def validate_semantic_corpus(
     current_set: dict[str, Any],
     projection_payload: bytes,
     required_cases: dict[str, dict[str, Any]],
-) -> tuple[str, dict[str, bool], dict[str, dict[str, Any]], int]:
-    corpus = load_json_bytes(
-        content,
-        identity["path"],
-        maximum_bytes=MAX_JSON_BYTES,
-    )
+) -> tuple[str, dict[str, bool], int, int]:
+    if set(required_cases) != set(EXPECTED_SEMANTIC_CASE_IDENTITIES):
+        fail("semantic closure case requirements differ from the closed v1 inventory")
+    try:
+        corpus = parse_json_bytes(
+            content,
+            limits=SEMANTIC_CORPUS_JSON_LIMITS,
+            label=identity["path"],
+        )
+    except BoundedJsonError as error:
+        fail(f"cannot parse {identity['path']}: {error}")
+    if not isinstance(corpus, dict):
+        fail(f"{identity['path']} must contain one JSON object")
+    if set(corpus) != {
+        "schema",
+        "schema_version",
+        "task",
+        "candidate",
+        "wire_version",
+        "decision_set_binding",
+        "source_binding",
+        "limits",
+        "closed_values",
+        "diagnostic_registry",
+        "claim_boundary",
+        "cases",
+    }:
+        fail("semantic closure corpus top-level shape differs")
     if corpus.get("schema") != SEMANTIC_CORPUS_SCHEMA:
         fail("semantic closure corpus has an unknown schema")
+    if (
+        corpus.get("schema_version") != 1
+        or corpus.get("task") != "B01"
+        or corpus.get("candidate") != "1.0.0-rc.1"
+        or corpus.get("wire_version") != "1.0"
+    ):
+        fail("semantic closure corpus identity fields differ")
+    if len(content) > EXPECTED_SEMANTIC_LIMITS["maximum_corpus_bytes"]:
+        fail("semantic closure corpus exceeds its closed v1 byte bound")
+    if corpus.get("source_binding") != EXPECTED_SEMANTIC_SOURCE_BINDING:
+        fail("semantic closure corpus source binding differs from v1")
+    if corpus.get("limits") != EXPECTED_SEMANTIC_LIMITS:
+        fail("semantic closure corpus limits differ from v1")
+    if corpus.get("closed_values") != EXPECTED_SEMANTIC_CLOSED_VALUES:
+        fail("semantic closure corpus closed values differ from v1")
+    diagnostic_registry = corpus.get("diagnostic_registry")
+    if (
+        not isinstance(diagnostic_registry, list)
+        or not 1 <= len(diagnostic_registry) <= 256
+        or any(
+            not isinstance(diagnostic, str)
+            or CONDITION_ID.fullmatch(diagnostic) is None
+            for diagnostic in diagnostic_registry
+        )
+        or diagnostic_registry != sorted(set(diagnostic_registry))
+    ):
+        fail("semantic closure corpus diagnostics are not a closed vocabulary")
+    diagnostic_set = set(diagnostic_registry)
     boundary = corpus.get("claim_boundary")
     expected_boundary_keys = {
         "adrs_accepted",
@@ -2699,8 +2229,11 @@ def validate_semantic_corpus(
     ):
         fail("semantic closure corpus overclaims its authority boundary")
     cases = corpus.get("cases")
-    if not isinstance(cases, list) or not 1 <= len(cases) <= 256:
-        fail("semantic closure corpus cases must contain 1..256 entries")
+    if (
+        not isinstance(cases, list)
+        or len(cases) != EXPECTED_SEMANTIC_LIMITS["expected_case_count"]
+    ):
+        fail("semantic closure corpus case count differs from v1")
     by_id: dict[str, dict[str, Any]] = {}
     for index, case in enumerate(cases):
         if not isinstance(case, dict):
@@ -2711,14 +2244,26 @@ def validate_semantic_corpus(
         if case_id in by_id:
             fail(f"semantic closure corpus duplicates case ID {case_id}")
         by_id[case_id] = case
+    if set(by_id) != set(required_cases):
+        fail("semantic closure corpus case inventory differs from its requirements")
+    if list(by_id) != list(required_cases):
+        fail("semantic closure corpus case order differs from its requirements")
     satisfied: dict[str, bool] = {}
-    case_expectations: dict[str, dict[str, Any]] = {}
+    positive_by_decision = {identifier: False for identifier in EXPECTED_IDS}
+    rejection_by_decision = {identifier: False for identifier in EXPECTED_IDS}
+    mutation_ids: set[str] = set()
+    used_diagnostics: set[str] = set()
+    mutation_count = 0
+    aggregate_adr_bytes = 0
+    observed_adr_identities: dict[str, tuple[int, str]] = {}
+    observed_source_coordinates: set[tuple[str, int]] = set()
+    previous_source_coordinate: tuple[str, int] | None = None
     for case_id, requirement in required_cases.items():
         case = by_id.get(case_id)
         if not isinstance(case, dict):
             satisfied[case_id] = False
             continue
-        common_keys = {
+        expected_keys = {
             "id",
             "source",
             "scope",
@@ -2728,336 +2273,306 @@ def validate_semantic_corpus(
             "production_admission",
             "expected_diagnostics",
             "payload_interpreted",
+            "bounded_fixture",
+            "mutations",
         }
-        expected_keys = set(common_keys)
-        if requirement["kind"] == "HOSTILE":
-            expected_keys.update(
-                {
-                    "positive_case_id",
-                    "mutation_relation",
-                    "mutation",
-                }
-            )
         diagnostics = case.get("expected_diagnostics")
+        source = case.get("source")
+        source_adr = source.get("adr") if isinstance(source, dict) else None
+        source_identity = requirement["source_identity"]
+        source_path = (
+            source_identity["path"]
+            if source_adr == requirement["decision_id"]
+            else None
+        )
+        polarity = case.get("polarity")
+        expected_result = case.get("expected_profile_result")
+        admission = case.get("production_admission")
+        is_positive = (
+            polarity == "POSITIVE"
+            and isinstance(expected_result, str)
+            and expected_result
+            in {"MATCH_NON_AUTHORIZING_EXCERPT", "MATCH_NON_WIRE_EXCERPT"}
+            and isinstance(admission, str)
+            and admission in {"NOT_APPLICABLE", "NOT_EVALUATED", "REJECT"}
+            and diagnostics == []
+        )
+        is_negative = (
+            polarity == "NEGATIVE"
+            and expected_result == "REJECT"
+            and admission == "REJECT"
+            and isinstance(diagnostics, list)
+            and bool(diagnostics)
+        )
+        source_ordinal = (
+            source.get("json_fence_ordinal") if isinstance(source, dict) else None
+        )
+        expected_identity = EXPECTED_SEMANTIC_CASE_IDENTITIES.get(case_id)
+        identity_matches = (
+            expected_identity is not None
+            and (
+                case.get("profile"),
+                case.get("scope"),
+                polarity,
+                source_adr,
+                source_ordinal,
+            )
+            == expected_identity
+        )
+        source_coordinate = (
+            (source_path, source_ordinal)
+            if isinstance(source_path, str) and type(source_ordinal) is int
+            else None
+        )
         common = (
             set(case) == expected_keys
-            and case.get("scope") == requirement["required_scope"]
-            and case.get("profile") == requirement["required_profile"]
-            and case.get("polarity") == requirement["required_polarity"]
-            and case.get("expected_profile_result")
-            == requirement["required_expected_profile_result"]
-            and case.get("production_admission")
-            == requirement["required_production_admission"]
-            and case.get("payload_interpreted") is True
+            and case.get("id") == case_id
+            and identity_matches
+            and isinstance(case.get("scope"), str)
+            and case.get("scope") in EXPECTED_SEMANTIC_CLOSED_VALUES["scope"]
+            and isinstance(case.get("profile"), str)
+            and SEMANTIC_PROFILE_ID.fullmatch(case["profile"]) is not None
+            and case["profile"].startswith(
+                requirement["decision_id"].replace("-", "") + "_"
+            )
+            and (is_positive or is_negative)
+            and type(case.get("payload_interpreted")) is bool
+            and (not is_positive or case.get("payload_interpreted") is True)
+            and isinstance(case.get("bounded_fixture"), dict)
+            and len(canonical_json_bytes(case["bounded_fixture"]))
+            <= EXPECTED_SEMANTIC_LIMITS["maximum_fixture_bytes"]
             and isinstance(diagnostics, list)
             and len(diagnostics) <= 32
-            and len(diagnostics) == len(set(diagnostics))
             and all(
-                isinstance(diagnostic, str) and CONDITION_ID.fullmatch(diagnostic)
+                isinstance(diagnostic, str) and diagnostic in diagnostic_set
                 for diagnostic in diagnostics
             )
+            and diagnostics == sorted(set(diagnostics))
+            and source_identity is not None
+            and source_coordinate is not None
+            and (
+                previous_source_coordinate is None
+                or previous_source_coordinate < source_coordinate
+            )
+            and (
+                (case.get("scope") == "NON_WIRE_INTERNAL_STATE")
+                == (expected_result == "MATCH_NON_WIRE_EXCERPT")
+            )
         )
-        positive = bound_wire_object(
-            case,
-            requirement,
-            case_path=f"semantic closure corpus case {case_id}",
+        if source_coordinate is not None:
+            previous_source_coordinate = source_coordinate
+            observed_source_coordinates.add(source_coordinate)
+        if isinstance(source_path, str):
+            adr_bytes = source_identity["bytes"]
+            adr_digest = source_identity["sha256"]
+            prior = observed_adr_identities.get(source_path)
+            if prior is not None and prior != (adr_bytes, adr_digest):
+                common = False
+            elif prior is None:
+                observed_adr_identities[source_path] = (adr_bytes, adr_digest)
+                aggregate_adr_bytes += adr_bytes
+        if isinstance(diagnostics, list):
+            used_diagnostics.update(
+                diagnostic for diagnostic in diagnostics if isinstance(diagnostic, str)
+            )
+        bound_object = (
+            bound_semantic_object(
+                case,
+                {
+                    "decision_id": requirement["decision_id"],
+                    "source_identity": source_identity,
+                },
+                case_path=f"semantic closure corpus case {case_id}",
+            )
+            if source_path is not None
+            else None
         )
-        wire_object = positive
-        if requirement["kind"] == "POSITIVE":
-            common = common and diagnostics == []
-        else:
-            positive_case = by_id.get(requirement["positive_case_id"])
-            positive_requirement = required_cases[requirement["positive_case_id"]]
-            bound_positive = (
-                bound_wire_object(
-                    positive_case,
-                    positive_requirement,
-                    case_path=(
-                        "semantic closure corpus bound positive case "
-                        f"{requirement['positive_case_id']}"
-                    ),
+        mutations = case.get("mutations")
+        mutation_rejection = False
+        if (
+            not isinstance(mutations, list)
+            or not EXPECTED_SEMANTIC_LIMITS["minimum_mutations_per_case"]
+            <= len(mutations)
+            <= EXPECTED_SEMANTIC_LIMITS["maximum_mutations_per_case"]
+        ):
+            common = False
+            mutations = []
+        for mutation_index, mutation in enumerate(mutations):
+            mutation_path = (
+                f"semantic closure corpus case {case_id} mutation {mutation_index}"
+            )
+            if not isinstance(mutation, dict) or set(mutation) != {
+                "id",
+                "purpose",
+                "patch",
+                "expected_profile_result",
+                "production_admission",
+                "expected_diagnostics",
+                "payload_interpreted",
+            }:
+                common = False
+                continue
+            mutation_id = mutation.get("id")
+            mutation_diagnostics = mutation.get("expected_diagnostics")
+            patch_target = (
+                mutation.get("patch", {}).get("target")
+                if isinstance(mutation.get("patch"), dict)
+                else None
+            )
+            patch_subject = (
+                bound_object
+                if patch_target == "DOCUMENT"
+                else case.get("bounded_fixture")
+                if patch_target == "BOUNDED_FIXTURE"
+                else None
+            )
+            applied_mutation = (
+                apply_single_semantic_mutation(patch_subject, mutation.get("patch"))
+                if isinstance(patch_subject, dict)
+                else None
+            )
+            applied_bound = (
+                EXPECTED_SEMANTIC_LIMITS["maximum_fixture_bytes"]
+                if patch_target == "BOUNDED_FIXTURE"
+                else EXPECTED_SEMANTIC_LIMITS["maximum_json_fence_bytes"]
+            )
+            applied_tree_valid = False
+            if applied_mutation is not None:
+                try:
+                    validate_native_json_tree(
+                        applied_mutation,
+                        limits=SEMANTIC_OBJECT_JSON_LIMITS,
+                        label=f"{mutation_path} applied value",
+                    )
+                except BoundedJsonError:
+                    pass
+                else:
+                    applied_tree_valid = True
+            mutation_valid = (
+                isinstance(mutation_id, str)
+                and SEMANTIC_CASE_ID.fullmatch(mutation_id) is not None
+                and len(mutation_id.encode("utf-8")) <= 160
+                and mutation_id.startswith(
+                    requirement["decision_id"].lower().replace("-", "") + "."
                 )
-                if isinstance(positive_case, dict)
-                else None
+                and mutation_id not in mutation_ids
+                and mutation_id not in by_id
+                and isinstance(mutation.get("purpose"), str)
+                and bool(mutation["purpose"].strip())
+                and 1 <= len(mutation["purpose"].encode("utf-8")) <= 512
+                and isinstance(mutation.get("patch"), dict)
+                and mutation.get("expected_profile_result") == "REJECT"
+                and isinstance(mutation.get("production_admission"), str)
+                and mutation.get("production_admission") in {"NOT_APPLICABLE", "REJECT"}
+                and isinstance(mutation_diagnostics, list)
+                and 1 <= len(mutation_diagnostics) <= 32
+                and all(
+                    isinstance(diagnostic, str) and diagnostic in diagnostic_set
+                    for diagnostic in mutation_diagnostics
+                )
+                and mutation_diagnostics == sorted(set(mutation_diagnostics))
+                and type(mutation.get("payload_interpreted")) is bool
+                and applied_mutation is not None
+                and applied_tree_valid
+                and len(canonical_json_bytes(applied_mutation)) <= applied_bound
+                and (
+                    mutation.get("expected_profile_result") != expected_result
+                    or mutation.get("production_admission") != admission
+                    or mutation_diagnostics != diagnostics
+                    or mutation.get("payload_interpreted")
+                    != case.get("payload_interpreted")
+                )
             )
-            wire_object = (
-                apply_single_wire_mutation(bound_positive, case.get("mutation"))
-                if bound_positive is not None
-                else None
+            if not mutation_valid:
+                common = False
+                continue
+            mutation_ids.add(mutation_id)
+            mutation_rejection = True
+            used_diagnostics.update(
+                diagnostic
+                for diagnostic in mutation_diagnostics
+                if isinstance(diagnostic, str)
             )
-            common = common and (
-                diagnostics != []
-                and isinstance(positive_case, dict)
-                and case.get("source") == positive_case.get("source")
-                and case.get("positive_case_id") == requirement["positive_case_id"]
-                and case.get("mutation_relation")
-                == requirement["required_mutation_relation"]
+            bounded_string(
+                mutation_id,
+                f"{mutation_path}.id",
+                minimum=8,
+                maximum=128,
             )
-        common = common and positive is not None and wire_object is not None
+        mutation_count += len(mutations)
+        common = common and bound_object is not None and mutation_rejection
         satisfied[case_id] = common
         if common:
-            case_expectations[case_id] = {
-                "input_sha256": sha256_bytes(canonical_wire_bytes(wire_object)),
-                "profile_result": requirement["required_expected_profile_result"],
-                "production_admission": requirement["required_production_admission"],
-                "diagnostics": diagnostics,
-            }
+            decision_id = requirement["decision_id"]
+            positive_by_decision[decision_id] |= is_positive
+            rejection_by_decision[decision_id] |= is_negative or mutation_rejection
+    coverage_complete = all(positive_by_decision.values()) and all(
+        rejection_by_decision.values()
+    )
+    expected_source_coordinates: set[tuple[str, int]] = set()
+    for source_path, (source_bytes, source_digest) in observed_adr_identities.items():
+        content = read_repository_regular_file(
+            source_path,
+            maximum_bytes=MAX_ADR_MARKDOWN_BYTES,
+            label=f"semantic closure ADR source {source_path}",
+        )
+        if len(content) != source_bytes or sha256_bytes(content) != source_digest:
+            coverage_complete = False
+            continue
+        try:
+            fences = extract_exact_json_fences(
+                content.decode("utf-8"),
+                label=f"semantic closure ADR source {source_path}",
+            )
+        except UnicodeDecodeError:
+            coverage_complete = False
+            continue
+        expected_source_coordinates.update(
+            (source_path, ordinal) for ordinal in range(1, len(fences) + 1)
+        )
+    coverage_complete = (
+        coverage_complete and observed_source_coordinates == expected_source_coordinates
+    )
+    diagnostic_payload = canonical_json_bytes(diagnostic_registry)
+    diagnostic_vocabulary_current = (
+        len(diagnostic_registry) == EXPECTED_DIAGNOSTIC_REGISTRY_COUNT
+        and len(diagnostic_payload) == EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH
+        and sha256_bytes(diagnostic_payload) == EXPECTED_DIAGNOSTIC_REGISTRY_SHA256
+    )
+    corpus_contract_complete = (
+        mutation_count == EXPECTED_SEMANTIC_LIMITS["expected_mutation_count"]
+        and aggregate_adr_bytes
+        <= EXPECTED_SEMANTIC_LIMITS["maximum_aggregate_adr_bytes"]
+        and used_diagnostics == diagnostic_set
+        and diagnostic_vocabulary_current
+    )
     binding_current = corpus.get("decision_set_binding") == (
         expected_corpus_decision_binding(current_set, projection_payload)
     )
     if not binding_current:
-        return "STALE_DECISION_SET", satisfied, case_expectations, len(cases)
-    if not all(satisfied.values()):
         return (
-            "EXCERPTS_ONLY_NON_AUTHORIZING",
+            "STALE_DECISION_SET",
             satisfied,
-            case_expectations,
             len(cases),
+            mutation_count,
         )
-    return "COMPLETE_CURRENT", satisfied, case_expectations, len(cases)
-
-
-def evaluate_parser_result(
-    *,
-    engine: str,
-    result_path: str,
-    current_set: dict[str, Any],
-    corpus_identity: dict[str, Any] | None,
-    corpus_status: str,
-    case_expectations: dict[str, dict[str, Any]],
-    b03_expectations: list[dict[str, Any]],
-    artifact_overrides: dict[str, bytes] | None,
-    referenced_overrides: set[str],
-    parser_runner: SemanticParserRunner,
-) -> dict[str, Any]:
-    observed = read_closure_artifact(
-        result_path,
-        artifact_overrides=artifact_overrides,
-        referenced_overrides=referenced_overrides,
-    )
-    if observed is None:
-        return {
-            "engine": engine,
-            "required_result_path": result_path,
-            "required_status": "PASS",
-            "observed_status": "NOT_RUN",
-            "receipt": None,
-            "execution": None,
-        }
-    identity, content = observed
-    result = load_json_bytes(content, identity["path"])
-    exact_keys(
-        result,
-        {*SEMANTIC_PARSER_RESULT_MEMBERS, "replay_receipt"},
-        f"semantic parser result {engine}",
-    )
-    case_results = result["case_results"]
     if (
-        not isinstance(case_results, list)
-        or len(case_results) > 256
-        or any(not isinstance(case_result, dict) for case_result in case_results)
+        not all(satisfied.values())
+        or not coverage_complete
+        or not corpus_contract_complete
     ):
-        fail(f"semantic parser result {engine} has invalid case results")
-    observed_case_results: dict[str, dict[str, Any]] = {}
-    for index, case_result in enumerate(case_results):
-        exact_keys(
-            case_result,
-            {
-                "case_id",
-                "input_sha256",
-                "profile_result",
-                "production_admission",
-                "diagnostics",
-            },
-            f"semantic parser result {engine}.case_results[{index}]",
+        return (
+            "INCOMPLETE_COVERAGE",
+            satisfied,
+            len(cases),
+            mutation_count,
         )
-        case_id = bounded_string(
-            case_result["case_id"],
-            f"semantic parser result {engine}.case_results[{index}].case_id",
-            maximum=128,
-        )
-        if case_id in observed_case_results:
-            fail(f"semantic parser result {engine} duplicates case {case_id}")
-        observed_case_results[case_id] = case_result
-    b03_results = result["b03_results"]
-    if not isinstance(b03_results, list) or any(
-        not isinstance(b03_result, dict) for b03_result in b03_results
-    ):
-        fail(f"semantic parser result {engine} has invalid B03 results")
-    for index, b03_result in enumerate(b03_results):
-        exact_keys(
-            b03_result,
-            {
-                "question_id",
-                "parameters",
-                "identity_eligibility_universes",
-            },
-            f"semantic parser result {engine}.b03_results[{index}]",
-        )
-        eligibility_universes = b03_result["identity_eligibility_universes"]
-        if not isinstance(eligibility_universes, list) or any(
-            not isinstance(universe, dict) for universe in eligibility_universes
-        ):
-            fail(
-                f"semantic parser result {engine}.b03_results[{index}] has "
-                "invalid identity eligibility universes"
-            )
-        for universe_index, universe in enumerate(eligibility_universes):
-            exact_keys(
-                universe,
-                {
-                    "parameter_id",
-                    "eligible_identities",
-                    "eligible_identities_sha256",
-                },
-                (
-                    f"semantic parser result {engine}.b03_results[{index}]."
-                    f"identity_eligibility_universes[{universe_index}]"
-                ),
-            )
-        parameters = b03_result["parameters"]
-        if (
-            not isinstance(parameters, list)
-            or not 1 <= len(parameters) <= 16
-            or any(not isinstance(parameter, dict) for parameter in parameters)
-        ):
-            fail(
-                f"semantic parser result {engine}.b03_results[{index}] "
-                "has invalid parameter results"
-            )
-        for parameter_index, parameter in enumerate(parameters):
-            exact_keys(
-                parameter,
-                {
-                    "parameter_id",
-                    "value_kind",
-                    "selection_predicate_id",
-                    "selection_predicate_source_anchor",
-                    "selection_profile",
-                    "b03_selection_verifier_required",
-                    "inherits_excluded_no_edge_components",
-                    "minimum",
-                    "maximum",
-                    "test_results",
-                },
-                (
-                    f"semantic parser result {engine}.b03_results[{index}].parameters["
-                    f"{parameter_index}]"
-                ),
-            )
-            test_results = parameter["test_results"]
-            if not isinstance(test_results, list) or any(
-                not isinstance(test_result, dict) for test_result in test_results
-            ):
-                fail(
-                    f"semantic parser result {engine}.b03_results[{index}]."
-                    f"parameters[{parameter_index}] has invalid test results"
-                )
-            for test_index, test_result in enumerate(test_results):
-                exact_keys(
-                    test_result,
-                    {"test_id", "status"},
-                    (
-                        f"semantic parser result {engine}.b03_results[{index}]."
-                        f"parameters[{parameter_index}].test_results[{test_index}]"
-                    ),
-                )
-    boundary = result["claim_boundary"]
-    if (
-        not isinstance(boundary, dict)
-        or set(boundary)
-        != {
-            "adrs_accepted",
-            "normative_contract_changed",
-            "interoperability_established",
-            "release_authorized",
-        }
-        or any(value is not False for value in boundary.values())
-    ):
-        fail(f"semantic parser result {engine} overclaims authority")
-    if result["schema"] != SEMANTIC_PARSER_RESULT_SCHEMA or result["engine"] != engine:
-        fail(f"semantic parser result {engine} has an unknown identity")
-    if result["status"] not in {"PASS", "FAIL"}:
-        fail(f"semantic parser result {engine} has an unknown status")
-    replay_receipt = result["replay_receipt"]
-    if replay_receipt is not None and not isinstance(replay_receipt, dict):
-        fail(f"semantic parser result {engine} replay receipt is invalid")
-    stale = (
-        corpus_identity is None
-        or corpus_status != "COMPLETE_CURRENT"
-        or result["decision_set_sha256"] != current_set["sha256"]
-        or result["corpus_sha256"] != corpus_identity["sha256"]
+    return (
+        "COMPLETE_CURRENT",
+        satisfied,
+        len(cases),
+        mutation_count,
     )
-    exact_results = (
-        list(observed_case_results) == sorted(case_expectations)
-        and b03_results == b03_expectations
-    )
-    if exact_results:
-        for case_id, expectation in case_expectations.items():
-            case_result = observed_case_results[case_id]
-            if case_result != {
-                "case_id": case_id,
-                **expectation,
-            }:
-                exact_results = False
-                break
-    execution = None
-    if stale:
-        observed_status = "STALE"
-    elif result["status"] != "PASS" or not exact_results:
-        observed_status = "FAIL"
-    elif replay_receipt is None:
-        observed_status = "FAIL"
-    else:
-        validate_semantic_replay_receipt(replay_receipt, engine)
-        replayed_content, observed_replay_receipt = parser_runner(engine)
-        if not isinstance(observed_replay_receipt, dict):
-            fail(f"direct {engine} semantic parser replay receipt is not an object")
-        validate_semantic_replay_receipt(observed_replay_receipt, engine)
-        replay_registry_sha256 = observed_replay_receipt.get(
-            "derived_registry_binding", {}
-        ).get("decision_set_sha256")
-        if (
-            replay_registry_sha256 != current_set["sha256"]
-            or replay_registry_sha256 != result["decision_set_sha256"]
-        ):
-            fail(
-                f"direct {engine} semantic replay registry binding differs "
-                "from its evaluated decision set"
-            )
-        observed_after = read_closure_artifact(
-            result_path,
-            artifact_overrides=artifact_overrides,
-            referenced_overrides=referenced_overrides,
-        )
-        if observed_after is None or observed_after != observed:
-            fail(f"semantic parser result {engine} changed during direct replay")
-        replayed_result = load_json_bytes(
-            replayed_content,
-            f"direct {engine} semantic parser replay",
-        )
-        semantic_projection = {
-            member: result[member] for member in SEMANTIC_PARSER_RESULT_MEMBERS
-        }
-        if (
-            replay_receipt is None
-            or replayed_result != semantic_projection
-            or replay_receipt != observed_replay_receipt
-            or replay_receipt.get("stdout_sha256") != sha256_bytes(replayed_content)
-            or replay_receipt.get("stdout_bytes") != len(replayed_content)
-        ):
-            observed_status = "FAIL"
-        else:
-            observed_status = "PASS"
-            execution = copy.deepcopy(observed_replay_receipt)
-    return {
-        "engine": engine,
-        "required_result_path": result_path,
-        "required_status": "PASS",
-        "observed_status": observed_status,
-        "receipt": identity,
-        "execution": execution,
-    }
 
 
 def evaluate_semantic_closure(
@@ -3068,7 +2583,6 @@ def evaluate_semantic_closure(
     current_set: dict[str, Any],
     *,
     artifact_overrides: dict[str, bytes] | None = None,
-    parser_runner: SemanticParserRunner = run_semantic_parser,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     referenced_overrides: set[str] = set()
     if artifact_overrides is not None:
@@ -3091,51 +2605,13 @@ def evaluate_semantic_closure(
     ).encode("utf-8")
     required_cases: dict[str, dict[str, Any]] = {}
     generated_by_id = {decision["id"]: decision for decision in generated}
-    wire_case_contract = requirements["source"]["wire_case_contract"]
     for closure in requirements["source"]["decisions"]:
-        wire = closure["wire_requirements"]
-        for case in wire["complete_positive"]:
-            source_index = wire["required_source_paths"].index(case["source_path"])
-            required_cases[case["case_id"]] = {
-                **case,
-                "kind": "POSITIVE",
+        examples = closure["example_requirements"]
+        source_identity = generated_by_id[closure["id"]]["source_set"]["sources"][0]
+        for case_id in examples["required_case_ids"]:
+            required_cases[case_id] = {
                 "decision_id": closure["id"],
-                "source_identity": generated_by_id[closure["id"]]["source_set"][
-                    "sources"
-                ][source_index],
-                "required_profile": (
-                    f"{closure['id'].replace('-', '')}_SOURCE_{source_index + 1}_"
-                    "COMPLETE_PROPOSED_WIRE_V1"
-                ),
-                "required_expected_profile_result": wire_case_contract[
-                    "complete_positive"
-                ]["expected_profile_result"],
-                "required_production_admission": wire_case_contract[
-                    "complete_positive"
-                ]["production_admission"],
-            }
-        for case in wire["complete_hostile"]:
-            source_index = wire["required_source_paths"].index(case["source_path"])
-            required_cases[case["case_id"]] = {
-                **case,
-                "kind": "HOSTILE",
-                "decision_id": closure["id"],
-                "source_identity": generated_by_id[closure["id"]]["source_set"][
-                    "sources"
-                ][source_index],
-                "required_profile": (
-                    f"{closure['id'].replace('-', '')}_SOURCE_{source_index + 1}_"
-                    "COMPLETE_PROPOSED_WIRE_V1"
-                ),
-                "required_expected_profile_result": wire_case_contract[
-                    "complete_hostile"
-                ]["expected_profile_result"],
-                "required_production_admission": wire_case_contract["complete_hostile"][
-                    "production_admission"
-                ],
-                "required_mutation_relation": wire_case_contract["complete_hostile"][
-                    "mutation_relation"
-                ],
+                "source_identity": source_identity,
             }
     corpus_observed = read_closure_artifact(
         SEMANTIC_CORPUS_PATH,
@@ -3146,15 +2622,15 @@ def evaluate_semantic_closure(
         corpus_identity = None
         corpus_status = "MISSING"
         case_satisfaction = {case_id: False for case_id in required_cases}
-        case_expectations: dict[str, dict[str, Any]] = {}
         case_count = 0
+        mutation_count = 0
     else:
         corpus_identity, corpus_content = corpus_observed
         (
             corpus_status,
             case_satisfaction,
-            case_expectations,
             case_count,
+            mutation_count,
         ) = validate_semantic_corpus(
             corpus_content,
             corpus_identity,
@@ -3162,7 +2638,6 @@ def evaluate_semantic_closure(
             projection_payload=projection_payload,
             required_cases=required_cases,
         )
-    b03_expectations: list[dict[str, Any]] = []
     b03_satisfaction: dict[str, bool] = {}
     for closure in requirements["source"]["decisions"]:
         for question in closure["questions"]:
@@ -3172,65 +2647,7 @@ def evaluate_semantic_closure(
             if deferral["validation_state"] != "VALIDATED":
                 b03_satisfaction[question["question_id"]] = False
                 continue
-            parameter_expectations: list[dict[str, Any]] = []
-            for parameter in deferral["parameters"]:
-                parameter_expectations.append(
-                    {
-                        "parameter_id": parameter["parameter_id"],
-                        "value_kind": parameter["value_kind"],
-                        "selection_predicate_id": parameter["selection_predicate_id"],
-                        "selection_predicate_source_anchor": parameter[
-                            "selection_predicate_source_anchor"
-                        ],
-                        "selection_profile": parameter["selection_profile"],
-                        "b03_selection_verifier_required": parameter[
-                            "b03_selection_verifier_required"
-                        ],
-                        "inherits_excluded_no_edge_components": parameter[
-                            "inherits_excluded_no_edge_components"
-                        ],
-                        "minimum": parameter["minimum"],
-                        "maximum": parameter["maximum"],
-                        "test_results": [
-                            {"test_id": test_id, "status": "PASS"}
-                            for test_id in parameter["required_tests"]
-                        ],
-                    }
-                )
             b03_satisfaction[question["question_id"]] = True
-            b03_expectations.append(
-                {
-                    "question_id": question["question_id"],
-                    "identity_eligibility_universes": copy.deepcopy(
-                        deferral["identity_eligibility_universes"]
-                    ),
-                    "parameters": parameter_expectations,
-                }
-            )
-    rust_evidence = evaluate_parser_result(
-        engine="RUST",
-        result_path=RUST_PARSER_RESULT_PATH,
-        current_set=current_set,
-        corpus_identity=corpus_identity,
-        corpus_status=corpus_status,
-        case_expectations=case_expectations,
-        b03_expectations=b03_expectations,
-        artifact_overrides=artifact_overrides,
-        referenced_overrides=referenced_overrides,
-        parser_runner=parser_runner,
-    )
-    typescript_evidence = evaluate_parser_result(
-        engine="TYPESCRIPT",
-        result_path=TYPESCRIPT_PARSER_RESULT_PATH,
-        current_set=current_set,
-        corpus_identity=corpus_identity,
-        corpus_status=corpus_status,
-        case_expectations=case_expectations,
-        b03_expectations=b03_expectations,
-        artifact_overrides=artifact_overrides,
-        referenced_overrides=referenced_overrides,
-        parser_runner=parser_runner,
-    )
     if artifact_overrides is not None:
         unknown = set(artifact_overrides) - referenced_overrides
         if unknown:
@@ -3242,12 +2659,13 @@ def evaluate_semantic_closure(
         "state": "OPEN",
         "source": copy.deepcopy(requirements["binding"]["source"]),
         "json_schema": copy.deepcopy(requirements["binding"]["json_schema"]),
-        "wire_corpus": {
+        "semantic_corpus": {
             "required_path": SEMANTIC_CORPUS_PATH,
             "required_status": "COMPLETE_CURRENT",
             "observed_status": corpus_status,
             "observed_identity": corpus_identity,
             "case_count": case_count,
+            "mutation_count": mutation_count,
         },
         "b03_deferrals": {
             "required_question_count": len(b03_satisfaction),
@@ -3258,36 +2676,10 @@ def evaluate_semantic_closure(
                 else "INCOMPLETE_FAIL_CLOSED"
             ),
         },
-        "capture_workflow": {
-            "required_state": requirements["source"]["parser_replay_contract"][
-                "capture_workflow_state"
-            ],
-            "observed_state": SEMANTIC_CAPTURE_WORKFLOW_STATE,
-            "required_engine_profile_state": "IMPLEMENTED",
-            "engine_profile_states": copy.deepcopy(
-                requirements["source"]["parser_replay_contract"][
-                    "engine_profile_states"
-                ]
-            ),
-            "command": SEMANTIC_CAPTURE_COMMAND,
-            "target_directory": SEMANTIC_CAPTURE_DIRECTORY,
-            "write_policy": requirements["source"]["parser_replay_contract"][
-                "capture_write_policy"
-            ],
-            "failure_effect": requirements["source"]["parser_replay_contract"][
-                "capture_failure_effect"
-            ],
-        },
-        "rust_parser_evidence": rust_evidence,
-        "typescript_parser_evidence": typescript_evidence,
     }
     return public, {
         "case_satisfaction": case_satisfaction,
-        "case_expectations": case_expectations,
         "b03_satisfaction": b03_satisfaction,
-        "b03_expectations": b03_expectations,
-        "corpus_identity": corpus_identity,
-        "corpus_status": corpus_status,
     }
 
 
@@ -3324,79 +2716,28 @@ def semantic_closure_blockers(
                 }
             )
 
-    wire = closure["wire_requirements"]
-    capture_workflow = evaluation["capture_workflow"]
-    if capture_workflow["observed_state"] != capture_workflow["required_state"]:
+    examples = closure["example_requirements"]
+    if evaluation["semantic_corpus"]["observed_status"] != "COMPLETE_CURRENT":
         blockers.append(
             {
-                "code": "SEMANTIC_PARSER_CAPTURE_NOT_IMPLEMENTED",
-                "closure_id": f"{decision['id']}-PARSER-CAPTURE",
+                "code": "SEMANTIC_EXAMPLE_CORPUS_NOT_CURRENT",
+                "closure_id": f"{decision['id']}-SEMANTIC-CORPUS",
                 "detail": (
-                    "the exact dual-engine write-once parser-result capture "
-                    "workflow is not implemented"
-                ),
-            }
-        )
-    for engine, profile_state in capture_workflow["engine_profile_states"].items():
-        if profile_state != capture_workflow["required_engine_profile_state"]:
-            blockers.append(
-                {
-                    "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-                    "closure_id": f"{decision['id']}-{engine}-PROFILE",
-                    "detail": (
-                        f"the exact {engine} direct semantic parser capture profile "
-                        "is not implemented; no retained result can close this gate"
-                    ),
-                }
-            )
-    if evaluation["wire_corpus"]["observed_status"] != "COMPLETE_CURRENT":
-        blockers.append(
-            {
-                "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-                "closure_id": f"{decision['id']}-WIRE-CORPUS",
-                "detail": (
-                    "the semantic corpus is missing, stale, or contains only "
-                    "non-authorizing excerpts"
+                    "the source-bound semantic corpus is missing, stale, or "
+                    "does not cover every required case and rejection observation"
                 ),
             }
         )
     case_satisfaction = observations["case_satisfaction"]
-    for index, requirement in enumerate(wire["complete_positive"], start=1):
-        if not case_satisfaction[requirement["case_id"]]:
+    for index, case_id in enumerate(examples["required_case_ids"], start=1):
+        if not case_satisfaction[case_id]:
             blockers.append(
                 {
-                    "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-                    "closure_id": f"{decision['id']}-WIRE-POSITIVE-{index}",
+                    "code": "SEMANTIC_EXAMPLE_MISSING",
+                    "closure_id": f"{decision['id']}-SEMANTIC-CASE-{index}",
                     "detail": (
-                        "the required source-bound complete positive proposed-wire "
-                        f"case is absent: {requirement['case_id']}"
-                    ),
-                }
-            )
-    for index, requirement in enumerate(wire["complete_hostile"], start=1):
-        if not case_satisfaction[requirement["case_id"]]:
-            blockers.append(
-                {
-                    "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-                    "closure_id": f"{decision['id']}-WIRE-HOSTILE-{index}",
-                    "detail": (
-                        "the required one-semantic-delta hostile case is absent: "
-                        f"{requirement['case_id']}"
-                    ),
-                }
-            )
-    for field, suffix in (
-        ("rust_parser_evidence", "RUST-PARSER"),
-        ("typescript_parser_evidence", "TYPESCRIPT-PARSER"),
-    ):
-        if evaluation[field]["observed_status"] != "PASS":
-            blockers.append(
-                {
-                    "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-                    "closure_id": f"{decision['id']}-{suffix}",
-                    "detail": (
-                        f"{evaluation[field]['engine']} parser evidence is not a "
-                        "current complete-corpus PASS"
+                        "the required source-bound semantic case is absent or "
+                        f"invalid: {case_id}"
                     ),
                 }
             )
@@ -3747,7 +3088,7 @@ def validate_markdown(
     for number in range(1, 11):
         if not re.search(rf"(?m)^{number}\. ", lens):
             fail(f"{relative} lacks ten-lens item {number}")
-    fences = JSON_FENCE.findall(text)
+    fences = extract_exact_json_fences(text, label=relative)
     if not fences:
         fail(f"{relative} must include at least one parseable JSON example")
     for index, fence in enumerate(fences):
@@ -3783,7 +3124,7 @@ def validate_module_markdown(
     invariant = f"> Status: PROPOSED and non-normative. Parent: {decision_id}."
     if invariant not in text[:1024]:
         fail(f"{relative} lacks invariant proposed module metadata")
-    for index, fence in enumerate(JSON_FENCE.findall(text)):
+    for index, fence in enumerate(extract_exact_json_fences(text, label=relative)):
         parse_json_fence(
             fence,
             label=f"{relative} JSON fence {index}",
@@ -3856,8 +3197,6 @@ def validate_adr_source_set(
             f"{path}.sources must contain one main source and at most "
             f"{MAX_ADR_MODULES_PER_DECISION} modules"
         )
-    expected_main_prefix = f"docs/adr/{int(decision_id[-3:]):04d}-"
-    expected_module_prefix = f"docs/adr/modules/{decision_id.lower()}-"
     seen_paths: set[str] = set()
     total = 0
     for index, source in enumerate(sources):
@@ -3873,14 +3212,19 @@ def validate_adr_source_set(
             fail(f"{path}.sources contains duplicate paths")
         seen_paths.add(relative)
         if index == 0:
-            if not relative.startswith(expected_main_prefix) or not relative.endswith(
-                ".md"
-            ):
+            match = ADR_MAIN_PATH.fullmatch(relative)
+            path_decision_id = (
+                f"ADR-{int(match.group(1)):03d}" if match is not None else None
+            )
+            if path_decision_id != decision_id:
                 fail(f"{source_path}.path is not the matching ADR main Markdown")
-        elif not relative.startswith(expected_module_prefix) or not relative.endswith(
-            ".md"
-        ):
-            fail(f"{source_path}.path is not a matching ADR companion module")
+        else:
+            match = ADR_MODULE_PATH.fullmatch(relative)
+            path_decision_id = (
+                f"ADR-{int(match.group(1)):03d}" if match is not None else None
+            )
+            if path_decision_id != decision_id:
+                fail(f"{source_path}.path is not a matching ADR companion module")
         validate_hex(source["sha256"], HEX64, f"{source_path}.sha256")
         total += validate_adr_markdown_byte_count(
             source["bytes"], f"{source_path}.bytes"
@@ -3994,8 +3338,12 @@ def validate_source(
         bounded_string(decision["title"], f"{path}.title", minimum=8, maximum=160)
         relative = relative_path(decision["path"], f"{path}.path")
         paths.append(relative)
-        if not relative.startswith("docs/adr/") or not relative.endswith(".md"):
-            fail(f"{path}.path must name an ADR Markdown file outside contract/")
+        match = ADR_MAIN_PATH.fullmatch(relative)
+        path_decision_id = (
+            f"ADR-{int(match.group(1)):03d}" if match is not None else None
+        )
+        if path_decision_id != identifier:
+            fail(f"{path}.path must be the matching canonical ADR Markdown path")
         module_paths = decision["module_paths"]
         if (
             not isinstance(module_paths, list)
@@ -4026,15 +3374,13 @@ def validate_source(
         if len(role_ids) != len(set(role_ids)):
             fail(f"{path}.required_reviews contains duplicate role_id values")
         defects = decision["defect_ids"]
-        if (
-            not isinstance(defects, list)
-            or not 1 <= len(defects) <= 8
-            or len(defects) != len(set(defects))
-        ):
-            fail(f"{path}.defect_ids must be 1..8 unique IDs")
+        if not isinstance(defects, list) or not 1 <= len(defects) <= 8:
+            fail(f"{path}.defect_ids must contain 1..8 IDs")
         for defect in defects:
-            if defect not in EXPECTED_DEFECTS:
+            if not isinstance(defect, str) or defect not in EXPECTED_DEFECTS:
                 fail(f"{path}.defect_ids contains an unknown defect")
+        if len(defects) != len(set(defects)):
+            fail(f"{path}.defect_ids contains duplicate IDs")
     all_module_paths = [
         module_path
         for decision in decisions
@@ -4312,7 +3658,9 @@ def parse_packet_subjects(
         text = packet_content.decode("utf-8")
     except UnicodeDecodeError as error:
         fail(f"{REVIEW_PACKET.relative_to(ROOT)} is not UTF-8: {error}")
-    fences = JSON_FENCE.findall(text)
+    fences = extract_exact_json_fences(
+        text, label=REVIEW_PACKET.relative_to(ROOT).as_posix()
+    )
     if len(fences) > 64:
         fail("review packet contains more than 64 JSON fences")
     lifecycles: list[dict[str, Any]] = []
@@ -4333,14 +3681,17 @@ def parse_packet_subjects(
         fail("review packet requires exactly one machine-readable lifecycle block")
     lifecycle = lifecycles[0]
     exact_keys(lifecycle, {"schema", "state"}, "review_packet.lifecycle")
-    if lifecycle["state"] not in {"CURRENT", "SUPERSEDED", "TEMPLATE"}:
+    lifecycle_state = bounded_string(
+        lifecycle["state"], "review_packet.lifecycle.state", maximum=10
+    )
+    if lifecycle_state not in {"CURRENT", "SUPERSEDED", "TEMPLATE"}:
         fail("review_packet.lifecycle.state is invalid")
-    if lifecycle["state"] == "CURRENT" and len(candidates) != 1:
+    if lifecycle_state == "CURRENT" and len(candidates) != 1:
         fail(
             "a CURRENT review packet requires exactly one machine-readable "
             "review-subject block"
         )
-    if lifecycle["state"] != "CURRENT" and candidates:
+    if lifecycle_state != "CURRENT" and candidates:
         fail("a non-current review packet cannot contain a CURRENT review subject")
     return lifecycle, candidates
 
@@ -4488,7 +3839,7 @@ def validate_condition(
     if not CONDITION_ID.fullmatch(condition_id):
         fail(f"{path}.condition_id must be canonical uppercase ASCII")
     bounded_string(value["statement"], f"{path}.statement", minimum=10, maximum=2048)
-    status = value["status"]
+    status = bounded_string(value["status"], f"{path}.status", maximum=8)
     if status not in {"OPEN", "RESOLVED"}:
         fail(f"{path}.status must be OPEN or RESOLVED")
     evidence = value["resolution_evidence"]
@@ -4627,7 +3978,7 @@ def validate_review_records(
             fail(f"{path}.review_id is not canonical")
         if review_id in by_id:
             fail(f"$.review_records duplicates review_id {review_id}")
-        adr_id = record["adr_id"]
+        adr_id = bounded_string(record["adr_id"], f"{path}.adr_id", maximum=7)
         if adr_id not in decisions:
             fail(f"{path}.adr_id is unknown")
         requirements = {
@@ -4652,24 +4003,28 @@ def validate_review_records(
             f"{path}.reviewer",
         )
         identity = validate_identity(reviewer["identity"], f"{path}.reviewer.identity")
-        if reviewer["identity_kind"] not in {"PERSON", "TEAM"}:
+        identity_kind = bounded_string(
+            reviewer["identity_kind"], f"{path}.reviewer.identity_kind", maximum=6
+        )
+        if identity_kind not in {"PERSON", "TEAM"}:
             fail(f"{path}.reviewer.identity_kind must be PERSON or TEAM")
         if not isinstance(reviewer["independence_claimed"], bool):
             fail(f"{path}.reviewer.independence_claimed must be boolean")
         owners = reviewer["implementation_owner_identities"]
-        if (
-            not isinstance(owners, list)
-            or not 1 <= len(owners) <= 32
-            or len(owners) != len(set(owners))
-        ):
+        if not isinstance(owners, list) or not 1 <= len(owners) <= 32:
             fail(
                 f"{path}.reviewer.implementation_owner_identities must contain "
-                "1..32 unique identities"
+                "1..32 identities"
             )
         for owner_index, owner in enumerate(owners):
             validate_identity(
                 owner,
                 f"{path}.reviewer.implementation_owner_identities[{owner_index}]",
+            )
+        if len(owners) != len(set(owners)):
+            fail(
+                f"{path}.reviewer.implementation_owner_identities contains "
+                "duplicate identities"
             )
         if reviewer["independence_claimed"] and identity in owners:
             fail(f"{path}.reviewer cannot self-assert independence from itself")
@@ -4713,7 +4068,7 @@ def validate_review_records(
                     f"{path}.subject ADR source-set byte length differs from the "
                     f"resolved commit blob for {source_identity['path']}"
                 )
-        decision = record["decision"]
+        decision = bounded_string(record["decision"], f"{path}.decision", maximum=22)
         if decision not in {"ACCEPT", "REJECT", "ACCEPT_WITH_CONDITIONS"}:
             fail(f"{path}.decision is unknown")
         review_timestamp = validate_timestamp(
@@ -5050,11 +4405,9 @@ def build_registry(
     closure_source_override: dict[str, Any] | None = None,
     closure_schema_override: bytes | None = None,
     closure_artifact_overrides: dict[str, bytes] | None = None,
-    semantic_parser_runner: SemanticParserRunner = run_semantic_parser,
     subject_resolver: SubjectResolver = resolve_git_subject,
     policy_overrides: dict[str, bytes] | None = None,
     packet_override: bytes | None = None,
-    closure_observation_sink: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if source is None:
         try:
@@ -5118,13 +4471,7 @@ def build_registry(
         current_policy,
         current_set,
         artifact_overrides=closure_artifact_overrides,
-        parser_runner=semantic_parser_runner,
     )
-    if closure_observation_sink is not None:
-        if not isinstance(closure_observation_sink, dict):
-            fail("semantic-closure observation sink must be a dictionary")
-        closure_observation_sink.clear()
-        closure_observation_sink.update(copy.deepcopy(closure_observations))
     parsed_packet = parse_packet_subjects(packet_content)
     packet_lifecycle = parsed_packet[0]
     if review_records and packet_lifecycle["state"] != "CURRENT":
@@ -5251,40 +4598,10 @@ def validate_generated(value: dict[str, Any], expected: dict[str, Any]) -> None:
         fail("generated registry accepts a decision while semantic closure is OPEN")
     if closure_evaluation.get("state") == "CLOSED":
         if (
-            closure_evaluation.get("wire_corpus", {}).get("observed_status")
+            closure_evaluation.get("semantic_corpus", {}).get("observed_status")
             != "COMPLETE_CURRENT"
             or closure_evaluation.get("b03_deferrals", {}).get("observed_status")
             != "COMPLETE_ENVELOPES_VERIFIED"
-            or closure_evaluation.get("capture_workflow", {}).get("required_state")
-            != "IMPLEMENTED"
-            or closure_evaluation.get("capture_workflow", {}).get("observed_state")
-            != "IMPLEMENTED"
-            or closure_evaluation.get("capture_workflow", {}).get(
-                "required_engine_profile_state"
-            )
-            != "IMPLEMENTED"
-            or set(
-                closure_evaluation.get("capture_workflow", {})
-                .get("engine_profile_states", {})
-                .values()
-            )
-            != {"IMPLEMENTED"}
-            or closure_evaluation.get("rust_parser_evidence", {}).get("observed_status")
-            != "PASS"
-            or not isinstance(
-                closure_evaluation.get("rust_parser_evidence", {}).get("execution"),
-                dict,
-            )
-            or closure_evaluation.get("typescript_parser_evidence", {}).get(
-                "observed_status"
-            )
-            != "PASS"
-            or not isinstance(
-                closure_evaluation.get("typescript_parser_evidence", {}).get(
-                    "execution"
-                ),
-                dict,
-            )
         ):
             fail("generated registry reports CLOSED with incomplete closure evidence")
     validate_adr_corpus_byte_counts(
@@ -5316,412 +4633,6 @@ def validate_generated(value: dict[str, Any], expected: dict[str, Any]) -> None:
             fail("generated registry proposes a decision without a blocker")
         if not HEX64.fullmatch(decision["content_sha256"]):
             fail("generated registry contains an invalid content digest")
-
-
-def require_capture_target_absent(target_directory: Path) -> None:
-    try:
-        target_directory.lstat()
-    except FileNotFoundError:
-        return
-    except OSError as error:
-        fail(f"cannot inspect semantic capture target: {error}")
-    fail(
-        "semantic parser capture target already exists; write-once capture refuses "
-        "to replace or merge retained results"
-    )
-
-
-def require_semantic_capture_engine_profiles() -> None:
-    not_implemented = [
-        engine
-        for engine, state in SEMANTIC_ENGINE_PROFILE_STATES.items()
-        if state != "IMPLEMENTED"
-    ]
-    if not_implemented:
-        fail(
-            "semantic parser capture engine profiles are NOT_IMPLEMENTED for "
-            f"{','.join(not_implemented)}; wrote neither retained result"
-        )
-
-
-def atomic_rename_directory_no_replace(source: Path, target: Path) -> None:
-    """Atomically install one directory without replacing an existing target."""
-
-    source_bytes_path = os.fsencode(source)
-    target_bytes_path = os.fsencode(target)
-    libc = ctypes.CDLL(None, use_errno=True)
-    if hasattr(libc, "renameat2"):
-        renameat2 = libc.renameat2
-        renameat2.argtypes = [
-            ctypes.c_int,
-            ctypes.c_char_p,
-            ctypes.c_int,
-            ctypes.c_char_p,
-            ctypes.c_uint,
-        ]
-        renameat2.restype = ctypes.c_int
-        result = renameat2(
-            -100,
-            source_bytes_path,
-            -100,
-            target_bytes_path,
-            1,
-        )
-    elif hasattr(libc, "renamex_np"):
-        renamex_np = libc.renamex_np
-        renamex_np.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
-        renamex_np.restype = ctypes.c_int
-        result = renamex_np(source_bytes_path, target_bytes_path, 0x00000004)
-    else:
-        fail(
-            "platform lacks an atomic no-replace directory rename primitive; "
-            "wrote neither retained result"
-        )
-    if result == 0:
-        return
-    error_number = ctypes.get_errno()
-    if error_number in {errno.EEXIST, errno.ENOTEMPTY}:
-        fail(
-            "semantic parser capture target already exists; write-once capture "
-            "refuses to replace or merge retained results"
-        )
-    fail(
-        "cannot atomically install semantic capture directory without replacement: "
-        f"{os.strerror(error_number)}"
-    )
-
-
-def atomic_write_semantic_capture_results(
-    results_by_path: dict[str, bytes],
-    *,
-    target_directory: Path,
-    precommit_hook: Callable[[Path], None] | None = None,
-) -> list[dict[str, Any]]:
-    expected_paths = set(SEMANTIC_CAPTURE_RESULT_PATHS.values())
-    if set(results_by_path) != expected_paths:
-        fail(
-            "semantic parser capture must stage exactly the Rust and TypeScript results"
-        )
-    expected_by_name: dict[str, bytes] = {}
-    for repository_path, content in results_by_path.items():
-        relative = relative_path(repository_path, "semantic capture result path")
-        if PurePosixPath(relative).parent.as_posix() != SEMANTIC_CAPTURE_DIRECTORY:
-            fail("semantic capture result path differs from the write-once directory")
-        if type(content) is not bytes or not 1 <= len(content) <= MAX_JSON_BYTES:
-            fail("semantic capture result must contain bounded native bytes")
-        name = PurePosixPath(relative).name
-        if name in expected_by_name:
-            fail("semantic capture result filenames are not unique")
-        expected_by_name[name] = content
-
-    require_capture_target_absent(target_directory)
-    parent = target_directory.parent
-    missing_parents: list[Path] = []
-    cursor = parent
-    while True:
-        try:
-            metadata = cursor.lstat()
-        except FileNotFoundError:
-            missing_parents.append(cursor)
-            next_cursor = cursor.parent
-            if next_cursor == cursor:
-                fail("semantic capture target has no existing physical ancestor")
-            cursor = next_cursor
-            continue
-        except OSError as error:
-            fail(f"cannot inspect semantic capture parent: {error}")
-        if not stat.S_ISDIR(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
-            fail("semantic capture parent must be a physical directory")
-        break
-
-    created_parents: list[Path] = []
-    staging: Path | None = None
-    installed = False
-    try:
-        for directory in reversed(missing_parents):
-            try:
-                directory.mkdir(mode=0o700)
-            except OSError as error:
-                fail(f"cannot create semantic capture parent: {error}")
-            created_parents.append(directory)
-        try:
-            staging = Path(
-                tempfile.mkdtemp(
-                    prefix=".ncp-b01-semantic-capture-",
-                    dir=parent,
-                )
-            )
-        except OSError as error:
-            fail(f"cannot create semantic capture staging directory: {error}")
-
-        for name, content in sorted(expected_by_name.items()):
-            destination = staging / name
-            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-            if hasattr(os, "O_NOFOLLOW"):
-                flags |= os.O_NOFOLLOW
-            try:
-                descriptor = os.open(destination, flags, 0o400)
-            except OSError as error:
-                fail(f"cannot create staged semantic capture result {name}: {error}")
-            try:
-                with os.fdopen(descriptor, "wb", closefd=False) as stream:
-                    stream.write(content)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-            except OSError as error:
-                fail(f"cannot write staged semantic capture result {name}: {error}")
-            finally:
-                os.close(descriptor)
-
-        def validate_staging() -> None:
-            if staging is None:
-                fail("semantic capture staging directory is unavailable")
-            try:
-                entries = sorted(os.scandir(staging), key=lambda entry: entry.name)
-            except OSError as error:
-                fail(f"cannot inspect semantic capture staging directory: {error}")
-            if [entry.name for entry in entries] != sorted(expected_by_name):
-                fail("semantic capture staging directory has an unexpected file set")
-            for entry in entries:
-                try:
-                    metadata = entry.stat(follow_symlinks=False)
-                except OSError as error:
-                    fail(f"cannot inspect staged semantic capture result: {error}")
-                if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
-                    fail("staged semantic capture result is not a physical file")
-                if stat.S_IMODE(metadata.st_mode) != 0o400:
-                    fail("staged semantic capture result is not write-once read-only")
-                try:
-                    observed = read_bounded_regular_file(
-                        staging / entry.name,
-                        limits=REGISTRY_FILE_LIMITS,
-                        label=f"staged semantic capture result {entry.name}",
-                    )
-                except BoundedJsonError as error:
-                    fail(str(error))
-                if observed != expected_by_name[entry.name]:
-                    fail("staged semantic capture result bytes changed")
-
-        validate_staging()
-        if precommit_hook is not None:
-            try:
-                precommit_hook(staging)
-            except RegistryError:
-                raise
-            except Exception as error:
-                fail(f"semantic capture precommit hook failed: {error}")
-            validate_staging()
-        require_capture_target_absent(target_directory)
-        try:
-            stage_descriptor = os.open(staging, os.O_RDONLY)
-            parent_descriptor = os.open(parent, os.O_RDONLY)
-        except OSError as error:
-            fail(f"cannot open semantic capture directory for synchronization: {error}")
-        try:
-            os.fsync(stage_descriptor)
-            os.fsync(parent_descriptor)
-        except OSError as error:
-            fail(f"cannot synchronize semantic capture directory: {error}")
-        finally:
-            os.close(stage_descriptor)
-            os.close(parent_descriptor)
-        atomic_rename_directory_no_replace(staging, target_directory)
-        installed = True
-        staging = None
-    finally:
-        if staging is not None:
-            try:
-                shutil.rmtree(staging)
-            except FileNotFoundError:
-                pass
-            except OSError:
-                pass
-        if not installed:
-            for directory in reversed(created_parents):
-                try:
-                    directory.rmdir()
-                except OSError:
-                    pass
-
-    return [
-        {
-            "path": path,
-            "sha256": sha256_bytes(results_by_path[path]),
-            "bytes": len(results_by_path[path]),
-        }
-        for path in SEMANTIC_CAPTURE_RESULT_PATHS.values()
-    ]
-
-
-def validate_semantic_capture_registry(
-    expected: dict[str, Any], current_content: bytes
-) -> None:
-    if (
-        type(current_content) is not bytes
-        or not 1 <= len(current_content) <= MAX_JSON_BYTES
-    ):
-        fail("semantic capture registry input must contain bounded native bytes")
-    current = load_json_bytes(
-        current_content,
-        OUTPUT.relative_to(ROOT).as_posix(),
-    )
-    try:
-        validate_decision_registry_instance(current)
-    except EvidenceSchemaError as error:
-        fail(str(error))
-    validate_generated(current, expected)
-    if current_content != generated_bytes(expected):
-        fail("semantic capture requires exact current generated registry bytes")
-
-    evaluation = expected["semantic_closure_evaluation"]
-    capture_workflow = evaluation["capture_workflow"]
-    if (
-        evaluation["state"] != "OPEN"
-        or evaluation["wire_corpus"]["observed_status"] != "COMPLETE_CURRENT"
-        or evaluation["b03_deferrals"]["observed_status"]
-        != "COMPLETE_ENVELOPES_VERIFIED"
-        or capture_workflow["required_state"] != "IMPLEMENTED"
-        or capture_workflow["observed_state"] != "IMPLEMENTED"
-        or capture_workflow["required_engine_profile_state"] != "IMPLEMENTED"
-        or set(capture_workflow["engine_profile_states"].values()) != {"IMPLEMENTED"}
-    ):
-        fail(
-            "semantic capture requires an exact OPEN registry with a complete "
-            "current corpus, validated B03 deferral envelopes, and capture workflow"
-        )
-    for field, engine, result_path in (
-        ("rust_parser_evidence", "RUST", RUST_PARSER_RESULT_PATH),
-        (
-            "typescript_parser_evidence",
-            "TYPESCRIPT",
-            TYPESCRIPT_PARSER_RESULT_PATH,
-        ),
-    ):
-        evidence = evaluation[field]
-        if evidence != {
-            "engine": engine,
-            "required_result_path": result_path,
-            "required_status": "PASS",
-            "observed_status": "NOT_RUN",
-            "receipt": None,
-            "execution": None,
-        }:
-            fail("semantic capture requires both parser results to be exactly NOT_RUN")
-    for decision in expected["decisions"]:
-        closure_blockers = [
-            blocker
-            for blocker in decision["acceptance_blockers"]
-            if "closure_id" in blocker
-        ]
-        observed = [
-            (blocker["code"], blocker["closure_id"]) for blocker in closure_blockers
-        ]
-        required = [
-            ("SEMANTIC_CLOSURE_OPEN", "B01-SEMANTIC-CLOSURE"),
-            (
-                "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-                f"{decision['id']}-RUST-PARSER",
-            ),
-            (
-                "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-                f"{decision['id']}-TYPESCRIPT-PARSER",
-            ),
-        ]
-        if observed != required:
-            fail(
-                "semantic capture requires the two NOT_RUN parser artifacts to be "
-                f"the only remaining {decision['id']} closure blockers"
-            )
-
-
-def validate_captured_semantic_result(
-    *,
-    engine: str,
-    stdout: bytes,
-    replay_receipt: dict[str, Any],
-    registry: dict[str, Any],
-    observations: dict[str, Any],
-) -> bytes:
-    result = load_json_bytes(stdout, f"direct {engine} semantic capture output")
-    exact_keys(
-        result,
-        set(SEMANTIC_PARSER_RESULT_MEMBERS),
-        f"direct {engine} semantic capture output",
-    )
-    retained = {**result, "replay_receipt": copy.deepcopy(replay_receipt)}
-    retained_content = source_bytes(retained)
-    result_path = SEMANTIC_CAPTURE_RESULT_PATHS[engine]
-
-    def exact_replay(requested_engine: str) -> tuple[bytes, dict[str, Any]]:
-        if requested_engine != engine:
-            fail("semantic capture replay requested the wrong engine")
-        return stdout, copy.deepcopy(replay_receipt)
-
-    evaluated = evaluate_parser_result(
-        engine=engine,
-        result_path=result_path,
-        current_set=registry["decision_set"],
-        corpus_identity=observations["corpus_identity"],
-        corpus_status=observations["corpus_status"],
-        case_expectations=observations["case_expectations"],
-        b03_expectations=observations["b03_expectations"],
-        artifact_overrides={result_path: retained_content},
-        referenced_overrides=set(),
-        parser_runner=exact_replay,
-    )
-    if evaluated["observed_status"] != "PASS":
-        fail(f"direct {engine} semantic capture did not validate as an exact PASS")
-    return retained_content
-
-
-def capture_semantic_parser_results(
-    *,
-    parser_runner: SemanticParserRunner = run_semantic_parser,
-    current_registry_override: bytes | None = None,
-    target_directory: Path | None = None,
-) -> list[dict[str, Any]]:
-    target = target_directory or ROOT.joinpath(
-        *PurePosixPath(SEMANTIC_CAPTURE_DIRECTORY).parts
-    )
-    require_capture_target_absent(target)
-    require_semantic_capture_engine_profiles()
-    observations: dict[str, Any] = {}
-    expected = build_registry(closure_observation_sink=observations)
-    if current_registry_override is None:
-        try:
-            current_content = read_bounded_regular_file(
-                OUTPUT,
-                limits=REGISTRY_FILE_LIMITS,
-                label=OUTPUT.relative_to(ROOT).as_posix(),
-            )
-        except BoundedJsonError as error:
-            fail(str(error))
-    else:
-        current_content = current_registry_override
-    validate_semantic_capture_registry(expected, current_content)
-
-    retained_results: dict[str, bytes] = {}
-    for engine in SEMANTIC_CAPTURE_RESULT_PATHS:
-        try:
-            stdout, replay_receipt = parser_runner(engine)
-        except RegistryError as error:
-            fail(
-                f"{engine} semantic capture profile is NOT_IMPLEMENTED or failed: "
-                f"{error}"
-            )
-        retained_results[SEMANTIC_CAPTURE_RESULT_PATHS[engine]] = (
-            validate_captured_semantic_result(
-                engine=engine,
-                stdout=stdout,
-                replay_receipt=replay_receipt,
-                registry=expected,
-                observations=observations,
-            )
-        )
-    return atomic_write_semantic_capture_results(
-        retained_results,
-        target_directory=target,
-    )
 
 
 def validate_output_schema_limits(value: dict[str, Any]) -> None:
@@ -5952,6 +4863,28 @@ def self_test_adr_byte_limits(source: dict[str, Any]) -> None:
         ),
         "ADR module Markdown cap plus one byte",
     )
+
+
+def self_test_json_fence_scanner() -> None:
+    markdown = (
+        "```text\n"
+        "```json\n"
+        '{"ignored":true}\n'
+        "```\n"
+        "```json\r\n"
+        '{"accepted":true}\r\n'
+        "```\r\n"
+    )
+    if extract_exact_json_fences(markdown, label="self-test Markdown") != [
+        '{"accepted":true}'
+    ]:
+        raise AssertionError("exact JSON fence scanner accepted a nested marker")
+    must_fail(
+        lambda: extract_exact_json_fences(
+            "```json\n{}\n", label="self-test unclosed Markdown"
+        ),
+        "unclosed exact JSON fence",
+    )
     aggregate_at_cap = [MAX_ADR_MARKDOWN_BYTES] * 7 + [
         MAX_ADR_MARKDOWN_BYTES - 5 * MIN_ADR_MARKDOWN_BYTES,
         *([MIN_ADR_MARKDOWN_BYTES] * 5),
@@ -6052,6 +4985,7 @@ def self_test_physical_source_paths() -> None:
 def self_test() -> None:
     source = load_json(SOURCE)
     self_test_adr_byte_limits(source)
+    self_test_json_fence_scanner()
     self_test_physical_source_paths()
     first = generated_bytes(build_registry(source))
     second = generated_bytes(build_registry(source))
@@ -6084,6 +5018,24 @@ def self_test() -> None:
         ),
         "overflowing Markdown JSON fence number",
     )
+    if (
+        apply_single_semantic_mutation(
+            {"value": 1},
+            {"target": "DOCUMENT", "op": [], "path": "/value"},
+        )
+        is not None
+    ):
+        raise AssertionError("non-string semantic mutation operation was accepted")
+    must_fail(
+        lambda: parse_packet_subjects(
+            (
+                "```json\n"
+                + json.dumps({"schema": REVIEW_PACKET_LIFECYCLE_SCHEMA, "state": []})
+                + "\n```\n"
+            ).encode("utf-8")
+        ),
+        "review packet with a non-string lifecycle state",
+    )
     must_fail(
         lambda: relative_path("evidence//ambiguous.json", "evidence.path"),
         "non-canonical retained-evidence path",
@@ -6115,95 +5067,13 @@ def self_test() -> None:
 
     base = build_registry(source)
     validate_decision_registry_instance(base)
-    with tempfile.TemporaryDirectory(prefix="ncp-b01-capture-self-test-") as root:
-        capture_target = Path(root).resolve() / "nested" / "semantic-closure"
-        runner_calls: list[str] = []
-
-        def unexpected_capture_runner(engine: str) -> tuple[bytes, dict[str, Any]]:
-            runner_calls.append(engine)
-            raise AssertionError("NOT_IMPLEMENTED capture invoked a parser runner")
-
-        try:
-            capture_semantic_parser_results(
-                parser_runner=unexpected_capture_runner,
-                current_registry_override=generated_bytes(base),
-                target_directory=capture_target,
-            )
-        except RegistryError as error:
-            if str(error) != (
-                "semantic parser capture engine profiles are NOT_IMPLEMENTED for "
-                "RUST,TYPESCRIPT; wrote neither retained result"
-            ):
-                raise AssertionError(
-                    "current semantic capture failed with a noncanonical diagnostic"
-                ) from error
-        else:
-            raise AssertionError("NOT_IMPLEMENTED semantic capture unexpectedly passed")
-        if runner_calls or capture_target.exists():
-            raise AssertionError(
-                "NOT_IMPLEMENTED semantic capture ran an engine or wrote a result"
-            )
-
-        staged_results = {
-            RUST_PARSER_RESULT_PATH: b'{"engine":"RUST"}\n',
-            TYPESCRIPT_PARSER_RESULT_PATH: b'{"engine":"TYPESCRIPT"}\n',
-        }
-
-        def reject_precommit(_staging: Path) -> None:
-            fail("injected semantic capture precommit rejection")
-
-        must_fail(
-            lambda: atomic_write_semantic_capture_results(
-                staged_results,
-                target_directory=capture_target,
-                precommit_hook=reject_precommit,
-            ),
-            "partial dual-result semantic capture installation",
-        )
-        if capture_target.exists():
-            raise AssertionError(
-                "failed semantic capture installed a partial directory"
-            )
-        captured_identities = atomic_write_semantic_capture_results(
-            staged_results,
-            target_directory=capture_target,
-        )
-        if [identity["path"] for identity in captured_identities] != list(
-            SEMANTIC_CAPTURE_RESULT_PATHS.values()
-        ):
-            raise AssertionError(
-                "semantic capture returned a noncanonical result order"
-            )
-        for repository_path, expected_content in staged_results.items():
-            observed = (
-                capture_target / PurePosixPath(repository_path).name
-            ).read_bytes()
-            if observed != expected_content:
-                raise AssertionError("semantic capture changed retained result bytes")
-        must_fail(
-            lambda: atomic_write_semantic_capture_results(
-                staged_results,
-                target_directory=capture_target,
-            ),
-            "write-once semantic capture replacement",
-        )
-
-    stale_capture_registry = copy.deepcopy(base)
-    stale_capture_registry["decision_set"]["sha256"] = "0" * 64
-    must_fail(
-        lambda: validate_semantic_capture_registry(
-            base,
-            generated_bytes(stale_capture_registry),
-        ),
-        "stale generated registry used for semantic capture",
-    )
     if (
         any(decision["status"] == "ACCEPTED" for decision in base["decisions"])
         or base["review_records"]
     ):
         raise AssertionError("empty review source produced optimistic acceptance")
-    if base["semantic_closure_evaluation"]["state"] != "OPEN":
-        raise AssertionError("incomplete semantic closure did not remain OPEN")
+    if base["semantic_closure_evaluation"]["state"] != "CLOSED":
+        raise AssertionError("complete local semantic closure did not close")
     review_blocker_codes = {
         "MISSING_ROLE_ACCEPTANCE",
         "ACTIVE_REJECT",
@@ -6275,11 +5145,12 @@ def self_test() -> None:
     malformed_deferral = malformed_schema_closure["decisions"][1]["questions"][0][
         "b03_deferral"
     ]
-    malformed_deferral["validation_state"] = "VALIDATED"
-    malformed_deferral["parameters"][0].update({"minimum": 1, "maximum": 1})
+    malformed_deferral["identity_eligibility_universes"][0][
+        "eligible_identities_sha256"
+    ] = "0" * 64
     must_fail_closure_schema(
         malformed_schema_closure,
-        "validated identity envelope with an empty eligibility universe",
+        "source-predicate identity envelope with a spurious universe digest",
     )
     malformed_closure = copy.deepcopy(closure_source)
     malformed_closure["unexpected_authority"] = True
@@ -6294,26 +5165,32 @@ def self_test() -> None:
         "missing ADR semantic closure",
     )
     hostile_closure = copy.deepcopy(closure_source)
+    hostile_closure["decisions"][0]["id"] = []
+    must_fail(
+        lambda: build_registry(source, closure_source_override=hostile_closure),
+        "semantic closure with a non-string ADR ID",
+    )
+    hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][0]["adr_source_set_sha256"] = "0" * 64
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
         "stale ADR semantic closure binding",
     )
     hostile_closure = copy.deepcopy(closure_source)
-    hostile_closure["wire_case_contract"]["complete_positive"][
-        "expected_profile_result"
-    ] = "REJECT"
+    hostile_closure["semantic_example_contract"]["positive_authority"] = (
+        "PRODUCTION_ADMISSION"
+    )
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
-        "complete positive case whose required semantic result is REJECT",
+        "semantic example contract with optimistic authority",
     )
     hostile_closure = copy.deepcopy(closure_source)
-    hostile_closure["wire_case_contract"]["complete_positive"][
-        "production_admission"
-    ] = "ACCEPT"
+    hostile_closure["semantic_example_contract"]["engine_requirement"] = (
+        "ONE_ENGINE_IS_ENOUGH"
+    )
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
-        "complete positive case with optimistic production admission",
+        "semantic example contract with weakened engine parity",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["excluded_no_edge_components"][0][
@@ -6359,10 +5236,18 @@ def self_test() -> None:
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][1]["questions"][0]["b03_deferral"]["parameters"][0][
         "minimum"
-    ] = 1
+    ] = None
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
-        "OPEN B03 deferral with a fabricated literal bound",
+        "VALIDATED B03 deferral with a missing literal bound",
+    )
+    hostile_closure = copy.deepcopy(closure_source)
+    hostile_closure["decisions"][1]["questions"][0]["b03_deferral"][
+        "validation_state"
+    ] = []
+    must_fail(
+        lambda: build_registry(source, closure_source_override=hostile_closure),
+        "B03 deferral with a non-string validation state",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][1]["questions"][0]["b03_deferral"]["parameters"][0][
@@ -6373,14 +5258,13 @@ def self_test() -> None:
         "B03 deferral with fabricated test identities",
     )
     hostile_closure = copy.deepcopy(closure_source)
-    hostile_deferral = hostile_closure["decisions"][1]["questions"][0]["b03_deferral"]
-    hostile_deferral["validation_state"] = "VALIDATED"
-    hostile_parameter = hostile_deferral["parameters"][0]
+    hostile_deferral = hostile_closure["decisions"][4]["questions"][0]["b03_deferral"]
+    hostile_parameter = hostile_deferral["parameters"][1]
     hostile_parameter["minimum"] = 0
     hostile_parameter["maximum"] = 0
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
-        "vacuous zero-bound VALIDATED B03 parameter",
+        "vacuous zero-bound VALIDATED bounded-integer parameter",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_deferral = hostile_closure["decisions"][1]["questions"][0]["b03_deferral"]
@@ -6431,8 +5315,8 @@ def self_test() -> None:
     hostile_parameter["maximum"] = 2
     eligibility_universe = hostile_deferral["identity_eligibility_universes"][0]
     eligible_identities = [
-        "conformance/manifest.v1.json",
-        "contract/manifest.v1.json",
+        "contract/planes.v1.json",
+        "proto/ncp.proto",
     ]
     eligibility_universe["eligible_identities"] = eligible_identities
     eligibility_universe["eligible_identities_sha256"] = b03_eligibility_set_sha256(
@@ -6440,11 +5324,9 @@ def self_test() -> None:
         "STABLE_CORE_FILE_IDENTITIES",
         eligible_identities,
     )
-    validated_observations: dict[str, Any] = {}
     validated_envelope = build_registry(
         source,
         closure_source_override=hostile_closure,
-        closure_observation_sink=validated_observations,
     )
     if any(
         blocker["code"] == "INVALID_B03_DEFERRAL"
@@ -6509,340 +5391,69 @@ def self_test() -> None:
         "validated identity-set envelope without an eligibility universe",
     )
     hostile_closure = copy.deepcopy(closure_source)
-    hostile_closure["decisions"][3]["wire_requirements"]["complete_hostile"].pop()
+    hostile_closure["decisions"][3]["example_requirements"]["required_case_ids"].clear()
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
-        "ADR companion module without hostile direct-case coverage",
+        "ADR source set without a required semantic case",
     )
     hostile_closure = copy.deepcopy(closure_source)
-    hostile_closure["decisions"][0]["wire_requirements"]["complete_hostile"][0][
-        "mutation_relation"
-    ] = "MULTIPLE_SEMANTIC_DELTAS"
+    hostile_closure["decisions"][0]["example_requirements"]["required_case_ids"][0] = (
+        "adr002.realm-bound-contract-identity.v1"
+    )
     must_fail(
         lambda: build_registry(source, closure_source_override=hostile_closure),
-        "hostile proposed-wire case with multiple semantic deltas",
+        "ADR semantic requirement bound to another ADR case",
     )
     if (
-        apply_single_wire_mutation(
+        apply_single_semantic_mutation(
             {"bounded": {"minimum": 0, "maximum": 1}},
             {"target": "DOCUMENT", "op": "REMOVE", "path": "/bounded"},
         )
+        != {}
+    ):
+        raise AssertionError("one bounded structured mutation did not apply")
+    if apply_single_semantic_mutation(
+        {"a/bc": 1, "a/c": 2},
+        {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/a~1bc",
+            "value": 3,
+        },
+    ) != {"a/bc": 3, "a/c": 2}:
+        raise AssertionError("JSON Pointer escape consumed a suffix byte")
+    if (
+        apply_single_semantic_mutation(
+            {"bounded": {"minimum": 0, "maximum": 1}},
+            {"target": "DOCUMENT", "op": "REMOVE", "path": "/missing"},
+        )
         is not None
     ):
-        raise AssertionError("one mutation removed a multi-field subtree")
+        raise AssertionError("one mutation accepted a missing target")
 
-    parser_expectations = {
-        "adr001.complete-positive-wire.v1": {
-            "input_sha256": "1" * 64,
-            "profile_result": "MATCH_COMPLETE_NON_AUTHORIZING",
-            "production_admission": "NOT_EVALUATED",
-            "diagnostics": [],
-        }
-    }
-    parser_b03_expectations = validated_observations["b03_expectations"]
-    parser_result = {
-        "schema": SEMANTIC_PARSER_RESULT_SCHEMA,
-        "engine": "RUST",
-        "decision_set_sha256": "2" * 64,
-        "corpus_sha256": "3" * 64,
-        "case_results": [
+    deep_parent: dict[str, Any] = {}
+    cursor = deep_parent
+    for _ in range(20):
+        cursor["x"] = {}
+        cursor = cursor["x"]
+    deep_value: dict[str, Any] = {}
+    cursor = deep_value
+    for _ in range(20):
+        cursor["y"] = {}
+        cursor = cursor["y"]
+    if (
+        apply_single_semantic_mutation(
+            deep_parent,
             {
-                "case_id": "adr001.complete-positive-wire.v1",
-                "input_sha256": "1" * 64,
-                "profile_result": "REJECT",
-                "production_admission": "ACCEPT",
-                "diagnostics": [],
-            }
-        ],
-        "b03_results": copy.deepcopy(parser_b03_expectations),
-        "status": "PASS",
-        "replay_receipt": None,
-        "claim_boundary": {
-            "adrs_accepted": False,
-            "normative_contract_changed": False,
-            "interoperability_established": False,
-            "release_authorized": False,
-        },
-    }
-    parser_control = evaluate_parser_result(
-        engine="RUST",
-        result_path=RUST_PARSER_RESULT_PATH,
-        current_set={"sha256": "2" * 64},
-        corpus_identity={"path": SEMANTIC_CORPUS_PATH, "sha256": "3" * 64, "bytes": 1},
-        corpus_status="COMPLETE_CURRENT",
-        case_expectations=parser_expectations,
-        b03_expectations=parser_b03_expectations,
-        artifact_overrides={RUST_PARSER_RESULT_PATH: source_bytes(parser_result)},
-        referenced_overrides=set(),
-        parser_runner=lambda _engine: (_ for _ in ()).throw(
-            AssertionError("invalid parser result unexpectedly invoked its runner")
-        ),
-    )
-    if parser_control["observed_status"] != "FAIL":
-        raise AssertionError("parser PASS accepted swapped semantics or admission")
-
-    exact_semantic_result = {
-        member: copy.deepcopy(parser_result[member])
-        for member in SEMANTIC_PARSER_RESULT_MEMBERS
-    }
-    exact_semantic_result["case_results"] = [
-        {"case_id": case_id, **expectation}
-        for case_id, expectation in sorted(parser_expectations.items())
-    ]
-    exact_semantic_result["b03_results"] = copy.deepcopy(parser_b03_expectations)
-    deterministic_snapshot, deterministic_snapshot_contents = (
-        semantic_replay_input_snapshot("RUST")
-    )
-    deterministic_public_snapshot = [
-        identity
-        for identity in deterministic_snapshot
-        if identity["path"] not in SEMANTIC_REPLAY_DERIVED_INPUT_PATHS
-    ]
-    deterministic_registry_binding = semantic_replay_registry_binding(
-        deterministic_snapshot_contents[OUTPUT.relative_to(ROOT).as_posix()]
-    )
-    replay_decision_set_sha256 = deterministic_registry_binding["decision_set_sha256"]
-    exact_semantic_result["decision_set_sha256"] = replay_decision_set_sha256
-    replayed_content = source_bytes(exact_semantic_result)
-    deterministic_replay = {
-        "schema": "ncp.b01-semantic-parser-replay.v1",
-        "evidence_class": "OBSERVED_LOCAL_REPLAY_NOT_PROVENANCE",
-        "command_profile": "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1",
-        "argv": semantic_parser_command_contract("RUST")[2],
-        "working_directory": "TEMPORARY_BOUND_INPUT_SNAPSHOT_ROOT",
-        "fixed_environment": copy.deepcopy(SEMANTIC_FIXED_ENVIRONMENT),
-        "inherited_environment_keys": ["CARGO_HOME", "PATH", "RUSTUP_HOME"],
-        "inherited_environment_sha256": sha256_bytes(b"self-test-environment"),
-        "isolated_environment_keys": ["CARGO_TARGET_DIR", "HOME", "TMPDIR"],
-        "isolated_cache_directory": True,
-        "isolated_cache_environment_key": "CARGO_TARGET_DIR",
-        "dependency_resolution_mode": "CARGO_OFFLINE_LOCKED",
-        "process_network_isolation": "NOT_PROVIDED_LOCAL_REPLAY_ONLY",
-        "dependency_cache_mode": "AMBIENT_CARGO_HOME_OFFLINE",
-        "timeout_seconds": SEMANTIC_PARSER_TIMEOUT_SECONDS,
-        "tools": [
-            {
-                "name": "cargo",
-                "version": "cargo 1.88.0 (self-test)",
-                "executable_sha256": "4" * 64,
-                "executable_bytes": 1,
+                "target": "DOCUMENT",
+                "op": "ADD",
+                "path": "/" + "/".join(["x"] * 20) + "/value",
+                "value": deep_value,
             },
-            {
-                "name": "rustc",
-                "version": "rustc 1.88.0 (self-test)",
-                "executable_sha256": "5" * 64,
-                "executable_bytes": 1,
-            },
-        ],
-        "engine_sources": semantic_engine_source_identities("RUST"),
-        "repository_snapshot_inputs": deterministic_public_snapshot,
-        "repository_snapshot_postcondition": "EXACT_FILE_SET_AND_BYTES_UNCHANGED",
-        "derived_registry_binding": deterministic_registry_binding,
-        "stdout_sha256": sha256_bytes(replayed_content),
-        "stdout_bytes": len(replayed_content),
-        "stderr_bytes": 0,
-        "exit_code": 0,
-        "source_tree_build_output_absent": True,
-    }
-    exact_result = {
-        **exact_semantic_result,
-        "replay_receipt": deterministic_replay,
-    }
-    exact_result_content = source_bytes(exact_result)
-    replayed = evaluate_parser_result(
-        engine="RUST",
-        result_path=RUST_PARSER_RESULT_PATH,
-        current_set={"sha256": replay_decision_set_sha256},
-        corpus_identity={"path": SEMANTIC_CORPUS_PATH, "sha256": "3" * 64, "bytes": 1},
-        corpus_status="COMPLETE_CURRENT",
-        case_expectations=parser_expectations,
-        b03_expectations=parser_b03_expectations,
-        artifact_overrides={RUST_PARSER_RESULT_PATH: exact_result_content},
-        referenced_overrides=set(),
-        parser_runner=lambda _engine: (replayed_content, deterministic_replay),
-    )
-    if replayed["observed_status"] != "PASS":
-        raise AssertionError("exact deterministic parser replay did not pass")
-    for mutate_parser_eligibility, label in (
-        (
-            lambda universe: universe["eligible_identities"].__setitem__(
-                0,
-                "docs/adr/README.md",
-            ),
-            "substituted identity",
-        ),
-        (
-            lambda universe: universe.update({"eligible_identities_sha256": "0" * 64}),
-            "substituted eligibility digest",
-        ),
+        )
+        is not None
     ):
-        hostile_parser_result = copy.deepcopy(exact_result)
-        mutate_parser_eligibility(
-            hostile_parser_result["b03_results"][0]["identity_eligibility_universes"][0]
-        )
-        hostile_parser_control = evaluate_parser_result(
-            engine="RUST",
-            result_path=RUST_PARSER_RESULT_PATH,
-            current_set={"sha256": replay_decision_set_sha256},
-            corpus_identity={
-                "path": SEMANTIC_CORPUS_PATH,
-                "sha256": "3" * 64,
-                "bytes": 1,
-            },
-            corpus_status="COMPLETE_CURRENT",
-            case_expectations=parser_expectations,
-            b03_expectations=parser_b03_expectations,
-            artifact_overrides={
-                RUST_PARSER_RESULT_PATH: source_bytes(hostile_parser_result)
-            },
-            referenced_overrides=set(),
-            parser_runner=lambda _engine: (_ for _ in ()).throw(
-                AssertionError("invalid B03 parser result invoked its runner")
-            ),
-        )
-        if hostile_parser_control["observed_status"] != "FAIL":
-            raise AssertionError(f"parser PASS accepted {label}")
-    replay_schema_control = copy.deepcopy(base)
-    rust_schema_evaluation = replay_schema_control["semantic_closure_evaluation"][
-        "rust_parser_evidence"
-    ]
-    rust_schema_evaluation.update(
-        {
-            "observed_status": "PASS",
-            "receipt": {
-                "path": RUST_PARSER_RESULT_PATH,
-                "sha256": "6" * 64,
-                "bytes": 1,
-            },
-            "execution": deterministic_replay,
-        }
-    )
-    validate_decision_registry_instance(replay_schema_control)
-    for mutate_tool, label in (
-        (
-            lambda tool: tool.pop("version"),
-            "missing required tool identity member",
-        ),
-        (
-            lambda tool: tool.update({"unexpected": True}),
-            "extra tool identity member",
-        ),
-    ):
-        hostile_tool_identity = copy.deepcopy(replay_schema_control)
-        mutate_tool(
-            hostile_tool_identity["semantic_closure_evaluation"][
-                "rust_parser_evidence"
-            ]["execution"]["tools"][0]
-        )
-        try:
-            validate_decision_registry_instance(hostile_tool_identity)
-        except EvidenceSchemaError:
-            pass
-        else:
-            raise AssertionError(f"output schema accepted {label}")
-    typescript_snapshot, _ = semantic_replay_input_snapshot("TYPESCRIPT")
-    hostile_cross_engine = copy.deepcopy(replay_schema_control)
-    hostile_execution = hostile_cross_engine["semantic_closure_evaluation"][
-        "rust_parser_evidence"
-    ]["execution"]
-    hostile_execution.update(
-        {
-            "command_profile": ("TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1"),
-            "argv": semantic_parser_command_contract("TYPESCRIPT")[2],
-            "inherited_environment_keys": ["PATH"],
-            "isolated_environment_keys": [
-                "BUN_INSTALL_CACHE_DIR",
-                "HOME",
-                "TMPDIR",
-            ],
-            "isolated_cache_environment_key": "BUN_INSTALL_CACHE_DIR",
-            "dependency_resolution_mode": "BUN_NO_INSTALL",
-            "dependency_cache_mode": "NOT_USED_NO_INSTALL",
-            "tools": [
-                {
-                    "name": "bun",
-                    "version": "1.3.14",
-                    "executable_sha256": "7" * 64,
-                    "executable_bytes": 1,
-                }
-            ],
-            "engine_sources": semantic_engine_source_identities("TYPESCRIPT"),
-            "repository_snapshot_inputs": [
-                identity
-                for identity in typescript_snapshot
-                if identity["path"] not in SEMANTIC_REPLAY_DERIVED_INPUT_PATHS
-            ],
-        }
-    )
-    try:
-        validate_decision_registry_instance(hostile_cross_engine)
-    except EvidenceSchemaError:
-        pass
-    else:
-        raise AssertionError(
-            "output schema accepted a TypeScript replay for the Rust engine gate"
-        )
-    fabricated_echo = evaluate_parser_result(
-        engine="RUST",
-        result_path=RUST_PARSER_RESULT_PATH,
-        current_set={"sha256": replay_decision_set_sha256},
-        corpus_identity={"path": SEMANTIC_CORPUS_PATH, "sha256": "3" * 64, "bytes": 1},
-        corpus_status="COMPLETE_CURRENT",
-        case_expectations=parser_expectations,
-        b03_expectations=parser_b03_expectations,
-        artifact_overrides={RUST_PARSER_RESULT_PATH: exact_result_content},
-        referenced_overrides=set(),
-        parser_runner=lambda _engine: (b'{"forged":false}\n', deterministic_replay),
-    )
-    if fabricated_echo["observed_status"] != "FAIL":
-        raise AssertionError("fabricated parser echo bypassed direct replay")
-
-    hostile_output = copy.deepcopy(base)
-    hostile_output["semantic_closure_evaluation"]["state"] = "CLOSED"
-    for parser_field in (
-        "rust_parser_evidence",
-        "typescript_parser_evidence",
-    ):
-        hostile_output["semantic_closure_evaluation"][parser_field][
-            "observed_status"
-        ] = "PASS"
-    try:
-        validate_decision_registry_instance(hostile_output)
-    except EvidenceSchemaError:
-        pass
-    else:
-        raise AssertionError(
-            "output schema accepted CLOSED with stale corpus or null parser receipts"
-        )
-
-    forged_closed = copy.deepcopy(base)
-    forged_evaluation = forged_closed["semantic_closure_evaluation"]
-    forged_evaluation["state"] = "CLOSED"
-    forged_evaluation["wire_corpus"]["observed_status"] = "COMPLETE_CURRENT"
-    forged_evaluation["b03_deferrals"].update(
-        {
-            "validated_question_count": 7,
-            "observed_status": "COMPLETE_ENVELOPES_VERIFIED",
-        }
-    )
-    for parser_field in ("rust_parser_evidence", "typescript_parser_evidence"):
-        parser_evaluation = forged_evaluation[parser_field]
-        parser_evaluation["observed_status"] = "PASS"
-        parser_evaluation["receipt"] = {
-            "path": parser_evaluation["required_result_path"],
-            "sha256": "1" * 64,
-            "bytes": 1,
-        }
-    for decision in forged_closed["decisions"]:
-        decision["status"] = "ACCEPTED"
-    try:
-        validate_decision_registry_instance(forged_closed)
-    except EvidenceSchemaError:
-        pass
-    else:
-        raise AssertionError(
-            "output schema accepted blocked decisions under a forged CLOSED state"
-        )
+        raise AssertionError("one mutation exceeded the full-object depth bound")
 
     inconsistent_counts = copy.deepcopy(base)
     inconsistent_counts["counts"]["decisions"] = 10
@@ -6883,6 +5494,19 @@ def self_test() -> None:
         ),
         "foreign ADR module in a valid source-set digest",
     )
+    hostile_source_set = copy.deepcopy(module_source_set)
+    hostile_source_set["sources"][1]["path"] = (
+        "docs/adr/modules/adr-004-nested/subject.md"
+    )
+    hostile_source_set = adr_source_set("ADR-004", hostile_source_set["sources"])
+    must_fail(
+        lambda: validate_adr_source_set(
+            hostile_source_set,
+            "self_test.source_set",
+            expected_decision_id="ADR-004",
+        ),
+        "nested ADR module in a valid source-set digest",
+    )
 
     hostile = copy.deepcopy(source)
     hostile["decisions"][0]["status"] = "ACCEPTED"
@@ -6895,6 +5519,16 @@ def self_test() -> None:
     hostile = copy.deepcopy(source)
     hostile["decisions"][0]["path"] = "contract/decision-registry.v1.json"
     must_fail(lambda: build_registry(hostile), "proposed path inside contract/")
+
+    hostile = copy.deepcopy(source)
+    hostile["decisions"][0]["path"] = "docs/adr/0001-nested/subject.md"
+    must_fail(lambda: build_registry(hostile), "nested ADR main path")
+
+    hostile = copy.deepcopy(source)
+    hostile["decisions"][0]["path"] = "docs/adr/0002-wrong-decision.md"
+    must_fail(
+        lambda: build_registry(hostile), "ADR main path with the wrong decision id"
+    )
 
     hostile = copy.deepcopy(source)
     hostile["decisions"][0]["module_paths"] = list(EXPECTED_MODULE_PATHS["ADR-004"])
@@ -6920,6 +5554,10 @@ def self_test() -> None:
     hostile = copy.deepcopy(source)
     hostile["decisions"][10]["defect_ids"].append("D21")
     must_fail(lambda: build_registry(hostile), "unknown D21 defect")
+
+    hostile = copy.deepcopy(source)
+    hostile["decisions"][10]["defect_ids"][0] = {}
+    must_fail(lambda: build_registry(hostile), "non-string defect identifier")
 
     decision = copy.deepcopy(source["decisions"][0])
     original = (ROOT / decision["path"]).read_bytes()
@@ -7105,8 +5743,8 @@ def self_test() -> None:
         ),
         "packet without a machine-readable lifecycle",
     )
-    open_reviewed_source = copy.deepcopy(source)
-    requirements = open_reviewed_source["decisions"][0]["required_reviews"]
+    reviewed_source = copy.deepcopy(source)
+    requirements = reviewed_source["decisions"][0]["required_reviews"]
     open_reviews = [
         test_review(
             review_id=f"adr001-{requirement['role_id']}-{identity_index}",
@@ -7119,22 +5757,175 @@ def self_test() -> None:
         for requirement in requirements
         for identity_index in range(requirement["min_distinct_identities"])
     ]
-    open_reviewed_source["review_records"] = open_reviews
-    open_reviewed = build_registry(
-        open_reviewed_source,
-        artifact_overrides=test_artifact_overrides(open_reviewed_source, content),
+    current_corpus = load_json(ROOT / SEMANTIC_CORPUS_PATH)
+    current_corpus["decision_set_binding"] = expected_corpus_decision_binding(
+        base["decision_set"],
+        json.dumps(
+            decision_set_projection(
+                base["decisions"],
+                source,
+                base["review_policy"],
+                base["decision_set"]["semantic_closure"],
+            ),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8"),
+    )
+    current_corpus_bytes = source_bytes(current_corpus)
+
+    hostile_diagnostic_registry = copy.deepcopy(current_corpus)
+    hostile_diagnostic_registry["diagnostic_registry"][0] = {}
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_diagnostic_registry),
+            },
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus with a non-string diagnostic-registry member",
+    )
+
+    hostile_case_order = copy.deepcopy(current_corpus)
+    hostile_case_order["cases"][0], hostile_case_order["cases"][1] = (
+        hostile_case_order["cases"][1],
+        hostile_case_order["cases"][0],
+    )
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_order),
+            },
+            subject_resolver=test_subject_resolver,
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus with shuffled case order",
+    )
+
+    hostile_case_diagnostics = copy.deepcopy(current_corpus)
+    hostile_case_diagnostics["cases"][0]["expected_diagnostics"] = [{}]
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_diagnostics),
+            },
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus case with a non-string expected diagnostic",
+    )
+
+    hostile_mutation_diagnostics = copy.deepcopy(current_corpus)
+    hostile_mutation_diagnostics["cases"][0]["mutations"][0]["expected_diagnostics"] = [
+        {}
+    ]
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_mutation_diagnostics),
+            },
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus mutation with a non-string expected diagnostic",
+    )
+
+    hostile_case_result = copy.deepcopy(current_corpus)
+    hostile_case_result["cases"][0]["expected_profile_result"] = []
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_result),
+            },
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus case with a non-string expected result",
+    )
+
+    hostile_case_scope = copy.deepcopy(current_corpus)
+    hostile_case_scope["cases"][0]["scope"] = {}
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_scope),
+            },
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus case with a non-string scope",
+    )
+
+    hostile_case_identity = copy.deepcopy(current_corpus)
+    hostile_case_identity["cases"][0]["profile"] = hostile_case_identity["cases"][2][
+        "profile"
+    ]
+    hostile_identity_registry = build_registry(
+        source,
+        closure_artifact_overrides={
+            SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_identity),
+        },
         subject_resolver=test_subject_resolver,
         packet_override=current_packet_content,
     )
-    if open_reviewed["decisions"][0]["status"] != "PROPOSED":
-        raise AssertionError("complete reviews bypassed OPEN semantic closure")
-    if any(
-        blocker["code"] in review_blocker_codes
-        for blocker in open_reviewed["decisions"][0]["acceptance_blockers"]
+    if (
+        hostile_identity_registry["semantic_closure_evaluation"]["semantic_corpus"][
+            "observed_status"
+        ]
+        != "INCOMPLETE_COVERAGE"
     ):
-        raise AssertionError("complete current reviews retained a review blocker")
+        raise AssertionError("semantic corpus accepted an altered closed case identity")
 
-    accepted_source = open_reviewed_source
+    hostile_mutation_admission = copy.deepcopy(current_corpus)
+    hostile_mutation_admission["cases"][0]["mutations"][0]["production_admission"] = []
+    must_fail(
+        lambda: build_registry(
+            source,
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: source_bytes(hostile_mutation_admission),
+            },
+            packet_override=current_packet_content,
+        ),
+        "semantic corpus mutation with a non-string production admission",
+    )
+
+    reviewed_source["review_records"] = open_reviews
+    reviewed = build_registry(
+        reviewed_source,
+        artifact_overrides=test_artifact_overrides(reviewed_source, content),
+        closure_artifact_overrides={
+            SEMANTIC_CORPUS_PATH: current_corpus_bytes,
+        },
+        subject_resolver=test_subject_resolver,
+        packet_override=current_packet_content,
+    )
+    if reviewed["decisions"][0]["status"] != "ACCEPTED":
+        raise AssertionError(
+            "complete local closure and reviews did not accept subject"
+        )
+    if reviewed["decisions"][0]["acceptance_blockers"]:
+        raise AssertionError("complete local closure and reviews retained a blocker")
+
+    stale_corpus = copy.deepcopy(current_corpus)
+    stale_corpus["decision_set_binding"]["sha256"] = "0" * 64
+    semantic_open = build_registry(
+        reviewed_source,
+        artifact_overrides=test_artifact_overrides(reviewed_source, content),
+        closure_artifact_overrides={
+            SEMANTIC_CORPUS_PATH: source_bytes(stale_corpus),
+        },
+        subject_resolver=test_subject_resolver,
+        packet_override=current_packet_content,
+    )
+    if (
+        semantic_open["semantic_closure_evaluation"]["state"] != "OPEN"
+        or semantic_open["decisions"][0]["status"] != "PROPOSED"
+    ):
+        raise AssertionError("stale semantic corpus did not block reviewed ADRs")
+
+    accepted_source = reviewed_source
     reviews = open_reviews
 
     def build_test(
@@ -7147,12 +5938,15 @@ def self_test() -> None:
         return build_registry(
             test_source,
             artifact_overrides=test_artifact_overrides(test_source, content),
+            closure_artifact_overrides={
+                SEMANTIC_CORPUS_PATH: current_corpus_bytes,
+            },
             subject_resolver=test_resolver,
             policy_overrides=test_policy_overrides,
             packet_override=test_packet,
         )
 
-    accepted = open_reviewed
+    accepted = reviewed
     expected_override_source = source_bytes(accepted_source)
     if accepted["source"] != {
         "path": SOURCE_RELATIVE,
@@ -7160,6 +5954,18 @@ def self_test() -> None:
         "bytes": len(expected_override_source),
     }:
         raise AssertionError("source override identity does not bind override bytes")
+
+    hostile = copy.deepcopy(accepted_source)
+    hostile["review_records"][0]["adr_id"] = {}
+    must_fail(lambda: build_test(hostile), "review with a non-string ADR ID")
+
+    hostile = copy.deepcopy(accepted_source)
+    hostile["review_records"][0]["reviewer"]["identity_kind"] = []
+    must_fail(lambda: build_test(hostile), "review with a non-string identity kind")
+
+    hostile = copy.deepcopy(accepted_source)
+    hostile["review_records"][0]["decision"] = {}
+    must_fail(lambda: build_test(hostile), "review with a non-string decision")
 
     hostile = copy.deepcopy(accepted_source)
     hostile["review_records"][1]["external_receipt"] = copy.deepcopy(
@@ -7396,6 +6202,10 @@ def self_test() -> None:
     }:
         raise AssertionError("unresolved condition did not block acceptance")
 
+    hostile = copy.deepcopy(conditional)
+    hostile["review_records"][0]["conditions"][0]["status"] = []
+    must_fail(lambda: build_test(hostile), "condition with a non-string status")
+
     resolved = copy.deepcopy(conditional)
     resolved_review = resolved["review_records"][0]
     resolved_condition = resolved_review["conditions"][0]
@@ -7482,6 +6292,15 @@ def self_test() -> None:
     must_fail(
         lambda: build_test(hostile),
         "self-review asserted as independent",
+    )
+
+    hostile = copy.deepcopy(accepted_source)
+    hostile["review_records"][independent_index]["reviewer"][
+        "implementation_owner_identities"
+    ] = [{}]
+    must_fail(
+        lambda: build_test(hostile),
+        "review with a non-string implementation-owner identity",
     )
 
     hostile = copy.deepcopy(accepted_source)
@@ -7711,14 +6530,6 @@ def main() -> int:
             "source, and ADR bytes"
         ),
     )
-    mode.add_argument(
-        "--capture-semantic-parser-results",
-        action="store_true",
-        help=(
-            "capture exact Rust and TypeScript semantic parser PASS results with "
-            "a write-once atomic directory install"
-        ),
-    )
     parser.add_argument(
         "--self-test", action="store_true", help="also run hostile review mutations"
     )
@@ -7735,18 +6546,6 @@ def main() -> int:
         if args.emit_review_subject is not None:
             subject = emit_review_subject(args.emit_review_subject)
             print(json.dumps(subject, ensure_ascii=False, indent=2))
-            return 0
-        if args.capture_semantic_parser_results:
-            if args.require_all_accepted:
-                fail(
-                    "semantic parser capture cannot be combined with "
-                    "--require-all-accepted"
-                )
-            captured = capture_semantic_parser_results()
-            print(
-                "CAPTURED semantic parser results: "
-                + ", ".join(identity["path"] for identity in captured)
-            )
             return 0
         expected = build_registry()
         try:

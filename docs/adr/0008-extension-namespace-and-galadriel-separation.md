@@ -1938,6 +1938,182 @@ slowness, or overload cannot enter command/fail-safe queues. Policy-eligible
 assessment evaluation shares the bounded policy-authority scheduler described
 above; its qualified local claim is bounded nonstarvation, not zero delay.
 
+## Low-overhead extension transport reconciliation
+
+The stable outer extension transport is a bounded raw chunk frame, not a
+structured JSON wrapper. B03 selects one installed frame-profile identity and
+one route-encoding identity. N01 assigns that profile's exact magic, version,
+field widths, byte order, and digest domains. The fixed header carries only these
+meanings:
+
+- wrapper version and package class.
+- prepared activation-context digest.
+- complete protected-package digest and positive total byte length.
+- zero-based chunk index, positive chunk count, and positive chunk byte length.
+
+The selected frame and resource profiles jointly define one closed package-class
+registry. Each entry binds one literal header value to one positive hard package-
+byte ceiling. The registry has no unknown or default class. B03 selects the
+profile identities, and N01 generates the exact literals and ceiling table from
+those selected profiles.
+
+The activation-context digest is derived only after the complete security-state
+digest exists. Its canonical projection commits these values:
+
+- authenticated producer and audience.
+- direct realm and complete scope.
+- extension manifest, literal route, and package class.
+- parser, callback, resource, frame, and route-encoding profile identities.
+- complete security-state digest.
+- receiver-clock incarnation and exclusive activation expiry.
+- receiver-issued activation incarnation.
+
+The activation incarnation never repeats. Lost or rolled-back activation state
+cannot recreate it. This order prevents a hash cycle.
+
+The activation registry retains the exact canonical activation-context bytes
+for the activation lifetime. A digest resolves to exactly one installed byte
+sequence. Installing different canonical bytes under an existing digest rejects
+without replacing, widening, or otherwise mutating the installed activation.
+This collision check occurs during activation, outside the chunk hot path.
+
+At activation, the receiver samples one positive JSON-safe tick from its
+monotonic clock incarnation. The installed resource profile selects a positive
+`activation_lifetime_ns` no greater than the B03 maximum. Checked addition
+derives the exclusive `activation_expires_ns`. Missing clock state, clock
+rollback, zero lifetime, or overflow rejects before activation. Chunk receipt
+and callback activity do not change the expiry. Equality is expired. A
+receiver-owned timer can terminalize active slots without waiting for later
+input.
+
+The installed profile derives one fixed positive chunk payload `C` from the
+authenticated transport's complete delivered-byte limit. The fixed header plus
+one chunk must fit that limit. For package length `L`, the count is exactly
+`ceil(L / C)` and must not exceed the profile's positive chunk-count maximum.
+Each checked offset is `index * C`. Every non-final chunk has length `C`. The
+final chunk alone has length `L - index * C` and can be shorter.
+
+The header package class must be one entry in that closed registry and exactly
+equal the class committed by the resolved activation context. That class selects
+its hard positive package-byte ceiling.
+The installed resource profile can only tighten that ceiling. `L` must not
+exceed either ceiling. An unknown or mismatched class, unavailable ceiling, or
+oversized `L` rejects before slot lookup or reservation.
+
+The receiver validates the fixed header, class binding, arithmetic, bounds, and
+verified transport identity before slot lookup. The stable slot key is the
+activation-context digest and package digest. Slot lookup occurs before
+activation currentness can admit work. Lookup allocates no slot and never calls
+extension code.
+
+One immutable slot commitment binds the declared total byte length, chunk count,
+and derived chunk payload. An existing active slot accepts a state transition
+only after its bound identity and current authorization match. An authorized
+same-slot mismatch in a committed value terminalizes that slot as a conflict. An
+unauthorized caller cannot mutate it. The mismatch cannot select a second
+assembly. Unauthorized and unknown-slot responses do not reveal whether a slot
+or tombstone exists.
+
+A new slot reserves the complete package buffer, fixed per-chunk metadata, and
+the greater active or terminal overhead before it copies bytes. Any valid first
+index can create the slot after reservation. Capacity failure creates no slot.
+
+Each new chunk is copied once into its final checked offset. Exact duplicate
+bytes create no copy. Different bytes at an accepted index terminalize the slot
+as a conflict without overwriting retained bytes. Later chunks recheck security,
+activation, route, producer, audience, receiver clock, and the unchanged
+exclusive expiry before retention.
+
+Chunk retention uses two short activation-owner transitions. The first
+atomically rechecks currentness and expiry, claims one empty index, and pins the
+slot buffer. The bounded copy runs outside the owner lock. The second transition
+rechecks the same state and either commits the index fingerprint or discards the
+copy. A concurrent arrival at a claimed index returns a generic in-progress
+result without waiting, allocation, or state change. A cut marks an in-flight
+claim as draining and keeps its buffer pinned until the copy returns. It never
+waits under the owner lock and cannot advance that slot into schema work.
+
+Completion begins only when every declared index is committed and no copy claim
+remains in flight. It checks the exact length and hashes the final buffer once. The
+receiver rechecks currentness and expiry before schema work. It then reserves a
+concrete bounded arena and callback slot for that schema. The parser uses only
+that arena for payload-proportional state. Capacity failure terminalizes without
+parsing or callback work. The receiver rechecks currentness and expiry
+immediately before callback entry.
+
+The final recheck and callback-boundary transition are one indivisible
+activation-owner step. A currentness cut, expiry, and callback entry have one
+local order. The callback enters before the cut or the slot terminalizes without
+entry after the cut.
+
+Before extension code starts, that step atomically installs
+`CALLBACK_BOUNDARY_ENTERED` in the same receiver-owned slot and consumes its one
+callback right. The transition binds the exact parsed package, activation,
+callback profile, and entry result. It happens before callback invocation and
+holds no owner lock while the callback runs. A restart-resumable profile persists
+that transition before entry. A memory-only profile retires the activation after
+state loss and cannot report callback success or invoke it again. The callback
+profile declares whether its arena borrows the package buffer. It also binds a
+positive work-resolution duration under the ADR-010 envelope. The pre-entry
+reservation covers both until every reference ends.
+
+A normal return installs the bounded terminal callback result. A proved process
+exit, confirmed isolation termination, or lost result after either event installs
+`UNKNOWN_AFTER_CALLBACK_BOUNDARY`. Timeout or task cancellation alone does not
+prove that callback work stopped. While execution might continue, the slot keeps
+its resolution obligation and reserved memory. It never invokes that callback
+again under the at-most-once profile. A callback profile is eligible only when
+normal return or proved isolation termination fits its checked exclusive
+work-resolution deadline. Equality does not recycle the slot without that proof.
+
+Conflict, expiry, rotation, revocation, or pre-entry capacity rejection can
+release package and arena bytes before callback entry. Successful reassembly
+completion transfers its reservation into parsing and callback state. It does not
+release either buffer while the parser or callback can reference it. After entry,
+a currentness cut closes result use but cannot free callback-owned state or
+fabricate completion. The slot becomes compact only after callback return or
+proved isolation termination resolves the obligation.
+
+Each resolved terminal state retains a compact no-reuse tombstone. Tombstone
+lookup precedes any admission of new work. Exact accepted-chunk replay never
+re-enters parsing or callback work. It returns the retained result only when
+current authorization permits that disclosure. A retired or revoked context
+receives a generic terminal no-reuse result without protected result data.
+Same-slot altered bytes or an absent index remain a conflict without protected
+result disclosure. To make that comparison without retaining the package, the
+tombstone keeps the checked byte length and raw digest for each accepted index.
+The per-index table is reserved at the declared chunk count before the first
+copy. It never grows beyond that count. At-most-once no-reuse state remains for
+the activation lifetime. A shorter retention rule requires an explicit
+idempotent at-least-once profile.
+
+The activation owner terminalizes each affected pre-callback slot when rotation
+or revocation wins. It closes each entered callback slot and retains its bounded
+resolution obligation without waiting under the owner lock. Loss of the slot
+registry retires the activation because its receiver-issued incarnation cannot
+be recreated.
+
+The activation profile reserves aggregate tombstone count and bytes for its
+lifetime. Admission stops before accepting a package whose terminal no-reuse
+state cannot remain. Exhaustion never evicts an active tombstone or revives a
+package identity.
+
+The protected package can use the larger extension ceiling below because it is
+not another universal structured frame. Its registered inner parser still
+enforces exact schema-specific node, string, item, attachment, and byte ceilings.
+No partial package reaches extension code.
+
+The earlier illustrative JSON envelope remains explanatory application content.
+It is not the selected outer chunk wrapper and cannot authorize base64 expansion,
+generic JSON reassembly, or a second payload-sized copy.
+
+The following non-wire projection closes the outer transport invariants for B01
+challenge tests. N01 still owns the exact binary layout.
+
+```json
+{"outer_encoding":"BOUNDED_RAW_CHUNK","package_is_structured_frame":false,"stable_slot_excludes_mutable_declarations":true,"receiver_activation_incarnation_bound":true,"activation_context_binds_processing_profiles":true,"activation_context_binds_clock_and_expiry":true,"header_class_registry_and_length_checked_before_reservation":true,"terminal_lookup_precedes_work_admission":true,"retired_context_discloses_result":false,"first_index_can_reserve":true,"reserve_before_copy":true,"slot_transition_orders_currentness_cut":true,"duplicate_copies_bytes":false,"conflict_overwrites_bytes":false,"complete_hash_once":true,"currentness_and_expiry_rechecked_before_schema":true,"callback_after_schema_reservation":true,"currentness_and_expiry_rechecked_before_callback":true,"callback_boundary_state_before_entry":true,"entered_callback_releases_resources_before_resolution":false,"terminal_tombstone_required":true}
+```
+
 ## Rejected alternatives
 
 - Carry non-NCP bytes on a stable NCP route.
@@ -2232,7 +2408,7 @@ overflow produces an explicit gap or rejected outcome rather than an inferred
 applied deny.
 
 The initial extension allocation has hard pre-parse ceilings of 20 MiB for the
-complete protected envelope and attachments, 16 KiB for a lifecycle receipt,
+complete protected package and attachments, 16 KiB for a lifecycle receipt,
 16 MiB for the raw assessment vector, 1,024 vector members, and 256 KiB for one
 complete serialized report inside the vector. A profile can set smaller limits.
 An otherwise valid Galadriel result above a ceiling is unpublishable and
@@ -2284,6 +2460,9 @@ occurs before replay, detector, receiver, policy, commander, or outbox lookup.
 - A contract/schema/release-suite digest remains realm-independent only where its
   schema says so. Installing it does not let a realm-scoped activation omit its
   direct realm.
+- One activation-context digest resolves to exactly one retained canonical
+  activation context. Different canonical bytes with the same digest cannot
+  replace, merge with, or mutate that activation.
 - Stable core routes never accept extension envelopes and vice versa.
 - Producer verdict, self-admission, and requested effect have no direct policy
   authority.
@@ -2655,12 +2834,26 @@ deny state is preserved until an authenticated widening transition resolves it.
 
 <a id="ncp-b01-selector-allocation-adr-008-v1"></a>
 
-One semantic question remains open. The proposed extension ceilings must conform
-to the universal 1,048,576-byte structured-message frame limit. The
-`sha256:<hex>` content address needs one injective canonical route-segment
-encoding. Namespace ownership, exact
-schema identities, optional body-authority provenance, assessor replay
-identities, and Galadriel adapter-proof references remain B03 allocation inputs.
+The outer-transport semantic question is closed by the low-overhead extension
+transport reconciliation. Each raw chunk fits the authenticated transport limit.
+The reassembled package uses its separate bounded profile. B03 selects one
+injective canonical content-address route encoding. Namespace ownership, schema,
+processing profiles, optional body-authority provenance, assessor replay,
+adapter-proof references, and activation lifetime remain B03 allocation inputs.
+
+B03 selects 1 through 64 namespace-owner identities and 1 through 1,024 schema
+identities. It can select 0 through 64 body-authority provenance identities, 0
+through 64 assessor-replay identities, and 0 through 256 adapter-proof reference
+identities. It also selects 1 through 16 identities for each frame,
+route-encoding, parser, callback, and resource profile class. Each frame profile
+defines a closed package-class enum and its exact parser-profile mapping. B03
+selects one positive activation lifetime maximum. It cannot exceed
+9,007,199,254,740,991 nanoseconds. B03 also selects one positive chunk-count
+maximum that cannot exceed 65,536. Each identity matches
+`[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. It must satisfy the corresponding
+framing, routing, ownership, content-address, provenance, replay, processing, or
+reference predicate in this ADR. Unknown aliases and identities that cross a
+role boundary reject before activation or allocation.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

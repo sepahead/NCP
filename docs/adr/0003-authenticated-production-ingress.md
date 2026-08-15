@@ -148,6 +148,52 @@ realm-scoped inner context carries an exactly equal key.
 Authentication precedes semantic interpretation and never grants a session,
 lease, lifecycle transition, operation outcome, disposition, or plant action.
 
+## Low-overhead ingress reconciliation
+
+A-direct does not require a separate process. When transport termination and
+NCP admission share one trust process, the transport mints one receiver-owned
+opaque capability. Caller bytes cannot construct, serialize, alter, split, or
+recombine that capability.
+
+When transport termination is in another process, the deployment must use an
+authenticated operating-system-protected handoff. The handoff must preserve the
+same exact context. Otherwise, the deployment must use B-over-A. A copied
+principal, certificate subject, route, or context digest is not a capability.
+
+A-direct is the proposed hot-data path. It authenticates the connection once and
+prepares one immutable context for each permitted route and frame class. A hot
+frame does not repeat application signatures, realm strings, key identifiers,
+security epochs, or manifest scans that this context already fixes.
+
+B-over-A remains an explicit low-rate forwarding path. Each mutating operation
+installs one immutable durable outbox item before any external send. The outbox
+binds the signer, exact protected bytes, target, route, audience, realm, session,
+operation class, security state, and idempotency key.
+
+Each send attempt uses one short owner transition. The owner rechecks security,
+revocation, target permission, and the operation deadline, then marks that exact
+attempt active before network work starts. Network work runs outside the owner
+lock. Timeout, cancellation, crash, or an unknown target result keeps the same
+attempt unresolved. It cannot create a fresh item or operation identity.
+Recovery queries the same item. An exact resend is permitted only when the
+installed target profile binds the same protected bytes and idempotency key to
+retained no-reuse state. Otherwise, authenticated non-acceptance is required
+before another send.
+
+The transport profile validates its native certificate, URI, or operating-system
+identity once and maps it to one canonical NCP principal. It never applies an
+NCP route-segment grammar to the native transport identity.
+
+The verified native identity projection is 1 through 1,024 UTF-8 bytes under its
+transport-specific canonicalization rule. The transport rejects an oversized,
+ambiguous, noncanonical, or unmapped projection before it mints the capability.
+Credential rotation can map several exact current credentials to one principal,
+but caller bytes cannot request that mapping.
+
+Named proof objects in this ADR describe observable bindings. A local
+implementation can combine them into one bounded record and transition. It must
+preserve the failure order, no-reuse behavior, and recovery result.
+
 ## Rejected alternatives
 
 - Trust payload identity, Zenoh source ID, connection topology, certificate common
@@ -369,7 +415,11 @@ unauthenticated compatibility mode.
 
 <a id="ncp-b01-selector-allocation-adr-003-v1"></a>
 
-Independent review must decide whether production requires a process-isolated direct-capability handoff. That deployment choice can strengthen containment but cannot weaken authenticated actor, realm, route, manifest, replay, or exact-byte invariants.
+The process-isolation question is closed by the low-overhead ingress
+reconciliation. The same-process direct endpoint uses an opaque receiver-owned
+capability. Separate-process termination uses an authenticated protected
+handoff or signed forwarding. Isolation can strengthen containment but cannot
+weaken any binding.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

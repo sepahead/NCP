@@ -51,12 +51,16 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
   "docs/adr/0006-body-issued-authority-and-time.md#2":
     "ADR006_STALE_SELF_ISSUED_LEASE_V1",
   "docs/adr/0007-command-disposition-journal.md#1":
-    "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
+    "ADR007_DISPOSITION_QUERY_PROJECTION_V1",
   "docs/adr/0007-command-disposition-journal.md#2":
+    "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
+  "docs/adr/0007-command-disposition-journal.md#3":
     "ADR007_INVALID_DISPOSITION_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#1":
-    "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
+    "ADR008_RAW_CHUNK_PROJECTION_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#2":
+    "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
+  "docs/adr/0008-extension-namespace-and-galadriel-separation.md#3":
     "ADR008_GALADRIEL_POLICY_INJECTION_V1",
   "docs/adr/0009-security-state-rotation-and-revocation.md#1":
     "ADR009_SECURITY_STATE_PROJECTION_V1",
@@ -70,6 +74,8 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
     "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#2":
     "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
+  "docs/adr/0011-ecosystem-topology-and-handover.md#3":
+    "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
 });
 
 const HEADER_LIMITS: JsonLimits = Object.freeze({
@@ -137,9 +143,15 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
     case "ADR006_STALE_SELF_ISSUED_LEASE_V1":
       adr006(document, input.fixture, diagnostics);
       break;
+    case "ADR007_DISPOSITION_QUERY_PROJECTION_V1":
+      adr007Query(document, diagnostics);
+      break;
     case "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1":
     case "ADR007_INVALID_DISPOSITION_V1":
       adr007(document, input.fixture, diagnostics);
+      break;
+    case "ADR008_RAW_CHUNK_PROJECTION_V1":
+      adr008RawChunk(document, diagnostics);
       break;
     case "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1":
       adr008Assessment(document, input.fixture, diagnostics);
@@ -164,6 +176,9 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
       break;
     case "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1":
       adr011Command(document, input.fixture, diagnostics);
+      break;
+    case "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1":
+      adr011EffectPathFencing(document, diagnostics);
       break;
     default:
       throw new SemanticConfigurationError(`unknown profile ${input.profile}`);
@@ -191,7 +206,9 @@ function adr001(
   fixture: JsonValue,
   diagnostics: string[],
 ): void {
-  if (document.ncp_version !== fixtureString(fixture, "expected_ncp_version")) {
+  const actualMajor = stableWireMajor(document.ncp_version);
+  const expectedMajor = stableWireMajor(fixtureString(fixture, "expected_ncp_version"));
+  if (actualMajor === undefined || expectedMajor === undefined || actualMajor !== expectedMajor) {
     diagnostics.push("NCP_VERSION_MISMATCH");
   }
   if (document.kind !== fixtureString(fixture, "expected_session_kind")) {
@@ -216,7 +233,7 @@ function adr001(
 }
 
 function adr002(document: JsonObject, fixture: JsonValue, diagnostics: string[]): void {
-  if (document.wire_version !== fixtureString(fixture, "expected_wire_version")) {
+  if (stableWireMajor(document.wire_version) !== 1n) {
     diagnostics.push("WIRE_VERSION_MISMATCH");
   }
   const expectedRealm = fixtureObject(fixture, "authenticated_realm_key");
@@ -226,13 +243,39 @@ function adr002(document: JsonObject, fixture: JsonValue, diagnostics: string[])
   } else if (!objectsExactlyEqualOn(realm, expectedRealm, REALM_KEY_FIELDS)) {
     diagnostics.push("AUTHORITY_REALM_KEY_MISMATCH");
   }
-  if (Object.hasOwn(document, "contract_hash")) {
-    diagnostics.push("COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY");
-  }
+  const expectedDigest = fixtureString(fixture, "expected_stable_core_digest");
+  let stableCoreMatches = false;
   if (document.stable_core_digest === undefined || document.stable_core_digest === null) {
     diagnostics.push("STABLE_CORE_DIGEST_MISSING_OR_NULL");
   } else if (!isPrefixedDigest(document.stable_core_digest)) {
     diagnostics.push("STABLE_CORE_DIGEST_INVALID");
+  } else if (document.stable_core_digest !== expectedDigest) {
+    diagnostics.push("STABLE_CORE_DIGEST_MISMATCH");
+  } else {
+    stableCoreMatches = true;
+  }
+  if (Object.hasOwn(document, "contract_hash") && !stableCoreMatches) {
+    diagnostics.push("COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY");
+  }
+}
+
+function stableWireMajor(value: JsonValue | undefined): bigint | undefined {
+  if (typeof value !== "string") return undefined;
+  const parts = value.split(".");
+  if (parts.length < 1 || parts.length > 2) return undefined;
+  const canonical = /^(?:0|[1-9][0-9]*)$/;
+  if (!parts.every((part) => part.length <= 20 && canonical.test(part))) return undefined;
+  const majorPart = parts[0];
+  const minorPart = parts[1];
+  if (majorPart === undefined) return undefined;
+  try {
+    const major = BigInt(majorPart);
+    const minor = minorPart === undefined ? 0n : BigInt(minorPart);
+    const maximum = 18_446_744_073_709_551_615n;
+    if (major === 0n || major > maximum || minor > maximum) return undefined;
+    return major;
+  } catch {
+    return undefined;
   }
 }
 
@@ -248,7 +291,7 @@ function adr003Wrapper(
   if (protectedValue !== undefined) {
     try {
       protectedHeader = asObject(
-        strictJsonParse(decodeBase64Url(protectedValue), HEADER_LIMITS),
+        strictJsonParse(decodeBase64Url(protectedValue, HEADER_LIMITS.maxBytes), HEADER_LIMITS),
       );
     } catch (error) {
       if (!(error instanceof StrictJsonError) && !(error instanceof Base64UrlError)) throw error;
@@ -279,14 +322,14 @@ function adr003Wrapper(
   let signatureLength: number | undefined;
   if (typeof document.signature === "string") {
     try {
-      signatureLength = decodeBase64Url(document.signature).byteLength;
+      signatureLength = decodeBase64Url(document.signature, expectedSignatureBytes).byteLength;
     } catch (error) {
       if (!(error instanceof Base64UrlError)) throw error;
     }
   }
   if (signatureLength !== expectedSignatureBytes) {
     diagnostics.push("SIGNATURE_LENGTH_INVALID");
-  } else {
+  } else if (!fixtureBoolean(fixture, "signature_verifies")) {
     diagnostics.push("SIGNATURE_NOT_VALID");
   }
 }
@@ -331,17 +374,16 @@ function adr005Declaration(
   fixture: JsonValue,
   diagnostics: string[],
 ): void {
-  if (document.ncp_version !== "1.0") diagnostics.push("NCP_VERSION_MISMATCH");
+  if (stableWireMajor(document.ncp_version) !== 1n) diagnostics.push("NCP_VERSION_MISMATCH");
   if (document.kind !== "declare_stream") diagnostics.push("MESSAGE_KIND_MISMATCH");
   const realm = asObject(document.authority_realm_key);
-  if (!isRealmKey(realm)) {
-    diagnostics.push("REALM_REQUIRED");
-  } else {
-    const expected = fixtureObject(fixture, "authenticated_realm_key");
-    if (!objectsExactlyEqualOn(realm, expected, REALM_KEY_FIELDS)) {
-      diagnostics.push("REALM_ROUTE_MISMATCH");
-    }
-    validateRouteRealm(document.route, realm, diagnostics);
+  const expected = fixtureObject(fixture, "authenticated_realm_key");
+  if (
+    !isRealmKey(realm) ||
+    !objectsExactlyEqualOn(realm, expected, REALM_KEY_FIELDS) ||
+    document.route !== fixtureString(fixture, "expected_route")
+  ) {
+    diagnostics.push("REALM_ROUTE_MISMATCH");
   }
   if (document.sequence_start !== 1) {
     diagnostics.push("STREAM_SEQUENCE_START_INVALID");
@@ -406,6 +448,54 @@ function adr006(document: JsonObject, fixture: JsonValue, diagnostics: string[])
   }
 }
 
+function adr007Query(document: JsonObject, diagnostics: string[]): void {
+  requireExactProjectionMembers(
+    document,
+    [
+      "branches",
+      "early_effect_mode",
+      "effect_boundary_rechecks_currentness",
+      "estop_reservation_rechecks_currentness",
+      "hold_admission_precedes_effect",
+      "post_effect_admission_mode",
+      "query_coordinate_bound",
+      "rejected_candidate_cannot_select_local_hold",
+      "result_projection_omits_authentication",
+      "retained_requires_complete_chain",
+      "retired_proves_effect",
+    ],
+    "DISPOSITION_RESULT_PROJECTION_INVALID",
+    diagnostics,
+  );
+  requireProjectionBoolean(document, "query_coordinate_bound", true, "DISPOSITION_QUERY_COORDINATE_INVALID", diagnostics);
+  requireProjectionBoolean(document, "result_projection_omits_authentication", true, "DISPOSITION_RESULT_PROJECTION_INVALID", diagnostics);
+  requireProjectionBoolean(document, "retained_requires_complete_chain", true, "DISPOSITION_RETAINED_CHAIN_REQUIRED", diagnostics);
+  requireProjectionBoolean(document, "retired_proves_effect", false, "DISPOSITION_RETIRED_EFFECT_FORBIDDEN", diagnostics);
+  if (document.early_effect_mode !== "ESTOP_ONLY") {
+    diagnostics.push("FAIL_SAFE_EARLY_EFFECT_MODE_INVALID");
+  }
+  requireProjectionBoolean(document, "estop_reservation_rechecks_currentness", true, "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED", diagnostics);
+  requireProjectionBoolean(document, "effect_boundary_rechecks_currentness", true, "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED", diagnostics);
+  requireProjectionBoolean(document, "hold_admission_precedes_effect", true, "HOLD_ADMISSION_ORDER_INVALID", diagnostics);
+  requireProjectionBoolean(document, "rejected_candidate_cannot_select_local_hold", true, "REJECTED_CANDIDATE_LOCAL_HOLD_FORBIDDEN", diagnostics);
+  if (document.post_effect_admission_mode !== "ESTOP_ONLY") {
+    diagnostics.push("POST_EFFECT_ADMISSION_MODE_INVALID");
+  }
+  const expected = [
+    "QUERY_FAILURE",
+    "RETAINED_DISPOSITION",
+    "RETIRED_DISPOSITION_COMMITMENT",
+  ];
+  const branches = asArray(document.branches);
+  if (
+    branches === undefined ||
+    branches.length !== expected.length ||
+    branches.some((branch, index) => branch !== expected[index])
+  ) {
+    diagnostics.push("DISPOSITION_RESULT_BRANCHES_INVALID");
+  }
+}
+
 function adr007(document: JsonObject, fixture: JsonValue, diagnostics: string[]): void {
   if (document.kind !== "command_disposition") {
     diagnostics.push("MESSAGE_KIND_MISMATCH");
@@ -428,6 +518,64 @@ function adr007(document: JsonObject, fixture: JsonValue, diagnostics: string[])
   }
 }
 
+function adr008RawChunk(document: JsonObject, diagnostics: string[]): void {
+  requireExactProjectionMembers(
+    document,
+    [
+      "activation_context_binds_clock_and_expiry",
+      "activation_context_binds_processing_profiles",
+      "callback_after_schema_reservation",
+      "callback_boundary_state_before_entry",
+      "complete_hash_once",
+      "conflict_overwrites_bytes",
+      "currentness_and_expiry_rechecked_before_callback",
+      "currentness_and_expiry_rechecked_before_schema",
+      "duplicate_copies_bytes",
+      "entered_callback_releases_resources_before_resolution",
+      "first_index_can_reserve",
+      "header_class_registry_and_length_checked_before_reservation",
+      "outer_encoding",
+      "package_is_structured_frame",
+      "receiver_activation_incarnation_bound",
+      "reserve_before_copy",
+      "retired_context_discloses_result",
+      "slot_transition_orders_currentness_cut",
+      "stable_slot_excludes_mutable_declarations",
+      "terminal_lookup_precedes_work_admission",
+      "terminal_tombstone_required",
+    ],
+    "EXTENSION_OUTER_ENCODING_INVALID",
+    diagnostics,
+  );
+  if (document.outer_encoding !== "BOUNDED_RAW_CHUNK") {
+    diagnostics.push("EXTENSION_OUTER_ENCODING_INVALID");
+  }
+  for (const [field, expected, diagnostic] of [
+    ["package_is_structured_frame", false, "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN"],
+    ["stable_slot_excludes_mutable_declarations", true, "EXTENSION_STABLE_SLOT_INVALID"],
+    ["receiver_activation_incarnation_bound", true, "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED"],
+    ["activation_context_binds_processing_profiles", true, "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED"],
+    ["activation_context_binds_clock_and_expiry", true, "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED"],
+    ["header_class_registry_and_length_checked_before_reservation", true, "EXTENSION_HEADER_ADMISSION_INVALID"],
+    ["terminal_lookup_precedes_work_admission", true, "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID"],
+    ["retired_context_discloses_result", false, "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN"],
+    ["first_index_can_reserve", true, "EXTENSION_FIRST_INDEX_RULE_INVALID"],
+    ["reserve_before_copy", true, "EXTENSION_RESERVATION_ORDER_INVALID"],
+    ["slot_transition_orders_currentness_cut", true, "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID"],
+    ["duplicate_copies_bytes", false, "EXTENSION_DUPLICATE_COPY_FORBIDDEN"],
+    ["conflict_overwrites_bytes", false, "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN"],
+    ["complete_hash_once", true, "EXTENSION_COMPLETE_HASH_RULE_INVALID"],
+    ["currentness_and_expiry_rechecked_before_schema", true, "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED"],
+    ["callback_after_schema_reservation", true, "EXTENSION_SCHEMA_RESERVATION_REQUIRED"],
+    ["currentness_and_expiry_rechecked_before_callback", true, "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED"],
+    ["callback_boundary_state_before_entry", true, "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED"],
+    ["entered_callback_releases_resources_before_resolution", false, "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID"],
+    ["terminal_tombstone_required", true, "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED"],
+  ] as const) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+}
+
 function adr008Assessment(
   document: JsonObject,
   fixture: JsonValue,
@@ -440,14 +588,13 @@ function adr008Assessment(
     diagnostics.push("EXTENSION_SCHEMA_VERSION_MISMATCH");
   }
   const realm = asObject(document.authority_realm_key);
-  if (!isRealmKey(realm)) {
-    diagnostics.push("REALM_REQUIRED");
-  } else {
-    const expected = fixtureObject(fixture, "authenticated_realm_key");
-    if (!objectsExactlyEqualOn(realm, expected, REALM_KEY_FIELDS)) {
-      diagnostics.push("REALM_ROUTE_MISMATCH");
-    }
-    validateRouteRealm(document.route, realm, diagnostics);
+  const expected = fixtureObject(fixture, "authenticated_realm_key");
+  if (
+    !isRealmKey(realm) ||
+    !objectsExactlyEqualOn(realm, expected, REALM_KEY_FIELDS) ||
+    document.route !== fixtureString(fixture, "expected_route")
+  ) {
+    diagnostics.push("REALM_ROUTE_MISMATCH");
   }
   if (document.producer_principal_id !== fixtureString(fixture, "extension_assessor_principal_id")) {
     diagnostics.push("EXTENSION_PRODUCER_ROLE_INVALID");
@@ -475,20 +622,17 @@ function adr008Assessment(
   } else {
     for (const assessmentValue of assessments) {
       const assessment = asObject(assessmentValue);
-      if (assessment?.kind !== "EVALUATED_DEFAULT_REPORT") {
-        diagnostics.push("ASSESSMENT_MAGNITUDE_REQUIRED");
-        continue;
-      }
       validateTypedDigest(
-        assessment.assessment_binding_identity,
+        assessment?.assessment_binding_identity,
         "galadriel-assessment-binding-v2",
         diagnostics,
       );
-      const report = asObject(assessment.report_evidence);
+      const report = asObject(assessment?.report_evidence);
       const verdict = report === undefined ? undefined : asObject(report.verdict);
       if (
+        assessment?.kind !== "EVALUATED_DEFAULT_REPORT" ||
         verdict?.verdict !== "attributed_inconsistency" ||
-        nonemptyString(verdict?.magnitude) === undefined
+        nonemptyString(verdict.magnitude) === undefined
       ) {
         diagnostics.push("ASSESSMENT_MAGNITUDE_REQUIRED");
       }
@@ -515,6 +659,29 @@ function adr008Policy(
     Object.hasOwn(document, "state_usability")
   ) {
     diagnostics.push("EXTENSION_POLICY_FIELD_FORBIDDEN");
+  }
+}
+
+function requireProjectionBoolean(
+  document: JsonObject,
+  field: string,
+  expected: boolean,
+  diagnostic: string,
+  diagnostics: string[],
+): void {
+  if (document[field] !== expected) diagnostics.push(diagnostic);
+}
+
+function requireExactProjectionMembers(
+  document: JsonObject,
+  expected: readonly string[],
+  diagnostic: string,
+  diagnostics: string[],
+): void {
+  const actual = Object.keys(document).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    diagnostics.push(diagnostic);
   }
 }
 
@@ -678,10 +845,8 @@ function validateQosRealm(
   if (!objectsExactlyEqualOn(realm, expected, REALM_KEY_FIELDS)) {
     diagnostics.push("REALM_ROUTE_MISMATCH");
   }
-  if (nonemptyString(document.route) === undefined) {
+  if (document.route !== fixtureString(fixture, "expected_route")) {
     diagnostics.push("REALM_ROUTE_MISMATCH");
-  } else {
-    validateRouteRealm(document.route, realm, diagnostics);
   }
 }
 
@@ -728,6 +893,39 @@ function adr011Command(
   }
 }
 
+function adr011EffectPathFencing(
+  document: JsonObject,
+  diagnostics: string[],
+): void {
+  requireExactProjectionMembers(
+    document,
+    [
+      "disjoint_paths_require_independent_fencing_domains",
+      "endpoint_aliases_normalized",
+      "fencing_token_binds_domain_incarnation",
+      "handover_allows_live_writer_overlap",
+      "hot_path_evaluates_proof_graph",
+      "overlap_uses_resource_intersection",
+      "unfenceable_replacement_requires_isolation",
+      "write_requires_current_fencing_term",
+    ],
+    "EFFECT_OVERLAP_CHECK_REQUIRED",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of [
+    ["endpoint_aliases_normalized", true, "EFFECT_ENDPOINT_ALIAS_NORMALIZATION_REQUIRED"],
+    ["overlap_uses_resource_intersection", true, "EFFECT_OVERLAP_CHECK_REQUIRED"],
+    ["disjoint_paths_require_independent_fencing_domains", true, "EFFECT_FENCING_DOMAIN_SEPARATION_REQUIRED"],
+    ["fencing_token_binds_domain_incarnation", true, "EFFECT_FENCING_DOMAIN_INCARNATION_REQUIRED"],
+    ["write_requires_current_fencing_term", true, "EFFECT_WRITE_FENCING_TERM_REQUIRED"],
+    ["unfenceable_replacement_requires_isolation", true, "EFFECT_PATH_ISOLATION_REQUIRED"],
+    ["handover_allows_live_writer_overlap", false, "EFFECT_HANDOVER_OVERLAP_FORBIDDEN"],
+    ["hot_path_evaluates_proof_graph", false, "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN"],
+  ] as const) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+}
+
 function validateFixture(profile: string, fixture: JsonValue): void {
   const value = requiredObject(fixture, `fixture for ${profile}`);
   switch (profile) {
@@ -744,10 +942,18 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireFixtureString(value.expected_commander_principal_id, profile);
       return;
     case "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1":
-      exactFixtureKeys(value, ["authenticated_realm_key", "digest_algorithm", "expected_wire_version"], profile);
+      exactFixtureKeys(value, [
+        "authenticated_realm_key",
+        "digest_algorithm",
+        "expected_stable_core_digest",
+      ], profile);
       validateRealmFixture(value.authenticated_realm_key, profile);
       requireFixtureLiteral(value.digest_algorithm, "sha256", profile);
-      requireFixtureLiteral(value.expected_wire_version, "1.0", profile);
+      if (!isPrefixedDigest(value.expected_stable_core_digest)) {
+        throw new SemanticConfigurationError(
+          `${profile} fixture requires a prefixed lowercase SHA-256`,
+        );
+      }
       return;
     case "ADR003_FLATTENED_FORWARDING_WRAPPER_V1":
       exactFixtureKeys(value, [
@@ -779,14 +985,23 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireFixtureLiteral(value.output_allocation_permitted, false, profile);
       return;
     case "ADR005_DECLARE_STREAM_EXCERPT_V1":
-    case "ADR005_UNDECLARED_FRAME_V1":
       exactFixtureKeys(value, [
         "authenticated_publisher_principal_id",
         "authenticated_realm_key",
+        "expected_route",
         "live_declaration_epoch_ids",
       ], profile);
       validateRealmFixture(value.authenticated_realm_key, profile);
       requireFixtureString(value.authenticated_publisher_principal_id, profile);
+      requireFixtureString(value.expected_route, profile);
+      requireStringArray(value.live_declaration_epoch_ids, profile);
+      return;
+    case "ADR005_UNDECLARED_FRAME_V1":
+      exactFixtureKeys(value, [
+        "authenticated_realm_key",
+        "live_declaration_epoch_ids",
+      ], profile);
+      validateRealmFixture(value.authenticated_realm_key, profile);
       requireStringArray(value.live_declaration_epoch_ids, profile);
       return;
     case "ADR006_BODY_LEASE_EXCERPT_V1":
@@ -806,6 +1021,10 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireFixtureInteger(lease.term, profile, true);
       return;
     }
+    case "ADR007_DISPOSITION_QUERY_PROJECTION_V1":
+    case "ADR008_RAW_CHUNK_PROJECTION_V1":
+      exactFixtureKeys(value, [], profile);
+      return;
     case "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1":
     case "ADR007_INVALID_DISPOSITION_V1":
       exactFixtureKeys(value, ["nonterminal_states", "terminal_states"], profile);
@@ -813,15 +1032,24 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireStringArray(value.terminal_states, profile);
       return;
     case "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1":
-    case "ADR008_GALADRIEL_POLICY_INJECTION_V1":
       exactFixtureKeys(value, [
         "authenticated_realm_key",
+        "expected_route",
         "extension_assessor_principal_id",
         "extension_receiver_principal_id",
       ], profile);
       validateRealmFixture(value.authenticated_realm_key, profile);
+      requireFixtureString(value.expected_route, profile);
       requireFixtureString(value.extension_assessor_principal_id, profile);
       requireFixtureString(value.extension_receiver_principal_id, profile);
+      return;
+    case "ADR008_GALADRIEL_POLICY_INJECTION_V1":
+      exactFixtureKeys(value, [
+        "authenticated_realm_key",
+        "extension_assessor_principal_id",
+      ], profile);
+      validateRealmFixture(value.authenticated_realm_key, profile);
+      requireFixtureString(value.extension_assessor_principal_id, profile);
       return;
     case "ADR009_SECURITY_STATE_PROJECTION_V1":
     case "ADR009_INVALID_SECURITY_STATE_V1": {
@@ -843,10 +1071,12 @@ function validateFixture(profile: string, fixture: JsonValue): void {
     case "ADR010_INVALID_ACTION_QOS_PROFILE_V1":
       exactFixtureKeys(value, [
         "authenticated_realm_key",
+        "expected_route",
         "maximum_capacity_per_stream",
         "required_fail_safe_priority",
       ], profile);
       validateRealmFixture(value.authenticated_realm_key, profile);
+      requireFixtureString(value.expected_route, profile);
       requireFixtureInteger(value.maximum_capacity_per_stream, profile, true);
       requireStringArray(value.required_fail_safe_priority, profile);
       return;
@@ -856,11 +1086,9 @@ function validateFixture(profile: string, fixture: JsonValue): void {
         "evaluation_utc_ms",
         "expected_audience",
         "expected_issuer",
-        "native_gated_intent_version",
       ], profile);
       validateRealmFixture(value.authenticated_realm_key, profile);
       requireFixtureInteger(value.evaluation_utc_ms, profile, true);
-      requireFixtureInteger(value.native_gated_intent_version, profile, true);
       requireFixtureString(value.expected_audience, profile);
       requireFixtureString(value.expected_issuer, profile);
       return;
@@ -873,6 +1101,9 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       validateRealmFixture(value.authenticated_realm_key, profile);
       requireFixtureString(value.enrolled_body_principal_id, profile);
       requireFixtureString(value.gated_commander_principal_id, profile);
+      return;
+    case "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1":
+      exactFixtureKeys(value, [], profile);
       return;
     default:
       throw new SemanticConfigurationError(`fixture has unknown profile ${profile}`);
@@ -895,35 +1126,6 @@ function validateAlgorithm(
 ): void {
   if (actual === undefined) diagnostics.push("ALGORITHM_LABEL_REQUIRED");
   else if (actual !== expected) diagnostics.push("ALGORITHM_LABEL_FORBIDDEN");
-}
-
-function validateRouteRealm(
-  routeValue: JsonValue | undefined,
-  realm: JsonObject | undefined,
-  diagnostics: string[],
-): void {
-  const route = nonemptyString(routeValue);
-  const stableRealm = realm === undefined ? undefined : nonemptyString(realm.stable_realm_id);
-  if (route === undefined || stableRealm === undefined || route.split("/")[0] !== stableRealm) {
-    diagnostics.push("REALM_ROUTE_MISMATCH");
-  }
-}
-
-function validateTypedDigest(
-  value: JsonValue | undefined,
-  expectedDomain: string,
-  diagnostics: string[],
-): void {
-  const identity = asObject(value);
-  if (
-    identity?.algorithm !== "sha256" ||
-    identity.domain !== expectedDomain ||
-    identity.encoding !== "lowercase_hex" ||
-    typeof identity.digest !== "string" ||
-    !HEX_256.test(identity.digest)
-  ) {
-    diagnostics.push("DIGEST_ENCODING_INVALID");
-  }
 }
 
 function isRealmKey(value: JsonObject | undefined): value is JsonObject {
@@ -1070,6 +1272,23 @@ function isPrefixedDigest(value: JsonValue | undefined): boolean {
   return typeof value === "string" && SHA256_PREFIXED.test(value);
 }
 
+function validateTypedDigest(
+  value: JsonValue | undefined,
+  expectedDomain: string,
+  diagnostics: string[],
+): void {
+  const identity = asObject(value);
+  if (
+    identity?.algorithm !== "sha256" ||
+    identity.domain !== expectedDomain ||
+    identity.encoding !== "lowercase_hex" ||
+    typeof identity.digest !== "string" ||
+    !HEX_256.test(identity.digest)
+  ) {
+    diagnostics.push("DIGEST_ENCODING_INVALID");
+  }
+}
+
 class Base64UrlError extends Error {
   constructor() {
     super("invalid unpadded base64url");
@@ -1077,19 +1296,19 @@ class Base64UrlError extends Error {
   }
 }
 
-function decodeBase64Url(value: string): Uint8Array {
-  if (!/^[A-Za-z0-9_-]*$/.test(value) || value.length % 4 === 1) {
+function decodeBase64Url(value: string, maximumDecodedBytes: number): Uint8Array {
+  if (!Number.isSafeInteger(maximumDecodedBytes) || maximumDecodedBytes < 0) {
     throw new Base64UrlError();
   }
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  const outputLength = Math.floor((value.length * 6) / 8);
+  const outputLength = base64UrlDecodedLength(value);
+  if (outputLength > maximumDecodedBytes) throw new Base64UrlError();
   const output = new Uint8Array(outputLength);
   let accumulator = 0;
   let bits = 0;
   let outputIndex = 0;
-  for (const character of value) {
-    const digit = alphabet.indexOf(character);
-    if (digit < 0) throw new Base64UrlError();
+  for (let index = 0; index < value.length; index += 1) {
+    const digit = base64UrlDigit(value.charCodeAt(index));
+    if (digit === undefined) throw new Base64UrlError();
     accumulator = accumulator * 64 + digit;
     bits += 6;
     while (bits >= 8) {
@@ -1101,4 +1320,32 @@ function decodeBase64Url(value: string): Uint8Array {
   }
   if (accumulator !== 0 || outputIndex !== outputLength) throw new Base64UrlError();
   return output;
+}
+
+function base64UrlDecodedLength(value: string): number {
+  const remainder = value.length % 4;
+  if (remainder === 1) throw new Base64UrlError();
+  let finalDigit = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const digit = base64UrlDigit(value.charCodeAt(index));
+    if (digit === undefined) throw new Base64UrlError();
+    finalDigit = digit;
+  }
+  if (
+    (remainder === 2 && (finalDigit & 0x0f) !== 0) ||
+    (remainder === 3 && (finalDigit & 0x03) !== 0)
+  ) {
+    throw new Base64UrlError();
+  }
+  const fullGroups = Math.floor(value.length / 4);
+  return fullGroups * 3 + (remainder === 0 ? 0 : remainder - 1);
+}
+
+function base64UrlDigit(code: number): number | undefined {
+  if (code >= 0x41 && code <= 0x5a) return code - 0x41;
+  if (code >= 0x61 && code <= 0x7a) return code - 0x61 + 26;
+  if (code >= 0x30 && code <= 0x39) return code - 0x30 + 52;
+  if (code === 0x2d) return 62;
+  if (code === 0x5f) return 63;
+  return undefined;
 }

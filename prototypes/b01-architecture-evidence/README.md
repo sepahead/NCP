@@ -14,11 +14,12 @@ digest
 
 ## Purpose
 
-The B01 ratification gate requires proposed models to have no obvious
-counterexample under declared bounds and preliminary resource estimates to fit
-declared maxima and local cryptographic screens. The later F01/F02 program still
-owns canonical TLA+, large configurations, liveness/fairness, refinement, SMT,
-Kani, traces, and independent review.
+The B01 design and implementation review is primary. These models provide
+bounded counterexample search, preliminary resource estimates, and local
+cryptographic screens for that review. They do not define or overrule the
+architecture. The later F01/F02 program still owns canonical TLA+, large
+configurations, liveness/fairness, refinement, SMT, Kani, traces, and independent
+review.
 
 This prototype therefore asks narrower questions:
 
@@ -43,7 +44,7 @@ This prototype therefore asks narrower questions:
 7. Do freshness deadlines, acceptance linearization, protected-command
    idempotency, restrictive effects, Active watchdogs, retirement drains, and
    Haldir intent freshness remain fail-closed under bounded hostile mutations?
-8. Can separate Rust and TypeScript profile checkers classify all 22 proposed
+8. Can separate Rust and TypeScript profile checkers classify all 25 maintained
    ADR JSON fences and their bounded hostile mutations without production types?
 
 The strongest permitted result is:
@@ -51,8 +52,8 @@ The strongest permitted result is:
 > No counterexample was found within the recorded finite models, decision,
 > observer-authorization, observer-capture, freshness-and-acceptance,
 > source-issuance-index, fixed local resource, and ADR-example semantic probes.
-> The separate Rust and TypeScript profile engines agreed on 22 content-bound
-> semantic cases and rejected 90 registered bounded mutations. Every other
+> The separate Rust and TypeScript profile engines agreed on 25 content-bound
+> semantic cases and rejected 132 registered bounded mutations. Every other
 > registered executable mutant was detected. Every registered hostile input was
 > rejected. Every registered invariant and semantic-contrast witness was reached
 > within those encoded finite cases.
@@ -60,7 +61,7 @@ The strongest permitted result is:
 ## ADR example semantic profiles
 
 [`adr-example-semantics/corpus.v1.json`](adr-example-semantics/corpus.v1.json)
-binds each proposed ADR JSON fence to its exact source bytes and one closed
+binds each proposed main-ADR JSON fence to its exact source bytes and one closed
 profile. It distinguishes proposed fragments, decoded header fragments,
 authenticated-wrapper shapes, and non-wire internal state.
 
@@ -70,11 +71,12 @@ acceptance. It does not accept an ADR or change the normative contract.
 
 The proposed decision registry also binds the non-normative semantic-closure
 requirements in `docs/adr/decision-closure.source.v1.json` and its JSON Schema.
-The derived closure evaluation remains `OPEN` until every declared semantic
-question and bounded B03 deferral envelope passes. Every complete positive case,
-single-delta hostile wire case, and parser result must also pass. Later B03
+The derived local closure is `CLOSED` only when every declared semantic question,
+source-linked excerpt, and bounded B03 deferral envelope is current. This state
+has no review or acceptance authority. The complete local gate separately
+executes both profile engines and requires exact result parity. Later B03
 selections stay outside the B01 decision set and must not change accepted
-meaning. Reviews cannot bypass these blockers.
+meaning. Required human reviews still block every ADR.
 
 The Rust and TypeScript engines separately extract the Markdown fences. Each
 engine enforces bounded strict JSON, verifies the bound ADR and decision-set
@@ -786,8 +788,8 @@ The runner:
 - compiles and lints the Python sources.
 - fetches the standalone Rust lock's dependencies, then formats, lints, and
   tests the Rust engine without source-tree build output.
-- typechecks the TypeScript engine and compares both engines across 22 exact ADR
-  fences and 90 registered bounded mutations.
+- typechecks the TypeScript engine and compares both engines across 25 exact ADR
+  fences and 132 registered bounded mutations.
 - directly executes each standalone observer probe and freshness/acceptance
   probe.
 - loads one bounded snapshot of `scripts/bounded_json.py` from exact bytes in

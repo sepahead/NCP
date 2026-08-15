@@ -2930,9 +2930,9 @@ response timeout alone does not. It uses
 `MARK_OBSERVER_GRANT_REQUEST_SERVER_ACCEPTANCE_AMBIGUOUS`, preserves the exact
 attempt and blocks every overlapping attach, renewal or reattachment for that
 target. The observer never resolves and installs one response in separate
-authoritative transitions. Each event uses the exact receipt-free fact or
-content and mutation footprint from the B01 selector-closure matrix. An unknown,
-default, inferred, or legacy alias rejects.
+authoritative transitions. Each event uses this ADR's exact receipt-free fact,
+content, and mutation footprint. An unknown, default, inferred, or legacy alias
+rejects.
 
 Local source-namespace closure import, its same-selector PREPARE race, complete operation partition and proof-exact permanent prepared-intent resolution are defined in the [cross-store observer closure and enrollment module](modules/adr-004-cross-store-observer-closure-and-enrollment.md). Those rules are a content-bound part of this ADR and prevent post-closure key exhaustion without blocking unrelated sources.
 
@@ -3622,8 +3622,8 @@ The closed transition union is:
 
 Registry cutover closes the complete canonical affected-segment set and installs
 its successor in one CAS. Generic capture kinds claim no Prisoma-specific
-payload. Each event uses the exact fact/content and B01 selector-closure
-footprint. Unknown, default, inferred, and legacy aliases reject.
+payload. Each event uses this ADR's exact fact, content, and mutation footprint.
+Unknown, default, inferred, and legacy aliases reject.
 
 Each registry entry binds exact stream digest, plane/route/class/channel, schema,
 provider contract, projection/transform, consumer axis contract, ordered
@@ -3696,19 +3696,30 @@ rules are in the [cross-store observer closure and enrollment
 module](modules/adr-004-cross-store-observer-closure-and-enrollment.md). That
 module is part of this ADR's content-bound review source set.
 
-Observer grants never authorize publish, command creation, ESTOP, plant/session/
-stream/security/authority lifecycle mutation, authority operations, disposition
-creation, stream declaration, queryable declaration, or extension assessment. A
-sealed `ObserverReadCapability` exposes only attach for its authenticated
-principal within manifest-authorized session scope; renew and detach for a grant
-issued to that principal; subscribe after that grant becomes live; and bounded
-read-only query within the live grant. It does not expose or retain a generic
-writable transport, `put`, publisher/queryable/stream declaration, raw session, or
-externally aliased generic read/write bus.
+Observer grants authorize reads only. They never authorize publication,
+commands, ESTOP, lifecycle or authority mutation, dispositions, declarations,
+or extension assessment. A sealed `ObserverReadCapability` exposes only attach,
+renew, detach, subscribe, and bounded read-only query within its manifest scope
+and live grant. It exposes no write, publish,
+queryable, or raw-session surface.
 
 Galadriel's optional assessment producer uses a different principal, credentials,
 manifest, route, and process boundary under ADR-008/011. Observer credentials
 cannot be upgraded or reused.
+
+## Low-overhead observer reconciliation
+
+One short owner transition pins an immutable source record and reserves
+projection bytes, output position, and slot. It cannot alias mutable producer
+storage. Projection and network work run outside the lock. A second transition
+rechecks the grant and security state, then commits bytes or discards them.
+
+Revocation and commit have one local order. A cut rejects new or uncommitted
+work. A prior commit remains historical but needs its destination gate and
+unchanged deadline. Quiescence requires earlier reservations to be discarded and
+committed slots to be terminal or unresolved. Capacity returns only then. The
+profile binds an ADR-010 deadline and terminable isolation boundary. Timeout
+cannot reclaim live work. Queues reserve bytes and items.
 
 ## Rejected alternatives
 

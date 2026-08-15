@@ -97,10 +97,11 @@ The closed enum states and boundary terminality are:
 
 `applied` means only that the named Active-value boundary accepted the command
 and atomically armed its watchdog at the recorded instant. `hold_effective`
-means only that the body associated an admitted HOLD with an earlier confirmed
-clear effect; it does not repeat that effect. Neither means the physical plant
-achieved the requested state. `stop_latched` proves only that the named body-local
-stop latch entered; it does not prove actuator motion, zero energy, hazard removal, or regulatory
+means only that the body associated an admitted HOLD with its confirmed
+body-local clear effect. The association does not repeat that effect. Neither
+means the physical plant achieved the requested state. `stop_latched` proves
+only that the named body-local stop latch entered. It does not prove actuator
+motion, zero energy, hazard removal, or regulatory
 safety. `unknown_after_boundary` is terminal for that command and cannot later
 be upgraded to `applied`, `hold_effective`, or `stop_latched`; a new command is
 required. The `stop_latched`
@@ -123,9 +124,10 @@ The normal `received -> admitted` bundle binds the exact complete body deadline
 set `COMMAND_ADMISSION_LEASE_NOT_AFTER` and
 `COMMAND_ADMISSION_TTL_NOT_AFTER` and evaluates both strict-before at its durable
 selector transition. It also binds the exact installed body freshness grant,
-installation receipt, selected slot, canonical TTL derivation and effective
-absolute deadline. Equality or later lease time rejects admission; equality or
-later effective command deadline selects the typed expired/rejected case and
+installation receipt, selected slot, and unchanged exclusive absolute deadline.
+The retained `TTL` identifier names that grant deadline. It does not authorize a
+per-frame TTL. Equality or later lease time rejects admission. Equality or later
+effective command deadline selects the typed expired/rejected case and
 cannot create an admitted tip. A receive timestamp, arrival-relative watchdog,
 lease-installation receipt or earlier sample does not satisfy either commit-bound
 condition.
@@ -168,9 +170,9 @@ changed grant/slot, stale gate or non-admitted tip loses and cannot invoke.
 The closed `BodyCommandApplicationStartRejectionCause` union is
 `FRESHNESS_GRANT_RESTRICTIVELY_CUT | LEASE_NOT_CURRENT |
 COMMAND_TTL_ELAPSED`, in that total precedence order, subject to the canonical
-grant-cause rule above. The first two create `superseded`; otherwise elapsed TTL
-creates `expired`. Equality selects the applicable elapsed branch. The terminal
-append binds exactly one selected cause and its complete currentness or
+grant-cause rule above. The first two create `superseded`. Otherwise, an elapsed
+grant deadline creates `expired`. Equality selects the applicable elapsed branch.
+The terminal append binds exactly one selected cause and its complete currentness or
 at-or-after evaluation set and structurally forbids every other cause. A branch
 cannot require both strict-before and elapsed purposes for one deadline.
 
@@ -2080,9 +2082,10 @@ position-index, conflict-tombstone, command-chain and ingress-journal capacity f
 every granted slot before the CAS. For each HOLD/ESTOP-capable slot it also
 reserves the worst-case fail-safe operation and HOLD-to-ESTOP upgrade capacity;
 an Active-only range consumes no fail-safe reservation. The reservation covers
-the maximum mode-order trace permitted by the grant, so a first Active candidate,
-one later restrictive same-position candidate and one monotonic ESTOP upgrade can
-never overrun the journal. The
+the maximum permitted mode-order trace. An ordinarily admitted HOLD can install
+one effect and one monotonic ESTOP upgrade. A first Active candidate and one later
+qualified conflicting ESTOP can use only their separately bounded records. No
+trace can overrun the journal. The
 `ESTOP_ONLY_DRAIN` branch is legal only in HOLD before retirement or atomically
 with entry into retirement drain. It targets a separately manifest-enrolled
 emergency principal, allows exactly one ESTOP slot, uses the dedicated escalation
@@ -2109,22 +2112,18 @@ only for a separately enrolled emergency principal and explicit manifest policy;
 holder identity alone never survives. Boundary acceptance before the fence can
 resolve later; the old grant cannot be accepted after it.
 
-The protected command carries one `CommandFreshnessProof` over the exact grant
-and one slot equal to its authenticated command stream position. The body derives
-`CanonicalCommandTtlDurationNs` from the exact IEEE-754 binary64 bits of
-`ttl_ms`: the value must be finite, positive and within the profile/60-second
-ceiling; exact rational multiplication by 1,000,000 is floored toward the earlier
-integer-nanosecond duration; zero, overflow or non-representable conversion
-rejects. The command's exclusive body-clock deadline is
-`min(grant.maximum_not_after, checked_add(grant.issue_tick,
-CanonicalCommandTtlDurationNs))`. Publisher-local `CommandFrame.t` remains legal
-at zero and is excluded from every authorization or cross-peer time comparison.
-Receive time cannot start or refresh the deadline. The same unchanged deadline
-drives `COMMAND_ADMISSION_TTL_NOT_AFTER`,
-`COMMAND_APPLICATION_TTL_NOT_AFTER`, and `FAIL_SAFE_EFFECT_NOT_AFTER`; equality
-is expired. The body watchdog uses only the remaining absolute lifetime, never a
-new receive-relative TTL. Therefore delayed Active, HOLD and ESTOP frames cannot
-become fresh on arrival.
+Prepared authenticated command context resolves one positive stream position to
+one exact installed freshness grant and permitted slot. The selected compact
+command repeats no grant, lease, or `ttl_ms` field. The grant already carries its
+receiver-clock incarnation and exclusive body-clock deadline. A retained
+compatibility `CommandFrame.t` value is diagnostic only and is excluded from
+authorization and cross-peer time comparison. Receive time cannot start or
+refresh the deadline. The same unchanged grant deadline drives
+`COMMAND_ADMISSION_TTL_NOT_AFTER`, `COMMAND_APPLICATION_TTL_NOT_AFTER`, and
+`FAIL_SAFE_EFFECT_NOT_AFTER`. Those retained `TTL` names do not select a
+per-frame lifetime. Equality is expired. The body watchdog uses only the
+remaining absolute lifetime. Therefore delayed Active, HOLD, and ESTOP frames
+cannot become fresh on arrival.
 
 Every grant slot has one bounded `BodyCommandPositionEntry`, keyed by the exact
 grant/slot and authenticated publisher/declaration/stream/session/generation/
@@ -2137,16 +2136,17 @@ digest plus a saturated `POSITION_CONFLICT_SEEN` marker and profile-bounded
 counter; later variants cause no durable growth. This position index bounds Active
 replay and conflict independently of command ID.
 
-The position index does not itself authorize or suppress a fail-safe effect.
-Active never creates a `BodyFailSafeEffectSlotKey`. Therefore an authenticated,
-fresh HOLD or ESTOP that arrives after different Active content at the same
-position can install the one restrictive effect slot and take its bounded effect,
-while its command-stream result is `CONFLICTING_STREAM_POSITION_REJECTED` and it
-creates no second command chain. Once a restrictive effect slot exists, changed
-equal/lower severity cannot invoke again and only HOLD-to-ESTOP can upgrade. A
-later Active candidate can never weaken an installed restrictive effect. This
-separates bounded safety action from stream acceptance without giving arrival
-order authority.
+The position index does not itself authorize or suppress an ESTOP fail-safe
+effect. Active never creates a `BodyFailSafeEffectSlotKey`. Therefore, an
+authenticated fresh ESTOP can install one restrictive effect slot after
+different Active content occupies the same position. It can then take its
+bounded latch attempt. Its command-stream result is
+`CONFLICTING_STREAM_POSITION_REJECTED`, and it creates no second command chain.
+A conflicting remote HOLD fails ordinary stream admission and cannot install an
+effect slot. Once a restrictive effect slot exists, changed equal/lower severity
+cannot invoke again and only HOLD-to-ESTOP can upgrade. A later Active candidate
+can never weaken an installed restrictive effect. This preserves bounded ESTOP
+priority without giving arrival order or rejected HOLD bytes authority.
 
 Fail-safe idempotency is a publisher-position slot, not a content-selected key.
 `BodyFailSafeEffectSlotKey` binds grant ID/slot, authenticated publisher,
@@ -2168,16 +2168,20 @@ The closed `BodyFailSafeEffectSelection` union is
 `ACTIVE_NO_EFFECT | INSTALL_NEW_RESTRICTIVE_EFFECT |
 JOIN_IDENTICAL_PENDING_EFFECT | RETURN_IDENTICAL_TERMINAL_EFFECT |
 JOIN_OR_RETURN_STRONGER_GLOBAL_EFFECT | CONFLICT_NO_NEW_EFFECT |
-UPGRADE_HOLD_TO_ESTOP | REJECT_EFFECT_FRESHNESS`. INSTALL and UPGRADE each first
+UPGRADE_HOLD_TO_ESTOP | REJECT_EFFECT_FRESHNESS`. ESTOP INSTALL and UPGRADE
 require an exact arbiter restrictive-chain transition, never-reused fence epoch,
-pending operation and one-use invocation token. UPGRADE appends a distinct ESTOP
-action against the complete current HOLD/restrictive frontier; it cannot inherit
-the HOLD token. JOIN can resume or query only that same installed operation and
-performs the first invocation only after its body reservation mirror commits and
-with definitive proof that the arbiter token remains unconsumed. It cannot create
-or perform a second invocation. RETURN, stronger-global, conflict and freshness-
-rejection branches cannot invoke. Unknown, default, mixed, wrong-slot and
-missing-state cases reject.
+pending operation and one-use invocation token. HOLD INSTALL instead includes
+the arbiter transition, complete ordinary admission, admitted predecessor, body
+reservation, fence, pending operation and token in one authority-domain
+transaction. Failed HOLD admission leaves none of them installed. ESTOP INSTALL
+can use the complete pre-replay gate defined below. UPGRADE appends a distinct
+ESTOP action against the complete current HOLD/restrictive frontier. It cannot
+inherit the HOLD token. JOIN can resume or query only that same installed
+operation. It performs the first invocation only after its body reservation
+mirror commits. It also requires definitive proof that the arbiter token remains
+unconsumed. JOIN cannot create or perform a second invocation. RETURN,
+stronger-global, conflict and freshness-rejection branches cannot invoke.
+Unknown, default, mixed, wrong-slot and missing-state cases reject.
 
 One `BodyFailSafeSeverityArbiter` is committed by the same body selector. Its HOLD
 component has a never-reused stable cycle ID, its origin gate epoch, the latest
@@ -2255,38 +2259,62 @@ no-effect receipts bind the boundary severity versions and order. A deployment
 whose clear and latch operations cannot provide this atomic severity-aware order
 keeps remote HOLD/ESTOP disabled.
 
-Fail-safe side effects and command admission are orthogonal. After strict byte
-bounds, protected-envelope and freshness-grant verification, an authenticated
-actor/plane that the installed default-deny manifest authorizes for the exact
-command route, exact actual route, audience, live session/generation, current
-security state, one unambiguous mode, exact slot selection and commit-bound
-strict-before `FAIL_SAFE_EFFECT_NOT_AFTER` evaluation are established, the body
-first selects the retained slot state. Exact pending/terminal replay and an
-already-recorded conflict return or join that state without a fresh durable
-ingress attempt; only bounded rate-limited telemetry can change. The first
-same-slot conflict can install its bounded conflict marker without a boundary
-token. A new Active command, new restrictive slot, or ESTOP upgrade atomically
-reserves a fresh body-local ingress-attempt identity and appends
-`CommandIngressAttemptRecord`. That non-authorizing record binds the exact
-protected bytes/digests, minimum current-session context, body clock/receive time,
-grant/slot, derived deadline/evaluation root, effect selection, global severity
-state, and one closed `side_effect_intent`: `NONE_ACTIVE`, `CLEAR_ACTIVE`, or
-`CLEAR_AND_LATCH_ESTOP`. A new restrictive effect requires the exact durable
-reservation, gate-fence or upgrade ancestry, captured pre-cut authority/
-declaration snapshot, and complete active-command/application roots. Join,
-return, conflict and expired branches structurally forbid a new reservation,
-fence or invocation token.
+ESTOP fail-safe effects and command admission are orthogonal. Remote HOLD effects
+are not. Both modes first pass these checks:
+
+- strict raw byte and shape limits.
+- protected-envelope validation and canonical frame kind and version.
+- the verified transport principal.
+- current default-deny manifest permission for the actor and action plane.
+- the exact route, audience, and direct realm.
+- the live session and generation.
+- the authenticated publisher, declaration, and stream epoch.
+- a positive syntactic position and current security state.
+- one unambiguous and structurally valid mode with its field exclusions.
+- an installed plant-profile action.
+- an installed unexpired grant with an exact permitted slot. An ESTOP-only
+  upgrade can instead use one exact unconsumed slot in the current preserved
+  `BodyFailSafeEscalationAdmissionSnapshot` and its unchanged deadline.
+
+ESTOP can then select its retained effect slot before ordinary stream-order,
+occupied-position, command-identity, and lease checks. HOLD must satisfy every
+ordinary admission check before it can select an effect. The same reservation
+CAS appends its exact `received -> admitted` chain. No HOLD boundary token exists
+before that durable admission.
+
+Exact pending or terminal replay joins or returns the retained state without a
+fresh durable ingress attempt. An already recorded conflict does the same. Only
+bounded rate-limited telemetry can change. The first same-slot conflict can
+install its bounded conflict marker without a boundary token. A new Active
+command, a qualified new HOLD or ESTOP slot, or an ESTOP upgrade
+atomically reserves a fresh body-local ingress-attempt identity and appends
+`CommandIngressAttemptRecord`. The non-authorizing record binds:
+
+- the exact protected bytes and digests.
+- the current-session context, body clock, and receive time.
+- the grant, slot, and unchanged deadline.
+- the effect selection and global severity state.
+- one closed `side_effect_intent`: `NONE_ACTIVE`, `CLEAR_ACTIVE`, or
+  `CLEAR_AND_LATCH_ESTOP`.
+
+A new HOLD effect binds its complete ordinary-admission
+predicate and installs its `received -> admitted` chain in that same CAS. A new
+ESTOP effect binds the durable pre-replay gate evidence. Both bind their
+reservation, fence or upgrade ancestry and complete active-command/application
+roots. Join, return, unqualified conflict and expired branches structurally
+forbid a new reservation, fence or invocation token.
 
 The arbiter-to-body reservation mirror is necessary but not timely boundary
-acceptance. Because reservation deliberately retires live declaration/grant
-use, the qualified clear/latch boundary consumes only the current arbiter
-operation's invocation token, paired with the installed body reservation/upgrade
-receipt and its captured pre-cut grant/slot/deadline snapshot. There is no second
-body-owned physical invocation token. It does not require that retired grant to
-remain live. At most once, the boundary atomically evaluates the unchanged
-`FAIL_SAFE_EFFECT_NOT_AFTER`, exact session/generation and security context,
-reservation gate/fence epoch, and boundary severity state/version at its
-acceptance instant. Strict-before acceptance
+acceptance. The reservation deliberately retires live declaration/grant use only
+after ordinary HOLD admission or after the complete ESTOP pre-replay gate. The
+qualified clear/latch boundary consumes only the current arbiter operation's
+invocation token. That token is paired with the installed body reservation or
+upgrade receipt and its captured pre-cut grant, slot, and deadline snapshot.
+There is no second body-owned physical invocation token. It does not require
+that retired grant to remain live. At most once, the boundary atomically
+evaluates the unchanged `FAIL_SAFE_EFFECT_NOT_AFTER`, exact session/generation
+and security context, reservation gate/fence epoch, and boundary severity
+state/version at its acceptance instant. Strict-before acceptance
 emits `BodyFailSafeBoundaryAcceptanceDeadlineEvaluationReceipt` over the token,
 protected-content digest, selected clear/latch intent, deadline evaluation, gate
 and severity order, and boundary instant. Equality or later time produces definitive
@@ -2333,17 +2361,19 @@ bounded query/resumption right ended through
 `CLOSE_BODY_ACTUATION_RESTRICTIVE_AMBIGUITY_UNKNOWN` while the operation remains
 unknown and fenced. A timeout label alone cannot skip the pending state.
 
-Before command-stream replay, lease, channel, source, plant-profile, and remaining
-command-semantic checks, a selected fresh restrictive reservation cuts Active
-software authority; strict-before boundary acceptance clears buffered Active
-output and ESTOP asserts the body-local stop latch. Exact replay joins or
-returns; same-slot changed bytes cannot repeat an equal/lower effect; a fresh
-ESTOP can only take the monotonic upgrade edge. An old generation, wrong route/
-principal/audience, unsigned or unverifiable envelope, oversized input,
-duplicate/ambiguous mode, invalid grant/slot, expired deadline, or bytes that
-cannot establish minimum current-session context cause no remote side effect.
-This preserves fail-safe priority without turning mode, arrival time, signature
-variation or an old signed frame into a timeless credential.
+Only a selected fresh ESTOP reservation can precede ordinary command-stream
+replay, lease, channel, source, and remaining semantic checks. The installed
+action and profile check named above still occurs before reservation. The
+reservation can cut Active software authority and request the body-local stop
+latch. Remote HOLD must first pass those checks and install its admitted
+predecessor. Exact replay joins or returns. Same-slot changed bytes cannot repeat
+an equal or lower effect.
+A fresh ESTOP can only take the monotonic upgrade edge. No remote side effect is
+permitted for an old generation, wrong route, principal or audience, or an
+unverifiable or oversized envelope. An ambiguous mode, invalid grant or slot,
+expired deadline, or incomplete current-session context is also inert. This
+preserves ESTOP priority without turning HOLD, arrival time, signature variation,
+or an old signed frame into a timeless credential.
 
 The plant profile sets a hard
 `max_fail_safe_effect_slots_per_generation`. The implementation reserves separate
@@ -2394,21 +2424,35 @@ slot keys can be compacted only after the installed final retirement selector
 makes every old-generation frame permanently unacceptable.
 
 `RESERVE_BODY_FAIL_SAFE_SIDE_EFFECT` is the body reservation mirror and software-
-authority cut. Before its CAS, the arbiter has consumed the receipt-free fence
-intent, installed the exact pending restrictive operation/token and emitted its
-fence/START receipt. The body CAS consumes that receipt and atomically removes live
-lease authority, retires the live declaration, installs or preserves HOLD for a
-non-ESTOP predecessor, preserves an existing ESTOP latch, partitions/fences the
-complete command/application sets, and records the pending fail-safe operation.
+authority cut. Its ESTOP branch requires the complete pre-replay restrictive gate.
+Its HOLD branch conditionally compares the complete ordinary admission predicate.
+The predicate includes position replay, command identity, and the exact
+live-holder lease. It also includes strict HOLD field exclusions, the installed
+profile, and the unchanged deadline. The HOLD branch is
+one authority-domain transaction. It installs the arbiter operation and token,
+body reservation, fence, and one-time authenticated `received -> admitted`
+chain with `VERIFIED_BODY_LEASE_AT_FAIL_SAFE_RESERVATION_CUT`. A failed compare
+installs none of those values. The ESTOP branch consumes the exact arbiter
+fence/START receipt created after its pre-replay gate. The winning transaction
+atomically performs these changes:
+
+- removes live lease authority.
+- retires the live declaration.
+- installs or preserves HOLD for a non-ESTOP predecessor.
+- preserves an existing ESTOP latch.
+- partitions and fences the complete command and application sets.
+- records the pending fail-safe operation.
+
 It terminalizes a cancellable authority operation and preserves an accepted
 transfer at the same or a later fenced phase. It does not claim that a requested
 new ESTOP latch is physically effective. Every authority-widening transition
 structurally rejects while this operation or an arbiter gate mismatch is pending.
 A restrictive rebind or retirement must carry the exact reservation and fence.
 The reservation allocates no second physical token and cannot invoke the named
-boundary. If its CAS loses, the pending arbiter operation remains fenced and the
-same receipt must rebase over the winning body head before invocation or any
-authority progress.
+boundary. If an ESTOP reservation CAS loses, its pending arbiter operation
+remains fenced. Before invocation or authority progress, the same receipt must
+rebase over the winning body head. A losing HOLD transaction leaves no
+pending operation or token.
 
 The cut also retains a bounded `BodyFailSafeEscalationAdmissionSnapshot` over the
 exact pre-cut manifest, current security state, publisher/declaration, unexpired
@@ -2428,7 +2472,7 @@ ancestry. It allocates no latch token and cannot invoke before that body mirror
 commits. A losing, expired, same/lower-severity, wrong-principal or wrong-slot
 upgrade cannot invoke.
 
-The body records that orthogonal state change in a distinct non-authorizing
+The body records the boundary state change in a distinct non-authorizing
 `BodyFailSafeSideEffectRecord`, never by skipping `admitted` in a command
 disposition chain. The record binds the exact protected envelope and command
 candidate bytes/digests, `CommandIngressAttemptRecord`, verified current-session context,
@@ -2480,11 +2524,18 @@ generic commit receipts. A journal-only cut, retained live lease, ESTOP
 downgrade, canceled accepted transfer, unchanged live declaration or missing
 specialized receipt rejects.
 
-For a new non-`NONE_ACTIVE` effect, the journal atomically installs the exact
-effect-slot entry, ingress attempt, gate fence or severity-upgrade ancestry, and
-side-effect intent in its bounded current ingress-operation map before invoking
-the selected clear/latch boundary. The boundary consumes the exact arbiter one-
-use token and records one durable severity/deadline result. The arbiter then
+For a new ESTOP effect, the journal installs these values atomically before
+invoking the latch boundary:
+
+- the exact effect-slot entry and ingress attempt.
+- the gate fence or severity-upgrade ancestry.
+- the side-effect intent.
+
+For a new HOLD effect, that
+reservation first proves every ordinary admission predicate. It then installs
+the admitted predecessor, effect slot, fence, and intent. The boundary
+consumes the exact arbiter one-use token and records one durable
+severity/deadline result. The arbiter then
 updates that same registry entry and complete chain/possible-output product;
 only its result receipt can reach body completion. An exact replay during
 recovery joins this state and cannot allocate a sibling attempt, fence or token.
@@ -2500,21 +2551,25 @@ bytes, time, gate epoch or identity.
 For a new `NONE_ACTIVE` candidate, full command admission independently emits one
 closed `CommandIngressAttemptResolution`. Exact replay returns or joins the
 original position entry, ingress resolution and command-chain outcome without a
-new durable append. For a non-Active reservation or ESTOP upgrade,
+new durable append. For an ESTOP reservation or upgrade,
 `COMPLETE_RESERVED_FAIL_SAFE_COMMAND` installs only the exact terminal side-
-effect record/resolution and advances the retained ingress operation to
-`SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION`. It writes no command disposition
-or attempt resolution and does not terminalize that ingress entry.
+effect record and resolution. It advances the retained ingress operation to
+`SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION`. It writes no command
+disposition or attempt resolution and does not terminalize that ingress entry.
+For an admitted HOLD, confirmed or unknown boundary outcomes instead advance
+directly to `RESTRICTIVE_COMMAND_ADMITTED_PENDING_ASSOCIATION`. A definitive
+no-effect result appends the exact `superseded`, `expired`, or `failed` terminal
+disposition selected by its closed cause and terminalizes the ingress entry.
 
-`ADMIT_RESTRICTIVE_COMMAND_AFTER_FAIL_SAFE_EFFECT` is the sole next command-
-semantic transition. It consumes that exact pending entry and effect resolution,
-evaluates the original candidate against the captured pre-cut authority/
-declaration/grant snapshot, unchanged deadline and all remaining admission rules,
-then installs the exact attempt resolution and command-chain records. It never
-rechecks against the intentionally retired live declaration, reopens authority or
-invokes the effect. `NEW_COMMAND_CHAIN` is legal only when the
-exact command identity is absent from active and retained state; it binds the
-new one-time `received -> rejected` or `received -> admitted` result.
+`ADMIT_RESTRICTIVE_COMMAND_AFTER_FAIL_SAFE_EFFECT` applies only to ESTOP. It
+consumes that exact pending entry and effect resolution. It evaluates the
+original candidate against the captured pre-cut declaration, grant snapshot,
+unchanged deadline, and remaining admission rules. It then installs the exact
+attempt resolution and command-chain records. It never rechecks against the
+intentionally retired live declaration, reopens authority, or invokes the effect.
+`NEW_COMMAND_CHAIN` is legal only when the exact command identity is absent from
+active and retained state. It binds the new one-time
+`received -> rejected` or `received -> admitted` result.
 `EXACT_REPLAY_EXISTING_CHAIN` binds identical bytes/digests and the already
 installed active or retained chain; it emits no new command disposition.
 `CONFLICTING_STREAM_POSITION_REJECTED` binds the selected position entry and
@@ -2525,21 +2580,20 @@ candidate content, and `REJECTED_BEFORE_COMMAND_IDENTITY` binds the exact
 closed structural/semantic reason when no canonical command identity can be
 formed. Neither rejection branch creates a command chain.
 
-That admission event can append a new `received -> rejected` chain, or
-`received -> admitted` for a fully valid restrictive command whose complete
-admission checks beat the unchanged deadline. The admitted branch uses
-`VERIFIED_BODY_LEASE_AT_FAIL_SAFE_RESERVATION_CUT` or the exact permitted ESTOP-
-absence branch. It never appends `applied` or `stop_latched` in that bundle,
-because the physical fail-safe boundary acceptance preceded the durable admitted
-predecessor. Thus a previously unused,
-fail-safe-fresh effect slot whose command later fails sequence, lease, or another
-normal admission check can clear/latch and finish a new
-`received -> rejected` chain when its command identity is unused. An exact
+That ESTOP-only admission event can append a new `received -> rejected` chain or
+`received -> admitted` for a fully valid command whose post-effect append still
+beats the unchanged deadline. It uses the exact permitted lease-absence branch.
+It never appends `stop_latched` in that bundle because boundary acceptance
+preceded the admitted predecessor. A qualified ESTOP can latch and then finish
+`received -> rejected` after stream-order, occupied-position, or command-identity
+conflict. It can also reject when currentness or the unchanged deadline loses a
+race after boundary acceptance. An exact
 envelope replay joins or returns the existing effect and never invokes the
 boundary again. Unequal protected bytes at the same publisher position use the
-same effect slot: equal/lower severity has no new effect, while HOLD-to-ESTOP can
-only take the one monotonic upgrade. A same-command-ID conflict at another
-position remains a different bounded slot, but still selects
+same effect slot only for qualified ESTOP selection. Equal or lower severity has
+no new effect, while HOLD-to-ESTOP can take only the one monotonic upgrade. A
+same-command-ID conflict at another position remains a different bounded slot,
+but still selects
 `CONFLICTING_COMMAND_IDENTITY_REJECTED` and never creates a second `received`.
 Neither replay nor conflict gets a new `admitted`, `hold_effective`, or
 `stop_latched` disposition.
@@ -2560,8 +2614,9 @@ journal head, next sequence and retained reserve. Its sole body-selector CAS
 changes ingress pending-association to TERMINAL and the tip
 `ADMITTED -> HOLD_EFFECTIVE | STOP_LATCHED | UNKNOWN_AFTER_BOUNDARY`.
 Accepted HOLD selects HOLD_EFFECTIVE, accepted ESTOP selects STOP_LATCHED, and
-terminal ambiguity selects UNKNOWN_AFTER_BOUNDARY; definitive no-effect cannot create an
-admitted branch. The generic body/journal receipts precede
+terminal ambiguity selects UNKNOWN_AFTER_BOUNDARY. A definitive HOLD no-effect
+was terminalized during completion. A definitive ESTOP no-effect cannot enter an
+admitted association. The generic body/journal receipts precede
 `AdmittedRestrictiveCommandEffectAssociationReceipt`, which binds earlier
 effect evidence/instant and the strictly later association append. Admission
 pre-reserves this bounded bundle. Exact replay returns it; changed bytes, outcome
@@ -2581,18 +2636,24 @@ objects that can exist at that point and structurally forbids inconsistent or
 default fields. Every related append compare-and-swaps this map entry in the
 same global journal transition.
 
-The exact restrictive path is
+The exact HOLD path is
+`ACTIVE_ATTEMPT_PENDING -> SIDE_EFFECT_RESERVED ->
+SIDE_EFFECT_OUTCOME_PENDING_RESOLUTION ->
+RESTRICTIVE_COMMAND_ADMITTED_PENDING_ASSOCIATION -> TERMINAL`.
+The reservation edge already carries the admitted predecessor. A definitive
+no-effect completion can move directly from a reserved state to `TERMINAL`.
+The exact ESTOP path is
 `ACTIVE_ATTEMPT_PENDING -> SIDE_EFFECT_RESERVED ->
 SIDE_EFFECT_OUTCOME_PENDING_RESOLUTION ->
 SIDE_EFFECT_RESOLVED_PENDING_COMMAND_ADMISSION ->
-RESTRICTIVE_COMMAND_ADMITTED_PENDING_ASSOCIATION -> TERMINAL`;
-the pending-outcome edge is omitted only for an immediately definitive boundary
+RESTRICTIVE_COMMAND_ADMITTED_PENDING_ASSOCIATION -> TERMINAL`.
+Either pending-outcome edge is omitted for an immediately definitive boundary
 result. `RESERVE_BODY_FAIL_SAFE_SIDE_EFFECT` takes the first edge, never
-ABSENT-to-reserved. `COMPLETE_RESERVED_FAIL_SAFE_COMMAND` reaches
-side-effect-resolved. A successful new admitted HOLD/ESTOP alone lets
-`ADMIT_RESTRICTIVE_COMMAND_AFTER_FAIL_SAFE_EFFECT` enter pending-association;
-its rejection/no-chain branches enter TERMINAL. There is no reverse-order
-attempt-resolved-pending-side-effect state.
+ABSENT-to-reserved. Its HOLD case proves and records complete ordinary admission.
+Its ESTOP case uses the complete pre-replay gate.
+`ADMIT_RESTRICTIVE_COMMAND_AFTER_FAIL_SAFE_EFFECT` is ESTOP-only. It enters
+pending association for an admitted result. Rejection or no-chain enters
+`TERMINAL`.
 
 Every event that removes live authority or a live command declaration binds one
 receipt-free `BodyAuthorityCutCommandPartitionFact`. It binds the exact prior
@@ -3224,6 +3285,81 @@ subordinate journal head, then returns the complete authenticated chain needed t
 interpret that answer. A conflicting frame or content digest under the same
 identity rejects.
 
+## Low-overhead command reconciliation
+
+The selected body admission order differs by restrictive mode. ESTOP alone can
+select its early idempotent local latch after complete authenticated current-
+context and grant checks. HOLD follows ordinary stream monotonicity and live-
+holder lease checks before it can request the installed HOLD action.
+
+Only exact Active, HOLD, and ESTOP modes can authorize remote command work.
+`Init`, absent, default, unknown, and ambiguous modes reject as commands. The
+body can separately select a profile-defined HOLD action from current local
+policy and body state. Rejected bytes and their claimed mode do not select or
+parameterize that action. The local action is not an admitted remote HOLD and
+cannot produce `HOLD_EFFECTIVE` for the rejected command.
+
+HOLD and ESTOP structurally forbid publisher values, source coordinates,
+predictive horizons, and caller-selected local actions. The installed plant
+profile supplies each restrictive action. A command rejection and a body-local
+restrictive result remain separate records.
+
+The body binds each new command position and exact frame digest before lower
+semantic checks. It never replaces that digest. A qualified conflicting ESTOP
+can use only the preallocated generation-wide restrictive-conflict attribution.
+The attribution cannot create another command chain or overwrite the primary
+position result.
+
+One position represents one setpoint and one application attempt. A source-bound
+Active command uses the exact retained and pinned source publication. No
+timestamp, bare source position, digest without values, or latest-value fallback
+can substitute.
+
+Freshness comes from the unchanged exclusive deadline in the body-issued grant.
+Receiver arrival does not start or refresh a TTL. Grant installation reserves
+the complete no-reuse, source-pin, restrictive, and disposition capacity for its
+position range.
+
+Immediately before a new ESTOP reservation, the body atomically rechecks the
+security state, manifest permission, grant or escalation-snapshot currentness,
+unchanged deadline, and installed profile action. Boundary acceptance repeats
+the applicable currentness and deadline checks. A cut that wins either order
+installs no new remote effect.
+
+`QueryCommandDisposition` uses one exact command coordinate. It binds the direct
+realm, plant body, complete session foreign key, authenticated publisher,
+declaration, publisher incarnation, stream epoch, position, and expected command
+digest. The result is a closed union:
+
+- `RETAINED_DISPOSITION` carries the complete retained chain and current
+  membership evidence for that coordinate.
+- `RETIRED_DISPOSITION_COMMITMENT` carries the coordinate, terminal label, and
+  no-reuse commitment only.
+- `QUERY_FAILURE` carries `EVIDENCE_UNAVAILABLE` and no disposition claim.
+
+Each branch compares the same exact query coordinate with every carried artifact.
+The canonical result projection omits its digest, authentication envelope,
+signature, and receipt. A later authenticated envelope binds the recomputed
+digest and complete query request. This order prevents a hash cycle and command
+substitution.
+
+A retired commitment cannot prove `APPLIED`, `HOLD_EFFECTIVE`, or
+`STOP_LATCHED` as an application or effect claim. Those interpretations require
+the retained complete chain and exact body-local association evidence. No branch
+proves physical achievement or certification.
+
+B03 selects positive finite journal capacities and implementation names. Each
+selection must reserve the complete terminal path, fit aggregate bytes, reject
+overflow, and preserve no-reuse for the declared lifetime. B03 cannot change the
+union, command identity, admission order, or claim boundary.
+
+The following non-wire projection closes the result branches for B01 challenge
+tests. It does not allocate a future wire shape.
+
+```json
+{"query_coordinate_bound":true,"result_projection_omits_authentication":true,"retained_requires_complete_chain":true,"retired_proves_effect":false,"early_effect_mode":"ESTOP_ONLY","estop_reservation_rechecks_currentness":true,"effect_boundary_rechecks_currentness":true,"hold_admission_precedes_effect":true,"rejected_candidate_cannot_select_local_hold":true,"post_effect_admission_mode":"ESTOP_ONLY","branches":["QUERY_FAILURE","RETAINED_DISPOSITION","RETIRED_DISPOSITION_COMMITMENT"]}
+```
+
 ## Rejected alternatives
 
 Rejected: treating publish/Gate acknowledgement as execution; non-body
@@ -3271,10 +3407,11 @@ Before exhaustion could erase it, the body irreversibly retires.
 ## Threat and hazard analysis
 
 This blocks false execution, laundering, retry conflict and silent ambiguity;
-loss remains uncertainty, not safety. A current commander can spend one fresh
-granted clear/latch position before later checks, so audit/rate-limit that bounded
-denial surface. Replay, equal/lower variants and wrong/expired context cannot
-invoke again.
+loss remains uncertainty, not safety. A qualified ESTOP can spend one fresh
+granted latch position before later stream and lease checks, so audit and
+rate-limit that bounded denial surface. Remote HOLD has no equivalent pre-
+admission action. Replay, equal or lower variants, and wrong or expired context
+cannot invoke again.
 
 ## Formal properties
 
@@ -3292,9 +3429,10 @@ invoke again.
   clone; `UNASSIGNED_PHYSICALLY_ISOLATED` is not safety/reuse authority.
 - Fail-safe effect needs exact context and strict-before
   `FAIL_SAFE_EFFECT_NOT_AFTER`; attempt/fence/mirror precede its one-use token.
-  Remote HOLD/ESTOP also needs the complete frontier (including
-  `HOLD_OUTCOME_UNKNOWN`), distinct ESTOP token and dominance/qualified override.
-  Missing evidence disables both; replay cannot repeat.
+  Remote HOLD also needs ordinary admission and an exact admitted predecessor.
+  Early ESTOP needs the complete pre-replay gate. Both need the complete frontier,
+  including `HOLD_OUTCOME_UNKNOWN`, plus distinct ESTOP token and qualified
+  dominance or override. Missing evidence disables both. Replay cannot repeat.
 - Each authenticated `received` chain takes one rejected/admitted edge.
   `CANDIDATE_NOT_EVALUATED` is not authority; successors retain exact content,
   predecessor and admitted evidence.
@@ -3317,18 +3455,22 @@ invoke again.
   Selection/cut compaction requires no live reference and retains key/digest/
   no-reuse. Emergency/overflow reserve and seal use the never-reused arbiter
   coordinate; terminal same-key resurrection is impossible.
-- Restrictive ingress follows attempt-pending→side-effect-reserved→optional
-  outcome-pending→side-effect-resolved→admitted-pending-association→terminal.
-  MARK changes ingress/effect and ESTOP-pending entries together. Admission alone
-  enters pending-association; only
+- ESTOP ingress follows attempt-pending→side-effect-reserved→optional
+  outcome-pending→side-effect-resolved. A rejection then terminalizes the
+  ingress entry. An admitted command instead enters pending association before
+  it terminalizes.
+  HOLD atomically installs its admitted predecessor with the reservation and
+  moves from outcome resolution directly to admitted-pending-association or a
+  no-effect terminal state. Failed HOLD admission installs no arbiter, fence,
+  token, or effect state. ESTOP uses its complete pre-replay gate. MARK changes
+  ingress/effect and ESTOP-pending entries together. Only
   `ASSOCIATE_ADMITTED_RESTRICTIVE_COMMAND_WITH_EFFECT` appends
-  hold-effective/stop-latched/unknown and terminalizes it. No reverse-order
-  attempt-resolved-pending-side-effect state exists.
-- A rejected fail-safe command can retain bounded attempt/effect evidence but no
-  admitted or association success. Active uses no effect slot. Exact replay
-  appends/invokes nothing; same-slot equal/lower changed content does nothing,
-  and HOLD-to-ESTOP has one upgrade. Wrong, expired, malformed, oversized or
-  unauthenticated context has no unauthorized effect.
+  hold-effective/stop-latched/unknown and terminalizes the association path.
+- A rejected ESTOP can retain bounded attempt/effect evidence but no admitted or
+  association success. Rejected remote HOLD has no effect record. Active uses no
+  effect slot. Exact replay appends or invokes nothing. Same-slot equal or lower
+  changed content does nothing, and HOLD-to-ESTOP has one upgrade. Wrong, expired,
+  malformed, oversized or unauthenticated context has no unauthorized effect.
 - Per-command predecessors increase globally but can interleave. The installed
   head alone derives active/retained maps and complete cut partitions.
   `BodySessionControlStateHead` is the sole composite body CAS root; subordinate
@@ -3374,12 +3516,19 @@ it cannot retain execution claims without dispositions.
 
 <a id="ncp-b01-selector-allocation-adr-007-v1"></a>
 
-One semantic question remains open. The decision does not yet define the exact
-request and result union for a disposition query that distinguishes retained
-evidence, retired evidence, and query failure. Retention loss or unavailable
-proof must stay non-authorizing and cannot fabricate a terminal outcome beyond
-the known boundary. Exact implementation names and bounded journal capacities
-remain B03 allocation inputs.
+The disposition-query semantic question is closed by the low-overhead command
+reconciliation. Exact implementation names and bounded journal capacities remain
+B03 allocation inputs. Retention loss stays non-authorizing and cannot fabricate
+a terminal outcome.
+
+B03 selects 1 through 32 canonical implementation identities. Each identity
+matches `[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?` and can name only a journal,
+query, retention,
+or recovery boundary defined by this ADR. Journal capacity is 1 through
+1,048,576 entries. Aggregate capacity is 1 through 1,073,741,824 bytes.
+Retention is 1 through 86,400,000,000,000 nanoseconds. Each selection must fit
+the complete retained chain, source pin, conflict attribution, retired
+commitment, and terminal no-reuse state.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

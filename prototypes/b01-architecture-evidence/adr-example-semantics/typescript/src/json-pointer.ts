@@ -1,5 +1,8 @@
 import type { JsonValue } from "./strict-json.ts";
 
+const MAXIMUM_PATCH_PATH_UTF8_BYTES = 512;
+const encoder = new TextEncoder();
+
 export type PatchOperation =
   | { readonly op: "add"; readonly path: string; readonly value: JsonValue }
   | { readonly op: "remove"; readonly path: string }
@@ -125,8 +128,11 @@ function childAt(parent: JsonValue, token: string): JsonValue {
 
 function pointerTokens(pointer: string): string[] {
   if (pointer === "") return [];
-  if (!pointer.startsWith("/")) {
-    throw new JsonPointerError("JSON Pointer must be empty or start with '/'");
+  if (
+    !pointer.startsWith("/") ||
+    encoder.encode(pointer).byteLength > MAXIMUM_PATCH_PATH_UTF8_BYTES
+  ) {
+    throw new JsonPointerError("JSON Pointer must be a bounded non-root pointer");
   }
   return pointer.slice(1).split("/").map((token) => {
     if (/~(?:[^01]|$)/.test(token)) {

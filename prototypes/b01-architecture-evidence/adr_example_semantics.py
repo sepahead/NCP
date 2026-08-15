@@ -44,45 +44,240 @@ CORPUS_SCHEMA = "ncp.b01-adr-example-semantics-corpus.v1"
 ENGINE_RESULT_SCHEMA = "ncp.b01-adr-example-semantics-result.v1"
 COORDINATOR_RESULT_SCHEMA = "ncp.b01-adr-example-semantics-coordinator-result.v1"
 REVIEW_PACKET_LIFECYCLE_SCHEMA = "ncp.b01-review-packet-lifecycle.v1"
+ADR_SOURCE_SET_SCHEMA = "ncp.b01-adr-source-set.v1"
+ADR_SOURCE_SET_DIGEST_ALGORITHM = (
+    "sha256(domain || u64be(projection_bytes) || projection)"
+)
+ADR_SOURCE_SET_DOMAIN_HEX = "6e63702e6230312d6164722d736f757263652d7365742e763100"
 SEMANTIC_CLAIM = "local-prototype-only"
 MAX_CORPUS_BYTES = 262_144
 MAX_ENGINE_OUTPUT_BYTES = 262_144
 MAX_ENGINE_STDERR_BYTES = 65_536
-MAX_DECISION_REGISTRY_BYTES = 131_072
+MAX_DECISION_REGISTRY_BYTES = MAX_CORPUS_BYTES
 MAX_ADR_BYTES = 262_144
 MAX_AGGREGATE_ADR_BYTES = 2_097_152
 MAX_JSON_FENCE_BYTES = 131_072
 MAX_FIXTURE_BYTES = 16_384
 MAX_ENGINE_SOURCE_BYTES = 262_144
 MAX_AGGREGATE_ENGINE_SOURCE_BYTES = 2_097_152
-EXPECTED_CASE_COUNT = 22
-EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 24, "typescript": 39}
+MAX_ADR_MODULES_PER_DECISION = 8
+MAX_MUTATION_PURPOSE_BYTES = 512
+MAX_PATCH_PATH_BYTES = 512
+EXPECTED_CASE_COUNT = 25
+EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 29, "typescript": 47}
+EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 107
+EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 3_543
+EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
+    "f8e704286f7a0c30b6525e5835bcf2d46e21e5c1bc8db7bbef928cff17208d2d"
+)
 EXPECTED_ADR_IDS = tuple(f"ADR-{index:03d}" for index in range(1, 12))
-JSON_FENCE = re.compile(rb"```json\n(.*?)\n```", re.DOTALL)
+EXPECTED_CASE_IDENTITIES = {
+    "adr001.open-plant-session.kind-separation.v1": (
+        "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-001",
+        1,
+    ),
+    "adr001.plant-session.simulation-field-confusion.v1": (
+        "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-001",
+        2,
+    ),
+    "adr002.realm-bound-contract-identity.v1": (
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-002",
+        1,
+    ),
+    "adr002.compact-hash-substitution.v1": (
+        "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-002",
+        2,
+    ),
+    "adr003.flattened-jws-placeholder.v1": (
+        "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+        "AUTHENTICATED_WIRE_OBJECT",
+        "NEGATIVE",
+        "ADR-003",
+        1,
+    ),
+    "adr003.protected-header-required-member-projection.v1": (
+        "ADR003_PROTECTED_HEADER_REQUIRED_MEMBER_PROJECTION_V1",
+        "DECODED_HEADER_FRAGMENT",
+        "POSITIVE",
+        "ADR-003",
+        2,
+    ),
+    "adr003.unauthenticated-forwarding-wrapper.v1": (
+        "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+        "AUTHENTICATED_WIRE_OBJECT",
+        "NEGATIVE",
+        "ADR-003",
+        3,
+    ),
+    "adr004.pending-release-reservation-nonallocation.v1": (
+        "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1",
+        "NON_WIRE_INTERNAL_STATE",
+        "POSITIVE",
+        "ADR-004",
+        1,
+    ),
+    "adr005.declare-stream.excerpt.v1": (
+        "ADR005_DECLARE_STREAM_EXCERPT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-005",
+        1,
+    ),
+    "adr005.undeclared-frame.hostile.v1": (
+        "ADR005_UNDECLARED_FRAME_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-005",
+        2,
+    ),
+    "adr006.body-lease.excerpt.v1": (
+        "ADR006_BODY_LEASE_EXCERPT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-006",
+        1,
+    ),
+    "adr006.self-issued-stale-lease.hostile.v1": (
+        "ADR006_STALE_SELF_ISSUED_LEASE_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-006",
+        2,
+    ),
+    "adr007.disposition-query.semantic-projection.v1": (
+        "ADR007_DISPOSITION_QUERY_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-007",
+        1,
+    ),
+    "adr007.received-disposition.excerpt.v1": (
+        "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "POSITIVE",
+        "ADR-007",
+        2,
+    ),
+    "adr007.unknown-disposition.hostile.v1": (
+        "ADR007_INVALID_DISPOSITION_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-007",
+        3,
+    ),
+    "adr008.raw-chunk.semantic-projection.v1": (
+        "ADR008_RAW_CHUNK_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-008",
+        1,
+    ),
+    "adr008.evaluated-envelope.excerpt.v1": (
+        "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
+        "PROPOSED_EXTENSION_ENVELOPE",
+        "POSITIVE",
+        "ADR-008",
+        2,
+    ),
+    "adr008.self-policy.hostile.v1": (
+        "ADR008_GALADRIEL_POLICY_INJECTION_V1",
+        "PROPOSED_EXTENSION_ENVELOPE",
+        "NEGATIVE",
+        "ADR-008",
+        3,
+    ),
+    "adr009.security-state.semantic-projection.v1": (
+        "ADR009_SECURITY_STATE_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-009",
+        1,
+    ),
+    "adr009.ambiguous-mutable-security-state.hostile.v1": (
+        "ADR009_INVALID_SECURITY_STATE_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "NEGATIVE",
+        "ADR-009",
+        2,
+    ),
+    "adr010.action-qos-profile.excerpt.v1": (
+        "ADR010_ACTION_QOS_PROFILE_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-010",
+        1,
+    ),
+    "adr010.best-effort-receipt-free-profile.hostile.v1": (
+        "ADR010_INVALID_ACTION_QOS_PROFILE_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "NEGATIVE",
+        "ADR-010",
+        2,
+    ),
+    "adr011.gated-intent-correlation.excerpt.v1": (
+        "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
+        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+        "POSITIVE",
+        "ADR-011",
+        1,
+    ),
+    "adr011.identity-laundering-command.hostile.v1": (
+        "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
+        "PROPOSED_WIRE_FRAGMENT",
+        "NEGATIVE",
+        "ADR-011",
+        2,
+    ),
+    "adr011.effect-path-fencing.semantic-projection.v1": (
+        "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-011",
+        3,
+    ),
+}
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+ADR_MAIN_PATH = re.compile(
+    r"docs/adr/(000[1-9]|001[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md\Z"
+)
+ADR_MODULE_PATH = re.compile(
+    r"docs/adr/modules/adr-(00[1-9]|01[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md\Z"
+)
 CASE_ID = re.compile(r"[a-z0-9][a-z0-9.-]*\.v1\Z")
 PROFILE_ID = re.compile(r"ADR(?:00[1-9]|01[01])_[A-Z0-9_]+_V1\Z")
 DIAGNOSTIC_ID = re.compile(r"[A-Z][A-Z0-9_]*\Z")
-ADR_PATH = re.compile(r"docs/adr/(00(?:0[1-9]|1[01]))-[a-z0-9-]+\.md\Z")
 
 EXPECTED_LIMITS = {
     "maximum_corpus_bytes": MAX_CORPUS_BYTES,
     "maximum_aggregate_adr_bytes": MAX_AGGREGATE_ADR_BYTES,
     "maximum_adr_bytes": MAX_ADR_BYTES,
     "maximum_json_fence_bytes": MAX_JSON_FENCE_BYTES,
+    "maximum_fixture_bytes": MAX_FIXTURE_BYTES,
     "maximum_json_depth": 32,
     "maximum_json_nodes": 100_000,
     "maximum_object_members": 4_096,
     "maximum_array_items": 4_096,
-    "maximum_key_utf8_bytes": 256,
+    "maximum_key_utf8_bytes": 128,
     "maximum_string_utf8_bytes": 65_536,
     "maximum_total_string_utf8_bytes": 131_072,
     "maximum_integer_characters": 32,
     "allow_floats": False,
     "expected_case_count": EXPECTED_CASE_COUNT,
-    "expected_mutation_count": 90,
+    "expected_mutation_count": 132,
     "minimum_mutations_per_case": 2,
-    "maximum_mutations_per_case": 16,
+    "maximum_mutations_per_case": 24,
     "maximum_engine_output_bytes": MAX_ENGINE_OUTPUT_BYTES,
     "engine_timeout_seconds": 120,
 }
@@ -106,15 +301,24 @@ EXPECTED_CLOSED_VALUES = {
     "patch_target": ["BOUNDED_FIXTURE", "DOCUMENT"],
     "patch_operation": ["ADD", "REMOVE", "REPLACE"],
 }
+EXPECTED_CLAIM_BOUNDARY_KEYS = {
+    "adrs_accepted",
+    "normative_contract_changed",
+    "production_admission_implemented",
+    "interoperability_established",
+    "independent_evidence_satisfied",
+    "external_gate_satisfied",
+    "release_authorized",
+}
 EXPECTED_SOURCE_BINDING = {
     "fence_language": "json",
     "fence_capture": (
-        "content_between_exact_json_fence_markers_excluding_terminal_newline"
+        "content_between_top_level_exact_json_fence_lines_excluding_one_terminal_line_ending"
     ),
     "path_root": "repository",
     "sha256_encoding": "lowercase_hex",
 }
-EXPECTED_DECISION_SET_BINDING = {
+EXPECTED_DECISION_SET_RECIPE = {
     "schema": "ncp.b01-decision-set.v1",
     "registry_path": "docs/adr/decision-registry.proposed.v1.json",
     "digest_algorithm": ("sha256(domain || u64be(projection_bytes) || projection)"),
@@ -139,27 +343,6 @@ EXPECTED_DECISION_SET_BINDING = {
         "required_reviews",
         "defect_ids",
     ],
-    "projection_byte_length": 16_606,
-    "projection_sha256": (
-        "2c9dc7b997d599ad6e533cfa5685c5dabd73bb60f32020f72ebe1bbeaefce881"
-    ),
-    "sha256": "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331",
-    "semantic_closure": {
-        "source": {
-            "path": "docs/adr/decision-closure.source.v1.json",
-            "sha256": (
-                "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122"
-            ),
-            "bytes": 66_810,
-        },
-        "json_schema": {
-            "path": "docs/adr/decision-closure.source.schema.v1.json",
-            "sha256": (
-                "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee"
-            ),
-            "bytes": 28_693,
-        },
-    },
     "effect": "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY",
 }
 
@@ -169,11 +352,11 @@ CORPUS_JSON_LIMITS = JsonLimits(
     maximum_items=100_000,
     maximum_object_members=4_096,
     maximum_array_items=4_096,
-    maximum_key_utf8_bytes=256,
+    maximum_key_utf8_bytes=128,
     maximum_string_utf8_bytes=65_536,
-    maximum_total_string_utf8_bytes=MAX_CORPUS_BYTES,
+    maximum_total_string_utf8_bytes=EXPECTED_LIMITS["maximum_total_string_utf8_bytes"],
     maximum_integer_chars=32,
-    maximum_float_chars=64,
+    maximum_float_chars=32,
     allow_floats=False,
 )
 ENGINE_OUTPUT_JSON_LIMITS = JsonLimits(
@@ -182,7 +365,7 @@ ENGINE_OUTPUT_JSON_LIMITS = JsonLimits(
     maximum_items=100_000,
     maximum_object_members=4_096,
     maximum_array_items=4_096,
-    maximum_key_utf8_bytes=256,
+    maximum_key_utf8_bytes=128,
     maximum_string_utf8_bytes=65_536,
     maximum_total_string_utf8_bytes=MAX_ENGINE_OUTPUT_BYTES,
     maximum_integer_chars=32,
@@ -195,7 +378,7 @@ DECISION_REGISTRY_JSON_LIMITS = JsonLimits(
     maximum_items=100_000,
     maximum_object_members=4_096,
     maximum_array_items=4_096,
-    maximum_key_utf8_bytes=256,
+    maximum_key_utf8_bytes=128,
     maximum_string_utf8_bytes=65_536,
     maximum_total_string_utf8_bytes=MAX_DECISION_REGISTRY_BYTES,
     maximum_integer_chars=32,
@@ -208,7 +391,7 @@ FENCE_JSON_LIMITS = JsonLimits(
     maximum_items=100_000,
     maximum_object_members=4_096,
     maximum_array_items=4_096,
-    maximum_key_utf8_bytes=256,
+    maximum_key_utf8_bytes=128,
     maximum_string_utf8_bytes=65_536,
     maximum_total_string_utf8_bytes=MAX_JSON_FENCE_BYTES,
     maximum_integer_chars=32,
@@ -242,6 +425,47 @@ def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def _extract_exact_json_fences(markdown: bytes, *, label: str) -> list[bytes]:
+    try:
+        markdown.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"{label} is not UTF-8: {error}")
+
+    fences: list[bytes] = []
+    state: tuple[str, int] | None = None
+    line_start = 0
+    while line_start < len(markdown):
+        newline = markdown.find(b"\n", line_start)
+        line_end = newline if newline >= 0 else len(markdown)
+        logical_end = line_end
+        if logical_end > line_start and markdown[logical_end - 1] == 0x0D:
+            logical_end -= 1
+        line = markdown[line_start:logical_end]
+        next_line = line_end + 1 if line_end < len(markdown) else len(markdown)
+
+        if state is None and line == b"```json":
+            if line_end == len(markdown):
+                _fail(f"{label} JSON fence opener has no following content line")
+            state = ("json", next_line)
+        elif state is None and line.startswith(b"```"):
+            state = ("other", 0)
+        elif state is not None and state[0] == "json" and line == b"```":
+            content_end = line_start
+            if content_end > state[1] and markdown[content_end - 1] == 0x0A:
+                content_end -= 1
+                if content_end > state[1] and markdown[content_end - 1] == 0x0D:
+                    content_end -= 1
+            fences.append(markdown[state[1] : content_end])
+            state = None
+        elif state is not None and state[0] == "other" and line == b"```":
+            state = None
+        line_start = next_line
+
+    if state is not None:
+        _fail(f"{label} contains an unclosed Markdown fence")
+    return fences
+
+
 def _canonical_json(value: Any) -> bytes:
     return json.dumps(
         value,
@@ -270,6 +494,24 @@ def _string(value: Any, label: str) -> str:
     return value
 
 
+def _main_adr_path(value: Any, decision_id: str, label: str) -> str:
+    path = _string(value, label)
+    match = ADR_MAIN_PATH.fullmatch(path)
+    path_decision_id = f"ADR-{int(match.group(1)):03d}" if match is not None else None
+    if path_decision_id != decision_id:
+        _fail(f"{label} is not the matching canonical ADR Markdown path")
+    return path
+
+
+def _module_adr_path(value: Any, decision_id: str, label: str) -> str:
+    path = _string(value, label)
+    match = ADR_MODULE_PATH.fullmatch(path)
+    path_decision_id = f"ADR-{int(match.group(1)):03d}" if match is not None else None
+    if path_decision_id != decision_id:
+        _fail(f"{label} is not a matching canonical ADR module path")
+    return path
+
+
 def _positive_integer(value: Any, label: str) -> int:
     if type(value) is not int or value <= 0:
         _fail(f"{label} is not a positive exact integer")
@@ -292,7 +534,9 @@ def _sorted_unique_strings(value: Any, label: str) -> list[str]:
 
 def _validate_pointer(value: Any, label: str) -> str:
     pointer = _string(value, label)
-    if len(pointer.encode("utf-8")) > 1_024 or not pointer.startswith("/"):
+    if len(pointer.encode("utf-8")) > MAX_PATCH_PATH_BYTES or not pointer.startswith(
+        "/"
+    ):
         _fail(f"{label} is not a bounded non-root JSON pointer")
     index = 0
     while index < len(pointer):
@@ -328,8 +572,62 @@ def _verify_decision_set_binding(
     binding_value: Any,
 ) -> dict[str, tuple[str, int, str]]:
     binding = _object(binding_value, "decision_set_binding")
-    if binding != EXPECTED_DECISION_SET_BINDING:
-        _fail("decision_set_binding is not the closed current non-accepting subject")
+    expected_keys = set(EXPECTED_DECISION_SET_RECIPE) | {
+        "projection_byte_length",
+        "projection_sha256",
+        "sha256",
+        "semantic_closure",
+    }
+    _exact_keys(binding, expected_keys, "decision_set_binding")
+    if any(
+        binding.get(key) != value for key, value in EXPECTED_DECISION_SET_RECIPE.items()
+    ):
+        _fail("decision_set_binding does not use the closed v1 recipe")
+    projection_byte_length = _positive_integer(
+        binding.get("projection_byte_length"), "decision projection byte length"
+    )
+    if projection_byte_length > MAX_CORPUS_BYTES:
+        _fail("decision projection exceeds its byte bound")
+    for member in ("projection_sha256", "sha256"):
+        if not HEX64.fullmatch(_string(binding.get(member), member)):
+            _fail(f"{member} is not lowercase SHA-256")
+    closure = _object(binding.get("semantic_closure"), "semantic_closure")
+    _exact_keys(
+        closure,
+        {"source", "json_schema"},
+        "semantic_closure",
+    )
+    for member, expected_path, maximum_bytes in (
+        ("source", "docs/adr/decision-closure.source.v1.json", MAX_CORPUS_BYTES),
+        (
+            "json_schema",
+            "docs/adr/decision-closure.source.schema.v1.json",
+            MAX_CORPUS_BYTES,
+        ),
+    ):
+        identity = _object(closure.get(member), f"semantic_closure.{member}")
+        _exact_keys(identity, {"path", "bytes", "sha256"}, f"semantic_closure.{member}")
+        if identity.get("path") != expected_path:
+            _fail(f"semantic_closure.{member} has an unexpected path")
+        artifact_bytes = _positive_integer(
+            identity.get("bytes"), f"semantic_closure.{member}.bytes"
+        )
+        digest = _string(identity.get("sha256"), f"semantic_closure.{member}.sha256")
+        if artifact_bytes > maximum_bytes or not HEX64.fullmatch(digest):
+            _fail(f"semantic_closure.{member} identity is invalid")
+        try:
+            raw = read_bounded_relative_file(
+                REPOSITORY,
+                expected_path,
+                maximum_bytes=maximum_bytes,
+                label=f"semantic closure {member}",
+            )
+        except (OSError, SourceInventoryError) as error:
+            raise CoordinatorError(
+                f"semantic closure {member} failed closed: {error}"
+            ) from error
+        if len(raw) != artifact_bytes or _sha256(raw) != digest:
+            _fail(f"semantic_closure.{member} bytes differ from the binding")
     _raw, registry_value = _load_json_file(
         binding["registry_path"],
         maximum_bytes=MAX_DECISION_REGISTRY_BYTES,
@@ -363,6 +661,7 @@ def _verify_decision_set_binding(
     raw_decisions = _array(registry.get("decisions"), "decision registry decisions")
     projected_decisions: list[dict[str, Any]] = []
     identities: dict[str, tuple[str, int, str]] = {}
+    projected_sources: dict[str, tuple[int, str]] = {}
     member_names = binding["decision_members"]
     for index, raw_decision in enumerate(raw_decisions):
         decision = _object(raw_decision, f"decision registry decision {index}")
@@ -372,7 +671,9 @@ def _verify_decision_set_binding(
         projection = {name: decision[name] for name in member_names}
         projected_decisions.append(projection)
         decision_id = _string(decision.get("id"), f"decision {index} id")
-        path = _string(decision.get("path"), f"decision {decision_id} path")
+        path = _main_adr_path(
+            decision.get("path"), decision_id, f"decision {decision_id} path"
+        )
         byte_length = _positive_integer(
             decision.get("bytes"), f"decision {decision_id} bytes"
         )
@@ -380,9 +681,109 @@ def _verify_decision_set_binding(
             decision.get("content_sha256"),
             f"decision {decision_id} content_sha256",
         )
-        if not HEX64.fullmatch(digest) or decision_id in identities:
+        if (
+            decision_id not in EXPECTED_ADR_IDS
+            or byte_length > MAX_ADR_BYTES
+            or not HEX64.fullmatch(digest)
+            or decision_id in identities
+        ):
             _fail("decision identities are duplicate or not lowercase SHA-256")
         identities[decision_id] = (path, byte_length, digest)
+        source_set = _object(
+            decision.get("source_set"), f"decision {decision_id} source_set"
+        )
+        _exact_keys(
+            source_set,
+            {
+                "schema",
+                "decision_id",
+                "sources",
+                "digest_algorithm",
+                "domain_hex",
+                "sha256",
+            },
+            f"decision {decision_id} source_set",
+        )
+        sources = _array(
+            source_set.get("sources"), f"decision {decision_id} source_set sources"
+        )
+        module_paths = _array(
+            decision.get("module_paths"), f"decision {decision_id} module_paths"
+        )
+        if (
+            source_set.get("schema") != ADR_SOURCE_SET_SCHEMA
+            or source_set.get("decision_id") != decision_id
+            or source_set.get("digest_algorithm") != ADR_SOURCE_SET_DIGEST_ALGORITHM
+            or source_set.get("domain_hex") != ADR_SOURCE_SET_DOMAIN_HEX
+            or not 1 <= len(sources) <= MAX_ADR_MODULES_PER_DECISION + 1
+            or len(module_paths) + 1 != len(sources)
+        ):
+            _fail(f"decision {decision_id} source_set identity is invalid")
+        for source_index, source_value in enumerate(sources):
+            source = _object(
+                source_value, f"decision {decision_id} source_set source {source_index}"
+            )
+            _exact_keys(
+                source,
+                {"kind", "path", "bytes", "sha256"},
+                f"decision {decision_id} source_set source {source_index}",
+            )
+            if source.get("kind") != ("main" if source_index == 0 else "module"):
+                _fail(f"decision {decision_id} source_set kind is invalid")
+            source_path = _string(source.get("path"), "projected source path")
+            source_bytes = _positive_integer(
+                source.get("bytes"), "projected source bytes"
+            )
+            source_digest = _string(source.get("sha256"), "projected source SHA-256")
+            if (
+                source_bytes > MAX_ADR_BYTES
+                or not HEX64.fullmatch(source_digest)
+                or source_path in projected_sources
+            ):
+                _fail(
+                    f"decision {decision_id} projected source is invalid or duplicate"
+                )
+            if source_index == 0:
+                if (
+                    _main_adr_path(
+                        source_path,
+                        decision_id,
+                        f"decision {decision_id} source_set main path",
+                    )
+                    != path
+                    or source_bytes != byte_length
+                    or source_digest != digest
+                ):
+                    _fail(f"decision {decision_id} source_set main identity differs")
+            elif (
+                _module_adr_path(
+                    source_path,
+                    decision_id,
+                    f"decision {decision_id} source_set module path",
+                )
+                != module_paths[source_index - 1]
+            ):
+                _fail(f"decision {decision_id} source_set module identity differs")
+            projected_sources[source_path] = (source_bytes, source_digest)
+        source_set_projection = {
+            "schema": ADR_SOURCE_SET_SCHEMA,
+            "decision_id": decision_id,
+            "sources": sources,
+        }
+        source_set_payload = _canonical_json(source_set_projection)
+        source_set_committed = (
+            bytes.fromhex(ADR_SOURCE_SET_DOMAIN_HEX)
+            + len(source_set_payload).to_bytes(8, "big")
+            + source_set_payload
+        )
+        source_set_digest = _string(
+            source_set.get("sha256"), f"decision {decision_id} source_set SHA-256"
+        )
+        if (
+            not HEX64.fullmatch(source_set_digest)
+            or _sha256(source_set_committed) != source_set_digest
+        ):
+            _fail(f"decision {decision_id} source_set commitment does not recompute")
 
     projection = {
         "schema": binding["schema"],
@@ -406,6 +807,21 @@ def _verify_decision_set_binding(
         _fail("decision-set domain commitment does not recompute")
     if tuple(sorted(identities)) != EXPECTED_ADR_IDS:
         _fail("decision-set projection does not cover exactly ADR-001 through ADR-011")
+    aggregate = 0
+    for source_path, (source_bytes, source_digest) in projected_sources.items():
+        raw = read_bounded_relative_file(
+            REPOSITORY,
+            source_path,
+            maximum_bytes=source_bytes,
+            label=f"projected source {source_path}",
+        )
+        aggregate += len(raw)
+        if (
+            aggregate > MAX_AGGREGATE_ADR_BYTES
+            or len(raw) != source_bytes
+            or _sha256(raw) != source_digest
+        ):
+            _fail(f"projected source {source_path} differs from its binding")
     return identities
 
 
@@ -424,6 +840,7 @@ def _verify_review_packet_binding(
         review_subject = _object(
             registry.get("review_packet_subject"), "review_packet_subject"
         )
+        _exact_keys(review_subject, {"decision_set"}, "review_packet_subject")
         if review_subject.get("decision_set") != registered_identity:
             _fail("review subject has a different decision-set identity")
         return
@@ -453,6 +870,19 @@ def _validate_expected_diagnostics(
     return diagnostics
 
 
+def _validate_expected_observation(
+    result: Any,
+    production: Any,
+    diagnostics: list[str],
+    *,
+    label: str,
+) -> None:
+    if (result == "REJECT") != bool(diagnostics):
+        _fail(f"{label} result and diagnostics conflict")
+    if result == "REJECT" and production == "NOT_EVALUATED":
+        _fail(f"{label} marks a rejected profile as NOT_EVALUATED")
+
+
 def _validate_mutation(
     value: Any,
     *,
@@ -475,12 +905,16 @@ def _validate_mutation(
         f"{case_label} mutation",
     )
     mutation_id = _string(mutation["id"], f"{case_label} mutation id")
-    if not CASE_ID.fullmatch(mutation_id) or mutation_id in mutation_ids:
+    if (
+        not CASE_ID.fullmatch(mutation_id)
+        or len(mutation_id.encode("utf-8")) > 160
+        or mutation_id in mutation_ids
+    ):
         _fail(f"{case_label} has a duplicate or invalid mutation id")
     mutation_ids.add(mutation_id)
     purpose = _string(mutation["purpose"], f"mutation {mutation_id} purpose")
-    if len(purpose.encode("utf-8")) > 512:
-        _fail(f"mutation {mutation_id} purpose exceeds its bound")
+    if not purpose.strip() or len(purpose.encode("utf-8")) > MAX_MUTATION_PURPOSE_BYTES:
+        _fail(f"mutation {mutation_id} purpose is blank or exceeds its bound")
     patch = _object(mutation["patch"], f"mutation {mutation_id} patch")
     operation = _string(patch.get("op"), f"mutation {mutation_id} patch op")
     if operation not in EXPECTED_CLOSED_VALUES["patch_operation"]:
@@ -499,10 +933,16 @@ def _validate_mutation(
         not in EXPECTED_CLOSED_VALUES["production_admission"]
     ):
         _fail(f"mutation {mutation_id} has an invalid admission boundary")
-    _validate_expected_diagnostics(
+    mutation_diagnostics = _validate_expected_diagnostics(
         mutation["expected_diagnostics"],
         registry=registry,
         label=f"mutation {mutation_id} diagnostics",
+    )
+    _validate_expected_observation(
+        mutation["expected_profile_result"],
+        mutation["production_admission"],
+        mutation_diagnostics,
+        label=f"mutation {mutation_id}",
     )
     if type(mutation["payload_interpreted"]) is not bool:
         _fail(f"mutation {mutation_id} payload_interpreted is not Boolean")
@@ -520,9 +960,10 @@ def _validate_case_records(
     registry = set(diagnostics)
     cases = _array(corpus["cases"], "cases")
     if len(cases) != EXPECTED_CASE_COUNT:
-        _fail("corpus does not contain exactly 22 cases")
+        _fail(f"corpus does not contain exactly {EXPECTED_CASE_COUNT} cases")
     case_ids: set[str] = set()
     mutation_ids: set[str] = set()
+    used_diagnostics: set[str] = set()
     mutation_count = 0
     coordinates: list[tuple[str, int]] = []
     for index, raw_case in enumerate(cases):
@@ -545,7 +986,11 @@ def _validate_case_records(
             f"case {index}",
         )
         case_id = _string(case["id"], f"case {index} id")
-        if not CASE_ID.fullmatch(case_id) or case_id in case_ids:
+        if (
+            not CASE_ID.fullmatch(case_id)
+            or len(case_id.encode("utf-8")) > 160
+            or case_id in case_ids
+        ):
             _fail(f"case {index} has a duplicate or invalid id")
         case_ids.add(case_id)
         if case["scope"] not in EXPECTED_CLOSED_VALUES["scope"]:
@@ -567,12 +1012,30 @@ def _validate_case_records(
             _fail(f"case {case_id} has an invalid admission boundary")
         if type(case["payload_interpreted"]) is not bool:
             _fail(f"case {case_id} payload_interpreted is not Boolean")
-        _validate_expected_diagnostics(
+        case_diagnostics = _validate_expected_diagnostics(
             case["expected_diagnostics"],
             registry=registry,
             label=f"case {case_id} diagnostics",
         )
-        if len(_canonical_json(case["bounded_fixture"])) > MAX_FIXTURE_BYTES:
+        used_diagnostics.update(case_diagnostics)
+        _validate_expected_observation(
+            case["expected_profile_result"],
+            case["production_admission"],
+            case_diagnostics,
+            label=f"case {case_id}",
+        )
+        if (case["polarity"] == "POSITIVE") == (
+            case["expected_profile_result"] == "REJECT"
+        ):
+            _fail(f"case {case_id} polarity disagrees with its base profile result")
+        if (case["scope"] == "NON_WIRE_INTERNAL_STATE") != (
+            case["expected_profile_result"] == "MATCH_NON_WIRE_EXCERPT"
+        ):
+            _fail(f"case {case_id} scope disagrees with its base profile result")
+        if (
+            len(_canonical_json(case["bounded_fixture"]))
+            > corpus["limits"]["maximum_fixture_bytes"]
+        ):
             _fail(f"case {case_id} fixture exceeds its byte bound")
 
         source = _object(case["source"], f"case {case_id} source")
@@ -580,34 +1043,55 @@ def _validate_case_records(
             source,
             {
                 "adr",
-                "path",
                 "json_fence_ordinal",
-                "adr_byte_length",
-                "adr_sha256",
                 "fence_byte_length",
                 "fence_sha256",
             },
             f"case {case_id} source",
         )
-        path = _string(source["path"], f"case {case_id} source path")
-        match = ADR_PATH.fullmatch(path)
         adr = _string(source["adr"], f"case {case_id} source ADR")
-        if match is None or adr != f"ADR-{match.group(1)[1:]}":
-            _fail(f"case {case_id} source ADR and path disagree")
+        if adr not in EXPECTED_ADR_IDS:
+            _fail(f"case {case_id} source ADR is unknown")
+        case_namespace = adr.lower().replace("-", "") + "."
+        profile_namespace = adr.replace("-", "") + "_"
+        if not case_id.startswith(case_namespace):
+            _fail(f"case {case_id} is not namespaced to source {adr}")
+        if not profile.startswith(profile_namespace):
+            _fail(f"case {case_id} profile is not namespaced to source {adr}")
+        if case["polarity"] == "POSITIVE" and case["payload_interpreted"] is not True:
+            _fail(f"positive case {case_id} does not interpret its bounded payload")
         ordinal = _positive_integer(
             source["json_fence_ordinal"], f"case {case_id} source ordinal"
         )
-        coordinates.append((path, ordinal))
-        for name in ("adr_byte_length", "fence_byte_length"):
-            _positive_integer(source[name], f"case {case_id} source {name}")
-        for name in ("adr_sha256", "fence_sha256"):
-            digest = _string(source[name], f"case {case_id} source {name}")
-            if not HEX64.fullmatch(digest):
-                _fail(f"case {case_id} source {name} is not lowercase SHA-256")
+        expected_identity = EXPECTED_CASE_IDENTITIES.get(case_id)
+        if (
+            expected_identity is None
+            or (
+                profile,
+                case["scope"],
+                case["polarity"],
+                adr,
+                ordinal,
+            )
+            != expected_identity
+        ):
+            _fail(f"case {case_id} differs from its closed profile/source identity")
+        coordinates.append((adr, ordinal))
+        _positive_integer(
+            source["fence_byte_length"], f"case {case_id} source fence_byte_length"
+        )
+        digest = _string(source["fence_sha256"], f"case {case_id} source fence_sha256")
+        if not HEX64.fullmatch(digest):
+            _fail(f"case {case_id} source fence_sha256 is not lowercase SHA-256")
 
         mutations = _array(case["mutations"], f"case {case_id} mutations")
-        if not 2 <= len(mutations) <= 16:
-            _fail(f"case {case_id} mutation count is outside 2..16")
+        minimum_mutations = EXPECTED_LIMITS["minimum_mutations_per_case"]
+        maximum_mutations = EXPECTED_LIMITS["maximum_mutations_per_case"]
+        if not minimum_mutations <= len(mutations) <= maximum_mutations:
+            _fail(
+                f"case {case_id} mutation count is outside "
+                f"{minimum_mutations}..{maximum_mutations}"
+            )
         for mutation in mutations:
             validated_mutation = _validate_mutation(
                 mutation,
@@ -615,6 +1099,12 @@ def _validate_case_records(
                 mutation_ids=mutation_ids,
                 registry=registry,
             )
+            if not validated_mutation["id"].startswith(case_namespace):
+                _fail(
+                    f"mutation {validated_mutation['id']} is not namespaced to "
+                    f"source {adr}"
+                )
+            used_diagnostics.update(validated_mutation["expected_diagnostics"])
             base_observable = (
                 case["expected_profile_result"],
                 case["production_admission"],
@@ -635,6 +1125,19 @@ def _validate_case_records(
         _fail("case source coordinates are duplicate or not in deterministic order")
     if mutation_count != EXPECTED_LIMITS["expected_mutation_count"]:
         _fail("corpus mutation count differs from its closed declared total")
+    if case_ids != set(EXPECTED_CASE_IDENTITIES):
+        _fail("corpus case inventory differs from the closed v1 identities")
+    if not case_ids.isdisjoint(mutation_ids):
+        _fail("case and mutation identifiers must be globally unique")
+    if used_diagnostics != registry:
+        _fail("diagnostic_registry must exactly cover the v1 corpus expectations")
+    diagnostic_payload = _canonical_json(diagnostics)
+    if (
+        len(diagnostics) != EXPECTED_DIAGNOSTIC_REGISTRY_COUNT
+        or len(diagnostic_payload) != EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH
+        or _sha256(diagnostic_payload) != EXPECTED_DIAGNOSTIC_REGISTRY_SHA256
+    ):
+        _fail("diagnostic_registry differs from the closed v1 vocabulary")
     return cases, mutation_count
 
 
@@ -643,24 +1146,12 @@ def _verify_source_bindings(
     decision_identities: dict[str, tuple[str, int, str]],
 ) -> list[dict[str, Any]]:
     by_path: dict[str, bytes] = {}
-    declared_adr_identity: dict[str, tuple[int, str]] = {}
     source_identities: list[dict[str, Any]] = []
     covered: set[tuple[str, int]] = set()
     for case in cases:
         source = case["source"]
         adr = source["adr"]
-        path = source["path"]
-        decision_path, decision_bytes, decision_sha256 = decision_identities[adr]
-        if (
-            path != decision_path
-            or source["adr_byte_length"] != decision_bytes
-            or source["adr_sha256"] != decision_sha256
-        ):
-            _fail(f"case {case['id']} is not bound to its decision-set ADR identity")
-        identity = (source["adr_byte_length"], source["adr_sha256"])
-        if adr in declared_adr_identity and declared_adr_identity[adr] != identity:
-            _fail(f"case {case['id']} disagrees about its ADR identity")
-        declared_adr_identity[adr] = identity
+        path, decision_bytes, decision_sha256 = decision_identities[adr]
         if path not in by_path:
             try:
                 by_path[path] = read_bounded_relative_file(
@@ -672,9 +1163,9 @@ def _verify_source_bindings(
             except (OSError, SourceInventoryError) as error:
                 raise CoordinatorError(f"{adr} source read failed: {error}") from error
         adr_bytes = by_path[path]
-        if len(adr_bytes) != identity[0] or _sha256(adr_bytes) != identity[1]:
+        if len(adr_bytes) != decision_bytes or _sha256(adr_bytes) != decision_sha256:
             _fail(f"{adr} bytes do not match the corpus and decision set")
-        fences = JSON_FENCE.findall(adr_bytes)
+        fences = _extract_exact_json_fences(adr_bytes, label=f"{adr} source")
         ordinal = source["json_fence_ordinal"]
         if ordinal > len(fences):
             _fail(f"case {case['id']} fence ordinal is outside its ADR")
@@ -703,23 +1194,22 @@ def _verify_source_bindings(
                 "case_id": case["id"],
                 "path": path,
                 "json_fence_ordinal": ordinal,
-                "adr_byte_length": source["adr_byte_length"],
-                "adr_sha256": source["adr_sha256"],
+                "adr_byte_length": decision_bytes,
+                "adr_sha256": decision_sha256,
                 "fence_byte_length": source["fence_byte_length"],
                 "fence_sha256": source["fence_sha256"],
             }
         )
-    if tuple(sorted(declared_adr_identity)) != EXPECTED_ADR_IDS:
+    if tuple(sorted({case["source"]["adr"] for case in cases})) != EXPECTED_ADR_IDS:
         _fail("case source bindings do not cover exactly ADR-001 through ADR-011")
+    for path, adr_bytes in by_path.items():
+        fence_count = len(_extract_exact_json_fences(adr_bytes, label=f"{path} source"))
+        expected = {(path, ordinal) for ordinal in range(1, fence_count + 1)}
+        actual = {coordinate for coordinate in covered if coordinate[0] == path}
+        if actual != expected:
+            _fail(f"ADR source {path} JSON fence coverage is not exact and contiguous")
     if sum(len(value) for value in by_path.values()) > MAX_AGGREGATE_ADR_BYTES:
         _fail("ADR source corpus exceeds its aggregate byte bound")
-    expected_coverage = {
-        (path, ordinal)
-        for path, content in by_path.items()
-        for ordinal in range(1, len(JSON_FENCE.findall(content)) + 1)
-    }
-    if covered != expected_coverage:
-        _fail("corpus does not cover every and only JSON fence in the eleven ADRs")
     for path, original in by_path.items():
         try:
             current = read_bounded_relative_file(
@@ -793,8 +1283,9 @@ def _prepare_corpus_value(raw: bytes, value: Any) -> PreparedCorpus:
     if corpus["closed_values"] != EXPECTED_CLOSED_VALUES:
         _fail("ADR semantic corpus closed values differ from v1")
     claims = _object(corpus["claim_boundary"], "claim_boundary")
-    if not claims or any(value is not False for value in claims.values()):
-        _fail("claim_boundary must be nonempty and entirely false")
+    _exact_keys(claims, EXPECTED_CLAIM_BOUNDARY_KEYS, "claim_boundary")
+    if any(value is not False for value in claims.values()):
+        _fail("claim_boundary must be the exact false-only v1 member set")
     decision_identities = _verify_decision_set_binding(corpus["decision_set_binding"])
     cases, mutation_count = _validate_case_records(corpus)
     sources = _verify_source_bindings(cases, decision_identities)
@@ -1177,6 +1668,66 @@ def _expect_failure(
 def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
     executed = 0
 
+    executed += 1
+    nested_fence_markdown = (
+        b'```text\n```json\n{"ignored":true}\n```\n'
+        b'```json\r\n{"accepted":true}\r\n```\r\n'
+    )
+    if _extract_exact_json_fences(
+        nested_fence_markdown, label="coordinator fence self-test"
+    ) != [b'{"accepted":true}']:
+        _fail("coordinator exact fence scanner accepted a nested marker")
+    if (
+        _main_adr_path(
+            "docs/adr/0001-canonical-main.md",
+            "ADR-001",
+            "coordinator ADR-path self-test",
+        )
+        != "docs/adr/0001-canonical-main.md"
+    ):
+        _fail("coordinator ADR-path self-test changed a canonical path")
+    for hostile_path, hostile_id in (
+        ("docs/adr/0001-nested/subject.md", "ADR-001"),
+        ("docs/adr/0001-wrong-decision.md", "ADR-002"),
+        ("docs/adr/0001-double--hyphen.md", "ADR-001"),
+    ):
+        _expect_failure(
+            lambda path=hostile_path, decision_id=hostile_id: _main_adr_path(
+                path, decision_id, "coordinator ADR-path self-test"
+            ),
+            f"noncanonical ADR path {hostile_path!r}",
+            CoordinatorError,
+            (
+                "coordinator ADR-path self-test is not the matching canonical "
+                "ADR Markdown path"
+            ),
+        )
+    for hostile_path, hostile_id in (
+        ("docs/adr/modules/adr-004-nested/subject.md", "ADR-004"),
+        ("docs/adr/modules/adr-004-wrong-decision.md", "ADR-009"),
+        ("docs/adr/modules/adr-004-double--hyphen.md", "ADR-004"),
+    ):
+        _expect_failure(
+            lambda path=hostile_path, decision_id=hostile_id: _module_adr_path(
+                path, decision_id, "coordinator ADR-module self-test"
+            ),
+            f"noncanonical ADR module path {hostile_path!r}",
+            CoordinatorError,
+            (
+                "coordinator ADR-module self-test is not a matching canonical "
+                "ADR module path"
+            ),
+        )
+    executed += 1
+    _expect_failure(
+        lambda: _extract_exact_json_fences(
+            b"```json\n{}\n", label="coordinator unclosed fence self-test"
+        ),
+        "unclosed exact JSON fence",
+        CoordinatorError,
+        "coordinator unclosed fence self-test contains an unclosed Markdown fence",
+    )
+
     decision_set_identity = {
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "00",
@@ -1362,6 +1913,25 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
         CoordinatorError,
         "review_packet_lifecycle does not have the closed v1 member set",
     )
+    _expect_failure(
+        lambda: _verify_review_packet_binding(
+            {
+                "review_packet_lifecycle": {
+                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
+                    "state": "CURRENT",
+                },
+                "review_packet_subject": {
+                    "decision_set": decision_set_identity,
+                    "unexpected": False,
+                },
+                "review_records": [],
+            },
+            decision_set_identity,
+        ),
+        "CURRENT packet subject with an extra member",
+        CoordinatorError,
+        "review_packet_subject does not have the closed v1 member set",
+    )
     executed += 1
     _expect_failure(
         lambda: _verify_review_packet_binding(
@@ -1440,6 +2010,26 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
         lambda: _prepare_corpus_value(b"{}", altered_fence),
         "altered fence binding",
         CoordinatorError,
+    )
+    altered_case_identity = deepcopy(prepared.value)
+    altered_case_identity["cases"][0]["profile"] = "ADR001_ALTERED_V1"
+    _expect_failure(
+        lambda: _prepare_corpus_value(b"{}", altered_case_identity),
+        "altered closed case identity",
+        CoordinatorError,
+        "case adr001.open-plant-session.kind-separation.v1 differs from its "
+        "closed profile/source identity",
+    )
+    shuffled_case_order = deepcopy(prepared.value)
+    shuffled_case_order["cases"][0], shuffled_case_order["cases"][1] = (
+        shuffled_case_order["cases"][1],
+        shuffled_case_order["cases"][0],
+    )
+    _expect_failure(
+        lambda: _prepare_corpus_value(b"{}", shuffled_case_order),
+        "shuffled case source order",
+        CoordinatorError,
+        "case source coordinates are duplicate or not in deterministic order",
     )
 
     executed += 1
@@ -1535,6 +2125,50 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
         "observationally vacuous mutation",
         CoordinatorError,
         f"mutation {first_mutation['id']} has no observable expected effect",
+    )
+
+    executed += 1
+    colliding_identifier = deepcopy(prepared.value)
+    colliding_identifier["cases"][0]["mutations"][0]["id"] = colliding_identifier[
+        "cases"
+    ][0]["id"]
+    _expect_failure(
+        lambda: _prepare_corpus_value(b"{}", colliding_identifier),
+        "case and mutation identifier collision",
+        CoordinatorError,
+        "case and mutation identifiers must be globally unique",
+    )
+
+    executed += 1
+    unused_diagnostic = deepcopy(prepared.value)
+    unused_diagnostic["diagnostic_registry"].append("ZZZ_UNUSED")
+    _expect_failure(
+        lambda: _prepare_corpus_value(b"{}", unused_diagnostic),
+        "unused diagnostic registry member",
+        CoordinatorError,
+        "diagnostic_registry must exactly cover the v1 corpus expectations",
+    )
+
+    executed += 1
+    substituted_diagnostic = deepcopy(prepared.value)
+    original_diagnostic = substituted_diagnostic["diagnostic_registry"][0]
+    substituted_diagnostic["diagnostic_registry"][0] = "ZZZ_SUBSTITUTED"
+    for case in substituted_diagnostic["cases"]:
+        case["expected_diagnostics"] = sorted(
+            "ZZZ_SUBSTITUTED" if item == original_diagnostic else item
+            for item in case["expected_diagnostics"]
+        )
+        for mutation in case["mutations"]:
+            mutation["expected_diagnostics"] = sorted(
+                "ZZZ_SUBSTITUTED" if item == original_diagnostic else item
+                for item in mutation["expected_diagnostics"]
+            )
+    substituted_diagnostic["diagnostic_registry"].sort()
+    _expect_failure(
+        lambda: _prepare_corpus_value(b"{}", substituted_diagnostic),
+        "consistently substituted diagnostic vocabulary",
+        CoordinatorError,
+        "diagnostic_registry differs from the closed v1 vocabulary",
     )
 
     executed += 1

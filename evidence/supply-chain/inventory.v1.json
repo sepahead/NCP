@@ -2216,7 +2216,7 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "426a262e00ac4ab35ed30b28f71459e5a545c52725fdf17e13bf05cc4cbeaad0"
+      "sha256": "c7c94f129b2163d022809bae119f0c9ce20b211a9427afa6f4e25baff6260896"
     },
     {
       "outputs": [
@@ -2251,7 +2251,7 @@
         "docs/adr/decision-registry.proposed.v1.json"
       ],
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "8973f45ae61edccc5e47527def01038974c16ac4dcab305f7a3f09897caad411"
+      "sha256": "4beea0878d0de7f9716cccf6869a0e20a08fc2dcfcdf2c4a6821df3c1a9ea088"
     },
     {
       "outputs": [
@@ -2267,7 +2267,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "c2ae6ff4a79966b45aafb68ce546ffb86349b778280d312bb7d5eec59786dfeb"
+      "sha256": "50a18b4eeafd0f896d4e5ef0aaf7c52a5eb4dc6f5420994dd712f3b925b42932"
     },
     {
       "outputs": [
@@ -2302,7 +2302,7 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "4303b2ed94db2d4ddf09ca73610e52dba0088f1e669474a8437684f882a7d4ad"
+      "sha256": "31a32319dc765912b552bc42ae0e1e56d509dff63faa1d85d96beeb2c464ff56"
     },
     {
       "outputs": [

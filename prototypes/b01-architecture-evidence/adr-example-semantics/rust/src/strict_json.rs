@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use serde_json::{Map, Number, Value};
 
 use crate::error::{EngineError, EngineResult};
@@ -28,7 +26,7 @@ impl JsonLimits {
             maximum_json_nodes: 100_000,
             maximum_object_members: 4_096,
             maximum_array_items: 4_096,
-            maximum_key_utf8_bytes: 256,
+            maximum_key_utf8_bytes: 128,
             maximum_string_utf8_bytes: 65_536,
             maximum_total_string_utf8_bytes: 131_072,
             maximum_integer_characters: 32,
@@ -174,49 +172,36 @@ impl Parser<'_> {
                 .ok_or_else(|| self.error("unterminated JSON string"))?;
             match byte {
                 b'"' => break,
-                b'\\' => self.parse_escape(&mut decoded)?,
+                b'\\' => self.parse_escape(&mut decoded, is_key)?,
                 0x00..=0x1f => {
                     return Err(self.error("unescaped control character in JSON string"));
                 }
-                _ => decoded.push(byte),
+                _ => self.append_string_fragment(&mut decoded, &[byte], is_key)?,
             }
         }
 
         let value = String::from_utf8(decoded)
             .map_err(|error| self.error(format!("invalid UTF-8 string: {error}")))?;
-        let individual_limit = if is_key {
-            self.limits.maximum_key_utf8_bytes
-        } else {
-            self.limits.maximum_string_utf8_bytes
-        };
-        if value.len() > individual_limit {
-            return Err(self.error(if is_key {
-                "maximum key UTF-8 byte count exceeded"
-            } else {
-                "maximum string UTF-8 byte count exceeded"
-            }));
-        }
         self.total_string_bytes = self
             .total_string_bytes
             .checked_add(value.len())
             .ok_or_else(|| self.error("total string UTF-8 byte count overflow"))?;
-        if self.total_string_bytes > self.limits.maximum_total_string_utf8_bytes {
-            return Err(self.error("maximum total string UTF-8 byte count exceeded"));
-        }
         Ok(value)
     }
 
-    fn parse_escape(&mut self, decoded: &mut Vec<u8>) -> EngineResult<()> {
+    fn parse_escape(&mut self, decoded: &mut Vec<u8>, is_key: bool) -> EngineResult<()> {
         let escaped = self
             .next()
             .ok_or_else(|| self.error("truncated JSON escape"))?;
         match escaped {
-            b'"' | b'\\' | b'/' => decoded.push(escaped),
-            b'b' => decoded.push(0x08),
-            b'f' => decoded.push(0x0c),
-            b'n' => decoded.push(b'\n'),
-            b'r' => decoded.push(b'\r'),
-            b't' => decoded.push(b'\t'),
+            b'"' | b'\\' | b'/' => {
+                self.append_string_fragment(decoded, &[escaped], is_key)?;
+            }
+            b'b' => self.append_string_fragment(decoded, &[0x08], is_key)?,
+            b'f' => self.append_string_fragment(decoded, &[0x0c], is_key)?,
+            b'n' => self.append_string_fragment(decoded, b"\n", is_key)?,
+            b'r' => self.append_string_fragment(decoded, b"\r", is_key)?,
+            b't' => self.append_string_fragment(decoded, b"\t", is_key)?,
             b'u' => {
                 let first = self.parse_hex_quad()?;
                 let scalar = if (0xd800..=0xdbff).contains(&first) {
@@ -235,10 +220,47 @@ impl Parser<'_> {
                 let character = char::from_u32(scalar)
                     .ok_or_else(|| self.error("invalid Unicode scalar value"))?;
                 let mut buffer = [0_u8; 4];
-                decoded.extend_from_slice(character.encode_utf8(&mut buffer).as_bytes());
+                self.append_string_fragment(
+                    decoded,
+                    character.encode_utf8(&mut buffer).as_bytes(),
+                    is_key,
+                )?;
             }
             _ => return Err(self.error("invalid JSON escape")),
         }
+        Ok(())
+    }
+
+    fn append_string_fragment(
+        &self,
+        decoded: &mut Vec<u8>,
+        fragment: &[u8],
+        is_key: bool,
+    ) -> EngineResult<()> {
+        let next_string_bytes = decoded
+            .len()
+            .checked_add(fragment.len())
+            .ok_or_else(|| self.error("string UTF-8 byte count overflow"))?;
+        let individual_limit = if is_key {
+            self.limits.maximum_key_utf8_bytes
+        } else {
+            self.limits.maximum_string_utf8_bytes
+        };
+        if next_string_bytes > individual_limit {
+            return Err(self.error(if is_key {
+                "maximum key UTF-8 byte count exceeded"
+            } else {
+                "maximum string UTF-8 byte count exceeded"
+            }));
+        }
+        let next_total = self
+            .total_string_bytes
+            .checked_add(next_string_bytes)
+            .ok_or_else(|| self.error("total string UTF-8 byte count overflow"))?;
+        if next_total > self.limits.maximum_total_string_utf8_bytes {
+            return Err(self.error("maximum total string UTF-8 byte count exceeded"));
+        }
+        decoded.extend_from_slice(fragment);
         Ok(())
     }
 
@@ -358,21 +380,6 @@ impl Parser<'_> {
     }
 }
 
-pub(crate) fn canonicalize(value: &Value) -> Value {
-    match value {
-        Value::Array(items) => Value::Array(items.iter().map(canonicalize).collect()),
-        Value::Object(object) => {
-            let sorted = object
-                .iter()
-                .map(|(key, value)| (key.clone(), canonicalize(value)))
-                .collect::<BTreeMap<_, _>>();
-            let canonical = sorted.into_iter().collect::<Map<_, _>>();
-            Value::Object(canonical)
-        }
-        other => other.clone(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -416,5 +423,9 @@ mod tests {
         bounded = limits();
         bounded.maximum_string_utf8_bytes = 1;
         assert!(parse_strict(br#""ab""#, bounded).is_err());
+
+        bounded = limits();
+        bounded.maximum_total_string_utf8_bytes = 4;
+        assert!(parse_strict(br#"{"a":"\uD83D\uDE00"}"#, bounded).is_err());
     }
 }

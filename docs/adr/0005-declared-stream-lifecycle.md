@@ -140,9 +140,10 @@ The closed generic receiver transition union is:
 - `RETIRE_RECEIVER_ADMISSION_SCOPE`; and
 - `EVICT_FINALIZED_RECEIVER_RETENTION`.
 
-Each transition uses its exact receipt-free content or fact from the B01
-selector-closure matrix. It changes only the declared bounded mutation
-footprint. An unknown, default, inferred, or legacy alias rejects.
+Each transition uses the exact receipt-free content or fact and bounded mutation
+footprint specified in this ADR. The retained B01 selector matrix is diagnostic
+only and cannot change that meaning. An unknown, default, inferred, or legacy
+alias rejects.
 
 The top-level composite genesis allocates the never-used declaration-ledger
 incarnation and installs its empty version-1 subordinate head in the same
@@ -409,6 +410,66 @@ The tuple is encoded once in each canonical realm-scoped object: its direct
 complete it. A duplicated compatibility field must equal that direct member or
 the object rejects.
 
+## Low-overhead stream reconciliation
+
+Each declaration binds one receiver-owned publisher incarnation. A reconnect,
+publisher failover, or second simultaneous connection cannot share its allocator,
+epoch, grant, or replay state. Retirement is a control transition. Data cannot
+create, renew, replace, or retire a declaration.
+
+One lease-bound action declaration accepts Active, explicit HOLD, and any ESTOP
+permitted for that authenticated lease holder. An enrolled emergency principal
+uses a separate ESTOP-only declaration. Each declaration owns its own position
+allocator and replay state. The body owner merges their events without comparing
+positions across declarations.
+
+Ordinary HOLD admission retires its live declaration before the installed HOLD
+operation runs. In that same transition, policy can preserve a bounded
+ESTOP-only escalation snapshot over explicitly authorized unused slots and their
+unchanged deadline. The snapshot admits no Active or HOLD work, allocates no new
+position, and cannot refresh authority. A later ESTOP must match that preserved
+publisher, declaration, stream, security state, slot, and deadline.
+
+The body issues bounded freshness grants before command publication. Each grant
+binds:
+
+- one declaration, publisher incarnation, and stream epoch.
+- one receiver clock and exclusive deadline.
+- one non-overlapping position range and its permitted modes.
+- complete reserved state and each required lease coordinate.
+
+The first range starts at position one. A successor starts at the prior range's
+exclusive end. Assignment consumes a position before serialization or queue
+admission. Later failure creates a visible gap. A position selects at most one
+grant, so a compact command repeats no grant, lease, or TTL field.
+
+One command position represents one setpoint and one application attempt. It
+does not replay a predictive horizon. A trajectory requires a separate profile
+with per-step authority, source, deadline, admission, and disposition rules.
+
+A source-bound Active declaration binds one exact perception declaration and
+epoch. The body retains a finite source-publication window by entry count,
+aggregate bytes, and receiver-local lifetime. Admission pins the exact matching
+record and prepared safety projection. An absent or evicted record rejects. A
+timestamp, bare position, digest without values, or latest-value fallback cannot
+replace it.
+
+A prepared simulation-step declaration uses the same no-reuse principles. Its
+grant binds one receiver clock and one non-refreshing exclusive grant deadline.
+It reserves a contiguous request range, strict execution cursor, request and
+response slots, exact digest state, aggregate bytes, and one non-refreshing gap
+deadline. Grant expiry rejects unconsumed positions and retires the simulation
+generation. A response correlates by request position, never FIFO arrival.
+
+B03 can select finite identity names and checked numeric ceilings only. The
+reorder limit can be zero only for strict in-order admission. Every other
+selected numeric ceiling is positive. Stream-specific queue, byte, deadline,
+and retention values use the bounded ADR-010 profile envelope. Every ceiling
+must also fit its aggregate byte and owner-state budget. Unknown,
+zero-authority, overflowed, uninstalled, or incompatible selections reject
+before allocation. B03 cannot change the lifecycle, position, no-reuse, or
+correlation meaning above.
+
 ## Rejected alternatives
 
 - Adopt the first valid frame's epoch.
@@ -634,7 +695,19 @@ session as a whole; it cannot keep new frames with old implicit adoption.
 
 <a id="ncp-b01-selector-allocation-adr-005-v1"></a>
 
-Exact interface names, sequence and reorder limits, and tombstone capacities remain implementation-allocation inputs. The lifecycle, admission, retirement, and no-reuse rules are closed.
+Exact interface names, sequence and reorder limits, and tombstone capacities
+remain implementation-allocation inputs. The lifecycle, admission, retirement,
+and no-reuse rules are closed.
+
+B03 selects 1 through 32 canonical interface identities. Each identity matches
+`[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?` and can name only an implementation
+boundary defined by this ADR. It cannot add a transition or authority path. The
+sequence limit is 1 through 9,007,199,254,740,991. The reorder limit is 0 through
+4,096, and tombstone capacity is 1 through 65,536. The selected capacities must
+also fit their declared aggregate byte and terminal-state budgets.
+
+The reorder limit counts retained positions beyond the next expected position.
+Zero selects strict in-order admission and requires no reorder buffer.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

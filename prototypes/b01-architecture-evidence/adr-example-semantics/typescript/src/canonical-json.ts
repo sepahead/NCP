@@ -1,7 +1,5 @@
 import type { JsonValue } from "./strict-json.ts";
 
-const encoder = new TextEncoder();
-
 export class CanonicalJsonError extends Error {
   constructor(message: string) {
     super(message);
@@ -10,96 +8,215 @@ export class CanonicalJsonError extends Error {
 }
 
 export function canonicalJsonText(value: JsonValue, maximumBytes?: number): string {
-  const writer = new CanonicalWriter(maximumBytes);
-  writer.write(value);
-  return writer.finish();
+  const sink = new CanonicalTextSink(validateMaximum(maximumBytes));
+  writeCanonical(value, sink);
+  return sink.finish();
 }
 
 export function canonicalJsonBytes(value: JsonValue, maximumBytes?: number): Uint8Array {
-  return encoder.encode(canonicalJsonText(value, maximumBytes));
+  const maximum = validateMaximum(maximumBytes);
+  const counter = new CanonicalByteCounter(maximum);
+  writeCanonical(value, counter);
+
+  const output = new Uint8Array(counter.byteLength);
+  const sink = new CanonicalByteSink(output);
+  writeCanonical(value, sink);
+  sink.finish();
+  return output;
 }
 
-class CanonicalWriter {
-  private readonly fragments: string[] = [];
+interface CanonicalSink {
+  append(fragment: string): void;
+}
+
+class CanonicalTextSink implements CanonicalSink {
+  private output = "";
   private byteLength = 0;
 
-  constructor(private readonly maximumBytes: number | undefined) {
-    if (
-      maximumBytes !== undefined &&
-      (!Number.isSafeInteger(maximumBytes) || maximumBytes <= 0)
-    ) {
-      throw new CanonicalJsonError("canonical JSON byte bound must be a positive safe integer");
-    }
-  }
+  constructor(private readonly maximumBytes: number | undefined) {}
 
-  write(value: JsonValue): void {
-    if (value === null) {
-      this.append("null");
-      return;
-    }
-    if (typeof value === "boolean") {
-      this.append(value ? "true" : "false");
-      return;
-    }
-    if (typeof value === "number") {
-      if (!Number.isSafeInteger(value) || Object.is(value, -0)) {
-        throw new CanonicalJsonError(
-          "canonical JSON permits only safe integers other than negative zero",
-        );
-      }
-      this.append(String(value));
-      return;
-    }
-    if (typeof value === "string") {
-      this.writeString(value);
-      return;
-    }
-    if (Array.isArray(value)) {
-      this.append("[");
-      value.forEach((entry, index) => {
-        if (index !== 0) this.append(",");
-        this.write(entry);
-      });
-      this.append("]");
-      return;
-    }
-
-    const keys = Object.keys(value);
-    for (const key of keys) assertUnicodeScalarString(key);
-    keys.sort(compareUnicodeScalars);
-    this.append("{");
-    keys.forEach((key, index) => {
-      if (index !== 0) this.append(",");
-      this.writeString(key);
-      this.append(":");
-      this.write(value[key] as JsonValue);
-    });
-    this.append("}");
+  append(fragment: string): void {
+    this.byteLength = checkedByteLength(
+      this.byteLength,
+      utf8ByteLength(fragment),
+      this.maximumBytes,
+    );
+    this.output += fragment;
   }
 
   finish(): string {
-    return this.fragments.join("");
+    return this.output;
+  }
+}
+
+class CanonicalByteCounter implements CanonicalSink {
+  byteLength = 0;
+
+  constructor(private readonly maximumBytes: number | undefined) {}
+
+  append(fragment: string): void {
+    this.byteLength = checkedByteLength(
+      this.byteLength,
+      utf8ByteLength(fragment),
+      this.maximumBytes,
+    );
+  }
+}
+
+class CanonicalByteSink implements CanonicalSink {
+  private offset = 0;
+
+  constructor(private readonly output: Uint8Array) {}
+
+  append(fragment: string): void {
+    this.offset = writeUtf8(fragment, this.output, this.offset);
   }
 
-  private writeString(value: string): void {
-    assertUnicodeScalarString(value);
-    const encoded = JSON.stringify(value);
-    if (encoded === undefined) throw new CanonicalJsonError("string serialization failed");
-    this.append(encoded);
-  }
-
-  private append(fragment: string): void {
-    if (this.maximumBytes !== undefined) {
-      const nextLength = this.byteLength + encoder.encode(fragment).byteLength;
-      if (!Number.isSafeInteger(nextLength) || nextLength > this.maximumBytes) {
-        throw new CanonicalJsonError(
-          `canonical JSON exceeds ${this.maximumBytes} UTF-8 bytes`,
-        );
-      }
-      this.byteLength = nextLength;
+  finish(): void {
+    if (this.offset !== this.output.byteLength) {
+      throw new CanonicalJsonError("canonical JSON output length changed between passes");
     }
-    this.fragments.push(fragment);
   }
+}
+
+function writeCanonical(value: JsonValue, sink: CanonicalSink): void {
+  if (value === null) {
+    sink.append("null");
+    return;
+  }
+  if (typeof value === "boolean") {
+    sink.append(value ? "true" : "false");
+    return;
+  }
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value) || Object.is(value, -0)) {
+      throw new CanonicalJsonError(
+        "canonical JSON permits only safe integers other than negative zero",
+      );
+    }
+    sink.append(String(value));
+    return;
+  }
+  if (typeof value === "string") {
+    writeString(value, sink);
+    return;
+  }
+  if (Array.isArray(value)) {
+    sink.append("[");
+    value.forEach((entry, index) => {
+      if (index !== 0) sink.append(",");
+      writeCanonical(entry, sink);
+    });
+    sink.append("]");
+    return;
+  }
+
+  const keys = Object.keys(value);
+  for (const key of keys) assertUnicodeScalarString(key);
+  keys.sort(compareUnicodeScalars);
+  sink.append("{");
+  keys.forEach((key, index) => {
+    if (index !== 0) sink.append(",");
+    writeString(key, sink);
+    sink.append(":");
+    writeCanonical(value[key] as JsonValue, sink);
+  });
+  sink.append("}");
+}
+
+function writeString(value: string, sink: CanonicalSink): void {
+  assertUnicodeScalarString(value);
+  const encoded = JSON.stringify(value);
+  if (encoded === undefined) throw new CanonicalJsonError("string serialization failed");
+  sink.append(encoded);
+}
+
+function validateMaximum(maximumBytes: number | undefined): number | undefined {
+  if (
+    maximumBytes !== undefined &&
+    (!Number.isSafeInteger(maximumBytes) || maximumBytes <= 0)
+  ) {
+    throw new CanonicalJsonError("canonical JSON byte bound must be a positive safe integer");
+  }
+  return maximumBytes;
+}
+
+function checkedByteLength(
+  current: number,
+  additional: number,
+  maximum: number | undefined,
+): number {
+  const next = current + additional;
+  if (!Number.isSafeInteger(next) || (maximum !== undefined && next > maximum)) {
+    throw new CanonicalJsonError(
+      maximum === undefined
+        ? "canonical JSON byte length is not a safe integer"
+        : `canonical JSON exceeds ${maximum} UTF-8 bytes`,
+    );
+  }
+  return next;
+}
+
+function utf8ByteLength(value: string): number {
+  let bytes = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit <= 0x7f) {
+      bytes += 1;
+    } else if (codeUnit <= 0x7ff) {
+      bytes += 2;
+    } else if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      const low = value.charCodeAt(index + 1);
+      if (!(low >= 0xdc00 && low <= 0xdfff)) {
+        throw new CanonicalJsonError("canonical JSON string has an unpaired high surrogate");
+      }
+      bytes += 4;
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      throw new CanonicalJsonError("canonical JSON string has an unpaired low surrogate");
+    } else {
+      bytes += 3;
+    }
+  }
+  return bytes;
+}
+
+function writeUtf8(value: string, output: Uint8Array, start: number): number {
+  const expectedEnd = start + utf8ByteLength(value);
+  if (!Number.isSafeInteger(expectedEnd) || expectedEnd > output.byteLength) {
+    throw new CanonicalJsonError("canonical JSON output allocation is too small");
+  }
+  let offset = start;
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit <= 0x7f) {
+      output[offset++] = codeUnit;
+    } else if (codeUnit <= 0x7ff) {
+      output[offset++] = 0xc0 | (codeUnit >> 6);
+      output[offset++] = 0x80 | (codeUnit & 0x3f);
+    } else if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      const low = value.charCodeAt(index + 1);
+      if (!(low >= 0xdc00 && low <= 0xdfff)) {
+        throw new CanonicalJsonError("canonical JSON string has an unpaired high surrogate");
+      }
+      const scalar = 0x10000 + ((codeUnit - 0xd800) << 10) + (low - 0xdc00);
+      output[offset++] = 0xf0 | (scalar >> 18);
+      output[offset++] = 0x80 | ((scalar >> 12) & 0x3f);
+      output[offset++] = 0x80 | ((scalar >> 6) & 0x3f);
+      output[offset++] = 0x80 | (scalar & 0x3f);
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      throw new CanonicalJsonError("canonical JSON string has an unpaired low surrogate");
+    } else {
+      output[offset++] = 0xe0 | (codeUnit >> 12);
+      output[offset++] = 0x80 | ((codeUnit >> 6) & 0x3f);
+      output[offset++] = 0x80 | (codeUnit & 0x3f);
+    }
+  }
+  if (offset !== expectedEnd) {
+    throw new CanonicalJsonError("canonical JSON UTF-8 length changed while writing");
+  }
+  return offset;
 }
 
 function compareUnicodeScalars(left: string, right: string): number {

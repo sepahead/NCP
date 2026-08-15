@@ -11,9 +11,8 @@
     "wire_version",
     "task",
     "claim_boundary",
-    "wire_case_contract",
+    "semantic_example_contract",
     "b03_parameter_contract",
-    "parser_replay_contract",
     "excluded_no_edge_components",
     "decisions"
   ],
@@ -38,14 +37,11 @@
       "minLength": 120,
       "maxLength": 1024
     },
-    "wire_case_contract": {
-      "$ref": "#/$defs/wireCaseContract"
+    "semantic_example_contract": {
+      "$ref": "#/$defs/semanticExampleContract"
     },
     "b03_parameter_contract": {
       "$ref": "#/$defs/b03ParameterContract"
-    },
-    "parser_replay_contract": {
-      "$ref": "#/$defs/parserReplayContract"
     },
     "excluded_no_edge_components": {
       "type": "array",
@@ -86,65 +82,35 @@
       "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$",
       "maxLength": 256
     },
-    "wireCaseContract": {
+    "semanticExampleContract": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "complete_positive",
-        "complete_hostile"
+        "schema",
+        "coverage",
+        "rejection_observation",
+        "engine_requirement",
+        "positive_authority",
+        "external_effect"
       ],
       "properties": {
-        "complete_positive": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "scope",
-            "polarity",
-            "expected_profile_result",
-            "production_admission"
-          ],
-          "properties": {
-            "scope": {
-              "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
-            },
-            "polarity": {
-              "const": "POSITIVE"
-            },
-            "expected_profile_result": {
-              "const": "MATCH_COMPLETE_NON_AUTHORIZING"
-            },
-            "production_admission": {
-              "const": "NOT_EVALUATED"
-            }
-          }
+        "schema": {
+          "const": "ncp.b01-adr-example-semantics-corpus.v1"
         },
-        "complete_hostile": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "scope",
-            "polarity",
-            "mutation_relation",
-            "expected_profile_result",
-            "production_admission"
-          ],
-          "properties": {
-            "scope": {
-              "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
-            },
-            "polarity": {
-              "const": "NEGATIVE"
-            },
-            "mutation_relation": {
-              "const": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE"
-            },
-            "expected_profile_result": {
-              "const": "REJECT"
-            },
-            "production_admission": {
-              "const": "REJECT"
-            }
-          }
+        "coverage": {
+          "const": "EVERY_MAIN_ADR_JSON_FENCE_HAS_A_SOURCE_BOUND_CASE_AND_REJECTION_OBSERVATION"
+        },
+        "rejection_observation": {
+          "const": "NEGATIVE_CASE_OR_BOUNDED_MUTATION"
+        },
+        "engine_requirement": {
+          "const": "REQUIRED_BY_COMPLETE_LOCAL_GATE_OUTSIDE_REGISTRY_CLOSURE"
+        },
+        "positive_authority": {
+          "const": "NON_AUTHORIZING_EXCERPT_NOT_PRODUCTION_ADMISSION"
+        },
+        "external_effect": {
+          "const": "NONE_LOCAL_CHALLENGE_EVIDENCE_ONLY"
         }
       }
     },
@@ -164,6 +130,7 @@
         "identity_set_measure",
         "identity_canonicalization",
         "identity_eligibility_binding",
+        "empty_identity_universe_semantics",
         "identity_eligibility_digest_algorithm",
         "identity_eligibility_digest_domain_hex",
         "identity_eligibility_projection_encoding",
@@ -191,10 +158,10 @@
           ]
         },
         "literal_integer_encoding": {
-          "const": "POSITIVE_JSON_SAFE_INTEGER"
+          "const": "NONNEGATIVE_JSON_SAFE_INTEGER_FOR_BOUNDED_INTEGER_AND_JSON_SAFE_CARDINALITY_FOR_EXACT_IDENTITY_SET"
         },
         "validated_envelope": {
-          "const": "POSITIVE_LITERAL_MINIMUM_AND_FINITE_LITERAL_MAXIMUM_WITH_MINIMUM_LTE_MAXIMUM"
+          "const": "KIND_APPROPRIATE_LITERAL_MINIMUM_AND_FINITE_LITERAL_MAXIMUM_WITH_MINIMUM_LTE_MAXIMUM"
         },
         "future_b03_allocation_binding": {
           "const": "OUTSIDE_B01_DECISION_SET"
@@ -207,18 +174,21 @@
         },
         "selection_profile_semantics": {
           "const": {
-            "B03_BOUNDED_INTEGER_SELECTION_V1": "POSITIVE_JSON_SAFE_INTEGER_WITHIN_INCLUSIVE_ACCEPTED_ENVELOPE",
-            "B03_EXACT_IDENTITY_SET_SELECTION_V1": "CANONICAL_UNIQUE_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_GLOBAL_NO_EDGE_DENY"
+            "B03_BOUNDED_INTEGER_SELECTION_V1": "NONNEGATIVE_JSON_SAFE_INTEGER_WITHIN_INCLUSIVE_ACCEPTED_ENVELOPE",
+            "B03_EXACT_IDENTITY_SET_SELECTION_V1": "CANONICAL_UNIQUE_SET_SATISFYING_BOUND_SOURCE_PREDICATE_AND_OPTIONAL_EXACT_B01_UNIVERSE_WITH_GLOBAL_NO_EDGE_DENY"
           }
         },
         "identity_set_measure": {
           "const": "CARDINALITY_OF_CANONICAL_UNIQUE_IDENTITIES"
         },
         "identity_canonicalization": {
-          "const": "PRINTABLE_ASCII_U0021_TO_U007E_RAW_BYTE_ASCENDING_UNIQUE"
+          "const": "SOURCE_PREDICATE_GRAMMAR_THEN_RAW_BYTE_ASCENDING_UNIQUE"
         },
         "identity_eligibility_binding": {
-          "const": "NONEMPTY_EXACT_B01_UNIVERSE_AND_CONTEXT_DIGEST_WHEN_VALIDATED"
+          "const": "BOUND_SOURCE_PREDICATE_AND_OPTIONAL_EXACT_B01_UNIVERSE_WHEN_VALIDATED"
+        },
+        "empty_identity_universe_semantics": {
+          "const": "BOUND_SOURCE_PREDICATE_IS_THE_ELIGIBILITY_AUTHORITY"
         },
         "identity_eligibility_digest_algorithm": {
           "const": "sha256(domain || u64be(projection_bytes) || projection)"
@@ -238,7 +208,7 @@
           ]
         },
         "future_identity_selection_constraint": {
-          "const": "CANONICAL_SUBSET_OF_BOUND_ELIGIBILITY_UNIVERSE_WITH_CARDINALITY_WITHIN_ACCEPTED_ENVELOPE"
+          "const": "CANONICAL_SET_SATISFYING_BOUND_SOURCE_PREDICATE_OPTIONAL_EXACT_UNIVERSE_AND_CARDINALITY_ENVELOPE"
         },
         "global_no_edge_inheritance": {
           "const": "ALL_SELECTION_PREDICATES_REJECT_MATCHED_EXCLUDED_COMPONENT_ALIASES"
@@ -271,135 +241,6 @@
               "UNKNOWN-DEFAULT-REJECT"
             ]
           }
-        }
-      }
-    },
-    "parserReplayContract": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "schema",
-        "mode",
-        "result_schema",
-        "self_tests_required",
-        "timeout_seconds",
-        "maximum_stdout_bytes",
-        "maximum_stderr_bytes",
-        "process_group_cleanup",
-        "rust_command_profile",
-        "typescript_command_profile",
-        "engine_output_requirement",
-        "dependency_resolution_mode",
-        "process_network_isolation",
-        "dependency_cache_requirement",
-        "repository_execution_root",
-        "snapshot_postcondition",
-        "derived_registry_receipt_binding",
-        "tool_identity",
-        "source_tree_build_output",
-        "capture_command",
-        "capture_target_directory",
-        "capture_result_paths",
-        "capture_preconditions",
-        "capture_write_policy",
-        "capture_workflow_state",
-        "engine_profile_states",
-        "capture_failure_effect"
-      ],
-      "properties": {
-        "schema": {
-          "const": "ncp.b01-semantic-parser-replay-contract.v1"
-        },
-        "mode": {
-          "const": "RETAINED_RESULT_PLUS_BOUNDED_DIRECT_REPLAY"
-        },
-        "result_schema": {
-          "const": "ncp.b01-semantic-parser-result.v1"
-        },
-        "self_tests_required": {
-          "const": true
-        },
-        "timeout_seconds": {
-          "const": 120
-        },
-        "maximum_stdout_bytes": {
-          "const": 2097152
-        },
-        "maximum_stderr_bytes": {
-          "const": 65536
-        },
-        "process_group_cleanup": {
-          "const": "TERM_THEN_KILL_PROCESS_GROUP"
-        },
-        "rust_command_profile": {
-          "const": "RUST_CARGO_OFFLINE_LOCKED_CLOSURE_SELF_TEST_V1"
-        },
-        "typescript_command_profile": {
-          "const": "TYPESCRIPT_BUN_NO_INSTALL_CLOSURE_SELF_TEST_V1"
-        },
-        "engine_output_requirement": {
-          "const": "DIRECT_NCP_B01_SEMANTIC_PARSER_RESULT_V1_NO_ADAPTER"
-        },
-        "dependency_resolution_mode": {
-          "const": "RUST_CARGO_OFFLINE_LOCKED_TYPESCRIPT_BUN_NO_INSTALL"
-        },
-        "process_network_isolation": {
-          "const": "NOT_PROVIDED_LOCAL_REPLAY_ONLY"
-        },
-        "dependency_cache_requirement": {
-          "const": "RUST_AMBIENT_CARGO_HOME_PRESEEDED_BY_GATE_TYPESCRIPT_NONE"
-        },
-        "repository_execution_root": {
-          "const": "TEMPORARY_BOUND_INPUT_SNAPSHOT"
-        },
-        "snapshot_postcondition": {
-          "const": "EXACT_FILE_SET_AND_BYTES_UNCHANGED"
-        },
-        "derived_registry_receipt_binding": {
-          "const": "DECISION_SET_SHA256_ONLY_OUTPUT_BYTES_EXCLUDED_TO_PREVENT_SELF_REFERENCE"
-        },
-        "tool_identity": {
-          "const": "OBSERVED_VERSION_AND_EXECUTABLE_DIGEST_NOT_PROVENANCE"
-        },
-        "source_tree_build_output": {
-          "const": "ABSENT_BEFORE_AND_AFTER"
-        },
-        "capture_command": {
-          "const": "python3 scripts/generate_decision_registry.py --capture-semantic-parser-results"
-        },
-        "capture_target_directory": {
-          "const": "evidence/implementation/reviews/B01/semantic-closure"
-        },
-        "capture_result_paths": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 2,
-          "prefixItems": [
-            {
-              "const": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json"
-            },
-            {
-              "const": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json"
-            }
-          ]
-        },
-        "capture_preconditions": {
-          "const": "CURRENT_EXACT_OPEN_REGISTRY_ONLY_DUAL_NOT_RUN_PARSER_CLOSURE_BLOCKERS_COMPLETE_CURRENT_CORPUS_VALIDATED_B03_DEFERRAL_ENVELOPES"
-        },
-        "capture_write_policy": {
-          "const": "BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME"
-        },
-        "capture_workflow_state": {
-          "const": "IMPLEMENTED"
-        },
-        "engine_profile_states": {
-          "const": {
-            "RUST": "NOT_IMPLEMENTED",
-            "TYPESCRIPT": "NOT_IMPLEMENTED"
-          }
-        },
-        "capture_failure_effect": {
-          "const": "WRITE_NEITHER_RESULT"
         }
       }
     },
@@ -511,7 +352,7 @@
             "null",
             "integer"
           ],
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 9007199254740991
         },
         "maximum": {
@@ -519,7 +360,7 @@
             "null",
             "integer"
           ],
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 9007199254740991
         },
         "required_tests": {
@@ -705,12 +546,12 @@
                       "properties": {
                         "minimum": {
                           "type": "integer",
-                          "minimum": 1,
+                          "minimum": 0,
                           "maximum": 9007199254740991
                         },
                         "maximum": {
                           "type": "integer",
-                          "minimum": 1,
+                          "minimum": 0,
                           "maximum": 9007199254740991
                         }
                       }
@@ -720,15 +561,29 @@
               },
               "identity_eligibility_universes": {
                 "items": {
-                  "properties": {
-                    "eligible_identities": {
-                      "minItems": 1
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "eligible_identities": {
+                          "maxItems": 0
+                        },
+                        "eligible_identities_sha256": {
+                          "type": "null"
+                        }
+                      }
                     },
-                    "eligible_identities_sha256": {
-                      "type": "string",
-                      "pattern": "^[0-9a-f]{64}$"
+                    {
+                      "properties": {
+                        "eligible_identities": {
+                          "minItems": 1
+                        },
+                        "eligible_identities_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               }
             },
@@ -867,102 +722,14 @@
         }
       ]
     },
-    "positiveWireCaseRequirement": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "case_id",
-        "source_path",
-        "required_scope",
-        "required_polarity"
-      ],
-      "properties": {
-        "case_id": {
-          "type": "string",
-          "minLength": 8,
-          "maxLength": 128
-        },
-        "source_path": {
-          "$ref": "#/$defs/relativePath"
-        },
-        "required_scope": {
-          "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
-        },
-        "required_polarity": {
-          "const": "POSITIVE"
-        }
-      }
-    },
-    "hostileWireCaseRequirement": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "case_id",
-        "source_path",
-        "positive_case_id",
-        "mutation_relation",
-        "required_scope",
-        "required_polarity"
-      ],
-      "properties": {
-        "case_id": {
-          "type": "string",
-          "minLength": 8,
-          "maxLength": 128
-        },
-        "source_path": {
-          "$ref": "#/$defs/relativePath"
-        },
-        "positive_case_id": {
-          "type": "string",
-          "minLength": 8,
-          "maxLength": 128
-        },
-        "mutation_relation": {
-          "const": "EXACTLY_ONE_SEMANTIC_DELTA_FROM_BOUND_POSITIVE"
-        },
-        "required_scope": {
-          "const": "COMPLETE_PROPOSED_WIRE_OBJECT"
-        },
-        "required_polarity": {
-          "const": "NEGATIVE"
-        }
-      }
-    },
-    "parserRequirement": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "engine",
-        "result_path",
-        "required_status"
-      ],
-      "properties": {
-        "engine": {
-          "enum": [
-            "RUST",
-            "TYPESCRIPT"
-          ]
-        },
-        "result_path": {
-          "$ref": "#/$defs/relativePath"
-        },
-        "required_status": {
-          "const": "PASS"
-        }
-      }
-    },
-    "wireRequirements": {
+    "exampleRequirements": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "corpus_path",
         "required_corpus_status",
         "required_source_paths",
-        "complete_positive",
-        "complete_hostile",
-        "rust_parser_evidence",
-        "typescript_parser_evidence"
+        "required_case_ids"
       ],
       "properties": {
         "corpus_path": {
@@ -980,27 +747,16 @@
             "$ref": "#/$defs/relativePath"
           }
         },
-        "complete_positive": {
+        "required_case_ids": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 9,
+          "maxItems": 16,
+          "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/positiveWireCaseRequirement"
+            "type": "string",
+            "pattern": "^adr(?:00[1-9]|01[01])\\.[a-z0-9][a-z0-9.-]*\\.v1$",
+            "maxLength": 128
           }
-        },
-        "complete_hostile": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 9,
-          "items": {
-            "$ref": "#/$defs/hostileWireCaseRequirement"
-          }
-        },
-        "rust_parser_evidence": {
-          "$ref": "#/$defs/parserRequirement"
-        },
-        "typescript_parser_evidence": {
-          "$ref": "#/$defs/parserRequirement"
         }
       }
     },
@@ -1011,7 +767,7 @@
         "id",
         "adr_source_set_sha256",
         "questions",
-        "wire_requirements"
+        "example_requirements"
       ],
       "properties": {
         "id": {
@@ -1030,8 +786,8 @@
             "$ref": "#/$defs/question"
           }
         },
-        "wire_requirements": {
-          "$ref": "#/$defs/wireRequirements"
+        "example_requirements": {
+          "$ref": "#/$defs/exampleRequirements"
         }
       }
     }

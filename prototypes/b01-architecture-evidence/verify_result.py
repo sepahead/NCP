@@ -807,7 +807,7 @@ def _verify_adr_example_semantics(value: Any) -> None:
         or value.get("candidate") != "1.0.0-rc.1"
         or value.get("wire_version") != "1.0"
         or value.get("engines") != ["rust", "typescript"]
-        or value.get("case_count") != 22
+        or value.get("case_count") != 25
         or not isinstance(value.get("mutation_count"), int)
         or isinstance(value.get("mutation_count"), bool)
         or value["mutation_count"] <= 0
@@ -829,7 +829,7 @@ def _verify_adr_example_semantics(value: Any) -> None:
     _exact_keys(self_tests, {"detected", "executed"}, "semantic coordinator tests")
     executed = _positive_int(self_tests.get("executed"), "semantic tests executed")
     detected = _positive_int(self_tests.get("detected"), "semantic tests detected")
-    if executed != 24 or detected != 24:
+    if executed != 29 or detected != 29:
         raise ResultError("ADR-example semantic self-tests are incomplete")
     claims = value.get("claim_boundary")
     expected_claims = {
@@ -2560,7 +2560,7 @@ def _self_test(value: dict[str, Any]) -> int:
         (
             "ADR semantic case count",
             ("adr_example_semantics", "case_count"),
-            21,
+            24,
         ),
         (
             "ADR semantic mutation count",

@@ -1,3 +1,4 @@
+import { canonicalJsonBytes } from "./canonical-json.ts";
 import type { JsonValue } from "./strict-json.ts";
 
 export type Scope =
@@ -29,6 +30,7 @@ export interface CorpusLimits {
   readonly maximumAggregateAdrBytes: number;
   readonly maximumAdrBytes: number;
   readonly maximumJsonFenceBytes: number;
+  readonly maximumFixtureBytes: number;
   readonly maximumJsonDepth: number;
   readonly maximumJsonNodes: number;
   readonly maximumObjectMembers: number;
@@ -47,10 +49,7 @@ export interface CorpusLimits {
 
 export interface SourceBinding {
   readonly adr: string;
-  readonly path: string;
   readonly jsonFenceOrdinal: number;
-  readonly adrByteLength: number;
-  readonly adrSha256: string;
   readonly fenceByteLength: number;
   readonly fenceSha256: string;
 }
@@ -115,8 +114,304 @@ const HEX_SHA256 = /^[0-9a-f]{64}$/;
 const IDENTIFIER = /^[a-z0-9][a-z0-9.-]*\.v1$/;
 const PROFILE = /^ADR(?:00[1-9]|01[01])_[A-Z0-9_]+_V1$/;
 const DIAGNOSTIC = /^[A-Z][A-Z0-9_]*$/;
-const SOURCE_PATH = /^docs\/adr\/(00(0[1-9]|1[01]))-[a-z0-9-]+\.md$/;
+const MAXIMUM_MUTATION_PURPOSE_UTF8_BYTES = 512;
+const MAXIMUM_PATCH_PATH_UTF8_BYTES = 512;
+const encoder = new TextEncoder();
 
+interface ClosedCaseIdentity {
+  readonly profile: string;
+  readonly scope: Scope;
+  readonly polarity: Polarity;
+  readonly adr: string;
+  readonly ordinal: number;
+}
+
+const CLOSED_CASE_IDENTITIES: Readonly<Record<string, ClosedCaseIdentity>> = {
+  "adr001.open-plant-session.kind-separation.v1": {
+    profile: "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-001",
+    ordinal: 1,
+  },
+  "adr001.plant-session.simulation-field-confusion.v1": {
+    profile: "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "NEGATIVE",
+    adr: "ADR-001",
+    ordinal: 2,
+  },
+  "adr002.realm-bound-contract-identity.v1": {
+    profile: "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-002",
+    ordinal: 1,
+  },
+  "adr002.compact-hash-substitution.v1": {
+    profile: "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "NEGATIVE",
+    adr: "ADR-002",
+    ordinal: 2,
+  },
+  "adr003.flattened-jws-placeholder.v1": {
+    profile: "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+    scope: "AUTHENTICATED_WIRE_OBJECT",
+    polarity: "NEGATIVE",
+    adr: "ADR-003",
+    ordinal: 1,
+  },
+  "adr003.protected-header-required-member-projection.v1": {
+    profile: "ADR003_PROTECTED_HEADER_REQUIRED_MEMBER_PROJECTION_V1",
+    scope: "DECODED_HEADER_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-003",
+    ordinal: 2,
+  },
+  "adr003.unauthenticated-forwarding-wrapper.v1": {
+    profile: "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
+    scope: "AUTHENTICATED_WIRE_OBJECT",
+    polarity: "NEGATIVE",
+    adr: "ADR-003",
+    ordinal: 3,
+  },
+  "adr004.pending-release-reservation-nonallocation.v1": {
+    profile: "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1",
+    scope: "NON_WIRE_INTERNAL_STATE",
+    polarity: "POSITIVE",
+    adr: "ADR-004",
+    ordinal: 1,
+  },
+  "adr005.declare-stream.excerpt.v1": {
+    profile: "ADR005_DECLARE_STREAM_EXCERPT_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-005",
+    ordinal: 1,
+  },
+  "adr005.undeclared-frame.hostile.v1": {
+    profile: "ADR005_UNDECLARED_FRAME_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "NEGATIVE",
+    adr: "ADR-005",
+    ordinal: 2,
+  },
+  "adr006.body-lease.excerpt.v1": {
+    profile: "ADR006_BODY_LEASE_EXCERPT_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-006",
+    ordinal: 1,
+  },
+  "adr006.self-issued-stale-lease.hostile.v1": {
+    profile: "ADR006_STALE_SELF_ISSUED_LEASE_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "NEGATIVE",
+    adr: "ADR-006",
+    ordinal: 2,
+  },
+  "adr007.disposition-query.semantic-projection.v1": {
+    profile: "ADR007_DISPOSITION_QUERY_PROJECTION_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "POSITIVE",
+    adr: "ADR-007",
+    ordinal: 1,
+  },
+  "adr007.received-disposition.excerpt.v1": {
+    profile: "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-007",
+    ordinal: 2,
+  },
+  "adr007.unknown-disposition.hostile.v1": {
+    profile: "ADR007_INVALID_DISPOSITION_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "NEGATIVE",
+    adr: "ADR-007",
+    ordinal: 3,
+  },
+  "adr008.raw-chunk.semantic-projection.v1": {
+    profile: "ADR008_RAW_CHUNK_PROJECTION_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "POSITIVE",
+    adr: "ADR-008",
+    ordinal: 1,
+  },
+  "adr008.evaluated-envelope.excerpt.v1": {
+    profile: "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
+    scope: "PROPOSED_EXTENSION_ENVELOPE",
+    polarity: "POSITIVE",
+    adr: "ADR-008",
+    ordinal: 2,
+  },
+  "adr008.self-policy.hostile.v1": {
+    profile: "ADR008_GALADRIEL_POLICY_INJECTION_V1",
+    scope: "PROPOSED_EXTENSION_ENVELOPE",
+    polarity: "NEGATIVE",
+    adr: "ADR-008",
+    ordinal: 3,
+  },
+  "adr009.security-state.semantic-projection.v1": {
+    profile: "ADR009_SECURITY_STATE_PROJECTION_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "POSITIVE",
+    adr: "ADR-009",
+    ordinal: 1,
+  },
+  "adr009.ambiguous-mutable-security-state.hostile.v1": {
+    profile: "ADR009_INVALID_SECURITY_STATE_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "NEGATIVE",
+    adr: "ADR-009",
+    ordinal: 2,
+  },
+  "adr010.action-qos-profile.excerpt.v1": {
+    profile: "ADR010_ACTION_QOS_PROFILE_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "POSITIVE",
+    adr: "ADR-010",
+    ordinal: 1,
+  },
+  "adr010.best-effort-receipt-free-profile.hostile.v1": {
+    profile: "ADR010_INVALID_ACTION_QOS_PROFILE_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "NEGATIVE",
+    adr: "ADR-010",
+    ordinal: 2,
+  },
+  "adr011.gated-intent-correlation.excerpt.v1": {
+    profile: "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
+    scope: "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+    polarity: "POSITIVE",
+    adr: "ADR-011",
+    ordinal: 1,
+  },
+  "adr011.identity-laundering-command.hostile.v1": {
+    profile: "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
+    scope: "PROPOSED_WIRE_FRAGMENT",
+    polarity: "NEGATIVE",
+    adr: "ADR-011",
+    ordinal: 2,
+  },
+  "adr011.effect-path-fencing.semantic-projection.v1": {
+    profile: "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
+    scope: "PROPOSED_SEMANTIC_PROJECTION",
+    polarity: "POSITIVE",
+    adr: "ADR-011",
+    ordinal: 3,
+  },
+};
+const CLOSED_DIAGNOSTIC_REGISTRY = [
+  "ALGORITHM_LABEL_FORBIDDEN",
+  "ALGORITHM_LABEL_REQUIRED",
+  "ASSESSMENT_MAGNITUDE_REQUIRED",
+  "AUTHORITY_REALM_KEY_MISMATCH",
+  "AUTHORITY_REALM_KEY_MISSING",
+  "AUTHORITY_REALM_KEY_REQUIRED",
+  "AUTHORITY_REALM_MISMATCH",
+  "COMMANDER_PRINCIPAL_MISMATCH",
+  "COMMAND_AUTHORITY_ISSUER_NOT_BODY",
+  "COMMAND_IDENTITY_LAUNDERING",
+  "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY",
+  "DIGEST_ENCODING_INVALID",
+  "DISPOSITION_QUERY_COORDINATE_INVALID",
+  "DISPOSITION_RESULT_BRANCHES_INVALID",
+  "DISPOSITION_RESULT_PROJECTION_INVALID",
+  "DISPOSITION_RETAINED_CHAIN_REQUIRED",
+  "DISPOSITION_RETIRED_EFFECT_FORBIDDEN",
+  "DISPOSITION_STATE_UNKNOWN",
+  "DISPOSITION_TERMINALITY_INVALID",
+  "EFFECT_ENDPOINT_ALIAS_NORMALIZATION_REQUIRED",
+  "EFFECT_FENCING_DOMAIN_INCARNATION_REQUIRED",
+  "EFFECT_FENCING_DOMAIN_SEPARATION_REQUIRED",
+  "EFFECT_HANDOVER_OVERLAP_FORBIDDEN",
+  "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN",
+  "EFFECT_OVERLAP_CHECK_REQUIRED",
+  "EFFECT_PATH_ISOLATION_REQUIRED",
+  "EFFECT_WRITE_FENCING_TERM_REQUIRED",
+  "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED",
+  "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED",
+  "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED",
+  "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED",
+  "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID",
+  "EXTENSION_COMPLETE_HASH_RULE_INVALID",
+  "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN",
+  "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID",
+  "EXTENSION_DUPLICATE_COPY_FORBIDDEN",
+  "EXTENSION_FIRST_INDEX_RULE_INVALID",
+  "EXTENSION_HEADER_ADMISSION_INVALID",
+  "EXTENSION_ID_MISMATCH",
+  "EXTENSION_OUTER_ENCODING_INVALID",
+  "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN",
+  "EXTENSION_POLICY_FIELD_FORBIDDEN",
+  "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED",
+  "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED",
+  "EXTENSION_PRODUCER_ROLE_INVALID",
+  "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED",
+  "EXTENSION_RECEIVER_ROLE_INVALID",
+  "EXTENSION_RESERVATION_ORDER_INVALID",
+  "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN",
+  "EXTENSION_SCHEMA_RESERVATION_REQUIRED",
+  "EXTENSION_SCHEMA_VERSION_MISMATCH",
+  "EXTENSION_STABLE_SLOT_INVALID",
+  "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID",
+  "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED",
+  "FAIL_SAFE_EARLY_EFFECT_MODE_INVALID",
+  "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED",
+  "FAIL_SAFE_PRIORITY_INVALID",
+  "HOLD_ADMISSION_ORDER_INVALID",
+  "INTENT_AUDIENCE_MISMATCH",
+  "INTENT_EXPIRED",
+  "INTENT_ISSUER_MISMATCH",
+  "KEY_EPOCH_MEMBERSHIP_REQUIRED",
+  "KEY_ID_NOT_CONTENT_ADDRESSED",
+  "LEASE_ISSUER_NOT_BODY",
+  "LEASE_NOT_CURRENT",
+  "MESSAGE_KIND_MISMATCH",
+  "NCP_VERSION_MISMATCH",
+  "OUTPUT_ALLOCATION_FLAG_INVALID",
+  "PENDING_STATE_ALLOCATES_OUTPUT",
+  "PENDING_STATE_INVALID",
+  "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
+  "PLANT_PROFILE_MISSING",
+  "PLANT_SECURITY_CONTEXT_MISSING",
+  "POST_EFFECT_ADMISSION_MODE_INVALID",
+  "PRINCIPAL_MEMBERSHIP_REQUIRED",
+  "PROTECTED_HEADER_AUDIENCE_MISMATCH",
+  "PROTECTED_HEADER_NOT_JSON",
+  "PUBLISHER_PRINCIPAL_MISMATCH",
+  "QOS_CAPACITY_INVALID",
+  "QOS_FAIL_SAFE_PRIORITY_REQUIRED",
+  "QOS_FALLBACK_FORBIDDEN",
+  "QOS_ORDERING_REQUIRED",
+  "QOS_OVERLOAD_INVALID",
+  "QOS_PLANE_REQUIRED",
+  "QOS_PROFILE_ID_REQUIRED",
+  "QOS_RETENTION_REQUIRED",
+  "QOS_ROUTE_REQUIRED",
+  "REALM_REQUIRED",
+  "REALM_ROUTE_MISMATCH",
+  "REJECTED_CANDIDATE_LOCAL_HOLD_FORBIDDEN",
+  "REMOTE_JKU_FORBIDDEN",
+  "REVOCATION_EPOCH_INVALID",
+  "SECURITY_ALGORITHM_NOT_EXACT",
+  "SECURITY_EPOCH_INVALID",
+  "SECURITY_PROFILE_INVALID",
+  "SESSION_KIND_MISMATCH",
+  "SIGNATURE_LENGTH_INVALID",
+  "SIGNATURE_NOT_VALID",
+  "STABLE_CORE_DIGEST_INVALID",
+  "STABLE_CORE_DIGEST_MISMATCH",
+  "STABLE_CORE_DIGEST_MISSING_OR_NULL",
+  "STREAM_DECLARATION_NOT_LIVE",
+  "STREAM_EPOCH_ALREADY_LIVE",
+  "STREAM_EPOCH_REQUIRED",
+  "STREAM_SEQUENCE_START_INVALID",
+  "UNPROTECTED_HEADER_FORBIDDEN",
+  "WIRE_VERSION_MISMATCH",
+] as const;
 const ROOT_KEYS = [
   "candidate",
   "cases",
@@ -191,6 +486,7 @@ const LIMIT_KEYS = [
   "maximum_integer_characters",
   "maximum_json_depth",
   "maximum_json_fence_bytes",
+  "maximum_fixture_bytes",
   "maximum_json_nodes",
   "maximum_key_utf8_bytes",
   "maximum_object_members",
@@ -235,12 +531,9 @@ const CASE_KEYS = [
 
 const SOURCE_KEYS = [
   "adr",
-  "adr_byte_length",
-  "adr_sha256",
   "fence_byte_length",
   "fence_sha256",
   "json_fence_ordinal",
-  "path",
 ] as const;
 
 const MUTATION_KEYS = [
@@ -284,18 +577,19 @@ const REGISTERED_LIMITS: CorpusLimits = Object.freeze({
   maximumAggregateAdrBytes: 2_097_152,
   maximumAdrBytes: 262_144,
   maximumJsonFenceBytes: 131_072,
+  maximumFixtureBytes: 16_384,
   maximumJsonDepth: 32,
   maximumJsonNodes: 100_000,
   maximumObjectMembers: 4_096,
   maximumArrayItems: 4_096,
-  maximumKeyUtf8Bytes: 256,
+  maximumKeyUtf8Bytes: 128,
   maximumStringUtf8Bytes: 65_536,
   maximumTotalStringUtf8Bytes: 131_072,
   maximumIntegerCharacters: 32,
-  expectedCaseCount: 22,
-  expectedMutationCount: 90,
+  expectedCaseCount: 25,
+  expectedMutationCount: 132,
   minimumMutationsPerCase: 2,
-  maximumMutationsPerCase: 16,
+  maximumMutationsPerCase: 24,
   maximumEngineOutputBytes: 262_144,
   engineTimeoutSeconds: 120,
 });
@@ -330,6 +624,14 @@ export function validateCorpus(value: JsonValue): Corpus {
     if (!DIAGNOSTIC.test(diagnostic)) {
       fail(`diagnostic_registry contains invalid identifier ${JSON.stringify(diagnostic)}`);
     }
+  }
+  if (
+    diagnosticValues.length !== CLOSED_DIAGNOSTIC_REGISTRY.length ||
+    diagnosticValues.some(
+      (diagnostic, index) => diagnostic !== CLOSED_DIAGNOSTIC_REGISTRY[index],
+    )
+  ) {
+    fail("diagnostic_registry differs from the closed engine vocabulary");
   }
   const diagnosticRegistry = new Set(diagnosticValues);
 
@@ -429,15 +731,13 @@ function validateSemanticClosureBinding(value: JsonValue | undefined): JsonObjec
     closure.source,
     "decision_set_binding.semantic_closure.source",
     "docs/adr/decision-closure.source.v1.json",
-    66_810,
-    "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
+    REGISTERED_LIMITS.maximumCorpusBytes,
   );
   validateArtifactIdentity(
     closure.json_schema,
     "decision_set_binding.semantic_closure.json_schema",
     "docs/adr/decision-closure.source.schema.v1.json",
-    28_693,
-    "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
+    REGISTERED_LIMITS.maximumCorpusBytes,
   );
   return closure;
 }
@@ -446,16 +746,16 @@ function validateArtifactIdentity(
   value: JsonValue | undefined,
   label: string,
   path: string,
-  byteLength: number,
-  digest: string,
+  maximumBytes: number,
 ): void {
   const identity = requiredObject(value, label);
   exactKeys(identity, ARTIFACT_IDENTITY_KEYS, label);
   exactString(identity, "path", path, label);
-  exactInteger(identity, "bytes", byteLength, label);
-  if (sha256String(identity.sha256, `${label}.sha256`) !== digest) {
-    fail(`${label}.sha256 differs from the registered closure artifact`);
+  const byteLength = positiveInteger(identity.bytes, `${label}.bytes`);
+  if (byteLength > maximumBytes) {
+    fail(`${label}.bytes exceeds the artifact bound`);
   }
+  sha256String(identity.sha256, `${label}.sha256`);
 }
 
 function validateSourceBinding(value: JsonObject): void {
@@ -464,7 +764,7 @@ function validateSourceBinding(value: JsonObject): void {
   exactString(
     value,
     "fence_capture",
-    "content_between_exact_json_fence_markers_excluding_terminal_newline",
+    "content_between_top_level_exact_json_fence_lines_excluding_one_terminal_line_ending",
     "source_binding",
   );
   exactString(value, "path_root", "repository", "source_binding");
@@ -480,6 +780,7 @@ function validateLimits(value: JsonObject): CorpusLimits {
     maximumAggregateAdrBytes: integer("maximum_aggregate_adr_bytes"),
     maximumAdrBytes: integer("maximum_adr_bytes"),
     maximumJsonFenceBytes: integer("maximum_json_fence_bytes"),
+    maximumFixtureBytes: integer("maximum_fixture_bytes"),
     maximumJsonDepth: integer("maximum_json_depth"),
     maximumJsonNodes: integer("maximum_json_nodes"),
     maximumObjectMembers: integer("maximum_object_members"),
@@ -542,6 +843,17 @@ function validateCase(
   const profile = requiredString(object.profile, `${label}.profile`);
   if (!PROFILE.test(profile)) fail(`${label}.profile is not a closed profile identifier`);
   const polarity = enumString(object.polarity, POLARITIES, `${label}.polarity`);
+  const identity = CLOSED_CASE_IDENTITIES[id];
+  if (identity === undefined) fail(`${label}.id is not a closed v1 case identity`);
+  if (
+    profile !== identity.profile ||
+    scope !== identity.scope ||
+    polarity !== identity.polarity ||
+    source.adr !== identity.adr ||
+    source.jsonFenceOrdinal !== identity.ordinal
+  ) {
+    fail(`${label} differs from its closed profile/source identity`);
+  }
   const expectedProfileResult = enumString(
     object.expected_profile_result,
     PROFILE_RESULTS,
@@ -553,6 +865,7 @@ function validateCase(
     `${label}.production_admission`,
   );
   const boundedFixture = requiredObject(object.bounded_fixture, `${label}.bounded_fixture`);
+  canonicalJsonBytes(boundedFixture, limits.maximumFixtureBytes);
   const expectedDiagnostics = diagnosticArray(
     object.expected_diagnostics,
     `${label}.expected_diagnostics`,
@@ -574,9 +887,23 @@ function validateCase(
   const mutations = rawMutations.map((entry, mutationIndex) =>
     validateMutation(entry, `${label}.mutations[${mutationIndex}]`, diagnostics),
   );
+  const caseNamespace = source.adr.toLowerCase().replace("-", "");
+  const profileNamespace = source.adr.replace("-", "");
+  if (!id.startsWith(`${caseNamespace}.`)) {
+    fail(`${label}.id is not namespaced to ${source.adr}`);
+  }
+  if (!profile.startsWith(`${profileNamespace}_`)) {
+    fail(`${label}.profile is not namespaced to ${source.adr}`);
+  }
+  if (polarity === "POSITIVE" && payloadInterpreted !== true) {
+    fail(`${label} positive case does not interpret its bounded payload`);
+  }
   const mutationIds = mutations.map((mutation) => mutation.id);
   requireUnique(mutationIds, `${label}.mutation ids`);
   for (const mutation of mutations) {
+    if (!mutation.id.startsWith(`${caseNamespace}.`)) {
+      fail(`${label} mutation ${mutation.id} is not namespaced to ${source.adr}`);
+    }
     if (
       mutation.expectedProfileResult === expectedProfileResult &&
       mutation.productionAdmission === productionAdmission &&
@@ -601,6 +928,12 @@ function validateCase(
   ) {
     fail(`${label}.polarity disagrees with its base profile result`);
   }
+  if (
+    (scope === "NON_WIRE_INTERNAL_STATE") !==
+    (expectedProfileResult === "MATCH_NON_WIRE_EXCERPT")
+  ) {
+    fail(`${label}.scope disagrees with its base profile result`);
+  }
   return {
     id,
     source,
@@ -623,20 +956,14 @@ function validateCaseSource(
 ): SourceBinding {
   const label = `${caseLabel}.source`;
   exactKeys(value, SOURCE_KEYS, label);
-  const path = requiredString(value.path, `${label}.path`);
-  const match = SOURCE_PATH.exec(path);
-  if (match?.[2] === undefined) fail(`${label}.path is outside the ADR source allowlist`);
-  const number = Number(match[2]);
   const adr = requiredString(value.adr, `${label}.adr`);
-  if (adr !== `ADR-${String(number).padStart(3, "0")}`) {
-    fail(`${label}.adr does not agree with its path`);
+  if (!/^ADR-0(?:0[1-9]|1[01])$/.test(adr)) {
+    fail(`${label}.adr is not ADR-001 through ADR-011`);
   }
   const jsonFenceOrdinal = positiveInteger(
     value.json_fence_ordinal,
     `${label}.json_fence_ordinal`,
   );
-  const adrByteLength = positiveInteger(value.adr_byte_length, `${label}.adr_byte_length`);
-  if (adrByteLength > limits.maximumAdrBytes) fail(`${label}.adr_byte_length exceeds its bound`);
   const fenceByteLength = positiveInteger(
     value.fence_byte_length,
     `${label}.fence_byte_length`,
@@ -644,14 +971,10 @@ function validateCaseSource(
   if (fenceByteLength > limits.maximumJsonFenceBytes) {
     fail(`${label}.fence_byte_length exceeds its bound`);
   }
-  const adrSha256 = sha256String(value.adr_sha256, `${label}.adr_sha256`);
   const fenceSha256 = sha256String(value.fence_sha256, `${label}.fence_sha256`);
   return {
     adr,
-    path,
     jsonFenceOrdinal,
-    adrByteLength,
-    adrSha256,
     fenceByteLength,
     fenceSha256,
   };
@@ -670,6 +993,9 @@ function validateMutation(
     PROFILE_RESULTS,
     `${label}.expected_profile_result`,
   );
+  if (expectedProfileResult !== "REJECT") {
+    fail(`${label} is not an expected fail-closed contrast`);
+  }
   const productionAdmission = enumString(
     object.production_admission,
     PRODUCTION_ADMISSIONS,
@@ -686,9 +1012,16 @@ function validateMutation(
     expectedDiagnostics,
     label,
   );
+  const purpose = requiredString(object.purpose, `${label}.purpose`);
+  if (
+    purpose.trim().length === 0 ||
+    encoder.encode(purpose).byteLength > MAXIMUM_MUTATION_PURPOSE_UTF8_BYTES
+  ) {
+    fail(`${label}.purpose is blank or exceeds its UTF-8 byte bound`);
+  }
   return {
     id: identifier(object.id, `${label}.id`),
-    purpose: requiredString(object.purpose, `${label}.purpose`),
+    purpose,
     patch,
     expectedProfileResult,
     productionAdmission,
@@ -708,7 +1041,11 @@ function validatePatch(value: JsonObject, label: string): CorpusPatch {
     label,
   );
   const path = requiredString(value.path, `${label}.path`);
-  if (!path.startsWith("/") || path.length > 2_048) {
+  if (
+    !path.startsWith("/") ||
+    encoder.encode(path).byteLength > MAXIMUM_PATCH_PATH_UTF8_BYTES ||
+    /~(?:[^01]|$)/.test(path)
+  ) {
     fail(`${label}.path must be a bounded non-root JSON Pointer`);
   }
   const target = enumString(value.target, PATCH_TARGETS, `${label}.target`);
@@ -740,6 +1077,14 @@ function validateCorpusRelationships(
   diagnosticRegistry: ReadonlySet<string>,
 ): void {
   requireUnique(cases.map((entry) => entry.id), "case ids");
+  const expectedCaseIds = Object.keys(CLOSED_CASE_IDENTITIES);
+  const actualCaseIds = cases.map((entry) => entry.id);
+  if (
+    actualCaseIds.length !== expectedCaseIds.length ||
+    expectedCaseIds.some((identifier) => !actualCaseIds.includes(identifier))
+  ) {
+    fail("case inventory differs from the closed v1 identities");
+  }
   const mutationIds = cases.flatMap((entry) => entry.mutations.map((mutation) => mutation.id));
   requireUnique(mutationIds, "global mutation ids");
   if (mutationIds.length !== limits.expectedMutationCount) {
@@ -760,30 +1105,14 @@ function validateCorpusRelationships(
     fail("diagnostic_registry must exactly cover the v1 corpus expectations");
   }
   requireUnique(
-    cases.map((entry) => `${entry.source.path}#${entry.source.jsonFenceOrdinal}`),
+    cases.map((entry) => `${entry.source.adr}#${entry.source.jsonFenceOrdinal}`),
     "source fence bindings",
   );
   let previous = "";
-  const adrBindings = new Map<string, { bytes: number; sha256: string }>();
   for (const entry of cases) {
-    const orderKey = `${entry.source.path}#${String(entry.source.jsonFenceOrdinal).padStart(8, "0")}`;
+    const orderKey = `${entry.source.adr}#${String(entry.source.jsonFenceOrdinal).padStart(8, "0")}`;
     if (orderKey <= previous) fail("cases must be ordered by source path and fence ordinal");
     previous = orderKey;
-    const known = adrBindings.get(entry.source.path);
-    if (
-      known !== undefined &&
-      (known.bytes !== entry.source.adrByteLength || known.sha256 !== entry.source.adrSha256)
-    ) {
-      fail(`source bindings disagree for ${entry.source.path}`);
-    }
-    adrBindings.set(entry.source.path, {
-      bytes: entry.source.adrByteLength,
-      sha256: entry.source.adrSha256,
-    });
-  }
-  const aggregate = [...adrBindings.values()].reduce((total, binding) => total + binding.bytes, 0);
-  if (aggregate > limits.maximumAggregateAdrBytes) {
-    fail("aggregate unique ADR byte length exceeds its bound");
   }
 }
 
@@ -830,7 +1159,9 @@ function enumString<T extends string>(
 
 function identifier(value: JsonValue | undefined, label: string): string {
   const candidate = requiredString(value, label);
-  if (!IDENTIFIER.test(candidate)) fail(`${label} is not a lowercase versioned identifier`);
+  if (!IDENTIFIER.test(candidate) || encoder.encode(candidate).byteLength > 160) {
+    fail(`${label} is not a bounded lowercase versioned identifier`);
+  }
   return candidate;
 }
 

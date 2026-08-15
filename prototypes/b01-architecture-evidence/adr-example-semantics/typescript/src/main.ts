@@ -13,13 +13,16 @@ import {
 } from "./decision-binding.ts";
 import {
   extractExactJsonFences,
+  readBoundedRepositoryFile,
   readBoundedRegularFile,
+  resolveRepositoryDirectory,
   sha256,
 } from "./file-io.ts";
 import { applyPatch, type PatchOperation } from "./json-pointer.ts";
 import { runSelfTests, type SelfTestReport } from "./self-test.ts";
 import { evaluateSemantics, type SemanticResult } from "./semantics.ts";
 import { strictJsonParse, type JsonLimits, type JsonValue } from "./strict-json.ts";
+import { lstat, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 type JsonObject = { [key: string]: JsonValue };
@@ -30,7 +33,7 @@ const CORPUS_BOOTSTRAP_LIMITS: JsonLimits = Object.freeze({
   maxNodes: 100_000,
   maxMembers: 4_096,
   maxArrayItems: 4_096,
-  maxKeyBytes: 256,
+  maxKeyBytes: 128,
   maxStringBytes: 65_536,
   maxTotalStringBytes: 131_072,
   maxIntegerCharacters: 32,
@@ -43,19 +46,6 @@ const MAXIMUM_ENGINE_SOURCE_PATH_BYTES = 512;
 const MAXIMUM_ENGINE_SOURCE_FILE_BYTES = 262_144;
 const MAXIMUM_AGGREGATE_ENGINE_SOURCE_BYTES = 2_097_152;
 const encoder = new TextEncoder();
-
-interface GlobScanner {
-  scan(options: {
-    readonly cwd: string;
-    readonly dot: boolean;
-    readonly followSymlinks: boolean;
-    readonly onlyFiles: boolean;
-  }): AsyncIterable<string>;
-}
-
-const BunGlob = (Bun as unknown as {
-  readonly Glob: new (pattern: string) => GlobScanner;
-}).Glob;
 
 class EngineError extends Error {
   constructor(message: string) {
@@ -72,6 +62,7 @@ interface Arguments {
 
 interface VerifiedSource {
   readonly identity: JsonObject;
+  readonly sourcePath: string;
   readonly document: JsonValue;
 }
 
@@ -109,7 +100,7 @@ async function main(): Promise<void> {
   for (const entry of corpus.cases) {
     const verified = verifiedSources.get(entry.id);
     if (verified === undefined) throw new EngineError(`source verification omitted ${entry.id}`);
-    const evaluated = evaluateCase(entry, verified.document, corpus);
+    const evaluated = evaluateCase(entry, verified.sourcePath, verified.document, corpus);
     caseResults.push(evaluated.result);
     mutationCount += evaluated.mutationCount;
   }
@@ -187,27 +178,23 @@ async function verifyAdrSources(
   const groups = new Map<string, CorpusCase[]>();
   for (const entry of corpus.cases) {
     const decisionSource = decisionSources.get(entry.source.adr);
-    if (
-      decisionSource === undefined ||
-      decisionSource.path !== entry.source.path ||
-      decisionSource.byteLength !== entry.source.adrByteLength ||
-      decisionSource.sha256 !== entry.source.adrSha256
-    ) {
+    if (decisionSource === undefined) {
       throw new EngineError(
-        `${entry.id} source differs from its bound decision-registry identity`,
+        `${entry.id} source is absent from the bound decision registry`,
       );
     }
-    const existing = groups.get(entry.source.path) ?? [];
+    const existing = groups.get(decisionSource.path) ?? [];
     existing.push(entry);
-    groups.set(entry.source.path, existing);
+    groups.set(decisionSource.path, existing);
   }
   const results = new Map<string, VerifiedSource>();
   let aggregateBytes = 0;
   for (const [path, entries] of [...groups.entries()].sort(([left], [right]) =>
-    left.localeCompare(right),
+    left < right ? -1 : left > right ? 1 : 0,
   )) {
-    const bytes = await readBoundedRegularFile(
-      joinRepositoryPath(repositoryRoot, path),
+    const bytes = await readBoundedRepositoryFile(
+      repositoryRoot,
+      path,
       corpus.limits.maximumAdrBytes,
       path,
     );
@@ -216,10 +203,13 @@ async function verifyAdrSources(
       throw new EngineError("aggregate ADR bytes exceed the corpus bound");
     }
     const digest = sha256(bytes);
-    for (const entry of entries) {
-      if (bytes.byteLength !== entry.source.adrByteLength || digest !== entry.source.adrSha256) {
-        throw new EngineError(`${entry.id} ADR source identity does not match`);
-      }
+    const decisionSource = decisionSources.get(entries[0]?.source.adr ?? "");
+    if (
+      decisionSource === undefined ||
+      bytes.byteLength !== decisionSource.byteLength ||
+      digest !== decisionSource.sha256
+    ) {
+      throw new EngineError(`${path} ADR source identity does not match`);
     }
     const fences = extractExactJsonFences(bytes);
     const ordinals = entries.map((entry) => entry.source.jsonFenceOrdinal).sort((a, b) => a - b);
@@ -244,13 +234,13 @@ async function verifyAdrSources(
       );
       const identity: JsonObject = Object.create(null) as JsonObject;
       identity.case_id = entry.id;
-      identity.path = entry.source.path;
+      identity.path = path;
       identity.json_fence_ordinal = entry.source.jsonFenceOrdinal;
-      identity.adr_byte_length = entry.source.adrByteLength;
-      identity.adr_sha256 = entry.source.adrSha256;
+      identity.adr_byte_length = decisionSource.byteLength;
+      identity.adr_sha256 = decisionSource.sha256;
       identity.fence_byte_length = entry.source.fenceByteLength;
       identity.fence_sha256 = entry.source.fenceSha256;
-      results.set(entry.id, { identity, document });
+      results.set(entry.id, { identity, sourcePath: path, document });
     }
   }
   return results;
@@ -258,11 +248,12 @@ async function verifyAdrSources(
 
 function evaluateCase(
   entry: CorpusCase,
+  sourcePath: string,
   document: JsonValue,
   corpus: Corpus,
 ): EvaluatedCase {
   const base = evaluateSemantics({
-    sourcePath: entry.source.path,
+    sourcePath,
     ordinal: entry.source.jsonFenceOrdinal,
     profile: entry.profile,
     document,
@@ -281,7 +272,7 @@ function evaluateCase(
   for (const mutation of entry.mutations) {
     const mutated = applyMutation(document, entry.boundedFixture, mutation, corpus.limits);
     const result = evaluateSemantics({
-      sourcePath: entry.source.path,
+      sourcePath,
       ordinal: entry.source.jsonFenceOrdinal,
       profile: entry.profile,
       document: mutated.document,
@@ -325,7 +316,7 @@ function applyMutation(
     fixture: revalidateConstructed(
       applyPatch(fixture, [operation]),
       limits,
-      limits.maximumJsonFenceBytes,
+      limits.maximumFixtureBytes,
     ),
   };
 }
@@ -351,10 +342,7 @@ function revalidateConstructed(
   limits: CorpusLimits,
   maximumBytes: number,
 ): JsonValue {
-  const bytes = canonicalJsonBytes(value);
-  if (bytes.byteLength > maximumBytes) {
-    throw new EngineError("mutated JSON exceeds its byte bound");
-  }
+  const bytes = canonicalJsonBytes(value, maximumBytes);
   return strictJsonParse(bytes, jsonLimits(limits, maximumBytes));
 }
 
@@ -400,32 +388,27 @@ function resultJson(
 async function collectEngineSourceIdentities(
   repositoryRoot: string,
 ): Promise<JsonValue[]> {
-  const engineRoot = joinRepositoryPath(repositoryRoot, ENGINE_RELATIVE_ROOT);
-  const sourceDirectory = `${engineRoot}/src`;
+  const sourceDirectory = await resolveRepositoryDirectory(
+    repositoryRoot,
+    `${ENGINE_RELATIVE_ROOT}/src`,
+    "TypeScript source directory",
+  );
   const paths = [`${ENGINE_RELATIVE_ROOT}/package.json`, `${ENGINE_RELATIVE_ROOT}/tsconfig.json`];
   for (const path of paths) validateEngineSourcePath(path);
 
   try {
-    const metadata = (await Bun.file(sourceDirectory).stat()) as unknown as {
-      isDirectory(): boolean;
-      isSymbolicLink(): boolean;
-    };
-    if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
+    const before = await lstat(sourceDirectory);
+    if (before.isSymbolicLink() || !before.isDirectory()) {
       throw new EngineError("TypeScript source directory must be a non-symlink directory");
     }
-    const entries = new BunGlob("*").scan({
-      cwd: sourceDirectory,
-      dot: true,
-      followSymlinks: false,
-      onlyFiles: false,
-    });
-    for await (const name of entries) {
-      if (!name.endsWith(".ts")) {
+    const entries = await readdir(sourceDirectory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink() || !entry.isFile() || !entry.name.endsWith(".ts")) {
         throw new EngineError(
-          `unexpected non-TypeScript file in engine source directory: ${JSON.stringify(name)}`,
+          `unexpected non-TypeScript file in engine source directory: ${JSON.stringify(entry.name)}`,
         );
       }
-      const path = `${ENGINE_RELATIVE_ROOT}/src/${name}`;
+      const path = `${ENGINE_RELATIVE_ROOT}/src/${entry.name}`;
       validateEngineSourcePath(path);
       if (paths.length === MAXIMUM_ENGINE_SOURCE_FILES) {
         throw new EngineError(
@@ -433,6 +416,17 @@ async function collectEngineSourceIdentities(
         );
       }
       paths.push(path);
+    }
+    const after = await lstat(sourceDirectory);
+    if (
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.mtimeMs !== after.mtimeMs ||
+      before.ctimeMs !== after.ctimeMs ||
+      after.isSymbolicLink() ||
+      !after.isDirectory()
+    ) {
+      throw new EngineError("TypeScript source directory changed while enumerated");
     }
   } catch (error) {
     if (error instanceof EngineError) throw error;
@@ -447,8 +441,9 @@ async function collectEngineSourceIdentities(
   const identities: JsonValue[] = [];
   let aggregateBytes = 0;
   for (const path of paths) {
-    const bytes = await readBoundedRegularFile(
-      joinRepositoryPath(repositoryRoot, path),
+    const bytes = await readBoundedRepositoryFile(
+      repositoryRoot,
+      path,
       MAXIMUM_ENGINE_SOURCE_FILE_BYTES,
       `engine source ${path}`,
     );
@@ -490,20 +485,6 @@ function jsonLimits(limits: CorpusLimits, maximumBytes: number): JsonLimits {
     maxTotalStringBytes: limits.maximumTotalStringUtf8Bytes,
     maxIntegerCharacters: limits.maximumIntegerCharacters,
   };
-}
-
-function joinRepositoryPath(repositoryRoot: string, relativePath: string): string {
-  if (!repositoryRoot.startsWith("/") || repositoryRoot.includes("\0")) {
-    throw new EngineError("repository root must be an absolute path without NUL");
-  }
-  if (
-    relativePath.startsWith("/") ||
-    relativePath.includes("\0") ||
-    relativePath.split("/").includes("..")
-  ) {
-    throw new EngineError("repository-relative path is unsafe");
-  }
-  return `${repositoryRoot.replace(/\/+$/, "")}/${relativePath}`;
 }
 
 function stringArraysEqual(left: readonly string[], right: readonly string[]): boolean {

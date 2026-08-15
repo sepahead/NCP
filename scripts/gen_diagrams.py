@@ -3,7 +3,7 @@
 
 Replaces the flat Mermaid diagrams with hand-composed, GitHub-<img>-safe SVGs:
 one semantic design system, depth (gradients + soft shadow + one glow), bespoke
-duotone icons, an 8px drafting grid, and one vermillion safety-gated ACTION trace
+duotone icons, an 8px drafting grid, and one vermillion body-gated ACTION trace
 that dominates each composition. Two committed files per diagram
 (``*-light.svg`` + ``*-dark.svg``), embedded via a ``prefers-color-scheme``
 ``<picture>`` (mirrors docs/plots/). Palette reuses the perf-plot hues verbatim
@@ -64,33 +64,39 @@ SVG_ACCESSIBILITY = {
     "topology": (
         "NCP commander-body topology",
         f"Informative topology for the UNRELEASED {CANDIDATE_VERSION} candidate. "
-        "It shows the commander, body, observer, and four QoS planes; it is not a "
+        "It shows the commander, body, observer, and four core planes; it is not a "
         "release, interoperability qualification, or certification claim.",
     ),
     "ecosystem": (
         "NCP ecosystem integration map",
         f"Informative ecosystem map for the UNRELEASED {CANDIDATE_VERSION} candidate. "
-        "It summarizes repository relationships and migration context; it is not a "
-        "release, consumer qualification, or certification claim.",
+        "It shows optional adapter dependency direction and the authority boundary for "
+        "Engram, Haldir, Crebain, Galadriel, Prisoma, and pid-rs. Cortexel has no NCP edge. "
+        "It is not a release, consumer qualification, or certification claim.",
     ),
     "versioning": (
-        "NCP version handshake",
-        f"Informative compatibility handshake for the UNRELEASED {CANDIDATE_VERSION} "
-        f"candidate and wire {WIRE_VERSION}. It distinguishes the hard major-version "
-        "gate from the advisory compact hash; it is not a release or certification claim.",
+        "NCP version and identity gate",
+        f"Informative proposed native-session gate for the UNRELEASED {CANDIDATE_VERSION} "
+        f"candidate and wire {WIRE_VERSION}. Canonical same-major parsing and the exact "
+        "stable-core digest are both required. Release, corpus, extension, package, and "
+        "compact-proto identities do not independently authorize a native session. "
+        "This diagram is not an implementation, release, or certification claim.",
     ),
     "fsm": (
         "NCP plant-admission state model",
         f"Informative plant-admission model for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. It distinguishes ACTIVE, HOLD, latched ESTOP, configuration failure, "
-        "local no-wire identity or bounded-output failure, publisher-position admission, "
-        "and generation-cut reset; it is not a release claim or physical-safety certification.",
+        "candidate. It distinguishes normalized wire candidates from installed plant-profile "
+        "actions, including ACTIVE, HOLD, latched ESTOP, configuration failure, local no-wire "
+        "failure, publisher-position admission, and generation-cut reset. It is not a release "
+        "claim or physical-safety certification.",
     ),
     "sequence": (
-        "NCP session sequence",
-        f"Informative session sequence for the UNRELEASED {CANDIDATE_VERSION} candidate. "
-        "It traces open, step or run, observation, and close messages with authority and "
-        "receipt context; it is not a release, interoperability, or certification claim.",
+        "NCP simulation-session sequence",
+        f"Informative proposed simulation-session sequence for the UNRELEASED "
+        f"{CANDIDATE_VERSION} candidate. It traces the native wire and stable-core gate, "
+        "simulation open, bounded step or run, result, and close messages. It grants no "
+        "plant authority and is not an implemented wire, release, interoperability, or "
+        "certification claim.",
     ),
     "admission": (
         "NCP body command admission",
@@ -634,7 +640,7 @@ def topology(th):
         title_block(
             th,
             "TOPOLOGY",
-            "COMMANDER ⇄ BODY  ·  4 QoS PLANES  ·  AUTHORIZED READ-ONLY OBSERVER",
+            "PROPOSED B01 TARGET  ·  4 CORE QoS PLANES  ·  READ-ONLY OBSERVER",
             W,
         )
     )
@@ -765,8 +771,8 @@ def topology(th):
     )
 
     # ---- THE HERO: ACTION chip (the one glow) ----
-    aw, ah = 336, 96
-    ax = int(430 - aw / 2)  # 262
+    aw, ah = 360, 96
+    ax = int(430 - aw / 2)
     ay = 326
     s.append(line(430, 300, 430, ay, act, 2))  # connector bus → chip
     s.append(
@@ -783,7 +789,7 @@ def topology(th):
         T(
             ax + aw - 16,
             ay + 27,
-            "express · RealTime · safety-gated",
+            "express · RealTime · body-gated",
             9,
             600,
             act,
@@ -793,11 +799,10 @@ def topology(th):
     )
     # wire key row
     s.append(T(ax + 14, ay + 46, COMMAND_ROUTE, 8.5, 500, th["tmut"], mono=True))
-    # mode-pill row — the wire enum made visible {init·active·hold·estop}
+    # Mode-pill row. Keep this aligned with the current wire enum.
     py = ay + 56
     s.append(T(ax + 14, py + 13, "mode", 9, 600, th["tmut"], mono=True))
     pills = [
-        ("init", None, th["surf_chip"], th["tsec"]),
         (
             "active",
             True,
@@ -820,13 +825,23 @@ def topology(th):
             T(px + pw / 2, py + 13, label, 9, 700, txt, anchor="middle", mono=True)
         )
         px += pw + 7
-    s.append(T(px + 4, py + 13, "· ttl_ms", 9, 600, th["hold"], mono=True))
+    s.append(
+        T(
+            px + 4,
+            py + 13,
+            "· Init rejects · grant deadline",
+            8,
+            600,
+            th["hold"],
+            mono=True,
+        )
+    )
     # footnote
     s.append(
         T(
             ax + 14,
             ay + ah - 10,
-            "body final authority · profile-declared safe actions · no universal zero",
+            "body final authority · profile-declared actions · no universal zero",
             8.5,
             500,
             th["tmut"],
@@ -841,7 +856,7 @@ def topology(th):
         rect(28, ly, W - 56, 28, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
     )
     legend = [
-        ("A1", act, "ACTION", "heaviest · safety-gated", 4, None),
+        ("A1", act, "ACTION", "heaviest · body-gated", 4, None),
         ("C1", ctl, "CONTROL", "reliable · queryable", 2.5, None),
         ("P1", per, "PERCEPTION", "best-effort", 2.5, "6 4"),
         ("O1", obs, "OBSERVATION", "read-only tap", 1.5, "3 3"),
@@ -858,71 +873,131 @@ def topology(th):
 
 # ───────────────────────────── 2. ECOSYSTEM ─────────────────────────────
 def ecosystem(th):
-    W, H = 820, 520
+    W, H = 980, 680
     s = [svg_open(W, H, "ecosystem"), defs(th), background(th, W, H)]
     s.append(
         title_block(
             th,
             "ECOSYSTEM",
-            f"UNRELEASED {CANDIDATE_VERSION}  ·  CONSUMER CERTIFICATION NOT RUN",
+            "PROPOSED B01 ROLE MAP  ·  OPTIONAL THIN ADAPTERS  ·  QUALIFICATION NOT RUN",
             W,
         )
     )
     s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-    ctr, obs, ctl = th["contract"], th["observation"], th["control"]
-
-    # pin + submodule edges (under the cards)
-    for d in (
-        "M300,192 L342,192 Q350,192 350,200 L350,266 Q350,274 358,274 L380,274",
-        "M300,298 L380,298",
-        "M300,404 L342,404 Q350,404 350,396 L350,330 Q350,322 358,322 L380,322",
-    ):
-        s.append(path(d, stroke=ctr, sw=2, marker="arrowContract"))
-    for tx, ty in ((364, 298), (372, 298)):
-        s.append(line(tx, 294, tx, 302, ctr, 1, op=0.7))
-    s.append(
-        path(
-            "M300,412 L632,412", stroke=obs, sw=1.5, dash="6 4", marker="submoduleArrow"
-        )
+    ctr, obs, ctl, act = (
+        th["contract"],
+        th["observation"],
+        th["control"],
+        th["action"],
     )
 
-    # consumer cards (left column)
-    for x, y, des, hue, icon, name, sub in [
-        (
-            56,
-            150,
-            "E1",
-            ctl,
-            ic_brain,
-            "Engram",
-            "native-1.0 migration · NOT certified",
-        ),
-        (
-            56,
-            256,
-            "C1",
-            obs,
-            ic_robot,
-            "Crebain",
-            "legacy migration input · NOT certified",
-        ),
-        (
-            56,
-            362,
-            "P1",
-            obs,
-            ic_eye,
-            "Prisoma",
-            "legacy migration input · NOT certified",
-        ),
-    ]:
-        s.append(card(th, x, y, 244, 84, hue, des))
-        s.append(icon(x + 18, y + 40, 24, hue))
-        s.append(T(x + 52, y + 48, name, 14, 700, th["tprim"]))
-        s.append(T(x + 52, y + 64, sub, 10, 500, th["tsec"]))
+    left_x, right_x, card_w, card_h = 36, 680, 264, 104
+    row_y = (112, 264, 416)
+    hx, hy, hw, hh = 350, 220, 280, 208
 
-    # HERO contract hub (filled + glow)
-    hx, hy, hw, hh = 380, 196, 240, 164
+    # Consumer adapters depend on NCP. Route every rail into the hub boundary.
+    # The protocol-neutral library has no NCP edge.
+    left_targets = (260, row_y[1] + card_h / 2, 390)
+    for y, target_y in zip(row_y, left_targets, strict=True):
+        cy = y + card_h / 2
+        bend_x = hx - 18
+        s.append(
+            path(
+                f"M{left_x + card_w},{cy} L{bend_x - 10},{cy} "
+                f"Q{bend_x},{cy} {bend_x},{cy + (10 if target_y > cy else -10)} "
+                f"L{bend_x},{target_y} L{hx},{target_y}",
+                stroke=ctr,
+                sw=2,
+                marker="arrowContract",
+            )
+        )
+    right_targets = (260, row_y[1] + card_h / 2)
+    for y, target_y in zip(row_y[:2], right_targets, strict=True):
+        cy = y + card_h / 2
+        bend_x = hx + hw + 18
+        s.append(
+            path(
+                f"M{right_x},{cy} L{bend_x + 10},{cy} "
+                f"Q{bend_x},{cy} {bend_x},{cy + (10 if target_y > cy else -10)} "
+                f"L{bend_x},{target_y} L{hx + hw},{target_y}",
+                stroke=ctr,
+                sw=2,
+                marker="arrowContract",
+            )
+        )
+
+    def role_card(
+        x, y, designator, hue, icon, name, line_one, line_two, *, dashed=False
+    ):
+        s.append(card(th, x, y, card_w, card_h, hue, designator, dashed=dashed))
+        s.append(icon(x + 18, y + 41, 24, hue))
+        s.append(T(x + 54, y + 44, name, 14, 700, th["tprim"]))
+        s.append(T(x + 18, y + 70, line_one, 9.5, 600, th["tsec"]))
+        s.append(T(x + 18, y + 87, line_two, 9, 500, th["tmut"], mono=True))
+
+    role_card(
+        left_x,
+        row_y[0],
+        "E1",
+        ctl,
+        ic_brain,
+        "Engram",
+        "simulation responder / optional commander",
+        "direct command XOR Haldir-local intent",
+    )
+    role_card(
+        left_x,
+        row_y[1],
+        "H1",
+        th["hold"],
+        ic_key,
+        "Haldir",
+        "optional gate and NCP commander",
+        "policy can deny · never body authority",
+    )
+    role_card(
+        left_x,
+        row_y[2],
+        "C1",
+        act,
+        ic_robot,
+        "Crebain",
+        "NCP body · final software authority",
+        "plant profile + effect-path fencing",
+    )
+    role_card(
+        right_x,
+        row_y[0],
+        "G1",
+        obs,
+        ic_eye,
+        "Galadriel",
+        "read-only observer / advisory producer",
+        "advice preserves or removes permission",
+    )
+    role_card(
+        right_x,
+        row_y[1],
+        "P1",
+        obs,
+        ic_book,
+        "Prisoma",
+        "read-only capture and offline science",
+        "no mutation · gaps remain visible",
+    )
+    role_card(
+        right_x,
+        row_y[2],
+        "L1",
+        th["tmut"],
+        ic_book,
+        "pid-rs",
+        "protocol-neutral estimator library",
+        "no NCP dependency or role receipt",
+        dashed=True,
+    )
+
+    # HERO contract hub.
     cx = hx + hw / 2
     s.append(
         rect(
@@ -943,12 +1018,12 @@ def ecosystem(th):
         T(hx + 29, hy + 24.5, "U1", 10, 700, "#ffffff", mono=True, anchor="middle")
     )
     s.append(ic_key(cx - 14, hy + 30, 28, "#ffffff"))
-    s.append(T(cx, hy + 82, "NCP", 17, 800, "#ffffff", anchor="middle"))
+    s.append(T(cx, hy + 82, "NCP", 18, 800, "#ffffff", anchor="middle"))
     s.append(
         T(
             cx,
             hy + 99,
-            "the wire contract",
+            "unreleased 1.0 candidate",
             11,
             600,
             "#ffffff",
@@ -960,7 +1035,7 @@ def ecosystem(th):
         T(
             cx,
             hy + 120,
-            "ncp-core · ncp-zenoh · ncp-gateway",
+            "core · transports · bindings · gateway",
             9.5,
             600,
             "#ffffff",
@@ -974,7 +1049,7 @@ def ecosystem(th):
         T(
             cx,
             hy + 140,
-            "bindings/packages · Python · C/C++ · TS/npm",
+            "consumers own thin optional role adapters",
             8.5,
             500,
             "#ffffff",
@@ -988,7 +1063,7 @@ def ecosystem(th):
         T(
             cx,
             hy + 157.5,
-            f"{CANDIDATE_VERSION} · {CONTRACT_HASH[:8]}",
+            f"WIRE {WIRE_VERSION} · PROTO {CONTRACT_HASH[:8]} · RELEASE BLOCKED",
             9,
             700,
             "#ffffff",
@@ -997,98 +1072,52 @@ def ecosystem(th):
         )
     )
 
-    # pid-rs pendant (quarantined: dashed, no rail, muted)
-    qx, qy, qw, qh = 632, 388, 152, 84
+    # Authority and no-edge laws.
+    ly = 558
     s.append(
-        rect(qx, qy, qw, qh, rx=12, fill="url(#surface)", stroke="none", filt="soft")
+        rect(28, ly, W - 56, 86, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
     )
-    s.append(
-        rect(
-            qx, qy, qw, qh, rx=12, fill="none", stroke=th["border"], sw=1.5, dash="6 4"
-        )
-    )
-    s.append(reg_ticks(th, qx, qy, qw, qh))
-    s.append(
-        rect(
-            qx + 14,
-            qy + 10,
-            26,
-            15,
-            rx=4,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
-    )
-    s.append(
-        T(qx + 27, qy + 20.5, "L1", 10, 700, th["tmut"], mono=True, anchor="middle")
-    )
-    s.append(ic_book(qx + 16, qy + 42, 20, th["tmut"]))
-    s.append(T(qx + 44, qy + 48, "pid-rs", 13, 700, th["tmut"]))
-    s.append(T(qx + 44, qy + 63, "PID estimators · sci lib", 9, 500, th["tmut"]))
-
-    # Status chips distinguish native migration from immutable historical input.
-    def statuschip(cx_, cy_, label):
-        w, h = 24 + len(label) * 5.7, 22
-        x, y = cx_ - w / 2, cy_ - h / 2
-        return (
-            rect(x - 1.5, y - 1.5, w + 3, h + 3, rx=8, fill=th["bg_bot"])
-            + rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
-            + rect(x + 7, y + 6, 10, 10, rx=2, fill=ctr)
-            + T(x + 23, y + 15, label, 9, 700, th["tsec"], mono=True)
-        )
-
-    s.append(statuschip(326, 192, "1.0 MIGRATION"))
-    s.append(statuschip(326, 298, "IMMUTABLE 0.8"))
-    s.append(statuschip(326, 404, "IMMUTABLE 0.8"))
-    sw_, sh_ = 214, 30
-    sx, sy = 478 - sw_ / 2, 412 - sh_ / 2
-    s.append(rect(sx - 1.5, sy - 1.5, sw_ + 3, sh_ + 3, rx=8, fill=th["bg_bot"]))
-    s.append(
-        rect(
-            sx,
-            sy,
-            sw_,
-            sh_,
-            rx=8,
-            fill=th["surf_chip"],
-            stroke=obs,
-            sw=1,
-            dash="4 4",
-            op=0.85,
-        )
-    )
-    s.append(T(sx + 12, sy + 13, "git submodule", 10.5, 700, th["tmut"]))
+    s.append(rect(28, ly, 4, 86, rx=2, fill=act))
     s.append(
         T(
-            sx + 12,
-            sy + 24,
-            "NOT an NCP wire consumer",
-            9.5,
-            500,
-            th["tmut"],
-            italic=True,
-        )
-    )
-
-    # legend rail
-    ly = 488
-    s.append(
-        rect(28, ly, W - 56, 26, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
-    )
-    s.append(line(48, ly + 13, 70, ly + 13, ctr, 2))
-    s.append(
-        T(78, ly + 17, "consumer status · none certified for 1.0", 9.5, 600, th["tsec"])
-    )
-    s.append(line(410, ly + 13, 432, ly + 13, obs, 1.5, dash="6 4"))
-    s.append(
-        T(
-            440,
-            ly + 17,
-            "git submodule · NOT an NCP wire consumer",
+            46,
+            ly + 20,
+            "AUTHORITY · Crebain remains final software body authority. Direct Engram and Haldir-gated command are mutually exclusive per term.",
             9.5,
             600,
             th["tsec"],
+        )
+    )
+    s.append(
+        T(
+            46,
+            ly + 42,
+            "MONOTONICITY · Galadriel advice can only preserve or remove Haldir permission. Observers gain no command or lifecycle authority.",
+            9.5,
+            600,
+            th["tsec"],
+        )
+    )
+    s.append(
+        T(
+            46,
+            ly + 64,
+            "NO EDGE · pid-rs remains protocol-neutral. Cortexel has no NCP package, runtime, documentation-import, or role edge.",
+            9.5,
+            600,
+            th["tsec"],
+        )
+    )
+    s.append(
+        T(
+            W - 46,
+            ly + 80,
+            "solid rail = optional NCP adapter dependency · no consumer qualification completed",
+            8.5,
+            500,
+            th["tmut"],
+            anchor="end",
+            italic=True,
         )
     )
     s.append("</svg>")
@@ -1103,7 +1132,7 @@ def versioning(th):
         title_block(
             th,
             "VERSION GATE",
-            f"CANONICAL VERSION  ·  SAME MAJOR {WIRE_MAJOR}.x  ·  OTHER MAJORS FAIL CLOSED",
+            f"PROPOSED B01 TARGET  ·  CANONICAL {WIRE_MAJOR} OR {WIRE_MAJOR}.<MINOR>  ·  EXACT STABLE CORE",
             W,
         )
     )
@@ -1144,17 +1173,35 @@ def versioning(th):
         path("M678,400 L678,432", stroke=obs, sw=1.5, dash="3 3", marker="tapObserve")
     )
 
-    # ---- N1 WIRE-BREAK / immutable migration boundary ----
+    # ---- N1 native 1.x offer; immutable 0.8 never enters this gate ----
     bx, by, bw, bh = 56, 196, 220, 128
     s.append(card(th, bx, by, bw, bh, ctr, "S0"))
     s.append(ic_break(bx + 16, by + 38, 24, ctr))
-    s.append(T(bx + 48, by + 46, "IMMUTABLE 0.8 → 1.0", 14, 700, th["tprim"]))
-    s.append(T(bx + 48, by + 61, "intentional major break", 10.5, 500, th["tsec"]))
+    s.append(T(bx + 48, by + 46, "NATIVE 1.x OFFER", 14, 700, th["tprim"]))
     s.append(
-        T(bx + 18, by + 86, "unreleased candidate 1.0", 9.5, 500, th["tmut"], mono=True)
+        T(bx + 48, by + 61, "0.8 cannot enter or upgrade here", 10, 500, th["tsec"])
     )
     s.append(
-        T(bx + 18, by + 103, "compact proto hash:", 9.5, 500, th["tmut"], mono=True)
+        T(
+            bx + 18,
+            by + 86,
+            "unreleased candidate · canonical version",
+            9.5,
+            500,
+            th["tmut"],
+            mono=True,
+        )
+    )
+    s.append(
+        T(
+            bx + 18,
+            by + 103,
+            "compact proto diagnostic:",
+            9.5,
+            500,
+            th["tmut"],
+            mono=True,
+        )
     )
     s.append(T(bx + 18, by + 116, CONTRACT_HASH, 9.5, 700, ctr, mono=True))
 
@@ -1162,12 +1209,10 @@ def versioning(th):
     s.append(diamond(440, 260, 76, th, ctr))
     s.append(ic_key(426, 212, 26, ctr))
     s.append(
-        T(440, 253, "check_version", 11.5, 700, th["tprim"], mono=True, anchor="middle")
+        T(440, 253, "wire + core", 11.5, 700, th["tprim"], mono=True, anchor="middle")
     )
     s.append(T(440, 268, "HARD", 9.5, 700, ctr, anchor="middle", track=0.6))
-    s.append(
-        T(440, 281, f"same major {WIRE_MAJOR}.x", 9.5, 600, th["tsec"], anchor="middle")
-    )
+    s.append(T(440, 281, "both pass", 9.5, 600, th["tsec"], anchor="middle"))
     s.append(T(440, 294, "FAIL-CLOSED", 9.5, 700, verm, anchor="middle", track=0.6))
 
     # ---- N3 REJECT ----
@@ -1176,12 +1221,14 @@ def versioning(th):
     s.append(ic_noentry(rx_ + rw - 40, ry + 8, 22, verm))
     s.append(rect(rx_ + 18, ry + 40, 9, 9, rx=2, fill=verm))
     s.append(T(rx_ + 33, ry + 48, "REJECTED", 14, 700, th["tprim"]))
-    s.append(T(rx_ + 18, ry + 66, "peer 0.8 ≠ native 1.x", 10.5, 500, th["tsec"]))
+    s.append(
+        T(rx_ + 18, ry + 66, "invalid wire or core mismatch", 10.5, 500, th["tsec"])
+    )
     s.append(
         T(
             rx_ + 18,
             ry + 84,
-            "labelled terminating gateway required",
+            "no native session · gateway may terminate",
             9,
             500,
             th["tmut"],
@@ -1222,13 +1269,22 @@ def versioning(th):
         T(ax + 27, ay + 20.5, "A0", 10, 700, th["tsec"], mono=True, anchor="middle")
     )
     s.append(ic_play(ax + aw - 40, ay + 8, 22, grn))
-    s.append(T(ax + 18, ay + 50, "SESSION OPENS", 14, 700, th["tprim"]))
-    s.append(T(ax + 18, ay + 68, "peer 1 / 1.x → Ok", 10.5, 500, th["tsec"]))
+    s.append(T(ax + 18, ay + 50, "SESSION MAY OPEN", 14, 700, th["tprim"]))
+    s.append(
+        T(
+            ax + 18,
+            ay + 68,
+            f"canonical {WIRE_MAJOR} or {WIRE_MAJOR}.<minor> + exact core",
+            10.5,
+            500,
+            th["tsec"],
+        )
+    )
     s.append(
         T(
             ax + 18,
             ay + 86,
-            "canonical same-major match",
+            "both hard checks pass",
             9.5,
             500,
             th["tmut"],
@@ -1259,12 +1315,12 @@ def versioning(th):
         T(vx + 27, vy + 19.5, "H0", 10, 700, th["tmut"], mono=True, anchor="middle")
     )
     s.append(ic_approx(vx + 46, vy + 16, 18, obs))
-    s.append(T(vx + 70, vy + 25, "contract_hash diff", 12, 600, th["tprim"], mono=True))
+    s.append(T(vx + 70, vy + 25, "other identities", 12, 600, th["tprim"], mono=True))
     s.append(
         T(
             vx + 70,
             vy + 40,
-            "ADVISORY · logged, not rejected",
+            "evidence only · no native authority",
             9.5,
             500,
             th["tmut"],
@@ -1293,14 +1349,14 @@ def versioning(th):
         )
 
     s.append(echip(320, 260, ctl, "", "negotiate", w=84))
-    # Fork conditions are shown on the destination cards (0.8 rejected / canonical 1.x accepted).
+    # Fork conditions are shown on the destination cards.
 
     # ---- legend ----
     ly = 500
     items = [
-        (verm, "■", "HARD", "other major → reject"),
-        (grn, "▶", "OPEN", "canonical 1 / 1.x → session"),
-        (obs, "≈", "ADVISORY", "logged, not rejected"),
+        (verm, "■", "HARD", "wire/core mismatch → reject"),
+        (grn, "▶", "OPEN", "both checks → session"),
+        (obs, "≈", "EVIDENCE", "no native authority"),
     ]
     lx = 40
     for hue, gly, concept, tail in items:
@@ -1320,7 +1376,7 @@ def fsm(th):
         title_block(
             th,
             "PLANT ADMISSION · STATE MODEL",
-            "ATTRIBUTABLE → WIRE CANDIDATE  ·  UNATTRIBUTABLE → NO FRAME  ·  ESTOP LATCHES",
+            "PROPOSED B01 TARGET  ·  ATTRIBUTED WIRE CANDIDATES  ·  ESTOP LATCHES",
             W,
         )
     )
@@ -1349,7 +1405,7 @@ def fsm(th):
     rx0 = W - 28
     for label, fill, txt, filled in reversed(
         [
-            ("init", None, th["surf_chip"], None),
+            ("init · reject", None, th["surf_chip"], None),
             ("active", th["fsm_active_badge"], th["fsm_active_badge_text"], True),
             ("hold", amb, hold_text, False),
             ("estop", verm, th["fsm_estop_badge_text"], True),
@@ -1430,10 +1486,10 @@ def fsm(th):
         '<circle cx="110" cy="120" r="7" fill="none" stroke="%s" stroke-width="1.3"/>'
         % obs
     )
-    s.append(T(122, 123, "INIT", 8.5, 700, th["tmut"], mono=True))
+    s.append(T(110, 108, "OPEN", 8.5, 700, th["tmut"], mono=True, anchor="middle"))
     s.append(
         path("M110,127 C110,100 500,100 500,150", stroke=amb, sw=2, marker="arrowHold")
-    )  # E0 valid INIT→HOLD
+    )  # E0 valid open→HOLD
     s.append(
         path(
             "M100,127 C58,127 58,366 96,366",
@@ -1442,7 +1498,7 @@ def fsm(th):
             dash="5 3",
             marker="arrowConfig",
         )
-    )  # E0b invalid INIT→CONFIG
+    )  # E0b invalid open→CONFIG
     s.append(
         path(
             "M214,150 C214,120 250,120 250,150",
@@ -1545,7 +1601,7 @@ def fsm(th):
         T(
             HD[0] + 18,
             HD[1] + 64,
-            "emits zeroed Mode::Hold",
+            "bounded HOLD candidate · no action claim",
             9,
             500,
             th["tmut"],
@@ -1585,8 +1641,8 @@ def fsm(th):
         T(
             CF[0] + 18,
             CF[1] + 65,
-            "emits zeroed HOLD · no reset",
-            9,
+            "HOLD candidate / no frame · no effect",
+            8.5,
             500,
             th["tmut"],
             mono=True,
@@ -1628,7 +1684,7 @@ def fsm(th):
     )
     s.append(ic_octagon(ex + ew - 40, ey + 10, 24, ink))
     s.append(T(ex + 18, ey + 44, "ESTOP", 15, 800, ink))
-    s.append(T(ex + 18, ey + 61, "LATCHED · emits zeroed ESTOP", 10.5, 600, ink))
+    s.append(T(ex + 18, ey + 61, "LATCHED · bounded ESTOP candidate", 10.5, 600, ink))
     s.append(
         T(ex + 18, ey + 77, "reset never restores authority", 9.5, 500, ink, mono=True)
     )
@@ -1653,22 +1709,20 @@ def fsm(th):
     # ---- edge labels ----
     s.append(
         klabel(
-            300, 108, "valid config · session init", "→ HOLD", hold_text, compact=True
+            300, 108, "valid config · governor open", "→ HOLD", hold_text, compact=True
         )
     )
     s.append(
         klabel(
-            235,
-            126,
+            250,
+            134,
             "fresh sensor · live authority",
             "ACTIVE",
             active_text,
             compact=True,
         )
     )
-    s.append(
-        klabel(363, 158, "stale · NaN · timeout", "↓ HOLD", hold_text, compact=True)
-    )
+    s.append(klabel(363, 172, "invalid or stale", "HOLD", hold_text, compact=True))
     s.append(
         klabel(
             363,
@@ -1689,7 +1743,14 @@ def fsm(th):
         )
     )
     s.append(
-        klabel(726, 374, "emits ESTOP frame", "LATCHED", action_text, compact=True)
+        klabel(
+            700,
+            318,
+            "exact replay · no new latch",
+            "LATCHED",
+            action_text,
+            compact=True,
+        )
     )
     s.append(
         klabel(
@@ -1717,7 +1778,7 @@ def fsm(th):
         T(
             44,
             iy + 17,
-            "INVARIANT · Successful output is a normalized, bounded wire-shape candidate; the governor does not execute plant-profile actions.",
+            "INVARIANT · Output is only a bounded wire candidate. The body selects an installed plant-profile action; NCP defines no universal zero.",
             8.5,
             500,
             th["tsec"],
@@ -1728,7 +1789,7 @@ def fsm(th):
         T(
             44,
             iy + 33,
-            "Unattributable envelope / no bounded safe tier → local ESTOP + error / no frame; position + route + live generation stay external.",
+            "Unattributable envelope or no representable candidate → local latch + error / no frame. No protocol result proves physical effect.",
             8.5,
             500,
             th["tsec"],
@@ -1746,8 +1807,8 @@ def sequence(th):
     s.append(
         title_block(
             th,
-            "SESSION LIFECYCLE",
-            "CLIENT ⇄ BODY / SERVER  ·  FENCED OPEN → MUTATE / OBSERVE → CLOSE",
+            "SIMULATION SESSION",
+            "PROPOSED B01 TARGET  ·  OPEN → STEP / RUN → CLOSE  ·  SIMULATION ONLY",
             W,
         )
     )
@@ -1771,13 +1832,19 @@ def sequence(th):
 
     # phase-group frames (recessive wells)
     for fy, fh, tag, thue, note in [
-        (176, 124, "OPEN", ctl, f"same-major {WIRE_MAJOR}.x HARD · hash ADVISORY"),
+        (
+            176,
+            124,
+            "OPEN",
+            ctl,
+            f"canonical {WIRE_MAJOR} or {WIRE_MAJOR}.<minor> + exact stable core",
+        ),
         (
             320,
             168,
-            "loop  [per chunk]",
+            "loop  [per operation]",
             verm,
-            "step ⟳ observe · provenance every frame",
+            "step / run ⟳ result · provenance every response",
         ),
         (508, 92, "CLOSE", ctl, "fenced mutation + receipt"),
     ]:
@@ -1823,11 +1890,11 @@ def sequence(th):
     s.append(card(th, 156, 92, 180, 64, ctl, "C0"))
     s.append(ic_terminal(300, 104, 22, ctl))
     s.append(T(200, 120, "CLIENT", 14, 700, th["tprim"]))
-    s.append(T(200, 136, "commander · opens + drives", 10, 500, th["tsec"]))
+    s.append(T(200, 136, "authorized simulation caller", 10, 500, th["tsec"]))
     s.append(card(th, 484, 92, 180, 64, obs, "S0"))
     s.append(ic_wave(628, 104, 22, obs))
-    s.append(T(528, 120, "SERVER", 14, 700, th["tprim"]))
-    s.append(T(528, 136, "body / simulation backend", 10, 500, th["tsec"]))
+    s.append(T(528, 120, "RESPONDER", 14, 700, th["tprim"]))
+    s.append(T(528, 136, "bounded simulation service", 10, 500, th["tsec"]))
 
     # message chip helper (2-line: eyebrow + mono key)
     def mchip(cx, cy, desig, hue, eyebrow, key, w):
@@ -1862,7 +1929,7 @@ def sequence(th):
         T(
             498,
             246,
-            f"check_version HARD · major={WIRE_MAJOR}",
+            f"canonical wire HARD · major={WIRE_MAJOR}",
             8,
             500,
             th["tmut"],
@@ -1870,7 +1937,15 @@ def sequence(th):
         )
     )
     s.append(
-        T(498, 262, "contract_hash  ADVISORY/logged", 8, 500, th["tmut"], mono=True)
+        T(
+            498,
+            262,
+            "stable_core HARD · compact hash diagnostic",
+            8,
+            500,
+            th["tmut"],
+            mono=True,
+        )
     )
 
     # E1 OpenSession →
@@ -1882,7 +1957,7 @@ def sequence(th):
             "C1",
             ctl,
             "OpenSession  →",
-            "version · identity · security profile/digest",
+            "version · stable core · security profile/digest",
             300,
         )
     )
@@ -1916,7 +1991,7 @@ def sequence(th):
     s.append(
         T(495, 313, "ok=false → NO session", 8.5, 700, pink, anchor="middle", mono=True)
     )
-    # E3 StepRequest →
+    # E3 StepRequest / RunRequest →
     s.append(line(251, 372, 569, 372, ctl, 2.5, marker="arrowControl"))
     s.append(
         mchip(
@@ -1930,7 +2005,7 @@ def sequence(th):
         )
     )
 
-    # E4 ObservationFrame RPC result ← (CONTROL reply, not action authority)
+    # E4 ObservationFrame ← (CONTROL reply, not plant authority)
     s.append(line(569, 432, 251, 432, ctl, 2.5, dash="4 4", marker="replyControl"))
     cw, ch, cy0 = 236, 38, 414
     cx0 = 410 - cw / 2
@@ -1941,14 +2016,12 @@ def sequence(th):
     s.append(
         T(cx0 + 16, cy0 + 19.5, "O1", 8.5, 700, "#ffffff", mono=True, anchor="middle")
     )
-    s.append(
-        T(cx0 + 30, cy0 + 15, "ObservationFrame RPC result  ←", 10, 700, ctl, track=0.3)
-    )
+    s.append(T(cx0 + 30, cy0 + 15, "ObservationFrame  ←", 10, 700, ctl, track=0.3))
     s.append(
         T(
             cx0 + 30,
             cy0 + 27,
-            "session · stream{epoch,seq} · receipt",
+            "session · request position · terminal result",
             8.5,
             500,
             th["tsec"],
@@ -1996,7 +2069,7 @@ def sequence(th):
         )
     )
 
-    # E5 CloseSession →  / E6 SessionClosed ←
+    # E5 CloseSession → / E6 SessionClosed ←
     s.append(line(251, 540, 569, 540, ctl, 2.5, marker="arrowControl"))
     s.append(
         mchip(
@@ -2011,7 +2084,15 @@ def sequence(th):
     )
     s.append(line(569, 580, 251, 580, ctl, 2.5, dash="4 4", marker="replyControl"))
     s.append(
-        mchip(410, 580, "C5", ctl, "SessionClosed  ←", "session · receipt · ok", 200)
+        mchip(
+            410,
+            580,
+            "C5",
+            ctl,
+            "SessionClosed  ←",
+            "session · receipt · terminal",
+            250,
+        )
     )
 
     # legend
@@ -2023,7 +2104,7 @@ def sequence(th):
         T(
             332,
             ly + 4,
-            "CONTROL reply · provenance-bearing ObservationFrame",
+            "CONTROL reply · provenance-bearing simulation result",
             9,
             600,
             th["tsec"],
@@ -2070,7 +2151,14 @@ def admission(th):
             "principal · manifest",
             "snapshot capability",
         ),
-        (408, active, "D1", "DECODE ONCE", "prepared layout", "closed · preserve mode"),
+        (
+            408,
+            active,
+            "D1",
+            "DECODE ONCE",
+            "prepared layout",
+            "Init / unknown → reject",
+        ),
         (
             598,
             hold,
@@ -2085,7 +2173,7 @@ def admission(th):
             "S1",
             "GRANT / CHECK",
             "range · replay · no-reuse",
-            "mode · source · lease",
+            "action · lease · expiry",
         ),
     )
     for values in stages:
@@ -2118,7 +2206,7 @@ def admission(th):
         T(
             486,
             375,
-            "authorized · fresh · preallocated",
+            "authorized · fresh · profile-bound",
             9,
             600,
             th["tsec"],
@@ -2148,7 +2236,9 @@ def admission(th):
     s.append(card(th, 708, 306, 246, 132, action, "G1"))
     s.append(ic_lock(724, 326, 28, action))
     s.append(T(764, 340, "BODY EFFECT GATE", 14, 800, th["tprim"]))
-    s.append(T(726, 366, "realm guard → body gate", 9, 600, th["tsec"], mono=True))
+    s.append(
+        T(726, 366, "installed action → driver fence", 9, 600, th["tsec"], mono=True)
+    )
     s.append(
         T(
             726,
@@ -2367,6 +2457,7 @@ def topology_contract_problems() -> list[str]:
         SENSOR_ROUTE,
         COMMAND_ROUTE,
         OBSERVATION_ROUTE,
+        "Init rejects",
         "qualification: NOT RUN",
     )
     forbidden = (

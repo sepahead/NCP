@@ -3181,6 +3181,39 @@ finite authority horizon or permanent isolation. Mirror expiry cannot close a
 `LOCAL_TERMINAL_EVIDENCE_REQUIRED` key. Unknown, overdue, or rolled-back local
 state fails closed.
 
+## Low-overhead security-state reconciliation
+
+One realm owner publishes an immutable current snapshot and one-way currentness
+gate. Verified ingress receives an opaque actor capability for that snapshot.
+Application code cannot split, rebuild, or revive it.
+
+A security cut closes its predecessor before publishing a successor. Each owner
+rechecks currentness before retention, release, send attempt, or executor
+acceptance. No lock spans network, application, parser, or device work.
+
+The cut and each committing owner transition have one local order. A transition
+commits under the still-current opaque capability before the cut, or it rejects
+after the cut. Work performed outside the owner uses a bounded in-flight
+reservation and a second currentness check before its result becomes visible.
+A cut marks such a reservation as draining and does not wait under the owner
+lock.
+
+The security-state projection commits accepted extension manifests, but not
+their derived activation contexts. Each later activation binds its producer,
+audience, realm, scope, manifest, route, package class, parser, callback,
+resource, frame, and route-encoding profiles. It also binds the complete
+`security_state_digest`, receiver-clock incarnation, exclusive activation
+expiry, and receiver-issued activation incarnation. This order prevents a digest
+cycle.
+
+B03 derives one positive exact-opening limit from the complete canonical shell,
+encoding expansion, and 1,048,576-byte frame ceiling. Boundary and overflow
+tests are mandatory. Unknown inputs or unsafe arithmetic reject before
+allocation. B03 cannot change opening or disclosure semantics.
+
+A runtime can replace the detailed proof graph with bounded local state and one
+atomic owner transition only when all observable results remain unchanged.
+
 ## Rejected alternatives
 
 - Digest raw file bytes while ignoring semantic equivalence or included files.
@@ -4063,10 +4096,18 @@ history remains auditable even when deployment is prohibited.
 
 <a id="ncp-b01-selector-allocation-adr-009-v1"></a>
 
-One semantic question remains open. The companion module must define a finite
-numeric maximum for cross-store exact-opening bytes and add complete
-source-bound wire cases for that limit. Unknown or default security, currentness,
-audience, producer, disclosure, or retirement values deny.
+The cross-store opening meaning is closed. B03 must select its derived finite
+numeric maximum and 1 through 16 exact capsule-profile identities under the
+predicate above. Each identity is 1 through 128 bytes and matches
+`[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. It fixes the protected-envelope
+family, proof shape, audience/disclosure mode, and bounded delivery container.
+Unknown or default security, currentness, audience, producer, disclosure,
+capsule profile, or retirement values deny.
+
+The exact-opening maximum is selected from 1 through 1,048,576 bytes. Its
+predicate derives the exact smaller maximum from the complete canonical shell,
+encoding expansion, and universal structured-frame ceiling. It rejects an
+unknown shell or encoding, a nonpositive payload result, and unsafe arithmetic.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

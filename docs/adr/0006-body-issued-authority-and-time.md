@@ -565,8 +565,9 @@ The `MAP_LIVE_LEASE_DEADLINE_NO_LATER` branch of
 `APPLY_BODY_CLOCK_RESTART` uses subordinate authority transition
 `BEGIN_RECONNECT_RECOVERY`; the other clock branches never create that pending
 operation. Each event uses the exact axis cases, mutation contract, pre-CAS fact,
-and post-CAS sidecar cardinality in the B01 selector-closure matrix. Unknown,
-default, inferred, or legacy aliases reject.
+and post-CAS sidecar cardinality specified in this ADR. The retained B01 selector
+matrix is diagnostic only and cannot change that meaning. Unknown, default,
+inferred, or legacy aliases reject.
 
 `NORMAL_HOLD_RECOVERY` is body-only: it changes the exact ADR-007 HOLD cycle
 `HOLD_EFFECTIVE -> HOLD_CYCLE_CONSUMED` while preserving lifecycle HOLD, typed
@@ -681,6 +682,61 @@ can retire and open a fresh opaque UUIDv4 generation. A proved or possible ESTOP
 state remains non-authorizing and blocks successor-generation creation until
 authenticated local operator reset. Old generations reject by inequality; no
 generation ordering is inferred.
+
+## Low-overhead authority reconciliation
+
+One body owner serializes lease transitions, command positions, restrictive
+effects, dispositions, and executor acceptance for one plant generation. A
+security-dependent body transition compares the exact security selector in its
+qualified local transaction. The body does not own global security state. It
+holds no lock across network, application, or device work.
+
+The live lease binds:
+
+- the direct realm, plant profile, and lease-bound command declaration.
+- the security state, holder, term, random lease ID, and authority version.
+- the receiver clock and exclusive deadline.
+
+Serialized lease bytes never restore live authority after restart.
+
+The body issues each command freshness grant before publication. The grant binds
+the receiver clock, absolute exclusive deadline, declaration, publisher
+incarnation, position range, permitted modes, complete reserved state, and each
+required live-lease coordinate. Receiver arrival is evidence only. It never
+starts or refreshes command lifetime.
+
+Active and explicit HOLD require the current lease holder and ordinary stream
+monotonicity before their installed action. HOLD carries no remote value, source,
+or horizon. Its effect comes from the installed plant profile.
+
+ESTOP is the only remote mode that can omit the lease and reach an early
+idempotent local latch after its complete current-context gate. The command still
+requires authenticated action ingress, a live generation, current security, and
+explicit ESTOP intent. It also requires an exact live declaration and unexpired
+body grant, or the bounded post-HOLD escalation snapshot over that declaration,
+an explicitly preserved unused ESTOP slot, and the same unchanged deadline. A
+rejected or conflicting command can cause a separately attributed local latch
+only after it passes that complete pre-replay restrictive gate. It cannot claim
+an admitted `STOP_LATCHED` disposition. Malformed, unauthenticated,
+stale-generation, or expired-grant or snapshot input cannot reach the latch.
+
+One command position carries one setpoint and one application attempt. The body
+issues a receiver-owned single-use executor capability after Active admission.
+The executor accepts that capability through the body owner, then performs
+bounded device work outside the lock. Unknown completion keeps the lane
+restrictive and cannot authorize a retry.
+
+A compact simulation step uses a separate receiver-issued grant and strict
+execution owner. It grants simulation mutation only and shares no plant lease,
+command position, or executor capacity.
+
+B03 selects positive finite owner capacities and implementation names here.
+Deadline, retention, and queue values use the bounded ADR-010 profile envelope.
+Receiver-owned time is integer monotonic nanoseconds within one explicit clock
+incarnation. Each value must fit checked arithmetic, aggregate bytes, owner-state
+limits, and its complete terminal path. Missing, unknown, zero, overflowed, or
+uninstalled values reject before authority or allocation. B03 cannot change body
+issuance, absolute time, ESTOP ordering, or restart meaning.
 
 ## Rejected alternatives
 
@@ -808,14 +864,19 @@ lease, and horizon constraints. The body repeats the installed-profile check at
 the final actuator boundary. Missing or inconsistent data makes Active
 ineligible; a local unchecked mapper cannot supply qualification evidence.
 
-This Active construction and admission work does not move ADR-007's restrictive
-effect gate. A current authenticated HOLD or ESTOP attempt can reserve or apply
-the exact body-local profile action after ADR-007's minimum current-context
-checks and before later codec, channel, unit, replay, lease, or profile semantic
-checks. A later rejection does not suppress or undo that restrictive effect.
-Wrong context, unbounded or unauthenticated input, a wrong route or audience, an
-ambiguous mode, an invalid slot, or an expired deadline remains inert. HOLD and
-ESTOP claim no universal safe actuator value.
+This Active construction and admission work does not move ADR-007's ESTOP latch
+gate. After the complete pre-replay restrictive gate passes, a current
+authenticated explicit ESTOP can reserve or apply its installed body-local
+latch. The latch can precede stream replay or lease checks. A later command
+rejection does not suppress or undo that separately attributed latch. Remote
+HOLD instead requires ordinary stream monotonicity, the exact live-holder lease,
+and the installed plant profile before it can reserve or invoke HOLD. A
+body-local watchdog or governor can request HOLD through its separate local
+policy path without attributing that
+effect to rejected remote bytes. Wrong context, unbounded or unauthenticated
+input, a wrong route or audience, an ambiguous mode, an invalid slot, or an
+expired deadline remains inert. HOLD and ESTOP claim no universal safe actuator
+value.
 
 ## Threat and hazard analysis
 
@@ -917,7 +978,15 @@ against an old body.
 
 <a id="ncp-b01-selector-allocation-adr-006-v1"></a>
 
-Exact implementation names and bounded capacities remain allocation inputs. Body-final authority, time, lease, and fail-closed safety rules are closed.
+Exact implementation names and bounded capacities remain allocation inputs.
+Body-final authority, time, lease, and fail-closed safety rules are closed.
+
+B03 selects 1 through 32 canonical implementation identities. Each identity
+matches `[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?` and can name only a boundary
+that implements the owner, clock, lease, grant, or executor semantics above.
+Authority-state capacity is 1 through 65,536 entries. The selected value must
+fit the complete active, ambiguous, terminal, and restart state under one
+checked aggregate byte budget.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

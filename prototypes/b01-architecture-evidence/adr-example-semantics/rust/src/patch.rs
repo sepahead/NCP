@@ -1,9 +1,10 @@
 use serde_json::Value;
 
 use crate::error::{EngineError, EngineResult};
-use crate::model::{Patch, PatchOperation};
+use crate::model::{validate_patch_path, Patch, PatchOperation};
 
 pub(crate) fn apply_patch(target: &mut Value, patch: &Patch) -> EngineResult<()> {
+    validate_patch_path(&patch.path)?;
     let tokens = decode_pointer(&patch.path)?;
     if tokens.is_empty() {
         return apply_at_root(target, patch);
@@ -19,19 +20,11 @@ pub(crate) fn apply_patch(target: &mut Value, patch: &Patch) -> EngineResult<()>
 }
 
 fn apply_at_root(target: &mut Value, patch: &Patch) -> EngineResult<()> {
-    match patch.op {
-        PatchOperation::Add | PatchOperation::Replace => {
-            let value = patch
-                .value
-                .as_ref()
-                .ok_or_else(|| EngineError::corpus("ADD/REPLACE patch is missing value"))?;
-            *target = value.clone();
-            Ok(())
-        }
-        PatchOperation::Remove => Err(EngineError::corpus(
-            "removing the complete document or fixture is forbidden",
-        )),
-    }
+    let _ = target;
+    let _ = patch;
+    Err(EngineError::corpus(
+        "mutating the complete document or fixture is forbidden",
+    ))
 }
 
 fn descend<'value>(value: &'value mut Value, token: &str) -> EngineResult<&'value mut Value> {
@@ -61,6 +54,11 @@ fn apply_at_parent(parent: &mut Value, token: &str, patch: &Patch) -> EngineResu
                     .value
                     .as_ref()
                     .ok_or_else(|| EngineError::corpus("ADD patch is missing value"))?;
+                if object.contains_key(token) {
+                    return Err(EngineError::corpus(format!(
+                        "ADD target member {token:?} already exists"
+                    )));
+                }
                 object.insert(token.to_owned(), value.clone());
                 Ok(())
             }
@@ -220,5 +218,21 @@ mod tests {
         assert!(apply_patch(&mut value, &missing).is_err());
         let index = patch(PatchOperation::Remove, "/array/00", None);
         assert!(apply_patch(&mut value, &index).is_err());
+    }
+
+    #[test]
+    fn apply_patch_should_reject_root_mutation_and_existing_object_add() {
+        let mut value = json!({"existing": 1});
+        let root = patch(PatchOperation::Replace, "", Some(json!({"other": 2})));
+        assert!(apply_patch(&mut value, &root).is_err());
+        let oversized = patch(
+            PatchOperation::Remove,
+            &format!("/{}", "x".repeat(512)),
+            None,
+        );
+        assert!(apply_patch(&mut value, &oversized).is_err());
+        let existing = patch(PatchOperation::Add, "/existing", Some(json!(2)));
+        assert!(apply_patch(&mut value, &existing).is_err());
+        assert_eq!(value, json!({"existing": 1}));
     }
 }

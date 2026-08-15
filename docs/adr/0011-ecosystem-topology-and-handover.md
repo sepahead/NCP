@@ -818,6 +818,88 @@ or outcome meaning.
 NCP defines no runtime, export, observation, control, release, or
 documentation-import edge to or from Cortexel.
 
+## Low-overhead deployment reconciliation
+
+One deployment owner reserves the normalized set of physical effect paths before
+it opens a plant generation. One deployment-scoped fencing authority owns the
+table for all enrolled physical-resource namespaces in that set. A set that
+cannot use one authority remains unavailable. Overlapping live reservations
+reject across realms, sessions, processes, and failover generations. Unknown
+reservation state keeps the path unavailable.
+
+Each effect-path descriptor names a registered driver class, one enrolled
+physical-resource identity, enrolled fencing domains, and exact writable
+channels or half-open output intervals. It excludes realm and session values.
+Enrollment maps every approved endpoint alias to one physical-resource identity
+before reservation comparison. It also maps every writable output to one
+independently enforced fencing domain. The canonical domain, channel, and
+interval sets are sorted, nonempty, bounded, and internally non-overlapping.
+
+Two live reservations cannot share a fencing domain, even when their described
+channels or intervals are disjoint. Different domains can remain live together
+only when enrollment proves that their writable outputs do not overlap. The
+driver must also enforce an independent term for each domain. Otherwise, the
+complete physical resource is one exclusive domain.
+
+The reservation index compares physical-resource identities, fencing domains,
+and set or interval intersection. Driver-class or descriptor-digest differences
+cannot hide an overlap. The owner retains canonical descriptor bytes with a
+domain-separated digest. A digest collision with different bytes rejects without
+changing either reservation.
+
+A successful reservation installs a checked, strictly increasing fencing term
+for each selected domain. A term never repeats for that domain incarnation. The
+body owner binds each exact domain-incarnation and term pair into its opaque
+executor capability. The driver or device atomically accepts a write only when
+every affected pair is still current. The comparison occurs at the serialized
+effect boundary, not in caller-cached state. Term exhaustion leaves that domain
+unavailable.
+
+The fencing authority persists each new term before use and confirms its effect
+before it issues an executor. An ambiguous term installation leaves the domain
+unavailable until an authenticated query resolves it. Loss or rollback of a term
+high-water state requires re-enrollment with a fresh, never-reused domain
+incarnation. Re-enrollment must install that incarnation at the effect boundary
+and prove that every old-incarnation token rejects. If the boundary cannot compare
+incarnations, the old high-water must be recovered or the path remains isolated
+and unavailable.
+
+Some devices cannot compare a fencing term at the effect boundary. For those
+devices, a replacement stays unavailable until the old executor is terminated
+and the physical write path is isolated. Process death, a network lease, or a
+serialized command is not sufficient evidence.
+
+Handover first closes old admission. It then advances each affected fencing term,
+or proves old-path isolation, before it activates the replacement. The owner
+drains or resolves accepted old-term work under the same cut. Old and new writers
+are never live together in one fencing domain.
+
+The authority reserves a deployment set in canonical descriptor order. It issues
+no executor until every member is durably reserved and fenced. A partial or
+ambiguous set remains unavailable and keeps its acquired reservations until
+reconciliation releases or completes the same operation.
+
+These overlap and alias checks occur when the deployment opens or changes its
+reserved set. The effect hot path uses the prepared executor and one current-term
+comparison. It does not evaluate a proof graph.
+
+Direct Engram command and Haldir-gated command remain mutually exclusive for one
+body lease term. In gated mode, Haldir creates a new NCP command under its own
+principal. It never forwards Engram bytes as transferred NCP identity. Galadriel
+advice can preserve or restrict Haldir permission but cannot create `ALLOW` or
+body authority.
+
+Each consumer uses a pinned NCP package, one deployment descriptor, and one thin
+role adapter. A consumer does not copy schemas, route builders, B01 evidence
+machinery, or a private wire. Observer-only roles hold no command key or plant
+executor dependency. pid-rs remains a local protocol-neutral library and receives
+no NCP role receipt.
+
+Named proof and inventory objects describe required observable bindings. They do
+not require a proof graph on the hot path or a consumer build dependency on this
+ADR tooling. B03 selects exact package features, extension identities, and
+inventory names without changing dependency direction or qualification meaning.
+
 ## Rejected alternatives
 
 - Make NCP depend on, orchestrate, or qualify consumer applications.
@@ -879,6 +961,13 @@ audit correlation only and is never the command identity or lease.
 
 Haldir cannot transfer Engram identity or self-issue Crebain authority.
 The hostile command also omits the required direct `AuthorityRealmKey`.
+
+The following non-wire projection closes the effect-path fencing invariants for
+B01 challenge tests. B03 still selects concrete descriptor profiles and bounds.
+
+```json
+{"endpoint_aliases_normalized":true,"overlap_uses_resource_intersection":true,"disjoint_paths_require_independent_fencing_domains":true,"write_requires_current_fencing_term":true,"fencing_token_binds_domain_incarnation":true,"unfenceable_replacement_requires_isolation":true,"handover_allows_live_writer_overlap":false,"hot_path_evaluates_proof_graph":false}
+```
 
 ## Actors and state transitions
 
@@ -1126,7 +1215,28 @@ pin, copied file, or manifest-only repin establishes migration.
 
 <a id="ncp-b01-selector-allocation-adr-011-v1"></a>
 
-Exact extension identities, package feature names, and consumer inventory allocations remain implementation inputs. Topology ownership, handover, package coherence, and fail-closed consumer qualification rules are closed.
+Exact extension identities, package feature names, and consumer inventory
+allocations remain implementation inputs. Topology ownership, handover, package
+coherence, and fail-closed consumer qualification rules are closed.
+
+B03 can select 0 through 256 extension identities and 0 through 256 package
+feature identities. It can also select 1 through 64 consumer inventory
+identities and 1 through 16 effect-path descriptor-profile identities. Each
+identity is 1 through 128 bytes and matches
+`[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. It must satisfy the corresponding
+role, dependency-direction, package, inventory, or physical-descriptor predicate
+in this ADR. An alias, unregistered role, consumer-specific core fork, or
+protocol-neutral library role receipt rejects.
+
+Effect-path reservation capacity is 1 through 65,536 paths. The handover
+deadline is 1 through 300,000,000,000 receiver-local nanoseconds. Both values
+must fit the deployment owner, recovery state, and complete fenced terminal
+path.
+
+Each effect-path descriptor profile fixes the alias enrollment source,
+resource and domain-incarnation identities, channel and interval encoding, and
+fencing store. It also fixes the effect-boundary check, isolation evidence,
+handover protocol, and recovery bounds.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

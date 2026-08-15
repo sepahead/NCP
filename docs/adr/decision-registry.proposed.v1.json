@@ -17,13 +17,13 @@
     "output_schema": "ncp.proposed-decision-registry.v1",
     "generator": {
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "8973f45ae61edccc5e47527def01038974c16ac4dcab305f7a3f09897caad411",
-      "bytes": 301003
+      "sha256": "4beea0878d0de7f9716cccf6869a0e20a08fc2dcfcdf2c4a6821df3c1a9ea088",
+      "bytes": 249788
     },
     "output_json_schema": {
       "path": "docs/adr/decision-registry.proposed.schema.v1.json",
-      "sha256": "874f3ab4d24a5f3e66b465b03a23605d6ec7854572ee48881225f0205dc05dcf",
-      "bytes": 49962
+      "sha256": "46a0b681c0e4440918cf69649bb656ad778bcdbf5059f7d6f3c6fe873d8805b2",
+      "bytes": 31030
     }
   },
   "review_packet": {
@@ -40,78 +40,50 @@
     "schema": "ncp.b01-decision-set.v1",
     "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
     "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
-    "sha256": "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331",
+    "sha256": "5e632beb26a8c32acbd6f7d532a1cd7408685ef826356a7a140f7e7f1266546b",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
-        "bytes": 66810
+        "sha256": "d79a21c3ab77bbee1e8f0d0f9003dc4e84d07b89e62a7063f8a93995d0adf3d2",
+        "bytes": 72816
       },
       "json_schema": {
         "path": "docs/adr/decision-closure.source.schema.v1.json",
-        "sha256": "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
-        "bytes": 28693
+        "sha256": "e607c7402691fac1cb72f6b470835f82f00f321e8445e4be15e968f57117f455",
+        "bytes": 22016
       }
     }
   },
   "semantic_closure_evaluation": {
     "schema": "ncp.b01-semantic-closure-evaluation.v1",
-    "decision_set_sha256": "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331",
-    "state": "OPEN",
+    "decision_set_sha256": "5e632beb26a8c32acbd6f7d532a1cd7408685ef826356a7a140f7e7f1266546b",
+    "state": "CLOSED",
     "source": {
       "path": "docs/adr/decision-closure.source.v1.json",
-      "sha256": "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
-      "bytes": 66810
+      "sha256": "d79a21c3ab77bbee1e8f0d0f9003dc4e84d07b89e62a7063f8a93995d0adf3d2",
+      "bytes": 72816
     },
     "json_schema": {
       "path": "docs/adr/decision-closure.source.schema.v1.json",
-      "sha256": "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
-      "bytes": 28693
+      "sha256": "e607c7402691fac1cb72f6b470835f82f00f321e8445e4be15e968f57117f455",
+      "bytes": 22016
     },
-    "wire_corpus": {
+    "semantic_corpus": {
       "required_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
       "required_status": "COMPLETE_CURRENT",
-      "observed_status": "EXCERPTS_ONLY_NON_AUTHORIZING",
+      "observed_status": "COMPLETE_CURRENT",
       "observed_identity": {
         "path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
-        "sha256": "d3b56f91d541111aa2cf65c6c730366950a2925b0b8bfee08ee2fa6f0ceab10f",
-        "bytes": 88272
+        "sha256": "9828bdc7c3eb7a16e7414f340885eb19067c3bdd39fec6e4c24445a8c5134359",
+        "bytes": 113496
       },
-      "case_count": 22
+      "case_count": 25,
+      "mutation_count": 132
     },
     "b03_deferrals": {
-      "required_question_count": 7,
-      "validated_question_count": 0,
-      "observed_status": "INCOMPLETE_FAIL_CLOSED"
-    },
-    "capture_workflow": {
-      "required_state": "IMPLEMENTED",
-      "observed_state": "IMPLEMENTED",
-      "required_engine_profile_state": "IMPLEMENTED",
-      "engine_profile_states": {
-        "RUST": "NOT_IMPLEMENTED",
-        "TYPESCRIPT": "NOT_IMPLEMENTED"
-      },
-      "command": "python3 scripts/generate_decision_registry.py --capture-semantic-parser-results",
-      "target_directory": "evidence/implementation/reviews/B01/semantic-closure",
-      "write_policy": "BOTH_VALID_PASS_THEN_WRITE_ONCE_DIRECTORY_ATOMIC_RENAME",
-      "failure_effect": "WRITE_NEITHER_RESULT"
-    },
-    "rust_parser_evidence": {
-      "engine": "RUST",
-      "required_result_path": "evidence/implementation/reviews/B01/semantic-closure/rust-parser-result.v1.json",
-      "required_status": "PASS",
-      "observed_status": "NOT_RUN",
-      "receipt": null,
-      "execution": null
-    },
-    "typescript_parser_evidence": {
-      "engine": "TYPESCRIPT",
-      "required_result_path": "evidence/implementation/reviews/B01/semantic-closure/typescript-parser-result.v1.json",
-      "required_status": "PASS",
-      "observed_status": "NOT_RUN",
-      "receipt": null,
-      "execution": null
+      "required_question_count": 8,
+      "validated_question_count": 8,
+      "observed_status": "COMPLETE_ENVELOPES_VERIFIED"
     }
   },
   "promotion_target": "contract/decision-registry.v1.json",
@@ -154,8 +126,8 @@
       "defect_ids": [
         "D01"
       ],
-      "content_sha256": "c859d9745bbd089ce72cc891d7053cd401aae0277cf5412295778341dfe35499",
-      "bytes": 152293,
+      "content_sha256": "a9ab5a7fd5b6c92d7864f4326bd8389381e3f0a640e0b4a6fe18f0533fb19025",
+      "bytes": 156084,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-001",
@@ -163,56 +135,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-            "sha256": "c859d9745bbd089ce72cc891d7053cd401aae0277cf5412295778341dfe35499",
-            "bytes": 152293
+            "sha256": "a9ab5a7fd5b6c92d7864f4326bd8389381e3f0a640e0b4a6fe18f0533fb19025",
+            "bytes": 156084
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "cd026ae04cd4e56566f4ae3a3ddf2011406330f022afdbd977cb51342acc897c"
+        "sha256": "68fc2b6d6fe0ec8c8a9b711d72f9979dc817732ddbd796091ff7f2f202d9410d"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-001-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-001-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-001-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-001-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr001.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-001-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr001.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-001-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-001-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "ncp-maintainer",
@@ -264,8 +196,8 @@
         "D17",
         "D19"
       ],
-      "content_sha256": "cfe8edfa1b70f9d9b81a24ac5b87454edd55c8af106091d709df1ad21bb8f289",
-      "bytes": 16082,
+      "content_sha256": "e01d2cb2eb6e11bbc78ed3149dae46bbc80243f5202bf5749c26affd4a268689",
+      "bytes": 21943,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-002",
@@ -273,61 +205,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
-            "sha256": "cfe8edfa1b70f9d9b81a24ac5b87454edd55c8af106091d709df1ad21bb8f289",
-            "bytes": 16082
+            "sha256": "e01d2cb2eb6e11bbc78ed3149dae46bbc80243f5202bf5749c26affd4a268689",
+            "bytes": 21943
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "6f3d84678aaed63790db7f0b108ac46dd0e107ee24ffae17f45c0ca3da755e89"
+        "sha256": "3a234d7196cc920b809a9abf19765a28ed72e3f2846a40a2dcc9ff3c2aa1a764"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-002-Q01",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-002-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-002-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-002-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-002-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr002.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-002-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr002.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-002-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-002-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "protocol-reviewer",
@@ -365,8 +252,8 @@
         "D06",
         "D10"
       ],
-      "content_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
-      "bytes": 21351,
+      "content_sha256": "08aa3d60d4c050daaa52b5c16d864272bb1c7a48a37e59c5ad1bfea5cfb5fb88",
+      "bytes": 24082,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-003",
@@ -374,61 +261,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0003-authenticated-production-ingress.md",
-            "sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
-            "bytes": 21351
+            "sha256": "08aa3d60d4c050daaa52b5c16d864272bb1c7a48a37e59c5ad1bfea5cfb5fb88",
+            "bytes": 24082
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "d743372fbeeb12e12ec8c55394ceb01c726ba1ea8ac79c1f08a7ec41defee58b"
+        "sha256": "cb9d0948d5e5277a81ca57e3fbaa5d1fc1d8c41441237a3ce8016a314895413a"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_QUESTION_OPEN",
-          "closure_id": "ADR-003-Q01",
-          "detail": "the architecture question has no closed resolution"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-003-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-003-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-003-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-003-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr003.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-003-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr003.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-003-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-003-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "security-cryptography-reviewer",
@@ -493,8 +335,8 @@
         "D05",
         "D20"
       ],
-      "content_sha256": "b366bc06139810c4490bd62fe8a5636e6a272afe546b14360bbb6c22b70cb38e",
-      "bytes": 261630,
+      "content_sha256": "4b619bf2e20b115ca9647b8513e81555fa63338b5c7aa47f88f41a6164e8e0c2",
+      "bytes": 262102,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-004",
@@ -502,72 +344,22 @@
           {
             "kind": "main",
             "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
-            "sha256": "b366bc06139810c4490bd62fe8a5636e6a272afe546b14360bbb6c22b70cb38e",
-            "bytes": 261630
+            "sha256": "4b619bf2e20b115ca9647b8513e81555fa63338b5c7aa47f88f41a6164e8e0c2",
+            "bytes": 262102
           },
           {
             "kind": "module",
             "path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
-            "sha256": "ed70f11100eb0eee6377084206025309502e5c6275e9c49a1061c4e949e9f8fb",
-            "bytes": 118633
+            "sha256": "f62dfa74eafb419d74e5def2c031c5f343fecc62d234c331e89372670626c653",
+            "bytes": 118686
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "d457c7bc686a564ef74877b06c3c513730d96eee03001d75c0e77e400cad4345"
+        "sha256": "6333acce53ce4706dfc96bc9e28d680d345218bb2c525a02111860612561223a"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-004-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-004-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-004-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-004-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr004.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-004-WIRE-POSITIVE-2",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr004.module-complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-004-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr004.complete-hostile-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-004-WIRE-HOSTILE-2",
-          "detail": "the required one-semantic-delta hostile case is absent: adr004.module-complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-004-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-004-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "prisoma-owner",
@@ -652,8 +444,8 @@
       "defect_ids": [
         "D03"
       ],
-      "content_sha256": "2a96a1b221da3335d15d13e3731ad852ba1d8c8ed7e7cedc09bfe30aec2be840",
-      "bytes": 38386,
+      "content_sha256": "b8a61fd9c238535ec87d8db8430e415318cc6f61ab657dfe2d8b7114bff26649",
+      "bytes": 42464,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-005",
@@ -661,61 +453,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0005-declared-stream-lifecycle.md",
-            "sha256": "2a96a1b221da3335d15d13e3731ad852ba1d8c8ed7e7cedc09bfe30aec2be840",
-            "bytes": 38386
+            "sha256": "b8a61fd9c238535ec87d8db8430e415318cc6f61ab657dfe2d8b7114bff26649",
+            "bytes": 42464
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "355a167a11454281083dc79f276e4d0cc3fdc086dfa87909b3cb88808b0a105d"
+        "sha256": "9452684ee327c0d20ed6a84dc7a8718af3d07e926071c3df72a4d116597b783c"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-005-Q01",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-005-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-005-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-005-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-005-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr005.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-005-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr005.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-005-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-005-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "distributed-systems-reviewer",
@@ -789,8 +536,8 @@
         "D08",
         "D15"
       ],
-      "content_sha256": "4461a8927242468170ad0a6461accbf5c14fade1a5ea0c26dbb6db8bced0212e",
-      "bytes": 55445,
+      "content_sha256": "d066e8b83a5422f431e95d071f99c25c84ad2c27b00343f2689378f5e0ea4dd1",
+      "bytes": 59342,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-006",
@@ -798,61 +545,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0006-body-issued-authority-and-time.md",
-            "sha256": "4461a8927242468170ad0a6461accbf5c14fade1a5ea0c26dbb6db8bced0212e",
-            "bytes": 55445
+            "sha256": "d066e8b83a5422f431e95d071f99c25c84ad2c27b00343f2689378f5e0ea4dd1",
+            "bytes": 59342
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "cd4573f39a0a8921bc08e0b27683d283b5d7ddc99df1f25e8e8b37f1d17fd019"
+        "sha256": "8b79bad8223797d5ba2e962817be574ae20e472fad3d5c878db4f0b45bffa407"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-006-Q01",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-006-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-006-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-006-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-006-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr006.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-006-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr006.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-006-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-006-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "safety-reviewer",
@@ -907,8 +609,8 @@
       "defect_ids": [
         "D07"
       ],
-      "content_sha256": "26fe6b4e4f386a80f807d3b2f67406c8f0b4163c4b8b8b81981410a0269c2031",
-      "bytes": 221815,
+      "content_sha256": "90a9fdeb9f6bba65458cc992117631db75d11fb9e8371d8a519d195bb6a9a669",
+      "bytes": 229776,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-007",
@@ -916,66 +618,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0007-command-disposition-journal.md",
-            "sha256": "26fe6b4e4f386a80f807d3b2f67406c8f0b4163c4b8b8b81981410a0269c2031",
-            "bytes": 221815
+            "sha256": "90a9fdeb9f6bba65458cc992117631db75d11fb9e8371d8a519d195bb6a9a669",
+            "bytes": 229776
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "7d61095ec69cfa645cfd1173167bb2c56185913257769fc6ae87b2cf800ff6d0"
+        "sha256": "8bdd49ae7be27380b64e6113a2a3afe28e904513196dcf7cd1e8a708ed539580"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_QUESTION_OPEN",
-          "closure_id": "ADR-007-Q01",
-          "detail": "the architecture question has no closed resolution"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-007-Q02",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-007-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-007-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-007-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-007-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr007.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-007-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr007.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-007-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-007-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "plant-safety-reviewer",
@@ -1030,8 +682,8 @@
       "defect_ids": [
         "D09"
       ],
-      "content_sha256": "f01b209048830cb9816ce68d4a9c84e00364d85f3e1000d88792e1e17685f9ef",
-      "bytes": 170862,
+      "content_sha256": "c7e81cc5051df8322bb51d689290b83d45b940ca6ff93a89ace17b45fed2a80d",
+      "bytes": 183142,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-008",
@@ -1039,66 +691,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-            "sha256": "f01b209048830cb9816ce68d4a9c84e00364d85f3e1000d88792e1e17685f9ef",
-            "bytes": 170862
+            "sha256": "c7e81cc5051df8322bb51d689290b83d45b940ca6ff93a89ace17b45fed2a80d",
+            "bytes": 183142
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "bfaf2735b0721e65243548aba404928e2e487c5a031fe4d41f1a765fc035a575"
+        "sha256": "14eda4beecdb1f65bce3ab8cab7bd3ac2afdbd65897172debfa8ad88c5b1f9cc"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_QUESTION_OPEN",
-          "closure_id": "ADR-008-Q01",
-          "detail": "the architecture question has no closed resolution"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-008-Q02",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-008-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-008-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-008-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-008-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr008.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-008-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr008.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-008-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-008-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "protocol-reviewer",
@@ -1168,8 +770,8 @@
         "D16",
         "D20"
       ],
-      "content_sha256": "070df9e141a866ca8fc4d2593b2f3269506bba0bba5a609e4c828b0e2738ef57",
-      "bytes": 257780,
+      "content_sha256": "c69f9bce33f576518b966c457acc58a195de97b613f91161f313c40b1a64fb66",
+      "bytes": 260084,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-009",
@@ -1177,8 +779,8 @@
           {
             "kind": "main",
             "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
-            "sha256": "070df9e141a866ca8fc4d2593b2f3269506bba0bba5a609e4c828b0e2738ef57",
-            "bytes": 257780
+            "sha256": "c69f9bce33f576518b966c457acc58a195de97b613f91161f313c40b1a64fb66",
+            "bytes": 260084
           },
           {
             "kind": "module",
@@ -1189,65 +791,10 @@
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "d025d498edb01899035f26bf502be2c9127eba2294ec479f3ceda77650044e9b"
+        "sha256": "1858eba7ad14008757382d0921b03517828f8bacc2c43201b76846c7504ed114"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_QUESTION_OPEN",
-          "closure_id": "ADR-009-Q01",
-          "detail": "the architecture question has no closed resolution"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-009-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-009-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-009-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-009-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr009.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-009-WIRE-POSITIVE-2",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr009.module-complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-009-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr009.complete-hostile-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-009-WIRE-HOSTILE-2",
-          "detail": "the required one-semantic-delta hostile case is absent: adr009.module-complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-009-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-009-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "security-reviewer",
@@ -1326,8 +873,8 @@
       "defect_ids": [
         "D14"
       ],
-      "content_sha256": "7e9d460e773253e82dd317efa6e2bd9319ebd3086ffc1c547352e3e0e851ebeb",
-      "bytes": 15836,
+      "content_sha256": "87425b90bb8f1578b5bd611fe69bef29b4a29d9adb742505700f309d447abcc3",
+      "bytes": 21560,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-010",
@@ -1335,66 +882,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
-            "sha256": "7e9d460e773253e82dd317efa6e2bd9319ebd3086ffc1c547352e3e0e851ebeb",
-            "bytes": 15836
+            "sha256": "87425b90bb8f1578b5bd611fe69bef29b4a29d9adb742505700f309d447abcc3",
+            "bytes": 21560
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "0846474a0b869d71a03e2bf60e6cb41a5b968dc897aac68607f9c952eda3bcae"
+        "sha256": "ff6e362c453a5f44c262c8f66dcca54d752ef60f0a5bb0fc1fca798ba2415bf7"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "SEMANTIC_QUESTION_OPEN",
-          "closure_id": "ADR-010-Q01",
-          "detail": "the architecture question has no closed resolution"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-010-Q02",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-010-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-010-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-010-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-010-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr010.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-010-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr010.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-010-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-010-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "real-time-performance-reviewer",
@@ -1502,8 +999,8 @@
         "D12",
         "D18"
       ],
-      "content_sha256": "c59085eee983c165524fb7f213c8ec99d33a0d36644edd3a2ea23c432de4fc9f",
-      "bytes": 70419,
+      "content_sha256": "82478e3fca4827e590c0c869b676863fa27b63e9dcc65827eb39e43075037ee9",
+      "bytes": 76844,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-011",
@@ -1511,61 +1008,16 @@
           {
             "kind": "main",
             "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-            "sha256": "c59085eee983c165524fb7f213c8ec99d33a0d36644edd3a2ea23c432de4fc9f",
-            "bytes": 70419
+            "sha256": "82478e3fca4827e590c0c869b676863fa27b63e9dcc65827eb39e43075037ee9",
+            "bytes": 76844
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "2104763977e7ac5cbf82d5ff3f226fe705a8b075cc6f5722c95ad50df627570f"
+        "sha256": "f9f78c3c8f5cf6cc37555e346017b286a683c9b0248782698c0d06b7aa001a92"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
-        {
-          "code": "SEMANTIC_CLOSURE_OPEN",
-          "closure_id": "B01-SEMANTIC-CLOSURE",
-          "detail": "B01 semantic closure remains open; no architecture decision can be accepted"
-        },
-        {
-          "code": "INVALID_B03_DEFERRAL",
-          "closure_id": "ADR-011-Q01",
-          "detail": "the B03 deferral lacks complete positive literal bounds, a finite outer maximum, or exact envelope tests; unknown allocation must reject and future B03 selection cannot change the accepted meaning"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-011-RUST-PROFILE",
-          "detail": "the exact RUST direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "SEMANTIC_PARSER_ENGINE_PROFILE_NOT_IMPLEMENTED",
-          "closure_id": "ADR-011-TYPESCRIPT-PROFILE",
-          "detail": "the exact TYPESCRIPT direct semantic parser capture profile is not implemented; no retained result can close this gate"
-        },
-        {
-          "code": "WIRE_EXAMPLE_CORPUS_NOT_CURRENT",
-          "closure_id": "ADR-011-WIRE-CORPUS",
-          "detail": "the semantic corpus is missing, stale, or contains only non-authorizing excerpts"
-        },
-        {
-          "code": "COMPLETE_POSITIVE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-011-WIRE-POSITIVE-1",
-          "detail": "the required source-bound complete positive proposed-wire case is absent: adr011.complete-positive-wire.v1"
-        },
-        {
-          "code": "COMPLETE_HOSTILE_WIRE_EXAMPLE_MISSING",
-          "closure_id": "ADR-011-WIRE-HOSTILE-1",
-          "detail": "the required one-semantic-delta hostile case is absent: adr011.complete-hostile-wire.v1"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-011-RUST-PARSER",
-          "detail": "RUST parser evidence is not a current complete-corpus PASS"
-        },
-        {
-          "code": "WIRE_EXAMPLE_PARSER_NOT_PASSING",
-          "closure_id": "ADR-011-TYPESCRIPT-PARSER",
-          "detail": "TYPESCRIPT parser evidence is not a current complete-corpus PASS"
-        },
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "engram-owner",

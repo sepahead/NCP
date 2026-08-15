@@ -29,7 +29,7 @@ NCP shall maintain separate content identities:
 
 | Identity | Meaning | Decision use |
 |---|---|---|
-| `wire_version` | major protocol family | exact supported value; no generic same-major optimism |
+| `wire_version` | major protocol family | canonical same-major compatibility under the stable-line rule |
 | `stable_core_digest` | all required wire semantics and mandatory behavior | exact equality before a native session opens |
 | `release_digest` | exact complete normative release source set | artifact/document identity and audit |
 | `corpus_digest` | mandatory canonical and behavior vectors | conformance subject identity |
@@ -37,10 +37,14 @@ NCP shall maintain separate content identities:
 | compact proto hash | short diagnostic projection | never sufficient for compatibility or release |
 | release authorization record | owner/publisher approval of exact subjects | external publication gate, never a payload grant |
 
-The stable-core membership is generated from reviewed source inputs and becomes
-immutable for the released major. Optional extension bytes are excluded from the
-stable-core digest and identified independently. Unknown required extensions
-reject; unknown optional extensions are explicitly declined.
+The stable-core identity commits a generated canonical semantic projection, not
+whole repository-file bytes. Its reviewed source inputs and projection recipe
+become immutable for the released major. A later same-major addition can change
+the release digest without changing this projection. It cannot alter, remove, or
+reinterpret a projected member. Optional extension identities and additive
+profile identities are excluded from the stable-core digest and negotiated
+independently. Unknown required extensions reject. Unknown optional extensions
+are explicitly declined.
 
 `ContractIdentity` is deliberately realm-independent. The same exact protocol
 artifact can serve more than one authority realm without changing its
@@ -125,12 +129,89 @@ It does not acquire a synthetic realm field. If its evidence set contains a
 deployed, session-scoped receipt, that receipt retains its direct
 `AuthorityRealmKey`; the bundle cannot strip, rewrite, or aggregate that field.
 
+## Low-overhead identity reconciliation
+
+Each native profile selects one version-compatibility rule. The stable line
+accepts canonical `1` as the defined shorthand for `1.0`, or a canonical
+`1.<minor>` value under the existing same-major rule. Each present component
+uses unsigned decimal without a leading zero. Zero is the single canonical zero.
+A component is at most `18446744073709551615` (`u64::MAX`). Malformed spellings,
+a patch component, an oversized component, and another major reject before
+session allocation. Exact signed, replayed, or forwarded objects retain their
+admitted version spelling. Compact frames inherit the negotiated parsed version
+context instead of repeating a version string.
+
+Each native `1.x` message has a closed interpreted member set for the selected
+profile. The universal resource budget applies before an implementation retains
+or ignores an additive unknown JSON or protobuf field. Such a field cannot
+supply a required value or gain identity, authority, capability, channel,
+lifecycle, or outcome meaning. A later optional field that needs one of those
+meanings requires a separately negotiated additive-profile identity. A new
+mandatory core meaning requires another major.
+
+The stable-core source set contains only accepted sources from which the fixed
+major projection is generated. The projection includes native required wire
+shape, security and authority meaning, safety and admission meaning, and
+mandatory semantic behavior. It excludes these classes:
+
+- package metadata and build outputs.
+- maintained explanatory prose that does not define accepted semantics.
+- local evidence, test logs, review records, and release approvals.
+- optional extension contracts and consumer-specific adapters.
+- publication, provenance, and distribution metadata.
+
+B03 enumerates the exact ordered inputs and selects exactly one projection
+profile from that closed eligibility rule. The profile fixes extraction,
+canonicalization, domain separation, framing, and field layout. The generated
+projection is a closed canonical object. The generator rejects an omitted
+eligible core member, an ineligible member, duplicate identity, alternate
+ordering, unknown projected value, or arithmetic overflow. Additive definitions
+that are not projected need their own negotiated identity. B03 cannot change the
+eligibility rule or accepted protocol meaning.
+
+Peers compare the prepared fixed-size stable-core digest. They do not hash a
+source tree during handshake or frame admission. Portable negotiation and
+evidence carry the direct realm. A compact hot frame can bind that realm through
+its authenticated prepared context without changing the realm-independent
+stable-core digest.
+
+Portable NCP identifiers use distinct bounded types. A logical session
+identifier is 1 through 64 ASCII bytes. A principal, extension, profile,
+operation, declaration, or request identifier is 1 through 128 ASCII bytes.
+Each of those identifiers matches
+`[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?`. A route-segment
+content address is exactly `sha256-` followed by 64 lowercase hexadecimal
+digits. Digest fields keep the exact encoding selected by their message schema.
+
+This proposed grammar is a migration target, not a normalization rule for a
+currently accepted candidate identifier. An implementation cannot case-fold,
+transliterate, percent-encode, truncate, or alias a value to make it fit. B02
+and the affected N-series task must migrate the runtime, descriptor, fixtures,
+and transport behavior together, or the new profile rejects that value.
+
+A stable realm contains 1 through 32 nonempty slash-separated segments. Each
+segment is 1 through 63 ASCII bytes and matches
+`[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?`. The full
+stable realm is at most 2,048 bytes. Empty segments, dot segments, leading or
+trailing slash, control characters, whitespace, BOM, non-ASCII text, percent
+escapes, and wildcard or selector characters reject.
+
+A canonical NCP route is constructed only from typed segments. Its complete
+UTF-8 length is at most 4,096 bytes. Construction uses checked addition before
+allocation. Parsing scans within those bounds and does not allocate an unbounded
+segment array. A route cannot reinterpret a content address, principal, stable
+realm, or session identifier as another type.
+
+A transport-native certificate, URI, socket credential, or operating-system
+identity is not an NCP identifier. ADR-003 bounds and verifies that native value,
+then maps it once to a canonical principal before route or manifest admission.
+
 ## Rejected alternatives
 
 - Keep the compact proto hash as the hard identity: incomplete and collision
   inappropriate for the complete contract.
-- Treat any `1.x` peer as compatible: permits semantic drift under the same
-  authority-bearing wire family.
+- Treat a `1.x` version string alone as compatibility proof: permits semantic
+  drift under the same authority-bearing wire family.
 - Put every extension into the stable core: prevents optional evolution and
   creates consumer-specific forks.
 - Let a proposed registry enter `contract/` with `"status":"PROPOSED"`: the path
@@ -228,8 +309,8 @@ session namespace.
 
 ## Formal properties
 
-- Equal stable-core digests imply byte-equal generated membership under the
-  specified digest construction.
+- Under the stated SHA-256 collision-resistance assumption, equal stable-core
+  digests bind the same byte-equal generated semantic projection.
 - Stable-core, release, corpus, and extension-contract identities are unchanged
   when only `AuthorityRealmKey` changes.
 - A stable-core mismatch cannot reach session state.
@@ -284,7 +365,24 @@ their original digest and corpus identities indefinitely.
 
 <a id="ncp-b01-selector-allocation-adr-002-v1"></a>
 
-The exact stable-core file set still requires its named post-acceptance enumeration. Realm identity remains mandatory in every realm-scoped contract and receipt.
+The exact stable-core file set and projection profile still require named
+post-acceptance selection. Realm identity remains mandatory in every
+realm-scoped contract and receipt.
+
+The B03 selection contains 1 through 256 canonical repository-relative paths.
+Each path is 1 through 256 bytes and names one tracked regular file. Each
+nonempty slash-separated segment contains only upper- or lower-case English
+letters, decimal digits, full stops, underscores, and hyphens. Segments made of
+one or two full stops reject. Absolute paths, symlinks, duplicates, aliases,
+and untracked files reject. The set must contain all and only accepted sources
+that satisfy the stable-core eligibility rule above. An omitted eligible file
+or an included ineligible file rejects before identity publication.
+
+The projection-profile selection contains exactly one canonical identity. The
+identity is 1 through 128 bytes and matches
+`[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. It names the complete extraction,
+canonicalization, domain, framing, and field-layout recipe. An unknown profile or
+a profile that omits, reinterprets, or adds an accepted core meaning rejects.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

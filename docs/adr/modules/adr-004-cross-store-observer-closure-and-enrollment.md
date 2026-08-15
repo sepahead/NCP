@@ -1024,8 +1024,8 @@ Allocation and unused cancellation are parent-only over
 extension, retain admitted evidence, drain committed outbox, close keyed work,
 and finalize. They cannot create grants, admissions, segments, reservations,
 outputs, callbacks, mutations, delivery rights, or stronger results. The
-selector-closure matrix assigns exactly one class per event. Unknown, absent,
-or multiple classes reject.
+closed union in this module assigns exactly one class per event. The retained
+selector matrix is diagnostic only. Unknown, absent, or multiple classes reject.
 `FENCE_EXTERNAL_SECURITY_ENFORCEMENT_ROOT_FOR_EMERGENCY` is exactly
 `RESTRICTIVE_FENCE_OR_REVOCATION` and consumes emergency reserve.
 `REBIND_EXTERNAL_SECURITY_ENFORCEMENT_ROOT_AFTER_EMERGENCY` is exactly

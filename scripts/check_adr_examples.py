@@ -12,24 +12,20 @@ import argparse
 import base64
 import importlib.util
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ADR_DIR = ROOT / "docs" / "adr"
-PROTOTYPE = (
-    ROOT
-    / "prototypes"
-    / "authenticated-ingress"
-    / "signed-forwarding-envelope"
-)
+PROTOTYPE = ROOT / "prototypes" / "authenticated-ingress" / "signed-forwarding-envelope"
 NODE = PROTOTYPE / "node-verifier"
-JSON_FENCE = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
-ADR_PATH = re.compile(r"00(?:0[1-9]|1[01])-[a-z0-9-]+\.md")
+ADR_PATH = re.compile(r"00(0[1-9]|1[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md")
+ADR_NUMBERED_CANDIDATE = re.compile(r"(?:000[1-9]|001[01]).*\.md", re.IGNORECASE)
 MIN_ADR_MARKDOWN_BYTES = 1024
 MAX_ADR_MARKDOWN_BYTES = 256 * 1024
 MAX_ADR_CORPUS_BYTES = 2 * 1024 * 1024
@@ -40,15 +36,28 @@ class ExampleError(ValueError):
     """The proposed ADR example corpus is incomplete or parser-divergent."""
 
 
+def validate_proposed_paths(paths: list[Path]) -> list[Path]:
+    identifiers: list[int] = []
+    for path in paths:
+        match = ADR_PATH.fullmatch(path.name)
+        if match is None:
+            raise ExampleError(f"noncanonical proposed ADR path: {path.name}")
+        identifiers.append(int(match.group(1)))
+    if identifiers != list(range(1, 12)):
+        raise ExampleError(
+            "expected exactly one canonical Markdown file for each "
+            "ADR-001 through ADR-011"
+        )
+    return paths
+
+
 def proposed_paths() -> list[Path]:
     paths = sorted(
         path
-        for path in ADR_DIR.glob("*.md")
-        if ADR_PATH.fullmatch(path.name)
+        for path in ADR_DIR.iterdir()
+        if ADR_NUMBERED_CANDIDATE.fullmatch(path.name)
     )
-    if len(paths) != 11:
-        raise ExampleError("expected exactly eleven proposed ADR Markdown files")
-    return paths
+    return validate_proposed_paths(paths)
 
 
 def validate_adr_markdown_byte_count(byte_count: int, path: str) -> int:
@@ -77,33 +86,109 @@ def validate_adr_corpus_byte_counts(byte_counts: list[int]) -> int:
     return total
 
 
+def extract_exact_json_fences(markdown: bytes, *, label: str) -> list[bytes]:
+    """Return top-level exact JSON fences under the shared B01 grammar."""
+    try:
+        markdown.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ExampleError(f"{label} is not UTF-8: {error}") from error
+
+    fences: list[bytes] = []
+    state: tuple[str, int] | None = None
+    line_start = 0
+    while line_start < len(markdown):
+        newline = markdown.find(b"\n", line_start)
+        line_end = newline if newline >= 0 else len(markdown)
+        logical_end = line_end
+        if logical_end > line_start and markdown[logical_end - 1] == 0x0D:
+            logical_end -= 1
+        line = markdown[line_start:logical_end]
+        next_line = line_end + 1 if line_end < len(markdown) else len(markdown)
+
+        if state is None and line == b"```json":
+            if line_end == len(markdown):
+                raise ExampleError(
+                    f"{label} JSON fence opener has no following content line"
+                )
+            state = ("json", next_line)
+        elif state is None and line.startswith(b"```"):
+            state = ("other", 0)
+        elif state is not None and state[0] == "json" and line == b"```":
+            content_end = line_start
+            if content_end > state[1] and markdown[content_end - 1] == 0x0A:
+                content_end -= 1
+                if content_end > state[1] and markdown[content_end - 1] == 0x0D:
+                    content_end -= 1
+            fences.append(markdown[state[1] : content_end])
+            state = None
+        elif state is not None and state[0] == "other" and line == b"```":
+            state = None
+        line_start = next_line
+
+    if state is not None:
+        raise ExampleError(f"{label} contains an unclosed Markdown fence")
+    return fences
+
+
 def examples() -> list[tuple[str, bytes]]:
     found: list[tuple[str, bytes]] = []
     byte_counts: list[int] = []
     for path in proposed_paths():
         relative = path.relative_to(ROOT).as_posix()
-        if path.is_symlink() or not path.is_file():
-            raise ExampleError(f"{relative} must be a regular non-symlink file")
-        stat_size = path.stat().st_size
-        validate_adr_markdown_byte_count(stat_size, relative)
-        with path.open("rb") as handle:
-            content = handle.read(MAX_ADR_MARKDOWN_BYTES + 1)
-        if len(content) != stat_size:
-            raise ExampleError(f"{relative} changed while it was read")
+        content = read_regular_file_no_follow(path, label=relative)
         byte_counts.append(len(content))
-        text = content.decode("utf-8")
-        fences = JSON_FENCE.findall(text)
+        fences = extract_exact_json_fences(content, label=relative)
         if not fences:
             raise ExampleError(f"{relative} has no JSON example")
         for index, value in enumerate(fences, start=1):
             found.append(
                 (
                     f"{relative}#json-{index}",
-                    value.encode("utf-8"),
+                    value,
                 )
             )
     validate_adr_corpus_byte_counts(byte_counts)
     return found
+
+
+def read_regular_file_no_follow(path: Path, *, label: str) -> bytes:
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None:
+        raise ExampleError("this ADR checker requires O_NOFOLLOW support")
+    flags = os.O_RDONLY | no_follow | getattr(os, "O_BINARY", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise ExampleError(
+            f"cannot open {label} without following links: {error}"
+        ) from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise ExampleError(f"{label} must be a regular non-symlink file")
+        validate_adr_markdown_byte_count(before.st_size, label)
+        with os.fdopen(descriptor, "rb", closefd=False) as handle:
+            content = handle.read(MAX_ADR_MARKDOWN_BYTES + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    before_identity = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+    )
+    after_identity = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    )
+    if before_identity != after_identity or len(content) != after.st_size:
+        raise ExampleError(f"{label} changed while it was read")
+    return content
 
 
 def python_parse(values: list[tuple[str, bytes]]) -> None:
@@ -170,8 +255,7 @@ def node_parse(values: list[tuple[str, bytes]]) -> None:
     if build.returncode != 0:
         detail = (build.stderr or build.stdout).strip()[-2000:]
         raise ExampleError(
-            "separate Node parser build failed; install its exact lock first: "
-            + detail
+            "separate Node parser build failed; install its exact lock first: " + detail
         )
     request = json.dumps(
         [
@@ -206,9 +290,37 @@ def node_parse(values: list[tuple[str, bytes]]) -> None:
 
 
 def self_test() -> None:
-    validate_adr_markdown_byte_count(
-        MAX_ADR_MARKDOWN_BYTES, "self-test ADR exact cap"
+    if ADR_PATH.fullmatch("0001-double--hyphen.md") is not None:
+        raise AssertionError("ADR checker accepted a noncanonical Markdown filename")
+    if ADR_NUMBERED_CANDIDATE.fullmatch("0001subject.MD") is None:
+        raise AssertionError("ADR checker ignored a malformed numbered Markdown file")
+    canonical_paths = [
+        Path(f"docs/adr/{number:04d}-subject-{number}.md") for number in range(1, 12)
+    ]
+    validate_proposed_paths(canonical_paths)
+    duplicate_paths = [*canonical_paths[:-1], canonical_paths[0]]
+    duplicate_paths.sort()
+    try:
+        validate_proposed_paths(duplicate_paths)
+    except ExampleError:
+        pass
+    else:
+        raise AssertionError("ADR checker accepted a duplicate ADR number")
+    exact_fences = extract_exact_json_fences(
+        b'```text\n```json\n{"ignored":true}\n```\n'
+        b'```json\r\n{"accepted":true}\r\n```\r\n',
+        label="self-test Markdown",
     )
+    if exact_fences != [b'{"accepted":true}']:
+        raise AssertionError("ADR checker accepted a nested JSON fence")
+    try:
+        extract_exact_json_fences(b"```json\n{}\n", label="self-test unclosed Markdown")
+    except ExampleError:
+        pass
+    else:
+        raise AssertionError("ADR checker accepted an unclosed JSON fence")
+
+    validate_adr_markdown_byte_count(MAX_ADR_MARKDOWN_BYTES, "self-test ADR exact cap")
     try:
         validate_adr_markdown_byte_count(
             MAX_ADR_MARKDOWN_BYTES + 1, "self-test ADR cap plus one"

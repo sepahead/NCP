@@ -30,25 +30,25 @@
       "defect_ids"
     ],
     "projection_byte_length": 16606,
-    "projection_sha256": "2c9dc7b997d599ad6e533cfa5685c5dabd73bb60f32020f72ebe1bbeaefce881",
-    "sha256": "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331",
+    "projection_sha256": "ebe78153c2e93297e6ee270ddfe57e90892e77e2fdc1b3d10d3750764cf45d0d",
+    "sha256": "5e632beb26a8c32acbd6f7d532a1cd7408685ef826356a7a140f7e7f1266546b",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
-        "bytes": 66810
+        "sha256": "d79a21c3ab77bbee1e8f0d0f9003dc4e84d07b89e62a7063f8a93995d0adf3d2",
+        "bytes": 72816
       },
       "json_schema": {
         "path": "docs/adr/decision-closure.source.schema.v1.json",
-        "sha256": "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
-        "bytes": 28693
+        "sha256": "e607c7402691fac1cb72f6b470835f82f00f321e8445e4be15e968f57117f455",
+        "bytes": 22016
       }
     },
     "effect": "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY"
   },
   "source_binding": {
     "fence_language": "json",
-    "fence_capture": "content_between_exact_json_fence_markers_excluding_terminal_newline",
+    "fence_capture": "content_between_top_level_exact_json_fence_lines_excluding_one_terminal_line_ending",
     "path_root": "repository",
     "sha256_encoding": "lowercase_hex"
   },
@@ -57,19 +57,20 @@
     "maximum_aggregate_adr_bytes": 2097152,
     "maximum_adr_bytes": 262144,
     "maximum_json_fence_bytes": 131072,
+    "maximum_fixture_bytes": 16384,
     "maximum_json_depth": 32,
     "maximum_json_nodes": 100000,
     "maximum_object_members": 4096,
     "maximum_array_items": 4096,
-    "maximum_key_utf8_bytes": 256,
+    "maximum_key_utf8_bytes": 128,
     "maximum_string_utf8_bytes": 65536,
     "maximum_total_string_utf8_bytes": 131072,
     "maximum_integer_characters": 32,
     "allow_floats": false,
-    "expected_case_count": 22,
-    "expected_mutation_count": 90,
+    "expected_case_count": 25,
+    "expected_mutation_count": 132,
     "minimum_mutations_per_case": 2,
-    "maximum_mutations_per_case": 16,
+    "maximum_mutations_per_case": 24,
     "maximum_engine_output_bytes": 262144,
     "engine_timeout_seconds": 120
   },
@@ -120,14 +121,52 @@
     "COMMAND_IDENTITY_LAUNDERING",
     "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY",
     "DIGEST_ENCODING_INVALID",
+    "DISPOSITION_QUERY_COORDINATE_INVALID",
+    "DISPOSITION_RESULT_BRANCHES_INVALID",
+    "DISPOSITION_RESULT_PROJECTION_INVALID",
+    "DISPOSITION_RETAINED_CHAIN_REQUIRED",
+    "DISPOSITION_RETIRED_EFFECT_FORBIDDEN",
     "DISPOSITION_STATE_UNKNOWN",
     "DISPOSITION_TERMINALITY_INVALID",
+    "EFFECT_ENDPOINT_ALIAS_NORMALIZATION_REQUIRED",
+    "EFFECT_FENCING_DOMAIN_INCARNATION_REQUIRED",
+    "EFFECT_FENCING_DOMAIN_SEPARATION_REQUIRED",
+    "EFFECT_HANDOVER_OVERLAP_FORBIDDEN",
+    "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN",
+    "EFFECT_OVERLAP_CHECK_REQUIRED",
+    "EFFECT_PATH_ISOLATION_REQUIRED",
+    "EFFECT_WRITE_FENCING_TERM_REQUIRED",
+    "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED",
+    "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED",
+    "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED",
+    "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED",
+    "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID",
+    "EXTENSION_COMPLETE_HASH_RULE_INVALID",
+    "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN",
+    "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID",
+    "EXTENSION_DUPLICATE_COPY_FORBIDDEN",
+    "EXTENSION_FIRST_INDEX_RULE_INVALID",
+    "EXTENSION_HEADER_ADMISSION_INVALID",
     "EXTENSION_ID_MISMATCH",
+    "EXTENSION_OUTER_ENCODING_INVALID",
+    "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN",
     "EXTENSION_POLICY_FIELD_FORBIDDEN",
+    "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED",
+    "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED",
     "EXTENSION_PRODUCER_ROLE_INVALID",
+    "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED",
     "EXTENSION_RECEIVER_ROLE_INVALID",
+    "EXTENSION_RESERVATION_ORDER_INVALID",
+    "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN",
+    "EXTENSION_SCHEMA_RESERVATION_REQUIRED",
     "EXTENSION_SCHEMA_VERSION_MISMATCH",
+    "EXTENSION_STABLE_SLOT_INVALID",
+    "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID",
+    "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED",
+    "FAIL_SAFE_EARLY_EFFECT_MODE_INVALID",
+    "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED",
     "FAIL_SAFE_PRIORITY_INVALID",
+    "HOLD_ADMISSION_ORDER_INVALID",
     "INTENT_AUDIENCE_MISMATCH",
     "INTENT_EXPIRED",
     "INTENT_ISSUER_MISMATCH",
@@ -143,6 +182,7 @@
     "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
     "PLANT_PROFILE_MISSING",
     "PLANT_SECURITY_CONTEXT_MISSING",
+    "POST_EFFECT_ADMISSION_MODE_INVALID",
     "PRINCIPAL_MEMBERSHIP_REQUIRED",
     "PROTECTED_HEADER_AUDIENCE_MISMATCH",
     "PROTECTED_HEADER_NOT_JSON",
@@ -158,6 +198,7 @@
     "QOS_ROUTE_REQUIRED",
     "REALM_REQUIRED",
     "REALM_ROUTE_MISMATCH",
+    "REJECTED_CANDIDATE_LOCAL_HOLD_FORBIDDEN",
     "REMOTE_JKU_FORBIDDEN",
     "REVOCATION_EPOCH_INVALID",
     "SECURITY_ALGORITHM_NOT_EXACT",
@@ -167,6 +208,7 @@
     "SIGNATURE_LENGTH_INVALID",
     "SIGNATURE_NOT_VALID",
     "STABLE_CORE_DIGEST_INVALID",
+    "STABLE_CORE_DIGEST_MISMATCH",
     "STABLE_CORE_DIGEST_MISSING_OR_NULL",
     "STREAM_DECLARATION_NOT_LIVE",
     "STREAM_EPOCH_ALREADY_LIVE",
@@ -189,10 +231,7 @@
       "id": "adr001.open-plant-session.kind-separation.v1",
       "source": {
         "adr": "ADR-001",
-        "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 152293,
-        "adr_sha256": "c859d9745bbd089ce72cc891d7053cd401aae0277cf5412295778341dfe35499",
         "fence_byte_length": 545,
         "fence_sha256": "3dc8f3c5c5010ac97c4361a9827e7a05c77aa6f333eafe4c3c4b041843b62074"
       },
@@ -297,10 +336,7 @@
       "id": "adr001.plant-session.simulation-field-confusion.v1",
       "source": {
         "adr": "ADR-001",
-        "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 152293,
-        "adr_sha256": "c859d9745bbd089ce72cc891d7053cd401aae0277cf5412295778341dfe35499",
         "fence_byte_length": 172,
         "fence_sha256": "af66ee5c719b7b08e0ce71988fd2bbfe87e7385618560dc76c24bd0d1d8a3203"
       },
@@ -365,10 +401,7 @@
       "id": "adr002.realm-bound-contract-identity.v1",
       "source": {
         "adr": "ADR-002",
-        "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 16082,
-        "adr_sha256": "cfe8edfa1b70f9d9b81a24ac5b87454edd55c8af106091d709df1ad21bb8f289",
         "fence_byte_length": 645,
         "fence_sha256": "a97bb9ecb63c4f027c284679455b4023cad5c331f919f14a1d4743fb0838456a"
       },
@@ -382,8 +415,8 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
-        "expected_wire_version": "1.0",
-        "digest_algorithm": "sha256"
+        "digest_algorithm": "sha256",
+        "expected_stable_core_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
       },
       "expected_diagnostics": [],
       "payload_interpreted": true,
@@ -421,6 +454,22 @@
           "payload_interpreted": true
         },
         {
+          "id": "adr002.contract-identity.stable-core-mismatch.v1",
+          "purpose": "A different full stable-core digest must not open the prepared native profile.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/stable_core_digest",
+            "value": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "STABLE_CORE_DIGEST_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
           "id": "adr002.contract-identity.wire-version-mismatch.v1",
           "purpose": "A different wire family must not retain contract-identity meaning.",
           "patch": {
@@ -428,6 +477,22 @@
             "op": "REPLACE",
             "path": "/wire_version",
             "value": "0.8"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "WIRE_VERSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr002.contract-identity.wire-version-patch-component.v1",
+          "purpose": "The stable-line profile must reject an unregistered patch component.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/wire_version",
+            "value": "1.0.0"
           },
           "expected_profile_result": "REJECT",
           "production_admission": "REJECT",
@@ -458,10 +523,7 @@
       "id": "adr002.compact-hash-substitution.v1",
       "source": {
         "adr": "ADR-002",
-        "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 16082,
-        "adr_sha256": "cfe8edfa1b70f9d9b81a24ac5b87454edd55c8af106091d709df1ad21bb8f289",
         "fence_byte_length": 96,
         "fence_sha256": "3c42c6cd42f1e711559a97cfb3e9a172b3462b939a516b51dd1ed0c1f8d54c70"
       },
@@ -475,8 +537,8 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
-        "expected_wire_version": "1.0",
-        "digest_algorithm": "sha256"
+        "digest_algorithm": "sha256",
+        "expected_stable_core_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
       },
       "expected_diagnostics": [
         "AUTHORITY_REALM_KEY_MISSING",
@@ -507,7 +569,7 @@
         },
         {
           "id": "adr002.compact-hash.repair-stable-digest-only.v1",
-          "purpose": "Repairing only the stable-core digest must leave missing realm and compact substitution closed.",
+          "purpose": "Repairing the stable-core digest makes the compact hash advisory, but the missing realm still rejects.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -517,8 +579,7 @@
           "expected_profile_result": "REJECT",
           "production_admission": "REJECT",
           "expected_diagnostics": [
-            "AUTHORITY_REALM_KEY_MISSING",
-            "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY"
+            "AUTHORITY_REALM_KEY_MISSING"
           ],
           "payload_interpreted": true
         }
@@ -528,10 +589,7 @@
       "id": "adr003.flattened-jws-placeholder.v1",
       "source": {
         "adr": "ADR-003",
-        "path": "docs/adr/0003-authenticated-production-ingress.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 21351,
-        "adr_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
         "fence_byte_length": 213,
         "fence_sha256": "dabc6aba928403e18ab60e51ec165f0b2695940424295693568eda0fee20ba58"
       },
@@ -613,10 +671,7 @@
       "id": "adr003.protected-header-required-member-projection.v1",
       "source": {
         "adr": "ADR-003",
-        "path": "docs/adr/0003-authenticated-production-ingress.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 21351,
-        "adr_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
         "fence_byte_length": 236,
         "fence_sha256": "91adca487db813745f39a57deeb16457f710af0e92fbd40c3fe1641a6af8574d"
       },
@@ -707,10 +762,7 @@
       "id": "adr003.unauthenticated-forwarding-wrapper.v1",
       "source": {
         "adr": "ADR-003",
-        "path": "docs/adr/0003-authenticated-production-ingress.md",
         "json_fence_ordinal": 3,
-        "adr_byte_length": 21351,
-        "adr_sha256": "6a031008b09f692fd652d7b494bfbdd61fc81e0e5c62e95f74d7a53f7b8e800d",
         "fence_byte_length": 149,
         "fence_sha256": "40d293ccb4915186fcc91d016dace92026ee50f2a9bbb8fb3106f24599f5fcd3"
       },
@@ -780,10 +832,7 @@
       "id": "adr004.pending-release-reservation-nonallocation.v1",
       "source": {
         "adr": "ADR-004",
-        "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 261630,
-        "adr_sha256": "b366bc06139810c4490bd62fe8a5636e6a272afe546b14360bbb6c22b70cb38e",
         "fence_byte_length": 61,
         "fence_sha256": "c91551ca802082ff0e4828da02884d24b13b968c090d93cd97eb27cfea72af2a"
       },
@@ -853,10 +902,7 @@
       "id": "adr005.declare-stream.excerpt.v1",
       "source": {
         "adr": "ADR-005",
-        "path": "docs/adr/0005-declared-stream-lifecycle.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 38386,
-        "adr_sha256": "2a96a1b221da3335d15d13e3731ad852ba1d8c8ed7e7cedc09bfe30aec2be840",
         "fence_byte_length": 521,
         "fence_sha256": "9233baceed111f44fec15a76464188e7408f5a59d1dbe9b64d0076586565bf18"
       },
@@ -871,19 +917,20 @@
           "stable_realm_id": "realm-a"
         },
         "authenticated_publisher_principal_id": "haldir-commander-a",
+        "expected_route": "realm-a/session/plant-alpha/command/controller-a",
         "live_declaration_epoch_ids": []
       },
       "expected_diagnostics": [],
       "payload_interpreted": true,
       "mutations": [
         {
-          "id": "adr005.declare-stream.realm-route-mismatch.v1",
-          "purpose": "A direct realm must agree with the route projection.",
+          "id": "adr005.declare-stream.same-realm-route-substitution.v1",
+          "purpose": "A same-realm route substitution must not satisfy the installed literal route.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
-            "path": "/authority_realm_key/stable_realm_id",
-            "value": "realm-b"
+            "path": "/route",
+            "value": "realm-a/session/plant-beta/command/controller-b"
           },
           "expected_profile_result": "REJECT",
           "production_admission": "REJECT",
@@ -972,22 +1019,6 @@
           "payload_interpreted": true
         },
         {
-          "id": "adr005.declare-stream.authority-principal-substitution.v1",
-          "purpose": "A realm authority principal substitution must not retain declaration meaning.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/authority_realm_key/server_authority_principal_id",
-            "value": "attacker-authority"
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "REALM_ROUTE_MISMATCH"
-          ],
-          "payload_interpreted": true
-        },
-        {
           "id": "adr005.declare-stream.wire-version-substitution.v1",
           "purpose": "A different wire family must not retain declaration semantics.",
           "patch": {
@@ -1024,10 +1055,7 @@
       "id": "adr005.undeclared-frame.hostile.v1",
       "source": {
         "adr": "ADR-005",
-        "path": "docs/adr/0005-declared-stream-lifecycle.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 38386,
-        "adr_sha256": "2a96a1b221da3335d15d13e3731ad852ba1d8c8ed7e7cedc09bfe30aec2be840",
         "fence_byte_length": 215,
         "fence_sha256": "35be78eeb271f6343de1f38c567a1667043c38ce4e7eedcbf10076b06cdcc841"
       },
@@ -1041,7 +1069,6 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
-        "authenticated_publisher_principal_id": "haldir-commander-a",
         "live_declaration_epoch_ids": []
       },
       "expected_diagnostics": [
@@ -1091,10 +1118,7 @@
       "id": "adr006.body-lease.excerpt.v1",
       "source": {
         "adr": "ADR-006",
-        "path": "docs/adr/0006-body-issued-authority-and-time.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 55445,
-        "adr_sha256": "4461a8927242468170ad0a6461accbf5c14fade1a5ea0c26dbb6db8bced0212e",
         "fence_byte_length": 336,
         "fence_sha256": "87df054a83dad934134d0ebd9fa3700cfa8947f513c26e91be5df4ed9866a42d"
       },
@@ -1171,10 +1195,7 @@
       "id": "adr006.self-issued-stale-lease.hostile.v1",
       "source": {
         "adr": "ADR-006",
-        "path": "docs/adr/0006-body-issued-authority-and-time.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 55445,
-        "adr_sha256": "4461a8927242468170ad0a6461accbf5c14fade1a5ea0c26dbb6db8bced0212e",
         "fence_byte_length": 340,
         "fence_sha256": "310d751075037df699649455b9e23d9845b2a7b66be4e69d90fd644358667612"
       },
@@ -1241,13 +1262,221 @@
       ]
     },
     {
+      "id": "adr007.disposition-query.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-007",
+        "json_fence_ordinal": 1,
+        "fence_byte_length": 486,
+        "fence_sha256": "c6a2c4c42823042cf6b7d56a9519286956edbaed3944ba534a46c671d263eddd"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR007_DISPOSITION_QUERY_PROJECTION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr007.disposition-query.unbound-coordinate.v1",
+          "purpose": "A result branch must bind the complete query coordinate.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/query_coordinate_bound",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_QUERY_COORDINATE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.disposition-query.authentication-cycle.v1",
+          "purpose": "The protected projection must omit its later authentication envelope.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/result_projection_omits_authentication",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_RESULT_PROJECTION_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.disposition-query.unexpected-member.v1",
+          "purpose": "A closed semantic projection must reject an unexpected member.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/unexpected_authority",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_RESULT_PROJECTION_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.disposition-query.retained-chain-omission.v1",
+          "purpose": "A retained result must not omit its complete chain.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/retained_requires_complete_chain",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_RETAINED_CHAIN_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.disposition-query.retired-effect-claim.v1",
+          "purpose": "A retired commitment must not prove application or effect.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/retired_proves_effect",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_RETIRED_EFFECT_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.restrictive-order.allow-hold-early-effect.v1",
+          "purpose": "Only ESTOP can select a remote effect before ordinary admission.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/early_effect_mode",
+            "value": "HOLD_OR_ESTOP"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "FAIL_SAFE_EARLY_EFFECT_MODE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.restrictive-order.stale-estop-reservation.v1",
+          "purpose": "ESTOP reservation must recheck the current security, manifest, grant or escalation, deadline, and profile state.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/estop_reservation_rechecks_currentness",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.restrictive-order.stale-effect-boundary.v1",
+          "purpose": "The body effect boundary must recheck currentness before it changes a buffer or latch.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/effect_boundary_rechecks_currentness",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.restrictive-order.hold-effect-before-admission.v1",
+          "purpose": "A remote HOLD effect must have an admitted predecessor.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/hold_admission_precedes_effect",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "HOLD_ADMISSION_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.restrictive-order.rejected-local-hold-selection.v1",
+          "purpose": "Rejected bytes must not select or parameterize a separate body-local HOLD response.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/rejected_candidate_cannot_select_local_hold",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REJECTED_CANDIDATE_LOCAL_HOLD_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.restrictive-order.post-effect-hold-admission.v1",
+          "purpose": "The post-effect command-admission event is ESTOP-only.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/post_effect_admission_mode",
+            "value": "HOLD_OR_ESTOP"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "POST_EFFECT_ADMISSION_MODE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.disposition-query.unknown-branch.v1",
+          "purpose": "An unknown branch must not acquire disposition meaning.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/branches/0",
+            "value": "UNKNOWN"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "DISPOSITION_RESULT_BRANCHES_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
       "id": "adr007.received-disposition.excerpt.v1",
       "source": {
         "adr": "ADR-007",
-        "path": "docs/adr/0007-command-disposition-journal.md",
-        "json_fence_ordinal": 1,
-        "adr_byte_length": 221815,
-        "adr_sha256": "26fe6b4e4f386a80f807d3b2f67406c8f0b4163c4b8b8b81981410a0269c2031",
+        "json_fence_ordinal": 2,
         "fence_byte_length": 76,
         "fence_sha256": "9fb90c954022d3448dee55e370e15feb86cbadd94c1c95a1eb03bba048a1065b"
       },
@@ -1265,7 +1494,9 @@
           "applied",
           "expired",
           "failed",
+          "hold_effective",
           "rejected",
+          "stop_latched",
           "superseded",
           "unknown_after_boundary"
         ]
@@ -1327,10 +1558,7 @@
       "id": "adr007.unknown-disposition.hostile.v1",
       "source": {
         "adr": "ADR-007",
-        "path": "docs/adr/0007-command-disposition-journal.md",
-        "json_fence_ordinal": 2,
-        "adr_byte_length": 221815,
-        "adr_sha256": "26fe6b4e4f386a80f807d3b2f67406c8f0b4163c4b8b8b81981410a0269c2031",
+        "json_fence_ordinal": 3,
         "fence_byte_length": 72,
         "fence_sha256": "fb3f044de5526c34da0a9754f90fe7f72af4b9d16fa586efd5891fe3df97d11d"
       },
@@ -1348,7 +1576,9 @@
           "applied",
           "expired",
           "failed",
+          "hold_effective",
           "rejected",
+          "stop_latched",
           "superseded",
           "unknown_after_boundary"
         ]
@@ -1393,13 +1623,365 @@
       ]
     },
     {
+      "id": "adr008.raw-chunk.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-008",
+        "json_fence_ordinal": 1,
+        "fence_byte_length": 911,
+        "fence_sha256": "cc037f2cfa1037265bf59f049701c7596d3924621646575529da709099309b96"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR008_RAW_CHUNK_PROJECTION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr008.raw-chunk.mutable-slot-key.v1",
+          "purpose": "Declared length and chunk count must conflict inside one stable package slot.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/stable_slot_excludes_mutable_declarations",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_STABLE_SLOT_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.missing-activation-incarnation.v1",
+          "purpose": "Lost receiver activation state must not revive an old package identity.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_activation_incarnation_bound",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.unbound-processing-profile.v1",
+          "purpose": "The activation digest must bind every parser, callback, and resource profile.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/activation_context_binds_processing_profiles",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.refreshable-expiry.v1",
+          "purpose": "The activation digest must bind one clock incarnation and fixed exclusive expiry.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/activation_context_binds_clock_and_expiry",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.unbound-header-class-or-length.v1",
+          "purpose": "Header class and class-selected package length limits must pass before slot lookup or reservation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/header_class_registry_and_length_checked_before_reservation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_HEADER_ADMISSION_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.work-before-terminal-lookup.v1",
+          "purpose": "A terminal package lookup must occur before work admission.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/terminal_lookup_precedes_work_admission",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.retired-result-disclosure.v1",
+          "purpose": "A retired context must not disclose protected retained result data.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/retired_context_discloses_result",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.json-wrapper.v1",
+          "purpose": "The selected outer transport must remain a raw chunk frame.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/outer_encoding",
+            "value": "JSON_WRAPPER"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_OUTER_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.nested-structured-frame.v1",
+          "purpose": "A reassembled package must not inherit universal frame semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/package_is_structured_frame",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.index-zero-first.v1",
+          "purpose": "Any valid first chunk index can reserve after capacity admission.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/first_index_can_reserve",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_FIRST_INDEX_RULE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.copy-before-reservation.v1",
+          "purpose": "Capacity reservation must precede retained chunk copies.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/reserve_before_copy",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_RESERVATION_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.non-atomic-currentness-cut.v1",
+          "purpose": "Chunk retention and callback entry must have one local order against currentness cuts and expiry.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/slot_transition_orders_currentness_cut",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.duplicate-copy.v1",
+          "purpose": "An exact duplicate must not allocate or copy payload bytes again.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/duplicate_copies_bytes",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_DUPLICATE_COPY_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.conflict-overwrite.v1",
+          "purpose": "Conflicting bytes must not overwrite an accepted chunk.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/conflict_overwrites_bytes",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.repeated-complete-hash.v1",
+          "purpose": "Completion must hash the final package buffer once.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/complete_hash_once",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_COMPLETE_HASH_RULE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.stale-before-schema.v1",
+          "purpose": "Currentness and expiry must be rechecked after package verification and before schema work.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/currentness_and_expiry_rechecked_before_schema",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.callback-before-reservation.v1",
+          "purpose": "Schema resources must be reserved before parsing or callback entry.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/callback_after_schema_reservation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_SCHEMA_RESERVATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.stale-before-callback.v1",
+          "purpose": "Currentness and expiry must be rechecked after schema work and before callback entry.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/currentness_and_expiry_rechecked_before_callback",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.callback-without-boundary-state.v1",
+          "purpose": "At-most-once callback entry must consume its durable callback right first.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/callback_boundary_state_before_entry",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.early-callback-resource-release.v1",
+          "purpose": "An entered callback must retain its reserved state until return or proved isolation termination.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/entered_callback_releases_resources_before_resolution",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.raw-chunk.no-tombstone.v1",
+          "purpose": "Terminal package identity must retain bounded no-reuse state.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/terminal_tombstone_required",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
       "id": "adr008.evaluated-envelope.excerpt.v1",
       "source": {
         "adr": "ADR-008",
-        "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-        "json_fence_ordinal": 1,
-        "adr_byte_length": 170862,
-        "adr_sha256": "f01b209048830cb9816ce68d4a9c84e00364d85f3e1000d88792e1e17685f9ef",
+        "json_fence_ordinal": 2,
         "fence_byte_length": 6928,
         "fence_sha256": "fafcc078bb7ea1e4160fbf4f5591c0a75b2ff2dc263911878524b3961cbb4cf6"
       },
@@ -1414,19 +1996,20 @@
           "stable_realm_id": "realm-a"
         },
         "extension_assessor_principal_id": "galadriel-assessor-a",
-        "extension_receiver_principal_id": "haldir-assessment-receiver-a"
+        "extension_receiver_principal_id": "haldir-assessment-receiver-a",
+        "expected_route": "realm-a/extension/org.sepahead.galadriel.assessment/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/plant-alpha"
       },
       "expected_diagnostics": [],
       "payload_interpreted": true,
       "mutations": [
         {
-          "id": "adr008.assessment-envelope.realm-route-mismatch.v1",
-          "purpose": "An extension envelope realm must agree with its route.",
+          "id": "adr008.assessment-envelope.same-realm-route-substitution.v1",
+          "purpose": "A same-realm extension route substitution must not satisfy the installed literal route.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
-            "path": "/authority_realm_key/stable_realm_id",
-            "value": "realm-b"
+            "path": "/route",
+            "value": "realm-a/extension/org.sepahead.galadriel.assessment/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/plant-beta"
           },
           "expected_profile_result": "REJECT",
           "production_admission": "REJECT",
@@ -1631,10 +2214,7 @@
       "id": "adr008.self-policy.hostile.v1",
       "source": {
         "adr": "ADR-008",
-        "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-        "json_fence_ordinal": 2,
-        "adr_byte_length": 170862,
-        "adr_sha256": "f01b209048830cb9816ce68d4a9c84e00364d85f3e1000d88792e1e17685f9ef",
+        "json_fence_ordinal": 3,
         "fence_byte_length": 207,
         "fence_sha256": "75752f4d4878d8905d90fe7b4f36da49cf4349e68dc4a8562ba1c05842d73e5f"
       },
@@ -1648,8 +2228,7 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
-        "extension_assessor_principal_id": "galadriel-assessor-a",
-        "extension_receiver_principal_id": "haldir-assessment-receiver-a"
+        "extension_assessor_principal_id": "galadriel-assessor-a"
       },
       "expected_diagnostics": [
         "EXTENSION_POLICY_FIELD_FORBIDDEN",
@@ -1701,10 +2280,7 @@
       "id": "adr009.security-state.semantic-projection.v1",
       "source": {
         "adr": "ADR-009",
-        "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 257780,
-        "adr_sha256": "070df9e141a866ca8fc4d2593b2f3269506bba0bba5a609e4c828b0e2738ef57",
         "fence_byte_length": 576,
         "fence_sha256": "53d40bdfd3996def0e6f2485a19f1410c419c65538a0d780d0a2ff78edd565a5"
       },
@@ -1886,10 +2462,7 @@
       "id": "adr009.ambiguous-mutable-security-state.hostile.v1",
       "source": {
         "adr": "ADR-009",
-        "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 257780,
-        "adr_sha256": "070df9e141a866ca8fc4d2593b2f3269506bba0bba5a609e4c828b0e2738ef57",
         "fence_byte_length": 165,
         "fence_sha256": "3dca69faa4d256b441ea613fa448ef96f4e3921afba0062f8be697340a2a8e11"
       },
@@ -2000,10 +2573,7 @@
       "id": "adr010.action-qos-profile.excerpt.v1",
       "source": {
         "adr": "ADR-010",
-        "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 15836,
-        "adr_sha256": "7e9d460e773253e82dd317efa6e2bd9319ebd3086ffc1c547352e3e0e851ebeb",
         "fence_byte_length": 488,
         "fence_sha256": "16cd11d0629acf1ec658196ca5379c125c3e1b2c21f46d8cbb46dde66b95931c"
       },
@@ -2017,6 +2587,7 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
+        "expected_route": "realm-a/session/plant-alpha/command/controller-a",
         "maximum_capacity_per_stream": 1,
         "required_fail_safe_priority": [
           "estop",
@@ -2028,13 +2599,13 @@
       "payload_interpreted": true,
       "mutations": [
         {
-          "id": "adr010.action-qos.realm-route-mismatch.v1",
-          "purpose": "A QoS binding must not cross its authenticated route realm.",
+          "id": "adr010.action-qos.same-realm-route-substitution.v1",
+          "purpose": "A same-realm QoS route substitution must not satisfy the installed literal route.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
-            "path": "/authority_realm_key/stable_realm_id",
-            "value": "realm-b"
+            "path": "/route",
+            "value": "realm-a/session/plant-beta/command/controller-b"
           },
           "expected_profile_result": "REJECT",
           "production_admission": "REJECT",
@@ -2117,10 +2688,7 @@
       "id": "adr010.best-effort-receipt-free-profile.hostile.v1",
       "source": {
         "adr": "ADR-010",
-        "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 15836,
-        "adr_sha256": "7e9d460e773253e82dd317efa6e2bd9319ebd3086ffc1c547352e3e0e851ebeb",
         "fence_byte_length": 120,
         "fence_sha256": "c0dc99e7de940d5ba3b2ee9eae6274dd104f34108996bb901ba20cdc563725cd"
       },
@@ -2134,6 +2702,7 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
+        "expected_route": "realm-a/session/plant-alpha/command/controller-a",
         "maximum_capacity_per_stream": 1,
         "required_fail_safe_priority": [
           "estop",
@@ -2233,10 +2802,7 @@
       "id": "adr011.gated-intent-correlation.excerpt.v1",
       "source": {
         "adr": "ADR-011",
-        "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
         "json_fence_ordinal": 1,
-        "adr_byte_length": 70419,
-        "adr_sha256": "c59085eee983c165524fb7f213c8ec99d33a0d36644edd3a2ea23c432de4fc9f",
         "fence_byte_length": 386,
         "fence_sha256": "8c0712e56bc03e6352ef87d80e81b6c51dcb4934174abda99a942cb7374d0f8e"
       },
@@ -2252,8 +2818,7 @@
         },
         "expected_issuer": "engram-intent-a",
         "expected_audience": "haldir-gate-a",
-        "evaluation_utc_ms": 1784200020000,
-        "native_gated_intent_version": 2
+        "evaluation_utc_ms": 1784200020000
       },
       "expected_diagnostics": [],
       "payload_interpreted": true,
@@ -2344,10 +2909,7 @@
       "id": "adr011.identity-laundering-command.hostile.v1",
       "source": {
         "adr": "ADR-011",
-        "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
         "json_fence_ordinal": 2,
-        "adr_byte_length": 70419,
-        "adr_sha256": "c59085eee983c165524fb7f213c8ec99d33a0d36644edd3a2ea23c432de4fc9f",
         "fence_byte_length": 191,
         "fence_sha256": "244001e4af0869ccc8d9631aef300044fe9576a68cc01a15623d8cd6f0a09a0e"
       },
@@ -2441,6 +3003,153 @@
             "COMMAND_AUTHORITY_ISSUER_NOT_BODY",
             "COMMAND_IDENTITY_LAUNDERING",
             "MESSAGE_KIND_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr011.effect-path-fencing.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-011",
+        "json_fence_ordinal": 3,
+        "fence_byte_length": 358,
+        "fence_sha256": "fef345191e00735fa211038304e78df7e95b0d75a793ec606e06db9926de76bb"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr011.effect-path.unresolved-alias.v1",
+          "purpose": "Endpoint aliases must resolve before effect-path comparison.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/endpoint_aliases_normalized",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_ENDPOINT_ALIAS_NORMALIZATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.digest-only-overlap.v1",
+          "purpose": "Descriptor digest inequality must not hide a physical range overlap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/overlap_uses_resource_intersection",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_OVERLAP_CHECK_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.write-without-current-term.v1",
+          "purpose": "Each physical write must require the current fencing term.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/write_requires_current_fencing_term",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_WRITE_FENCING_TERM_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.disjoint-output-shared-fence.v1",
+          "purpose": "Disjoint output names require independently enforced fencing domains before concurrent reservation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/disjoint_paths_require_independent_fencing_domains",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_FENCING_DOMAIN_SEPARATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.term-without-domain-incarnation.v1",
+          "purpose": "A current numeric term must not make a token from an earlier domain incarnation current.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/fencing_token_binds_domain_incarnation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_FENCING_DOMAIN_INCARNATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.unfenceable-replacement.v1",
+          "purpose": "An unfenceable old writer must be isolated before replacement.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unfenceable_replacement_requires_isolation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_PATH_ISOLATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.overlapping-handover.v1",
+          "purpose": "A handover must not allow old and new writers to remain live together.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/handover_allows_live_writer_overlap",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_HANDOVER_OVERLAP_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.effect-path.hot-path-proof-graph.v1",
+          "purpose": "The effect hot path must not evaluate an evidence graph.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/hot_path_evaluates_proof_graph",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN"
           ],
           "payload_interpreted": true
         }

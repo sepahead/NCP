@@ -45,9 +45,11 @@ normative. That is forbidden.
 
 The registry can derive non-normative `ACCEPTED` without changing an ADR file
 only when the semantic-closure evaluation is `CLOSED` and every exact review
-obligation passes. The current evaluation is `OPEN`. The sources contain no
-manual decision status. This rule prevents a status-line edit from changing the
-reviewed digest.
+obligation passes. Local semantic closure covers the maintained design,
+source-linked excerpts, and finite B03 envelopes. It is not review evidence.
+The current local evaluation is `CLOSED`, while every ADR remains `PROPOSED`
+because the required reviews are absent. The sources contain no manual decision
+status. This rule prevents a status-line edit from changing the reviewed digest.
 
 Promotion to `contract/decision-registry.v1.json` remains blocked even when all
 ADRs are accepted. N01 can promote only after all of these conditions hold:
@@ -79,15 +81,16 @@ acceptance. It also made B01 depend logically on its B02 descendant.
 
 ## B01 machine-review surfaces
 
-The expanded selector-closure authoring source and its compact form describe
-the current non-normative architecture model. The external allocation inventory
+The expanded selector-closure authoring source and its compact form are retained
+non-gating diagnostics. Their allocation predates the atomic HOLD design and is
+not part of the semantic-closure subject. The external allocation inventory
 uses owner-free semantic identities. Mechanical origins are committed
 separately from non-authorizing usage and reference signals. The v4 review
 profile contains the exact cross-language commitment rules and known-answer
 vectors for identities, origin/signal evidence, semantic shape, semantic
 subject, document rows, ADR source sets, and provenance.
 
-The allocation proposal is a deterministic review aid. It retains every model
+The allocation proposal is a deterministic diagnostic aid. It retains every model
 unit, origin, signal, prose match, ambiguity, and suggested destination. A
 route is not an allocation. `UNMAPPED_SHARED` is an explicit fail-closed result.
 The proposal cannot accept an ADR, authenticate a reviewer, or grant protocol

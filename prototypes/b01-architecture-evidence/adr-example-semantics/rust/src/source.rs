@@ -21,6 +21,7 @@ use std::os::windows::fs::OpenOptionsExt;
 
 use serde_json::Value;
 
+use crate::decision::DecisionSource;
 use crate::error::{EngineError, EngineResult};
 use crate::model::{Limits, Source};
 use crate::sha256::sha256_hex;
@@ -43,13 +44,7 @@ struct LoadedAdr {
 
 impl<'root> SourceRepository<'root> {
     pub(crate) fn new(root: &'root Path, limits: Limits) -> EngineResult<Self> {
-        let metadata = fs::metadata(root)
-            .map_err(|error| EngineError::io(format!("reading repository root {root:?}"), error))?;
-        if !metadata.is_dir() {
-            return Err(EngineError::input(format!(
-                "repository root {root:?} is not a directory"
-            )));
-        }
+        validate_repository_root(root)?;
         Ok(Self {
             root,
             limits,
@@ -58,22 +53,26 @@ impl<'root> SourceRepository<'root> {
         })
     }
 
-    pub(crate) fn load_document(&mut self, source: &Source) -> EngineResult<Value> {
-        if !self.loaded.contains_key(&source.path) {
-            let loaded = self.load_adr(source)?;
-            self.loaded.insert(source.path.clone(), loaded);
+    pub(crate) fn load_document(
+        &mut self,
+        source: &Source,
+        decision: &DecisionSource,
+    ) -> EngineResult<Value> {
+        if !self.loaded.contains_key(&decision.path) {
+            let loaded = self.load_adr(source, decision)?;
+            self.loaded.insert(decision.path.clone(), loaded);
         }
         let loaded = self
             .loaded
-            .get_mut(&source.path)
+            .get_mut(&decision.path)
             .ok_or_else(|| EngineError::semantic("loaded ADR cache lost an entry"))?;
         if loaded.adr != source.adr
-            || loaded.byte_length != source.adr_byte_length
-            || loaded.sha256 != source.adr_sha256
+            || loaded.byte_length != decision.byte_length
+            || loaded.sha256 != decision.sha256
         {
             return Err(EngineError::corpus(format!(
                 "source metadata is inconsistent across cases for {:?}",
-                source.path
+                decision.path
             )));
         }
         let index = source
@@ -83,13 +82,13 @@ impl<'root> SourceRepository<'root> {
         let fence = loaded.json_fences.get(index).ok_or_else(|| {
             EngineError::corpus(format!(
                 "source {:?} has no JSON fence ordinal {}",
-                source.path, source.json_fence_ordinal
+                decision.path, source.json_fence_ordinal
             ))
         })?;
         if fence.len() != source.fence_byte_length {
             return Err(EngineError::corpus(format!(
                 "JSON fence byte length mismatch for {:?} ordinal {}: got {}, expected {}",
-                source.path,
+                decision.path,
                 source.json_fence_ordinal,
                 fence.len(),
                 source.fence_byte_length
@@ -99,7 +98,7 @@ impl<'root> SourceRepository<'root> {
         if actual_hash != source.fence_sha256 {
             return Err(EngineError::corpus(format!(
                 "JSON fence SHA-256 mismatch for {:?} ordinal {}",
-                source.path, source.json_fence_ordinal
+                decision.path, source.json_fence_ordinal
             )));
         }
         let document = parse_strict(
@@ -109,13 +108,13 @@ impl<'root> SourceRepository<'root> {
         .map_err(|error| {
             EngineError::corpus(format!(
                 "invalid JSON fence {:?} ordinal {}: {error}",
-                source.path, source.json_fence_ordinal
+                decision.path, source.json_fence_ordinal
             ))
         })?;
         if !loaded.covered_ordinals.insert(source.json_fence_ordinal) {
             return Err(EngineError::corpus(format!(
                 "source {:?} JSON fence ordinal {} was bound more than once",
-                source.path, source.json_fence_ordinal
+                decision.path, source.json_fence_ordinal
             )));
         }
         Ok(document)
@@ -132,11 +131,11 @@ impl<'root> SourceRepository<'root> {
         Ok(())
     }
 
-    fn load_adr(&mut self, source: &Source) -> EngineResult<LoadedAdr> {
-        if source.adr_byte_length == 0 || source.adr_byte_length > self.limits.maximum_adr_bytes {
+    fn load_adr(&mut self, source: &Source, decision: &DecisionSource) -> EngineResult<LoadedAdr> {
+        if decision.byte_length == 0 || decision.byte_length > self.limits.maximum_adr_bytes {
             return Err(EngineError::corpus(format!(
                 "declared ADR byte length is outside bounds for {:?}",
-                source.path
+                decision.path
             )));
         }
         if source.fence_byte_length == 0
@@ -144,24 +143,24 @@ impl<'root> SourceRepository<'root> {
         {
             return Err(EngineError::corpus(format!(
                 "declared fence byte length is outside bounds for {:?}",
-                source.path
+                decision.path
             )));
         }
-        let path = resolve_regular_relative_file(self.root, &source.path)?;
+        let path = resolve_regular_relative_file(self.root, &decision.path)?;
         let bytes = read_bounded(&path, self.limits.maximum_adr_bytes)?;
-        if bytes.len() != source.adr_byte_length {
+        if bytes.len() != decision.byte_length {
             return Err(EngineError::corpus(format!(
                 "ADR byte length mismatch for {:?}: got {}, expected {}",
-                source.path,
+                decision.path,
                 bytes.len(),
-                source.adr_byte_length
+                decision.byte_length
             )));
         }
         let actual_hash = sha256_hex(&bytes);
-        if actual_hash != source.adr_sha256 {
+        if actual_hash != decision.sha256 {
             return Err(EngineError::corpus(format!(
                 "ADR SHA-256 mismatch for {:?}",
-                source.path
+                decision.path
             )));
         }
         self.aggregate_adr_bytes = self
@@ -189,6 +188,22 @@ fn coverage_is_exact(fence_count: usize, covered_ordinals: &BTreeSet<usize>) -> 
 }
 
 pub(crate) fn resolve_regular_relative_file(root: &Path, relative: &str) -> EngineResult<PathBuf> {
+    resolve_regular_relative_path(root, relative, false)
+}
+
+pub(crate) fn resolve_regular_relative_directory(
+    root: &Path,
+    relative: &str,
+) -> EngineResult<PathBuf> {
+    resolve_regular_relative_path(root, relative, true)
+}
+
+fn resolve_regular_relative_path(
+    root: &Path,
+    relative: &str,
+    final_is_directory: bool,
+) -> EngineResult<PathBuf> {
+    validate_repository_root(root)?;
     let relative_path = Path::new(relative);
     if relative_path.as_os_str().is_empty()
         || relative_path
@@ -216,7 +231,12 @@ pub(crate) fn resolve_regular_relative_file(root: &Path, relative: &str) -> Engi
             )));
         }
         let final_component = index + 1 == component_count;
-        if final_component && !metadata.is_file() {
+        if final_component && final_is_directory && !metadata.is_dir() {
+            return Err(EngineError::input(format!(
+                "source path is not a directory: {resolved:?}"
+            )));
+        }
+        if final_component && !final_is_directory && !metadata.is_file() {
             return Err(EngineError::input(format!(
                 "source path is not a regular file: {resolved:?}"
             )));
@@ -228,6 +248,29 @@ pub(crate) fn resolve_regular_relative_file(root: &Path, relative: &str) -> Engi
         }
     }
     Ok(resolved)
+}
+
+fn validate_repository_root(root: &Path) -> EngineResult<()> {
+    if !root.is_absolute() {
+        return Err(EngineError::input(
+            "repository root must be an absolute path",
+        ));
+    }
+    let metadata = fs::symlink_metadata(root)
+        .map_err(|error| EngineError::io(format!("inspecting repository root {root:?}"), error))?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(EngineError::input(
+            "repository root must be a regular non-symlink directory",
+        ));
+    }
+    let canonical = fs::canonicalize(root)
+        .map_err(|error| EngineError::io(format!("resolving repository root {root:?}"), error))?;
+    if canonical != root {
+        return Err(EngineError::input(
+            "repository root cannot contain a symlink or noncanonical component",
+        ));
+    }
+    Ok(())
 }
 
 pub(crate) fn read_bounded(path: &Path, maximum_bytes: usize) -> EngineResult<Vec<u8>> {
@@ -388,8 +431,6 @@ fn extract_json_fences(markdown: &[u8]) -> EngineResult<Vec<Vec<u8>>> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
     #[cfg(unix)]
     use std::fs;
     #[cfg(unix)]
@@ -397,7 +438,11 @@ mod tests {
     #[cfg(unix)]
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::{coverage_is_exact, extract_json_fences, read_bounded};
+    use std::collections::BTreeSet;
+
+    use super::{
+        coverage_is_exact, extract_json_fences, read_bounded, resolve_regular_relative_file,
+    };
 
     #[test]
     fn extract_json_fences_should_ignore_other_languages_and_trim_one_terminal_newline() {
@@ -437,6 +482,30 @@ mod tests {
         assert!(read_bounded(&target, 2).is_err());
         assert!(symlink(&target, &link).is_ok());
         assert!(read_bounded(&link, 3).is_err());
+        assert!(fs::remove_dir_all(&directory).is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn repository_resolution_rejects_a_parent_symlink() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |duration| duration.as_nanos());
+        let directory = std::env::temp_dir().join(format!(
+            "ncp-b01-rust-parent-link-test-{}-{nonce}",
+            std::process::id()
+        ));
+        let real_parent = directory.join("real");
+        let linked_parent = directory.join("linked");
+        assert!(fs::create_dir_all(&real_parent).is_ok());
+        assert!(fs::write(real_parent.join("source.json"), b"{}").is_ok());
+        assert!(symlink(&real_parent, &linked_parent).is_ok());
+        let canonical_root = fs::canonicalize(&directory);
+        assert!(canonical_root.is_ok());
+        if let Ok(root) = canonical_root {
+            assert!(resolve_regular_relative_file(&root, "real/source.json").is_ok());
+            assert!(resolve_regular_relative_file(&root, "linked/source.json").is_err());
+        }
         assert!(fs::remove_dir_all(&directory).is_ok());
     }
 }

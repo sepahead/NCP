@@ -8,7 +8,9 @@ use crate::strict_json::JsonLimits;
 
 pub(crate) const CORPUS_SCHEMA: &str = "ncp.b01-adr-example-semantics-corpus.v1";
 pub(crate) const RESULT_SCHEMA: &str = "ncp.b01-adr-example-semantics-result.v1";
-const EXPECTED_MUTATION_COUNT: usize = 90;
+pub(crate) const MAXIMUM_PATCH_PATH_UTF8_BYTES: usize = 512;
+const MAXIMUM_MUTATION_PURPOSE_UTF8_BYTES: usize = 512;
+const EXPECTED_MUTATION_COUNT: usize = 132;
 const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "ALGORITHM_LABEL_FORBIDDEN",
     "ALGORITHM_LABEL_REQUIRED",
@@ -22,14 +24,52 @@ const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "COMMAND_IDENTITY_LAUNDERING",
     "COMPACT_HASH_NOT_COMPATIBILITY_IDENTITY",
     "DIGEST_ENCODING_INVALID",
+    "DISPOSITION_QUERY_COORDINATE_INVALID",
+    "DISPOSITION_RESULT_BRANCHES_INVALID",
+    "DISPOSITION_RESULT_PROJECTION_INVALID",
+    "DISPOSITION_RETAINED_CHAIN_REQUIRED",
+    "DISPOSITION_RETIRED_EFFECT_FORBIDDEN",
     "DISPOSITION_STATE_UNKNOWN",
     "DISPOSITION_TERMINALITY_INVALID",
+    "EFFECT_ENDPOINT_ALIAS_NORMALIZATION_REQUIRED",
+    "EFFECT_FENCING_DOMAIN_INCARNATION_REQUIRED",
+    "EFFECT_FENCING_DOMAIN_SEPARATION_REQUIRED",
+    "EFFECT_HANDOVER_OVERLAP_FORBIDDEN",
+    "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN",
+    "EFFECT_OVERLAP_CHECK_REQUIRED",
+    "EFFECT_PATH_ISOLATION_REQUIRED",
+    "EFFECT_WRITE_FENCING_TERM_REQUIRED",
+    "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED",
+    "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED",
+    "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED",
+    "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED",
+    "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID",
+    "EXTENSION_COMPLETE_HASH_RULE_INVALID",
+    "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN",
+    "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID",
+    "EXTENSION_DUPLICATE_COPY_FORBIDDEN",
+    "EXTENSION_FIRST_INDEX_RULE_INVALID",
+    "EXTENSION_HEADER_ADMISSION_INVALID",
     "EXTENSION_ID_MISMATCH",
+    "EXTENSION_OUTER_ENCODING_INVALID",
+    "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN",
     "EXTENSION_POLICY_FIELD_FORBIDDEN",
+    "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED",
+    "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED",
     "EXTENSION_PRODUCER_ROLE_INVALID",
+    "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED",
     "EXTENSION_RECEIVER_ROLE_INVALID",
+    "EXTENSION_RESERVATION_ORDER_INVALID",
+    "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN",
+    "EXTENSION_SCHEMA_RESERVATION_REQUIRED",
     "EXTENSION_SCHEMA_VERSION_MISMATCH",
+    "EXTENSION_STABLE_SLOT_INVALID",
+    "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID",
+    "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED",
+    "FAIL_SAFE_EARLY_EFFECT_MODE_INVALID",
+    "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED",
     "FAIL_SAFE_PRIORITY_INVALID",
+    "HOLD_ADMISSION_ORDER_INVALID",
     "INTENT_AUDIENCE_MISMATCH",
     "INTENT_EXPIRED",
     "INTENT_ISSUER_MISMATCH",
@@ -45,6 +85,7 @@ const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
     "PLANT_PROFILE_MISSING",
     "PLANT_SECURITY_CONTEXT_MISSING",
+    "POST_EFFECT_ADMISSION_MODE_INVALID",
     "PRINCIPAL_MEMBERSHIP_REQUIRED",
     "PROTECTED_HEADER_AUDIENCE_MISMATCH",
     "PROTECTED_HEADER_NOT_JSON",
@@ -60,6 +101,7 @@ const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "QOS_ROUTE_REQUIRED",
     "REALM_REQUIRED",
     "REALM_ROUTE_MISMATCH",
+    "REJECTED_CANDIDATE_LOCAL_HOLD_FORBIDDEN",
     "REMOTE_JKU_FORBIDDEN",
     "REVOCATION_EPOCH_INVALID",
     "SECURITY_ALGORITHM_NOT_EXACT",
@@ -69,6 +111,7 @@ const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "SIGNATURE_LENGTH_INVALID",
     "SIGNATURE_NOT_VALID",
     "STABLE_CORE_DIGEST_INVALID",
+    "STABLE_CORE_DIGEST_MISMATCH",
     "STABLE_CORE_DIGEST_MISSING_OR_NULL",
     "STREAM_DECLARATION_NOT_LIVE",
     "STREAM_EPOCH_ALREADY_LIVE",
@@ -128,6 +171,7 @@ pub(crate) struct Limits {
     pub(crate) maximum_aggregate_adr_bytes: usize,
     pub(crate) maximum_adr_bytes: usize,
     pub(crate) maximum_json_fence_bytes: usize,
+    pub(crate) maximum_fixture_bytes: usize,
     pub(crate) maximum_json_depth: usize,
     pub(crate) maximum_json_nodes: usize,
     pub(crate) maximum_object_members: usize,
@@ -205,10 +249,7 @@ pub(crate) struct Case {
 #[serde(deny_unknown_fields)]
 pub(crate) struct Source {
     pub(crate) adr: String,
-    pub(crate) path: String,
     pub(crate) json_fence_ordinal: usize,
-    pub(crate) adr_byte_length: usize,
-    pub(crate) adr_sha256: String,
     pub(crate) fence_byte_length: usize,
     pub(crate) fence_sha256: String,
 }
@@ -332,6 +373,7 @@ impl Corpus {
             .collect::<BTreeSet<_>>();
         let mut case_ids = BTreeSet::new();
         let mut mutation_ids = BTreeSet::new();
+        let mut used_diagnostics = BTreeSet::new();
         let mut fence_bindings = BTreeSet::new();
         let mut previous_coordinate: Option<(&str, usize)> = None;
         for case in &self.cases {
@@ -348,30 +390,49 @@ impl Corpus {
                     case.id
                 )));
             }
-            if !fence_bindings.insert((case.source.path.as_str(), case.source.json_fence_ordinal)) {
+            if !fence_bindings.insert((case.source.adr.as_str(), case.source.json_fence_ordinal)) {
                 return Err(EngineError::corpus(format!(
                     "duplicate source fence binding for case {:?}",
                     case.id
                 )));
             }
             if previous_coordinate.is_some_and(|coordinate| {
-                coordinate >= (case.source.path.as_str(), case.source.json_fence_ordinal)
+                coordinate >= (case.source.adr.as_str(), case.source.json_fence_ordinal)
             }) {
                 return Err(EngineError::corpus(
                     "case source coordinates are not in strict deterministic order",
                 ));
             }
-            previous_coordinate = Some((case.source.path.as_str(), case.source.json_fence_ordinal));
+            previous_coordinate = Some((case.source.adr.as_str(), case.source.json_fence_ordinal));
             validate_case_identity(case)?;
-            validate_sha256("ADR", &case.source.adr_sha256)?;
+            if case.polarity == Polarity::Positive && !case.payload_interpreted {
+                return Err(EngineError::corpus(format!(
+                    "positive case {:?} does not interpret its bounded payload",
+                    case.id
+                )));
+            }
+            let case_namespace = case
+                .id
+                .split_once('.')
+                .map(|(prefix, _)| prefix)
+                .ok_or_else(|| {
+                    EngineError::corpus(format!("case {:?} has no ADR namespace", case.id))
+                })?;
             validate_sha256("fence", &case.source.fence_sha256)?;
-            if case.source.adr.is_empty() || case.source.path.is_empty() {
+            if case.source.adr.is_empty() {
                 return Err(EngineError::corpus(format!(
                     "case {:?} has an empty source identity",
                     case.id
                 )));
             }
             validate_expected_diagnostics(&case.id, &case.expected_diagnostics, &registry)?;
+            used_diagnostics.extend(case.expected_diagnostics.iter().map(String::as_str));
+            validate_expected_observation(
+                &case.id,
+                case.expected_profile_result,
+                case.production_admission,
+                &case.expected_diagnostics,
+            )?;
             match (case.polarity, case.expected_profile_result) {
                 (Polarity::Positive, ProfileResult::Reject)
                 | (Polarity::Negative, ProfileResult::MatchNonAuthorizingExcerpt)
@@ -401,12 +462,26 @@ impl Corpus {
             }
             for mutation in &case.mutations {
                 validate_identifier("mutation", &mutation.id)?;
-                if mutation.purpose.trim().is_empty() {
+                if mutation
+                    .id
+                    .strip_prefix(case_namespace)
+                    .and_then(|suffix| suffix.strip_prefix('.'))
+                    .is_none()
+                {
                     return Err(EngineError::corpus(format!(
-                        "mutation {:?} has an empty purpose",
+                        "mutation {:?} is not namespaced to case {:?}",
+                        mutation.id, case.id
+                    )));
+                }
+                if mutation.purpose.trim().is_empty()
+                    || mutation.purpose.len() > MAXIMUM_MUTATION_PURPOSE_UTF8_BYTES
+                {
+                    return Err(EngineError::corpus(format!(
+                        "mutation {:?} has an invalid purpose",
                         mutation.id
                     )));
                 }
+                validate_patch_path(&mutation.patch.path)?;
                 if !mutation_ids.insert(mutation.id.as_str()) {
                     return Err(EngineError::corpus(format!(
                         "duplicate mutation id {:?}",
@@ -428,6 +503,19 @@ impl Corpus {
                     &mutation.expected_diagnostics,
                     &registry,
                 )?;
+                used_diagnostics.extend(mutation.expected_diagnostics.iter().map(String::as_str));
+                if mutation.expected_profile_result != ProfileResult::Reject {
+                    return Err(EngineError::corpus(format!(
+                        "mutation {:?} is not an expected fail-closed contrast",
+                        mutation.id
+                    )));
+                }
+                validate_expected_observation(
+                    &mutation.id,
+                    mutation.expected_profile_result,
+                    mutation.production_admission,
+                    &mutation.expected_diagnostics,
+                )?;
                 if !mutation_changes_expected_observation(case, mutation) {
                     return Err(EngineError::corpus(format!(
                         "mutation {:?} is not observable against its base case",
@@ -443,13 +531,14 @@ impl Corpus {
                 self.limits.expected_mutation_count
             )));
         }
+        validate_global_registry_coverage(&case_ids, &mutation_ids, &used_diagnostics, &registry)?;
         Ok(())
     }
 
     fn validate_source_binding(&self) -> EngineResult<()> {
         if self.source_binding.fence_language != "json"
             || self.source_binding.fence_capture
-                != "content_between_exact_json_fence_markers_excluding_terminal_newline"
+                != "content_between_top_level_exact_json_fence_lines_excluding_one_terminal_line_ending"
             || self.source_binding.path_root != "repository"
             || self.source_binding.sha256_encoding != "lowercase_hex"
         {
@@ -488,23 +577,9 @@ impl Corpus {
             || binding.projection_encoding != "UTF8_JSON_SORTED_KEYS_COMPACT_ENSURE_ASCII_FALSE"
             || binding.projection_members != expected_projection_members.map(str::to_owned).to_vec()
             || binding.decision_members != expected_decision_members.map(str::to_owned).to_vec()
-            || binding.projection_byte_length != 16_606
-            || binding.projection_sha256
-                != "2c9dc7b997d599ad6e533cfa5685c5dabd73bb60f32020f72ebe1bbeaefce881"
-            || binding.sha256 != "4fcf00ea8c1d630317954a67a01f3e4e0404187b9694cdba6d9a5090be302331"
-            || binding.semantic_closure
-                != serde_json::json!({
-                    "source": {
-                        "path": "docs/adr/decision-closure.source.v1.json",
-                        "sha256": "30ad63ace687c6165d2539cebe5a03fb04978d15e60db6dbbcc364b103394122",
-                        "bytes": 66_810
-                    },
-                    "json_schema": {
-                        "path": "docs/adr/decision-closure.source.schema.v1.json",
-                        "sha256": "e5ed81c2b24e0be98b09a8c132b2ae11565f7ab81748ae5ed266b6006fdf01ee",
-                        "bytes": 28_693
-                    }
-                })
+            || binding.projection_byte_length == 0
+            || binding.projection_byte_length > 262_144
+            || !valid_semantic_closure_binding(&binding.semantic_closure)
             || binding.effect != "NON_ACCEPTING_EXACT_SUBJECT_BINDING_ONLY"
         {
             return Err(EngineError::corpus(
@@ -522,19 +597,20 @@ impl Corpus {
             maximum_aggregate_adr_bytes: 2_097_152,
             maximum_adr_bytes: 262_144,
             maximum_json_fence_bytes: 131_072,
+            maximum_fixture_bytes: 16_384,
             maximum_json_depth: 32,
             maximum_json_nodes: 100_000,
             maximum_object_members: 4_096,
             maximum_array_items: 4_096,
-            maximum_key_utf8_bytes: 256,
+            maximum_key_utf8_bytes: 128,
             maximum_string_utf8_bytes: 65_536,
             maximum_total_string_utf8_bytes: 131_072,
             maximum_integer_characters: 32,
             allow_floats: false,
-            expected_case_count: 22,
+            expected_case_count: 25,
             expected_mutation_count: EXPECTED_MUTATION_COUNT,
             minimum_mutations_per_case: 2,
-            maximum_mutations_per_case: 16,
+            maximum_mutations_per_case: 24,
             maximum_engine_output_bytes: 262_144,
             engine_timeout_seconds: 120,
         };
@@ -617,11 +693,110 @@ impl Corpus {
     }
 }
 
+fn validate_global_registry_coverage(
+    case_ids: &BTreeSet<&str>,
+    mutation_ids: &BTreeSet<&str>,
+    used_diagnostics: &BTreeSet<&str>,
+    registry: &BTreeSet<&str>,
+) -> EngineResult<()> {
+    if !case_ids.is_disjoint(mutation_ids) {
+        return Err(EngineError::corpus(
+            "case and mutation identifiers must be globally unique",
+        ));
+    }
+    if used_diagnostics != registry {
+        return Err(EngineError::corpus(
+            "diagnostic registry must exactly cover the v1 corpus expectations",
+        ));
+    }
+    Ok(())
+}
+
+fn valid_semantic_closure_binding(value: &Value) -> bool {
+    let Some(closure) = value.as_object() else {
+        return false;
+    };
+    if closure.len() != 2 {
+        return false;
+    }
+    [
+        (
+            "source",
+            "docs/adr/decision-closure.source.v1.json",
+            262_144_u64,
+        ),
+        (
+            "json_schema",
+            "docs/adr/decision-closure.source.schema.v1.json",
+            262_144_u64,
+        ),
+    ]
+    .into_iter()
+    .all(|(member, expected_path, maximum_bytes)| {
+        let Some(identity) = closure.get(member).and_then(Value::as_object) else {
+            return false;
+        };
+        identity.len() == 3
+            && identity.get("path").and_then(Value::as_str) == Some(expected_path)
+            && identity
+                .get("bytes")
+                .and_then(Value::as_u64)
+                .is_some_and(|bytes| (1..=maximum_bytes).contains(&bytes))
+            && identity
+                .get("sha256")
+                .and_then(Value::as_str)
+                .is_some_and(valid_sha256)
+    })
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+pub(crate) fn validate_patch_path(path: &str) -> EngineResult<()> {
+    if path.is_empty() || path.len() > MAXIMUM_PATCH_PATH_UTF8_BYTES || !path.starts_with('/') {
+        return Err(EngineError::corpus(
+            "patch path is not a bounded non-root JSON Pointer",
+        ));
+    }
+    let mut bytes = path.bytes();
+    while let Some(byte) = bytes.next() {
+        if byte == b'~' && !bytes.next().is_some_and(|escape| b"01".contains(&escape)) {
+            return Err(EngineError::corpus(
+                "patch path contains an invalid JSON Pointer escape",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn mutation_changes_expected_observation(case: &Case, mutation: &Mutation) -> bool {
     mutation.expected_profile_result != case.expected_profile_result
         || mutation.production_admission != case.production_admission
         || mutation.expected_diagnostics != case.expected_diagnostics
         || mutation.payload_interpreted != case.payload_interpreted
+}
+
+fn validate_expected_observation(
+    owner: &str,
+    result: ProfileResult,
+    production: ProductionAdmission,
+    diagnostics: &[String],
+) -> EngineResult<()> {
+    if (result == ProfileResult::Reject) == diagnostics.is_empty() {
+        return Err(EngineError::corpus(format!(
+            "{owner:?} result and diagnostics conflict"
+        )));
+    }
+    if result == ProfileResult::Reject && production == ProductionAdmission::NotEvaluated {
+        return Err(EngineError::corpus(format!(
+            "{owner:?} marks a rejected profile as NOT_EVALUATED"
+        )));
+    }
+    Ok(())
 }
 
 pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> EngineResult<()> {
@@ -656,13 +831,13 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
                 &[
                     "authenticated_realm_key",
                     "digest_algorithm",
-                    "expected_wire_version",
+                    "expected_stable_core_digest",
                 ],
                 profile,
             )?;
             validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
             require_fixture_literal_string(fixture, "digest_algorithm", "sha256", profile)?;
-            require_fixture_literal_string(fixture, "expected_wire_version", "1.0", profile)
+            require_fixture_prefixed_sha256(fixture, "expected_stable_core_digest", profile)
         }
         "ADR003_FLATTENED_FORWARDING_WRAPPER_V1" => {
             expect_fixture_keys(
@@ -710,18 +885,29 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
             )?;
             require_fixture_literal_bool(fixture, "output_allocation_permitted", false, profile)
         }
-        "ADR005_DECLARE_STREAM_EXCERPT_V1" | "ADR005_UNDECLARED_FRAME_V1" => {
+        "ADR005_DECLARE_STREAM_EXCERPT_V1" => {
             expect_fixture_keys(
                 fixture,
                 &[
                     "authenticated_publisher_principal_id",
                     "authenticated_realm_key",
+                    "expected_route",
                     "live_declaration_epoch_ids",
                 ],
                 profile,
             )?;
             validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
             require_fixture_string(fixture, "authenticated_publisher_principal_id", profile)?;
+            require_fixture_string(fixture, "expected_route", profile)?;
+            require_fixture_string_array(fixture, "live_declaration_epoch_ids", profile)
+        }
+        "ADR005_UNDECLARED_FRAME_V1" => {
+            expect_fixture_keys(
+                fixture,
+                &["authenticated_realm_key", "live_declaration_epoch_ids"],
+                profile,
+            )?;
+            validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
             require_fixture_string_array(fixture, "live_declaration_epoch_ids", profile)
         }
         "ADR006_BODY_LEASE_EXCERPT_V1" | "ADR006_STALE_SELF_ISSUED_LEASE_V1" => {
@@ -766,24 +952,38 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
             }
             require_fixture_positive_safe_integer(lease, "term", profile)
         }
+        "ADR007_DISPOSITION_QUERY_PROJECTION_V1" | "ADR008_RAW_CHUNK_PROJECTION_V1" => {
+            expect_fixture_keys(fixture, &[], profile)
+        }
         "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1" | "ADR007_INVALID_DISPOSITION_V1" => {
             expect_fixture_keys(fixture, &["nonterminal_states", "terminal_states"], profile)?;
             require_fixture_string_array(fixture, "nonterminal_states", profile)?;
             require_fixture_string_array(fixture, "terminal_states", profile)
         }
-        "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1" | "ADR008_GALADRIEL_POLICY_INJECTION_V1" => {
+        "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1" => {
             expect_fixture_keys(
                 fixture,
                 &[
                     "authenticated_realm_key",
+                    "expected_route",
                     "extension_assessor_principal_id",
                     "extension_receiver_principal_id",
                 ],
                 profile,
             )?;
             validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
+            require_fixture_string(fixture, "expected_route", profile)?;
             require_fixture_string(fixture, "extension_assessor_principal_id", profile)?;
             require_fixture_string(fixture, "extension_receiver_principal_id", profile)
+        }
+        "ADR008_GALADRIEL_POLICY_INJECTION_V1" => {
+            expect_fixture_keys(
+                fixture,
+                &["authenticated_realm_key", "extension_assessor_principal_id"],
+                profile,
+            )?;
+            validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
+            require_fixture_string(fixture, "extension_assessor_principal_id", profile)
         }
         "ADR009_SECURITY_STATE_PROJECTION_V1" | "ADR009_INVALID_SECURITY_STATE_V1" => {
             expect_fixture_keys(
@@ -825,12 +1025,14 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
                 fixture,
                 &[
                     "authenticated_realm_key",
+                    "expected_route",
                     "maximum_capacity_per_stream",
                     "required_fail_safe_priority",
                 ],
                 profile,
             )?;
             validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
+            require_fixture_string(fixture, "expected_route", profile)?;
             require_fixture_positive_safe_integer(fixture, "maximum_capacity_per_stream", profile)?;
             require_fixture_string_array(fixture, "required_fail_safe_priority", profile)
         }
@@ -842,13 +1044,11 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
                     "evaluation_utc_ms",
                     "expected_audience",
                     "expected_issuer",
-                    "native_gated_intent_version",
                 ],
                 profile,
             )?;
             validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
             require_fixture_positive_safe_integer(fixture, "evaluation_utc_ms", profile)?;
-            require_fixture_positive_safe_integer(fixture, "native_gated_intent_version", profile)?;
             require_fixture_string(fixture, "expected_audience", profile)?;
             require_fixture_string(fixture, "expected_issuer", profile)
         }
@@ -866,6 +1066,7 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
             require_fixture_string(fixture, "enrolled_body_principal_id", profile)?;
             require_fixture_string(fixture, "gated_commander_principal_id", profile)
         }
+        "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1" => expect_fixture_keys(fixture, &[], profile),
         _ => Err(EngineError::corpus(format!(
             "fixture has unknown profile {profile:?}"
         ))),
@@ -912,6 +1113,24 @@ fn require_fixture_string(
     {
         return Err(EngineError::corpus(format!(
             "{label:?} fixture member {key:?} must be a non-empty string"
+        )));
+    }
+    Ok(())
+}
+
+fn require_fixture_prefixed_sha256(
+    object: &serde_json::Map<String, Value>,
+    key: &str,
+    label: &str,
+) -> EngineResult<()> {
+    let valid = object
+        .get(key)
+        .and_then(Value::as_str)
+        .and_then(|value| value.strip_prefix("sha256:"))
+        .is_some_and(valid_sha256);
+    if !valid {
+        return Err(EngineError::corpus(format!(
+            "{label:?} fixture member {key:?} must be a prefixed lowercase SHA-256"
         )));
     }
     Ok(())
@@ -1076,33 +1295,47 @@ fn validate_case_identity(case: &Case) -> EngineResult<()> {
             "ADR-006",
             2,
         ),
+        "adr007.disposition-query.semantic-projection.v1" => (
+            "ADR007_DISPOSITION_QUERY_PROJECTION_V1",
+            Scope::ProposedSemanticProjection,
+            Polarity::Positive,
+            "ADR-007",
+            1,
+        ),
         "adr007.received-disposition.excerpt.v1" => (
             "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
             Scope::ProposedWireFragment,
             Polarity::Positive,
             "ADR-007",
-            1,
+            2,
         ),
         "adr007.unknown-disposition.hostile.v1" => (
             "ADR007_INVALID_DISPOSITION_V1",
             Scope::ProposedWireFragment,
             Polarity::Negative,
             "ADR-007",
-            2,
+            3,
+        ),
+        "adr008.raw-chunk.semantic-projection.v1" => (
+            "ADR008_RAW_CHUNK_PROJECTION_V1",
+            Scope::ProposedSemanticProjection,
+            Polarity::Positive,
+            "ADR-008",
+            1,
         ),
         "adr008.evaluated-envelope.excerpt.v1" => (
             "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
             Scope::ProposedExtensionEnvelope,
             Polarity::Positive,
             "ADR-008",
-            1,
+            2,
         ),
         "adr008.self-policy.hostile.v1" => (
             "ADR008_GALADRIEL_POLICY_INJECTION_V1",
             Scope::ProposedExtensionEnvelope,
             Polarity::Negative,
             "ADR-008",
-            2,
+            3,
         ),
         "adr009.security-state.semantic-projection.v1" => (
             "ADR009_SECURITY_STATE_PROJECTION_V1",
@@ -1145,6 +1378,13 @@ fn validate_case_identity(case: &Case) -> EngineResult<()> {
             Polarity::Negative,
             "ADR-011",
             2,
+        ),
+        "adr011.effect-path-fencing.semantic-projection.v1" => (
+            "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
+            Scope::ProposedSemanticProjection,
+            Polarity::Positive,
+            "ADR-011",
+            3,
         ),
         _ => {
             return Err(EngineError::corpus(format!(
@@ -1194,11 +1434,14 @@ fn ensure_unique_nonempty(label: &str, values: &[String]) -> EngineResult<()> {
 }
 
 fn validate_identifier(label: &str, value: &str) -> EngineResult<()> {
+    let mut bytes = value.bytes();
+    let first = bytes.next();
     if value.is_empty()
         || value.len() > 160
-        || !value.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b".-_".contains(&byte)
-        })
+        || !first.is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        || !bytes
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || b".-".contains(&byte))
+        || !value.ends_with(".v1")
     {
         return Err(EngineError::corpus(format!(
             "invalid {label} identifier {value:?}"
@@ -1244,10 +1487,13 @@ fn validate_expected_diagnostics(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use serde_json::json;
 
     use super::{
-        mutation_changes_expected_observation, validate_bounded_fixture, Case, Mutation, Patch,
+        mutation_changes_expected_observation, validate_bounded_fixture,
+        validate_global_registry_coverage, validate_identifier, Case, Mutation, Patch,
         PatchOperation, PatchTarget, Polarity, ProductionAdmission, ProfileResult, Scope, Source,
     };
 
@@ -1308,15 +1554,45 @@ mod tests {
     }
 
     #[test]
+    fn corpus_identifier_validation_matches_the_closed_versioned_grammar() {
+        assert!(validate_identifier("case", "adr001.example.v1").is_ok());
+        assert!(validate_identifier("case", "_adr001.example.v1").is_err());
+        assert!(validate_identifier("case", "adr001_example.v1").is_err());
+        assert!(validate_identifier("case", "adr001.example").is_err());
+    }
+
+    #[test]
+    fn global_identifier_and_diagnostic_coverage_is_exact() {
+        let case_ids = BTreeSet::from(["case.v1"]);
+        let mutation_ids = BTreeSet::from(["mutation.v1"]);
+        let registry = BTreeSet::from(["DIAGNOSTIC"]);
+        assert!(
+            validate_global_registry_coverage(&case_ids, &mutation_ids, &registry, &registry,)
+                .is_ok()
+        );
+        assert!(validate_global_registry_coverage(
+            &case_ids,
+            &BTreeSet::from(["case.v1"]),
+            &registry,
+            &registry,
+        )
+        .is_err());
+        assert!(validate_global_registry_coverage(
+            &case_ids,
+            &mutation_ids,
+            &BTreeSet::new(),
+            &registry,
+        )
+        .is_err());
+    }
+
+    #[test]
     fn mutation_expectation_must_change_the_observable_base_tuple() {
         let case = Case {
             id: "case.v1".to_owned(),
             source: Source {
                 adr: "ADR-004".to_owned(),
-                path: "docs/adr/0004-observer-attach-grants-and-revocation.md".to_owned(),
                 json_fence_ordinal: 1,
-                adr_byte_length: 1,
-                adr_sha256: "0".repeat(64),
                 fence_byte_length: 1,
                 fence_sha256: "0".repeat(64),
             },
