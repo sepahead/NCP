@@ -40,11 +40,11 @@
     "schema": "ncp.b01-decision-set.v1",
     "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
     "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
-    "sha256": "5e632beb26a8c32acbd6f7d532a1cd7408685ef826356a7a140f7e7f1266546b",
+    "sha256": "144407d26388711f8175cfc800a1181d78652aad8b7223e115b9be21f06a0b38",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "d79a21c3ab77bbee1e8f0d0f9003dc4e84d07b89e62a7063f8a93995d0adf3d2",
+        "sha256": "9acaec04762c6b01e4cd88ca44abf7483e5124ccd0a1cc4451807db7e9dc5205",
         "bytes": 72816
       },
       "json_schema": {
@@ -56,11 +56,11 @@
   },
   "semantic_closure_evaluation": {
     "schema": "ncp.b01-semantic-closure-evaluation.v1",
-    "decision_set_sha256": "5e632beb26a8c32acbd6f7d532a1cd7408685ef826356a7a140f7e7f1266546b",
+    "decision_set_sha256": "144407d26388711f8175cfc800a1181d78652aad8b7223e115b9be21f06a0b38",
     "state": "CLOSED",
     "source": {
       "path": "docs/adr/decision-closure.source.v1.json",
-      "sha256": "d79a21c3ab77bbee1e8f0d0f9003dc4e84d07b89e62a7063f8a93995d0adf3d2",
+      "sha256": "9acaec04762c6b01e4cd88ca44abf7483e5124ccd0a1cc4451807db7e9dc5205",
       "bytes": 72816
     },
     "json_schema": {
@@ -74,7 +74,7 @@
       "observed_status": "COMPLETE_CURRENT",
       "observed_identity": {
         "path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
-        "sha256": "9828bdc7c3eb7a16e7414f340885eb19067c3bdd39fec6e4c24445a8c5134359",
+        "sha256": "81d47edba06f6d8c85df498fc3111a48cc3fff994e439ea9956d42af104b3b7d",
         "bytes": 113496
       },
       "case_count": 25,
@@ -126,8 +126,8 @@
       "defect_ids": [
         "D01"
       ],
-      "content_sha256": "a9ab5a7fd5b6c92d7864f4326bd8389381e3f0a640e0b4a6fe18f0533fb19025",
-      "bytes": 156084,
+      "content_sha256": "2993a2d69ac5d5638ac85ee549aa57ba9db3f99e9fe41260d363dfa9f1838ca7",
+      "bytes": 162575,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-001",
@@ -135,13 +135,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-            "sha256": "a9ab5a7fd5b6c92d7864f4326bd8389381e3f0a640e0b4a6fe18f0533fb19025",
-            "bytes": 156084
+            "sha256": "2993a2d69ac5d5638ac85ee549aa57ba9db3f99e9fe41260d363dfa9f1838ca7",
+            "bytes": 162575
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "68fc2b6d6fe0ec8c8a9b711d72f9979dc817732ddbd796091ff7f2f202d9410d"
+        "sha256": "2079ba17c410709ce0c8442d9a21b8ab089fb9046e3763a6fb5fe7c784f97967"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [

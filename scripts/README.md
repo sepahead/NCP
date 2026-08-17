@@ -48,6 +48,8 @@ They do not publish, sign, tag, or convert a local pass into external certificat
 | `check_max_effort_handoff_review.py [--self-test]` | freeze the max-effort source/audit identities and all non-comment review content; all tasks and lenses remain OPEN |
 | `generate_file_review_ledger.py [--self-test] [--check]` | reproduce the exact 21-column, Git-blob-bound 828-file internal-review ledger without treating it as independent review or release evidence |
 | `plot_perf.py [--self-test] [--check]` + `requirements-plot.txt` | deterministically reproduce explicitly non-normative historical SVGs and reject partial/mislabeled benchmark inputs |
+| `gen_diagrams.py [--check]` | generate the light and dark NCP system diagrams and enforce their direct-view accessibility, link, metadata, and contrast contract |
+| `check_ncp_system_design_pdf.sh [--write\|--check\|--cross-toolchain]` | convert the maintained light SVGs to vector PDF figures, build the informative LaTeX system-design report with fixed metadata, bind the report, style, and figure sources through a domain-separated SHA-256 PDF commitment, require exact one-time audit coverage for every numbered equation, reject layout warnings or non-embedded fonts, and compare the committed PDF |
 | `sync_rust_package_testdata.py [--write]` | exact crate-local corpus/proto/schema copies |
 | `check_markdown_links.py [--self-test]` | current indexed and non-ignored untracked Markdown target/anchor integrity; byte-frozen baseline Markdown is verified against its tag instead |
 
@@ -311,10 +313,14 @@ scripts/check.sh
 ```
 
 Required tools are Cargo/Rust 1.88+, Python 3.11+, Node.js 18+, a C++17 compiler,
-Bun, npm, Buf, and `cargo-deny` 0.19.9. The gate invokes Bun and npm. Hosted CI
-pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses Node.js
-26.3.0, then restores Node.js 24.18.0. Any missing required tool is a failed
-local gate. External security,
+Bun, npm, Buf, `cargo-deny` 0.19.9, `latexmk`, `rsvg-convert`, and the Poppler
+PDF tools. The LaTeX installation must provide the packages imported by
+`docs/publication/ncp-system-design.tex`. The gate invokes Bun and npm. Hosted
+CI pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses
+Node.js 26.3.0, then restores Node.js 24.18.0. Any missing required tool is a
+failed local gate. The complete gate uses the cross-toolchain PDF comparison.
+Maintainers use `--check` to require byte identity on the publication toolchain.
+External security,
 independent-peer, fault/soak, fuzz/sanitizer, signature/SBOM, clean-room, publication,
 and consumer gates remain **NOT RUN** until separately evidenced.
 

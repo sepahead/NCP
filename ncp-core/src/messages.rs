@@ -2239,11 +2239,13 @@ pub fn diagnose_version(bytes: &[u8]) -> Option<NcpVersionError> {
 /// Typed hot-path wire acceptance for the closed-loop data-plane frames
 /// (`SensorFrame` / `CommandFrame` / `ObservationFrame`).
 ///
-/// The data planes run at 20–1000 Hz, so ingress acceptance works on the
-/// already-deserialized typed frame — one parse, no `serde_json::Value` detour:
-/// an absent `ncp_version`/`kind` deserializes to `""` (see [`missing_version`])
-/// and is rejected here, never fabricated. Prefer [`decode_validated`], which
-/// combines parse + `kind` check + [`validate_wire`](WireFrame::validate_wire).
+/// The validation trait operates on an already-deserialized typed frame. An
+/// absent `ncp_version` or `kind` deserializes to `""` (see
+/// [`missing_version`]) and is rejected here, never fabricated. The current
+/// compatibility ingress should use [`decode_validated`]. That function first
+/// builds a bounded `serde_json::Value` so it can enforce the strict map-only
+/// shape, then produces the typed frame. It is not the proposed one-pass typed
+/// decoder for the prepared low-overhead data path.
 ///
 /// A receiver DROPS a rejected frame (log the error; never actuate on it). The
 /// safety layers ([`crate::resilience::ActionBuffer`] /
@@ -2657,10 +2659,17 @@ impl WireFrame for ObservationFrame {
     }
 }
 
-/// Parse + accept a data-plane frame in one call: typed `serde_json` decode, then
-/// a `kind` check (a misrouted or kind-less frame is rejected, not silently
-/// decoded into an all-default value), then [`WireFrame::validate_wire`]. This is
-/// the ingress every data-plane subscriber should run before acting on a frame.
+/// Parse and accept a data-plane frame in one call. The current compatibility
+/// implementation builds one bounded generic JSON tree, enforces the strict
+/// raw and typed shape, converts that tree to the requested frame, and then
+/// applies [`WireFrame::validate_wire`]. A misrouted or kind-less frame rejects
+/// instead of silently decoding into an all-default value. Every current
+/// data-plane subscriber should use this ingress before it acts on a frame.
+///
+/// # Errors
+///
+/// Returns [`ValidationError`] when bounded JSON parsing fails, the message kind
+/// or typed shape is wrong, or the decoded frame fails wire validation.
 pub fn decode_validated<T: WireFrame>(bytes: &[u8]) -> Result<T, ValidationError> {
     // Serde's derived named-struct visitor also accepts positional JSON arrays.
     // Parse once to Value and run the strict map-only raw contract before the

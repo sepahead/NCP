@@ -8,9 +8,9 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "c7fd7db1d51144d8afb07823e47f43b3690529d6f3e3dfc447c087917e6131af",
-      "bytes": 451635,
-      "records": 286
+      "sha256": "94d415660bd1353b6b886a00129a3d583ce369c7fbc2a11b2e985b3b71ec2dd6",
+      "bytes": 461018,
+      "records": 298
     },
     {
       "path": "evidence/audit/requirement-traceability.v1.json",
@@ -48,7 +48,7 @@
     },
     {
       "path": "docs/adr/decision-registry.proposed.v1.json",
-      "sha256": "d074f36441e51a9cce040349f47b466c098a3b3b186115d96c6a306fb70553bb",
+      "sha256": "b0b3532242bd938fd09a2fa8560b43590984028e804a2182005522fe9c47e9a9",
       "bytes": 37869
     },
     {

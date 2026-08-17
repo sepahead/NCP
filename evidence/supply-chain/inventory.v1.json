@@ -2216,14 +2216,14 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "c7c94f129b2163d022809bae119f0c9ce20b211a9427afa6f4e25baff6260896"
+      "sha256": "86f59a577b50b49486b9c3226b523b42d71e6ca7856639fd0a975bac29add211"
     },
     {
       "outputs": [
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "92443cc73d47b09d2c59dbe8437095194bf5e579bd461313e2450ae3d94eef09"
+      "sha256": "e969fbf1e2e9e2f4fc530aefbc05d25f3c0ee2c7e2d4d17fc0b5c63153f4eb2b"
     },
     {
       "outputs": [
@@ -2302,7 +2302,7 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "31a32319dc765912b552bc42ae0e1e56d509dff63faa1d85d96beeb2c464ff56"
+      "sha256": "fe627cf13a51d0dcc3e907f8f80432f560810215f26f6a385f3888e3f93f9d76"
     },
     {
       "outputs": [
@@ -2451,6 +2451,11 @@
       {
         "action": "Swatinem/rust-cache",
         "revision": "e18b497796c12c097a38f9edb9d0641fb99eee32",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/checkout",
+        "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
         "workflow": ".github/workflows/ci.yml"
       },
       {

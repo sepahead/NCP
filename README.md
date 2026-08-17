@@ -12,8 +12,50 @@ read-only analysis clients.
 
 The complete normative SHA-256 contract digest and exact source list are generated
 in [`contract/manifest.v1.json`](contract/manifest.v1.json). The short 16-hex
-`CONTRACT_HASH` is an advisory FNV-1a digest of the canonical protobuf structure;
-it is not the complete normative digest.
+`CONTRACT_HASH` is an advisory FNV-1a digest of the canonical protobuf structure.
+It is not the complete normative digest.
+
+## System at a glance
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/overview-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/overview-light.svg">
+  <img alt="Informative NCP function overview for the unreleased, release-blocked 1.0.0-rc.1 candidate. A received frame passes five shared gates in order: raw bounds, authenticated ingress, wire and stable-core identity, session and stream checks, and typed delivery. Action adds a sixth, conditional body-effect predicate. Four bounded planes then apply distinct ownership and overload rules. Direct production-secure Zenoh ingress is unavailable. The figure is not implementation, release, performance, interoperability, or certification evidence." src="docs/diagrams/overview-light.svg" width="1060">
+</picture>
+
+The figure shows the proposed admission order for one typed delivery. It is the
+B01 target, not the current end-to-end implementation.
+
+1. The receiver bounds raw bytes and structure before semantic allocation.
+2. The receiver binds the verified transport principal to the installed manifest,
+   audience, route, and security profile.
+3. The receiver requires a canonical same-major wire and the exact stable-core
+   identity.
+4. The receiver checks the live session generation, stream epoch, position,
+   lease, deadline, and no-reuse state.
+5. The receiver uses a prepared layout and a finite plane-specific queue before
+   it calls typed application code.
+
+These five gates apply to every frame. An action frame also passes the sixth,
+body-owned effect predicate before software admission can succeed.
+
+The Control plane rejects overflow. The Perception plane replaces the latest
+item and exposes loss. The Observation plane drops the oldest item and counts
+gaps. The Action plane preserves fail-safe severity and terminates at the body
+effect gate. The body remains the final software authority before an actuator
+boundary.
+
+NCP is a contract and a set of admission rules, libraries, and transport
+bindings. It is not a central broker, an actuator, or a physical-safety
+certification.
+
+The complete proposed architecture is available in maintained
+[Markdown](docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md) and
+[LaTeX source](docs/publication/ncp-system-design.tex). A checked
+[system-design PDF](output/pdf/ncp-system-design.pdf) provides the publication
+view. The report derives its
+latency, memory, lifecycle, retry, queue, step, freshness, and reassembly
+equations from named assumptions. It remains informative B01 material.
 
 ## What the 1.0 candidate changes
 
@@ -133,9 +175,13 @@ non-certifying sentinel, not a source revision or release provenance claim.
 ## Build and verify
 
 Required local tools are Rust 1.88+, Python 3.11+, Node.js 18+, a C++17 compiler,
-Bun, npm, Buf, and `cargo-deny` 0.19.9. The complete gate invokes Bun and npm.
-Hosted CI pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses
-Node.js 26.3.0, then restores Node.js 24.18.0.
+Bun, npm, Buf, `cargo-deny` 0.19.9, `latexmk`, `rsvg-convert`, and the Poppler
+PDF tools. The LaTeX installation must provide the packages imported by the
+maintained system-design report. The complete gate invokes Bun and npm. Hosted
+CI pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses
+Node.js 26.3.0, then restores Node.js 24.18.0. The complete gate reproduces the
+system-design PDF and compares its rendered content across publication
+toolchains. Maintainers also require byte identity on the publication toolchain.
 
 ```bash
 scripts/check.sh

@@ -27,6 +27,13 @@ records direct implementation gaps, and defines the intended runtime ownership
 architecture. It does not override an ADR, close a question, allocate wire
 values, or satisfy the required independent review.
 
+Reviewers should start with each ADR's context, proposed role boundary,
+low-overhead reconciliation, bounds, recovery rules, and rejected alternatives.
+Named analysis artifacts are logical obligations unless the ADR explicitly makes
+them portable or exported. They are not mandatory deployed types, stores, or
+services by default. A decision needs revision when its observable behavior
+cannot fit the minimal deployed object graph without losing an invariant.
+
 ## Staging rule
 
 The generated non-normative review registry is

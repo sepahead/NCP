@@ -149,6 +149,37 @@ jobs:
           node scripts/verify_selector_allocation_portability.mjs --self-test
           node scripts/verify_selector_allocation_portability.mjs
 
+  publication:
+    name: publication diagrams + PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install publication toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            latexmk \
+            librsvg2-bin \
+            lmodern \
+            poppler-utils \
+            texlive-latex-base \
+            texlive-latex-extra \
+            texlive-latex-recommended
+
+      - name: Verify generated SVGs
+        run: python3 scripts/gen_diagrams.py --check
+
+      # Distribution TeX and librsvg versions can encode different PDF object
+      # metadata. This mode still rejects warnings, missing fonts, wrong page
+      # geometry, missing equations, and any extracted-layout difference.
+      - name: Rebuild and compare the system-design PDF
+        run: ./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
+
   build-test:
     name: fmt + clippy + test
     runs-on: ubuntu-latest

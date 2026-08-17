@@ -77,6 +77,24 @@ B01_QOS_FALLBACK_GUARD_LINES = {
     ),
 }
 
+PUBLICATION_REVIEWED_GAP_LINES = {
+    (
+        "docs/publication/ncp-system-design.tex",
+        "M008",
+    ): (
+        "\\item The tick API returns the same command type for local unadmitted "
+        "fallback and an admitted"
+    ),
+    (
+        "docs/publication/ncp-system-design.tex",
+        "M005",
+    ): (
+        "Lifecycle and concurrency & One owner orders lifecycle state.  Ambiguity "
+        "retains the same operation. & Cross-process fencing and durable atomicity "
+        "remain unimplemented. \\\\"
+    ),
+}
+
 COUNTERFACTUALS = {
     "CF-01": "valid syntax with contradictory semantics",
     "CF-02": "authenticated but unauthorized producer",
@@ -1043,7 +1061,9 @@ def threat_records() -> list[dict[str, Any]]:
             "observer/research/visualization outputs to action admission",
             "standalone-first acyclic dependencies and final body authority",
             "convenience callback, reverse dependency, shared credential, or hidden startup service",
-            ["Galadriel, Prisoma, pid-rs, or an unrelated visualization system is enabled"],
+            [
+                "Galadriel, Prisoma, pid-rs, or an unrelated visualization system is enabled"
+            ],
             "An observer, estimator, offline analysis, run log, or figure output becomes a command publisher, authority source, or mandatory control dependency.",
             "Observers are grant-bounded read-only sinks; pid-rs is a protocol-neutral leaf; unrelated visualization systems are outside the NCP topology.",
             "Any publish, lease, mutation, ESTOP, disposition, control callback, or reverse dependency from these surfaces rejects review and qualification.",
@@ -2276,6 +2296,16 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
             "NO_AUTHORITY_WHILE_DORMANT",
             [path],
         )
+    if line.strip() == PUBLICATION_REVIEWED_GAP_LINES.get((path, token_id)):
+        return (
+            "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
+            "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
+            [
+                "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+                "KNOWN_LIMITATIONS.md",
+                "RELEASE_READINESS.md",
+            ],
+        )
     if token_id in {"M001", "M002", "M003", "M004", "M005", "M006"}:
         return (
             "UNREVIEWED_ACTION_PATH",
@@ -2729,6 +2759,25 @@ def self_test() -> None:
             "PACKAGE_RESOLUTION_BOUNDARY",
             "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
         ),
+        (
+            "docs/publication/ncp-system-design.tex",
+            (
+                b"\\item The tick API returns the same command type for local "
+                b"unadmitted fallback and an admitted\n"
+            ),
+            "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
+            "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
+        ),
+        (
+            "docs/publication/ncp-system-design.tex",
+            (
+                b"Lifecycle and concurrency & One owner orders lifecycle state.  "
+                b"Ambiguity retains the same operation. & Cross-process fencing and "
+                b"durable atomicity remain unimplemented. \\\\\n"
+            ),
+            "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
+            "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
+        ),
     )
     for path, content, expected_disposition, expected_effect in exact_reviewed_cases:
         classified, is_text = _scan_content(path, content)
@@ -2752,6 +2801,24 @@ def self_test() -> None:
         ):
             raise AssertionError(
                 f"B01 QoS fallback guard classification widened beyond its exact line: {path}"
+            )
+    publication_near_misses = (
+        b"The tick API exposes a fallback.\n",
+        b"Cross-process fencing remains unimplemented.\n",
+    )
+    for content in publication_near_misses:
+        classified, is_text = _scan_content(
+            "docs/publication/ncp-system-design.tex",
+            content,
+        )
+        if (
+            not is_text
+            or len(classified) != 1
+            or classified[0]["disposition"] != "UNREVIEWED_ACTION_PATH"
+            or classified[0]["claim_effect"] != "BLOCKS_LOCAL_CLOSURE"
+        ):
+            raise AssertionError(
+                "publication gap classification widened beyond its exact reviewed lines"
             )
     if _scan_content("binary.bin", b"TODO\0fallback")[1]:
         raise AssertionError("binary input was treated as tracked text")

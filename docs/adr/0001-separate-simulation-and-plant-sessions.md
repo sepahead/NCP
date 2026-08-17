@@ -2010,6 +2010,114 @@ principal, route, or store can be converted into plant authority.
 
 ## Low-overhead runtime reconciliation
 
+One session lifecycle owner serializes open, replacement, and close for each
+direct realm, session kind, and logical session ID. It reserves one exact
+operation identity, issuer identity and epoch, request digest, terminal result,
+checked issuer operation ordinal, and recovery slot before external work. An
+exact retry reads the retained state or returns its terminal result. A
+conflicting concurrent operation rejects.
+
+Before reservation, bounded ingress has parsed the request and verified the
+complete transport-bound `IdentityClaim`, receiver, route, manifest activation,
+and current security state. The slot retains that exact admission context as
+immutable evidence. Admission-time activation and security-state digests are not
+replay lookup keys.
+
+The immutable operation coordinate binds the realm, session namespace, identity
+claim, receiver, route, issuer epoch, operation ID, and request digest. A retry
+also binds the checked issuer operation ordinal. A retry from a different
+immutable coordinate conflicts.
+
+An exact retry authenticates the current requester and locates the existing
+coordinate. It exact-compares the retained request and admission context before
+use. Current manifest and security policy then control result disclosure and
+every authority-widening transition. Rotation can deny disclosure or widening.
+It cannot rekey or reexecute the operation, change its retained evidence, or
+erase required restrictive cleanup.
+
+One immutable prepared ingress context can carry repeated identity, manifest,
+route, and security members. The durable slot stores its content address and
+recovery key. Recovery loads and compares the exact context bytes before use. A
+digest alone does not authorize.
+
+The shared prepared-context owner retains those exact bytes while an operation
+or retained full result references them. Reservation acquires a bounded durable
+reference in the same crash-consistent slot transition. Rotation blocks new
+widening under the old context but does not remove bytes needed for
+reconciliation or restrictive cleanup. The last reference releases only after
+the operation no longer needs exact-context recovery. Context-capacity failure
+rejects before effect.
+
+The logical slot has four states: free, pending, ambiguous, and terminal. These
+labels are not wire allocations. Opening a namespace consumes bounded table
+capacity before external work. Capacity failure creates no partial slot and no
+external effect.
+
+The reservation binds typed prior absence or the exact prior generation. It
+also binds the backend idempotency and reconciliation coordinate. The
+reservation, lineage capture, and fence form one crash-consistent transition.
+No external effect that can outlive the process starts before that transition
+is durable. B03 selects the storage and atomicity profile.
+
+A deployment designates one process owner or uses a shared atomic transition
+with a fenced writer epoch. A process-local mutex cannot arbitrate multiple
+writers. The backend must accept the exact idempotency coordinate or provide an
+authoritative reconciliation query. Otherwise the owner rejects before effect.
+
+Starting replacement or close can fence new descendant mutations. It must retain
+the prior generation and its recovery coordinates in the unresolved operation.
+It cannot delete that lineage merely because external work started.
+Replacement or close cannot report success until prior descendant mutations are
+terminal or durably fenced against later effect.
+
+External work runs outside the owner lock. Required restrictive cleanup commits
+even if the initiating authorization expires or is revoked. Current
+authorization gates result disclosure, not restrictive completion. Before an
+open, replacement, or restoration admits authority, the owner rechecks the
+identity claim, manifest activation, security state, route, and target. Changed
+currentness prevents widening and requires external-effect reconciliation.
+
+Definitive authenticated nonacceptance can restore prior admission only when no
+external effect remains ambiguous. Restoration rechecks current security,
+policy, generation, and authority state. It never resurrects expired authority.
+
+Timeout, cancellation, crash, or an unknown result keeps the same operation
+fenced. Recovery queries or resumes it. A late or superseded successful open
+still created a generation, which the owner must reconcile and retire. It cannot
+forget that generation and start another open.
+
+The owner reports a terminal result only after one crash-consistent terminal
+transition commits. That transition advances the namespace's durable
+issuer-epoch ordinal high-water. It also publishes the fully reserved result in
+the shared terminal pool and transfers the prepared-context reference. Only
+then does it release the active namespace slot. The slot cannot appear free
+before the result and high-water are durable. The next operation in that epoch
+must use the exact checked successor. Ordinal zero is the initial unassigned
+high-water sentinel and is never an operation ordinal. A lower or equal ordinal
+cannot execute again. Ordinal exhaustion seals the epoch. It never wraps or
+saturates.
+
+One bounded shared pool retains recent full terminal results for a finite
+profile. A retry lookup checks the active slot and retained-result index by
+immutable coordinate. It exact-compares the retained request, admission context,
+and ordinal before returning a result. After retirement, an ordinal at or below
+the high-water returns retired or unavailable. It never reexecutes. A new
+operation reserves its terminal-result entry before external work. Pool
+exhaustion rejects that operation instead of evicting a required result. The
+terminal commit uses its reservation without another capacity decision.
+
+An issuer-epoch rollover starts only after the old epoch has no pending or
+ambiguous operation. The security owner seals the old epoch against later
+admission. B03 selects the ordinal encoding, rollover proof, pool limits, and
+retirement profile. UUID randomness alone is not the no-reuse proof.
+
+This owner is logical state inside the bounded session table. One fixed-capacity
+sharded table, prepared-context table, and terminal-result pool can serve many
+namespaces. They need no thread, store, socket, or unbounded waiter list per
+session. Exact retries query the active slot and retained-result index. Any
+optional waiter set has fixed count and byte limits. Waiter overflow rejects
+without changing the operation.
+
 The proof objects above specify invariants. They do not require one public wire
 object, store, service, or network exchange for each named fact or receipt. A
 local implementation can retain one bounded immutable record and one atomic

@@ -2,14 +2,15 @@
 """Generate NCP's bespoke "Instrument Datasheet" SVG diagrams (light + dark).
 
 Replaces the flat Mermaid diagrams with hand-composed, GitHub-<img>-safe SVGs:
-one semantic design system, depth (gradients + soft shadow + one glow), bespoke
-duotone icons, an 8px drafting grid, and one vermillion body-gated ACTION trace
-that dominates each composition. Two committed files per diagram
+one semantic design system, depth (gradients + soft shadow + restrained glow),
+bespoke duotone icons, an 8px drafting grid, and a prominent vermillion
+body-gated ACTION trace where the subject includes actuation. Two committed files per diagram
 (``*-light.svg`` + ``*-dark.svg``), embedded via a ``prefers-color-scheme``
-``<picture>`` (mirrors docs/plots/). Palette reuses the perf-plot hues verbatim
-so diagrams and benchmarks read as one instrument.
+``<picture>`` (mirrors docs/plots/). Core plane hues follow the performance-plot
+palette so diagrams and benchmarks read as one instrument.
 
-Output: docs/diagrams/{topology,ecosystem,versioning,fsm,sequence,admission}-{light,dark}.svg
+Output: docs/diagrams/{overview,topology,ecosystem,versioning,fsm,sequence,
+        admission,runtime,lifecycle}-{light,dark}.svg
 Run:    python3 scripts/gen_diagrams.py [--check]    (from repo root)
 
 Pure stdlib. GitHub-safe: gradients/filters/patterns/markers/real <text> only —
@@ -20,8 +21,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
+import re
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_IDENTITY = json.loads(
@@ -61,17 +63,27 @@ SENSOR_ROUTE = SESSION_ROUTE_TEMPLATE.replace("{sensor|command}", "sensor")
 COMMAND_ROUTE = SESSION_ROUTE_TEMPLATE.replace("{sensor|command}", "command")
 
 SVG_ACCESSIBILITY = {
+    "overview": (
+        "NCP protocol function overview",
+        f"Informative proposed B01 overview for the UNRELEASED {CANDIDATE_VERSION} "
+        "candidate. It shows five shared gates: raw bounds, authenticated ingress, "
+        "wire and stable-core identity, session and stream checks, and typed delivery. "
+        "Action adds a sixth, conditional body-effect predicate. The four planes are "
+        "bounded. Direct production-secure Zenoh ingress is unavailable. This is not "
+        "implementation, release, or certification evidence.",
+    ),
     "topology": (
         "NCP commander-body topology",
         f"Informative topology for the UNRELEASED {CANDIDATE_VERSION} candidate. "
-        "It shows the commander, body, observer, and four core planes; it is not a "
+        "It shows the commander, body, observer, and four core planes. It is not a "
         "release, interoperability qualification, or certification claim.",
     ),
     "ecosystem": (
         "NCP ecosystem integration map",
         f"Informative ecosystem map for the UNRELEASED {CANDIDATE_VERSION} candidate. "
         "It shows optional adapter dependency direction and the authority boundary for "
-        "Engram, Haldir, Crebain, Galadriel, Prisoma, and pid-rs. Cortexel has no NCP edge. "
+        "Engram, Haldir, Crebain, Galadriel, and Prisoma. It also shows that pid-rs "
+        "remains protocol-neutral and has no NCP role edge. "
         "It is not a release, consumer qualification, or certification claim.",
     ),
     "versioning": (
@@ -105,6 +117,23 @@ SVG_ACCESSIBILITY = {
         "one decode, no-reuse, ESTOP latching, admission, and the body effect gate. "
         "It is not a release, interoperability, or physical-safety certification claim.",
     ),
+    "runtime": (
+        "NCP low-overhead runtime path",
+        f"Informative proposed B01 runtime path for the UNRELEASED {CANDIDATE_VERSION} "
+        "candidate. It separates prepare-once work from a bounded frame path, a short "
+        "owner transition, and an unlocked handoff. Its latency and memory equations "
+        "are symbolic design bounds, not measurements. It is not implementation, "
+        "release, performance qualification, or certification evidence.",
+    ),
+    "lifecycle": (
+        "NCP session lifecycle mutation owner",
+        f"Informative proposed B01 lifecycle model for the UNRELEASED {CANDIDATE_VERSION} "
+        "candidate. One namespace slot serializes each operation through pending, ambiguous, "
+        "and terminal commit. Terminal commit publishes the reserved result and high-water "
+        "before releasing the slot. Exact retries compare retained coordinates and bytes. "
+        "Shared finite stores avoid per-session services. This is not implementation, release, "
+        "or certification evidence.",
+    ),
 }
 
 # ───────────────────────────── theme tokens ─────────────────────────────
@@ -128,7 +157,7 @@ DARK = dict(
     action_hi="#ff8a4c",
     observation="#8b949e",
     contract="#a78bfa",
-    contract_lo="#7c3aed",
+    contract_lo="#8c72d9",
     active="#33c295",
     hold="#f0b429",
     configfail="#e08cbf",
@@ -214,8 +243,76 @@ MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mo
 
 
 # ───────────────────────────── primitives ─────────────────────────────
+def _relative_luminance(color: str) -> float:
+    if len(color) != 7 or not color.startswith("#"):
+        raise ValueError(f"expected six-digit hex color, got {color!r}")
+    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [
+        channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(foreground: str, background_color: str) -> float:
+    foreground_luminance = _relative_luminance(foreground)
+    background_luminance = _relative_luminance(background_color)
+    lighter = max(foreground_luminance, background_luminance)
+    darker = min(foreground_luminance, background_luminance)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def _composite_color(foreground: str, background_color: str, opacity: float) -> str:
+    if not 0 <= opacity <= 1:
+        raise ValueError(f"opacity must be in [0, 1], got {opacity}")
+    foreground_channels = [
+        int(foreground[index : index + 2], 16) for index in (1, 3, 5)
+    ]
+    background_channels = [
+        int(background_color[index : index + 2], 16) for index in (1, 3, 5)
+    ]
+    channels = [
+        round(opacity * front + (1 - opacity) * back)
+        for front, back in zip(foreground_channels, background_channels)
+    ]
+    return "#" + "".join(f"{channel:02x}" for channel in channels)
+
+
+def contrast_ink(*background_colors: str) -> str:
+    """Select one normal-text ink that clears 4.5:1 on every background."""
+    candidates = ("#0d1117", "#ffffff")
+    ink = max(
+        candidates,
+        key=lambda candidate: min(
+            _contrast_ratio(candidate, background) for background in background_colors
+        ),
+    )
+    minimum = min(_contrast_ratio(ink, background) for background in background_colors)
+    if minimum < 4.5:
+        raise ValueError(
+            "no black-or-white text ink clears 4.5:1 on " + ", ".join(background_colors)
+        )
+    return ink
+
+
 def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def semantic_text_color(theme: dict, hue: str) -> str:
+    """Return a semantic text color with at least normal-text contrast."""
+    if theme["name"] == "dark":
+        return hue
+    return {
+        theme["control"]: "#005F8A",
+        theme["perception"]: "#006A94",
+        theme["action"]: "#8C3B00",
+        theme["observation"]: "#595959",
+        theme["contract"]: "#6D28D9",
+        theme["active"]: "#006B4F",
+        theme["hold"]: "#8A5A00",
+        theme["configfail"]: "#8C3F6F",
+    }.get(hue, hue)
 
 
 def T(
@@ -727,11 +824,19 @@ def topology(th):
                 desig,
                 9,
                 700,
-                "#fff" if th["name"] == "dark" else "#fff",
+                contrast_ink(dh_hue),
                 mono=True,
                 anchor="middle",
             ),
-            T(x + 28, y + 13, concept, 10.5, 700, dh_hue, track=1.0),
+            T(
+                x + 28,
+                y + 13,
+                concept,
+                10.5,
+                700,
+                semantic_text_color(th, dh_hue),
+                track=1.0,
+            ),
             T(x + 28, y + 25, key, 9.5, 500, th["tmut"], mono=True),
         ]
         if body:
@@ -783,8 +888,29 @@ def topology(th):
     s.append(rect(ax, ay, aw, ah, rx=10, fill=act, op=th["wash_op"]))
     # header row: designator · ACTION eyebrow · right tags
     s.append(rect(ax + 14, ay + 13, 20, 20, rx=4, fill=act))
-    s.append(T(ax + 24, ay + 27, "A1", 10, 700, "#ffffff", mono=True, anchor="middle"))
-    s.append(T(ax + 42, ay + 27, "ACTION", 12, 700, act, track=1.6))
+    s.append(
+        T(
+            ax + 24,
+            ay + 27,
+            "A1",
+            10,
+            700,
+            contrast_ink(act),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        T(
+            ax + 42,
+            ay + 27,
+            "ACTION",
+            12,
+            700,
+            semantic_text_color(th, act),
+            track=1.6,
+        )
+    )
     s.append(
         T(
             ax + aw - 16,
@@ -792,7 +918,7 @@ def topology(th):
             "express · RealTime · body-gated",
             9,
             600,
-            act,
+            semantic_text_color(th, act),
             anchor="end",
             op=0.95,
         )
@@ -803,17 +929,12 @@ def topology(th):
     py = ay + 56
     s.append(T(ax + 14, py + 13, "mode", 9, 600, th["tmut"], mono=True))
     pills = [
-        (
-            "active",
-            True,
-            th["active"],
-            "#06281e" if th["name"] == "dark" else "#ffffff",
-        ),
-        ("hold", False, th["hold"], th["hold"]),
-        ("estop", True, th["action"], "#ffffff"),
+        ("active", True, th["active"]),
+        ("hold", False, th["hold"]),
+        ("estop", True, th["action"]),
     ]
     px = ax + 50
-    for label, filled, col, txt in pills:
+    for label, filled, col in pills:
         pw = 10 + len(label) * 6.4
         if filled is True:
             s.append(rect(px, py, pw, 19, rx=6, fill=col))
@@ -821,8 +942,18 @@ def topology(th):
             s.append(rect(px, py, pw, 19, rx=6, fill=col, stroke=th["border"], sw=1))
         else:
             s.append(rect(px, py, pw, 19, rx=6, fill="none", stroke=col, sw=1.3))
+        text_color = contrast_ink(col) if filled else semantic_text_color(th, col)
         s.append(
-            T(px + pw / 2, py + 13, label, 9, 700, txt, anchor="middle", mono=True)
+            T(
+                px + pw / 2,
+                py + 13,
+                label,
+                9,
+                700,
+                text_color,
+                anchor="middle",
+                mono=True,
+            )
         )
         px += pw + 7
     s.append(
@@ -832,7 +963,7 @@ def topology(th):
             "· Init rejects · grant deadline",
             8,
             600,
-            th["hold"],
+            semantic_text_color(th, th["hold"]),
             mono=True,
         )
     )
@@ -863,9 +994,10 @@ def topology(th):
     ]
     lx = 48
     for desig, hue, concept, tail, sw, dash in legend:
-        s.append(T(lx, ly + 18, desig, 10, 700, hue, mono=True))
+        text_color = semantic_text_color(th, hue)
+        s.append(T(lx, ly + 18, desig, 10, 700, text_color, mono=True))
         s.append(line(lx + 22, ly + 14, lx + 44, ly + 14, hue, sw, dash=dash))
-        s.append(T(lx + 52, ly + 18, concept, 10.5, 700, hue, track=0.6))
+        s.append(T(lx + 52, ly + 18, concept, 10.5, 700, text_color, track=0.6))
         lx += 196
     s.append("</svg>")
     return "".join(s)
@@ -890,6 +1022,7 @@ def ecosystem(th):
         th["control"],
         th["action"],
     )
+    hero_ink = contrast_ink(th["contract"], th["contract_lo"])
 
     left_x, right_x, card_w, card_h = 36, 680, 264, 104
     row_y = (112, 264, 416)
@@ -1014,11 +1147,9 @@ def ecosystem(th):
     )
     s.append(rect(hx + 14, hy + 13, hw - 28, 2, rx=1, fill="#ffffff", op=0.5))
     s.append(rect(hx + 16, hy + 14, 26, 15, rx=4, fill="#ffffff", op=0.16))
-    s.append(
-        T(hx + 29, hy + 24.5, "U1", 10, 700, "#ffffff", mono=True, anchor="middle")
-    )
-    s.append(ic_key(cx - 14, hy + 30, 28, "#ffffff"))
-    s.append(T(cx, hy + 82, "NCP", 18, 800, "#ffffff", anchor="middle"))
+    s.append(T(hx + 29, hy + 24.5, "U1", 10, 700, hero_ink, mono=True, anchor="middle"))
+    s.append(ic_key(cx - 14, hy + 30, 28, hero_ink))
+    s.append(T(cx, hy + 82, "NCP", 18, 800, hero_ink, anchor="middle"))
     s.append(
         T(
             cx,
@@ -1026,7 +1157,7 @@ def ecosystem(th):
             "unreleased 1.0 candidate",
             11,
             600,
-            "#ffffff",
+            hero_ink,
             anchor="middle",
             op=0.92,
         )
@@ -1038,7 +1169,7 @@ def ecosystem(th):
             "core · transports · bindings · gateway",
             9.5,
             600,
-            "#ffffff",
+            hero_ink,
             anchor="middle",
             op=0.9,
             mono=True,
@@ -1052,7 +1183,7 @@ def ecosystem(th):
             "consumers own thin optional role adapters",
             8.5,
             500,
-            "#ffffff",
+            hero_ink,
             anchor="middle",
             op=0.76,
             mono=True,
@@ -1066,7 +1197,7 @@ def ecosystem(th):
             f"WIRE {WIRE_VERSION} · PROTO {CONTRACT_HASH[:8]} · RELEASE BLOCKED",
             9,
             700,
-            "#ffffff",
+            hero_ink,
             anchor="middle",
             mono=True,
         )
@@ -1102,7 +1233,7 @@ def ecosystem(th):
         T(
             46,
             ly + 64,
-            "NO EDGE · pid-rs remains protocol-neutral. Cortexel has no NCP package, runtime, documentation-import, or role edge.",
+            "NO EDGE · pid-rs remains protocol-neutral. It has no NCP package, runtime, documentation-import, or role edge.",
             9.5,
             600,
             th["tsec"],
@@ -1213,7 +1344,18 @@ def versioning(th):
     )
     s.append(T(440, 268, "HARD", 9.5, 700, ctr, anchor="middle", track=0.6))
     s.append(T(440, 281, "both pass", 9.5, 600, th["tsec"], anchor="middle"))
-    s.append(T(440, 294, "FAIL-CLOSED", 9.5, 700, verm, anchor="middle", track=0.6))
+    s.append(
+        T(
+            440,
+            294,
+            "FAIL-CLOSED",
+            9.5,
+            700,
+            semantic_text_color(th, verm),
+            anchor="middle",
+            track=0.6,
+        )
+    )
 
     # ---- N3 REJECT ----
     rx_, ry, rw, rh = 568, 96, 220, 100
@@ -1336,7 +1478,14 @@ def versioning(th):
             rect(x - 1.5, y - 1.5, w + 3, h + 3, rx=8, fill=th["bg_bot"])
             + rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
             + rect(x + 7, y + 6, 10, 10, rx=2, fill=sq_hue)
-            + T(x + 22, y + 15, eyebrow, 9.5, 700, sq_hue)
+            + T(
+                x + 22,
+                y + 15,
+                eyebrow,
+                9.5,
+                700,
+                semantic_text_color(th, sq_hue),
+            )
             + T(
                 x + 22 + len(eyebrow) * 6.3 + 8,
                 y + 15,
@@ -1360,8 +1509,9 @@ def versioning(th):
     ]
     lx = 40
     for hue, gly, concept, tail in items:
-        s.append(T(lx, ly + 4, gly, 10, 700, hue))
-        s.append(T(lx + 14, ly + 4, concept, 10, 700, hue, track=0.4))
+        text_color = semantic_text_color(th, hue)
+        s.append(T(lx, ly + 4, gly, 10, 700, text_color))
+        s.append(T(lx + 14, ly + 4, concept, 10, 700, text_color, track=0.4))
         s.append(T(lx + 14 + len(concept) * 7 + 6, ly + 4, tail, 9, 500, th["tmut"]))
         lx += 248
     s.append("</svg>")
@@ -1380,14 +1530,9 @@ def fsm(th):
             W,
         )
     )
-    s.append(
-        sheet_meta(
-            th,
-            W - 28,
-            48,
-            f"NCP · UNRELEASED {CANDIDATE_VERSION} · WIRE {WIRE_VERSION} · SHEET 04/05",
-        )
-    )
+    # The long state-model heading uses the full title rail. Put the exact
+    # candidate identity on its own rail below the header divider.
+    s.append(sheet_meta(th, W - 28, 90, CURRENT_META))
     grn, amb, verm, pink, obs = (
         th["active"],
         th["hold"],
@@ -1778,7 +1923,7 @@ def fsm(th):
         T(
             44,
             iy + 17,
-            "INVARIANT · Output is only a bounded wire candidate. The body selects an installed plant-profile action; NCP defines no universal zero.",
+            "INVARIANT · Output is only a bounded wire candidate. The body selects an installed plant-profile action. NCP defines no universal zero.",
             8.5,
             500,
             th["tsec"],
@@ -1812,14 +1957,9 @@ def sequence(th):
             W,
         )
     )
-    s.append(
-        sheet_meta(
-            th,
-            W - 28,
-            48,
-            f"NCP · UNRELEASED {CANDIDATE_VERSION} · WIRE {WIRE_VERSION} · proto/ncp.proto",
-        )
-    )
+    # The long sequence heading uses the full title rail. Put the exact
+    # candidate identity on its own rail below the header divider.
+    s.append(sheet_meta(th, W - 28, 88, CURRENT_META))
     ctl, obs, ctr, verm, grn, pink = (
         th["control"],
         th["observation"],
@@ -1864,7 +2004,7 @@ def sequence(th):
         )
         tw = 22 + len(tag) * 6.0
         s.append(rect(210, fy, tw, 18, rx=6, fill=thue))
-        s.append(T(218, fy + 13, tag, 9.5, 700, "#ffffff", mono=True))
+        s.append(T(218, fy + 13, tag, 9.5, 700, contrast_ink(thue), mono=True))
         s.append(T(210 + tw + 10, fy + 13, note, 9, 500, th["tmut"], italic=True))
 
     # lifelines
@@ -1904,9 +2044,24 @@ def sequence(th):
             + rect(x, y, w, 30, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
             + rect(x + 7, y + 7, 16, 16, rx=3, fill=hue)
             + T(
-                x + 15, y + 18.5, desig, 8.5, 700, "#ffffff", mono=True, anchor="middle"
+                x + 15,
+                y + 18.5,
+                desig,
+                8.5,
+                700,
+                contrast_ink(hue),
+                mono=True,
+                anchor="middle",
             )
-            + T(x + 30, y + 13, eyebrow, 9.5, 700, hue, track=0.4)
+            + T(
+                x + 30,
+                y + 13,
+                eyebrow,
+                9.5,
+                700,
+                semantic_text_color(th, hue),
+                track=0.4,
+            )
             + T(x + 30, y + 24, key, 8.5, 500, th["tmut"], mono=True)
         )
 
@@ -1982,14 +2137,23 @@ def sequence(th):
             "ok=true → opens",
             8.5,
             700,
-            "#06281e" if th["name"] == "dark" else "#ffffff",
+            contrast_ink(grn),
             anchor="middle",
             mono=True,
         )
     )
     s.append(rect(420, 302, 150, 16, rx=6, fill="none", stroke=pink, sw=1.2))
     s.append(
-        T(495, 313, "ok=false → NO session", 8.5, 700, pink, anchor="middle", mono=True)
+        T(
+            495,
+            313,
+            "ok=false → NO session",
+            8.5,
+            700,
+            semantic_text_color(th, pink),
+            anchor="middle",
+            mono=True,
+        )
     )
     # E3 StepRequest / RunRequest →
     s.append(line(251, 372, 569, 372, ctl, 2.5, marker="arrowControl"))
@@ -2014,9 +2178,28 @@ def sequence(th):
     s.append(rect(cx0, cy0, cw, ch, rx=10, fill=ctl, op=th["wash_op"]))
     s.append(rect(cx0 + 8, cy0 + 8, 16, 16, rx=3, fill=ctl))
     s.append(
-        T(cx0 + 16, cy0 + 19.5, "O1", 8.5, 700, "#ffffff", mono=True, anchor="middle")
+        T(
+            cx0 + 16,
+            cy0 + 19.5,
+            "O1",
+            8.5,
+            700,
+            contrast_ink(ctl),
+            mono=True,
+            anchor="middle",
+        )
     )
-    s.append(T(cx0 + 30, cy0 + 15, "ObservationFrame  ←", 10, 700, ctl, track=0.3))
+    s.append(
+        T(
+            cx0 + 30,
+            cy0 + 15,
+            "ObservationFrame  ←",
+            10,
+            700,
+            semantic_text_color(th, ctl),
+            track=0.3,
+        )
+    )
     s.append(
         T(
             cx0 + 30,
@@ -2038,7 +2221,7 @@ def sequence(th):
             "is_simulation_output = true",
             8.5,
             700,
-            "#06281e" if th["name"] == "dark" else "#ffffff",
+            contrast_ink(grn),
             anchor="middle",
             mono=True,
         )
@@ -2051,7 +2234,7 @@ def sequence(th):
             "calibrated_posterior = false",
             8.5,
             700,
-            "#3a1029" if th["name"] == "dark" else "#ffffff",
+            contrast_ink(pink),
             anchor="middle",
             mono=True,
         )
@@ -2304,7 +2487,17 @@ def admission(th):
         )
     )
     s.append(rect(28, 478, 5, 78, rx=2, fill=action))
-    s.append(T(48, 500, "ORDERING", 10, 800, action, track=1.0))
+    s.append(
+        T(
+            48,
+            500,
+            "ORDERING",
+            10,
+            800,
+            semantic_text_color(th, action),
+            track=1.0,
+        )
+    )
     s.append(
         T(
             128,
@@ -2340,13 +2533,791 @@ def admission(th):
     return "".join(s)
 
 
+# ───────────────────────────── 7. PROTOCOL OVERVIEW ─────────────────────────────
+def overview(th):
+    W, H = 1060, 684
+    s = [svg_open(W, H, "overview"), defs(th), background(th, W, H)]
+    s.append(
+        title_block(
+            th,
+            "NCP FUNCTION",
+            "FIVE SHARED GATES  ·  ACTION ADDS THE BODY EFFECT GATE  ·  FOUR PLANES",
+            W,
+        )
+    )
+    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
+
+    control = th["control"]
+    perception = th["perception"]
+    action = th["action"]
+    observation = th["observation"]
+    active = th["active"]
+    contract = th["contract"]
+
+    stage_x = (28, 232, 436, 640, 844)
+    stages = (
+        (
+            "G0",
+            control,
+            "BOUND RAW BYTES",
+            "frame · depth · members",
+            "before semantic allocation",
+        ),
+        (
+            "G1",
+            control,
+            "AUTHENTICATE",
+            "transport principal · manifest",
+            "audience · route · profile",
+        ),
+        (
+            "G2",
+            contract,
+            "WIRE + CORE",
+            f"canonical {WIRE_MAJOR}.x · exact stable core",
+            "unknown / default → reject",
+        ),
+        (
+            "G3",
+            active,
+            "SESSION + STREAM",
+            "generation · epoch · position",
+            "lease · deadline · no-reuse",
+        ),
+        (
+            "G4",
+            active,
+            "TYPED DELIVERY",
+            "prepared layout · finite queue",
+            "callback after admission",
+        ),
+    )
+
+    for index, (designator, hue, heading, detail, note) in enumerate(stages):
+        x = stage_x[index]
+        s.append(card(th, x, 108, 188, 104, hue, designator))
+        s.append(T(x + 18, 147, heading, 11.5, 750, th["tprim"]))
+        s.append(T(x + 18, 170, detail, 8.5, 600, th["tsec"], mono=True))
+        s.append(T(x + 18, 191, note, 8.5, 500, th["tmut"], mono=True))
+        if index < len(stages) - 1:
+            marker = "arrowContract" if index == 1 else "arrowActive"
+            hue_out = contract if index == 1 else active
+            s.append(
+                line(x + 188, 160, stage_x[index + 1], 160, hue_out, 2.5, marker=marker)
+            )
+
+    lane_text_hues = {
+        hue: semantic_text_color(th, hue)
+        for hue in (control, perception, action, observation, contract, active)
+    }
+
+    def lane(y, designator, hue, name, actors, policy, outcome, *, hero=False):
+        x, w, h = 28, 1004, 54
+        fill = "url(#surface)" if hero else th["surf_chip"]
+        s.append(
+            rect(
+                x,
+                y,
+                w,
+                h,
+                rx=9,
+                fill=fill,
+                stroke=hue if hero else th["border"],
+                sw=1.6 if hero else 1,
+                filt="glow" if hero else None,
+            )
+        )
+        if hero:
+            s.append(rect(x, y, w, h, rx=9, fill=hue, op=th["wash_op"]))
+        s.append(rect(x + 7, y + 9, 4, h - 18, rx=2, fill=hue))
+        s.append(rect(x + 18, y + 17, 26, 20, rx=4, fill=hue))
+        badge_ink = contrast_ink(hue)
+        s.append(
+            T(
+                x + 31,
+                y + 31,
+                designator,
+                9.5,
+                800,
+                badge_ink,
+                mono=True,
+                anchor="middle",
+            )
+        )
+        s.append(T(x + 58, y + 31, name, 11, 800, lane_text_hues[hue], track=0.8))
+        s.append(T(x + 214, y + 31, actors, 9.5, 600, th["tsec"]))
+        s.append(T(x + 505, y + 31, policy, 9, 500, th["tmut"], mono=True))
+        outcome_w = 166
+        outcome_x = x + w - outcome_w - 14
+        s.append(
+            rect(
+                outcome_x,
+                y + 13,
+                outcome_w,
+                28,
+                rx=8,
+                fill=th["surf_chip"],
+                stroke=hue,
+                sw=1.2,
+            )
+        )
+        s.append(
+            T(
+                outcome_x + outcome_w / 2,
+                y + 31,
+                outcome,
+                8.5,
+                700,
+                lane_text_hues[hue],
+                mono=True,
+                anchor="middle",
+            )
+        )
+
+    lane(
+        252,
+        "C1",
+        control,
+        "CONTROL",
+        "commander ⇄ body",
+        "bounded · reject overflow",
+        "request / reply",
+    )
+    lane(
+        316,
+        "P1",
+        perception,
+        "PERCEPTION",
+        "body → commander",
+        "replace latest · expose loss",
+        "lossy stream",
+    )
+    lane(
+        380,
+        "A1",
+        action,
+        "ACTION",
+        "commander / operator → body",
+        "severity: ESTOP > HOLD > Active",
+        "BODY EFFECT GATE",
+        hero=True,
+    )
+    lane(
+        444,
+        "O1",
+        observation,
+        "OBSERVATION",
+        "body → read-only observer",
+        "drop oldest · count gaps",
+        "no authority",
+    )
+
+    band_y = 530
+    s.append(
+        rect(
+            28,
+            band_y,
+            W - 56,
+            122,
+            rx=10,
+            fill=th["surf_chip"],
+            stroke=th["border"],
+            sw=1,
+        )
+    )
+    s.append(rect(28, band_y, 5, 122, rx=2, fill=action))
+    rows = (
+        (
+            "STATUS",
+            action,
+            "Direct stable-1.0 Zenoh cannot bind the verified remote principal. The production-secure profile is unavailable.",
+        ),
+        (
+            "BOUNDARY",
+            contract,
+            "NCP defines a contract and admission rules. It is not a broker, actuator, or physical-safety certification.",
+        ),
+        (
+            "EVIDENCE",
+            observation,
+            "Local tests do not complete independent peers, live security, performance, provenance, or role qualification.",
+        ),
+    )
+    for index, (label, hue, text) in enumerate(rows):
+        y = band_y + 27 + index * 34
+        text_hue = lane_text_hues.get(hue, hue)
+        s.append(T(48, y, label, 9.5, 800, text_hue, track=0.8))
+        s.append(T(136, y, text, 9.5, 600, th["tsec"]))
+    s.append("</svg>")
+    return "".join(s)
+
+
+# ───────────────────────────── 8. LOW-OVERHEAD RUNTIME ─────────────────────────────
+def runtime(th):
+    W, H = 1060, 650
+    s = [svg_open(W, H, "runtime"), defs(th), background(th, W, H)]
+    s.append(
+        title_block(
+            th,
+            "LOW-OVERHEAD RUNTIME",
+            "PREPARE ONCE  ·  BOUND AND DECODE ONCE  ·  SHORT OWNER TRANSITION",
+            W,
+        )
+    )
+    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
+
+    control = th["control"]
+    active = th["active"]
+    hold = th["hold"]
+    action = th["action"]
+    observation = th["observation"]
+    contract = th["contract"]
+
+    s.append(card(th, 28, 102, 1004, 78, contract, "P0"))
+    s.append(ic_gauge(50, 130, 24, contract))
+    s.append(T(86, 134, "PREPARE ONCE", 13, 800, th["tprim"], track=0.5))
+    s.append(
+        T(
+            222,
+            134,
+            "manifest · security snapshot · routes · layouts · queue and deadline profiles",
+            9.5,
+            600,
+            th["tsec"],
+            mono=True,
+        )
+    )
+    s.append(
+        T(
+            86,
+            158,
+            "compile immutable handles and bounded shared tables before publishers, subscriptions, callbacks, or actuator resources",
+            9,
+            500,
+            th["tmut"],
+            mono=True,
+        )
+    )
+
+    stage_x = (28, 202, 376, 550, 724, 898)
+    stages = (
+        ("B0", control, "RAW BOUND", "checked bytes", "scratch only"),
+        ("A1", control, "CAPABILITY", "snapshot lookup", "no caller evidence"),
+        ("D2", active, "DECODE ONCE", "prepared layout", "one owned frame"),
+        ("L3", hold, "EXACT LOOKUP", "route · session · position", "indexed state"),
+        ("O4", action, "OWNER STEP", "fixed transition", "short lock"),
+        ("H5", active, "HANDOFF", "bounded plane queue", "external work unlocked"),
+    )
+    for index, (designator, hue, heading, detail, note) in enumerate(stages):
+        x = stage_x[index]
+        s.append(card(th, x, 230, 150, 96, hue, designator, glow=index == 4))
+        s.append(T(x + 18, 268, heading, 10.5, 800, th["tprim"]))
+        s.append(T(x + 18, 289, detail, 8, 600, th["tsec"], mono=True))
+        s.append(T(x + 18, 307, note, 8, 500, th["tmut"], mono=True))
+        if index < len(stages) - 1:
+            marker = "arrowEstop" if index == 3 else "arrowActive"
+            hue_out = action if index == 3 else active
+            s.append(
+                line(x + 150, 278, stage_x[index + 1], 278, hue_out, 2.5, marker=marker)
+            )
+
+    for target_x in (277, 451, 625):
+        s.append(
+            path(
+                f"M{target_x},180 L{target_x},214 Q{target_x},222 {target_x + 8},222 L{target_x + 8},230",
+                stroke=contract,
+                sw=1.5,
+                dash="4 3",
+                marker="arrowContract",
+            )
+        )
+
+    s.append(line(742, 340, 856, 340, action, 2.5))
+    s.append(line(742, 334, 742, 346, action, 2.5))
+    s.append(line(856, 334, 856, 346, action, 2.5))
+    s.append(
+        T(
+            799,
+            360,
+            "owner lock only",
+            8.5,
+            700,
+            semantic_text_color(th, action),
+            mono=True,
+            anchor="middle",
+        )
+    )
+
+    panels = (
+        (
+            28,
+            control,
+            "HOT PATH EXCLUDES",
+            "manifest or profile parsing",
+            "storage · backend · device calls",
+        ),
+        (
+            376,
+            contract,
+            "STATE SHAPE",
+            "shared fixed-capacity tables",
+            "no service object per session",
+        ),
+        (
+            724,
+            observation,
+            "PLANE ISOLATION",
+            "finite queue for each plane",
+            "no borrowing action capacity",
+        ),
+    )
+    for index, (x, hue, heading, detail, note) in enumerate(panels):
+        s.append(card(th, x, 390, 308, 96, hue, f"R{index + 1}"))
+        s.append(T(x + 50, 423, heading, 11, 800, th["tprim"]))
+        s.append(T(x + 20, 449, detail, 9, 600, th["tsec"], mono=True))
+        s.append(T(x + 20, 468, note, 9, 500, th["tmut"], mono=True))
+
+    band_y = 518
+    s.append(
+        rect(
+            28,
+            band_y,
+            W - 56,
+            104,
+            rx=10,
+            fill=th["surf_chip"],
+            stroke=th["border"],
+            sw=1,
+        )
+    )
+    s.append(rect(28, band_y, 5, 104, rx=2, fill=active))
+    s.append(
+        T(
+            48,
+            band_y + 24,
+            "LATENCY",
+            9.5,
+            800,
+            semantic_text_color(th, active),
+            track=0.8,
+        )
+    )
+    s.append(
+        T(
+            134,
+            band_y + 24,
+            "T_hot = T_bound + T_auth + T_decode + T_lookup + T_owner + T_handoff",
+            10,
+            700,
+            th["tprim"],
+            mono=True,
+        )
+    )
+    s.append(
+        T(
+            48,
+            band_y + 52,
+            "MEMORY",
+            9.5,
+            800,
+            semantic_text_color(th, contract),
+            track=0.8,
+        )
+    )
+    s.append(
+        T(
+            134,
+            band_y + 52,
+            "M_NCP,bounded ≤ M_prepared + M_step,total + M_ext,total + M_aux",
+            10,
+            700,
+            th["tprim"],
+            mono=True,
+        )
+    )
+    s.append(
+        T(
+            48,
+            band_y + 82,
+            "BOUNDARY · Every term uses a finite B03 profile and checked arithmetic. These are symbolic targets, not measurements.",
+            9.0,
+            500,
+            th["tmut"],
+            italic=True,
+        )
+    )
+    s.append("</svg>")
+    return "".join(s)
+
+
+# ───────────────────────────── 9. LIFECYCLE OWNER ─────────────────────────────
+def lifecycle(th):
+    W, H = 1060, 764
+    s = [svg_open(W, H, "lifecycle"), defs(th), background(th, W, H)]
+    s.append(
+        title_block(
+            th,
+            "SESSION LIFECYCLE OWNER",
+            "ONE SLOT PER NAMESPACE  ·  EXACT RETRY  ·  NO NEW OPERATION AFTER AMBIGUITY",
+            W,
+        )
+    )
+    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
+
+    control = th["control"]
+    active = th["active"]
+    hold = th["hold"]
+    action = th["action"]
+    observation = th["observation"]
+    contract = th["contract"]
+
+    state_x = (38, 286, 534, 782)
+    state_data = (
+        ("F0", observation, "FREE", "no lifecycle slot", "no external effect"),
+        ("P1", control, "PENDING", "durable reservation", "lineage + capacity held"),
+        ("A2", hold, "AMBIGUOUS", "effect is unknown", "same operation fenced"),
+        (
+            "T3",
+            active,
+            "TERMINAL COMMIT",
+            "result + high-water durable",
+            "slot release is atomic",
+        ),
+    )
+
+    s.append(line(218, 178, 286, 178, control, 3, marker="arrowControl"))
+    s.append(line(466, 178, 534, 178, hold, 3, marker="arrowHold"))
+    s.append(line(714, 178, 782, 178, active, 3, marker="arrowActive"))
+    s.append(
+        path(
+            "M466,138 L490,138 Q500,138 500,128 L500,110 Q500,100 510,100 L850,100 Q860,100 860,110 L860,128",
+            stroke=active,
+            sw=2.2,
+            marker="arrowActive",
+        )
+    )
+    s.append(
+        T(
+            650,
+            94,
+            "definitive authenticated result",
+            8.5,
+            700,
+            semantic_text_color(th, active),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        T(
+            252,
+            166,
+            "reserve",
+            8,
+            700,
+            semantic_text_color(th, control),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        T(
+            500,
+            166,
+            "unknown",
+            8,
+            700,
+            semantic_text_color(th, hold),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        T(
+            748,
+            166,
+            "reconcile",
+            8,
+            700,
+            semantic_text_color(th, active),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        path(
+            "M872,228 L872,262 Q872,274 860,274 L140,274 Q128,274 128,262 L128,228",
+            stroke=control,
+            sw=2.2,
+            marker="arrowControl",
+        )
+    )
+    s.append(
+        T(
+            530,
+            267,
+            "publish retained result + high-water · release active slot",
+            8.5,
+            700,
+            semantic_text_color(th, control),
+            mono=True,
+            anchor="middle",
+        )
+    )
+
+    for index, (designator, hue, heading, detail, note) in enumerate(state_data):
+        x = state_x[index]
+        s.append(card(th, x, 128, 180, 100, hue, designator, glow=index == 2))
+        s.append(T(x + 18, 166, heading, 13, 800, th["tprim"]))
+        s.append(T(x + 18, 190, detail, 9, 600, th["tsec"], mono=True))
+        s.append(T(x + 18, 210, note, 8.5, 500, th["tmut"], mono=True))
+
+    s.append(
+        T(
+            128,
+            301,
+            "capacity failure → reject · no state · no effect",
+            8.5,
+            600,
+            semantic_text_color(th, observation),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        T(
+            530,
+            301,
+            "different coordinate or bytes → reject · no mutation",
+            8.5,
+            700,
+            semantic_text_color(th, action),
+            mono=True,
+            anchor="middle",
+        )
+    )
+    s.append(
+        T(
+            872,
+            301,
+            "exact retry → retained-pool result",
+            8.5,
+            700,
+            semantic_text_color(th, active),
+            mono=True,
+            anchor="middle",
+        )
+    )
+
+    s.append(rect(38, 322, 480, 62, rx=9, fill=th["surf_chip"], stroke=active, sw=1.2))
+    s.append(rect(45, 333, 4, 40, rx=2, fill=active))
+    s.append(
+        T(
+            62,
+            346,
+            "CURRENT POLICY",
+            9.5,
+            800,
+            semantic_text_color(th, active),
+            track=0.8,
+        )
+    )
+    s.append(
+        T(
+            184,
+            346,
+            "gates result disclosure and every widening transition",
+            9,
+            600,
+            th["tsec"],
+        )
+    )
+    s.append(
+        T(
+            62,
+            368,
+            "rotation cannot rekey, reexecute, or alter retained evidence",
+            8.5,
+            500,
+            th["tmut"],
+            mono=True,
+        )
+    )
+
+    s.append(rect(542, 322, 480, 62, rx=9, fill=th["surf_chip"], stroke=action, sw=1.2))
+    s.append(rect(549, 333, 4, 40, rx=2, fill=action))
+    s.append(
+        T(
+            566,
+            346,
+            "RESTRICTIVE CLEANUP",
+            9.5,
+            800,
+            semantic_text_color(th, action),
+            track=0.8,
+        )
+    )
+    s.append(
+        T(
+            726,
+            346,
+            "continues after initiating authority is revoked",
+            9,
+            600,
+            th["tsec"],
+        )
+    )
+    s.append(
+        T(
+            566,
+            368,
+            "current policy cannot erase required reconciliation or retirement",
+            8.5,
+            500,
+            th["tmut"],
+            mono=True,
+        )
+    )
+
+    store_x = (28, 282, 536, 790)
+    stores = (
+        (
+            "C0",
+            contract,
+            "PREPARED CONTEXT",
+            "exact identity + route bytes",
+            "content address + durable ref",
+        ),
+        (
+            "N1",
+            control,
+            "NAMESPACE SLOT",
+            "≤ 1 active lifecycle mutation",
+            "prior generation retained",
+        ),
+        (
+            "R2",
+            active,
+            "TERMINAL RESULT POOL",
+            "finite count + byte profile",
+            "retired never reexecutes",
+        ),
+        (
+            "O3",
+            hold,
+            "ORDINAL HIGH-WATER",
+            "issuer epoch + checked ordinal",
+            "overflow seals the epoch",
+        ),
+    )
+    s.append(line(258, 458, 282, 458, contract, 2.2, marker="arrowContract"))
+    s.append(line(512, 458, 536, 458, active, 2.2, marker="arrowActive"))
+    s.append(line(766, 458, 790, 458, hold, 2.2, marker="arrowHold"))
+    for index, (designator, hue, heading, detail, note) in enumerate(stores):
+        x = store_x[index]
+        s.append(card(th, x, 410, 230, 100, hue, designator))
+        s.append(T(x + 18, 448, heading, 10.5, 800, th["tprim"]))
+        s.append(T(x + 18, 472, detail, 8.5, 600, th["tsec"], mono=True))
+        s.append(T(x + 18, 492, note, 8.5, 500, th["tmut"], mono=True))
+
+    band_y = 546
+    s.append(
+        rect(
+            28,
+            band_y,
+            W - 56,
+            176,
+            rx=10,
+            fill=th["surf_chip"],
+            stroke=th["border"],
+            sw=1,
+        )
+    )
+    s.append(rect(28, band_y, 5, 176, rx=2, fill=contract))
+    rules = (
+        (
+            "SINGLE FLIGHT",
+            "N_active(realm, kind, logical_id) ≤ 1",
+            control,
+        ),
+        (
+            "EXACT RETRY",
+            "retry ⇔ c = cᵣ ∧ b = bᵣ ∧ k = kᵣ ∧ o = oᵣ",
+            active,
+        ),
+        (
+            "NO REUSE",
+            "o_high = 0 initially  ·  o_next = checked_add(o_high, 1)  ·  overflow ⇒ seal epoch",
+            hold,
+        ),
+        (
+            "SERVICE SHAPE",
+            "threads/session = sockets/session = dedicated stores/session = 0",
+            observation,
+        ),
+    )
+    for index, (label, formula, hue) in enumerate(rules):
+        y = band_y + 29 + index * 34
+        s.append(T(48, y, label, 9.5, 800, semantic_text_color(th, hue), track=0.7))
+        s.append(T(190, y, formula, 10, 700, th["tprim"], mono=True))
+    s.append(
+        T(
+            48,
+            band_y + 158,
+            "BOUNDARY · B03 selects every numeric ceiling, durable store, atomicity profile, rollover proof, and retention interval.",
+            9.2,
+            500,
+            th["tmut"],
+            italic=True,
+        )
+    )
+    s.append("</svg>")
+    return "".join(s)
+
+
 DIAGRAMS = {
+    "overview": overview,
     "topology": topology,
     "ecosystem": ecosystem,
     "versioning": versioning,
     "fsm": fsm,
     "sequence": sequence,
     "admission": admission,
+    "runtime": runtime,
+    "lifecycle": lifecycle,
+}
+
+DIAGRAM_OWNERS = {
+    "overview": ROOT / "README.md",
+    "topology": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "ecosystem": ROOT
+    / "docs"
+    / "handoff"
+    / "NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+    "versioning": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "fsm": ROOT / "RESILIENCE.md",
+    "sequence": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "admission": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "runtime": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "lifecycle": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
 }
 
 PUBLIC_SVG_PATHS = (
@@ -2370,8 +3341,14 @@ def _local_name(tag) -> str:
 
 def public_svg_accessibility_problems() -> list[str]:
     """Audit the exact direct-view accessibility contract for all public SVGs."""
-    if len(PUBLIC_SVG_PATHS) != 18 or len(set(PUBLIC_SVG_PATHS)) != 18:
-        return ["public SVG inventory must contain exactly 18 unique assets"]
+    expected_count = 2 + len(DIAGRAMS) * 2 + 4
+    if (
+        len(PUBLIC_SVG_PATHS) != expected_count
+        or len(set(PUBLIC_SVG_PATHS)) != expected_count
+    ):
+        return [
+            f"public SVG inventory must contain exactly {expected_count} unique assets"
+        ]
 
     problems = []
     actual_paths = {
@@ -2387,7 +3364,18 @@ def public_svg_accessibility_problems() -> list[str]:
         if not path.is_file():
             problems.append(f"missing public SVG {label}")
             continue
+        if path.is_symlink():
+            problems.append(f"{label}: public SVG must be a regular in-tree file")
+            continue
         source = path.read_text(encoding="utf-8")
+        lowered_source = source.casefold()
+        is_protocol_diagram = path.parent == ROOT / "docs" / "diagrams"
+        if "<!entity" in lowered_source:
+            problems.append(f"{label}: entity declarations are not allowed")
+        if is_protocol_diagram and "<!doctype" in lowered_source:
+            problems.append(f"{label}: document type declarations are not allowed")
+        if "<?xml-stylesheet" in lowered_source:
+            problems.append(f"{label}: external XML stylesheets are not allowed")
         try:
             root = ET.fromstring(source)
         except ET.ParseError as error:
@@ -2396,6 +3384,9 @@ def public_svg_accessibility_problems() -> list[str]:
         if _local_name(root.tag) != "svg":
             problems.append(f"{label}: document root is not svg")
             continue
+        for attribute in ("width", "height", "viewBox"):
+            if not root.get(attribute):
+                problems.append(f"{label}: root is missing {attribute}")
         if root.get("role") != "img":
             problems.append(f'{label}: root must have role="img"')
         if root.get("aria-label") is not None:
@@ -2413,7 +3404,27 @@ def public_svg_accessibility_problems() -> list[str]:
         description_id = descriptions[0].get("id")
         labelledby = root.get("aria-labelledby", "").split()
         id_counts = {}
+        fragment_references = set()
         for node in root.iter():
+            if _local_name(node.tag) in {"script", "foreignObject"}:
+                problems.append(
+                    f"{label}: {_local_name(node.tag)} is not allowed in a public SVG"
+                )
+            for attribute, value in node.attrib.items():
+                local_attribute = _local_name(attribute)
+                if local_attribute.casefold().startswith("on"):
+                    problems.append(
+                        f"{label}: event-handler attributes are not allowed"
+                    )
+                if local_attribute == "base":
+                    problems.append(f"{label}: XML base attributes are not allowed")
+                if local_attribute == "href":
+                    if not value.startswith("#") or len(value) == 1:
+                        problems.append(
+                            f"{label}: external or empty resource reference is not allowed"
+                        )
+                    else:
+                        fragment_references.add(value[1:])
             node_id = node.get("id")
             if node_id:
                 id_counts[node_id] = id_counts.get(node_id, 0) + 1
@@ -2442,6 +3453,28 @@ def public_svg_accessibility_problems() -> list[str]:
             problems.append(
                 f"{label}: desc must state UNRELEASED and non-certification status"
             )
+
+        if "@import" in lowered_source:
+            problems.append(f"{label}: external CSS resource is not allowed")
+        css_url_starts = re.findall(r"url\s*\(", source, flags=re.IGNORECASE)
+        css_urls = list(
+            re.finditer(r"url\s*\(\s*([^)]*?)\s*\)", source, flags=re.IGNORECASE)
+        )
+        if len(css_urls) != len(css_url_starts):
+            problems.append(f"{label}: malformed CSS resource reference")
+        for match in css_urls:
+            target = match.group(1).strip()
+            if len(target) >= 2 and target[0] == target[-1] and target[0] in "\"'":
+                target = target[1:-1].strip()
+            if not target.startswith("#") or len(target) == 1:
+                problems.append(
+                    f"{label}: external or empty CSS resource is not allowed"
+                )
+        for fragment in sorted(fragment_references):
+            if id_counts.get(fragment) != 1:
+                problems.append(
+                    f"{label}: resource fragment #{fragment} must resolve exactly once"
+                )
 
         has_motion = "<animate" in source or "animation:" in source
         if has_motion and "prefers-reduced-motion: reduce" not in source:
@@ -2476,39 +3509,66 @@ def topology_contract_problems() -> list[str]:
     return problems
 
 
-def _relative_luminance(color: str) -> float:
-    if len(color) != 7 or not color.startswith("#"):
-        raise ValueError(f"expected six-digit hex color, got {color!r}")
-    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
-    linear = [
-        channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
-        for channel in channels
-    ]
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+def architecture_diagram_problems() -> list[str]:
+    """Keep the new overview and low-overhead figures claim-complete."""
+    problems = []
+    required_by_diagram = {
+        "overview": (
+            "BOUND RAW BYTES",
+            "AUTHENTICATE",
+            "WIRE + CORE",
+            "SESSION + STREAM",
+            "TYPED DELIVERY",
+            "BODY EFFECT GATE",
+            "production-secure profile is unavailable",
+        ),
+        "runtime": (
+            "PREPARE ONCE",
+            "DECODE ONCE",
+            "OWNER STEP",
+            "external work unlocked",
+            "T_hot = T_bound + T_auth + T_decode + T_lookup + T_owner + T_handoff",
+            "M_NCP,bounded ≤ M_prepared + M_step,total + M_ext,total + M_aux",
+            "These are symbolic targets, not measurements.",
+        ),
+        "lifecycle": (
+            "FREE",
+            "PENDING",
+            "AMBIGUOUS",
+            "TERMINAL",
+            "different coordinate or bytes → reject · no mutation",
+            "publish retained result + high-water · release active slot",
+            "threads/session = sockets/session = dedicated stores/session = 0",
+            "B03 selects every numeric ceiling",
+        ),
+    }
+    for name, required in required_by_diagram.items():
+        function = DIAGRAMS[name]
+        for theme in (LIGHT, DARK):
+            source = function(theme)
+            for text in required:
+                if esc(text) not in source:
+                    problems.append(f"{theme['name']} {name} omits {text!r}")
+    return problems
 
 
-def _contrast_ratio(foreground: str, background_color: str) -> float:
-    foreground_luminance = _relative_luminance(foreground)
-    background_luminance = _relative_luminance(background_color)
-    lighter = max(foreground_luminance, background_luminance)
-    darker = min(foreground_luminance, background_luminance)
-    return (lighter + 0.05) / (darker + 0.05)
-
-
-def _composite_color(foreground: str, background_color: str, opacity: float) -> str:
-    if not 0 <= opacity <= 1:
-        raise ValueError(f"opacity must be in [0, 1], got {opacity}")
-    foreground_channels = [
-        int(foreground[index : index + 2], 16) for index in (1, 3, 5)
-    ]
-    background_channels = [
-        int(background_color[index : index + 2], 16) for index in (1, 3, 5)
-    ]
-    channels = [
-        round(opacity * front + (1 - opacity) * back)
-        for front, back in zip(foreground_channels, background_channels)
-    ]
-    return "#" + "".join(f"{channel:02x}" for channel in channels)
+def diagram_reference_problems() -> list[str]:
+    """Require one maintained owner document for every generated diagram pair."""
+    if set(DIAGRAM_OWNERS) != set(DIAGRAMS):
+        return ["diagram owner inventory must equal the generated diagram inventory"]
+    problems = []
+    for name, owner in DIAGRAM_OWNERS.items():
+        label = owner.relative_to(ROOT).as_posix()
+        try:
+            source = owner.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            problems.append(f"{name} diagram owner is missing: {label}")
+            continue
+        for theme in ("light", "dark"):
+            filename = f"{name}-{theme}.svg"
+            if filename not in source:
+                problems.append(f"{label} does not reference {filename}")
+    return problems
 
 
 def fsm_contrast_problems() -> list[str]:
@@ -2588,6 +3648,89 @@ def fsm_contrast_problems() -> list[str]:
     return problems
 
 
+def architecture_contrast_problems() -> list[str]:
+    """Check semantic text and badge contrast in every generated sheet."""
+    problems = []
+    for theme in (LIGHT, DARK):
+        semantic_tokens = (
+            "control",
+            "perception",
+            "action",
+            "observation",
+            "contract",
+            "active",
+            "hold",
+            "configfail",
+        )
+        for token in semantic_tokens:
+            foreground = semantic_text_color(theme, theme[token])
+            for background_token in (
+                "bg_top",
+                "bg_bot",
+                "surf_top",
+                "surf_bot",
+                "surf_chip",
+            ):
+                background_color = theme[background_token]
+                ratio = _contrast_ratio(foreground, background_color)
+                if ratio < 4.5:
+                    problems.append(
+                        f"{theme['name']} architecture {token} text on "
+                        f"{background_token} contrast {ratio:.2f}:1 is below 4.5:1 "
+                        f"({foreground} on {background_color})"
+                    )
+
+                wash_background = _composite_color(
+                    theme[token], background_color, theme["wash_op"]
+                )
+                wash_ratio = _contrast_ratio(foreground, wash_background)
+                if wash_ratio < 4.5:
+                    problems.append(
+                        f"{theme['name']} architecture {token} text on "
+                        f"{background_token} with semantic wash contrast "
+                        f"{wash_ratio:.2f}:1 is below 4.5:1 "
+                        f"({foreground} on {wash_background})"
+                    )
+
+            badge_ink = contrast_ink(theme[token])
+            badge_ratio = _contrast_ratio(badge_ink, theme[token])
+            if badge_ratio < 4.5:
+                problems.append(
+                    f"{theme['name']} architecture {token} badge contrast "
+                    f"{badge_ratio:.2f}:1 is below 4.5:1 "
+                    f"({badge_ink} on {theme[token]})"
+                )
+
+        gradient_ink = contrast_ink(theme["contract"], theme["contract_lo"])
+        for stop_token in ("contract", "contract_lo"):
+            ratio = _contrast_ratio(gradient_ink, theme[stop_token])
+            if ratio < 4.5:
+                problems.append(
+                    f"{theme['name']} contract gradient text on {stop_token} "
+                    f"contrast {ratio:.2f}:1 is below 4.5:1 "
+                    f"({gradient_ink} on {theme[stop_token]})"
+                )
+
+        # Inspect generated text, not only the palette helpers. A raw semantic
+        # token that needs the light-theme text override is always a defect.
+        raw_to_token = {theme[token]: token for token in semantic_tokens}
+        for name, function in DIAGRAMS.items():
+            root = ET.fromstring(function(theme))
+            for node in root.iter():
+                if _local_name(node.tag) != "text":
+                    continue
+                fill = node.get("fill")
+                token = raw_to_token.get(fill)
+                if token is None or semantic_text_color(theme, fill) == fill:
+                    continue
+                content = " ".join("".join(node.itertext()).split())
+                problems.append(
+                    f"{theme['name']} {name} text {content!r} uses raw "
+                    f"low-contrast semantic token {token}"
+                )
+    return problems
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -2620,7 +3763,10 @@ def main():
                 print(f"wrote {p}  ({len(svg)} bytes)")
 
     stale.extend(fsm_contrast_problems())
+    stale.extend(architecture_contrast_problems())
     stale.extend(topology_contract_problems())
+    stale.extend(architecture_diagram_problems())
+    stale.extend(diagram_reference_problems())
     stale.extend(public_svg_accessibility_problems())
 
     if stale:
@@ -2632,7 +3778,7 @@ def main():
         print(
             f"OK: {len(DIAGRAMS) * 2} generated diagrams are current; "
             f"{len(PUBLIC_SVG_PATHS)} public SVGs meet the direct-view accessibility contract; "
-            "FSM text contrast is at least 4.5:1"
+            "architecture and FSM text contrast is at least 4.5:1"
         )
 
 

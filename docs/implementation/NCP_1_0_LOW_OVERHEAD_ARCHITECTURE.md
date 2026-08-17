@@ -76,7 +76,9 @@ diagram, or local benchmark cannot promote it to the third state.
     isolation boundary. A count-bounded pool is not time-bounded when work
     cannot stop.
 19. A mutating forwarded operation installs its exact durable outbox identity
-    before network send. Ambiguity never creates a fresh operation.
+    before network send. A session mutation retains its exact lineage until a
+    definitive result. Ambiguity never creates a fresh operation or deletes
+    recovery state.
 20. An observer source owner orders projection release against grant revocation.
     Receiver checks cannot repair an unauthorized source release.
 21. A deployment owner normalizes physical effect paths and excludes every
@@ -136,6 +138,293 @@ remains, the prepared scheduler caps consecutive Active transitions and gives
 pending perception a finite service bound. The fairness rule cannot delay those
 higher-priority transitions. B03 selects the numeric cap with the other local
 QoS values.
+
+### Runtime path and cost model
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../diagrams/runtime-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../diagrams/runtime-light.svg">
+  <img alt="Informative proposed NCP low-overhead runtime for the unreleased, release-blocked 1.0.0-rc.1 candidate. Session preparation compiles immutable manifests, security snapshots, routes, layouts, queues, and deadlines. Each hot frame is bounded, capability-checked, decoded once, and located by exact prepared identity. One short owner transition admits it before an unlocked finite-queue handoff. The equations are symbolic design accounting, not measured performance, implementation, release, interoperability, or certification evidence." src="../diagrams/runtime-light.svg" width="1060">
+</picture>
+
+The figure separates session preparation from the repeated frame path. Session
+preparation compiles immutable handles and reserves shared bounded state. The
+frame path then has six ordered stages:
+
+1. Bound the raw frame before semantic allocation.
+2. Resolve a receiver-minted capability for one immutable security snapshot.
+3. Decode once with the prepared layout.
+4. Locate exact route, session, stream, and position state.
+5. Apply one fixed body-owner transition under a short lock.
+6. Enqueue the admitted result after unlock with the plane's finite policy.
+
+The owner lock does not span storage, a backend query, a network operation, an
+application callback, or a device call. Preparation removes manifest, profile,
+route, and layout parsing from the frame path.
+
+#### Latency derivation
+
+Let the ordered stage set be:
+
+$$
+\mathcal{I} = (\mathrm{bound},\mathrm{auth},\mathrm{decode},
+\mathrm{lookup},\mathrm{owner},\mathrm{handoff}).
+$$
+
+For each stage `i`, let $t_i^{\mathrm{in}}$ and $t_i^{\mathrm{out}}$ be receiver
+monotonic ticks from one clock incarnation. A cross-incarnation pair is invalid.
+The local stage duration is:
+
+$$
+T_i = t_i^{\mathrm{out}} - t_i^{\mathrm{in}} \geq 0.
+$$
+
+The accounting boundary is contiguous. For each adjacent pair:
+
+$$
+t_i^{\mathrm{out}} = t_{i+1}^{\mathrm{in}}.
+$$
+
+The boundary equality does not require a thread or process boundary. It lets the
+internal ticks cancel in the complete interval:
+
+$$
+\begin{aligned}
+T_{\mathrm{hot}}
+&= t_{\mathrm{handoff}}^{\mathrm{out}}
+   - t_{\mathrm{bound}}^{\mathrm{in}} \\
+&= \sum_{i \in \mathcal{I}}
+   \left(t_i^{\mathrm{out}} - t_i^{\mathrm{in}}\right) \\
+&= T_{\mathrm{bound}} + T_{\mathrm{auth}}
+ + T_{\mathrm{decode}} + T_{\mathrm{lookup}}
+ + T_{\mathrm{owner}} + T_{\mathrm{handoff}}.
+\end{aligned}
+$$
+
+Suppose B03 selects a finite stage ceiling $U_i$ and requires
+$0 \leq T_i \leq U_i$. Addition preserves the inequalities. The conditional
+hot-path bound is therefore:
+
+$$
+T_{\mathrm{hot}}
+= \sum_{i \in \mathcal{I}} T_i
+\leq \sum_{i \in \mathcal{I}} U_i
+= U_{\mathrm{hot}}.
+$$
+
+`T_handoff` ends when the finite plane queue accepts or rejects the item.
+Transport time precedes the first tick. Queued work, application execution, and
+device execution follow the last tick. Those durations are not part of
+$T_{\mathrm{hot}}$.
+
+Let $a_i,c_i\in\mathbb{Z}_{\geq0}$. The value $a_i$ is the heap allocations
+caused by stage `i` after preparation. The value $c_i$ is its full-payload
+copies. The totals are:
+
+$$
+A_{\mathrm{hot}} = \sum_{i \in \mathcal{I}} a_i,
+\qquad
+C_{\mathrm{hot}} = \sum_{i \in \mathcal{I}} c_i.
+$$
+
+The fixed-layout contiguous target has $A_{\mathrm{hot}}=0$ and
+$C_{\mathrm{hot}}=0$ between ingress and typed handoff. The transport can still
+own one bounded receive buffer. A segmented receive path permits one bounded
+flattening copy. If preparation reserved that buffer, $A_{\mathrm{hot}}=0$ and
+$C_{\mathrm{hot}} \leq 1$. An on-demand buffer also adds one allocation and is
+outside the zero-allocation target.
+
+#### Lifecycle-memory derivation
+
+Let $\mathcal{S}=\{s,c,r,w\}$ identify session slots, prepared contexts,
+retained terminal results, and optional waiters. Store `x` has a declared
+capacity $C_x$. One capacity unit has a maximum charged size $B_x$ bytes.
+
+For every $x\in\mathcal{S}$, B03 selects
+$C_x,B_x\in\mathbb{Z}_{\geq0}$. It also selects
+$B_0\in\mathbb{Z}_{\geq0}$. These are declared reservation charges, not sampled
+heap usage.
+
+The portable charge $B_x$ includes content, backing storage, index entries, and
+specified metadata that scale with capacity. Runtime-specific allocator
+overhead belongs to the separate $J_x$ accounting domain. The per-store bound
+is:
+
+$$
+M_x \leq C_x B_x.
+$$
+
+The unit calculation is explicit:
+
+$$
+[C_x B_x]
+= [\mathrm{elements}]\,[\mathrm{bytes/element}]
+= [\mathrm{bytes}].
+$$
+
+Let $B_0$ bound fixed owner and store overhead. Adding the disjoint store
+charges gives:
+
+$$
+\begin{aligned}
+M_{\mathrm{lifecycle}}
+&\leq B_0 + \sum_{x \in \mathcal{S}} M_x \\
+&\leq B_0 + \sum_{x \in \mathcal{S}} C_x B_x \\
+&= B_0 + C_s B_s + C_c B_c + C_r B_r + C_w B_w.
+\end{aligned}
+$$
+
+If waiters are disabled, $C_w=0$. The fixed overhead $B_0$ remains. Thus, an
+empty preallocated table does not incorrectly appear to use zero memory.
+
+The receiver computes each product and partial sum with checked arithmetic.
+Choose one fixed ordering
+$(x_1,\ldots,x_{\lvert\mathcal{S}\rvert})$ of $\mathcal{S}$. For
+$1\leq k\leq\lvert\mathcal{S}\rvert$, define:
+
+$$
+P_k = B_0 + \sum_{j=1}^{k} C_{x_j} B_{x_j}.
+$$
+
+An overflow in a product or $P_k$ rejects the profile before allocation. A
+language runtime also uses a finite local allocator charge $J_x(C_x)$. All
+$J_x$ values and $J_0$ use one runtime-profile accounting unit:
+
+$$
+J_{\mathrm{local}}
+\leq J_0 + \sum_{x \in \mathcal{S}} J_x(C_x).
+$$
+
+The receiver requires both the portable byte bound and the local charge bound.
+The local charge includes container and allocator costs that the portable byte
+model cannot prove. The lifecycle bounds exclude transport buffers and unrelated
+process memory. B03 must select all inputs before the equations become
+operational. These are symbolic design bounds, not performance qualification.
+
+The same two-domain rule applies to the finite plane queues. Let
+$\mathcal{D}_{\mathrm{plane}}=
+\{\mathrm{ctl},\mathrm{per},\mathrm{act},\mathrm{obs},\mathrm{ext}\}$.
+Queue `p` has count capacity $Q_p$, aggregate byte capacity $D_p$, and maximum
+portable metadata charge $B_{p,\mathrm{meta}}$ per retained item.
+
+For every $p\in\mathcal{D}_{\mathrm{plane}}$, B03 selects
+$Q_p\in\mathbb{Z}_{>0}$ and
+$D_p,B_{p,\mathrm{meta}},G_p\in\mathbb{Z}_{\geq0}$. The value $G_p$ is the
+largest representable visible-loss count for the queue. The current count
+$g_p$ satisfies $0\leq g_p\leq G_p$. The live item count $n_p$ and every
+byte-string length are nonnegative integers. The metadata charge covers the
+complete portable per-item metadata.
+
+For retained count $n_p$ and retained byte charge
+$S_p=\sum_{k=1}^{n_p}\lVert b_{p,k}\rVert$, the current queue invariant is
+$0\leq n_p\leq Q_p$ and $0\leq S_p\leq D_p$.
+
+The plane policy examines a new item `b` without retaining it. It either rejects
+or selects one deterministic allowable victim set
+$E_p(b)\subseteq\{1,\ldots,n_p\}$. Define the victim count and byte charge:
+
+$$
+e_p(b)=\lvert E_p(b)\rvert,
+\qquad
+R_p(b)=\sum_{k\in E_p(b)}\lVert b_{p,k}\rVert.
+$$
+
+Control and extension reject-on-overflow policies select the empty set.
+Perception can select the current replaceable latest item. Observation selects
+the oldest items in order. Action can select only work that its restrictive
+severity policy permits it to displace. If no allowable victim set makes room,
+the incoming item rejects and the queue does not change.
+
+After selecting victims but before mutating the queue, the owner computes:
+
+$$
+n_p^- = n_p-e_p(b),
+\qquad
+S_p^- = S_p-R_p(b).
+$$
+
+The subset relation gives $0\leq e_p(b)\leq n_p$ and
+$0\leq R_p(b)\leq S_p$. The subtraction and every later sum use checked
+arithmetic. Admission requires:
+
+$$
+0\leq n_p^-<Q_p,
+\qquad
+0\leq S_p^-,
+\qquad
+S_p^-+\lVert b\rVert\leq D_p.
+$$
+
+Before mutation, the owner also computes the next visible-loss count:
+
+$$
+g'_p=\operatorname{checked\_add}\!\left(g_p,e_p(b)\right)\leq G_p.
+$$
+
+If the checked successor is unavailable, the owner seals or retires the
+affected stream and leaves the queue unchanged.
+
+One atomic owner transition reserves the incoming item, records the visible
+loss, removes the selected victims, and installs the new item. The resulting
+state satisfies:
+
+$$
+n'_p=n_p^-+1\leq Q_p,
+\qquad
+S'_p=S_p^-+\lVert b\rVert\leq D_p.
+$$
+
+The incoming payload is copied or retained only after these post-admission
+bounds are established. Let $B_{\mathrm{queue},0}$ be the fixed portable
+charge for queue owners and indexes that does not scale with a declared queue
+capacity. The complete portable queue envelope is:
+
+$$
+M_{\mathrm{queues}}
+\leq B_{\mathrm{queue},0}
++\sum_{p\in\mathcal{D}_{\mathrm{plane}}}
+\left(D_p+Q_pB_{p,\mathrm{meta}}\right).
+$$
+
+The lifecycle stores and plane queues are disjoint portable accounting domains.
+Combining their finite bounds gives:
+
+$$
+M_{\mathrm{prepared}}
+\leq B_0+\sum_{x\in\mathcal{S}}C_xB_x
++B_{\mathrm{queue},0}
++\sum_{p\in\mathcal{D}_{\mathrm{plane}}}
+\left(D_p+Q_pB_{p,\mathrm{meta}}\right).
+$$
+
+Let $J_{\mathrm{queue},0}$ be the fixed local-runtime charge for the queue
+owners. Let $J_p^{\mathrm{queue}}(Q_p,D_p)$ be a finite local-runtime charge
+that is monotone in both arguments. All queue charges use the same
+runtime-profile unit as the lifecycle charges. The local queue bound is:
+
+$$
+J_{\mathrm{queues}}
+\leq J_{\mathrm{queue},0}
++\sum_{p\in\mathcal{D}_{\mathrm{plane}}}
+J_p^{\mathrm{queue}}(Q_p,D_p).
+$$
+
+Lifecycle stores and queues are disjoint accounting domains. Their complete
+local charge is therefore:
+
+$$
+\begin{aligned}
+J_{\mathrm{prepared}}
+&=J_{\mathrm{local}}+J_{\mathrm{queues}} \\
+&\leq J_0+\sum_{x\in\mathcal{S}}J_x(C_x)
++J_{\mathrm{queue},0}
++\sum_{p\in\mathcal{D}_{\mathrm{plane}}}
+J_p^{\mathrm{queue}}(Q_p,D_p).
+\end{aligned}
+$$
+
+No plane borrows another plane's count, byte, or local charge. These equations
+exclude transport buffers, unrelated process memory, and device memory.
 
 ### Current implementation boundary
 
@@ -208,6 +497,17 @@ above:
   not yet bind the direct realm, authenticated entity, operation class, and
   complete target selected here. Its retry API cannot return a terminal result
   after the request deadline or live lease has elapsed.
+- `NeuroControlLoop` stores a host-supplied serialized lease. It checks only the
+  lease shape and session equality before Active output. It has no receiver-clock
+  lease deadline or opaque live-authority capability. A missed host-side clear
+  can therefore preserve apparent authority indefinitely.
+- `NeuroControlLoop::tick` returns the same `CommandFrame` type for a local
+  output before the first sensor and for a transport-admitted command. The
+  former never entered a transport slot. A production API must not let callers
+  confuse those results.
+- `CommandSendOutcome` binds only the transport position. It does not prove that
+  the transport retained the exact governed bytes. A selected slot receipt must
+  bind the owner incarnation, position, and exact payload digest.
 - The current contract requires a server-issued UUIDv4 generation, but no
   selected realm owner reserves generations across process restart. Randomness
   alone is not the selected no-reuse proof for a plant generation.
@@ -530,6 +830,226 @@ state, not a live session or lease. This low-rate reservation occurs once per
 opening and adds no per-frame storage operation. B03 must select its exact
 identity, storage, and crash-consistency profile. If the issuer cannot prove its
 state, it cannot open a new generation.
+
+### Session mutation owner
+
+Each realm keeps one bounded lifecycle-operation slot for each logical session
+namespace. The slot serializes open, replacement, and close operations. It binds
+the direct realm, session kind, logical ID, complete transport-bound
+`IdentityClaim`, receiver, route, manifest activation, and current security state.
+It also binds the operation issuer and epoch, operation ID, exact request digest,
+and checked issuer operation ordinal. The slot includes typed prior absence or
+generation, the backend reconciliation coordinate, and the prospective result.
+
+Bounded ingress parses and authenticates the request before reservation. The
+slot retains the exact admission-time manifest activation and security state as
+evidence. Those dynamic digests are not replay lookup keys.
+
+The immutable operation coordinate binds the realm, session namespace, identity
+claim, receiver, route, issuer epoch, operation ID, and request digest. A retry
+also binds the checked issuer operation ordinal. A retry from a different
+immutable coordinate conflicts.
+
+An exact retry authenticates the current requester, locates the existing
+coordinate, and exact-compares the retained request and admission context.
+Current manifest and security policy then control result disclosure and every
+authority-widening transition. Rotation cannot rekey or reexecute the operation.
+
+One immutable prepared ingress context can carry repeated identity, manifest,
+route, and security members. The durable slot stores its content address and
+recovery key. Recovery loads and compares the exact context bytes before use. A
+digest alone does not authorize.
+
+The shared prepared-context owner retains those exact bytes while an operation
+or retained full result references them. Reservation acquires a bounded durable
+reference in the same crash-consistent slot transition. Rotation blocks new
+widening under the old context but does not remove bytes needed for
+reconciliation or restrictive cleanup. The last reference releases only after
+the operation no longer needs exact-context recovery. Context-capacity failure
+rejects before effect.
+
+The logical states are free, pending, ambiguous, and terminal. They are not wire
+allocations. A new namespace consumes bounded table capacity before external
+work. Capacity failure leaves no partial slot and starts no external effect.
+
+The operation reserves its terminal and recovery capacity before external work.
+The reservation, prior-lineage capture, and fence form one crash-consistent
+transition. No external effect that can outlive the process starts before that
+transition is durable. B03 selects the exact storage and atomicity profile. The
+owner closes new descendant mutation admission while retaining the prior
+generation and its recovery coordinates. It does not erase that lineage.
+
+One deployment process owns the transition, or a shared atomic transition binds
+a fenced writer epoch. A local mutex cannot arbitrate multiple processes. The
+backend must accept the exact idempotency coordinate or provide an authoritative
+reconciliation query. Otherwise the owner rejects before effect.
+
+External work runs outside the owner lock. Required restrictive cleanup commits
+even if the initiating authorization expires or is revoked. Current
+authorization gates result disclosure, not restrictive completion. Before an
+open, replacement, or restoration admits authority, the owner rechecks the
+identity claim, manifest activation, security state, route, and target. Changed
+currentness prevents widening and requires external-effect reconciliation.
+
+Definitive authenticated nonacceptance can restore prior admission only when no
+external effect remains ambiguous. Restoration rechecks current security,
+policy, generation, and authority state. It never resurrects expired authority.
+Replacement or close cannot report success until prior descendant mutations are
+terminal or durably fenced against later effect.
+
+Timeout, cancellation, crash, or an unknown result leaves the same operation
+fenced and unresolved. An exact retry reads or queries that operation. A
+conflicting operation rejects. One namespace has at most one lifecycle mutation
+in flight.
+
+A late or superseded successful open still created a generation. The owner must
+reconcile and retire it through the same retained operation. It cannot forget the
+generation and start another open.
+
+The owner reports a terminal result only after one crash-consistent terminal
+transition commits. That transition advances the namespace's durable
+issuer-epoch ordinal high-water. It also publishes the fully reserved result in
+the shared terminal pool and transfers the prepared-context reference. Only
+then does it release the active namespace slot. The slot cannot appear free
+before the result and high-water are durable. The next operation in that epoch
+must use the exact checked successor. A lower or equal ordinal cannot execute
+again. Ordinal exhaustion seals the epoch. It never wraps or saturates.
+
+One bounded shared pool retains recent full terminal results for a finite
+profile. A retry lookup checks the active slot and retained-result index by
+immutable coordinate. It exact-compares the retained request, admission context,
+and ordinal before returning a result. After retirement, an ordinal at or below
+the high-water returns retired or unavailable. It never reexecutes. A new
+operation reserves its terminal-result entry before external work. Pool
+exhaustion rejects that operation instead of evicting a required result. The
+terminal commit uses its reservation without another capacity decision.
+
+An issuer-epoch rollover starts only after the old epoch has no pending or
+ambiguous operation. The security owner seals the old epoch against later
+admission. B03 selects the ordinal encoding, rollover proof, pool limits, and
+retirement profile. UUID randomness alone is not the no-reuse proof.
+
+The slot is logical state inside the existing bounded session table. A
+fixed-capacity sharded table, prepared-context table, and terminal-result pool
+can serve many namespaces without a thread, store, socket, or unbounded waiter
+list per session. Exact retries query the active slot and retained-result index.
+Any optional waiter set has fixed count and byte limits. Waiter overflow rejects
+without changing the operation. Those ceilings bound total lifecycle state.
+
+#### Lifecycle state and exact-retry model
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../diagrams/lifecycle-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../diagrams/lifecycle-light.svg">
+  <img alt="Informative proposed NCP lifecycle-operation model for the unreleased, release-blocked 1.0.0-rc.1 candidate. One namespace slot moves from free to pending, ambiguous, or terminal commit. A definitive result can move pending directly to terminal commit. An unknown effect keeps the same operation fenced until reconciliation. Terminal commit publishes the reserved result and high-water before it releases the active slot. Exact retries compare the retained coordinate, request bytes, admission-context bytes, and issuer ordinal. Shared finite stores avoid dedicated threads, sockets, or stores per session. The figure is not implementation, release, interoperability, or certification evidence." src="../diagrams/lifecycle-light.svg" width="1060">
+</picture>
+
+The `free` state has no lifecycle slot and no external effect. The transition to
+`pending` durably reserves lineage, result capacity, recovery capacity, and one
+prepared-context reference. Only then can external work start.
+
+A definitive authenticated result moves `pending` directly to the `terminal`
+commit point. An unknown result moves the same operation to `ambiguous`.
+Reconciliation can then move that operation to `terminal`. The terminal commit
+advances the high-water and publishes the pre-reserved result. It transfers the
+prepared-context reference and releases the active slot to `free` in the same
+crash-consistent transition. A later operation can reserve that slot only with
+the checked successor. Exact retries can query either the active slot or the
+retained-result index. No timeout, cancellation, crash, or retry creates a
+replacement operation.
+
+Let the namespace be:
+
+$$
+\nu = (\mathrm{realm},\mathrm{session\_kind},\mathrm{logical\_id}).
+$$
+
+Let $\mathcal{O}_{\nu}$ be its lifecycle records. Define the active count with
+an indicator function:
+
+$$
+N_{\mathrm{active}}(\nu)
+= \sum_{u \in \mathcal{O}_{\nu}}
+\mathbf{1}\!\left[
+\operatorname{state}(u) \in
+\{\mathrm{PENDING},\mathrm{AMBIGUOUS}\}
+\right].
+$$
+
+The owner has one active slot for $\nu$. Each transition to an active state
+first proves that this slot is free. Therefore, the single-flight invariant is:
+
+$$
+0 \leq N_{\mathrm{active}}(\nu) \leq 1.
+$$
+
+Terminal records live in the separate retained-result pool. They do not add to
+$N_{\mathrm{active}}$.
+
+Let the retained operation be $u_r=(c_r,b_r,k_r,o_r)$. The members are the
+immutable coordinate, exact request bytes, exact admission-context bytes, and
+checked issuer ordinal. For retry input $u=(c,b,k,o)$, define:
+
+$$
+\begin{aligned}
+R_{\mathrm{exact}}(u,u_r)
+&\iff (c = c_r) \land (b = b_r)
+\land (k = k_r) \land (o = o_r), \\
+R_{\mathrm{conflict}}(u,u_r)
+&\iff \neg R_{\mathrm{exact}}(u,u_r).
+\end{aligned}
+$$
+
+The equalities for `b` and `k` are byte-for-byte comparisons. A digest can
+locate a candidate record. The receiver still compares the retained bytes. A
+conflicting retry rejects without changing the retained operation.
+
+Let $O_{\max}\in\mathbb{Z}_{>0}$ be finite and fixed for one issuer epoch.
+The assignable ordinal domain and initial high-water sentinel are:
+
+$$
+\mathcal{D}_o=\{1,2,\ldots,O_{\max}\},
+\qquad
+o_{\mathrm{high}}\in\{0\}\cup\mathcal{D}_o.
+$$
+
+The value $o_{\mathrm{high}}=0$ means that the epoch has committed no operation
+ordinal. Otherwise, it is the largest committed ordinal. A successor exists
+only when:
+
+$$
+o_{\mathrm{high}} < O_{\max}.
+$$
+
+Under that precondition, the successor is:
+
+$$
+\begin{aligned}
+o_{\mathrm{next}}
+&= \operatorname{checked\_add}(o_{\mathrm{high}},1) \\
+&= o_{\mathrm{high}}+1 \\
+&> o_{\mathrm{high}},
+\qquad
+o_{\mathrm{next}}\in\mathcal{D}_o.
+\end{aligned}
+$$
+
+If the precondition is false, the issuer epoch seals. The ordinal never wraps
+or saturates. A lower or equal ordinal returns retained, retired, or unavailable.
+It never executes again.
+
+The shared-table design creates no dedicated runtime service per session:
+
+$$
+N_{\mathrm{thread/session}}
+= N_{\mathrm{socket/session}}
+= N_{\mathrm{dedicated\ store/session}}
+= 0.
+$$
+
+This equation does not remove retained session data. One bounded owner and the
+shared stores hold that data. B03 selects exact capacities, durability,
+atomicity, rollover proof, and retention profile.
 
 An accepted stream declaration then compiles one immutable stream context. That
 context binds the exact route, publisher, epoch, frame class, encoding, layout,
@@ -1039,6 +1559,10 @@ found these avoidable costs:
   helpers. Their registrations and retained command or status histories have no
   production capacity profile. Deployed ingress must use prepared bounded
   owners instead.
+- `BulkBlock::encode` builds a separate numeric data vector and then copies it
+  into the final block. Decode also retains two owned copies of each name while
+  checking uniqueness. Its local 64 MiB ceiling bounds the cost, but this is not
+  the selected one-buffer observer transport path.
 - the C ABI accepts NUL-terminated JSON without an explicit input length. It
   must discover the terminator before the universal frame limit can run. A
   production ABI needs pointer-and-length inputs so it can reject the raw byte
@@ -1081,12 +1605,15 @@ found these avoidable costs:
   proto hash is optional and advisory in their default handshake paths. A
   production prepared session needs canonical supported same-major wire parsing
   and the exact selected stable-core identity before it creates runtime resources.
-- `OpenSession` has no idempotency context. The TypeScript client can send a
-  second open while the earlier request remains in flight. It discards the older
-  reply without retiring the server generation that request created.
-- `CloseSession` carries an operation context, but the core has no session owner
-  that closes child authority first and proves every mutation right definitive or
-  fenced before `SessionClosed`. Adapter reply correlation is not that owner.
+- `OpenSession` has no idempotency context. The TypeScript client and gateway
+  remove the prior local generation when an open starts and permit a newer open
+  to supersede it. An older successful reply can therefore name a server
+  generation that neither adapter retains for reconciliation.
+- `CloseSession` carries an operation context, but the TypeScript client and
+  gateway delete their live binding before the backend returns. Timeout,
+  cancellation, or rejection leaves no retained closing state. The core has no
+  session owner that fences child authority and resolves the same operation
+  before a truthful `SessionClosed` result.
 - the simulation `StepRequest` repeats session and authority objects, carries a
   nullable binary64 advance, and nests a string-keyed stimulus map. Its
   `ObservationFrame` reply uses the TypeScript client's FIFO waiter path. There
@@ -1203,6 +1730,80 @@ range and exclusive deadline. The range length is the exact mutation quota.
 Before publication, grant installation
 reserves every fixed request slot, response slot, digest entry, no-reuse record,
 and byte budget for that range.
+
+Let $C_{\mathrm{step}}\in\mathbb{Z}_{>0}$ be the deployment maximum for the
+prepared pipeline capacity. Let $B_{\mathrm{req}}$, $B_{\mathrm{res}}$,
+$B_{\mathrm{step},\mathrm{meta}}$, and $B_{\mathrm{step},0}$ be nonnegative
+integer byte charges for one request, response, metadata record, and fixed
+window overhead. These charges are deployment maxima. Every accepted
+step-window profile is at or below them. The portable window bound is:
+
+$$
+M_{\mathrm{step}}
+\leq B_{\mathrm{step},0}
++C_{\mathrm{step}}\left(B_{\mathrm{req}}+B_{\mathrm{res}}
++B_{\mathrm{step},\mathrm{meta}}\right).
+$$
+
+Let $J_{\mathrm{step},0}$ and $J_{\mathrm{step},\mathrm{slot}}$ be finite
+nonnegative charges in one selected local-runtime accounting unit. The slot
+charge covers its request, response, index, and container representation. The
+two charges are deployment maxima for that runtime profile. The independent
+local bound is:
+
+$$
+J_{\mathrm{step}}
+\leq J_{\mathrm{step},0}
++C_{\mathrm{step}}J_{\mathrm{step},\mathrm{slot}}.
+$$
+
+Each active simulation session owns at most one prepared step window. Each
+simultaneous window is charged to one distinct active session slot. Let
+$n_{\mathrm{win}}$ be the number of simultaneous windows. The lifecycle bound
+therefore gives:
+
+$$
+0\leq n_{\mathrm{win}}\leq C_s.
+$$
+
+Let $M_{\mathrm{step}}^{(a)}$ and $J_{\mathrm{step}}^{(a)}$ be the portable
+and local charges for window $a$. Summing the per-window bounds and applying the
+window-count bound gives:
+
+$$
+\begin{aligned}
+M_{\mathrm{step,total}}
+&=\sum_{a=1}^{n_{\mathrm{win}}}M_{\mathrm{step}}^{(a)} \\
+&\leq n_{\mathrm{win}}\left[
+B_{\mathrm{step},0}
++C_{\mathrm{step}}\left(B_{\mathrm{req}}+B_{\mathrm{res}}
++B_{\mathrm{step},\mathrm{meta}}\right)
+\right] \\
+&\leq C_s\left[
+B_{\mathrm{step},0}
++C_{\mathrm{step}}\left(B_{\mathrm{req}}+B_{\mathrm{res}}
++B_{\mathrm{step},\mathrm{meta}}\right)
+\right], \\
+J_{\mathrm{step,total}}
+&=\sum_{a=1}^{n_{\mathrm{win}}}J_{\mathrm{step}}^{(a)} \\
+&\leq n_{\mathrm{win}}\left[
+J_{\mathrm{step},0}
++C_{\mathrm{step}}J_{\mathrm{step},\mathrm{slot}}
+\right] \\
+&\leq C_s\left[
+J_{\mathrm{step},0}
++C_{\mathrm{step}}J_{\mathrm{step},\mathrm{slot}}
+\right].
+\end{aligned}
+$$
+
+Every product and sum uses checked arithmetic. The profile checks the
+per-window and deployment-wide bounds before it exposes the compact step path.
+
+The owner keeps the session slot charged while its step window is active or
+retains a response. A close can instead move a longer-lived terminal response
+into the separately charged retained-result pool. That transfer and window
+release form one atomic owner transition.
 
 The first grant starts at position one. Each successor starts at the prior
 allocated range's exclusive end. Checked allocation therefore makes every issued
@@ -1654,6 +2255,7 @@ cross-process profile remains B03 allocation and later implementation work.
 The runtime needs finite state with explicit ownership:
 
 - one durable checked session-generation issuer per realm.
+- one bounded lifecycle-operation slot per logical session namespace.
 - one body state owner per live plant generation.
 - one authority machine inside that owner.
 - one idempotency cache and bounded no-reuse state per mutating control boundary.
@@ -1889,6 +2491,127 @@ remain within the profile maximum. Chunk `i` has checked offset `i * C` and exac
 length `min(C, L - i * C)`. Any overflow, alternate count, overlap, gap, or
 non-final short chunk rejects before reservation.
 
+The byte partition is explicit. Let $L,L_{\max},C\in\mathbb{Z}_{>0}$,
+with $L\leq L_{\max}$. The canonical count and its finite maximum are:
+
+$$
+N=\left\lceil\frac{L}{C}\right\rceil,
+\qquad
+1\leq N\leq
+\left\lceil\frac{L_{\max}}{C}\right\rceil=N_{\max}.
+$$
+
+Because $C>0$, the defining ceiling relation is equivalent to:
+
+$$
+(N-1)C<L\leq NC.
+$$
+
+For $i\in\{0,\ldots,N-1\}$, checked arithmetic derives the offset, decoded
+length, and half-open destination interval:
+
+$$
+o_i=iC,
+\qquad
+\ell_i=\min(C,L-o_i)>0,
+\qquad
+I_i=[o_i,o_i+\ell_i).
+$$
+
+For $i<N-1$, the ceiling relation gives $(i+1)C<L$. Those chunks have
+length $C$. The final chunk ends at $L$. Therefore:
+
+$$
+I_i=
+\begin{cases}
+[iC,(i+1)C), & 0\leq i<N-1, \\
+[(N-1)C,L), & i=N-1.
+\end{cases}
+$$
+
+The right endpoint of each non-final interval equals the next interval's left
+endpoint. The first left endpoint is zero, and the final right endpoint is $L$.
+
+The canonical count and lengths give a complete, non-overlapping partition:
+
+$$
+I_i\cap I_j=\varnothing\quad(i\ne j),
+\qquad
+\bigcup_{i=0}^{N-1}I_i=[0,L).
+$$
+
+Let $C_{\mathrm{ext}}\in\mathbb{Z}_{\geq0}$ be the deployment maximum for
+active and retained outer-package slots in one activation. Let
+$B_{\mathrm{ext},0}$ be the deployment maximum for its fixed portable charge.
+Let $H_{\mathrm{ext}}^{\max}$ be the deployment maximum of the greater active
+or terminal metadata charge for one slot. Every accepted activation profile is
+at or below these maxima. The per-activation portable bound is:
+
+$$
+M_{\mathrm{ext,outer}}
+\leq B_{\mathrm{ext},0}
++C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right).
+$$
+
+Each installed extension activation consumes one distinct prepared-context
+unit. Let $n_{\mathrm{ext}}$ be the number of simultaneous activations. The
+lifecycle bound gives:
+
+$$
+0\leq n_{\mathrm{ext}}\leq C_c.
+$$
+
+Let $M_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s portable outer-package
+charge. Summing the per-activation bound gives:
+
+$$
+\begin{aligned}
+M_{\mathrm{ext,total}}
+&=\sum_{a=1}^{n_{\mathrm{ext}}}M_{\mathrm{ext,outer}}^{(a)} \\
+&\leq n_{\mathrm{ext}}\left[
+B_{\mathrm{ext},0}
++C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right)
+\right] \\
+&\leq C_c\left[
+B_{\mathrm{ext},0}
++C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right)
+\right].
+\end{aligned}
+$$
+
+Let $J_{\mathrm{ext},0}$ be the fixed per-activation local charge. Let
+$J_{\mathrm{ext,slot}}(L_{\max},N_{\max})$ be a finite local slot charge that
+is monotone in both arguments. Let $J_{\mathrm{ext,outer}}^{(a)}$ be activation
+$a$'s local outer-package charge. The corresponding per-activation and
+deployment local bounds are:
+
+$$
+\begin{aligned}
+J_{\mathrm{ext,outer}}
+&\leq J_{\mathrm{ext},0}
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max}), \\
+J_{\mathrm{ext,total}}
+&=\sum_{a=1}^{n_{\mathrm{ext}}}J_{\mathrm{ext,outer}}^{(a)} \\
+&\leq n_{\mathrm{ext}}\left[
+J_{\mathrm{ext},0}
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max})
+\right] \\
+&\leq C_c\left[
+J_{\mathrm{ext},0}
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max})
+\right].
+\end{aligned}
+$$
+
+Every product, sum, and offset uses checked arithmetic. Overflow rejects the
+profile or activation before it allocates a context or package slot. These
+outer bounds exclude transport scratch, the inner parser arena, callback state,
+and unrelated process memory.
+
+An activation context remains charged while any active package slot or terminal
+tombstone refers to it. The owner cannot release that context first. Therefore,
+a retained tombstone cannot escape the $C_c$ multiplier.
+
 The header package class must be one closed registry entry and exactly match the
 class in the resolved prepared activation context. That class selects its hard
 positive package-byte ceiling.
@@ -1983,6 +2706,53 @@ packages when its no-reuse budget fills.
 
 Galadriel is one extension producer. It is not part of core NCP authority, plant
 control, or simulation truth.
+
+### Complete bounded-state envelope
+
+Let
+$\mathcal{D}_{\mathrm{aux}}=
+\{\mathrm{rx},\mathrm{json},\mathrm{extparse},\mathrm{callback}\}$
+identify transport receive or flattening scratch, structured-JSON arenas,
+extension inner-parser arenas, and typed callback buffers. B03 selects one
+deployment-wide portable ceiling $B_y\in\mathbb{Z}_{\geq0}$ and one finite
+monotone local charge $J_y(B_y)$ for every $y\in\mathcal{D}_{\mathrm{aux}}$.
+It also selects
+fixed charges $B_{\mathrm{aux},0}$ and $J_{\mathrm{aux},0}$. The auxiliary
+envelopes are:
+
+$$
+\begin{aligned}
+M_{\mathrm{aux}}
+&\leq B_{\mathrm{aux},0}+\sum_{y\in\mathcal{D}_{\mathrm{aux}}}B_y, \\
+J_{\mathrm{aux}}
+&\leq J_{\mathrm{aux},0}+\sum_{y\in\mathcal{D}_{\mathrm{aux}}}J_y(B_y).
+\end{aligned}
+$$
+
+These domains are disjoint from lifecycle, queue, step-window, and outer-package
+storage. Adding the previously derived deployment bounds gives:
+
+$$
+\begin{aligned}
+M_{\mathrm{NCP,bounded}}
+&\leq M_{\mathrm{prepared}}+M_{\mathrm{step,total}}
++M_{\mathrm{ext,total}}+M_{\mathrm{aux}}, \\
+J_{\mathrm{NCP,bounded}}
+&\leq J_{\mathrm{prepared}}+J_{\mathrm{step,total}}
++J_{\mathrm{ext,total}}+J_{\mathrm{aux}}.
+\end{aligned}
+$$
+
+Every component is independently finite and checked before its owner becomes
+reachable. No domain can borrow another domain's reservation. These equations
+bound declared NCP-owned state. They do not bound code, thread stacks, device
+memory, unrelated process state, or a universally portable physical RSS.
+
+The sum applies no alias discount. A zero-copy view is charged to its backing
+owner. A copied buffer is a second charge. During a cross-owner transfer, both
+domains remain reserved until the destination commit preserves every required
+recovery byte and permits source release. The sum therefore covers the transfer
+high-water.
 
 ## Observer attachment
 
@@ -2169,6 +2939,7 @@ The implementation review uses these structural budgets:
 | Contiguous receive payload | Borrow once, bound once, decode once, and move one typed result. |
 | Segmented receive payload | Permit one bounded flattening buffer, then follow the contiguous path. |
 | Publish slot | Retain one exact payload buffer and fixed metadata. A queue adapter does not clone the full payload. |
+| Session mutation | Reserve one bounded operation slot, retain the prior lineage, run external work outside the owner, and commit or reconcile the same identity. |
 | Command freshness | Amortize one bounded grant across a fixed position range. Keep only the current and one disjoint prefetched range live. Let the position select the range, with no repeated grant field or per-frame round trip. |
 | Body admission | Use one bounded event and one body-owned transition. No external work runs under its state lock. |
 | Replay and disposition | Use one bounded key lookup and one retained record. Do not traverse a receipt graph on the hot path. |
@@ -2250,6 +3021,7 @@ matrix cannot complete those tasks.
 | Unknown stable members | Rust and TypeScript use same-major forward compatibility, while typed conversion can discard additive unknown members. | Apply universal limits first. Unknown closed values reject. Additive unknown members stay non-authorizing, and exact signing, replay, or forwarding binds the admitted object before projection. |
 | Forwarded authentication | ADR-003 proposes flattened JWS and rejects custom signature framing. Per-frame application signatures also add avoidable hot-path work. | Use A-direct for hot traffic and B-over-A only for explicit forwarding. Keep custom signature carriers outside `stable-1.0` and the default runtime. |
 | Forwarded mutation recovery | Authentication alone does not prevent a crash between forwarding and recording the result. A fresh retry can duplicate a remote mutation. | Install exact protected bytes, target coordinates, signer, and idempotency key in one bounded durable outbox. Recheck security and mark one attempt active before each external send. Resume or query the same item after ambiguity. |
+| Session lifecycle ambiguity | The TypeScript client and gateway delete a live generation when open or close starts. A timeout, rejection, or superseded successful open can leave no local recovery coordinate for server state. | Use one bounded session mutation owner. Fence new descendants, retain the prior lineage, and resolve or query the same operation before installing, restoring, or retiring a generation. |
 | Ingress process isolation | The runtime has no receiver-owned direct-capability boundary. A same-process verified transport does not need an extra process or byte envelope merely to prove isolation. | Require an opaque receiver-owned capability in the same trust process. If transport termination is separate, require an authenticated OS-protected handoff or B-over-A. Plain caller-supplied identity bytes never substitute. |
 | Local ordering | Expanded ADR models require selector forests and broad transaction graphs. The runtime needs deterministic local ownership with bounded cross-store import. | Use one state owner per local authority boundary. Keep distributed evidence outside the hot public wire. |
 | Security currentness | The core has no installed security-snapshot owner or inseparable actor/currentness capability. It also lacks one body-owned event order for every security and effect transition. | Use one-way snapshot currentness and serialized body/executor admission. Never hold synchronization across external work. |
@@ -2263,6 +3035,7 @@ matrix cannot complete those tasks.
 | Observation hot path | Observer grants define exact projections, but the selected architecture previously named compact sensor and command frames only. The local `BulkBlock` has no transport identity or provenance envelope. | Add a grant-bound compact numeric observer projection with exact source position and digest. Keep nested and variable observations on bounded JSON or registered extension paths. Never transport a bare `NCPB` block as an NCP frame. |
 | Simulation tick overhead | Stateful simulation steps currently use descriptive JSON lifecycle requests and responses. Repeated names, generic trees, binary64 durations, and FIFO reply handling add work to every tick. | Keep lifecycle operations on control JSON. Add a grant-bound fixed-layout step pair with pre-reserved ranges, strict execution order, exact request-digest replay, retained responses, request-position correlation, and a terminable backend boundary. |
 | Publisher position | The current control loop commits a candidate command position only after local slot acceptance. Earlier failure can reuse that candidate. | Consume a position when it is assigned. Record a visible gap after any later local failure. |
+| Local command handoff | The current tick API returns an unadmitted fallback in the same type as an admitted command. Its transport result binds a position but not the exact retained bytes. | Return a closed prepared-versus-admitted result. Bind every admitted slot to the owner incarnation, exact position, and payload digest before reporting admission. |
 | Stream retry | Current wire has no digest-bound receiver result for a command position. It cannot distinguish retained admission from delivery ambiguity. | Never reassign a position. Bind an action position before lower semantic checks. Permit retransmission only after an accepted profile defines exact digest-bound replay state and retained outcomes. |
 | Source-correlation retention | The selected Active path requires an exact retained source publication, but the bounded-state list previously named only a latest sensor slot. A fast source can overwrite evidence before a valid command arrives. | Reserve a finite per-declaration correlation window by count, bytes, and receiver time. Absent or evicted source evidence rejects without timestamp, bare-sequence, or latest-value fallback. |
 | Disposition query | Earlier ADR-007 text left retained, retired, and unavailable query results open. | Keep the selected three-way union and bind every branch to the exact query coordinate. B03 selects finite journal capacities. |
@@ -2288,7 +3061,7 @@ does not need reconstruction for B01. Its generated matrix remains
 `INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED` so nobody can mistake it for current
 allocation or review evidence.
 
-## 18-lens maintainer review
+## 20-lens maintainer review
 
 This table records the maintainer-side design review. It is not the independent
 review required by B01.
@@ -2303,6 +3076,7 @@ review required by B01.
 | Lifecycle and concurrency | One-way session and security currentness feed one body owner that orders stream, lease, restrictive, disposition, and executor transitions. | The reference runtime does not yet have those owners, their complete order, or atomic handover. |
 | Resource and denial of service | Raw limits precede semantic allocation, command grants reserve completion state, every queue is finite, and planes cannot borrow action capacity. | B03 must select numeric profiles and aggregate budgets. Current bounded queues do not form one accepted end-to-end profile. |
 | Hot-path overhead | Prepared contexts avoid manifest scans. Compact sensor, command, simulation-step, and numeric-observer frames decode once. Extension bytes use one raw package buffer. | A-direct and compact framing are absent. Performance qualification remains **NOT RUN**. |
+| Mathematical consistency | State scopes, equality rules, monotonic order, checked successors, and finite symbolic envelopes are explicit. A digest never substitutes for exact retained bytes. | B03 must allocate every numeric ceiling and exact projection. Model, implementation, and cross-language boundary tests must agree before rebaseline. |
 | Failure and crash recovery | Restart grants no Active authority, retired identities do not revive, and ambiguity never becomes success. | The durable generation issuer, no-reuse state, and disposition recovery profiles are not implemented. The compatibility idempotency key is narrower than the selected target. Fault campaigns remain later work. |
 | Plant safety and effect claims | Crebain owns final software admission, restrictive modes remain plant-specific, and protocol receipts stop at software boundaries. | The current body path is incomplete. Consumer safety cases and physical qualification remain external. |
 | QoS and overload | Lifecycle control, simulation-step, action, perception, observation, and extension resources have separate finite policies. Source correlation, step responses, and extension parsing have explicit reservations. | Exact scheduler, aggregate byte budgets, non-wrapping metrics, transport mappings, and load evidence remain B03 and implementation work. |
@@ -2312,6 +3086,7 @@ review required by B01.
 | Wire and schema parity | Each selected wire object has one source, generated forms, canonical projection, and cross-language corpus. | Current prototype source is not normative parity. B03 and N01 must select and generate the exact forms. |
 | Ecosystem dependency direction | Consumers pin NCP packages and expose thin role adapters. NCP imports no consumer application code. | Consumer work starts only after provider dependencies are ready. No installed role is qualified. |
 | Operability and observability | Bounded gaps, drops, supersessions, deadlines, terminal reasons, and insecure mode are visible. | Exact metrics, labels, persistence, and operator procedures remain B03 and deployment work. |
+| Documentation and visual traceability | Each figure has one reading order, redundant color and text cues, direct-view accessibility text, and a complete prose description. Equations define every symbol. | Figures remain informative. Render review and local checks cannot accept an ADR, qualify performance, or replace independent review. |
 | Claims and release state | Local code and tests cannot imply safety, interoperability, publication, or release authorization. | B01 independent review and every declared external gate remain unsatisfied. |
 
 ## B01 closure criteria
@@ -2351,6 +3126,11 @@ ADR-001, ADR-005, and ADR-010 must define:
 
 They must not infer simulator order from arrival or a FIFO waiter. An unresolved
 backend call retires the generation and never executes again.
+
+ADR-001 must also define one bounded idempotent owner for open, replacement, and
+close. The owner fences new descendant mutations but retains the prior lineage
+until the same operation has a definitive or explicitly unresolved result. A
+superseded successful open cannot become an unowned generation.
 
 ADR-005 through ADR-007 must agree that command freshness comes from a
 body-issued absolute grant, not receiver arrival. They must define the

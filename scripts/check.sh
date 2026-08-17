@@ -34,6 +34,9 @@ cargo fmt --all -- --check
 git diff --check
 python3 scripts/gen_diagrams.py --check
 
+step "publication system-design reproduction"
+./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
+
 step "pinned evidence-schema and B01 Python toolchain"
 evidence_schema_venv="$tmp_dir/evidence-schema-venv"
 python3 -m venv "$evidence_schema_venv"

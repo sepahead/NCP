@@ -30,12 +30,12 @@
       "defect_ids"
     ],
     "projection_byte_length": 16606,
-    "projection_sha256": "ebe78153c2e93297e6ee270ddfe57e90892e77e2fdc1b3d10d3750764cf45d0d",
-    "sha256": "5e632beb26a8c32acbd6f7d532a1cd7408685ef826356a7a140f7e7f1266546b",
+    "projection_sha256": "1a4d0a03a9f701d7a4a7e521ab1ff9971c79f5d97a98320b04d9996b5e6d03a3",
+    "sha256": "144407d26388711f8175cfc800a1181d78652aad8b7223e115b9be21f06a0b38",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "d79a21c3ab77bbee1e8f0d0f9003dc4e84d07b89e62a7063f8a93995d0adf3d2",
+        "sha256": "9acaec04762c6b01e4cd88ca44abf7483e5124ccd0a1cc4451807db7e9dc5205",
         "bytes": 72816
       },
       "json_schema": {

@@ -108,7 +108,7 @@
   "decisions": [
     {
       "id": "ADR-001",
-      "adr_source_set_sha256": "68fc2b6d6fe0ec8c8a9b711d72f9979dc817732ddbd796091ff7f2f202d9410d",
+      "adr_source_set_sha256": "2079ba17c410709ce0c8442d9a21b8ab089fb9046e3763a6fb5fe7c784f97967",
       "questions": [
         {
           "question_id": "ADR-001-Q01",

@@ -4448,24 +4448,28 @@ properties.
 
 At the original blueprint audit cut described in section 12.1, the repository
 tracked 47 Markdown files and 16 SVG files. At this living-document handoff
-revision, `git ls-files` tracks 81 Markdown files and 18 SVG files. The
+revision, `git ls-files` tracks 81 Markdown files and 24 SVG files. The
 documentation manifest must derive and bind the inventory at execution; neither
 historical count is an acceptance allowlist. The SVG set was:
 
 | Class | Tracked files | Current source | Current document use |
 |---|---:|---|---|
 | logos | 2 light/dark files in `assets/` | no documented deterministic generator | no Markdown reference found |
-| protocol diagrams | 12 files: six light/dark pairs in `docs/diagrams/` | `scripts/gen_diagrams.py` | topology, versioning, simulation sequence, and admission are embedded in the low-overhead architecture. The safety FSM is embedded in `RESILIENCE.md`, and the ecosystem map is embedded in this blueprint. |
+| protocol diagrams | 18 files: nine light/dark pairs in `docs/diagrams/` | `scripts/gen_diagrams.py` | the overview is embedded in `README.md`. Topology, versioning, simulation sequence, admission, runtime, and lifecycle are embedded in the low-overhead architecture. The safety FSM is embedded in `RESILIENCE.md`, and the ecosystem map is embedded in this blueprint. |
 | historical plots | 4 files: two light/dark pairs in `docs/plots/` | `scripts/plot_perf.py` plus optional recorded data | both pairs are embedded in `PERFORMANCE.md` |
 
 The deterministic diagram and pinned historical-plot checks passed during the
-current local repair. The diagram check establishes byte freshness for 12 generated
-diagrams, the direct-view accessibility structure for the exact 18-SVG inventory,
-and at least 4.5:1 text contrast for the declared FSM text/background pairs,
-including each ESTOP gradient stop. The plot check reproduced all four historical
-SVGs from the explicitly labeled fallback constants. These local checks do not
-establish correct architecture, browser accessibility-tree behavior, visual
-acceptance, release readiness, or retained independent evidence.
+current local repair. The diagram check establishes byte freshness for 18 generated
+diagrams and direct-view accessibility structure for the exact 24-SVG inventory.
+It rejects scripts, foreign objects, non-fragment resource references, and external
+CSS resources. It checks at least 4.5:1 text contrast for every declared
+architecture semantic-text pair, filled badge, and contract-gradient stop. It
+applies the same limit to the FSM text/background pairs, including each ESTOP
+gradient stop. The plot check
+reproduced all four historical SVGs from the explicitly labeled fallback
+constants. These local checks do not establish correct architecture, browser
+accessibility-tree behavior, visual acceptance, release readiness, or retained
+independent evidence.
 
 The first rendered inspection found these open defects and review obligations:
 
@@ -4477,10 +4481,10 @@ The first rendered inspection found these open defects and review obligations:
 | V04 | topology | the corrected diagram shows the commander, body, read-only observer, four planes, body gate, and body-grant deadline. It does not show typed session kinds, declared streams, the authenticated production boundary, dispositions, or the separate emergency lane. | update it from accepted ADR-001/003/004/005/006/007 shapes. Keep the current plane, authority, and non-certification boundaries explicit. |
 | V05 | ecosystem | the corrected map includes all in-scope repositories, role direction, command-mode exclusivity, advisory monotonicity, and the two explicit non-peers. It does not prove installed package pins, active wire versions, migration completion, or role qualification. | retain the authority and dependency direction. Bind exact consumer status only from the later reviewed inventory and qualification evidence. |
 | V06 | FSM | it is visually dense and represents only the current candidate admission model | perform bounding-box review and update it for body-issued authority, typed sessions, stream declaration, security epoch/rebind, disposition, and exact ESTOP-reset boundary |
-| V07 | protocol diagrams | all six generated pairs are referenced by maintained owner documents at this cut. Embedding does not accept their semantics or complete the render matrix. | retain one explicit owner reference and exact alt text for each pair. Reject any future orphaned release visual. |
+| V07 | protocol diagrams | all nine generated pairs are referenced by maintained owner documents at this cut. Embedding does not accept their semantics or complete the render matrix. | retain one explicit owner reference and exact alt text for each pair. Reject any future orphaned release visual. |
 | V08 | logos | the two variants require background/theme, reduced-motion, accessible-name, unused-definition, and deterministic-source review | define supported logo uses, make visual differences intentional, add a reproducible source or freeze reviewed source with exact provenance, and remove unused or unsafe SVG content |
 | V09 | historical plots | they are clearly labeled non-release historical material; the original overlap-plot title collision is corrected in the current source and retained theme renders, but visual inspection is not yet a retained gate | reproduce with pinned dependencies/data, audit labels/contrast/clipping/alt text across the required render matrix, and keep them separate from any release-bound benchmark figures |
-| V10 | all SVG | **OPEN:** all 18 current SVG roots now use `role="img"` and `aria-labelledby` with one direct, concise `<title>` and `<desc>`. The local deterministic check covers that structure and requires the direct `<desc>` to state `UNRELEASED` and non-certification status. It does not prove a visible on-canvas qualifier, embedded accessibility trees, host-name conflicts, long-description policy, the atlas manifest, or independent acceptance. | retain the local guard. Complete and independently accept the direct-file and embedded-`<img>` accessibility matrix and atlas policy before closing V10. |
+| V10 | all SVG | **OPEN:** all 24 current SVG roots now use `role="img"` and `aria-labelledby` with one direct, concise `<title>` and `<desc>`. The local deterministic check covers that structure and requires the direct `<desc>` to state `UNRELEASED` and non-certification status. It does not prove a visible on-canvas qualifier, embedded accessibility trees, host-name conflicts, long-description policy, the atlas manifest, or independent acceptance. | retain the local guard. Complete and independently accept the direct-file and embedded-`<img>` accessibility matrix and atlas policy before closing V10. |
 | V11 | NCP and ecosystem atlas | NCP and the five exact consumer repositories lack one complete, source-bound, accessible static and finite-motion visual atlas | NCP and each exact consumer producer own one semantic graph and generated variants for their exact roles and limitations; excluded non-peers receive no atlas task or implied NCP relationship |
 
 These are release-blocking documentation findings, not permission to hand-edit the
@@ -11078,7 +11082,7 @@ this living document, do not inherit these receipts or their render counts.
 | security, safety, science and release claims | `LOCAL_PASS` | the B00-bound revision separates simulation-resource authority from body-issued plant authority, makes direct Engram and Haldir-gated command mutually exclusive, gives only Crebain body authority over handover, makes Galadriel-to-Haldir input deny-only, keeps pid-rs protocol-neutral, and preserves standalone modes; the candidate remains `NO_GO`, implementation and external/formal work remain open or `NOT_RUN`, and no local/model result is promoted to release, qualification, physical-safety certification, posterior calibration, paper reproduction, perfection or permanence |
 | prose and Markdown | `LOCAL_PASS` | `codespell 2.4.1`, `cspell 10.0.1`, `proselint 0.14.0`, `markdownlint-cli2 0.23.0`/`markdownlint 0.41.0`, candidate-link/anchor checks, JSON parsing and `git diff --check` report zero current findings under the narrow reviewed technical-name/Markdown configuration recorded by B00; long lines remain allowed only where tables, commands or digests require them |
 | browser/accessibility/render sampling | `LOCAL_PASS` | `agent-browser 0.27.2` and direct pinned Chrome-for-Testing `149.0.7827.55` inspection of a temporary `marked 18.0.6` render exposed one H1, 12 H2, 80 H3, 83 H4, 26 tables and 31 code blocks in the blueprint; Playwright `1.61.0-alpha-1781023400000` sampled blueprint topology/receipt, ledger tasks and the resumption boundary at 1440×1000 and 390×844 with document scroll width equal to viewport, all table/code overflow confined to labeled scroll containers, zero page/console errors and no observed overlap, clipping, missing glyph or illegible text |
-| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 12 generated protocol diagrams current, audits the exact 18-SVG direct-view accessibility inventory, and checks declared FSM normal text against solid and gradient backgrounds at 4.5:1 or better. This local automation does not close V01–V11 or claim visual, atlas, accessibility-matrix, or release acceptance. |
+| generated visual freshness | `LOCAL_PASS` | `python3 scripts/gen_diagrams.py --check` reports all 18 generated protocol diagrams current, audits the exact 24-SVG direct-view accessibility inventory, checks maintained owner references, and checks architecture and FSM normal text against declared solid and gradient backgrounds at 4.5:1 or better. This local automation does not close V01–V11 or claim visual, atlas, accessibility-matrix, or release acceptance. |
 | historical clean committed-tree `scripts/check.sh` | `LOCAL_PASS` | from clean commit `fcb0f6ff3cdfeb50b6e30e2e732c846c99eb8bcf`, tree `89cb89c8cbe8708d9125d5fd7ede72374f2fbeec`, the command exited zero with `NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN`; this receipt is historical and does not cover the 2026-07-16 revision |
 | historical B00-bound revision gate, commit, push and local remote observation | `LOCAL_PASS` | B00's transition receipt binds the exact checked source/target commits, artifact digests, commands, local-only evidence class, push assertion, and local remote-observation record; these local records do not prove configured-remote reachability, and the handoff reports the containing ledger-status commit because embedding it here would change it; no protocol, consumer, formal, live-security, release or publication gate is inferred |
 
