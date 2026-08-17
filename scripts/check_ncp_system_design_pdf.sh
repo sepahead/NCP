@@ -61,9 +61,9 @@ for figure in "${figures[@]}"; do
 done
 
 PUBLICATION_SOURCE_DIGEST="$({ python3 - "$ROOT" "$SOURCE" "$STYLE" "${figures[@]}" <<'PY'
+import sys
 from hashlib import sha256
 from pathlib import Path
-import sys
 
 root = Path(sys.argv[1])
 relative_paths = [Path(sys.argv[2]), Path(sys.argv[3])]
@@ -137,9 +137,9 @@ for sentinel in "${sentinels[@]}"; do
 done
 
 EQUATION_COUNT="$({ python3 - "$ROOT/$SOURCE" <<'PY'
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 equation_labels = re.findall(r"\\label\{(eq:[^}]+)\}", source)
@@ -245,10 +245,46 @@ case "$MODE" in
             exit 1
         fi
         pdftotext -layout "$ROOT/$COMMITTED" "$BUILD_DIR/committed.txt"
-        if ! cmp -s "$BUILD_DIR/built.txt" "$BUILD_DIR/committed.txt"; then
-            echo "NCP system-design PDF check: extracted layout differs" >&2
-            exit 1
-        fi
+        # Poppler releases can emit different horizontal padding for the same PDF
+        # text. Preserve page boundaries and every non-whitespace code point.
+        python3 - "$BUILD_DIR/built.txt" "$BUILD_DIR/committed.txt" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+
+def canonical_pages(path: Path) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    pages = text.split("\f")
+    if pages and not pages[-1].strip():
+        pages.pop()
+    canonical: list[str] = []
+    for page_number, page in enumerate(pages, start=1):
+        if "\ufffd" in page:
+            raise SystemExit(
+                "NCP system-design PDF check: extracted text contains a "
+                f"replacement character on page {page_number}"
+            )
+        canonical.append(re.sub(r"\s+", " ", page).strip())
+    return canonical
+
+
+built = canonical_pages(Path(sys.argv[1]))
+committed = canonical_pages(Path(sys.argv[2]))
+if len(built) != len(committed):
+    raise SystemExit(
+        "NCP system-design PDF check: extracted page counts differ "
+        f"({len(built)} rebuilt, {len(committed)} committed)"
+    )
+for page_number, (built_page, committed_page) in enumerate(
+    zip(built, committed, strict=True), start=1
+):
+    if built_page != committed_page:
+        raise SystemExit(
+            "NCP system-design PDF check: canonical extracted text differs "
+            f"on page {page_number}"
+        )
+PY
         pdfinfo "$BUILT" | grep -E '^(Pages|Page size):' >"$BUILD_DIR/built.info"
         pdfinfo "$ROOT/$COMMITTED" | grep -E '^(Pages|Page size):' \
             >"$BUILD_DIR/committed.info"

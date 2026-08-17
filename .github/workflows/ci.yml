@@ -175,8 +175,9 @@ jobs:
         run: python3 scripts/gen_diagrams.py --check
 
       # Distribution TeX and librsvg versions can encode different PDF object
-      # metadata. This mode still rejects warnings, missing fonts, wrong page
-      # geometry, missing equations, and any extracted-layout difference.
+      # metadata and insignificant extraction whitespace. This mode still rejects
+      # warnings, missing fonts, wrong page geometry, missing equations, changed
+      # pagination, and any canonical per-page text difference.
       - name: Rebuild and compare the system-design PDF
         run: ./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
 
