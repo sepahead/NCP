@@ -1,5 +1,13 @@
 # NCP — Neuro-Cybernetic Protocol
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
+    <img src="assets/logo-light.svg" width="180" alt="NCP logo: perception and action lanes cross one bounded admission core.">
+  </picture>
+</p>
+
 NCP is a versioned, project-agnostic canonical-JSON contract for connecting a
 neural simulator or neuromorphic controller to robots, UAVs, simulators, and
 read-only analysis clients.
