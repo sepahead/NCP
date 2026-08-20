@@ -4,7 +4,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
-    <img src="assets/logo-light.svg" width="180" alt="NCP logo: four distinct protocol planes meet inside canonical contract bounds; an action proposal and receipt remain separate.">
+    <img src="assets/logo-light.svg" width="180" alt="NCP logo: paired contract bounds hold one quartered four-plane knot while proposal and receipt remain distinct.">
   </picture>
 </p>
 
