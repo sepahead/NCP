@@ -91,6 +91,11 @@ CONDITIONED_TWOX_VERSION = "2.1.3"
 CONDITIONED_TWOX_CHECKSUM = (
     "8464ec13c3691491391d9fce00f6416c9a48e46972f72d7865688be2080192c9"
 )
+CONDITIONED_ZENOH_UPDATE_PINS = (
+    (f"zenoh-transport@{ZENOH_TRANSPORT_VERSION}", ZENOH_TRANSPORT_VERSION),
+    ("lz4_flex", FIXED_LZ4_VERSION),
+    ("twox-hash", CONDITIONED_TWOX_VERSION),
+)
 ZENOH_BACKPORT_CONFIG = {
     "patch.crates-io.zenoh-transport.git": ZENOH_BACKPORT_GIT,
     "patch.crates-io.zenoh-transport.rev": ZENOH_BACKPORT_REVISION,
@@ -2418,18 +2423,19 @@ def condition_zenoh_archive(
     fallback["resolution_projection"] = fallback_projection
 
     patch_args = [*local_patch_args, *zenoh_backport_patch_args()]
-    update = cargo_command(
-        qualification,
-        "update",
-        "--manifest-path",
-        str(manifest_path),
-        "-p",
-        f"zenoh-transport@{ZENOH_TRANSPORT_VERSION}",
-        "--precise",
-        ZENOH_TRANSPORT_VERSION,
-        *patch_args,
-    )
-    run(update, env=qualification.env, cwd=qualification.work)
+    for package, precise_version in CONDITIONED_ZENOH_UPDATE_PINS:
+        update = cargo_command(
+            qualification,
+            "update",
+            "--manifest-path",
+            str(manifest_path),
+            "-p",
+            package,
+            "--precise",
+            precise_version,
+            *patch_args,
+        )
+        run(update, env=qualification.env, cwd=qualification.work)
     conditioned_lock_bytes = lock_path.read_bytes()
     if len(conditioned_lock_bytes) > MAX_RETAINED_CONTROL_BYTES:
         raise RuntimeError(f"{crate} conditioned Cargo.lock exceeds its bound")
@@ -3599,6 +3605,12 @@ def self_test() -> None:
                 raise AssertionError("linked crate archive passed validation")
 
     exact_patch = zenoh_backport_patch_args()
+    if CONDITIONED_ZENOH_UPDATE_PINS != (
+        (f"zenoh-transport@{ZENOH_TRANSPORT_VERSION}", ZENOH_TRANSPORT_VERSION),
+        ("lz4_flex", FIXED_LZ4_VERSION),
+        ("twox-hash", CONDITIONED_TWOX_VERSION),
+    ):
+        raise AssertionError("conditioned Zenoh update pin roster drifted")
     hostile_patches = {
         "absent": [],
         "wrong repository": [

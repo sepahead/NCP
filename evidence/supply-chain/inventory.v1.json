@@ -5,16 +5,16 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "assets/logo-dark.svg",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "ff20b0ce3fcfc6746ce955b740ae3f1109ec3f83e0b4f79055f5574f55f8867a",
-      "size_bytes": 19480
+      "sha256": "585ca277f15f0b6f58d4782fcb498aae3d65c7ea55f555d947f84c6444a3d0f7",
+      "size_bytes": 24902
     },
     {
       "classification": "documentation-asset-or-measurement-input",
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "assets/logo-light.svg",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "01c58a004567398be9b292f600ea24ebc6cc903d3e177d245ccfa1fccb0cbf63",
-      "size_bytes": 20443
+      "sha256": "bdf9b3a9b04be3306ef3e6d0b7fa3376abeb2ce92ed569a6daada0a8a2fae89f",
+      "size_bytes": 26070
     },
     {
       "classification": "conformance-fixture",
@@ -2202,7 +2202,7 @@
         "Rust package qualification and retained-artifact receipt"
       ],
       "path": "scripts/check_rust_packages.py",
-      "sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225"
+      "sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2"
     },
     {
       "outputs": [

@@ -267,9 +267,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 16698,
-        "sha256": "4ffece0b01bd6c5b767b18d21721a72be6ec4f594dc5c49e5ef84ed7b0919789",
-        "git_blob_oid": "4db8b16254b4eaa3136a5beacd28ed05eaf9ed62",
+        "bytes": 17078,
+        "sha256": "993974f5d3390f54fef988c188cdaf6197e2ae88061fd9d90fc7e1f80f02c16c",
+        "git_blob_oid": "5e137d025dde7e524e1dcd2cd231ef659e7f8b97",
         "indexed": true
       },
       {
@@ -316,16 +316,16 @@
       },
       {
         "path": "assets/logo-dark.svg",
-        "bytes": 19480,
-        "sha256": "ff20b0ce3fcfc6746ce955b740ae3f1109ec3f83e0b4f79055f5574f55f8867a",
-        "git_blob_oid": "588d0021dcad14db3398a88025345b6e51839cee",
+        "bytes": 24902,
+        "sha256": "585ca277f15f0b6f58d4782fcb498aae3d65c7ea55f555d947f84c6444a3d0f7",
+        "git_blob_oid": "0d456742b7991b9e0b109ee4058a307d68c36401",
         "indexed": true
       },
       {
         "path": "assets/logo-light.svg",
-        "bytes": 20443,
-        "sha256": "01c58a004567398be9b292f600ea24ebc6cc903d3e177d245ccfa1fccb0cbf63",
-        "git_blob_oid": "5b126db3d89ae13690d59579e34704a4d500185f",
+        "bytes": 26070,
+        "sha256": "bdf9b3a9b04be3306ef3e6d0b7fa3376abeb2ce92ed569a6daada0a8a2fae89f",
+        "git_blob_oid": "b1e78270899429622d42082731752b73d3c50008",
         "indexed": true
       },
       {
@@ -2431,8 +2431,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 128361,
-        "sha256": "a88a9de88b00746312ab304ceca78d262fb8912065d9b3fb9669306a0f1f313d",
-        "git_blob_oid": "7287d5ab99ecdc2fabc02219f6f6872dd42df96a",
+        "sha256": "536642c05063ea9310b22cbc8c9e2f1c6854ef3b616f2566d3a39a9561cbba93",
+        "git_blob_oid": "3596d6734a72d6bf01083b796c4256607c35510f",
         "indexed": true
       },
       {
@@ -6882,9 +6882,9 @@
       },
       {
         "path": "scripts/check_rust_packages.py",
-        "bytes": 179096,
-        "sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
-        "git_blob_oid": "bf13a7fd77255646b9ae44d4821d17a43a517bbf",
+        "bytes": 179657,
+        "sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
+        "git_blob_oid": "13e20beea1bf40d8343df75a506e296251f274ff",
         "indexed": true
       },
       {
@@ -7785,13 +7785,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-BDABAF54FDED0E8667E3",
+      "id": "NCP-LATENT-5A49B42C8E843BB655C9",
       "path": "README.md",
-      "line": 102,
+      "line": 110,
       "column": 24,
       "token_id": "M007",
       "line_sha256": "72214f322e00edaa351ee21bf6890fe64d34c6a983cd61dd453edf5df857bbaf",
-      "file_sha256": "4ffece0b01bd6c5b767b18d21721a72be6ec4f594dc5c49e5ef84ed7b0919789",
+      "file_sha256": "993974f5d3390f54fef988c188cdaf6197e2ae88061fd9d90fc7e1f80f02c16c",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -7800,13 +7800,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-E7342D977326932509A9",
+      "id": "NCP-LATENT-D1E59D8385EF71EE24C4",
       "path": "README.md",
-      "line": 156,
+      "line": 164,
       "column": 76,
       "token_id": "M007",
       "line_sha256": "1cdde4d3f0da13ffba9e8b6717f7bbae888e42e701623ac2c5fcb0ed5a922ab4",
-      "file_sha256": "4ffece0b01bd6c5b767b18d21721a72be6ec4f594dc5c49e5ef84ed7b0919789",
+      "file_sha256": "993974f5d3390f54fef988c188cdaf6197e2ae88061fd9d90fc7e1f80f02c16c",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -10398,7 +10398,7 @@
       "column": 18,
       "token_id": "M008",
       "line_sha256": "3d572a18878203b561c487197b7fb6144dd56d041dc9c592434fe01de11c6c6f",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10408,13 +10408,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-8AEA66547B9AE40CEAE1",
+      "id": "NCP-LATENT-67F697E15966A1F5F6A4",
       "path": "scripts/check_rust_packages.py",
-      "line": 1804,
+      "line": 1809,
       "column": 71,
       "token_id": "M008",
       "line_sha256": "3298ce07fac7bb7f83e28eb95359232adc318e0e81fdf12c63ea0d5f66b457b8",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10424,13 +10424,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-16C43CA122063BF03B0B",
+      "id": "NCP-LATENT-F132B7A0DEE71C1C3AB4",
       "path": "scripts/check_rust_packages.py",
-      "line": 1818,
+      "line": 1823,
       "column": 76,
       "token_id": "M008",
       "line_sha256": "224d946e66b74dd8a70cd8c01eec1cae9e5dc9de9325855ffcfeba099f433c8b",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10440,13 +10440,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-DF99D381156F4A05D945",
+      "id": "NCP-LATENT-E7CBD3D8E6D89E421685",
       "path": "scripts/check_rust_packages.py",
-      "line": 1829,
+      "line": 1834,
       "column": 73,
       "token_id": "M008",
       "line_sha256": "16a8112d94f3641120e2d96ae81f6f30b06fbf83938f1d196f59f96f7d68d758",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10456,13 +10456,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-64930C923E7595ECB5A9",
+      "id": "NCP-LATENT-64140AEBDA88BBE14F1D",
       "path": "scripts/check_rust_packages.py",
-      "line": 1839,
+      "line": 1844,
       "column": 46,
       "token_id": "M008",
       "line_sha256": "2cccd317e58cd0075ef92e9924228c567b2bd6e845482b37efefd0de0f8a674b",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10472,13 +10472,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-D395B1FA246D67E172F5",
+      "id": "NCP-LATENT-69A58F11B76ACEF05777",
       "path": "scripts/check_rust_packages.py",
-      "line": 1937,
+      "line": 1942,
       "column": 5,
       "token_id": "M008",
       "line_sha256": "61b8634e7d1997f7c0fd68db48b27bc9e2795ece7f627e160f63b26b3eb4fbf7",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10488,13 +10488,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-87796CAA9D1103B0D55F",
+      "id": "NCP-LATENT-7D633D1C0C31BB15D29D",
       "path": "scripts/check_rust_packages.py",
-      "line": 1941,
+      "line": 1946,
       "column": 35,
       "token_id": "M008",
       "line_sha256": "454bcc8d943288ae8b58ca988bbfabcc408a90b6a585f77fab6a281ba6583441",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10504,13 +10504,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-5485CD62522005663817",
+      "id": "NCP-LATENT-CF5A6C5EF26C20230BAC",
       "path": "scripts/check_rust_packages.py",
-      "line": 1962,
+      "line": 1967,
       "column": 9,
       "token_id": "M008",
       "line_sha256": "9aec6270b5f951110ef01206e7e2c6502656d88e807b69d71cd9453c35cfc246",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10520,13 +10520,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-8A2BB26776774BB19F99",
+      "id": "NCP-LATENT-2DC12B8B620DE787ACD1",
       "path": "scripts/check_rust_packages.py",
-      "line": 1962,
+      "line": 1967,
       "column": 47,
       "token_id": "M008",
       "line_sha256": "9aec6270b5f951110ef01206e7e2c6502656d88e807b69d71cd9453c35cfc246",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10536,13 +10536,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-2A24F64081C3D21809E4",
+      "id": "NCP-LATENT-71357F9296A251B3BF93",
       "path": "scripts/check_rust_packages.py",
-      "line": 1975,
+      "line": 1980,
       "column": 29,
       "token_id": "M008",
       "line_sha256": "fa2ed5423989a58c63cff2b9ad04e00aa1db7d5b32d32bae0d5a2e2cff7ce0ba",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10552,13 +10552,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-7B8432226BF8699301D0",
+      "id": "NCP-LATENT-8AC3110BC642250E2CD8",
       "path": "scripts/check_rust_packages.py",
-      "line": 1981,
+      "line": 1986,
       "column": 39,
       "token_id": "M008",
       "line_sha256": "a314374ba0faa944aa0047dd83db94b7b32d3886a4972131aa2d1d701b0efe46",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10568,13 +10568,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-8F198903C9BF822E1865",
+      "id": "NCP-LATENT-9957DB7C6262AE554B2E",
       "path": "scripts/check_rust_packages.py",
-      "line": 1981,
+      "line": 1986,
       "column": 70,
       "token_id": "M008",
       "line_sha256": "a314374ba0faa944aa0047dd83db94b7b32d3886a4972131aa2d1d701b0efe46",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10584,13 +10584,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-A83626C55B712427F002",
+      "id": "NCP-LATENT-1B1F7D9203224536F6C3",
       "path": "scripts/check_rust_packages.py",
-      "line": 1991,
+      "line": 1996,
       "column": 29,
       "token_id": "M008",
       "line_sha256": "cc627b355a97b8a966a1fd571931d71721e2618412c06b67430a3a171727f10c",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10600,13 +10600,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-0B7DBD9894AB08BB5211",
+      "id": "NCP-LATENT-C70C013618EC6C07F5E8",
       "path": "scripts/check_rust_packages.py",
-      "line": 1997,
+      "line": 2002,
       "column": 40,
       "token_id": "M008",
       "line_sha256": "8a5b376b4325a793cb1dba336212ef97bc400a0cb9d6e56a96e682c0b18c4a77",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10616,13 +10616,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-1D1AC79D1898A3A4BD5B",
+      "id": "NCP-LATENT-2A2801AD0C8966AD78D7",
       "path": "scripts/check_rust_packages.py",
-      "line": 1997,
+      "line": 2002,
       "column": 72,
       "token_id": "M008",
       "line_sha256": "8a5b376b4325a793cb1dba336212ef97bc400a0cb9d6e56a96e682c0b18c4a77",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10632,13 +10632,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-F73A7BDB9CB0CF123BE1",
+      "id": "NCP-LATENT-6337E08AA824B6C551CB",
       "path": "scripts/check_rust_packages.py",
-      "line": 2009,
+      "line": 2014,
       "column": 29,
       "token_id": "M008",
       "line_sha256": "89ed38672c4e45d1c5a6893ca261dbefebe0de3de5979cf4c19ab2af668a1984",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10648,13 +10648,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-60DD9BC5B78063B9E617",
+      "id": "NCP-LATENT-CE2D7311DEA91340ACEE",
       "path": "scripts/check_rust_packages.py",
-      "line": 2297,
+      "line": 2302,
       "column": 71,
       "token_id": "M008",
       "line_sha256": "49fd2d9f05004b4cadea7509eda7a86976243b47051797db415d88d755129abf",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10664,13 +10664,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-BBA6F03EB25833A5B384",
+      "id": "NCP-LATENT-9F592FE5708C4D8D9541",
       "path": "scripts/check_rust_packages.py",
-      "line": 2374,
+      "line": 2379,
       "column": 5,
       "token_id": "M008",
       "line_sha256": "7e9e44ddd8cbd9083652afcc6e4a2e6a872f6f5119f6f5850b174a7c275eca8e",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10680,13 +10680,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-013514DD34587E219BE7",
+      "id": "NCP-LATENT-74C62BA43F3AC4C81E95",
       "path": "scripts/check_rust_packages.py",
-      "line": 2417,
+      "line": 2422,
       "column": 5,
       "token_id": "M008",
       "line_sha256": "bed66665c71b5f3ac04aa1aba760e5fc6782aa95d98cea7e529c50ea3db01408",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10696,13 +10696,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-1763385D9B4BEE8553C6",
+      "id": "NCP-LATENT-A38D646C0189A462AE86",
       "path": "scripts/check_rust_packages.py",
-      "line": 2418,
+      "line": 2423,
       "column": 5,
       "token_id": "M008",
       "line_sha256": "2dbe490da1fefd7b250151785e6031e5d72956f3f9cf9d8dc6e9ebc32ceafdd1",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10712,13 +10712,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-7E9B73EBBACEC6B7B00B",
+      "id": "NCP-LATENT-4DAC7FB8196CC7EDA49F",
       "path": "scripts/check_rust_packages.py",
-      "line": 2488,
+      "line": 2494,
       "column": 47,
       "token_id": "M008",
       "line_sha256": "dfb16f0e635ac2e7babd362961882d2b3b159769339569aeaa1e5380d705c0a9",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10728,13 +10728,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-6B1B074075E77CA6EF85",
+      "id": "NCP-LATENT-F28A48208433A24C461B",
       "path": "scripts/check_rust_packages.py",
-      "line": 2500,
+      "line": 2506,
       "column": 9,
       "token_id": "M008",
       "line_sha256": "a120ced465049bb3a7675353024acf9d20e09441b9de21a254d262db42085517",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10744,13 +10744,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-31EEC3F3525C553D537F",
+      "id": "NCP-LATENT-B24EE51C07B1EC67A6FE",
       "path": "scripts/check_rust_packages.py",
-      "line": 3104,
+      "line": 3110,
       "column": 16,
       "token_id": "M008",
       "line_sha256": "01fdaaf8c9d6d01a637b200d1db000617b93faf84357eb963727a7df5ea5bb10",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10760,13 +10760,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-423F6953C61EA7BB0E28",
+      "id": "NCP-LATENT-1ECEC351D70AFCA95206",
       "path": "scripts/check_rust_packages.py",
-      "line": 3115,
+      "line": 3121,
       "column": 27,
       "token_id": "M008",
       "line_sha256": "4f57da3127f196eedc4cef9146500af94ed657993dce921a3ae9e1858e6fdb54",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10776,13 +10776,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9E57DA1DEE93FCFC47DA",
+      "id": "NCP-LATENT-BAC7BDDECDA70373DA6D",
       "path": "scripts/check_rust_packages.py",
-      "line": 3116,
+      "line": 3122,
       "column": 50,
       "token_id": "M008",
       "line_sha256": "afd4775a75dff5a3cfb3b3775a6fd04207489f0cc95307fd7ec3a6e9e4b5e5a2",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10792,13 +10792,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-3BB5259C10FB5E427F12",
+      "id": "NCP-LATENT-6B0B42953B3C4ADDF53E",
       "path": "scripts/check_rust_packages.py",
-      "line": 3117,
+      "line": 3123,
       "column": 31,
       "token_id": "M008",
       "line_sha256": "6eebb91c18b2b96c403abfb9cfcff9e0ee59be7376e2fcb3acfa269f2631ad45",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10808,13 +10808,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-846449DF3B2D1B19045D",
+      "id": "NCP-LATENT-1718A87B5789C34D5E47",
       "path": "scripts/check_rust_packages.py",
-      "line": 3123,
+      "line": 3129,
       "column": 12,
       "token_id": "M008",
       "line_sha256": "d8987a99779ab4f16c7390236e681e968be25580e7724569889feb9de91301b6",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10824,13 +10824,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-12556C6CBC60F1338456",
+      "id": "NCP-LATENT-A6440F3DF99175DD379A",
       "path": "scripts/check_rust_packages.py",
-      "line": 3124,
+      "line": 3130,
       "column": 50,
       "token_id": "M008",
       "line_sha256": "2e67584004eed74e4ec44a4f59c66841759cce9dbed49e7e40f2a20a9f47c523",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10840,13 +10840,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-98B6640C0BE5ECD140F5",
+      "id": "NCP-LATENT-81FBE4366BD27824513B",
       "path": "scripts/check_rust_packages.py",
-      "line": 3651,
+      "line": 3663,
       "column": 5,
       "token_id": "M008",
       "line_sha256": "7e9e44ddd8cbd9083652afcc6e4a2e6a872f6f5119f6f5850b174a7c275eca8e",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10856,13 +10856,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-363E6747E830E8756F2B",
+      "id": "NCP-LATENT-1132A6DB25C21302A2BD",
       "path": "scripts/check_rust_packages.py",
-      "line": 3654,
+      "line": 3666,
       "column": 8,
       "token_id": "M008",
       "line_sha256": "93214ad4142d8da27e0702fc9237c70298342001f12a9af6b067b1d93069b089",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10872,13 +10872,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-632D0C1C55B40BEF705A",
+      "id": "NCP-LATENT-4699EEFCA8C1F1F4F621",
       "path": "scripts/check_rust_packages.py",
-      "line": 3655,
+      "line": 3667,
       "column": 39,
       "token_id": "M008",
       "line_sha256": "4cd66d67cae6d8972f9bbd5d3343af1590947a3853bfcdf23ea9c7c10f9b9efc",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10888,13 +10888,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-78F0719499699111021B",
+      "id": "NCP-LATENT-009C07EA493257C39A7F",
       "path": "scripts/check_rust_packages.py",
-      "line": 3713,
+      "line": 3725,
       "column": 29,
       "token_id": "M008",
       "line_sha256": "68ba55ad65e96cb95c91593413eb95d1233191e87b84dfedc9e51808bcd4c477",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10904,13 +10904,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-E8D2B68657D493B7954A",
+      "id": "NCP-LATENT-B5FD367C1501CDFFC530",
       "path": "scripts/check_rust_packages.py",
-      "line": 3798,
+      "line": 3810,
       "column": 49,
       "token_id": "M008",
       "line_sha256": "f124b91531dd3f8c7a52e771454c02123f7ef953192a5d5145442d68f4941635",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10920,13 +10920,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-7333ECA1B8154201AF4D",
+      "id": "NCP-LATENT-DA202686F0DA8786155C",
       "path": "scripts/check_rust_packages.py",
-      "line": 3879,
+      "line": 3891,
       "column": 33,
       "token_id": "M008",
       "line_sha256": "19094f35cec94b739a6dbe9dddb96c8089e5c0c3e28e6c5ea001a5fab31dbb66",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10936,13 +10936,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-8F2FD3332C0A47D5D143",
+      "id": "NCP-LATENT-F30586A0656883965713",
       "path": "scripts/check_rust_packages.py",
-      "line": 4193,
+      "line": 4205,
       "column": 17,
       "token_id": "M008",
       "line_sha256": "434965ef07c0de2f406a76247be17a76b42953cfeadd0dcbe1746d3b31ff3a59",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10952,13 +10952,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-FCB843A5610B7D40F9B7",
+      "id": "NCP-LATENT-387510FD9D4BBC95FEF4",
       "path": "scripts/check_rust_packages.py",
-      "line": 4207,
+      "line": 4219,
       "column": 38,
       "token_id": "M008",
       "line_sha256": "066c9bac2554a8b0cce56b13444d4dbdfa4a3dd20416c18bcdb904f8b9a2f0cf",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10968,13 +10968,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-EE70600C0BC025D7AE09",
+      "id": "NCP-LATENT-E71E3F101BD9E7E00D6D",
       "path": "scripts/check_rust_packages.py",
-      "line": 4538,
+      "line": 4550,
       "column": 10,
       "token_id": "M008",
       "line_sha256": "91b6f3a270a845f4c2891fd349ae486e6c573c6d354402f9544e520de47d44a4",
-      "file_sha256": "93c2e01e3758eaea72efd481a059ef5e4c884e1b9df20a80df2a1a9095703225",
+      "file_sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
