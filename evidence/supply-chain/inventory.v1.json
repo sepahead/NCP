@@ -2251,7 +2251,7 @@
         "docs/adr/decision-registry.proposed.v1.json"
       ],
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "4beea0878d0de7f9716cccf6869a0e20a08fc2dcfcdf2c4a6821df3c1a9ea088"
+      "sha256": "44d98a404d3cc54694d59a5dc677fed3ab8777598c0f241a96e201e039d4c7fd"
     },
     {
       "outputs": [

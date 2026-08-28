@@ -4790,26 +4790,47 @@ def test_review(
     }
 
 
-def test_subject_resolver(
-    source_commit: str, repository_path: str
-) -> tuple[str, bytes]:
-    if source_commit != "1" * 40:
-        fail("self-test subject resolver rejected an unknown source commit")
-    return "2" * 40, (ROOT / repository_path).read_bytes()
+def test_subject_resolver_for(
+    fixture_source: dict[str, Any],
+) -> SubjectResolver:
+    neutral_source = review_neutral_source(fixture_source)
+    if fixture_source != neutral_source:
+        raise AssertionError("self-test subject resolver requires a neutral source")
+    fixture_source_content = source_bytes(neutral_source)
+
+    def resolve(source_commit: str, repository_path: str) -> tuple[str, bytes]:
+        if source_commit != "1" * 40:
+            fail("self-test subject resolver rejected an unknown source commit")
+        if repository_path == SOURCE_RELATIVE:
+            return "2" * 40, fixture_source_content
+        return "2" * 40, (ROOT / repository_path).read_bytes()
+
+    return resolve
 
 
-def test_decision_source_identity() -> dict[str, Any]:
-    return repository_file_identity(SOURCE)
+def test_decision_source_identity(
+    fixture_source: dict[str, Any],
+) -> dict[str, Any]:
+    neutral_source = review_neutral_source(fixture_source)
+    if fixture_source != neutral_source:
+        raise AssertionError("self-test packet requires a neutral source")
+    return repository_file_identity(
+        SOURCE,
+        content_override=source_bytes(neutral_source),
+    )
 
 
 def test_packet_content(
-    registry: dict[str, Any],
+    registry: dict[str, Any] | None,
+    fixture_source: dict[str, Any],
     *,
     block_override: dict[str, Any] | None = None,
     state: str = "CURRENT",
 ) -> bytes:
     if state not in {"CURRENT", "SUPERSEDED", "TEMPLATE"}:
         raise AssertionError(f"unknown self-test packet state {state}")
+    if fixture_source != review_neutral_source(fixture_source):
+        raise AssertionError("self-test packet requires a neutral fixture source")
     lifecycle = {
         "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
         "state": state,
@@ -4819,13 +4840,20 @@ def test_packet_content(
         "```json\n" + json.dumps(lifecycle, ensure_ascii=False, indent=2) + "\n```\n"
     )
     if state == "CURRENT":
+        if registry is None:
+            raise AssertionError("CURRENT self-test packet requires a registry")
+        expected_source_identity = test_decision_source_identity(fixture_source)
+        if registry["source"] != expected_source_identity:
+            raise AssertionError(
+                "self-test packet registry differs from its neutral fixture source"
+            )
         block = block_override or packet_subject_projection(
             registry["decisions"],
             registry["decision_set"],
             registry["review_policy"],
             source_commit="1" * 40,
             source_tree="2" * 40,
-            committed_source_identity=test_decision_source_identity(),
+            committed_source_identity=expected_source_identity,
         )
         text += (
             "```json\n" + json.dumps(block, ensure_ascii=False, indent=2) + "\n```\n"
@@ -4983,14 +5011,51 @@ def self_test_physical_source_paths() -> None:
 
 
 def self_test() -> None:
-    source = load_json(SOURCE)
-    self_test_adr_byte_limits(source)
+    repository_source = load_json(SOURCE)
+    repository_source_snapshot = copy.deepcopy(repository_source)
+    self_test_adr_byte_limits(repository_source)
     self_test_json_fence_scanner()
     self_test_physical_source_paths()
-    first = generated_bytes(build_registry(source))
-    second = generated_bytes(build_registry(source))
-    if first != second:
-        raise AssertionError("decision registry generation is not deterministic")
+    repository_first = build_registry(repository_source)
+    validate_decision_registry_instance(repository_first)
+    repository_second = build_registry(repository_source)
+    if generated_bytes(repository_first) != generated_bytes(repository_second):
+        raise AssertionError(
+            "repository decision registry generation is not deterministic"
+        )
+    if repository_source != repository_source_snapshot:
+        raise AssertionError("repository source validation mutated its input")
+
+    source = review_neutral_source(repository_source)
+    if repository_source != repository_source_snapshot:
+        raise AssertionError("review-neutral projection mutated repository source")
+    if source["review_records"] or review_neutral_source(source) != source:
+        raise AssertionError("review-neutral source retained a review record")
+    if not repository_source["review_records"] and source != repository_source:
+        raise AssertionError("zero-review source changed during neutral projection")
+    review_probe = copy.deepcopy(source)
+    review_probe["review_records"] = [{"self_test_review_only": True}]
+    if review_neutral_source(review_probe) != source:
+        raise AssertionError("review-neutral projection changed a non-review member")
+    drift_probe = copy.deepcopy(review_probe)
+    drift_probe["decisions"][0]["title"] += " self-test drift"
+    neutral_drift_probe = review_neutral_source(drift_probe)
+    if (
+        neutral_drift_probe["decisions"][0]["title"]
+        != drift_probe["decisions"][0]["title"]
+        or neutral_drift_probe["review_records"]
+    ):
+        raise AssertionError("review-neutral projection erased non-review drift")
+
+    neutral_packet = test_packet_content(None, source, state="SUPERSEDED")
+    neutral_subject_resolver = test_subject_resolver_for(source)
+    first_registry = build_registry(source, packet_override=neutral_packet)
+    validate_decision_registry_instance(first_registry)
+    second_registry = build_registry(source, packet_override=neutral_packet)
+    if generated_bytes(first_registry) != generated_bytes(second_registry):
+        raise AssertionError(
+            "neutral decision registry generation is not deterministic"
+        )
     must_fail(
         lambda: load_json_bytes(b'{"subject":1,"subject":2}', "duplicate.json"),
         "duplicate source JSON key",
@@ -5065,7 +5130,7 @@ def self_test() -> None:
         else:
             os.environ["GIT_CONFIG_PARAMETERS"] = prior_git_parameters
 
-    base = build_registry(source)
+    base = first_registry
     validate_decision_registry_instance(base)
     if (
         any(decision["status"] == "ACCEPTED" for decision in base["decisions"])
@@ -5074,6 +5139,10 @@ def self_test() -> None:
         raise AssertionError("empty review source produced optimistic acceptance")
     if base["semantic_closure_evaluation"]["state"] != "CLOSED":
         raise AssertionError("complete local semantic closure did not close")
+    must_fail(
+        lambda: require_all_accepted(base),
+        "zero-review fixture accepted every ADR",
+    )
     review_blocker_codes = {
         "MISSING_ROLE_ACCEPTANCE",
         "ACTIVE_REJECT",
@@ -5097,6 +5166,18 @@ def self_test() -> None:
             raise AssertionError("semantic-closure blocker followed a review blocker")
 
     closure_source = load_json(CLOSURE_SOURCE)
+    # Keep closure mutations independent of the real review-packet lifecycle.
+    # A CURRENT packet must not mask the intended closure failure.
+    closure_test_packet = test_packet_content(base, source, state="SUPERSEDED")
+
+    def build_closure_test_registry(
+        closure_source_override: dict[str, Any],
+    ) -> dict[str, Any]:
+        return build_registry(
+            source,
+            packet_override=closure_test_packet,
+            closure_source_override=closure_source_override,
+        )
 
     def must_fail_closure_schema(instance: dict[str, Any], description: str) -> None:
         try:
@@ -5155,25 +5236,25 @@ def self_test() -> None:
     malformed_closure = copy.deepcopy(closure_source)
     malformed_closure["unexpected_authority"] = True
     must_fail(
-        lambda: build_registry(source, closure_source_override=malformed_closure),
+        lambda: build_closure_test_registry(malformed_closure),
         "malformed semantic closure with an unknown authority member",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"].pop()
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "missing ADR semantic closure",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][0]["id"] = []
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "semantic closure with a non-string ADR ID",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][0]["adr_source_set_sha256"] = "0" * 64
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "stale ADR semantic closure binding",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5181,7 +5262,7 @@ def self_test() -> None:
         "PRODUCTION_ADMISSION"
     )
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "semantic example contract with optimistic authority",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5189,7 +5270,7 @@ def self_test() -> None:
         "ONE_ENGINE_IS_ENOUGH"
     )
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "semantic example contract with weakened engine parity",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5197,13 +5278,13 @@ def self_test() -> None:
         "prohibited_review_role_ids"
     ].append("protocol-reviewer")
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "no-edge component role overlapping a required review role",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["excluded_no_edge_components"][0]["prohibited_edge_classes"].pop()
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "no-edge component with an incomplete prohibited edge-class inventory",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5215,7 +5296,7 @@ def self_test() -> None:
         hostile_edge_classes[0],
     )
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "schema-valid no-edge taxonomy with substituted ASCII order",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5223,14 +5304,14 @@ def self_test() -> None:
         "docs/adr/0003-authenticated-production-ingress.md#unknown-question"
     )
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "semantic question with an unknown ADR anchor",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][6]["questions"].pop(0)
     hostile_closure["decisions"][6]["questions"][0]["question_id"] = "ADR-007-Q01"
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "deleted and renumbered semantic question",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5238,7 +5319,7 @@ def self_test() -> None:
         "minimum"
     ] = None
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "VALIDATED B03 deferral with a missing literal bound",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5246,7 +5327,7 @@ def self_test() -> None:
         "validation_state"
     ] = []
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "B03 deferral with a non-string validation state",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5254,7 +5335,7 @@ def self_test() -> None:
         "required_tests"
     ] = [f"ADR-002-B03-FAKE-{index}" for index in range(1, 9)]
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "B03 deferral with fabricated test identities",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5263,7 +5344,7 @@ def self_test() -> None:
     hostile_parameter["minimum"] = 0
     hostile_parameter["maximum"] = 0
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "vacuous zero-bound VALIDATED bounded-integer parameter",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5273,7 +5354,7 @@ def self_test() -> None:
     hostile_parameter["minimum"] = 2
     hostile_parameter["maximum"] = 1
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "B03 deferral with an inverted finite envelope",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5281,7 +5362,7 @@ def self_test() -> None:
         "selected_value"
     ] = 1
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "future B03 selected value inside the B01 decision-set source",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5290,7 +5371,7 @@ def self_test() -> None:
     ][0]
     hostile_parameter["selection_predicate_id"] = "ADR-002-B03-FAKE-PREDICATE"
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "B03 deferral with a substituted selection predicate",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5298,13 +5379,13 @@ def self_test() -> None:
         "cortexel"
     ]
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "global no-edge component missing a canonical repository alias",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][4]["questions"][0]["b03_deferral"]["parameters"].pop()
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "B03 deferral with an omitted semantic parameter dimension",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5324,10 +5405,7 @@ def self_test() -> None:
         "STABLE_CORE_FILE_IDENTITIES",
         eligible_identities,
     )
-    validated_envelope = build_registry(
-        source,
-        closure_source_override=hostile_closure,
-    )
+    validated_envelope = build_closure_test_registry(hostile_closure)
     if any(
         blocker["code"] == "INVALID_B03_DEFERRAL"
         for blocker in validated_envelope["decisions"][1]["acceptance_blockers"]
@@ -5338,10 +5416,7 @@ def self_test() -> None:
         0
     ]["maximum"] = 3
     must_fail(
-        lambda: build_registry(
-            source,
-            closure_source_override=hostile_eligibility,
-        ),
+        lambda: build_closure_test_registry(hostile_eligibility),
         "identity-set envelope wider than its exact eligibility universe",
     )
     for mutate_eligibility, label in (
@@ -5373,9 +5448,8 @@ def self_test() -> None:
             ][0]
         )
         must_fail(
-            lambda hostile_eligibility=hostile_eligibility: build_registry(
-                source,
-                closure_source_override=hostile_eligibility,
+            lambda hostile_eligibility=hostile_eligibility: build_closure_test_registry(
+                hostile_eligibility
             ),
             label,
         )
@@ -5384,16 +5458,13 @@ def self_test() -> None:
         "identity_eligibility_universes"
     ].clear()
     must_fail(
-        lambda: build_registry(
-            source,
-            closure_source_override=hostile_eligibility,
-        ),
+        lambda: build_closure_test_registry(hostile_eligibility),
         "validated identity-set envelope without an eligibility universe",
     )
     hostile_closure = copy.deepcopy(closure_source)
     hostile_closure["decisions"][3]["example_requirements"]["required_case_ids"].clear()
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "ADR source set without a required semantic case",
     )
     hostile_closure = copy.deepcopy(closure_source)
@@ -5401,7 +5472,7 @@ def self_test() -> None:
         "adr002.realm-bound-contract-identity.v1"
     )
     must_fail(
-        lambda: build_registry(source, closure_source_override=hostile_closure),
+        lambda: build_closure_test_registry(hostile_closure),
         "ADR semantic requirement bound to another ADR case",
     )
     if (
@@ -5615,11 +5686,11 @@ def self_test() -> None:
         "aggregate retained-evidence byte amplification",
     )
 
-    current_packet_content = test_packet_content(base)
+    current_packet_content = test_packet_content(base, source)
     review_base = build_registry(
         source,
         packet_override=current_packet_content,
-        subject_resolver=test_subject_resolver,
+        subject_resolver=neutral_subject_resolver,
     )
     if review_base["review_packet_subject"] is None:
         raise AssertionError(
@@ -5628,7 +5699,7 @@ def self_test() -> None:
     emitted = emit_review_subject(
         "1" * 40,
         source=source,
-        subject_resolver=test_subject_resolver,
+        subject_resolver=neutral_subject_resolver,
     )
     if emitted != review_base["review_packet_subject"]:
         raise AssertionError("review-subject emitter differs from packet validation")
@@ -5636,7 +5707,9 @@ def self_test() -> None:
     def stale_committed_input_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         if repository_path == GENERATOR:
             return tree, content_at_commit + b"\n# stale committed generator\n"
         return tree, content_at_commit
@@ -5653,7 +5726,9 @@ def self_test() -> None:
     def stale_committed_schema_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         if repository_path == SCHEMA_RELATIVE:
             return tree, content_at_commit + b"\n"
         return tree, content_at_commit
@@ -5670,7 +5745,9 @@ def self_test() -> None:
     def stale_committed_closure_source_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         if repository_path == CLOSURE_SOURCE_RELATIVE:
             return tree, content_at_commit + b"\n"
         return tree, content_at_commit
@@ -5687,7 +5764,9 @@ def self_test() -> None:
     def stale_committed_closure_schema_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         if repository_path == CLOSURE_SCHEMA_RELATIVE:
             return tree, content_at_commit + b"\n"
         return tree, content_at_commit
@@ -5704,7 +5783,9 @@ def self_test() -> None:
     def stale_committed_module_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         if repository_path == EXPECTED_MODULE_PATHS["ADR-004"][0]:
             return tree, content_at_commit + b"\n"
         return tree, content_at_commit
@@ -5721,7 +5802,9 @@ def self_test() -> None:
     def stale_committed_source_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         if repository_path == SOURCE_RELATIVE:
             stale_source = copy.deepcopy(source)
             stale_source["decisions"][0]["required_reviews"][0]["label"] += " stale"
@@ -5798,7 +5881,7 @@ def self_test() -> None:
             closure_artifact_overrides={
                 SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_order),
             },
-            subject_resolver=test_subject_resolver,
+            subject_resolver=neutral_subject_resolver,
             packet_override=current_packet_content,
         ),
         "semantic corpus with shuffled case order",
@@ -5867,7 +5950,7 @@ def self_test() -> None:
         closure_artifact_overrides={
             SEMANTIC_CORPUS_PATH: source_bytes(hostile_case_identity),
         },
-        subject_resolver=test_subject_resolver,
+        subject_resolver=neutral_subject_resolver,
         packet_override=current_packet_content,
     )
     if (
@@ -5892,13 +5975,33 @@ def self_test() -> None:
     )
 
     reviewed_source["review_records"] = open_reviews
+
+    def reviewed_committed_source_resolver(
+        source_commit: str, repository_path: str
+    ) -> tuple[str, bytes]:
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
+        if repository_path == SOURCE_RELATIVE:
+            return tree, source_bytes(reviewed_source)
+        return tree, content_at_commit
+
+    must_fail(
+        lambda: build_registry(
+            reviewed_source,
+            subject_resolver=reviewed_committed_source_resolver,
+            packet_override=current_packet_content,
+        ),
+        "CURRENT packet whose subject commit contains review records",
+    )
+
     reviewed = build_registry(
         reviewed_source,
         artifact_overrides=test_artifact_overrides(reviewed_source, content),
         closure_artifact_overrides={
             SEMANTIC_CORPUS_PATH: current_corpus_bytes,
         },
-        subject_resolver=test_subject_resolver,
+        subject_resolver=neutral_subject_resolver,
         packet_override=current_packet_content,
     )
     if reviewed["decisions"][0]["status"] != "ACCEPTED":
@@ -5916,7 +6019,7 @@ def self_test() -> None:
         closure_artifact_overrides={
             SEMANTIC_CORPUS_PATH: source_bytes(stale_corpus),
         },
-        subject_resolver=test_subject_resolver,
+        subject_resolver=neutral_subject_resolver,
         packet_override=current_packet_content,
     )
     if (
@@ -5932,7 +6035,7 @@ def self_test() -> None:
         test_source: dict[str, Any],
         *,
         test_policy_overrides: dict[str, bytes] | None = None,
-        test_resolver: SubjectResolver = test_subject_resolver,
+        test_resolver: SubjectResolver = neutral_subject_resolver,
         test_packet: bytes = current_packet_content,
     ) -> dict[str, Any]:
         return build_registry(
@@ -5978,21 +6081,21 @@ def self_test() -> None:
 
     template_registry = build_registry(
         source,
-        packet_override=test_packet_content(base, state="TEMPLATE"),
+        packet_override=test_packet_content(base, source, state="TEMPLATE"),
     )
     if template_registry["review_packet_subject"] is not None:
         raise AssertionError("zero-review template packet produced a review subject")
     must_fail(
         lambda: build_test(
             accepted_source,
-            test_packet=test_packet_content(base, state="TEMPLATE"),
+            test_packet=test_packet_content(base, source, state="TEMPLATE"),
         ),
         "review records against a packet template",
     )
     must_fail(
         lambda: build_test(
             accepted_source,
-            test_packet=test_packet_content(base, state="SUPERSEDED"),
+            test_packet=test_packet_content(base, source, state="SUPERSEDED"),
         ),
         "review records against a machine-superseded packet",
     )
@@ -6003,7 +6106,7 @@ def self_test() -> None:
         review_base["review_policy"],
         source_commit="1" * 40,
         source_tree="2" * 40,
-        committed_source_identity=test_decision_source_identity(),
+        committed_source_identity=test_decision_source_identity(source),
     )
     mismatched_packet_block["decision_set"] = copy.deepcopy(
         mismatched_packet_block["decision_set"]
@@ -6013,7 +6116,9 @@ def self_test() -> None:
         lambda: build_test(
             accepted_source,
             test_packet=test_packet_content(
-                review_base, block_override=mismatched_packet_block
+                review_base,
+                source,
+                block_override=mismatched_packet_block,
             ),
         ),
         "packet block with a mismatched decision set",
@@ -6022,9 +6127,11 @@ def self_test() -> None:
         lambda: build_registry(
             source,
             packet_override=test_packet_content(
-                review_base, block_override=mismatched_packet_block
+                review_base,
+                source,
+                block_override=mismatched_packet_block,
             ),
-            subject_resolver=test_subject_resolver,
+            subject_resolver=neutral_subject_resolver,
         ),
         "zero-review CURRENT packet with a mismatched decision set",
     )
@@ -6043,14 +6150,16 @@ def self_test() -> None:
         review_base["review_policy"],
         source_commit="1" * 40,
         source_tree="2" * 40,
-        committed_source_identity=test_decision_source_identity(),
+        committed_source_identity=test_decision_source_identity(source),
     )
     self_digest_packet_block["review_packet_sha256"] = "0" * 64
     must_fail(
         lambda: build_test(
             accepted_source,
             test_packet=test_packet_content(
-                review_base, block_override=self_digest_packet_block
+                review_base,
+                source,
+                block_override=self_digest_packet_block,
             ),
         ),
         "packet block that embeds a self-referential digest",
@@ -6074,7 +6183,7 @@ def self_test() -> None:
     def historical_resolver(source_commit: str, adr_path: str) -> tuple[str, bytes]:
         if source_commit == "3" * 40:
             return "3" * 40, historical_adr
-        return test_subject_resolver(source_commit, adr_path)
+        return neutral_subject_resolver(source_commit, adr_path)
 
     stale_registry = build_test(stale, test_resolver=historical_resolver)
     if (
@@ -6120,7 +6229,7 @@ def self_test() -> None:
             if repository_path == EXPECTED_MODULE_PATHS["ADR-004"][0]:
                 return "3" * 40, historical_module
             return "3" * 40, (ROOT / repository_path).read_bytes()
-        return test_subject_resolver(source_commit, repository_path)
+        return neutral_subject_resolver(source_commit, repository_path)
 
     module_stale_registry = build_test(
         module_review_source,
@@ -6154,14 +6263,16 @@ def self_test() -> None:
     policy_changed_base = build_registry(
         source,
         policy_overrides=policy_override,
-        packet_override=test_packet_content(base, state="TEMPLATE"),
+        packet_override=test_packet_content(base, source, state="TEMPLATE"),
     )
-    policy_changed_packet = test_packet_content(policy_changed_base)
+    policy_changed_packet = test_packet_content(policy_changed_base, source)
 
     def policy_changed_resolver(
         source_commit: str, repository_path: str
     ) -> tuple[str, bytes]:
-        tree, content_at_commit = test_subject_resolver(source_commit, repository_path)
+        tree, content_at_commit = neutral_subject_resolver(
+            source_commit, repository_path
+        )
         return tree, policy_override.get(repository_path, content_at_commit)
 
     policy_stale_registry = build_test(
