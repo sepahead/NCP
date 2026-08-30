@@ -38,6 +38,8 @@ const COMPACT_PATH = "docs/adr/selector-closure.source.v1.json";
 const PROPOSAL_PATH = "docs/adr/selector-allocation.proposal.v1.json";
 const PROPOSAL_SCHEMA_PATH =
   "docs/adr/selector-allocation.proposal.schema.v1.json";
+const PROPOSED_DECISION_REGISTRY_PATH =
+  "docs/adr/decision-registry.proposed.v1.json";
 const PROPOSAL_SCHEMA_FILE = "selector-allocation.proposal.schema.v1.json";
 const PROPOSAL_SCHEMA_ID = "ncp.b01-selector-allocation-proposal.v1";
 const PROPOSAL_CLAIM_BOUNDARY =
@@ -182,7 +184,10 @@ const ADR_SOURCES = Object.freeze([
     ["docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"],
   ],
   ["docs/adr/0010-plane-qos-retention-and-overload.md", []],
-  ["docs/adr/0011-ecosystem-topology-and-handover.md", []],
+  [
+    "docs/adr/0011-ecosystem-topology-and-handover.md",
+    ["docs/adr/modules/adr-011-ecosystem-integration-boundary.md"],
+  ],
 ]);
 const COMPILER_SOURCE_PATHS = Object.freeze([
   "scripts/check_selector_closure.py",
@@ -2407,6 +2412,65 @@ function verifyDocumentCommitments(inventory) {
   requireCondition(corpusBytes <= 2 * 1024 * 1024, "ADR corpus exceeds bound");
 }
 
+function verifyDecisionRegistryParity(inventory, registry) {
+  requireCondition(
+    registry.schema === "ncp.proposed-decision-registry.v1" &&
+      registry.task === "B01" &&
+      registry.candidate === "1.0.0-rc.1" &&
+      registry.wire_version === "1.0" &&
+      registry.normative === false &&
+      registry.promotion_blocked === true,
+    "proposed decision registry must remain non-normative and promotion-blocked",
+  );
+  requireCondition(
+    Array.isArray(registry.decisions) &&
+      registry.decisions.length === ADR_IDS.length &&
+      inventory.documents.length === ADR_IDS.length,
+    "selector inventory and proposed registry decision counts differ",
+  );
+  for (const [index, document] of inventory.documents.entries()) {
+    const decision = registry.decisions[index];
+    const adrId = ADR_IDS[index];
+    const [mainPath, modulePaths] = ADR_SOURCES[index];
+    const actualModulePaths = document.modules.map((module) => module.path);
+    requireCondition(
+      decision.id === adrId &&
+        document.adr_id === adrId &&
+        decision.path === mainPath &&
+        document.path === mainPath &&
+        JSON.stringify(decision.module_paths) === JSON.stringify(modulePaths) &&
+        JSON.stringify(actualModulePaths) === JSON.stringify(modulePaths) &&
+        decision.bytes === document.byte_length &&
+        decision.content_sha256 === document.sha256,
+      `selector/proposed-registry decision ${index}: source identity differs`,
+    );
+    const expectedSources = [
+      {
+        bytes: document.byte_length,
+        kind: "main",
+        path: document.path,
+        sha256: document.sha256,
+      },
+      ...document.modules.map((module) => ({
+        bytes: module.byte_length,
+        kind: "module",
+        path: module.path,
+        sha256: module.sha256,
+      })),
+    ];
+    requireCondition(
+      decision.source_set?.decision_id === adrId &&
+        decision.source_set.sha256 === document.source_set.sha256,
+      `selector/proposed-registry decision ${index}: source-set identity differs`,
+    );
+    requireExact(
+      decision.source_set.sources,
+      expectedSources,
+      `selector/proposed-registry decision ${index} source rows`,
+    );
+  }
+}
+
 function verifyProvenanceReview(inventory) {
   const review = inventory.provenance_review;
   if (review.status === "NOT_REVIEWED") {
@@ -4161,6 +4225,72 @@ function runAlgorithmSelfTest() {
     "portable compact selector source bound changed",
   );
   cases += 1;
+
+  const parityInventory = parseCanonicalDocument(
+    readBounded(
+      INVENTORY_PATH,
+      MAX_INVENTORY_BYTES,
+      "parity self-test allocation inventory",
+    ),
+    "parity self-test allocation inventory",
+  );
+  const parityRegistry = parseJsonWithPreflight(
+    readBounded(
+      PROPOSED_DECISION_REGISTRY_PATH,
+      MAX_ADR_SOURCE_BYTES,
+      "parity self-test proposed decision registry",
+    ),
+    MAX_JSON_DEPTH,
+    "parity self-test proposed decision registry",
+  );
+  verifyDecisionRegistryParity(parityInventory, parityRegistry);
+  cases += 1;
+  for (const [label, mutate] of [
+    [
+      "proposed decision ID substitution",
+      (value) => {
+        value.decisions[0].id = "ADR-999";
+      },
+    ],
+    [
+      "proposed registry normative substitution",
+      (value) => {
+        value.normative = true;
+      },
+    ],
+    [
+      "proposed registry promotion substitution",
+      (value) => {
+        value.promotion_blocked = false;
+      },
+    ],
+    [
+      "proposed module path substitution",
+      (value) => {
+        value.decisions[3].module_paths[0] =
+          "docs/adr/modules/substituted.md";
+      },
+    ],
+    [
+      "proposed source-row digest substitution",
+      (value) => {
+        value.decisions[3].source_set.sources[1].sha256 = "f".repeat(64);
+      },
+    ],
+    [
+      "proposed source-set digest substitution",
+      (value) => {
+        value.decisions[3].source_set.sha256 = "f".repeat(64);
+      },
+    ],
+  ]) {
+    const hostileRegistry = structuredClone(parityRegistry);
+    mutate(hostileRegistry);
+    expectFailure(
+      () => verifyDecisionRegistryParity(parityInventory, hostileRegistry),
+      label,
+    );
+  }
   return cases;
 }
 
@@ -4195,11 +4325,21 @@ function verifyRepository() {
     MAX_SCHEMA_BYTES,
     "selector allocation proposal schema",
   );
+  const proposedRegistryRaw = readBounded(
+    PROPOSED_DECISION_REGISTRY_PATH,
+    MAX_ADR_SOURCE_BYTES,
+    "proposed decision registry",
+  );
 
   const authoring = parseCanonicalDocument(authoringRaw, "selector authoring");
   const inventory = parseCanonicalDocument(inventoryRaw, "allocation inventory");
   const compact = parseCanonicalDocument(compactRaw, "compact selector source");
   const proposal = parseCanonicalDocument(proposalRaw, "allocation proposal");
+  const proposedRegistry = parseJsonWithPreflight(
+    proposedRegistryRaw,
+    MAX_JSON_DEPTH,
+    "proposed decision registry",
+  );
   const { binding, expanded } = reconstructExpanded(authoring, inventory);
   requireJsonDepth(expanded, MAX_JSON_DEPTH, "expanded selector source");
 
@@ -4252,6 +4392,7 @@ function verifyRepository() {
 
   verifySuiteFixedVectors(inventory);
   verifyDocumentCommitments(inventory);
+  verifyDecisionRegistryParity(inventory, proposedRegistry);
   verifyProvenanceReview(inventory);
   const subject = verifySemanticReviewSubject(
     expanded,

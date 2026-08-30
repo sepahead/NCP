@@ -102,7 +102,7 @@ REVIEW_DOCUMENT_SCHEMA_URL = (
     "https://sepahead.github.io/ncp/schemas/b01-selector-allocation-review.v1.json"
 )
 REVIEW_DOCUMENT_SCHEMA_SHA256 = (
-    "8013d018aa3570be6d3718306b19e2363b860797e1749b5ae3028983bff25d52"
+    "68ddd98cc6fd9931a6913b44efe089f2b8f7662af41ede58e1bc6201dfc909fa"
 )
 REVIEW_STATE_FILE = "selector-allocation.review-state.v1.json"
 REVIEW_STATE_SCHEMA_FILE = "selector-allocation.review-state.schema.v1.json"
@@ -865,9 +865,7 @@ def load_review_generation_state(
         Draft202012Validator(schema), value
     )
     if error is not None:
-        count_text = (
-            f">={MAX_SCHEMA_ERRORS + 1}" if truncated else str(error_count)
-        )
+        count_text = f">={MAX_SCHEMA_ERRORS + 1}" if truncated else str(error_count)
         _fail(
             "review-generation state fails its schema: "
             f"{error.message}; errors={count_text}"
@@ -1037,7 +1035,9 @@ def _run_git(
             command,
             cwd=repo_root,
             env=_clean_git_environment(),
-            stdin=(subprocess.PIPE if standard_input is not None else subprocess.DEVNULL),
+            stdin=(
+                subprocess.PIPE if standard_input is not None else subprocess.DEVNULL
+            ),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             start_new_session=True,
@@ -1057,7 +1057,9 @@ def _run_git(
             if process.stdin is not None:
                 if standard_input:
                     os.set_blocking(process.stdin.fileno(), False)
-                    selector.register(process.stdin, selectors.EVENT_WRITE, ("write", "stdin"))
+                    selector.register(
+                        process.stdin, selectors.EVENT_WRITE, ("write", "stdin")
+                    )
                 else:
                     process.stdin.close()
 
@@ -2151,9 +2153,7 @@ def _validate_review_schema_instance(
     )
     if error is not None:
         path = "/" + "/".join(str(part) for part in error.absolute_path)
-        count_text = (
-            f">={MAX_SCHEMA_ERRORS + 1}" if truncated else str(error_count)
-        )
+        count_text = f">={MAX_SCHEMA_ERRORS + 1}" if truncated else str(error_count)
         _fail(
             f"review document fails its committed schema at {path}: "
             f"{error.message}; errors={count_text}"
@@ -2414,9 +2414,7 @@ def _load_review_inputs_from_snapshot(
         Draft202012Validator(state_schema), state_value
     )
     if state_error is not None:
-        count_text = (
-            f">={MAX_SCHEMA_ERRORS + 1}" if truncated else str(error_count)
-        )
+        count_text = f">={MAX_SCHEMA_ERRORS + 1}" if truncated else str(error_count)
         _fail(
             "committed review-generation state fails its schema: "
             f"{state_error.message}; errors={count_text}"
@@ -3677,9 +3675,7 @@ else:
                 "Git timeout left a descendant process alive",
             )
             nonzero_survival_path = fake_directory / "nonzero-descendant-survived"
-            os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"] = str(
-                nonzero_survival_path
-            )
+            os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"] = str(nonzero_survival_path)
             os.environ["NCP_FAKE_GIT_MODE"] = "nonzero-descendant"
             expect_git_rejection(
                 lambda: _run_git(

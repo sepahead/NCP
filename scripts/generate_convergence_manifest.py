@@ -45,7 +45,7 @@ EXTERNAL_DETAILS = {
     },
     "consumer-certification": {
         "owner": "consumer repositories",
-        "evidence_required": "native installed-artifact qualification for each of the nine exact role subjects against the same NCP source and artifacts",
+        "evidence_required": "native installed-artifact qualification for each exact required role subject against the same NCP source and artifacts",
     },
     "independent-clean-room-reproduction": {
         "owner": "independent reproducer",
@@ -67,7 +67,9 @@ HISTORICAL_HANDOFF_SURFACES = (
 REQUIRED_ROLE_SUBJECTS = (
     "Engram simulation responder",
     "Engram plant commander",
+    "Engram Haldir-intent extension publisher",
     "Haldir NCP commander",
+    "Haldir Engram-intent extension receiver",
     "Haldir Galadriel-assessment receiver",
     "Galadriel NCP observer",
     "Galadriel raw-advisory publisher",
@@ -75,9 +77,8 @@ REQUIRED_ROLE_SUBJECTS = (
     "Crebain Galadriel-producer surface",
     "Prisoma NCP observer",
 )
-AUXILIARY_NON_PEER_IMPORTERS = (
-    "phd_thesis/formal/ncp-v080-counterexamples",
-)
+REQUIRED_ROLE_SUBJECT_COUNT = 11
+AUXILIARY_NON_PEER_IMPORTERS = ("phd_thesis/formal/ncp-v080-counterexamples",)
 REPOSITORY_PREREQUISITE_IDS = (
     "zenoh-production-secure-peer-principal-binding",
     "zenoh-self-contained-package-resolution",
@@ -631,9 +632,8 @@ def build() -> dict[str, Any]:
                 HISTORICAL_HANDOFF_SURFACES
             )
             entry["required_role_subjects"] = list(REQUIRED_ROLE_SUBJECTS)
-            entry["auxiliary_non_peer_importers"] = list(
-                AUXILIARY_NON_PEER_IMPORTERS
-            )
+            entry["required_role_subject_count"] = len(REQUIRED_ROLE_SUBJECTS)
+            entry["auxiliary_non_peer_importers"] = list(AUXILIARY_NON_PEER_IMPORTERS)
         external.append(entry)
     return {
         "schema": "ncp.local-convergence.v1",
@@ -712,6 +712,11 @@ def build() -> dict[str, Any]:
 
 
 def validate(value: dict[str, Any]) -> None:
+    if (
+        len(REQUIRED_ROLE_SUBJECTS) != REQUIRED_ROLE_SUBJECT_COUNT
+        or len(set(REQUIRED_ROLE_SUBJECTS)) != REQUIRED_ROLE_SUBJECT_COUNT
+    ):
+        raise ConvergenceError("required role subject constant is not exactly closed")
     if value.get("release_authorized") is not False or value.get("decision") != "NO_GO":
         raise ConvergenceError("convergence manifest must remain release-blocked NO_GO")
     if value.get("held_candidate_evidence") != HELD_CANDIDATE_EVIDENCE:
@@ -740,6 +745,8 @@ def validate(value: dict[str, Any]) -> None:
         raise ConvergenceError("historical handoff surface inventory drifted")
     if tuple(consumer.get("required_role_subjects") or ()) != REQUIRED_ROLE_SUBJECTS:
         raise ConvergenceError("required role subject inventory drifted")
+    if consumer.get("required_role_subject_count") != REQUIRED_ROLE_SUBJECT_COUNT:
+        raise ConvergenceError("required role subject count drifted")
     if (
         tuple(consumer.get("auxiliary_non_peer_importers") or ())
         != AUXILIARY_NON_PEER_IMPORTERS
@@ -789,6 +796,11 @@ def self_test(value: dict[str, Any]) -> None:
             raise AssertionError(f"tampered held receipt field {rendered} passed")
 
     audit = _load(ROOT / "docs" / "handoff" / "max-effort-audit-inputs.v2.json")
+    consumer_index = next(
+        index
+        for index, entry in enumerate(value["external_pre_release_handoff"])
+        if entry.get("id") == "consumer-certification"
+    )
     for ambiguous in (
         '{"release_authorized":true,"release_authorized":false}',
         '{"source_evidence":{"digest":"a","digest":"b"}}',
@@ -835,8 +847,63 @@ def self_test(value: dict[str, Any]) -> None:
         ("auxiliary_non_peer_importers", "auxiliary non-peer importer"),
     ):
         missing_consumer = copy.deepcopy(value)
-        missing_consumer["external_pre_release_handoff"][7][field].pop()
+        missing_consumer["external_pre_release_handoff"][consumer_index][field].pop()
         expect_invalid(missing_consumer, f"missing {label}")
+    for role_index, role in enumerate(REQUIRED_ROLE_SUBJECTS):
+        missing_role = copy.deepcopy(value)
+        missing_role["external_pre_release_handoff"][consumer_index][
+            "required_role_subjects"
+        ].pop(role_index)
+        expect_invalid(missing_role, f"missing role {role}")
+
+        near_role = copy.deepcopy(value)
+        near_role["external_pre_release_handoff"][consumer_index][
+            "required_role_subjects"
+        ][role_index] = f"{role} role"
+        expect_invalid(near_role, f"near-label role {role}")
+
+    duplicate_role = copy.deepcopy(value)
+    duplicate_role["external_pre_release_handoff"][consumer_index][
+        "required_role_subjects"
+    ].append(REQUIRED_ROLE_SUBJECTS[0])
+    duplicate_role["external_pre_release_handoff"][consumer_index][
+        "required_role_subject_count"
+    ] += 1
+    expect_invalid(duplicate_role, "duplicate role")
+
+    reordered_roles = copy.deepcopy(value)
+    reordered = reordered_roles["external_pre_release_handoff"][consumer_index][
+        "required_role_subjects"
+    ]
+    reordered[0], reordered[1] = reordered[1], reordered[0]
+    expect_invalid(reordered_roles, "reordered roles")
+
+    aggregate_repository = copy.deepcopy(value)
+    aggregate_repository["external_pre_release_handoff"][consumer_index][
+        "required_role_subjects"
+    ] = ["Engram", "Haldir", "Galadriel", "Crebain", "Prisoma"]
+    aggregate_repository["external_pre_release_handoff"][consumer_index][
+        "required_role_subject_count"
+    ] = 5
+    expect_invalid(aggregate_repository, "aggregate repository roles")
+
+    inserted_auxiliary = copy.deepcopy(value)
+    inserted_auxiliary["external_pre_release_handoff"][consumer_index][
+        "required_role_subjects"
+    ].append("phd_thesis/formal/ncp-v080-counterexamples")
+    inserted_auxiliary["external_pre_release_handoff"][consumer_index][
+        "required_role_subject_count"
+    ] += 1
+    expect_invalid(inserted_auxiliary, "auxiliary importer inserted as role")
+
+    twelfth_role = copy.deepcopy(value)
+    twelfth_role["external_pre_release_handoff"][consumer_index][
+        "required_role_subjects"
+    ].append("Unregistered twelfth role")
+    twelfth_role["external_pre_release_handoff"][consumer_index][
+        "required_role_subject_count"
+    ] += 1
+    expect_invalid(twelfth_role, "twelfth role")
     missing_prerequisite = copy.deepcopy(value)
     missing_prerequisite["repository_owned_open_prerequisites"].pop()
     expect_invalid(missing_prerequisite, "missing repository prerequisite")
@@ -1010,7 +1077,10 @@ def main() -> int:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
     mode = "verified" if args.check else "generated"
-    print(f"OK local convergence manifest {mode}: NO_GO, 10 external gates NOT_RUN")
+    print(
+        f"OK local convergence manifest {mode}: NO_GO, 10 external gates "
+        f"NOT_RUN, role_subjects={REQUIRED_ROLE_SUBJECT_COUNT}"
+    )
     return 0
 
 

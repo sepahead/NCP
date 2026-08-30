@@ -6,7 +6,7 @@
 > `--write` and verify with `--check`.
 > This is evidence bookkeeping, not release authorization or certification.
 
-Blueprint SHA-256: `6eead9d97aeb6d5180e3cfb03207a94c4be0715e9e94ed6694db70219628ccc9`.
+Blueprint SHA-256: `7461cb7c1b9f793402ada9741a9e72f05e3e8bc9b1ed4ff24b572abf4cd4af7c`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -18,7 +18,7 @@ separate, and publication tasks cannot start through a status edit.
 
 | Status | Count |
 |---|---:|
-| `OPEN` | 57 |
+| `OPEN` | 59 |
 | `IN_PROGRESS` | 1 |
 | `BLOCKED` | 0 |
 | `LOCAL_PASS` | 2 |
@@ -46,8 +46,8 @@ Current residual risks:
 - The maintained low-overhead architecture is reconciled into all eleven proposed ADR sources. The selector authoring artifact remains an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED historical diagnostic whose allocation predates atomic HOLD admission. It is outside the semantic-closure subject, cannot accept or block a decision, and cannot replace required human review. This local design work does not accept an ADR, change normative sources, or authorize implementation.
 - Nine deterministic light and dark diagram pairs now explain the proposed overview, runtime, lifecycle, planes, version gate, simulation sequence, command admission, plant state, and ecosystem boundaries. Local rendering and accessibility checks do not implement the target or satisfy the later N10 documentation task, F05 final visual campaign, independent review, performance qualification, or release gates.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
-- The 25 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 25 cases and rejects 132 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.
-- Local semantic closure is current only when the source-bound 25-case, 132-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.
+- The 25 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 25 cases and rejects 145 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.
+- Local semantic closure is current only when the source-bound 25-case, 145-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.
 - B01 inventories the full 72-file set under 72-file and 8 MiB caps, including this architecture. Python imports precede its first snapshot, so this is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without provenance. The reader rejects leaf links and in-read changes. Privileged parent replacement is outside the claim.
 - The review packet remains SUPERSEDED with zero review records. The neutral-fixture repair preserves repository reviews. Its decision-set digest is 81be8a31805140a4e01df1de45823b21e40f1a9b5d46b753a84978afa2ff226e. No CURRENT subject exists. No owner review, independent review, external adjudication, or passing B01 receipt exists. Canonical formal refinement and every downstream implementation remain open.
 - The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.
@@ -72,7 +72,7 @@ Current residual risks:
 - The Zenoh compatibility publisher rewrites lease commands and local ESTOP into one transport-owned stream. It cannot represent a separately authenticated ESTOP-only declaration, bind one allocator to a receiver-owned publisher incarnation, or reserve independent emergency ingress. B01, B02, B03, N03, N05, N07, and N08 remain open.
 - The selected early ESTOP latch keeps the primary digest immutable and preallocates one generation-wide restrictive-conflict attribution beside the one-transition latch. The current runtime has neither record. B03, N03, N05, N07, and N08 must implement the bounded target before command admission.
 - The selected Active path requires exact retained source-publication evidence in a bounded body-owned source window and grant-reserved pin. The ADR target defines fail-closed pin, expiry, eviction, and missing-evidence behavior. The current runtime has none of these records. B03, N03, N05, N07, and N08 remain blocked from command admission.
-- ADR-008 now selects a raw bounded binary chunk wrapper that composes with the universal frame limit and reserves parser arena plus callback capacity before retention. The current runtime does not implement it. B03, N03, N06, G01, H02, and C03 remain open.
+- ADR-008 now selects one bounded canonical-JSON extension envelope and content-addressed external attachment references. It defines no generic 1.0 chunk-reassembly protocol. The current runtime does not implement the selected admission, fetch, verification, or callback boundary. B03, N03, N06, G01, H02, and C03 remain open.
 - The current Rust and TypeScript handshake paths correctly accept same-major versions encoded as canonical 1 or 1.<minor> values and treat the compact proto hash as advisory. They do not implement the proposed stable-core identity check or prepared compatibility context. B02, B03, N01, N03, N05, N06, and N07 remain blocked from implementation and qualification.
 - Rust message structs can discard resource-bounded additive unknown members under the stable-line policy. Exact signing, replay, and forwarding must bind the admitted object before typed projection, while unknown closed values and any authorizing interpretation still reject. B02, B03, N01, N04, N05, N06, N07, and N08 remain open.
 - Stable route helpers reject key-expression delimiters but do not implement the proposed portable identifier profile: 128-byte NCP identifiers, 32 realm segments of 63 bytes, a 2048-byte realm, and a 4096-byte route. B03 and native implementation tasks remain open.
@@ -87,7 +87,7 @@ Current residual risks:
 - The local ActionBuffer latches ESTOP before complete wire validation. ActionBuffer and the stream fence also adopt the first admitted epoch instead of comparing with a prepared declaration. The fence hashes variable route, kind, and generation strings for every frame instead of using a prepared fixed slot.
 - LinkMonitor copies and replaces the caller-supplied epoch on every valid sample instead of owning one prepared immutable epoch. It also permits a CUSUM threshold above its 256-sample work bound, normalizes invalid parameters, and exposes no counter-saturation state.
 - The C ABI discovers a NUL-terminated JSON length before applying the frame bound. The Python binding accepts an allocated string and builds a generic JSON value before the typed value. Installed ingress needs explicit bounded bytes and one typed decode. B02, B03, N01, N03, N05, N06, and N07 remain open.
-- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current nine-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
+- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current eleven-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
 - The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.
 - Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
@@ -979,9 +979,15 @@ and ordered observations. It cannot depend on a later report or receipt.
 complete raw `serde_json::to_vec(&assessments)` vector attachments, typed
 `GaladrielLifecycleReceiptIdentity` and
 `GaladrielLifecycleAssessmentVectorIdentity`, and a complete ordered projection.
-Every protected attachment uses one exact `ProtectedAttachmentReference` with
-`attachment_id`, `digest`, `byte_length`, and `media_type`. The bytes are local
-members of the authenticated envelope. Fetch-later paths and URIs are forbidden.
+Every protected attachment uses one exact `ProtectedAttachmentReference` with an
+enrolled `store_id`, canonical `object_key`, `digest`, `byte_length`, `media_type`,
+`schema_id`, and `purpose`. Large bytes remain outside the semantic envelope in the
+manifest-enrolled content-addressed store. The wire carries no inline bytes, URL,
+local path, ambient credential, or redirect target. A reference grants no fetch
+authority. After complete resource reservation, the receiver mints one local one-use
+fetch capability bound to the envelope digest and reference. It verifies exact length
+and digest before semantic use. After every attachment verifies, one atomic owner
+transition rechecks currentness and consumes the callback right before callback entry.
 The outcome also carries the exact NCP source-authority bundle. Each evaluated
 assessment carries its adapter-scope mapping receipt and complete source-capture
 attachment set. Digest-only source-authority, mapping, or capture fields reject.
@@ -1333,8 +1339,9 @@ profiles reject every downgrade. Its closed `SOURCE_PRESENT` branch carries one
 portable `NormativeSourceRef` with matching `ProtectedOriginTransfer` plus bounded
 ordered full reference/transfer watermarks. `SOURCE_ABSENT` carries only an exact
 profile-permitted reason and forbids dummy sources and source-derived watermarks.
-Haldir source admission stays in the integrated policy authority's authenticated
-local-intent surface. After strict transfer verification, the authority constructs
+Haldir's registered extension receiver hands admitted intent bytes to the integrated
+policy authority through narrow authenticated internal IPC. After strict transfer
+verification, the authority constructs
 receipt-free pre-CAS `HaldirIntentSourceAdmissionFact` over the exact prior policy
 head, intent, source reference, and transfer. The successor policy head binds the
 fact; only after its CAS do the generic policy commit and
@@ -1357,7 +1364,7 @@ decode and its replay-fenced policy-selector CAS precede the receipt. The result
 policy decision carries only the unchanged portable reference to the commander, not
 the protected transfer or local receipt. Neither object
 grants observer attach/subscription/query/read transport or command/plant authority;
-they create no hidden process privilege and no tenth qualification role.
+they create no hidden process privilege and no additional X03 role.
 The policy authority issues one immutable commander-audience
 `HaldirPolicyDecisionRecord`. It binds the exact intent/source/policy/replay/deadline
 context and structurally forbids future NCP position, bytes, queue, and receipt fields.
@@ -1450,7 +1457,7 @@ worst-case accounting or blocks the next decision. Authority-local feedback rece
 time is conservative unless an authenticated no-later mapping tightens it. Feedback
 and the next policy decision compare-and-swap the same composite policy selector.
 The assessment receiver is a separate process and surface from the commander. Only
-narrow authenticated Haldir-local IPC crosses that boundary; activation, credentials,
+narrow authenticated internal Haldir IPC crosses that boundary; activation, credentials,
 routes, replay state, and evidence state stay disjoint. Those IPC types remain
 Haldir-owned and are not NCP stable-core allocations.
 NCP allocates only generic `ConsumerSemanticAxisContractContentRef` and
@@ -1789,8 +1796,10 @@ external or independent status in the current checker.
 | `B01` | 2 |
 | `F01` | 2 |
 | `E05` | 1 |
+| `E07` | 1 |
 | `H03` | 1 |
 | `H05` | 1 |
+| `H06` | 1 |
 | `G03` | 1 |
 | `P03` | 1 |
 | `C05` | 1 |
@@ -1865,7 +1874,7 @@ close a requirement, or change a task's evidence floor.
 | `C01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C01-acceptance`, `D01`, `D10`, `D18` | Create Crebain's separate native-1.0 plant adapter and exact pins | `R01` | Crebain | `—` | 0 |
 | `P01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `P01-acceptance`, `D02`, `D03`, `D18` | Add a parallel native-1.0 Prisoma observer | `R01` | Prisoma | `—` | 0 |
 | `E02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E02-acceptance`, `D01` | Split Engram's simulation responder from plant commander types | `E01` | Engram | `—` | 0 |
-| `H02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H02-acceptance`, `D07`, `D08`, `D09`, `D15`, `D18` | Integrate body-issued authority and dispositions into Haldir Gate | `H01` | Haldir | `—` | 0 |
+| `H02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H02-acceptance`, `D07`, `D08`, `D09`, `D15`, `D18` | Integrate body authority, dispositions, and Engram-intent extension ingress into Haldir Gate | `H01` | Haldir | `—` | 0 |
 | `H04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H04-acceptance`, `D09`, `D18`, `V11` | Implement Haldir's isolated optional assessment receiver | `H02`, `G01` | Haldir | `—` | 0 |
 | `G02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `G02-acceptance`, `D02`, `D03`, `D20`, `V11` | Bind Galadriel lifecycle and monitoring to authenticated observer state | `G01` | Galadriel | `—` | 0 |
 | `C02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C02-acceptance`, `D07`, `D08`, `D10`, `D15` | Implement Crebain as body-issued authority and disposition source | `C01` | Crebain | `—` | 0 |
@@ -1873,19 +1882,21 @@ close a requirement, or change a task's evidence floor.
 | `E03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E03-acceptance`, `D03`, `D20` | Implement Engram's authenticated transport and declared streams | `E02` | Engram | `—` | 0 |
 | `C03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C03-acceptance`, `D03`, `D09` | Migrate Crebain sensor and Galadriel-extension publication | `C02`, `G01` | Crebain | `—` | 0 |
 | `E04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E04-acceptance`, `D08`, `D15` | Implement Engram's direct plant integration | `E03`, `C02` | Engram | `—` | 0 |
-| `E06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E06-acceptance`, `D08`, `D15`, `D18`, `V11` | Implement Engram's optional Haldir-gated integration | `E04`, `H02` | Engram | `—` | 0 |
+| `E06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E06-acceptance`, `D08`, `D15`, `D18`, `V11` | Implement Engram's registered Haldir-intent extension publisher | `E04`, `H02` | Engram | `—` | 0 |
 | `C04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C04-acceptance`, `V11` | Verify the consolidated Galadriel producer lineage and retire stale branch references | `C03` | Crebain canonical repository | `—` | 0 |
 | `X01` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X01-acceptance`, `D04` | Qualify two genuinely independent installed non-Rust peers | `E03` | independent peer lab | `—` | 0 |
 | `X05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X05-acceptance`, `D20` | Qualify the disjoint observer challenge-exposure anchor infrastructure | `G02`, `P02`, `X01` | independent challenge-exposure anchor lab | `—` | 0 |
-| `X02` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X02-acceptance`, `D07`, `D08`, `D20` | Run the composed ecosystem and multi-writer campaign | `E06`, `H04`, `C04`, `X05` | isolated ecosystem lab | `—` | 0 |
-| `E05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E05-acceptance`, `D11` | Qualify Engram's exact installed native-1.0 roles | `E04`, `X01` | Engram qualification environment | `—` | 0 |
+| `X02` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X02-acceptance`, `X02-nest39-fleet-1-2-3`, `X02-music-separation`, `X02-presentation-runtime-boundary`, `D07`, `D08`, `D09`, `D20` | Run the composed ecosystem and multi-writer campaign | `E06`, `H04`, `C04`, `X05` | isolated ecosystem lab | `—` | 0 |
+| `E05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E05-acceptance`, `D11` | Qualify Engram's simulation-responder and direct-commander roles | `E04`, `X01` | Engram qualification environment | `—` | 0 |
 | `H03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H03-acceptance` | Qualify Haldir's secure commander role | `H02`, `C02`, `X01` | Haldir qualification environment | `—` | 0 |
 | `H05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H05-acceptance` | Qualify Haldir's optional assessment-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
+| `E07` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E07-acceptance`, `D09`, `D18` | Qualify Engram's Haldir-intent extension-publisher role | `X02` | Engram qualification environment | `—` | 0 |
+| `H06` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H06-acceptance`, `D09`, `D18` | Qualify Haldir's Engram-intent extension-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
 | `G03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `G03-acceptance` | Qualify Galadriel NCP observer and raw-advisory publisher roles | `X02` | Galadriel qualification environment | `—` | 0 |
 | `P03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `P03-acceptance`, `D11` | Migrate the fault observatory and qualify Prisoma's observer role | `X02` | Prisoma qualification environment | `—` | 0 |
 | `F04` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F04-acceptance`, `D06`, `D16`, `D20` | Execute the live security, fault, soak, rotation, and revocation campaign | `X02` | cross-ecosystem lab | `—` | 0 |
 | `C05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `C05-acceptance`, `D07`, `D10` | Qualify Crebain body and Galadriel-producer surface separately | `E05`, `H03`, `G03` | Crebain qualification environment | `—` | 0 |
-| `X03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X03-acceptance` | Issue nine exact consumer and extension role qualification receipts | `H05`, `C05`, `P03`, `F04` | cross-ecosystem adjudication | `—` | 0 |
+| `X03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X03-acceptance` | Issue eleven exact consumer and extension role qualification receipts | `H05`, `C05`, `P03`, `F04`, `E07`, `H06` | cross-ecosystem adjudication | `—` | 0 |
 | `X04` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X04-acceptance`, `D13` | Reproduce the provider and ecosystem from clean rooms | `X03` | independent clean builders | `—` | 0 |
 | `F05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F05-acceptance`, `V11` | Execute release-bound performance, resource, and final visual campaigns | `X04` | cross-ecosystem lab | `—` | 0 |
 | `R00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `R00-acceptance` | Hand the qualified candidate to the release runbook | `F05` | NCP | `—` | 0 |
@@ -1909,7 +1920,7 @@ observer grant, or runtime edge.
 | Task | Status | Repository | Owned atlas slice |
 |---|---|---|---|
 | `N10` | `OPEN` | NCP | Rewrite normative and user documentation and regenerate visuals |
-| `E06` | `OPEN` | Engram | Implement Engram's optional Haldir-gated integration |
+| `E06` | `OPEN` | Engram | Implement Engram's registered Haldir-intent extension publisher |
 | `H04` | `OPEN` | Haldir | Implement Haldir's isolated optional assessment receiver |
 | `G02` | `OPEN` | Galadriel | Bind Galadriel lifecycle and monitoring to authenticated observer state |
 | `C04` | `OPEN` | Crebain canonical repository | Verify the consolidated Galadriel producer lineage and retire stale branch references |

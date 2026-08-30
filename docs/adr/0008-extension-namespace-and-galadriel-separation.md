@@ -5,7 +5,7 @@
 - Candidate: unreleased, release-blocked `1.0.0-rc.1`
 - Normative effect before authorized N01 promotion: none
 - Required reviewers: protocol reviewer, Galadriel owner, Haldir owner, Crebain
-  owner
+  owner, Engram owner
 
 ## Context
 
@@ -152,7 +152,8 @@ The extension uses a bounded `GaladrielLifecycleOutcomeEvidence` over one exact
 verified `LifecycleReceipt`, the exact raw bytes produced by
 `serde_json::to_vec(&assessments)`, and a complete ordered extension projection
 of the assessment vector that the receipt's `assessment_digest` covers. The
-protected envelope carries both raw attachments and their content digests. Each
+protected envelope carries exact content-addressed references to those bytes.
+Each
 projected vector member is a closed `GaladrielLifecycleAssessmentEvidence`:
 
 - `EVALUATED_DEFAULT_REPORT` carries `track_id`, `fusion_seq`, `history_reset`,
@@ -387,16 +388,19 @@ unexplained gap is not policy-eligible. Each Haldir admission record binds the
 assessment head/commit, signing-time current attestation, and ancestry/compaction
 proof.
 
-Because the transport is push-only, the protected envelope carries every
-lineage/currentness object as a bounded attachment: assessment head, head commit
-receipt, signing-current head, current-selector attestation, and head-chain or
-compaction proof, plus the exact coordinate-mapping receipt and source-authority
-objects referenced by those heads. Each attachment reference binds exact digest,
-byte length, media type/schema, and attachment ID; the envelope authenticates
-the complete set. Haldir verifies all bytes locally before admission. A
-digest-only dangling reference, later fetch, cross-envelope cache guess, head
-without its commit, attestation without ancestry proof, source-authority tuple
-without its locally verifiable objects, or tampered/missing attachment rejects.
+The protected envelope references every lineage/currentness object as a bounded
+attachment: assessment head, head commit receipt, signing-current head,
+current-selector attestation, and head-chain or compaction proof. It also
+references the coordinate-mapping receipt and source-authority objects.
+
+Each reference uses the enrolled content-store contract below. The envelope
+authenticates the complete ordered set. Haldir fetches and verifies every object
+before semantic admission. A dangling reference, unregistered store, wrong
+object key, cross-envelope cache guess, missing commit, missing ancestry proof,
+unverifiable source-authority object, or changed byte rejects.
+
+`push-only` means Galadriel cannot query Haldir policy or request a semantic
+callback. It does not require inline binary bytes in the semantic envelope.
 
 Observer and assessor isolation uses one explicit one-way local evidence handoff,
 not shared credentials or in-memory Rust values. While the serialization-only
@@ -816,7 +820,7 @@ root rejects.
 
 `InstalledHaldirPolicyStateSelector` is the sole policy-authority currentness
 root. Base/profile/latch/replay changes, evaluation reservation/barrier/
-finalization, local-intent/source admission and decision, command-publication
+finalization, registered-intent/source admission and decision, command-publication
 reservation/cancel/release, feedback, and history changes all compare-and-swap
 this same selector. Subordinate intent/source, evaluation, fence, outbox, and
 history objects are not independently authoritative. Every transition emits
@@ -1220,19 +1224,26 @@ one-way immutable publication-record handoff above, with its own authority,
 audience, ledger, and bounds; it exposes neither role's credential, bus handle,
 or mutable store. Core wildcard subscriptions do not match extension routes.
 
-Haldir uses three separate deployable targets/processes. The assessment receiver
-owns extension ingress, raw evidence, assessor replay, first-ingress reservation,
-admission records, and external dispositions; it has no NCP command credential.
-The Haldir policy-state authority owns installed monitor profiles,
-the integrated base-policy decision core, local-intent replay,
-`HaldirPolicyStateHead`/selector, deny latches, assessment-evaluation
-single-flight state, command-publication reservations/fences, and policy commit
-receipts; it has neither extension-ingress nor NCP command credential. The
-commander owns intent-to-command conversion, body authority, stream allocation,
-command publication, and body-disposition reconciliation; it cannot evaluate or
-store base/monitor policy and has no raw assessment, admission, replay, or
+Haldir uses four separate deployable targets and processes. The intent receiver
+owns intent-extension transport, protected-envelope replay, attachment fetch,
+ingress reservations, admission records, and transport dispositions. It has no
+policy store or NCP command credential.
+
+The assessment receiver owns assessment-extension ingress, raw evidence,
+assessor replay, first-ingress reservation, admission records, and external
+dispositions. It has no intent credential or NCP command credential.
+
+The Haldir policy-state authority owns installed monitor profiles, the integrated
+base-policy decision core, intent decision replay, freshness grants,
+`HaldirPolicyStateHead` and its selector, deny latches, evaluation single-flight
+state, publication fences, and policy receipts. It has no extension transport or
+NCP command credential.
+
+The commander owns intent-to-command conversion, body authority, stream
+allocation, command publication, and body-disposition reconciliation. It cannot
+evaluate or store policy. It has no raw extension evidence, admission replay, or
 profile store. The pre-integration standalone Gate remains a separate deployment
-mode; it is not a fourth process in this integrated topology.
+mode. It is not a fifth integrated process.
 
 The receiver sends only immutable `AssessmentAdmissionRecord` plus its exact
 `HaldirAssessmentAdmissionCurrentnessReceipt` through one narrow authenticated
@@ -1242,9 +1253,9 @@ authenticated `HaldirPolicyEvaluationResult`; neither exposes the profile store
 or mutable policy state. The receiver uses that result to finalize the external
 assessment disposition.
 
-The integrated policy authority also owns the authenticated local-intent/source
-ingress described by ADR-011. Native V2 freshness is receiver-issued. Before an
-enrolled sender constructs an intent, the authority idempotently installs
+The integrated policy authority owns freshness-grant issuance for the registered
+intent extension described by ADR-011. Native V2 freshness is Haldir-issued.
+Before an enrolled sender constructs an intent, the authority idempotently installs
 `HaldirIntentFreshnessGrantCommitment` through its sole policy selector. The
 commitment binds a body-generated random grant/operation ID, authority and
 intended ingress endpoint, direct `AuthorityRealmKey`, complete
@@ -1260,7 +1271,8 @@ grant proves freshness capacity only; it grants no policy permission, command
 authority or NCP lease.
 
 The signed V2 preimage binds one `HaldirIntentFreshnessProof` over that exact
-grant and selected slot. Canonical `requested_validity_ms` is a positive bounded
+grant, installation receipt, selected slot, and Haldir clock incarnation.
+Canonical `requested_validity_ms` is a positive bounded
 integer; checked multiplication by 1,000,000 yields its duration in nanoseconds.
 Zero, overflow or a value above the grant/profile ceiling rejects. The exclusive
 authority-clock deadline is
@@ -1272,58 +1284,69 @@ refresh this deadline. The unchanged deadline limits Haldir ingress acceptance,
 source admission, policy decision commit and every later publication handoff;
 equality is expired.
 
-Engram sends the immutable V2 bytes through the ADR-011 durable intent outbox and
-two-cutoff protocol. Its earlier attempt cutoff is a conservative mapped image of
-the Haldir deadline minus the qualified worst-case duration through actual Haldir
-ingress acceptance. The authoritative cutoff remains the unchanged Haldir-clock
-deadline. A qualified `HaldirIntentTransportGateState` fences security/session/
-retirement cuts. At the receiver acceptance linearization point, the endpoint
-atomically checks the exact grant/slot/deadline and gate epoch and executes
-`RESERVE_LOCAL_INTENT_INGRESS`; acceptance and durable reservation cannot be split
-by a queue or crash. It emits queryable
-`HaldirIntentIngressAcceptanceDeadlineEvaluationReceipt`. Equality or later time
-cannot reserve. Timeout, cancellation, broker enqueue or sender return without
-authenticated endpoint evidence is ambiguous, not rejection or acceptance; retry
-uses the same bytes/key/grant/slot/deadlines.
+Engram sends immutable V2 bytes through the ADR-011 durable intent outbox and
+two-cutoff protocol. Its earlier attempt cutoff is a conservative mapped image
+of the Haldir deadline. The authoritative cutoff remains the unchanged
+Haldir-clock deadline.
 
-At that endpoint, the policy authority first bounds and strictly decodes the
-protected intent envelope and constructs `HaldirIntentIngressReservationFact`
-over the exact bytes/digest, direct realm and complete session foreign key,
-authenticated actor, actual route and audience, grant/slot and effective
-deadline, transport acceptance/gate evidence, replay and idempotency identities,
-policy/security/clock context, expected prior policy head, and one fresh
-single-flight key. The fact contains no source result, decision, successor,
-selector, or receipt. `RESERVE_LOCAL_INTENT_INGRESS` compare-and-swaps that exact
-pending preimage into `HaldirIntentIngressState` and emits the generic policy
-commit plus `HaldirIntentIngressReservationCommitReceipt`. A losing reservation
-authorizes nothing; exact query returns its winner.
+The four integrated processes use one qualified Haldir monotonic clock authority.
+Each process binds the same clock incarnation and reads the same nondecreasing
+tick domain. A process restart requires an authenticated no-later mapping or
+expires pending work.
 
-From the installed reservation, the authority verifies actor/audience/manifest/
-unchanged effective deadline and the exact original or trusted-projection
-transfer, then constructs
-receipt-free `HaldirIntentSourceAdmissionFact` or an explicit source-absent fact.
-The fact binds the direct realm, complete session foreign key, reservation,
-exact prior policy head and source evidence but no successor, selector or
-receipt. `ADMIT_INTENT_SOURCE` consumes that pending reservation, and its policy
-successor binds the fact. Only after its compare-and-swap do the generic policy
-commit and
-`HaldirIntentSourceAdmissionReceipt` bind the fact, prior/installed policy heads
-and selector version.
+A qualified `HaldirIntentTransportGateState` fences security, session, and
+retirement cuts in the intent receiver. At its acceptance linearization point,
+the receiver checks the grant, receipt, slot, deadline, gate epoch, and complete
+protected envelope. It then executes `RESERVE_LOCAL_INTENT_INGRESS`.
 
-If verification rejects, the unchanged exclusive deadline elapses, or the
-authenticated caller cancels before source admission, receipt-free
-`HaldirIntentIngressRejectionFact` binds the exact installed reservation, bytes,
-reason, and event context. `TERMINALIZE_LOCAL_INTENT_INGRESS_WITHOUT_ADMISSION`
-atomically removes the pending entry and installs its permanent replay tombstone
-plus post-CAS terminal receipt. It creates no source-admission receipt or policy
-decision. A same-digest retry returns the installed admission or terminal
-outcome; conflicting content, historical/sibling state, a losing fact, or
-missing source evidence cannot reach a decision. Neither the commander nor an
-inline attachment can create these policy-authority receipts.
+That operation compare-and-swaps one receipt-free
+`HaldirIntentIngressReservationFact` into the receiver-owned
+`HaldirIntentIngressStateHead`. The post-CAS
+`HaldirIntentIngressReservationCommitReceipt` binds its local selector and
+installed head. Queueing cannot split acceptance from this durable reservation.
+Equality or later time cannot reserve.
+
+The receiver fetches only manifest-enrolled attachment objects. It verifies all
+bytes and then performs the final currentness-and-callback-entry transition
+defined below. The installed immutable
+`HaldirIntentAdmissionRecord` binds the exact envelope, attachments, grant,
+receipt, slot, effective deadline, route, actor, realm, session, replay key,
+receiver head, and commit receipt.
+
+The receiver sends only that record, its complete immutable bytes, and one
+`HaldirIntentAdmissionCurrentnessReceipt` through a narrow authenticated API.
+The policy authority receives no transport handle, fetch credential, or receiver
+store authority. Transport acceptance and policy admission are separate
+transactions. Neither claims atomicity across their stores.
+
+The policy authority independently bounds and decodes the envelope and
+attachments. It revalidates actor, audience, manifest, grant, installation
+receipt, slot, unchanged deadline, source union, and protected source transfer.
+It then constructs receipt-free `HaldirIntentSourceAdmissionFact` or an explicit
+source-absent fact.
+
+The fact binds the receiver admission record, currentness receipt, direct realm,
+complete session foreign key, exact prior policy head, and source evidence. It
+contains no successor, selector, or receipt. `ADMIT_INTENT_SOURCE` installs its
+policy successor. Only the later generic policy commit and
+`HaldirIntentSourceAdmissionReceipt` bind the installed transition.
+
+If receiver verification rejects, the deadline elapses, or the authenticated
+caller cancels before receiver admission, receipt-free
+`HaldirIntentIngressRejectionFact` binds the exact reservation, bytes, reason,
+and event context. The receiver atomically installs a permanent replay tombstone
+and its post-CAS terminal receipt.
+
+Policy rejection or expiry after receiver admission installs a separate
+policy-owned terminal result. It cannot rewrite transport admission. A
+same-digest retry returns the installed result in each boundary. Conflicting
+content, historical state, sibling state, a losing fact, or missing source
+evidence cannot reach a policy decision. Neither the commander nor an attachment
+can create receiver or policy receipts.
 
 A policy ALLOW is represented only by authority-signed
 `HaldirPolicyDecisionRecord` for the commander audience. It binds the exact
-direct realm and complete session foreign key, authenticated local-intent
+direct realm and complete session foreign key, authenticated extension-intent
 bytes/digest, actor/replay operation, requested action and
 `HaldirIntentSourceAdmissionReceipt`, exact policy inputs, publication history
 and base/monitor head, decision/result/reason, authority clock evaluation time
@@ -1940,180 +1963,74 @@ above; its qualified local claim is bounded nonstarvation, not zero delay.
 
 ## Low-overhead extension transport reconciliation
 
-The stable outer extension transport is a bounded raw chunk frame, not a
-structured JSON wrapper. B03 selects one installed frame-profile identity and
-one route-encoding identity. N01 assigns that profile's exact magic, version,
-field widths, byte order, and digest domains. The fixed header carries only these
-meanings:
+The NCP 1.0 extension default is one bounded canonical-JSON semantic envelope.
+The extension manifest selects one closed schema and canonicalization profile.
+It also binds the route, producer, audience, security profile, resource profile,
+and callback profile.
 
-- wrapper version and package class.
-- prepared activation-context digest.
-- complete protected-package digest and positive total byte length.
-- zero-based chunk index, positive chunk count, and positive chunk byte length.
+The receiver selects the installed manifest from trusted route context before
+semantic allocation. It enforces the hard frame-byte, nesting, member, string,
+array, attachment-count, and numeric bounds first. Unknown members, duplicate
+decoded keys, non-canonical numbers, and unsupported encodings reject before
+callback.
 
-The selected frame and resource profiles jointly define one closed package-class
-registry. Each entry binds one literal header value to one positive hard package-
-byte ceiling. The registry has no unknown or default class. B03 selects the
-profile identities, and N01 generates the exact literals and ceiling table from
-those selected profiles.
+One semantic envelope creates one replay coordinate and one admission result.
+The receiver validates the protected envelope, direct realm, activation,
+producer, audience, schema, security state, freshness, and bounds before it
+reserves callback work. An exact retry returns the retained result. Conflicting
+reuse rejects.
 
-The activation-context digest is derived only after the complete security-state
-digest exists. Its canonical projection commits these values:
+Large bytes remain outside the semantic envelope. Each
+`ExtensionAttachmentRef` contains an enrolled store ID, canonical object key,
+content digest, byte length, media type, schema ID, and purpose. The protected
+envelope binds each reference to its realm, activation, audience, manifest, and
+replay coordinate.
 
-- authenticated producer and audience.
-- direct realm and complete scope.
-- extension manifest, literal route, and package class.
-- parser, callback, resource, frame, and route-encoding profile identities.
-- complete security-state digest.
-- receiver-clock incarnation and exclusive activation expiry.
-- receiver-issued activation incarnation.
+The installed manifest enrolls the store's exact HTTPS origin, resolved address
+set, TLS identity, scoped credential source, timeouts, media types, and byte
+limits. A reference cannot contain a URL, user information, query, fragment,
+local path, or redirect target. Fetches use no ambient credential. Redirects,
+DNS or address drift, private-address substitution, local-file resolution, and
+symlink traversal reject.
 
-The activation incarnation never repeats. Lost or rolled-back activation state
-cannot recreate it. This order prevents a hash cycle.
+An attachment reference grants no fetch authority by itself. After envelope
+admission, the receiver reserves the complete attachment and callback budget.
+It then mints a one-use local fetch capability bound to the envelope digest and
+reference. The receiver verifies exact length and digest before semantic use.
+Missing, partial, redirected, oversized, mismatched, or unavailable bytes make
+the dependent semantic branch unusable.
 
-The activation registry retains the exact canonical activation-context bytes
-for the activation lifetime. A digest resolves to exactly one installed byte
-sequence. Installing different canonical bytes under an existing digest rejects
-without replacing, widening, or otherwise mutating the installed activation.
-This collision check occurs during activation, outside the chunk hot path.
+No attachment bytes use base64 inside the JSON envelope. Static assets, packages,
+executables, and arbitrary project files cannot use the extension path as a
+distribution tunnel. SVG remains documentation or presentation data and never
+becomes an extension schema, envelope, identity, receipt, or evidence object.
 
-At activation, the receiver samples one positive JSON-safe tick from its
-monotonic clock incarnation. The installed resource profile selects a positive
-`activation_lifetime_ns` no greater than the B03 maximum. Checked addition
-derives the exclusive `activation_expires_ns`. Missing clock state, clock
-rollback, zero lifetime, or overflow rejects before activation. Chunk receipt
-and callback activity do not change the expiry. Equality is expired. A
-receiver-owned timer can terminalize active slots without waiting for later
-input.
+After every attachment verifies, the activation owner atomically rechecks the
+activation, security epoch, principal, audience, manifest, realm, session,
+freshness, revocation, expiry, and reserved resources. The same transition
+installs `CALLBACK_BOUNDARY_ENTERED` and consumes the one callback right. A
+cut during fetch prevents entry.
 
-The installed profile derives one fixed positive chunk payload `C` from the
-authenticated transport's complete delivered-byte limit. The fixed header plus
-one chunk must fit that limit. For package length `L`, the count is exactly
-`ceil(L / C)` and must not exceed the profile's positive chunk-count maximum.
-Each checked offset is `index * C`. Every non-final chunk has length `C`. The
-final chunk alone has length `L - index * C` and can be shorter.
+The callback owner holds no owner lock while the callback runs. A normal return
+records one bounded terminal result. Proved isolation termination can record
+termination. Timeout alone cannot prove callback stop or resource release.
 
-The header package class must be one entry in that closed registry and exactly
-equal the class committed by the resolved activation context. That class selects
-its hard positive package-byte ceiling.
-The installed resource profile can only tighten that ceiling. `L` must not
-exceed either ceiling. An unknown or mismatched class, unavailable ceiling, or
-oversized `L` rejects before slot lookup or reservation.
+The receiver keeps a bounded no-reuse tombstone for the replay lifetime. A
+current authorization can retrieve the retained result. A retired or revoked
+context receives only a generic terminal result. Rotation or revocation closes
+new work and preserves unresolved resource obligations.
 
-The receiver validates the fixed header, class binding, arithmetic, bounds, and
-verified transport identity before slot lookup. The stable slot key is the
-activation-context digest and package digest. Slot lookup occurs before
-activation currentness can admit work. Lookup allocates no slot and never calls
-extension code.
+The NCP 1.0 default defines no generic chunk-reassembly protocol. A future binary
+extension profile needs a distinct identity, explicit negotiation, independent
+bounds, hostile tests, and separate qualification. It cannot change the
+canonical-JSON default or enter the core plane implicitly.
 
-One immutable slot commitment binds the declared total byte length, chunk count,
-and derived chunk payload. An existing active slot accepts a state transition
-only after its bound identity and current authorization match. An authorized
-same-slot mismatch in a committed value terminalizes that slot as a conflict. An
-unauthorized caller cannot mutate it. The mismatch cannot select a second
-assembly. Unauthorized and unknown-slot responses do not reveal whether a slot
-or tombstone exists.
-
-A new slot reserves the complete package buffer, fixed per-chunk metadata, and
-the greater active or terminal overhead before it copies bytes. Any valid first
-index can create the slot after reservation. Capacity failure creates no slot.
-
-Each new chunk is copied once into its final checked offset. Exact duplicate
-bytes create no copy. Different bytes at an accepted index terminalize the slot
-as a conflict without overwriting retained bytes. Later chunks recheck security,
-activation, route, producer, audience, receiver clock, and the unchanged
-exclusive expiry before retention.
-
-Chunk retention uses two short activation-owner transitions. The first
-atomically rechecks currentness and expiry, claims one empty index, and pins the
-slot buffer. The bounded copy runs outside the owner lock. The second transition
-rechecks the same state and either commits the index fingerprint or discards the
-copy. A concurrent arrival at a claimed index returns a generic in-progress
-result without waiting, allocation, or state change. A cut marks an in-flight
-claim as draining and keeps its buffer pinned until the copy returns. It never
-waits under the owner lock and cannot advance that slot into schema work.
-
-Completion begins only when every declared index is committed and no copy claim
-remains in flight. It checks the exact length and hashes the final buffer once. The
-receiver rechecks currentness and expiry before schema work. It then reserves a
-concrete bounded arena and callback slot for that schema. The parser uses only
-that arena for payload-proportional state. Capacity failure terminalizes without
-parsing or callback work. The receiver rechecks currentness and expiry
-immediately before callback entry.
-
-The final recheck and callback-boundary transition are one indivisible
-activation-owner step. A currentness cut, expiry, and callback entry have one
-local order. The callback enters before the cut or the slot terminalizes without
-entry after the cut.
-
-Before extension code starts, that step atomically installs
-`CALLBACK_BOUNDARY_ENTERED` in the same receiver-owned slot and consumes its one
-callback right. The transition binds the exact parsed package, activation,
-callback profile, and entry result. It happens before callback invocation and
-holds no owner lock while the callback runs. A restart-resumable profile persists
-that transition before entry. A memory-only profile retires the activation after
-state loss and cannot report callback success or invoke it again. The callback
-profile declares whether its arena borrows the package buffer. It also binds a
-positive work-resolution duration under the ADR-010 envelope. The pre-entry
-reservation covers both until every reference ends.
-
-A normal return installs the bounded terminal callback result. A proved process
-exit, confirmed isolation termination, or lost result after either event installs
-`UNKNOWN_AFTER_CALLBACK_BOUNDARY`. Timeout or task cancellation alone does not
-prove that callback work stopped. While execution might continue, the slot keeps
-its resolution obligation and reserved memory. It never invokes that callback
-again under the at-most-once profile. A callback profile is eligible only when
-normal return or proved isolation termination fits its checked exclusive
-work-resolution deadline. Equality does not recycle the slot without that proof.
-
-Conflict, expiry, rotation, revocation, or pre-entry capacity rejection can
-release package and arena bytes before callback entry. Successful reassembly
-completion transfers its reservation into parsing and callback state. It does not
-release either buffer while the parser or callback can reference it. After entry,
-a currentness cut closes result use but cannot free callback-owned state or
-fabricate completion. The slot becomes compact only after callback return or
-proved isolation termination resolves the obligation.
-
-Each resolved terminal state retains a compact no-reuse tombstone. Tombstone
-lookup precedes any admission of new work. Exact accepted-chunk replay never
-re-enters parsing or callback work. It returns the retained result only when
-current authorization permits that disclosure. A retired or revoked context
-receives a generic terminal no-reuse result without protected result data.
-Same-slot altered bytes or an absent index remain a conflict without protected
-result disclosure. To make that comparison without retaining the package, the
-tombstone keeps the checked byte length and raw digest for each accepted index.
-The per-index table is reserved at the declared chunk count before the first
-copy. It never grows beyond that count. At-most-once no-reuse state remains for
-the activation lifetime. A shorter retention rule requires an explicit
-idempotent at-least-once profile.
-
-The activation owner terminalizes each affected pre-callback slot when rotation
-or revocation wins. It closes each entered callback slot and retains its bounded
-resolution obligation without waiting under the owner lock. Loss of the slot
-registry retires the activation because its receiver-issued incarnation cannot
-be recreated.
-
-The activation profile reserves aggregate tombstone count and bytes for its
-lifetime. Admission stops before accepting a package whose terminal no-reuse
-state cannot remain. Exhaustion never evicts an active tombstone or revives a
-package identity.
-
-The protected package can use the larger extension ceiling below because it is
-not another universal structured frame. Its registered inner parser still
-enforces exact schema-specific node, string, item, attachment, and byte ceilings.
-No partial package reaches extension code.
-
-The earlier illustrative JSON envelope remains explanatory application content.
-It is not the selected outer chunk wrapper and cannot authorize base64 expansion,
-generic JSON reassembly, or a second payload-sized copy.
-
-The following non-wire projection closes the outer transport invariants for B01
-challenge tests. N01 still owns the exact binary layout.
+The following non-wire projection closes these B01 semantics. N01 owns exact
+wire fields after the authorized rebaseline.
 
 ```json
-{"outer_encoding":"BOUNDED_RAW_CHUNK","package_is_structured_frame":false,"stable_slot_excludes_mutable_declarations":true,"receiver_activation_incarnation_bound":true,"activation_context_binds_processing_profiles":true,"activation_context_binds_clock_and_expiry":true,"header_class_registry_and_length_checked_before_reservation":true,"terminal_lookup_precedes_work_admission":true,"retired_context_discloses_result":false,"first_index_can_reserve":true,"reserve_before_copy":true,"slot_transition_orders_currentness_cut":true,"duplicate_copies_bytes":false,"conflict_overwrites_bytes":false,"complete_hash_once":true,"currentness_and_expiry_rechecked_before_schema":true,"callback_after_schema_reservation":true,"currentness_and_expiry_rechecked_before_callback":true,"callback_boundary_state_before_entry":true,"entered_callback_releases_resources_before_resolution":false,"terminal_tombstone_required":true}
+{"semantic_encoding":"BOUNDED_CANONICAL_JSON","one_semantic_envelope_per_message":true,"extension_manifest_selected_before_decode":true,"unknown_members_reject":true,"duplicate_decoded_keys_reject":true,"noncanonical_numbers_reject":true,"inline_attachment_bytes_allowed":false,"external_attachment_refs_bounded":true,"attachment_store_enrollment_required":true,"wire_supplied_url_allowed":false,"ambient_fetch_credentials_allowed":false,"attachment_redirect_allowed":false,"attachment_ref_grants_fetch_authority":false,"reserve_before_fetch":true,"length_and_digest_before_semantic_use":true,"partial_attachment_is_usable":false,"post_fetch_currentness_recheck_required":true,"callback_right_consumed_with_final_recheck":true,"callback_after_complete_validation":true,"callback_boundary_state_before_entry":true,"core_or_registered_extension_required":true,"svg_is_protocol_input":false,"generic_chunk_protocol_in_v1":false,"receiver_activation_incarnation_bound":true,"activation_context_binds_clock_and_expiry":true,"terminal_lookup_precedes_work_admission":true,"retired_context_discloses_result":false,"terminal_tombstone_required":true}
 ```
-
 ## Rejected alternatives
 
 - Carry non-NCP bytes on a stable NCP route.
@@ -2153,39 +2070,63 @@ challenge tests. N01 still owns the exact binary layout.
   "lifecycle_outcome_evidence": {
     "assessment_lineage_head_attachment": {
       "attachment_id": "assessment-lineage-head-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1515151515151515151515151515151515151515151515151515151515151515",
       "digest": "sha256:1515151515151515151515151515151515151515151515151515151515151515",
       "byte_length": 2048,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-lineage-head+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-lineage-head+json",
+      "schema_id": "galadriel.lifecycle-lineage-head.v1",
+      "purpose": "ASSESSMENT_LINEAGE_HEAD"
     },
     "lineage_commit_receipt_attachment": {
       "attachment_id": "lineage-commit-receipt-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1717171717171717171717171717171717171717171717171717171717171717",
       "digest": "sha256:1717171717171717171717171717171717171717171717171717171717171717",
       "byte_length": 1024,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-lineage-commit+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-lineage-commit+json",
+      "schema_id": "galadriel.lifecycle-lineage-commit.v1",
+      "purpose": "ASSESSMENT_LINEAGE_COMMIT"
     },
     "signing_current_lineage_head_attachment": {
       "attachment_id": "signing-current-lineage-head-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1616161616161616161616161616161616161616161616161616161616161616",
       "digest": "sha256:1616161616161616161616161616161616161616161616161616161616161616",
       "byte_length": 2048,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-lineage-head+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-lineage-head+json",
+      "schema_id": "galadriel.lifecycle-lineage-head.v1",
+      "purpose": "SIGNING_CURRENT_LINEAGE_HEAD"
     },
     "current_selector_attestation_attachment": {
       "attachment_id": "current-selector-attestation-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1414141414141414141414141414141414141414141414141414141414141414",
       "digest": "sha256:1414141414141414141414141414141414141414141414141414141414141414",
       "byte_length": 1024,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-current-selector+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-current-selector+json",
+      "schema_id": "galadriel.lifecycle-current-selector.v1",
+      "purpose": "SIGNING_CURRENTNESS_ATTESTATION"
     },
     "lineage_ancestry_or_compaction_proof_attachment": {
       "attachment_id": "lineage-currentness-proof-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1313131313131313131313131313131313131313131313131313131313131313",
       "digest": "sha256:1313131313131313131313131313131313131313131313131313131313131313",
       "byte_length": 4096,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-head-chain+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-head-chain+json",
+      "schema_id": "galadriel.lifecycle-head-chain.v1",
+      "purpose": "LINEAGE_CURRENTNESS_PROOF"
     },
     "ncp_source_authority_bundle_attachment": {
       "attachment_id": "ncp-source-authority-bundle-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1212121212121212121212121212121212121212121212121212121212121212",
       "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212",
       "byte_length": 65536,
-      "media_type": "application/vnd.sepahead.ncp-source-authority-bundle+json"
+      "media_type": "application/vnd.sepahead.ncp-source-authority-bundle+json",
+      "schema_id": "ncp.source-authority-bundle.v1",
+      "purpose": "SOURCE_AUTHORITY_VERIFICATION"
     },
     "receipt_identity": {
       "algorithm": "sha256",
@@ -2195,9 +2136,13 @@ challenge tests. N01 still owns the exact binary layout.
     },
     "receipt_attachment": {
       "attachment_id": "lifecycle-receipt-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1919191919191919191919191919191919191919191919191919191919191919",
       "digest": "sha256:1919191919191919191919191919191919191919191919191919191919191919",
       "byte_length": 2048,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-receipt+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-receipt+json",
+      "schema_id": "galadriel.lifecycle-receipt.v1",
+      "purpose": "LIFECYCLE_RECEIPT"
     },
     "assessment_vector_identity": {
       "algorithm": "sha256",
@@ -2207,15 +2152,23 @@ challenge tests. N01 still owns the exact binary layout.
     },
     "raw_assessment_vector_attachment": {
       "attachment_id": "raw-assessment-vector-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
       "digest": "sha256:1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
       "byte_length": 32768,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-assessments+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-assessments+json",
+      "schema_id": "galadriel.lifecycle-assessments.v1",
+      "purpose": "RAW_ASSESSMENT_VECTOR"
     },
     "lifecycle_projection_mapping_receipt_attachment": {
       "attachment_id": "lifecycle-projection-mapping-18",
+      "store_id": "haldir-assessment-ingress-a",
+      "object_key": "sha256/1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b",
       "digest": "sha256:1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b",
       "byte_length": 4096,
-      "media_type": "application/vnd.sepahead.galadriel-lifecycle-projection-map+json"
+      "media_type": "application/vnd.sepahead.galadriel-lifecycle-projection-map+json",
+      "schema_id": "galadriel.lifecycle-projection-map.v1",
+      "purpose": "LIFECYCLE_PROJECTION_MAPPING"
     },
     "assessments": [
       {
@@ -2243,9 +2196,13 @@ challenge tests. N01 still owns the exact binary layout.
         "observation_count": 64,
         "adapter_scope_mapping_receipt_attachment": {
           "attachment_id": "adapter-scope-mapping-receipt-18-0",
+          "store_id": "haldir-assessment-ingress-a",
+          "object_key": "sha256/adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad",
           "digest": "sha256:adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad",
           "byte_length": 4096,
-          "media_type": "application/vnd.sepahead.galadriel-ncp-scope-map+json"
+          "media_type": "application/vnd.sepahead.galadriel-ncp-scope-map+json",
+          "schema_id": "galadriel.ncp-scope-map.v1",
+          "purpose": "ADAPTER_SCOPE_MAPPING"
         },
         "report_evidence": {
           "report_family": "galadriel_default_report_v1",
@@ -2261,9 +2218,13 @@ challenge tests. N01 still owns the exact binary layout.
         "source_capture_attachments": [
           {
             "attachment_id": "source-capture-18-0-0",
+            "store_id": "haldir-assessment-ingress-a",
+            "object_key": "sha256/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             "byte_length": 32768,
-            "media_type": "application/vnd.sepahead.ncp-admitted-capture+json"
+            "media_type": "application/vnd.sepahead.ncp-admitted-capture+json",
+            "schema_id": "ncp.admitted-capture.v1",
+            "purpose": "SOURCE_CAPTURE"
           }
         ]
       }
@@ -2280,14 +2241,16 @@ challenge tests. N01 still owns the exact binary layout.
 ```
 
 This is one schema-complete evaluated-branch illustration. The exact receipt and
-raw assessment-vector bytes are bounded attachments inside the protected
-envelope. The complete report bytes occur inside that vector; the vector/member
-identity and mapping receipt prevent a detached, partial, or projected
-substitution. The source-authority bundle carries the exact descriptor,
-declaration, observer grant, security state, receiver-evidence lineage/head
-objects and their bounded content manifest. The per-assessment mapping receipt
-and every source capture are also local protected attachments, not fetch-later
-digests. In this example, an admitted NCP coordinate frame at source sequence
+raw assessment-vector bytes use bounded enrolled content-store references. The
+complete report bytes occur inside that vector. The vector identity and mapping
+receipt prevent a detached, partial, or projected substitution.
+
+The source-authority bundle references the exact descriptor, declaration,
+observer grant, security state, receiver-evidence lineage, and content manifest.
+The mapping receipt and every source capture use the same enrolled store
+contract. Haldir verifies every referenced byte before semantic admission.
+
+In this example, an admitted NCP coordinate frame at source sequence
 `902` and exact source time `42.0` seconds maps to Galadriel terminal sequence
 `901` and timestamp `42000` milliseconds. The example does not claim that the
 placeholder identities or artifacts exist.
@@ -2487,14 +2450,14 @@ occurs before replay, detector, receiver, policy, commander, or outbox lookup.
   transitions that preserve the detector snapshot and inner lifecycle receipt
   index. A stale, sibling, repeated, skipped, rolled-back, exhausted or
   unreceipted outer version rejects and cannot publish.
-- Haldir's assessment receiver, policy-state authority, and NCP commander are
-  three process/credential/store boundaries. The receiver cannot publish NCP,
-  the policy authority has no transport credential, and the commander cannot
-  read raw assessment/admission/replay state or evaluate policy. The integrated
-  policy authority alone owns base/monitor policy and intent replay. Standalone
-  Gate is a separate deployment mode, not a hidden fourth integrated process.
-  Only the exact narrow evidence-evaluation and publication-fence APIs cross
-  those boundaries.
+- Haldir's intent receiver, assessment receiver, policy-state authority, and NCP
+  commander are four process, credential, and store boundaries. Neither receiver
+  can publish NCP. The policy authority has no extension transport credential.
+  The commander cannot read raw extension evidence or evaluate policy. The
+  integrated policy authority alone owns base and monitor policy plus intent
+  decision replay. Standalone Gate is a separate deployment mode, not a hidden
+  fifth integrated process. Only the exact narrow admission, evaluation, and
+  publication-fence APIs cross those boundaries.
 - Native `HaldirIntentV2` binds an installed policy-authority-issued
   `HaldirIntentFreshnessGrant`, installation receipt and exact slot. Its unchanged
   authority-clock deadline is the minimum of the grant maximum and checked
@@ -2835,23 +2798,24 @@ deny state is preserved until an authenticated widening transition resolves it.
 <a id="ncp-b01-selector-allocation-adr-008-v1"></a>
 
 The outer-transport semantic question is closed by the low-overhead extension
-transport reconciliation. Each raw chunk fits the authenticated transport limit.
-The reassembled package uses its separate bounded profile. B03 selects one
-injective canonical content-address route encoding. Namespace ownership, schema,
+transport reconciliation. One bounded canonical envelope carries semantic
+content. Large bytes use bounded content-addressed attachment references. B03
+selects one injective canonical route encoding. Namespace ownership, schema,
 processing profiles, optional body-authority provenance, assessor replay,
-adapter-proof references, and activation lifetime remain B03 allocation inputs.
+adapter-proof references, attachment limits, and activation lifetime remain B03
+allocation inputs.
 
 B03 selects 1 through 64 namespace-owner identities and 1 through 1,024 schema
 identities. It can select 0 through 64 body-authority provenance identities, 0
 through 64 assessor-replay identities, and 0 through 256 adapter-proof reference
-identities. It also selects 1 through 16 identities for each frame,
-route-encoding, parser, callback, and resource profile class. Each frame profile
-defines a closed package-class enum and its exact parser-profile mapping. B03
+identities. It also selects 1 through 16 identities for each canonical-encoding,
+route-encoding, parser, callback, and resource profile class. Each encoding
+profile defines one closed schema mapping. B03
 selects one positive activation lifetime maximum. It cannot exceed
-9,007,199,254,740,991 nanoseconds. B03 also selects one positive chunk-count
-maximum that cannot exceed 65,536. Each identity matches
+9,007,199,254,740,991 nanoseconds. B03 also selects one positive attachment-count
+maximum that cannot exceed 1,024. Each identity matches
 `[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. It must satisfy the corresponding
-framing, routing, ownership, content-address, provenance, replay, processing, or
+encoding, routing, ownership, content-address, provenance, replay, processing, or
 reference predicate in this ADR. Unknown aliases and identities that cross a
 role boundary reject before activation or allocation.
 

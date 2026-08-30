@@ -81,6 +81,7 @@ from selector_allocation_inventory import (
     model_origin_signal_projection_commitment,
     provenance_assignment_sha256,
     semantic_review_subject_commitment,
+    validate_inventory_against_proposed_decision_registry,
 )
 from selector_closure_codec import (
     MAX_COMPACT_BYTES,
@@ -153,9 +154,9 @@ EXPECTED_MODEL_ORIGIN_SIGNAL_ROW_COUNT = 2_607
 EXPECTED_MODEL_ORIGIN_SIGNAL_SHA256 = (
     "000603e4e80af52c30bbb3066db516e24a0f05d7e77944f3ffb80b7741afefd6"
 )
-EXPECTED_SEMANTIC_SHAPE_ENTRY_COUNT = 269_399
+EXPECTED_SEMANTIC_SHAPE_ENTRY_COUNT = 269_403
 EXPECTED_SEMANTIC_SHAPE_SHA256 = (
-    "1d70f5f61a993d376d3ed15b5813462beeccdbc3fe6ad7d93e46254948cb03ea"
+    "972b19826e5c2aa30632e7adfa0f852448be8b84d82dd5b96fd009b72f4fc769"
 )
 EXTERNAL_COMPARE_RESOURCES: frozenset[str] = frozenset()
 EXPECTED_RESOURCE_CLOSURE_PER_KIND_COUNTS = {
@@ -20579,6 +20580,7 @@ def validate_expanded_source(
             require_complete_allocation and not allow_incomplete_allocation
         ),
     )
+    validate_inventory_against_proposed_decision_registry(data["adr_allocation_oracle"])
     require_exact(
         data["schema"],
         "ncp.b01-selector-closure-source.v1",
@@ -22345,6 +22347,13 @@ def run_hostile_self_test(source: Path) -> int:
         refresh_document_source_set(document)
 
     mutations.append(("missing ADR module", mutate_missing_adr_module))
+
+    def mutate_missing_adr011_module(data: dict[str, Any]) -> None:
+        document = data["adr_allocation_oracle"]["documents"][10]
+        document["modules"].clear()
+        refresh_document_source_set(document)
+
+    mutations.append(("missing ADR-011 module", mutate_missing_adr011_module))
 
     def mutate_swapped_adr_modules(data: dict[str, Any]) -> None:
         documents = data["adr_allocation_oracle"]["documents"]

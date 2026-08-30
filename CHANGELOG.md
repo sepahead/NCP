@@ -331,7 +331,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   delegation, and transparent proxying from stable 1.0.
 - Kept the candidate release-blocked pending live security, two independent
   installed non-Rust peers, fault/soak, fuzz/sanitizer, performance, supply-chain,
-  clean-room, and qualification of all nine exact consumer and extension role
+  clean-room, and qualification of all eleven exact consumer and extension role
   subjects. The historical six-surface inventory is not a role receipt.
   Publication follows those gates; install and emergency-revocation validation
   follow publication.

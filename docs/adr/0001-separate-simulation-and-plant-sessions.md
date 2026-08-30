@@ -1997,6 +1997,25 @@ A plant session:
 - obtains action authority only through a separate body-issued operation under
   ADR-006.
 
+One plant session represents one authority and admission domain. The plant
+profile can describe one entity or one composite plant. It is not required to
+map one session to one physical device.
+
+The selected X02 qualification profile uses one composite fleet session for each
+1, 2, and 3-drone run. CREBAIN must advance the fleet atomically. Engram must
+advance one NEST controller epoch from one aggregate observation. Separate drone
+sessions would require a cross-session barrier that NCP does not define.
+
+Future independently scheduled drones use independent sessions with disjoint
+plant instances, profiles, leases, streams, and stores. NCP grants no atomicity
+or ordering across those sessions. Coordinated admission requires retiring the
+component sessions before opening one composite session. Overlapping actuator
+resources reject.
+
+ADR-011's [cross-project integration boundary](modules/adr-011-ecosystem-integration-boundary.md)
+defines the exact selected fleet channel shape and qualification controls.
+X02 remains `OPEN`. Historical Host API 2 evidence does not qualify this path.
+
 An artifact that implements both Engram roles shall use disjoint types,
 principals, key material, manifests, routes, endpoints, state stores, replay
 domains, and build features. Responder-only artifacts shall not link command

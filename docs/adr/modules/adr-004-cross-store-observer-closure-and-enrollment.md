@@ -51,7 +51,7 @@ overflow, cap-plus-one, multi-decade validity, future evidence, expiry, and a
 stale revocation check reject. This structural validation does not establish
 organizational independence, live revocation, or installed-deployment truth.
 Those facts require the external X05 gate. This infrastructure does not count
-toward the nine consumer and extension role receipts.
+toward the eleven consumer and extension role receipts.
 
 Every logical source also has one generation-independent
 `ObserverGrantSourceIssuanceIndexHead` through

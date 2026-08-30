@@ -53,7 +53,7 @@ The strongest permitted result is:
 > observer-authorization, observer-capture, freshness-and-acceptance,
 > source-issuance-index, fixed local resource, and ADR-example semantic probes.
 > The separate Rust and TypeScript profile engines agreed on 25 content-bound
-> semantic cases and rejected 132 registered bounded mutations. Every other
+> semantic cases and rejected 160 registered bounded mutations. Every other
 > registered executable mutant was detected. Every registered hostile input was
 > rejected. Every registered invariant and semantic-contrast witness was reached
 > within those encoded finite cases.
@@ -789,7 +789,7 @@ The runner:
 - fetches the standalone Rust lock's dependencies, then formats, lints, and
   tests the Rust engine without source-tree build output.
 - typechecks the TypeScript engine and compares both engines across 25 exact ADR
-  fences and 132 registered bounded mutations.
+  fences and 160 registered bounded mutations.
 - directly executes each standalone observer probe and freshness/acceptance
   probe.
 - loads one bounded snapshot of `scripts/bounded_json.py` from exact bytes in

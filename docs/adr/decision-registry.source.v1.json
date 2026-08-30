@@ -285,6 +285,12 @@
           "label": "Crebain owner",
           "min_distinct_identities": 1,
           "requires_independence": false
+        },
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
         }
       ],
       "defect_ids": [
@@ -386,7 +392,9 @@
       "id": "ADR-011",
       "title": "Fix ecosystem dependency direction and plant handover",
       "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-      "module_paths": [],
+      "module_paths": [
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+      ],
       "required_reviews": [
         {
           "role_id": "engram-owner",

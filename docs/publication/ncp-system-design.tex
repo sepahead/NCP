@@ -78,7 +78,6 @@
 \newcommand{\state}{\operatorname{state}}
 \newcommand{\current}{\operatorname{current}}
 \newcommand{\digest}{\operatorname{digest}}
-\newcommand{\ceildiv}{\operatorname{ceil\_div}}
 
 \title{\NcpReportTitle
   {NCP 1.0 System Design}
@@ -881,63 +880,51 @@ is impossible.
 Device, mechanical, electrical, and plant-local safety systems remain outside the protocol proof
 boundary.  A deployment needs its own safety case and independent interlock.
 
-\section{Extensions and bounded reassembly}
+\section{Extensions and bounded semantic envelopes}
 
-An extension package uses raw bounded chunks outside the stable action semantics.  Let
-$L,L_{\max},C\in\mathbb{Z}_{>0}$ be byte counts with $L\leq L_{\max}$.  The value $C$ is the
-maximum decoded chunk size.  The canonical chunk count is
-\begin{equation}\label{eq:chunk-count}
-N=\ceildiv(L,C)=\left\lceil\frac{L}{C}\right\rceil.
+One extension message contains one complete bounded canonical-JSON envelope.  Let
+$L,L_{\max}\in\mathbb{Z}_{>0}$ be the delivered envelope bytes and their installed maximum.
+Let $A,A_{\max}\in\mathbb{Z}_{\geq0}$ be the attachment count and its installed maximum.
+Admission requires
+\begin{equation}\label{eq:extension-envelope-bounds}
+0<L\leq L_{\max},\qquad 0\leq A\leq A_{\max}.
 \end{equation}
-The count therefore satisfies
-\begin{equation}\label{eq:chunk-count-bound}
-1\leq N\leq\left\lceil\frac{L_{\max}}{C}\right\rceil=N_{\max}.
-\end{equation}
-Because $C>0$ and $N=\lceil L/C\rceil$, the defining ceiling relation is equivalent to
-\begin{equation}\label{eq:chunk-ceiling-interval}
-(N-1)C<L\leq NC.
+For declared attachment lengths $b_i$ and aggregate maximum $B_{\mathrm{att}}$, admission also
+requires
+\begin{equation}\label{eq:extension-attachment-bounds}
+\sum_{i=0}^{A-1}b_i\leq B_{\mathrm{att}}.
 \end{equation}
 
-For $i\in\{0,\ldots,N-1\}$, the receiver computes the chunk offset with checked multiplication:
-\begin{equation}\label{eq:chunk-offset}
-o_i=iC.
-\end{equation}
-The canonical decoded length $\ell_i$ must satisfy
-\begin{equation}\label{eq:chunk-range}
-0\leq o_i<L,\qquad \ell_i=\min(C,L-o_i)>0.
-\end{equation}
-Treat byte ranges as half-open integer intervals.  The exact destination interval is
-\begin{equation}\label{eq:chunk-interval}
-I_i=[o_i,o_i+\ell_i)
-=[iC,\min((i+1)C,L)).
-\end{equation}
-For $i<N-1$, equation~\eqref{eq:chunk-ceiling-interval} gives $(i+1)C<L$.  Those chunks have
-length $C$.  The final chunk ends at $L$.  Hence
-\begin{equation}\label{eq:chunk-interval-cases}
-I_i=
-\begin{cases}
-[iC,(i+1)C), & 0\leq i<N-1,\\
-[(N-1)C,L), & i=N-1.
-\end{cases}
-\end{equation}
-The right endpoint of each non-final interval equals the next interval's left endpoint.  The first
-left endpoint is zero, and the final right endpoint is $L$.
-The canonical count and lengths make these intervals a partition:
-\begin{equation}\label{eq:chunk-partition}
-I_i\cap I_j=\varnothing\quad(i\ne j),
-\qquad
-\bigcup_{i=0}^{N-1}I_i=[0,L).
-\end{equation}
-Thus, complete index coverage supplies every object byte exactly once.  It does not prove the
-object digest or inner schema.
+The installed manifest selects one closed schema and canonicalization profile.  It rejects
+unknown members, duplicate decoded keys, non-canonical numbers, unsupported encodings, and
+inline attachment bytes before callback work.  Each reference binds an attachment ID, enrolled
+store ID, canonical object key, digest, byte length, media type, schema ID, and purpose.  The
+protected envelope also binds the realm, activation, audience, manifest, and replay coordinate.
+
+The installed manifest enrolls the exact HTTPS origin, resolved address set, TLS identity,
+scoped credential source, timeouts, media types, and byte limits.  The wire cannot supply a URL,
+user information, query, fragment, local path, or redirect target.  Fetches use no ambient
+credential.  Redirects, DNS or address drift, private-address substitution, local-file
+resolution, and symlink traversal reject.
+
+The receiver reserves all resources before it mints a one-use local fetch capability.  That
+capability binds the envelope digest and exact reference.  The receiver verifies the declared
+length and digest before semantic use.  Missing, partial, oversized, mismatched, or unavailable
+bytes make the dependent branch unusable.
+
+After every attachment verifies, the activation owner performs one atomic transition.  It
+rechecks activation, security, principal, audience, manifest, realm, session, freshness,
+revocation, expiry, and resource currentness.  The same transition consumes the one callback
+right.  A cut during fetch prevents callback entry.  NCP 1.0 defines no generic
+chunk-reassembly protocol.
 
 Let $C_{\mathrm{ext}}\in\mathbb{Z}_{\geq0}$ be the deployment maximum for all active and retained
-outer-package slots in one activation.  Let $B_{\mathrm{ext},0}\in\mathbb{Z}_{\geq0}$ be the
+semantic-envelope slots in one activation.  Let $B_{\mathrm{ext},0}\in\mathbb{Z}_{\geq0}$ be the
 deployment maximum for its fixed portable charge.  Let
 $H_{\mathrm{ext}}^{\max}\in\mathbb{Z}_{\geq0}$ be the deployment maximum of the greater active or
 terminal portable metadata charge for one slot.  Every accepted activation profile is at or
 below these maxima.  The outer portable reservation satisfies
-\begin{equation}\label{eq:chunk-portable-memory}
+\begin{equation}\label{eq:extension-portable-memory}
 M_{\mathrm{ext,outer}}
 \leq B_{\mathrm{ext},0}
 +C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right).
@@ -948,7 +935,7 @@ Equation~\eqref{eq:lifecycle-memory-expanded} gives
 \begin{equation}\label{eq:extension-activation-count}
 0\leq n_{\mathrm{ext}}\leq C_c.
 \end{equation}
-Let $M_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s portable outer-package charge.  Summing the
+Let $M_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s portable envelope charge.  Summing the
 per-activation bound gives
 \begin{align}
 M_{\mathrm{ext,total}}
@@ -961,51 +948,51 @@ B_{\mathrm{ext},0}
 B_{\mathrm{ext},0}
 +C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right)
 \right].
-\label{eq:chunk-portable-global}
+\label{eq:extension-portable-global}
 \end{align}
 Let $J_{\mathrm{ext},0}$ be the fixed per-activation local charge.  Let
-$J_{\mathrm{ext,slot}}(L_{\max},N_{\max})$ be a finite nonnegative slot charge in one selected
+$J_{\mathrm{ext,slot}}(L_{\max},A_{\max})$ be a finite nonnegative slot charge in one selected
 local-runtime unit.  The slot function is monotone in both arguments.  The
 independent local bound is
-\begin{equation}\label{eq:chunk-local-memory}
+\begin{equation}\label{eq:extension-local-memory}
 J_{\mathrm{ext,outer}}
 \leq J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max}).
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max}).
 \end{equation}
-Let $J_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s local outer-package charge.  The same count
+Let $J_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s local envelope charge.  The same count
 bound gives
 \begin{align}
 J_{\mathrm{ext,total}}
 &=\sum_{a=1}^{n_{\mathrm{ext}}}J_{\mathrm{ext,outer}}^{(a)}\nonumber\\
 &\leq n_{\mathrm{ext}}\left[
 J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max})
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max})
 \right]\nonumber\\
 &\leq C_c\left[
 J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max})
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max})
 \right].
-\label{eq:chunk-local-global}
+\label{eq:extension-local-global}
 \end{align}
 Every product, sum, and offset uses checked arithmetic.  Overflow rejects the profile or activation
-before it allocates a prepared context or package slot.
-An activation context remains charged while any active package slot or terminal tombstone refers
+before it allocates a prepared context or envelope slot.
+An activation context remains charged while any active envelope slot or terminal tombstone refers
 to it.  The owner cannot release that context first.  Therefore a retained tombstone cannot escape
 the $C_c$ multiplier.
 
-The receiver reserves the complete object and metadata budget before it retains the first chunk.
-It copies a new decoded chunk once into the checked range $[o_i,o_i+\ell_i)$.  Duplicate bytes are
-idempotent.  Conflicting bytes terminalize the same slot.  Inner schema parsing starts only after
-complete object-digest verification and a second schema-specific budget reservation.  The outer
-bounds exclude transport scratch, the inner parser arena, callback state, and unrelated process
-memory.  B03 must select all finite inputs.
+The receiver reserves envelope, parser, attachment, callback, and terminal-state budgets before
+semantic work.  Exact replay is idempotent.  Conflicting bytes terminalize the same slot.
+Canonical parsing starts only after authentication and complete reservation.  The envelope bounds
+exclude transport scratch, attachment storage, parser state, callback state, and unrelated process
+memory.  The auxiliary envelope accounts for those NCP-owned domains.  B03 selects all finite
+inputs.
 
 \subsection{Complete bounded-state envelope}
 
 Let $\mathcal{D}_{\mathrm{aux}}=
-\{\mathrm{rx},\mathrm{json},\mathrm{extparse},\mathrm{callback}\}$ identify
-transport receive or flattening scratch, structured-JSON arenas, extension inner-parser arenas,
-and typed callback buffers.  B03 selects one deployment-wide portable ceiling
+\{\mathrm{rx},\mathrm{json},\mathrm{attachment},\mathrm{extparse},\mathrm{callback}\}$ identify
+transport receive or flattening scratch, structured-JSON arenas, verified attachment storage,
+extension inner-parser arenas, and typed callback buffers.  B03 selects one deployment-wide portable ceiling
 $B_y\in\mathbb{Z}_{\geq0}$ and one finite monotone local charge $J_y(B_y)$ for every
 $y\in\mathcal{D}_{\mathrm{aux}}$.  It also selects fixed charges $B_{\mathrm{aux},0}$ and
 $J_{\mathrm{aux},0}$.  The auxiliary envelopes are
@@ -1017,7 +1004,7 @@ J_{\mathrm{aux}}
 &\leq J_{\mathrm{aux},0}+\sum_{y\in\mathcal{D}_{\mathrm{aux}}}J_y(B_y).
 \label{eq:aux-local}
 \end{align}
-These domains are disjoint from lifecycle, queue, step-window, and outer-package storage.  Adding
+These domains are disjoint from lifecycle, queue, step-window, and envelope storage.  Adding
 the previously derived deployment bounds gives the complete NCP-owned bounded-state model
 \begin{align}
 M_{\mathrm{NCP,bounded}}
@@ -1052,6 +1039,84 @@ selected direction is
 \forall c\in C:\ (c,n)\in E\quad\land\quad(n,c)\notin E.
 \end{equation}
 The condition prevents a consumer-specific fork from becoming an NCP requirement.
+
+\subsection{Exact ecosystem role subjects}
+
+The ecosystem release matrix contains exactly eleven role subjects.  Each subject needs a
+distinct installed-artifact and live-transport qualification receipt.  All eleven qualifications
+remain \textbf{NOT RUN}.
+
+\begin{longtable}{L{0.43\linewidth}L{0.49\linewidth}}
+\caption{Exact ecosystem role subjects.}\label{tab:ecosystem-roles}\\
+\toprule
+\NcpTableHeaderRow
+Role subject & Boundary \\
+\midrule
+\endfirsthead
+\toprule
+\NcpTableHeaderRow
+Role subject & Boundary \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Engram simulation responder & Simulation session only \\
+Engram plant commander & Direct plant commander \\
+Engram Haldir-intent extension publisher & Registered extension publisher \\
+Haldir NCP commander & Gated plant commander \\
+Haldir Engram-intent extension receiver & Registered extension receiver \\
+Haldir Galadriel-assessment receiver & Isolated assessment-extension receiver \\
+Galadriel NCP observer & Read-only observer \\
+Galadriel raw-advisory publisher & Isolated advisory-extension publisher \\
+Crebain body & Plant responder and final software body authority \\
+Crebain Galadriel-producer surface & Isolated sidecar-evidence publisher \\
+Prisoma NCP observer & Read-only observer \\
+\end{longtable}
+
+\subsection{Haldir process separation}
+
+Integrated Haldir uses four separate deployable processes.  No integrated process activates two
+role surfaces.  The policy-state authority is not an NCP peer.
+
+\begin{table}[H]
+\centering
+\caption{Integrated Haldir process ownership.}
+\begin{tabularx}{\linewidth}{L{0.20\linewidth}L{0.40\linewidth}Y}
+\toprule
+\NcpTableHeaderRow
+Process & Exclusive ownership & Excluded authority \\
+\midrule
+Intent receiver & Intent transport, replay, attachment fetch, and admission records & No policy store or NCP commander credential \\
+Assessment receiver & Assessment ingress, raw evidence, replay, and dispositions & No intent or NCP commander credential \\
+Policy-state authority & Profiles, base policy, intent replay, freshness grants, and policy receipts & No extension transport or NCP commander credential \\
+Commander & Intent conversion, body-issued authority, streams, publication, and reconciliation & No policy evaluation, raw evidence, replay, or profile store \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The receivers send only immutable admission records and currentness receipts through narrow
+authenticated APIs.  The commander receives only bounded publication results.  Standalone Gate
+remains a separate deployment mode.  It is not a fifth integrated process.
+
+\subsection{Fleet, time, and presentation boundaries}
+
+The selected X02 profile requires one composite fleet session for each required 1, 2, or 3-drone
+run.  The plant profile binds a sorted stable-drone-ID roster and one exact channel-layout digest.
+One aggregate \texttt{SensorFrame} contains \texttt{6N} ENU position and velocity scalars.  One
+aggregate \texttt{CommandFrame} contains \texttt{3N} ENU acceleration-command scalars.
+
+X02 remains \textbf{OPEN}.  Historical Host API 2 fleet evidence cannot satisfy native NCP role,
+transport, closed-loop, or release qualification.
+
+MUSIC alone owns shared-clock simulator coupling.  NCP does not implement, tunnel, reinterpret,
+or replace MUSIC grants, lookahead, barriers, tick ownership, or deadlock handling.  The selected
+X02 profile uses independent clocks and exact NCP source correlation.  A shared-clock claim needs
+a separate MUSIC-qualified deployment and evidence set.
+
+Engram can host verified presentation assets through one bounded local UI ingress.  Only its role
+adapter crosses projects, and it uses NCP.  A projection binds an opaque source-receipt digest and
+grants no protocol authority.  SVG is presentation-only and non-contract.  SVG cannot carry
+protocol semantics or runtime evidence.
 
 \NcpFigure{H}{0.98\linewidth}{versioning-light.pdf}{Candidate, stable-core, extension, and release identity domains.}
 
@@ -1126,7 +1191,7 @@ Failure and recovery & Restart grants no Active authority.  Unknown effects rema
 Plant safety & The body owns final software admission.  Physical effect is outside NCP proof. & Each deployment still needs a plant-owned safety case and interlock. \\
 QoS and overload & Plane capacities are disjoint and finite.  Restrictive work has reserved service. & Scheduler values, transport mapping, and installed load tests remain open. \\
 SDK buffering & Pending count and aggregate bytes are both bounded. & Current TypeScript WebSocket buffering has only a count bound. \\
-Extension isolation & Reassembly reserves raw and semantic budgets before callback. & B03 must allocate activation and parser profiles. \\
+Extension isolation & Enrolled-store fetch reserves every resource before callback. & B03 must allocate activation, attachment, and parser profiles. \\
 Evolution and compatibility & Stable-core, release, extension, and publication identities remain separate. & B02 must authorize any rebaseline. \\
 Wire and schema parity & Each accepted object must have one source and generated forms. & Current prototype material is not normative parity. \\
 Ecosystem direction & Consumers pin NCP and expose thin adapters. & No installed consumer role is qualified. \\
@@ -1144,6 +1209,7 @@ identity.  Third, finite counts need byte and allocator bounds.
 The publication source and PDF have a narrow verification contract:
 \begin{enumerate}[leftmargin=*]
   \item Convert each generated light SVG to a vector PDF in a disposable build directory.
+  \item Treat each SVG and converted figure as presentation-only, non-contract material.
   \item Build the LaTeX source with fixed time and timezone inputs.
   \item Reject LaTeX warnings, overfull boxes, underfull boxes, and undefined references.
   \item Require embedded fonts and stable A4 page geometry.
@@ -1168,7 +1234,7 @@ The following gates remain separate and \textbf{NOT RUN} until exact evidence ex
   \item performance qualification
   \item signatures, SBOM, and provenance
   \item clean-room reproduction
-  \item all nine exact consumer and extension role qualifications
+  \item all eleven exact consumer and extension role qualifications
 \end{itemize}
 
 \section{Equation audit and symbol glossary}
@@ -1212,8 +1278,8 @@ Equations & Unit & Meaning, assumptions, and failure behavior \\
 \eqref{eq:step-order}--\eqref{eq:step-response-coordinate} & position, digest, and bytes & Only the next exact position executes.  Completion advances by checked succession.  Response release also requires exact retained request bytes. \\
 \eqref{eq:freshness-deadline}--\eqref{eq:active-admission} & ticks and Boolean & One receiver clock and body-issued grant define an exclusive deadline.  Every currentness, lease, grant, stream, profile, and executor predicate must be true. \\
 \eqref{eq:no-physical-implication} & proof relation & NCP does not prove that software admission implies physical effect.  The equation does not assert that an effect is impossible. \\
-\eqref{eq:chunk-count}--\eqref{eq:chunk-partition} & bytes and chunks & Positive chunk capacity and checked offsets produce disjoint half-open ranges whose union is the complete object. \\
-\eqref{eq:chunk-portable-memory}--\eqref{eq:chunk-local-global} & bytes and local charge & One activation reserves the complete object plus the larger active or terminal metadata charge.  Summation over the bounded activation count lifts both accounting domains across the deployment. \\
+\eqref{eq:extension-envelope-bounds}--\eqref{eq:extension-attachment-bounds} & bytes and items & One complete envelope and its external attachment references remain within installed count and byte ceilings. \\
+\eqref{eq:extension-portable-memory}--\eqref{eq:extension-local-global} & bytes and local charge & One activation reserves the complete envelope plus the larger active or terminal metadata charge.  Summation over the bounded activation count lifts both accounting domains across the deployment. \\
 \eqref{eq:aux-portable}--\eqref{eq:ncp-local-total} & bytes and local charge & Auxiliary arenas have independent deployment ceilings.  Adding every disjoint owner produces one complete NCP-owned bounded-state envelope. \\
 \eqref{eq:dependency-direction} & graph edge & Consumers depend on NCP through thin adapters.  NCP does not import consumer application code. \\
 \end{longtable}

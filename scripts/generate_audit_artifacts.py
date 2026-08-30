@@ -856,7 +856,7 @@ def threat_records() -> list[dict[str, Any]]:
             [
                 "immutable pins",
                 "no silent fork policy",
-                "nine exact consumer and extension role qualification gate",
+                "eleven exact consumer and extension role qualification gate",
                 "historical six-surface inventory cannot substitute for role receipts",
             ],
             "Reject the compatibility claim and retain explicit cross-repository prerequisites.",
@@ -872,7 +872,7 @@ def threat_records() -> list[dict[str, Any]]:
             ],
             "PARTIAL_LOCAL",
             (
-                "All nine exact installed consumer and extension role "
+                "All eleven exact installed consumer and extension role "
                 "qualifications remain NOT RUN; pid-rs is not an NCP peer."
             ),
             True,

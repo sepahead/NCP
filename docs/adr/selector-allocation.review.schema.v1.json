@@ -275,7 +275,8 @@
             "docs/adr/0010-plane-qos-retention-and-overload.md",
             "docs/adr/0011-ecosystem-topology-and-handover.md",
             "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
-            "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
+            "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+            "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
           ]
         },
         "role": {
@@ -307,7 +308,8 @@
             "adr_010_source",
             "adr_011_source",
             "adr_004_module_001",
-            "adr_009_module_001"
+            "adr_009_module_001",
+            "adr_011_module_001"
           ]
         },
         "sha256": {
@@ -331,8 +333,8 @@
       "properties": {
         "blobs": {
           "type": "array",
-          "minItems": 28,
-          "maxItems": 28,
+          "minItems": 29,
+          "maxItems": 29,
           "prefixItems": [
             {
               "$ref": "#/$defs/sourceBlob",
@@ -723,6 +725,20 @@
                 },
                 "role": {
                   "const": "adr_009_module_001"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/sourceBlob",
+              "properties": {
+                "byte_length": {
+                  "maximum": 262144
+                },
+                "path": {
+                  "const": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+                },
+                "role": {
+                  "const": "adr_011_module_001"
                 }
               }
             }

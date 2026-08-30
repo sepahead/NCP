@@ -8,8 +8,8 @@
   "generated_by": "scripts/generate_decision_registry.py",
   "source": {
     "path": "docs/adr/decision-registry.source.v1.json",
-    "sha256": "6c265e4bc80cd2b5350d2471c9c6663cab408c99c45847862ed5cb1481595b30",
-    "bytes": 14009
+    "sha256": "da5ed49018e20a004196cfa7129ccc1eb83880a20a3a3f46721743d72898360b",
+    "bytes": 14259
   },
   "review_policy": {
     "schema": "ncp.b01-review-policy.v1",
@@ -17,8 +17,8 @@
     "output_schema": "ncp.proposed-decision-registry.v1",
     "generator": {
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "44d98a404d3cc54694d59a5dc677fed3ab8777598c0f241a96e201e039d4c7fd",
-      "bytes": 254244
+      "sha256": "ce438efffcb79ed5543ea850d34712a480cfc94e69bfb8eaf38a84cd346def59",
+      "bytes": 254325
     },
     "output_json_schema": {
       "path": "docs/adr/decision-registry.proposed.schema.v1.json",
@@ -40,12 +40,12 @@
     "schema": "ncp.b01-decision-set.v1",
     "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
     "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
-    "sha256": "81be8a31805140a4e01df1de45823b21e40f1a9b5d46b753a84978afa2ff226e",
+    "sha256": "d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "9acaec04762c6b01e4cd88ca44abf7483e5124ccd0a1cc4451807db7e9dc5205",
-        "bytes": 72816
+        "sha256": "4058229f4d2d9776aa3827f92d06a80295b1a8d17980c9df9a6be89b6c747f96",
+        "bytes": 72917
       },
       "json_schema": {
         "path": "docs/adr/decision-closure.source.schema.v1.json",
@@ -56,12 +56,12 @@
   },
   "semantic_closure_evaluation": {
     "schema": "ncp.b01-semantic-closure-evaluation.v1",
-    "decision_set_sha256": "81be8a31805140a4e01df1de45823b21e40f1a9b5d46b753a84978afa2ff226e",
+    "decision_set_sha256": "d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd",
     "state": "CLOSED",
     "source": {
       "path": "docs/adr/decision-closure.source.v1.json",
-      "sha256": "9acaec04762c6b01e4cd88ca44abf7483e5124ccd0a1cc4451807db7e9dc5205",
-      "bytes": 72816
+      "sha256": "4058229f4d2d9776aa3827f92d06a80295b1a8d17980c9df9a6be89b6c747f96",
+      "bytes": 72917
     },
     "json_schema": {
       "path": "docs/adr/decision-closure.source.schema.v1.json",
@@ -74,11 +74,11 @@
       "observed_status": "COMPLETE_CURRENT",
       "observed_identity": {
         "path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
-        "sha256": "0761d22e980076c1cfadf89621723ea3499130f28cc76e45f5ca08bd998f14a8",
-        "bytes": 113496
+        "sha256": "65e2a823d889f25287f4d85b5f5142b8f7729ae85f5239cf3633ebbc791c639a",
+        "bytes": 133555
       },
       "case_count": 25,
-      "mutation_count": 132
+      "mutation_count": 160
     },
     "b03_deferrals": {
       "required_question_count": 8,
@@ -126,8 +126,8 @@
       "defect_ids": [
         "D01"
       ],
-      "content_sha256": "2993a2d69ac5d5638ac85ee549aa57ba9db3f99e9fe41260d363dfa9f1838ca7",
-      "bytes": 162575,
+      "content_sha256": "f09b4622c81dfe6193747d0036441a742a50906097812b52bb9e2ab8cbb8fbce",
+      "bytes": 163669,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-001",
@@ -135,13 +135,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-            "sha256": "2993a2d69ac5d5638ac85ee549aa57ba9db3f99e9fe41260d363dfa9f1838ca7",
-            "bytes": 162575
+            "sha256": "f09b4622c81dfe6193747d0036441a742a50906097812b52bb9e2ab8cbb8fbce",
+            "bytes": 163669
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "2079ba17c410709ce0c8442d9a21b8ab089fb9046e3763a6fb5fe7c784f97967"
+        "sha256": "a6a574d824b97047dc251367ecea95cd0d3c69ab55fc5dfa7ec35fde5fe17af8"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
@@ -335,8 +335,8 @@
         "D05",
         "D20"
       ],
-      "content_sha256": "4b619bf2e20b115ca9647b8513e81555fa63338b5c7aa47f88f41a6164e8e0c2",
-      "bytes": 262102,
+      "content_sha256": "255f51b97670813bb9c067583fa9bacb9b7b972a045ea82652692a2d872746e1",
+      "bytes": 262141,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-004",
@@ -344,19 +344,19 @@
           {
             "kind": "main",
             "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
-            "sha256": "4b619bf2e20b115ca9647b8513e81555fa63338b5c7aa47f88f41a6164e8e0c2",
-            "bytes": 262102
+            "sha256": "255f51b97670813bb9c067583fa9bacb9b7b972a045ea82652692a2d872746e1",
+            "bytes": 262141
           },
           {
             "kind": "module",
             "path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
-            "sha256": "f62dfa74eafb419d74e5def2c031c5f343fecc62d234c331e89372670626c653",
-            "bytes": 118686
+            "sha256": "24c4b431ef1b5add127b832858d2b38539f1ae6e7da30cc53da7cbb706c627ee",
+            "bytes": 118688
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "6333acce53ce4706dfc96bc9e28d680d345218bb2c525a02111860612561223a"
+        "sha256": "46df7a65c63d9fba2ef39cb35ee62dfa94fe8441d124fbde9cecba285696d421"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
@@ -677,13 +677,19 @@
           "label": "Crebain owner",
           "min_distinct_identities": 1,
           "requires_independence": false
+        },
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
         }
       ],
       "defect_ids": [
         "D09"
       ],
-      "content_sha256": "c7e81cc5051df8322bb51d689290b83d45b940ca6ff93a89ace17b45fed2a80d",
-      "bytes": 183142,
+      "content_sha256": "bb98e8fd68c792d36303c757c9bb22f08e288fcce2dc7eacb84d066c97064b70",
+      "bytes": 180151,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-008",
@@ -691,13 +697,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-            "sha256": "c7e81cc5051df8322bb51d689290b83d45b940ca6ff93a89ace17b45fed2a80d",
-            "bytes": 183142
+            "sha256": "bb98e8fd68c792d36303c757c9bb22f08e288fcce2dc7eacb84d066c97064b70",
+            "bytes": 180151
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "14eda4beecdb1f65bce3ab8cab7bd3ac2afdbd65897172debfa8ad88c5b1f9cc"
+        "sha256": "97f866be59b69d5c9fe0d8f84fdbdd37a5ae069492efdf7698379b0c717e57d7"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
@@ -722,6 +728,12 @@
         {
           "code": "MISSING_ROLE_ACCEPTANCE",
           "role_id": "crebain-owner",
+          "review_ids": [],
+          "detail": "requires 1 distinct qualifying identities; observed 0"
+        },
+        {
+          "code": "MISSING_ROLE_ACCEPTANCE",
+          "role_id": "engram-owner",
           "review_ids": [],
           "detail": "requires 1 distinct qualifying identities; observed 0"
         }
@@ -873,8 +885,8 @@
       "defect_ids": [
         "D14"
       ],
-      "content_sha256": "87425b90bb8f1578b5bd611fe69bef29b4a29d9adb742505700f309d447abcc3",
-      "bytes": 21560,
+      "content_sha256": "a94372baf29091cece03a83d99b952b6a5cffdb669af0cefd09771126548aa07",
+      "bytes": 22442,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-010",
@@ -882,13 +894,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
-            "sha256": "87425b90bb8f1578b5bd611fe69bef29b4a29d9adb742505700f309d447abcc3",
-            "bytes": 21560
+            "sha256": "a94372baf29091cece03a83d99b952b6a5cffdb669af0cefd09771126548aa07",
+            "bytes": 22442
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "ff6e362c453a5f44c262c8f66dcca54d752ef60f0a5bb0fc1fca798ba2415bf7"
+        "sha256": "cf1e3c5d30d6df34d94468861a5d6cb637fa989f727ae4f15fef2689321ec51c"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [
@@ -934,7 +946,9 @@
       "id": "ADR-011",
       "title": "Fix ecosystem dependency direction and plant handover",
       "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-      "module_paths": [],
+      "module_paths": [
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+      ],
       "required_reviews": [
         {
           "role_id": "engram-owner",
@@ -999,8 +1013,8 @@
         "D12",
         "D18"
       ],
-      "content_sha256": "82478e3fca4827e590c0c869b676863fa27b63e9dcc65827eb39e43075037ee9",
-      "bytes": 76844,
+      "content_sha256": "48742bd6f68c9b9304e20b347e304f475407ba6bf7d105f970af9d4c73a7120b",
+      "bytes": 79822,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-011",
@@ -1008,13 +1022,19 @@
           {
             "kind": "main",
             "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-            "sha256": "82478e3fca4827e590c0c869b676863fa27b63e9dcc65827eb39e43075037ee9",
-            "bytes": 76844
+            "sha256": "48742bd6f68c9b9304e20b347e304f475407ba6bf7d105f970af9d4c73a7120b",
+            "bytes": 79822
+          },
+          {
+            "kind": "module",
+            "path": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+            "sha256": "8052f1ea04b14a797a4a141eaa5c2565e9ea5092d8dfb248b9b3019bdbfdec98",
+            "bytes": 10497
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "f9f78c3c8f5cf6cc37555e346017b286a683c9b0248782698c0d06b7aa001a92"
+        "sha256": "b46c23c37970f73e001e46dc97b852f5897e3d651692edb69a9f6e0b043f5882"
       },
       "status": "PROPOSED",
       "acceptance_blockers": [

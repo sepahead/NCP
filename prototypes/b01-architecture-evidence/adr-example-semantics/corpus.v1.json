@@ -29,14 +29,14 @@
       "required_reviews",
       "defect_ids"
     ],
-    "projection_byte_length": 16606,
-    "projection_sha256": "167599579c2d1ca4ba00c693fd436f883e7637d4d3ba51592932e7d8eaff5837",
-    "sha256": "81be8a31805140a4e01df1de45823b21e40f1a9b5d46b753a84978afa2ff226e",
+    "projection_byte_length": 16950,
+    "projection_sha256": "acd696dcda0e1d1c4b268bfe2cd1c6f78da4bb98e95e2e52eba9985f662c0050",
+    "sha256": "d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "9acaec04762c6b01e4cd88ca44abf7483e5124ccd0a1cc4451807db7e9dc5205",
-        "bytes": 72816
+        "sha256": "4058229f4d2d9776aa3827f92d06a80295b1a8d17980c9df9a6be89b6c747f96",
+        "bytes": 72917
       },
       "json_schema": {
         "path": "docs/adr/decision-closure.source.schema.v1.json",
@@ -68,9 +68,9 @@
     "maximum_integer_characters": 32,
     "allow_floats": false,
     "expected_case_count": 25,
-    "expected_mutation_count": 132,
+    "expected_mutation_count": 160,
     "minimum_mutations_per_case": 2,
-    "maximum_mutations_per_case": 24,
+    "maximum_mutations_per_case": 32,
     "maximum_engine_output_bytes": 262144,
     "engine_timeout_seconds": 120
   },
@@ -78,7 +78,6 @@
     "scope": [
       "AUTHENTICATED_WIRE_OBJECT",
       "DECODED_HEADER_FRAGMENT",
-      "NON_NCP_INTENT_CORRELATION_FRAGMENT",
       "NON_WIRE_INTERNAL_STATE",
       "PROPOSED_EXTENSION_ENVELOPE",
       "PROPOSED_SEMANTIC_PROJECTION",
@@ -137,39 +136,59 @@
     "EFFECT_PATH_ISOLATION_REQUIRED",
     "EFFECT_WRITE_FENCING_TERM_REQUIRED",
     "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED",
-    "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED",
     "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED",
+    "EXTENSION_AMBIENT_FETCH_CREDENTIAL_FORBIDDEN",
+    "EXTENSION_ATTACHMENT_FETCH_AUTHORITY_INVALID",
+    "EXTENSION_ATTACHMENT_REDIRECT_FORBIDDEN",
+    "EXTENSION_ATTACHMENT_REFERENCE_BOUNDS_REQUIRED",
+    "EXTENSION_ATTACHMENT_STORE_ENROLLMENT_REQUIRED",
+    "EXTENSION_ATTACHMENT_VERIFICATION_REQUIRED",
     "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED",
-    "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID",
-    "EXTENSION_COMPLETE_HASH_RULE_INVALID",
-    "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN",
-    "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID",
-    "EXTENSION_DUPLICATE_COPY_FORBIDDEN",
-    "EXTENSION_FIRST_INDEX_RULE_INVALID",
-    "EXTENSION_HEADER_ADMISSION_INVALID",
+    "EXTENSION_CALLBACK_RIGHT_CONSUMPTION_REQUIRED",
+    "EXTENSION_CALLBACK_VALIDATION_ORDER_INVALID",
+    "EXTENSION_CANONICAL_NUMBER_POLICY_INVALID",
+    "EXTENSION_CORE_OR_REGISTERED_REQUIRED",
+    "EXTENSION_DUPLICATE_KEY_POLICY_INVALID",
+    "EXTENSION_GENERIC_CHUNK_PROTOCOL_FORBIDDEN",
     "EXTENSION_ID_MISMATCH",
-    "EXTENSION_OUTER_ENCODING_INVALID",
-    "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN",
+    "EXTENSION_INLINE_ATTACHMENT_FORBIDDEN",
+    "EXTENSION_MANIFEST_DIGEST_MISMATCH",
+    "EXTENSION_MANIFEST_SELECTION_REQUIRED",
+    "EXTENSION_ONE_ENVELOPE_REQUIRED",
+    "EXTENSION_PARTIAL_ATTACHMENT_USE_FORBIDDEN",
     "EXTENSION_POLICY_FIELD_FORBIDDEN",
-    "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED",
-    "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED",
+    "EXTENSION_POST_FETCH_CURRENTNESS_RECHECK_REQUIRED",
     "EXTENSION_PRODUCER_ROLE_INVALID",
     "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED",
     "EXTENSION_RECEIVER_ROLE_INVALID",
     "EXTENSION_RESERVATION_ORDER_INVALID",
     "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN",
-    "EXTENSION_SCHEMA_RESERVATION_REQUIRED",
     "EXTENSION_SCHEMA_VERSION_MISMATCH",
-    "EXTENSION_STABLE_SLOT_INVALID",
+    "EXTENSION_SEMANTIC_ENCODING_INVALID",
+    "EXTENSION_SVG_PROTOCOL_INPUT_FORBIDDEN",
     "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID",
     "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED",
+    "EXTENSION_UNKNOWN_MEMBER_POLICY_INVALID",
+    "EXTENSION_WIRE_URL_FORBIDDEN",
     "FAIL_SAFE_EARLY_EFFECT_MODE_INVALID",
     "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED",
     "FAIL_SAFE_PRIORITY_INVALID",
     "HOLD_ADMISSION_ORDER_INVALID",
     "INTENT_AUDIENCE_MISMATCH",
+    "INTENT_DEADLINE_INVALID",
+    "INTENT_ENVELOPE_SHAPE_INVALID",
     "INTENT_EXPIRED",
+    "INTENT_FRESHNESS_CLOCK_MISMATCH",
+    "INTENT_FRESHNESS_GRANT_INSTALLATION_RECEIPT_MISMATCH",
+    "INTENT_FRESHNESS_GRANT_MISMATCH",
+    "INTENT_FRESHNESS_SLOT_INVALID",
     "INTENT_ISSUER_MISMATCH",
+    "INTENT_REPLAY_COORDINATE_INVALID",
+    "INTENT_REQUESTED_EFFECT_INVALID",
+    "INTENT_SESSION_MISMATCH",
+    "INTENT_SIGNATURE_COVERAGE_INVALID",
+    "INTENT_SOURCE_UNION_INVALID",
+    "INTENT_VALIDITY_INVALID",
     "KEY_EPOCH_MEMBERSHIP_REQUIRED",
     "KEY_ID_NOT_CONTENT_ADDRESSED",
     "LEASE_ISSUER_NOT_BODY",
@@ -1623,15 +1642,15 @@
       ]
     },
     {
-      "id": "adr008.raw-chunk.semantic-projection.v1",
+      "id": "adr008.extension-envelope.semantic-projection.v1",
       "source": {
         "adr": "ADR-008",
         "json_fence_ordinal": 1,
-        "fence_byte_length": 911,
-        "fence_sha256": "cc037f2cfa1037265bf59f049701c7596d3924621646575529da709099309b96"
+        "fence_byte_length": 1142,
+        "fence_sha256": "7b4893ccb9c335450773b2385a3fd72a1519d6105cf0b7da780de646a3997aee"
       },
       "scope": "PROPOSED_SEMANTIC_PROJECTION",
-      "profile": "ADR008_RAW_CHUNK_PROJECTION_V1",
+      "profile": "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
       "polarity": "POSITIVE",
       "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
       "production_admission": "NOT_EVALUATED",
@@ -1640,24 +1659,376 @@
       "payload_interpreted": true,
       "mutations": [
         {
-          "id": "adr008.raw-chunk.mutable-slot-key.v1",
-          "purpose": "Declared length and chunk count must conflict inside one stable package slot.",
+          "id": "adr008.extension-envelope.encoding-substitution.v1",
+          "purpose": "The selected semantic extension encoding must remain bounded canonical JSON.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
-            "path": "/stable_slot_excludes_mutable_declarations",
+            "path": "/semantic_encoding",
+            "value": "CANONICAL_CBOR"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_SEMANTIC_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.one-envelope.v1",
+          "purpose": "One NCP message must contain exactly one semantic extension envelope.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/one_semantic_envelope_per_message",
             "value": false
           },
           "expected_profile_result": "REJECT",
           "production_admission": "REJECT",
           "expected_diagnostics": [
-            "EXTENSION_STABLE_SLOT_INVALID"
+            "EXTENSION_ONE_ENVELOPE_REQUIRED"
           ],
           "payload_interpreted": true
         },
         {
-          "id": "adr008.raw-chunk.missing-activation-incarnation.v1",
-          "purpose": "Lost receiver activation state must not revive an old package identity.",
+          "id": "adr008.extension-envelope.manifest-after-decode.v1",
+          "purpose": "Trusted route context must select the installed extension manifest before semantic decoding.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/extension_manifest_selected_before_decode",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_MANIFEST_SELECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.unknown-members-accepted.v1",
+          "purpose": "The closed extension schema must reject unknown members.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unknown_members_reject",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_UNKNOWN_MEMBER_POLICY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.duplicate-keys-accepted.v1",
+          "purpose": "Duplicate decoded JSON keys must reject before callback.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/duplicate_decoded_keys_reject",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_DUPLICATE_KEY_POLICY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.noncanonical-numbers-accepted.v1",
+          "purpose": "The selected canonical-JSON profile must reject non-canonical numbers.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/noncanonical_numbers_reject",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CANONICAL_NUMBER_POLICY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.inline-attachment-bytes.v1",
+          "purpose": "Large attachment bytes must remain outside the semantic JSON envelope.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/inline_attachment_bytes_allowed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_INLINE_ATTACHMENT_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.unbounded-attachment-refs.v1",
+          "purpose": "Attachment count and bytes must be bounded by the installed profile.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/external_attachment_refs_bounded",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ATTACHMENT_REFERENCE_BOUNDS_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.unenrolled-attachment-store.v1",
+          "purpose": "Each attachment store must be enrolled by the selected extension manifest.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/attachment_store_enrollment_required",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ATTACHMENT_STORE_ENROLLMENT_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.wire-supplied-url.v1",
+          "purpose": "The wire envelope must not provide an attachment URL.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/wire_supplied_url_allowed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_WIRE_URL_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.ambient-fetch-credentials.v1",
+          "purpose": "Attachment fetches must use scoped credentials from trusted local enrollment.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/ambient_fetch_credentials_allowed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_AMBIENT_FETCH_CREDENTIAL_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.attachment-redirect.v1",
+          "purpose": "An attachment fetch must reject every redirect.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/attachment_redirect_allowed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ATTACHMENT_REDIRECT_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.reference-grants-fetch.v1",
+          "purpose": "An attachment reference must not grant fetch authority by itself.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/attachment_ref_grants_fetch_authority",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ATTACHMENT_FETCH_AUTHORITY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.no-post-fetch-currentness-recheck.v1",
+          "purpose": "The receiver must recheck currentness after verified fetch and before callback.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/post_fetch_currentness_recheck_required",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_POST_FETCH_CURRENTNESS_RECHECK_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.callback-right-not-consumed.v1",
+          "purpose": "The final currentness recheck and callback-right consumption must be atomic.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/callback_right_consumed_with_final_recheck",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CALLBACK_RIGHT_CONSUMPTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.fetch-before-reservation.v1",
+          "purpose": "Complete attachment and callback capacity must be reserved before fetch.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/reserve_before_fetch",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_RESERVATION_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.use-before-verification.v1",
+          "purpose": "Attachment length and digest must pass before semantic use.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/length_and_digest_before_semantic_use",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ATTACHMENT_VERIFICATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.partial-attachment-use.v1",
+          "purpose": "A partial or unavailable attachment must make its dependent semantic branch unusable.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/partial_attachment_is_usable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_PARTIAL_ATTACHMENT_USE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.callback-before-validation.v1",
+          "purpose": "Callback entry must follow complete envelope and attachment validation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/callback_after_complete_validation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CALLBACK_VALIDATION_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.callback-without-boundary-state.v1",
+          "purpose": "At-most-once callback entry must consume its callback right first.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/callback_boundary_state_before_entry",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.unregistered-cross-project-message.v1",
+          "purpose": "Cross-project semantics require a stable core message or registered extension.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/core_or_registered_extension_required",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_CORE_OR_REGISTERED_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.svg-protocol-input.v1",
+          "purpose": "SVG presentation data must never become protocol semantics or evidence.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/svg_is_protocol_input",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_SVG_PROTOCOL_INPUT_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.generic-chunk-profile.v1",
+          "purpose": "NCP 1.0 must not imply a generic chunk-reassembly protocol.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/generic_chunk_protocol_in_v1",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_GENERIC_CHUNK_PROTOCOL_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.extension-envelope.missing-activation-incarnation.v1",
+          "purpose": "Lost receiver activation state must not revive an old envelope identity.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -1672,24 +2043,8 @@
           "payload_interpreted": true
         },
         {
-          "id": "adr008.raw-chunk.unbound-processing-profile.v1",
-          "purpose": "The activation digest must bind every parser, callback, and resource profile.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/activation_context_binds_processing_profiles",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.refreshable-expiry.v1",
-          "purpose": "The activation digest must bind one clock incarnation and fixed exclusive expiry.",
+          "id": "adr008.extension-envelope.refreshable-expiry.v1",
+          "purpose": "The activation binds one clock incarnation and fixed exclusive expiry.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -1704,24 +2059,8 @@
           "payload_interpreted": true
         },
         {
-          "id": "adr008.raw-chunk.unbound-header-class-or-length.v1",
-          "purpose": "Header class and class-selected package length limits must pass before slot lookup or reservation.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/header_class_registry_and_length_checked_before_reservation",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_HEADER_ADMISSION_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.work-before-terminal-lookup.v1",
-          "purpose": "A terminal package lookup must occur before work admission.",
+          "id": "adr008.extension-envelope.work-before-terminal-lookup.v1",
+          "purpose": "A terminal replay lookup must occur before new work admission.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -1736,7 +2075,7 @@
           "payload_interpreted": true
         },
         {
-          "id": "adr008.raw-chunk.retired-result-disclosure.v1",
+          "id": "adr008.extension-envelope.retired-result-disclosure.v1",
           "purpose": "A retired context must not disclose protected retained result data.",
           "patch": {
             "target": "DOCUMENT",
@@ -1752,216 +2091,8 @@
           "payload_interpreted": true
         },
         {
-          "id": "adr008.raw-chunk.json-wrapper.v1",
-          "purpose": "The selected outer transport must remain a raw chunk frame.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/outer_encoding",
-            "value": "JSON_WRAPPER"
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_OUTER_ENCODING_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.nested-structured-frame.v1",
-          "purpose": "A reassembled package must not inherit universal frame semantics.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/package_is_structured_frame",
-            "value": true
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.index-zero-first.v1",
-          "purpose": "Any valid first chunk index can reserve after capacity admission.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/first_index_can_reserve",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_FIRST_INDEX_RULE_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.copy-before-reservation.v1",
-          "purpose": "Capacity reservation must precede retained chunk copies.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/reserve_before_copy",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_RESERVATION_ORDER_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.non-atomic-currentness-cut.v1",
-          "purpose": "Chunk retention and callback entry must have one local order against currentness cuts and expiry.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/slot_transition_orders_currentness_cut",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.duplicate-copy.v1",
-          "purpose": "An exact duplicate must not allocate or copy payload bytes again.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/duplicate_copies_bytes",
-            "value": true
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_DUPLICATE_COPY_FORBIDDEN"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.conflict-overwrite.v1",
-          "purpose": "Conflicting bytes must not overwrite an accepted chunk.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/conflict_overwrites_bytes",
-            "value": true
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.repeated-complete-hash.v1",
-          "purpose": "Completion must hash the final package buffer once.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/complete_hash_once",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_COMPLETE_HASH_RULE_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.stale-before-schema.v1",
-          "purpose": "Currentness and expiry must be rechecked after package verification and before schema work.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/currentness_and_expiry_rechecked_before_schema",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.callback-before-reservation.v1",
-          "purpose": "Schema resources must be reserved before parsing or callback entry.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/callback_after_schema_reservation",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_SCHEMA_RESERVATION_REQUIRED"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.stale-before-callback.v1",
-          "purpose": "Currentness and expiry must be rechecked after schema work and before callback entry.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/currentness_and_expiry_rechecked_before_callback",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.callback-without-boundary-state.v1",
-          "purpose": "At-most-once callback entry must consume its durable callback right first.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/callback_boundary_state_before_entry",
-            "value": false
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.early-callback-resource-release.v1",
-          "purpose": "An entered callback must retain its reserved state until return or proved isolation termination.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/entered_callback_releases_resources_before_resolution",
-            "value": true
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr008.raw-chunk.no-tombstone.v1",
-          "purpose": "Terminal package identity must retain bounded no-reuse state.",
+          "id": "adr008.extension-envelope.no-tombstone.v1",
+          "purpose": "Terminal envelope identity must retain bounded no-reuse state.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -1982,8 +2113,8 @@
       "source": {
         "adr": "ADR-008",
         "json_fence_ordinal": 2,
-        "fence_byte_length": 6928,
-        "fence_sha256": "fafcc078bb7ea1e4160fbf4f5591c0a75b2ff2dc263911878524b3961cbb4cf6"
+        "fence_byte_length": 9657,
+        "fence_sha256": "d4d27fd751dc466528930256a9c719a902173323350e3bf0a293d7df2990a5a7"
       },
       "scope": "PROPOSED_EXTENSION_ENVELOPE",
       "profile": "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
@@ -2799,15 +2930,15 @@
       ]
     },
     {
-      "id": "adr011.gated-intent-correlation.excerpt.v1",
+      "id": "adr011.registered-haldir-intent.extension-envelope.v1",
       "source": {
         "adr": "ADR-011",
         "json_fence_ordinal": 1,
-        "fence_byte_length": 386,
-        "fence_sha256": "8c0712e56bc03e6352ef87d80e81b6c51dcb4934174abda99a942cb7374d0f8e"
+        "fence_byte_length": 2211,
+        "fence_sha256": "8053c2d0b7892f956d4540a30a34e00b2aa0a9fbba90d64e9e374898359a1949"
       },
-      "scope": "NON_NCP_INTENT_CORRELATION_FRAGMENT",
-      "profile": "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
+      "scope": "PROPOSED_EXTENSION_ENVELOPE",
+      "profile": "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
       "polarity": "POSITIVE",
       "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
       "production_admission": "REJECT",
@@ -2816,16 +2947,179 @@
           "server_authority_principal_id": "ncp-authority-a",
           "stable_realm_id": "realm-a"
         },
-        "expected_issuer": "engram-intent-a",
-        "expected_audience": "haldir-gate-a",
-        "evaluation_utc_ms": 1784200020000
+        "expected_extension_id": "org.sepahead.haldir.intent.v2",
+        "expected_schema_version": "2",
+        "expected_manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_semantic_encoding": "BOUNDED_CANONICAL_JSON",
+        "expected_route": "realm-a/extension/org.sepahead.haldir.intent.v2/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/plant-alpha",
+        "expected_producer_principal_id": "engram-intent-a",
+        "expected_audience_principal_id": "haldir-intent-receiver-a",
+        "expected_plant_session_kind": "PLANT",
+        "expected_logical_session_id": "plant-alpha",
+        "expected_plant_session_generation": "00000000-0000-4000-8000-0000000000a2",
+        "expected_freshness_grant": {
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "installation_receipt_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "clock_incarnation": "00000000-0000-4000-8000-0000000000c1",
+          "issue_tick_ns": 42000000000,
+          "maximum_not_after_tick_ns": 72000000000,
+          "first_slot": 1,
+          "last_slot_exclusive": 1024,
+          "maximum_requested_validity_ms": 30000,
+          "allowed_requested_effects": [
+            "mission-step"
+          ]
+        },
+        "expected_intent_stream_epoch": "00000000-0000-4000-8000-0000000000b7",
+        "expected_intent_sequence": 18,
+        "expected_requested_effect": "mission-step",
+        "evaluation_tick_ns": 60000000000,
+        "expected_source": {
+          "kind": "SOURCE_ABSENT",
+          "reason": "PROFILE_PERMITS_NO_SOURCE"
+        },
+        "expected_signature_coverage": [
+          "audience_principal_id",
+          "authority_realm_key",
+          "controller_t_ns",
+          "effective_deadline_tick_ns",
+          "extension_id",
+          "freshness_grant",
+          "intent_id",
+          "intent_sequence",
+          "intent_stream_epoch",
+          "logical_session_id",
+          "manifest_digest",
+          "plant_session_generation",
+          "plant_session_kind",
+          "producer_principal_id",
+          "requested_effect",
+          "requested_validity_ms",
+          "route",
+          "schema_version",
+          "selected_slot",
+          "semantic_encoding",
+          "source"
+        ]
       },
       "expected_diagnostics": [],
       "payload_interpreted": true,
       "mutations": [
         {
-          "id": "adr011.gated-intent.realm-context-mismatch.v1",
-          "purpose": "A local intent correlation fragment must not cross realm context.",
+          "id": "adr011.registered-haldir-intent.extension-id-substitution.v1",
+          "purpose": "The registered Haldir extension identity cannot be replaced.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/extension_id",
+            "value": "org.sepahead.private.host-api"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_ID_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.schema-downgrade.v1",
+          "purpose": "The native gated route rejects the historical intent schema.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/schema_version",
+            "value": "1"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_SCHEMA_VERSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.manifest-substitution.v1",
+          "purpose": "The extension route and envelope bind one exact installed manifest.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/manifest_digest",
+            "value": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_MANIFEST_DIGEST_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.encoding-substitution.v1",
+          "purpose": "The Haldir intent extension uses its registered bounded canonical-JSON encoding.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/semantic_encoding",
+            "value": "CANONICAL_CBOR"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "EXTENSION_SEMANTIC_ENCODING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.host-api-route.v1",
+          "purpose": "Cross-project intent semantics cannot use Host API or a private route.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/route",
+            "value": "host-api://engram/haldir/intent"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.producer-substitution.v1",
+          "purpose": "Only the registered Engram extension publisher can issue this intent.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/producer_principal_id",
+            "value": "attacker-intent"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_ISSUER_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.audience-substitution.v1",
+          "purpose": "The extension cannot be retargeted from Haldir's receiver to the plant body.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/audience_principal_id",
+            "value": "plant-body-a"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_AUDIENCE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.realm-context-mismatch.v1",
+          "purpose": "The registered extension envelope cannot cross realm context.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -2840,56 +3134,8 @@
           "payload_interpreted": true
         },
         {
-          "id": "adr011.gated-intent.audience-substitution.v1",
-          "purpose": "An intent bound to Haldir must not be retargeted to the plant body.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/audience",
-            "value": "plant-body-a"
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "INTENT_AUDIENCE_MISMATCH"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr011.gated-intent.expired-at-boundary.v1",
-          "purpose": "Equality at an exclusive expiry boundary must not remain fresh.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/expires_at_utc_ms",
-            "value": 1784200020000
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "INTENT_EXPIRED"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr011.gated-intent.issuer-substitution.v1",
-          "purpose": "A different local issuer must not retain intent correlation meaning.",
-          "patch": {
-            "target": "DOCUMENT",
-            "op": "REPLACE",
-            "path": "/issuer",
-            "value": "attacker-intent"
-          },
-          "expected_profile_result": "REJECT",
-          "production_admission": "REJECT",
-          "expected_diagnostics": [
-            "INTENT_ISSUER_MISMATCH"
-          ],
-          "payload_interpreted": true
-        },
-        {
-          "id": "adr011.gated-intent.authority-principal-substitution.v1",
-          "purpose": "A realm authority principal substitution must not retain intent correlation meaning.",
+          "id": "adr011.registered-haldir-intent.authority-principal-substitution.v1",
+          "purpose": "A realm authority principal substitution cannot retain intent meaning.",
           "patch": {
             "target": "DOCUMENT",
             "op": "REPLACE",
@@ -2900,6 +3146,278 @@
           "production_admission": "REJECT",
           "expected_diagnostics": [
             "AUTHORITY_REALM_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.session-kind-substitution.v1",
+          "purpose": "A gated plant intent cannot be rebound to a simulation session.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/plant_session_kind",
+            "value": "SIMULATION"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SESSION_KIND_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.logical-session-substitution.v1",
+          "purpose": "The intent cannot move to another logical plant session.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/logical_session_id",
+            "value": "plant-beta"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_SESSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.session-generation-substitution.v1",
+          "purpose": "The intent cannot move to another plant-session generation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/plant_session_generation",
+            "value": "00000000-0000-4000-8000-0000000000a3"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_SESSION_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.freshness-grant-substitution.v1",
+          "purpose": "The intent must bind Haldir's exact installed freshness grant.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/freshness_grant/digest",
+            "value": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_FRESHNESS_GRANT_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.stream-epoch-substitution.v1",
+          "purpose": "The intent replay coordinate cannot move to another stream epoch.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/intent_stream_epoch",
+            "value": "00000000-0000-4000-8000-0000000000b8"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_REPLAY_COORDINATE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.sequence-zero.v1",
+          "purpose": "Intent sequence zero is outside the positive replay coordinate.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/intent_sequence",
+            "value": 0
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_REPLAY_COORDINATE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.empty-intent-id.v1",
+          "purpose": "An empty intent identity cannot enter replay or policy state.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/intent_id",
+            "value": ""
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_REPLAY_COORDINATE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.installation-receipt-substitution.v1",
+          "purpose": "The freshness grant must bind its exact installation receipt.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/freshness_grant/installation_receipt_digest",
+            "value": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_FRESHNESS_GRANT_INSTALLATION_RECEIPT_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.clock-incarnation-substitution.v1",
+          "purpose": "The intent cannot use a freshness grant from another monotonic clock incarnation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/freshness_grant/clock_incarnation",
+            "value": "00000000-0000-4000-8000-0000000000c2"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_FRESHNESS_CLOCK_MISMATCH"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.slot-upper-bound.v1",
+          "purpose": "The selected freshness slot must be below the exclusive grant bound.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/selected_slot",
+            "value": 1024
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_FRESHNESS_SLOT_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.requested-effect-substitution.v1",
+          "purpose": "The request must use an effect authorized by the installed grant.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/requested_effect",
+            "value": "hover"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_REQUESTED_EFFECT_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.zero-validity.v1",
+          "purpose": "The requested validity must be a positive bounded duration.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/requested_validity_ms",
+            "value": 0
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_DEADLINE_INVALID",
+            "INTENT_VALIDITY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.deadline-refresh.v1",
+          "purpose": "The sender cannot refresh the effective deadline beyond the grant calculation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/effective_deadline_tick_ns",
+            "value": 72000000001
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_DEADLINE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.expired-at-boundary.v1",
+          "purpose": "Equality at the exclusive monotonic deadline is expired.",
+          "patch": {
+            "target": "BOUNDED_FIXTURE",
+            "op": "REPLACE",
+            "path": "/evaluation_tick_ns",
+            "value": 72000000000
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_EXPIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.source-union-substitution.v1",
+          "purpose": "The signed source union cannot change after extension admission.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/source/kind",
+            "value": "SOURCE_PRESENT"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_SOURCE_UNION_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.signature-coverage-removal.v1",
+          "purpose": "The signed preimage must cover every registered intent member.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REMOVE",
+            "path": "/signature_coverage/0"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_SIGNATURE_COVERAGE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.registered-haldir-intent.obsolete-wall-clock-expiry.v1",
+          "purpose": "The registered monotonic envelope rejects an obsolete wall-clock expiry member.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/expires_at_utc_ms",
+            "value": 1784200020000
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "INTENT_ENVELOPE_SHAPE_INVALID"
           ],
           "payload_interpreted": true
         }

@@ -65,10 +65,10 @@ MAX_MUTATION_PURPOSE_BYTES = 512
 MAX_PATCH_PATH_BYTES = 512
 EXPECTED_CASE_COUNT = 25
 EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 29, "typescript": 47}
-EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 107
-EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 3_543
+EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 127
+EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 4_301
 EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
-    "f8e704286f7a0c30b6525e5835bcf2d46e21e5c1bc8db7bbef928cff17208d2d"
+    "6f045da9a79f06135fa9bae69f4fb4a6c82af4e522b27f116a6eda8382e344cc"
 )
 EXPECTED_ADR_IDS = tuple(f"ADR-{index:03d}" for index in range(1, 12))
 EXPECTED_CASE_IDENTITIES = {
@@ -177,8 +177,8 @@ EXPECTED_CASE_IDENTITIES = {
         "ADR-007",
         3,
     ),
-    "adr008.raw-chunk.semantic-projection.v1": (
-        "ADR008_RAW_CHUNK_PROJECTION_V1",
+    "adr008.extension-envelope.semantic-projection.v1": (
+        "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
         "PROPOSED_SEMANTIC_PROJECTION",
         "POSITIVE",
         "ADR-008",
@@ -226,9 +226,9 @@ EXPECTED_CASE_IDENTITIES = {
         "ADR-010",
         2,
     ),
-    "adr011.gated-intent-correlation.excerpt.v1": (
-        "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
-        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+    "adr011.registered-haldir-intent.extension-envelope.v1": (
+        "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
+        "PROPOSED_EXTENSION_ENVELOPE",
         "POSITIVE",
         "ADR-011",
         1,
@@ -275,9 +275,9 @@ EXPECTED_LIMITS = {
     "maximum_integer_characters": 32,
     "allow_floats": False,
     "expected_case_count": EXPECTED_CASE_COUNT,
-    "expected_mutation_count": 132,
+    "expected_mutation_count": 160,
     "minimum_mutations_per_case": 2,
-    "maximum_mutations_per_case": 24,
+    "maximum_mutations_per_case": 32,
     "maximum_engine_output_bytes": MAX_ENGINE_OUTPUT_BYTES,
     "engine_timeout_seconds": 120,
 }
@@ -285,7 +285,6 @@ EXPECTED_CLOSED_VALUES = {
     "scope": [
         "AUTHENTICATED_WIRE_OBJECT",
         "DECODED_HEADER_FRAGMENT",
-        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
         "NON_WIRE_INTERNAL_STATE",
         "PROPOSED_EXTENSION_ENVELOPE",
         "PROPOSED_SEMANTIC_PROJECTION",

@@ -1108,7 +1108,7 @@
       "prevention": [
         "immutable pins",
         "no silent fork policy",
-        "nine exact consumer and extension role qualification gate",
+        "eleven exact consumer and extension role qualification gate",
         "historical six-surface inventory cannot substitute for role receipts"
       ],
       "failure_response": "Reject the compatibility claim and retain explicit cross-repository prerequisites.",
@@ -1139,7 +1139,7 @@
       "control_status": "PARTIAL_LOCAL",
       "risk_status": "OPEN",
       "release_blocking": true,
-      "residual_risk": "All nine exact installed consumer and extension role qualifications remain NOT RUN; pid-rs is not an NCP peer."
+      "residual_risk": "All eleven exact installed consumer and extension role qualifications remain NOT RUN; pid-rs is not an NCP peer."
     },
     {
       "id": "NCP-THREAT-019",

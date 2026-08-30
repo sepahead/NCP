@@ -32,6 +32,11 @@ from selector_closure_codec import (
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY = ROOT / "docs" / "adr" / "selector-allocation.authoring.v1.json"
 DEFAULT_SCHEMA = ROOT / "docs" / "adr" / "selector-allocation.authoring.schema.v1.json"
+DECISION_REGISTRY_SOURCE = ROOT / "docs" / "adr" / "decision-registry.source.v1.json"
+PROPOSED_DECISION_REGISTRY = (
+    ROOT / "docs" / "adr" / "decision-registry.proposed.v1.json"
+)
+MAX_DECISION_REGISTRY_BYTES = 256 * 1024
 
 ALLOCATION_BINDING_KEY = "adr_allocation_inventory_binding"
 ALLOCATION_ORACLE_KEY = "adr_allocation_oracle"
@@ -741,8 +746,9 @@ ADR_ALLOCATION_MODULE_PATHS = (
     (),
     ("docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",),
     (),
-    (),
+    ("docs/adr/modules/adr-011-ecosystem-integration-boundary.md",),
 )
+PRE_ADR011_MODULE_ROSTER = (*ADR_ALLOCATION_MODULE_PATHS[:-1], ())
 ADR_ALLOCATION_ANCHOR_IDS = tuple(
     f"ncp-b01-selector-allocation-adr-{index:03d}-v1"
     for index in range(1, len(ADR_ALLOCATION_PATHS) + 1)
@@ -751,6 +757,184 @@ ADR_ALLOCATION_ANCHOR_BY_ID = {
     f"ADR-{index:03d}": anchor_id
     for index, anchor_id in enumerate(ADR_ALLOCATION_ANCHOR_IDS, 1)
 }
+
+
+def _validate_decision_registry_value(
+    value: Any,
+    *,
+    label: str,
+    expected_schema: str,
+) -> list[dict[str, Any]]:
+    """Validate the non-normative B01 registry envelope and decision roster."""
+
+    _require(isinstance(value, dict), f"{label} must be an object")
+    _require(
+        (
+            value.get("schema"),
+            value.get("task"),
+            value.get("candidate"),
+            value.get("wire_version"),
+            value.get("normative"),
+            value.get("promotion_blocked"),
+        )
+        == (expected_schema, "B01", "1.0.0-rc.1", "1.0", False, True),
+        f"{label} has an unexpected B01 proposal envelope",
+    )
+    decisions = value.get("decisions")
+    _require(
+        isinstance(decisions, list) and len(decisions) == len(ADR_ALLOCATION_PATHS),
+        f"{label} must contain exactly eleven decisions",
+    )
+    _require(
+        all(isinstance(decision, dict) for decision in decisions),
+        f"{label} decisions must be objects",
+    )
+    return decisions
+
+
+def _load_decision_registry_rows(
+    path: Path,
+    *,
+    label: str,
+    expected_schema: str,
+) -> list[dict[str, Any]]:
+    raw = read_bounded_regular_file(
+        path,
+        maximum_bytes=MAX_DECISION_REGISTRY_BYTES,
+        label=label,
+    )
+    value = parse_json_bytes(raw, label=label)
+    return _validate_decision_registry_value(
+        value,
+        label=label,
+        expected_schema=expected_schema,
+    )
+
+
+def validate_closed_adr_roster_against_decision_registry_source() -> None:
+    """Bind the selector's closed ADR roster to the declarative registry."""
+
+    decisions = _load_decision_registry_rows(
+        DECISION_REGISTRY_SOURCE,
+        label="decision registry source for selector roster",
+        expected_schema="ncp.proposed-decision-registry-source.v1",
+    )
+    actual = [
+        (
+            decision.get("id"),
+            decision.get("path"),
+            tuple(decision.get("module_paths", []))
+            if isinstance(decision.get("module_paths"), list)
+            else None,
+        )
+        for decision in decisions
+    ]
+    expected = [
+        (f"ADR-{index:03d}", path, ADR_ALLOCATION_MODULE_PATHS[index - 1])
+        for index, path in enumerate(ADR_ALLOCATION_PATHS, 1)
+    ]
+    _require(
+        actual == expected,
+        "selector ADR roster differs from decision-registry.source.v1.json",
+    )
+
+
+def _validate_inventory_against_proposed_decision_registry_value(
+    inventory: dict[str, Any],
+    registry: Any,
+    *,
+    label: str,
+) -> None:
+    """Require exact selector source identities to match one parsed proposal."""
+
+    decisions = _validate_decision_registry_value(
+        registry,
+        label=label,
+        expected_schema="ncp.proposed-decision-registry.v1",
+    )
+    documents = inventory.get("documents")
+    _require(
+        isinstance(documents, list) and len(documents) == len(decisions),
+        "selector inventory and proposed registry decision counts differ",
+    )
+    for index, (document, decision) in enumerate(
+        zip(documents, decisions, strict=True)
+    ):
+        label = f"selector/proposed-registry decision[{index}]"
+        _require(isinstance(document, dict), f"{label} inventory row must be an object")
+        adr_id = f"ADR-{index + 1:03d}"
+        modules = document.get("modules")
+        _require(isinstance(modules, list), f"{label} modules must be an array")
+        module_paths = [
+            module.get("path") if isinstance(module, dict) else None
+            for module in modules
+        ]
+        _require(
+            decision.get("id") == adr_id
+            and (
+                document.get("adr_id"),
+                document.get("path"),
+                module_paths,
+                document.get("byte_length"),
+                document.get("sha256"),
+            )
+            == (
+                adr_id,
+                decision.get("path"),
+                decision.get("module_paths"),
+                decision.get("bytes"),
+                decision.get("content_sha256"),
+            ),
+            f"{label} main or module identity differs",
+        )
+        expected_sources = [
+            {
+                "kind": "main",
+                "path": document["path"],
+                "sha256": document["sha256"],
+                "bytes": document["byte_length"],
+            }
+        ]
+        expected_sources.extend(
+            {
+                "kind": "module",
+                "path": module["path"],
+                "sha256": module["sha256"],
+                "bytes": module["byte_length"],
+            }
+            for module in modules
+        )
+        source_set = decision.get("source_set")
+        _require(isinstance(source_set, dict), f"{label} source_set must be an object")
+        inventory_source_set = document.get("source_set")
+        _require(
+            isinstance(inventory_source_set, dict)
+            and source_set.get("decision_id") == adr_id
+            and source_set.get("sources") == expected_sources
+            and source_set.get("sha256") == inventory_source_set.get("sha256"),
+            f"{label} source-set identity differs",
+        )
+
+
+def validate_inventory_against_proposed_decision_registry(
+    inventory: dict[str, Any],
+) -> None:
+    """Require exact selector source identities to match the B01 proposal."""
+
+    validate_closed_adr_roster_against_decision_registry_source()
+    label = "proposed decision registry for selector source parity"
+    raw = read_bounded_regular_file(
+        PROPOSED_DECISION_REGISTRY,
+        maximum_bytes=MAX_DECISION_REGISTRY_BYTES,
+        label=label,
+    )
+    registry = parse_json_bytes(raw, label=label)
+    _validate_inventory_against_proposed_decision_registry_value(
+        inventory,
+        registry,
+        label=label,
+    )
+
 
 SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 SEMANTIC_ID = re.compile(r"^[A-Z][A-Z0-9_]*$")
@@ -1752,9 +1936,12 @@ def _rows_for_adr(
 def validate_allocation_inventory(
     inventory: dict[str, Any],
     schema: dict[str, Any],
+    *,
+    allow_exact_pre_adr011_module_roster: bool = False,
 ) -> None:
     """Validate the external inventory's closed shape and local invariants."""
 
+    validate_closed_adr_roster_against_decision_registry_source()
     _assert_supported_schema(schema)
     _assert_no_mutable_aliases(inventory, label="allocation inventory")
     _closed_object(inventory, keys=INVENTORY_KEYS, label="allocation inventory")
@@ -1935,6 +2122,19 @@ def validate_allocation_inventory(
     allocations = inventory["allocations"]
     documents = inventory["documents"]
     exclusions = inventory["exclusions"]
+    declared_module_roster = [
+        tuple(
+            module.get("path")
+            for module in item.get("modules", [])
+            if isinstance(module, dict)
+        )
+        for item in documents
+    ]
+    expected_module_roster = list(ADR_ALLOCATION_MODULE_PATHS)
+    if allow_exact_pre_adr011_module_roster and declared_module_roster == list(
+        PRE_ADR011_MODULE_ROSTER
+    ):
+        expected_module_roster = list(PRE_ADR011_MODULE_ROSTER)
     _require(
         len(allocations) + len(exclusions) <= MAX_ALLOCATION_ROWS,
         (
@@ -1996,15 +2196,7 @@ def validate_allocation_inventory(
         "allocation inventory has an unexpected stable ADR anchor inventory",
     )
     _require(
-        [
-            tuple(
-                module.get("path")
-                for module in item.get("modules", [])
-                if isinstance(module, dict)
-            )
-            for item in documents
-        ]
-        == list(ADR_ALLOCATION_MODULE_PATHS),
+        declared_module_roster == expected_module_roster,
         "allocation inventory has an unexpected ordered ADR module inventory",
     )
     document_corpus_bytes = 0
@@ -2061,7 +2253,7 @@ def validate_allocation_inventory(
         )
         _require(
             tuple(module.get("path") for module in modules)
-            == ADR_ALLOCATION_MODULE_PATHS[index],
+            == expected_module_roster[index],
             f"{label}: ordered module paths do not match {adr_id}",
         )
         for module_index, module in enumerate(modules):
@@ -2570,6 +2762,55 @@ def _sample_inventory(schema_raw: bytes) -> dict[str, Any]:
     }
 
 
+def _sample_proposed_decision_registry(
+    inventory: dict[str, Any],
+) -> dict[str, Any]:
+    """Build one closed synthetic proposal for parity negative controls."""
+
+    decisions = []
+    for document in inventory["documents"]:
+        sources = [
+            {
+                "kind": "main",
+                "path": document["path"],
+                "sha256": document["sha256"],
+                "bytes": document["byte_length"],
+            },
+            *(
+                {
+                    "kind": "module",
+                    "path": module["path"],
+                    "sha256": module["sha256"],
+                    "bytes": module["byte_length"],
+                }
+                for module in document["modules"]
+            ),
+        ]
+        decisions.append(
+            {
+                "id": document["adr_id"],
+                "path": document["path"],
+                "module_paths": [module["path"] for module in document["modules"]],
+                "bytes": document["byte_length"],
+                "content_sha256": document["sha256"],
+                "source_set": {
+                    "decision_id": document["adr_id"],
+                    "sources": sources,
+                    "sha256": document["source_set"]["sha256"],
+                },
+            }
+        )
+    return {
+        "schema": "ncp.proposed-decision-registry.v1",
+        "task": "B01",
+        "candidate": "1.0.0-rc.1",
+        "wire_version": "1.0",
+        "normative": False,
+        "promotion_blocked": True,
+        "decisions": decisions,
+    }
+
+
 def _sample_allocation_row(
     *,
     adr_id: str,
@@ -2620,6 +2861,12 @@ def run_self_test(schema_path: Path = DEFAULT_SCHEMA) -> int:
     schema_raw, schema = load_inventory_schema(schema_path)
     sample = _sample_inventory(schema_raw)
     validate_allocation_inventory(sample, schema)
+    proposed_registry = _sample_proposed_decision_registry(sample)
+    _validate_inventory_against_proposed_decision_registry_value(
+        sample,
+        proposed_registry,
+        label="synthetic proposed decision registry",
+    )
     _require(
         sample["documents"][0]["allocation_rows_sha256"]
         != sample["documents"][0]["exclusion_rows_sha256"],
@@ -2631,7 +2878,69 @@ def run_self_test(schema_path: Path = DEFAULT_SCHEMA) -> int:
     )
     canonical = inventory_bytes(sample)
     binding = build_inventory_binding(canonical, schema_raw)
-    cases = 3
+    cases = 4
+
+    for field, replacement in (
+        ("schema", "ncp.unknown.v1"),
+        ("task", "B02"),
+        ("candidate", "1.0.0"),
+        ("wire_version", "0.9"),
+        ("normative", True),
+        ("promotion_blocked", False),
+    ):
+        hostile_registry = copy.deepcopy(proposed_registry)
+        hostile_registry[field] = replacement
+        _expect_rejection(
+            lambda value=hostile_registry: (
+                _validate_inventory_against_proposed_decision_registry_value(
+                    sample,
+                    value,
+                    label="hostile proposed decision registry",
+                )
+            ),
+            f"proposed decision registry {field} substitution",
+        )
+        cases += 1
+
+    for mutate, label in (
+        (
+            lambda value: value["decisions"][0].__setitem__("id", "ADR-999"),
+            "proposed decision ID substitution",
+        ),
+        (
+            lambda value: value["decisions"][3]["module_paths"].__setitem__(
+                0,
+                "docs/adr/modules/substituted.md",
+            ),
+            "proposed decision module-path substitution",
+        ),
+        (
+            lambda value: value["decisions"][3]["source_set"]["sources"][1].__setitem__(
+                "sha256", "f" * 64
+            ),
+            "proposed decision source-row substitution",
+        ),
+        (
+            lambda value: value["decisions"][3]["source_set"].__setitem__(
+                "sha256",
+                "f" * 64,
+            ),
+            "proposed decision source-set substitution",
+        ),
+    ):
+        hostile_registry = copy.deepcopy(proposed_registry)
+        mutate(hostile_registry)
+        _expect_rejection(
+            lambda value=hostile_registry: (
+                _validate_inventory_against_proposed_decision_registry_value(
+                    sample,
+                    value,
+                    label="hostile proposed decision registry",
+                )
+            ),
+            label,
+        )
+        cases += 1
 
     identity_vector = ALLOCATION_IDENTITY_COMMITMENT_SUITE["fixed_vectors"][
         "unit_model_origin"

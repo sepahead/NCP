@@ -80,11 +80,11 @@ SVG_ACCESSIBILITY = {
     ),
     "ecosystem": (
         "NCP ecosystem integration map",
-        f"Informative ecosystem map for the UNRELEASED {CANDIDATE_VERSION} candidate. "
-        "It shows optional adapter dependency direction and the authority boundary for "
-        "Engram, Haldir, Crebain, Galadriel, and Prisoma. It also shows that pid-rs "
-        "remains protocol-neutral and has no NCP role edge. "
-        "It is not a release, consumer qualification, or certification claim.",
+        f"Informative UNRELEASED {CANDIDATE_VERSION} candidate ecosystem map. "
+        "It lists eleven roles and four isolated Haldir processes. Its policy authority "
+        "is not an NCP peer. X02 uses composite 1/2/3-drone sessions with 6N/3N frames "
+        "and remains open. MUSIC owns shared clocks. SVG is presentation-only. "
+        "Qualifications are not run. Not release or certification evidence.",
     ),
     "versioning": (
         "NCP version and identity gate",
@@ -1005,133 +1005,147 @@ def topology(th):
 
 # ───────────────────────────── 2. ECOSYSTEM ─────────────────────────────
 def ecosystem(th):
-    W, H = 980, 680
+    W, H = 1180, 850
     s = [svg_open(W, H, "ecosystem"), defs(th), background(th, W, H)]
     s.append(
         title_block(
             th,
             "ECOSYSTEM",
-            "PROPOSED B01 ROLE MAP  ·  OPTIONAL THIN ADAPTERS  ·  QUALIFICATION NOT RUN",
+            "PROPOSED B01 BOUNDARY  ·  11 EXACT ROLE SUBJECTS  ·  X02 OPEN",
             W,
         )
     )
     s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-    ctr, obs, ctl, act = (
+    ctr, obs, ctl, act, hold = (
         th["contract"],
         th["observation"],
         th["control"],
         th["action"],
+        th["hold"],
     )
     hero_ink = contrast_ink(th["contract"], th["contract_lo"])
 
-    left_x, right_x, card_w, card_h = 36, 680, 264, 104
-    row_y = (112, 264, 416)
-    hx, hy, hw, hh = 350, 220, 280, 208
-
-    # Consumer adapters depend on NCP. Route every rail into the hub boundary.
-    # The protocol-neutral library has no NCP edge.
-    left_targets = (260, row_y[1] + card_h / 2, 390)
-    for y, target_y in zip(row_y, left_targets, strict=True):
-        cy = y + card_h / 2
-        bend_x = hx - 18
-        s.append(
-            path(
-                f"M{left_x + card_w},{cy} L{bend_x - 10},{cy} "
-                f"Q{bend_x},{cy} {bend_x},{cy + (10 if target_y > cy else -10)} "
-                f"L{bend_x},{target_y} L{hx},{target_y}",
-                stroke=ctr,
-                sw=2,
-                marker="arrowContract",
-            )
-        )
-    right_targets = (260, row_y[1] + card_h / 2)
-    for y, target_y in zip(row_y[:2], right_targets, strict=True):
-        cy = y + card_h / 2
-        bend_x = hx + hw + 18
-        s.append(
-            path(
-                f"M{right_x},{cy} L{bend_x + 10},{cy} "
-                f"Q{bend_x},{cy} {bend_x},{cy + (10 if target_y > cy else -10)} "
-                f"L{bend_x},{target_y} L{hx + hw},{target_y}",
-                stroke=ctr,
-                sw=2,
-                marker="arrowContract",
-            )
-        )
-
-    def role_card(
-        x, y, designator, hue, icon, name, line_one, line_two, *, dashed=False
-    ):
-        s.append(card(th, x, y, card_w, card_h, hue, designator, dashed=dashed))
-        s.append(icon(x + 18, y + 41, 24, hue))
-        s.append(T(x + 54, y + 44, name, 14, 700, th["tprim"]))
-        s.append(T(x + 18, y + 70, line_one, 9.5, 600, th["tsec"]))
-        s.append(T(x + 18, y + 87, line_two, 9, 500, th["tmut"], mono=True))
-
-    role_card(
-        left_x,
-        row_y[0],
-        "E1",
-        ctl,
-        ic_brain,
-        "Engram",
-        "simulation responder / optional commander",
-        "direct command XOR Haldir-local intent",
-    )
-    role_card(
-        left_x,
-        row_y[1],
-        "H1",
-        th["hold"],
-        ic_key,
-        "Haldir",
-        "optional gate and NCP commander",
-        "policy can deny · never body authority",
-    )
-    role_card(
-        left_x,
-        row_y[2],
-        "C1",
-        act,
-        ic_robot,
-        "Crebain",
-        "NCP body · final software authority",
-        "plant profile + effect-path fencing",
-    )
-    role_card(
-        right_x,
-        row_y[0],
-        "G1",
-        obs,
-        ic_eye,
-        "Galadriel",
-        "read-only observer / advisory producer",
-        "advice preserves or removes permission",
-    )
-    role_card(
-        right_x,
-        row_y[1],
-        "P1",
-        obs,
-        ic_book,
-        "Prisoma",
-        "read-only capture and offline science",
-        "no mutation · gaps remain visible",
-    )
-    role_card(
-        right_x,
-        row_y[2],
-        "L1",
-        th["tmut"],
-        ic_book,
-        "pid-rs",
-        "protocol-neutral estimator library",
-        "no NCP dependency or role receipt",
-        dashed=True,
-    )
-
-    # HERO contract hub.
+    engram = (28, 104, 330, 206)
+    hub = (390, 112, 400, 150)
+    observers = (822, 104, 330, 206)
+    haldir = (28, 340, 720, 250)
+    crebain = (780, 340, 372, 250)
+    hx, hy, hw, hh = hub
     cx = hx + hw / 2
+
+    # Consumer adapters depend on NCP. Arrows end at the provider boundary.
+    s.append(
+        line(
+            engram[0] + engram[2],
+            208,
+            hx,
+            208,
+            ctr,
+            2,
+            marker="arrowContract",
+        )
+    )
+    s.append(
+        line(
+            observers[0],
+            208,
+            hx + hw,
+            208,
+            ctr,
+            2,
+            marker="arrowContract",
+        )
+    )
+    s.append(
+        path(
+            "M470,340 L470,262",
+            stroke=ctr,
+            sw=2,
+            marker="arrowContract",
+        )
+    )
+    s.append(
+        path(
+            "M966,340 L966,292 Q966,276 950,276 L710,276 Q690,276 690,262",
+            stroke=ctr,
+            sw=2,
+            marker="arrowContract",
+        )
+    )
+
+    def role_row(x, y, ordinal, label, hue, *, size=9.2):
+        s.append(rect(x, y - 12, 22, 18, rx=5, fill=th["surf_chip"], stroke=hue, sw=1))
+        s.append(
+            T(
+                x + 11,
+                y + 1,
+                str(ordinal),
+                9,
+                700,
+                th["tsec"],
+                mono=True,
+                anchor="middle",
+            )
+        )
+        s.append(T(x + 31, y + 1, label, size, 600, th["tsec"]))
+
+    def group_header(box, designator, hue, title, qualifier):
+        x, y, w, h = box
+        s.append(card(th, x, y, w, h, hue, designator))
+        s.append(T(x + 50, y + 34, title, 15, 750, th["tprim"]))
+        s.append(
+            T(
+                x + w - 16,
+                y + 33,
+                qualifier,
+                8.5,
+                650,
+                th["tmut"],
+                mono=True,
+                anchor="end",
+            )
+        )
+        s.append(line(x + 16, y + 48, x + w - 16, y + 48, th["border"], 1, cap="butt"))
+
+    group_header(engram, "E", ctl, "Engram", "3 ROLE RECEIPTS · NOT RUN")
+    role_row(48, 178, 1, "Engram simulation responder", ctl)
+    role_row(48, 214, 2, "Engram plant commander", act)
+    role_row(48, 250, 3, "Engram Haldir-intent extension publisher", hold, size=8.4)
+    s.append(
+        T(
+            48,
+            288,
+            "direct command XOR registered Haldir intent",
+            8.2,
+            550,
+            th["tmut"],
+            mono=True,
+        )
+    )
+
+    group_header(
+        observers,
+        "O",
+        obs,
+        "Galadriel + Prisoma",
+        "3 ROLES · NOT RUN",
+    )
+    role_row(842, 178, 7, "Galadriel NCP observer", obs)
+    role_row(842, 214, 8, "Galadriel raw-advisory publisher", hold)
+    role_row(842, 250, 11, "Prisoma NCP observer", obs)
+    s.append(
+        T(
+            842,
+            288,
+            "read-only or advisory · never command authority",
+            8.2,
+            550,
+            th["tmut"],
+            mono=True,
+        )
+    )
+
+    # Project-neutral provider hub.
     s.append(
         rect(
             hx,
@@ -1148,13 +1162,13 @@ def ecosystem(th):
     s.append(rect(hx + 14, hy + 13, hw - 28, 2, rx=1, fill="#ffffff", op=0.5))
     s.append(rect(hx + 16, hy + 14, 26, 15, rx=4, fill="#ffffff", op=0.16))
     s.append(T(hx + 29, hy + 24.5, "U1", 10, 700, hero_ink, mono=True, anchor="middle"))
-    s.append(ic_key(cx - 14, hy + 30, 28, hero_ink))
-    s.append(T(cx, hy + 82, "NCP", 18, 800, hero_ink, anchor="middle"))
+    s.append(ic_key(cx - 12, hy + 20, 24, hero_ink))
+    s.append(T(cx, hy + 58, "NCP 1.0 CANDIDATE", 18, 800, hero_ink, anchor="middle"))
     s.append(
         T(
             cx,
-            hy + 99,
-            "unreleased 1.0 candidate",
+            hy + 78,
+            "project-neutral provider",
             11,
             600,
             hero_ink,
@@ -1165,22 +1179,22 @@ def ecosystem(th):
     s.append(
         T(
             cx,
-            hy + 120,
-            "core · transports · bindings · gateway",
-            9.5,
-            600,
+            hy + 100,
+            "extensions: bounded canonical JSON · large bytes: enrolled stores",
+            9,
+            700,
             hero_ink,
             anchor="middle",
             op=0.9,
             mono=True,
         )
     )
-    s.append(line(hx + 22, hy + 128, hx + hw - 22, hy + 128, "#ffffff", 1, op=0.18))
+    s.append(line(hx + 22, hy + 108, hx + hw - 22, hy + 108, "#ffffff", 1, op=0.18))
     s.append(
         T(
             cx,
-            hy + 140,
-            "consumers own thin optional role adapters",
+            hy + 124,
+            "cross-project runtime semantics · NCP only",
             8.5,
             500,
             hero_ink,
@@ -1189,13 +1203,13 @@ def ecosystem(th):
             mono=True,
         )
     )
-    s.append(rect(cx - 72, hy + 147, 144, 15, rx=6, fill="#ffffff", op=0.13))
+    s.append(rect(cx - 120, hy + 130, 240, 14, rx=6, fill="#ffffff", op=0.13))
     s.append(
         T(
             cx,
-            hy + 157.5,
-            f"WIRE {WIRE_VERSION} · PROTO {CONTRACT_HASH[:8]} · RELEASE BLOCKED",
-            9,
+            hy + 140.5,
+            f"WIRE {WIRE_VERSION} · OPTIONAL ADAPTERS · RELEASE BLOCKED",
+            8.5,
             700,
             hero_ink,
             anchor="middle",
@@ -1203,50 +1217,163 @@ def ecosystem(th):
         )
     )
 
-    # Authority and no-edge laws.
-    ly = 558
-    s.append(
-        rect(28, ly, W - 56, 86, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
+    # Haldir process boundary. Three processes are NCP roles; policy is local.
+    group_header(
+        haldir, "H", hold, "Haldir · 4 isolated processes", "3 ROLE RECEIPTS · NOT RUN"
     )
-    s.append(rect(28, ly, 4, 86, rx=2, fill=act))
+
+    def process_card(x, y, title, role, detail, hue):
+        w, h = 326, 68
+        s.append(rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=hue, sw=1.2))
+        s.append(T(x + 10, y + 19, title, 11, 750, th["tprim"]))
+        s.append(T(x + 10, y + 39, role, 8.2, 700, th["tsec"], mono=True))
+        s.append(T(x + 10, y + 57, detail, 7.4, 520, th["tmut"], mono=True))
+
+    process_card(
+        46,
+        400,
+        "intent receiver",
+        "Haldir Engram-intent extension receiver",
+        "transport · fetch · replay · no policy/command credential",
+        hold,
+    )
+    process_card(
+        388,
+        400,
+        "assessment receiver",
+        "Haldir Galadriel-assessment receiver",
+        "evidence ingress · replay · no intent/command credential",
+        obs,
+    )
+    process_card(
+        46,
+        478,
+        "policy-state authority",
+        "LOCAL · NOT AN NCP PEER",
+        "profiles · policy · grants · no transport/command credential",
+        ctl,
+    )
+    process_card(
+        388,
+        478,
+        "commander",
+        "Haldir NCP commander",
+        "publication · reconciliation · no policy/raw evidence store",
+        act,
+    )
+    s.append(rect(46, 558, 684, 20, rx=7, fill="none", stroke=hold, sw=1.2, dash="5 4"))
     s.append(
         T(
-            46,
-            ly + 20,
-            "AUTHORITY · Crebain remains final software body authority. Direct Engram and Haldir-gated command are mutually exclusive per term.",
-            9.5,
+            388,
+            572,
+            "Standalone Gate = separate deployment mode · not fifth process",
+            8.5,
+            650,
+            th["tsec"],
+            mono=True,
+            anchor="middle",
+        )
+    )
+
+    # Crebain body and the selected composite-fleet qualification profile.
+    group_header(crebain, "C", act, "Crebain", "2 ROLE RECEIPTS · NOT RUN")
+    role_row(800, 410, 9, "Crebain body", act)
+    role_row(800, 444, 10, "Crebain Galadriel-producer surface", obs, size=8.6)
+    s.append(rect(798, 468, 336, 104, rx=8, fill=th["surf_chip"], stroke=act, sw=1.2))
+    s.append(
+        T(
+            814,
+            489,
+            "X02 OPEN · COMPOSITE FLEET SESSION",
+            9,
+            750,
+            th["tprim"],
+            mono=True,
+        )
+    )
+    s.append(T(814, 511, "1 / 2 / 3 drones · sorted stable IDs", 8.8, 600, th["tsec"]))
+    s.append(
+        T(
+            814,
+            533,
+            "SensorFrame = 6N · CommandFrame = 3N",
+            8.8,
             600,
             th["tsec"],
+            mono=True,
         )
     )
     s.append(
-        T(
-            46,
-            ly + 42,
-            "MONOTONICITY · Galadriel advice can only preserve or remove Haldir permission. Observers gain no command or lifecycle authority.",
-            9.5,
-            600,
-            th["tsec"],
+        T(814, 555, "Host API 2 = historical only", 8.4, 600, th["tmut"], mono=True)
+    )
+
+    # Non-overlapping protocol, time, presentation, and evidence boundaries.
+    def boundary_box(x, w, hue, title, lines):
+        y, h = 620, 170
+        s.append(
+            rect(x, y, w, h, rx=10, fill=th["surf_chip"], stroke=th["border"], sw=1)
         )
+        s.append(rect(x, y, 4, h, rx=2, fill=hue))
+        s.append(T(x + 18, y + 28, title, 10.5, 750, th["tprim"], track=0.4))
+        s.append(line(x + 18, y + 38, x + w - 16, y + 38, th["border"], 1, cap="butt"))
+        for index, line_text in enumerate(lines):
+            s.append(
+                T(
+                    x + 18,
+                    y + 64 + index * 24,
+                    line_text,
+                    8.4,
+                    560,
+                    th["tsec"],
+                    mono=True,
+                )
+            )
+
+    boundary_box(
+        28,
+        356,
+        hold,
+        "MUSIC · SHARED-CLOCK OWNER",
+        (
+            "MUSIC owns shared-clock coupling",
+            "NCP does not tunnel or replace MUSIC",
+            "X02 uses independent clocks",
+            "shared-clock claims need MUSIC evidence",
+        ),
+    )
+    boundary_box(
+        402,
+        356,
+        ctr,
+        "PRESENTATION PLANE",
+        (
+            "SVG is presentation-only and non-contract",
+            "no protocol semantics or runtime evidence",
+            "host UI stays inside Engram",
+            "only its adapter crosses projects through NCP",
+        ),
+    )
+    boundary_box(
+        776,
+        376,
+        act,
+        "AUTHORITY + EVIDENCE",
+        (
+            "Crebain = final software body authority",
+            "direct Engram XOR Haldir per term",
+            "11 exact role receipts · all NOT RUN",
+            "pid-rs / Cortexel: no NCP role edge",
+        ),
     )
     s.append(
         T(
-            46,
-            ly + 64,
-            "NO EDGE · pid-rs remains protocol-neutral. It has no NCP package, runtime, documentation-import, or role edge.",
-            9.5,
-            600,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            W - 46,
-            ly + 80,
-            "solid rail = optional NCP adapter dependency · no consumer qualification completed",
+            W - 28,
+            H - 20,
+            "solid arrow = optional consumer dependency on NCP · diagram = presentation, not contract",
             8.5,
             500,
             th["tmut"],
+            mono=True,
             anchor="end",
             italic=True,
         )
@@ -3552,6 +3679,67 @@ def architecture_diagram_problems() -> list[str]:
     return problems
 
 
+def ecosystem_contract_problems() -> list[str]:
+    """Keep the ecosystem figure aligned with the selected B01 boundary."""
+    problems = []
+    role_subjects = (
+        "Engram simulation responder",
+        "Engram plant commander",
+        "Engram Haldir-intent extension publisher",
+        "Haldir NCP commander",
+        "Haldir Engram-intent extension receiver",
+        "Haldir Galadriel-assessment receiver",
+        "Galadriel NCP observer",
+        "Galadriel raw-advisory publisher",
+        "Crebain body",
+        "Crebain Galadriel-producer surface",
+        "Prisoma NCP observer",
+    )
+    required = (
+        "11 EXACT ROLE SUBJECTS",
+        "Haldir · 4 isolated processes",
+        "intent receiver",
+        "assessment receiver",
+        "policy-state authority",
+        "commander",
+        "LOCAL · NOT AN NCP PEER",
+        "Standalone Gate = separate deployment mode · not fifth process",
+        "extensions: bounded canonical JSON · large bytes: enrolled stores",
+        "X02 OPEN · COMPOSITE FLEET SESSION",
+        "1 / 2 / 3 drones",
+        "SensorFrame = 6N · CommandFrame = 3N",
+        "Host API 2 = historical only",
+        "MUSIC owns shared-clock coupling",
+        "SVG is presentation-only and non-contract",
+        "11 exact role receipts · all NOT RUN",
+    )
+    forbidden = (
+        "optional gate and NCP commander",
+        "simulation responder / optional commander",
+        "policy can deny · never body authority",
+        "current CREBAIN–Engram loop",
+        "nine role receipts",
+    )
+    for theme in (LIGHT, DARK):
+        source = ecosystem(theme)
+        for role_subject in role_subjects:
+            count = source.count(esc(role_subject))
+            if count != 1:
+                problems.append(
+                    f"{theme['name']} ecosystem must contain {role_subject!r} exactly once; "
+                    f"found {count}"
+                )
+        for text in required:
+            if esc(text) not in source:
+                problems.append(f"{theme['name']} ecosystem omits {text!r}")
+        for text in forbidden:
+            if esc(text) in source:
+                problems.append(
+                    f"{theme['name']} ecosystem retains stale text {text!r}"
+                )
+    return problems
+
+
 def diagram_reference_problems() -> list[str]:
     """Require one maintained owner document for every generated diagram pair."""
     if set(DIAGRAM_OWNERS) != set(DIAGRAMS):
@@ -3766,6 +3954,7 @@ def main():
     stale.extend(architecture_contrast_problems())
     stale.extend(topology_contract_problems())
     stale.extend(architecture_diagram_problems())
+    stale.extend(ecosystem_contract_problems())
     stale.extend(diagram_reference_problems())
     stale.extend(public_svg_accessibility_problems())
 

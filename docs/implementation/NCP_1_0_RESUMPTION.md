@@ -30,7 +30,7 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
 
 - NCP is a project-neutral protocol/provider, not an application orchestrator and not
   a dependency on any consumer application.
-- X05 is proposed protocol infrastructure, not a tenth X03 role receipt. Signature,
+- X05 is proposed protocol infrastructure, not an additional X03 role. Signature,
   identity, revocation, and currentness requirements remain non-authorizing blueprint
   material. This repository-local checker has no X05 acceptance parser, cryptographic
   dependency, or trust-root configuration path and cannot admit X05 or any other
@@ -44,12 +44,24 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
   channel set, arity, unit, range, and session. It also checks the lease, source pin,
   and grant deadline. It owns the body-local
   HOLD/ESTOP action. A midpoint or zero is not implicit safety.
+- Current 1, 2, and 3-drone CREBAIN qualification runs use one composite fleet
+  plant session per run. One aggregate sensor frame has `6N` scalars, and one
+  aggregate acceleration command has `3N` scalars. Future independently scheduled
+  drones use disjoint sessions; NCP grants no cross-session barrier or atomicity.
 - Engram's simulation responder and plant commander are separate optional roles with
   disjoint types, principals, manifests, endpoints and state. Simulation grants never
   satisfy plant authority.
 - Direct Engram command and Haldir-gated command are mutually exclusive for one
-  plant/session term. In gated mode Engram sends a Haldir-local signed intent; Haldir
-  creates a new NCP command under its own principal and obtains Crebain's lease.
+  plant/session term. In gated mode Engram publishes `HaldirIntentV2` through the
+  Haldir-owned registered NCP extension. Haldir creates a new NCP command under its
+  own principal and obtains Crebain's lease.
+- Engram's intent publisher and Haldir's intent receiver are separate exact roles.
+  They increase the ecosystem release matrix from nine to eleven role receipts.
+- Engram can host verified static UI assets, but cross-project runtime semantics use
+  NCP core messages or registered extensions. Host API, private IPC, `postMessage`,
+  static assets, and SVG cannot carry cross-project protocol semantics or authority.
+- MUSIC alone owns shared-clock simulator coupling. NCP owns heterogeneous boundary
+  identity, authority, lifecycle, bounded data, and evidence; it does not replace MUSIC.
 - Galadriel's NCP observer is read-only. A separate default-off registered assessor
   extension may push raw advisory evidence with `RECORD_ONLY` or
   `REQUEST_DENY_TIGHTEN` under a distinct principal. Only a separately authenticated,
@@ -71,7 +83,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `6eead9d97aeb6d5180e3cfb03207a94c4be0715e9e94ed6694db70219628ccc9`.
+Blueprint SHA-256: `7461cb7c1b9f793402ada9741a9e72f05e3e8bc9b1ed4ff24b572abf4cd4af7c`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -91,8 +103,8 @@ Current residual risks:
 - The maintained low-overhead architecture is reconciled into all eleven proposed ADR sources. The selector authoring artifact remains an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED historical diagnostic whose allocation predates atomic HOLD admission. It is outside the semantic-closure subject, cannot accept or block a decision, and cannot replace required human review. This local design work does not accept an ADR, change normative sources, or authorize implementation.
 - Nine deterministic light and dark diagram pairs now explain the proposed overview, runtime, lifecycle, planes, version gate, simulation sequence, command admission, plant state, and ecosystem boundaries. Local rendering and accessibility checks do not implement the target or satisfy the later N10 documentation task, F05 final visual campaign, independent review, performance qualification, or release gates.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
-- The 25 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 25 cases and rejects 132 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.
-- Local semantic closure is current only when the source-bound 25-case, 132-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.
+- The 25 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 25 cases and rejects 145 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.
+- Local semantic closure is current only when the source-bound 25-case, 145-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.
 - B01 inventories the full 72-file set under 72-file and 8 MiB caps, including this architecture. Python imports precede its first snapshot, so this is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without provenance. The reader rejects leaf links and in-read changes. Privileged parent replacement is outside the claim.
 - The review packet remains SUPERSEDED with zero review records. The neutral-fixture repair preserves repository reviews. Its decision-set digest is 81be8a31805140a4e01df1de45823b21e40f1a9b5d46b753a84978afa2ff226e. No CURRENT subject exists. No owner review, independent review, external adjudication, or passing B01 receipt exists. Canonical formal refinement and every downstream implementation remain open.
 - The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.
@@ -117,7 +129,7 @@ Current residual risks:
 - The Zenoh compatibility publisher rewrites lease commands and local ESTOP into one transport-owned stream. It cannot represent a separately authenticated ESTOP-only declaration, bind one allocator to a receiver-owned publisher incarnation, or reserve independent emergency ingress. B01, B02, B03, N03, N05, N07, and N08 remain open.
 - The selected early ESTOP latch keeps the primary digest immutable and preallocates one generation-wide restrictive-conflict attribution beside the one-transition latch. The current runtime has neither record. B03, N03, N05, N07, and N08 must implement the bounded target before command admission.
 - The selected Active path requires exact retained source-publication evidence in a bounded body-owned source window and grant-reserved pin. The ADR target defines fail-closed pin, expiry, eviction, and missing-evidence behavior. The current runtime has none of these records. B03, N03, N05, N07, and N08 remain blocked from command admission.
-- ADR-008 now selects a raw bounded binary chunk wrapper that composes with the universal frame limit and reserves parser arena plus callback capacity before retention. The current runtime does not implement it. B03, N03, N06, G01, H02, and C03 remain open.
+- ADR-008 now selects one bounded canonical-JSON extension envelope and content-addressed external attachment references. It defines no generic 1.0 chunk-reassembly protocol. The current runtime does not implement the selected admission, fetch, verification, or callback boundary. B03, N03, N06, G01, H02, and C03 remain open.
 - The current Rust and TypeScript handshake paths correctly accept same-major versions encoded as canonical 1 or 1.<minor> values and treat the compact proto hash as advisory. They do not implement the proposed stable-core identity check or prepared compatibility context. B02, B03, N01, N03, N05, N06, and N07 remain blocked from implementation and qualification.
 - Rust message structs can discard resource-bounded additive unknown members under the stable-line policy. Exact signing, replay, and forwarding must bind the admitted object before typed projection, while unknown closed values and any authorizing interpretation still reject. B02, B03, N01, N04, N05, N06, N07, and N08 remain open.
 - Stable route helpers reject key-expression delimiters but do not implement the proposed portable identifier profile: 128-byte NCP identifiers, 32 realm segments of 63 bytes, a 2048-byte realm, and a 4096-byte route. B03 and native implementation tasks remain open.
@@ -132,7 +144,7 @@ Current residual risks:
 - The local ActionBuffer latches ESTOP before complete wire validation. ActionBuffer and the stream fence also adopt the first admitted epoch instead of comparing with a prepared declaration. The fence hashes variable route, kind, and generation strings for every frame instead of using a prepared fixed slot.
 - LinkMonitor copies and replaces the caller-supplied epoch on every valid sample instead of owning one prepared immutable epoch. It also permits a CUSUM threshold above its 256-sample work bound, normalizes invalid parameters, and exposes no counter-saturation state.
 - The C ABI discovers a NUL-terminated JSON length before applying the frame bound. The Python binding accepts an allocated string and builds a generic JSON value before the typed value. Installed ingress needs explicit bounded bytes and one typed decode. B02, B03, N01, N03, N05, N06, and N07 remain open.
-- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current nine-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
+- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current eleven-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
 - The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.
 - Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.

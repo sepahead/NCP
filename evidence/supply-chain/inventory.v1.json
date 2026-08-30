@@ -2216,14 +2216,14 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "86f59a577b50b49486b9c3226b523b42d71e6ca7856639fd0a975bac29add211"
+      "sha256": "f9426264062554a9cbbefec91f2f2c40019103b9b29124571c1a0a56a2a9f9f0"
     },
     {
       "outputs": [
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "e969fbf1e2e9e2f4fc530aefbc05d25f3c0ee2c7e2d4d17fc0b5c63153f4eb2b"
+      "sha256": "ac9ed661e29853259aa2b79ffe938519624af5f0adea8cb67ac47e16dc996150"
     },
     {
       "outputs": [
@@ -2244,14 +2244,14 @@
         "evidence/convergence/local-convergence.v1.json"
       ],
       "path": "scripts/generate_convergence_manifest.py",
-      "sha256": "b90450b9eac59b6de3104c7b66ec9ee285cac60a0cd97051b86398e00bb90444"
+      "sha256": "28f049fabad56621d95e9bc4ecd3b717bf65a073eb4e3cf1c0bdcdb547c5a9b6"
     },
     {
       "outputs": [
         "docs/adr/decision-registry.proposed.v1.json"
       ],
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "44d98a404d3cc54694d59a5dc677fed3ab8777598c0f241a96e201e039d4c7fd"
+      "sha256": "ce438efffcb79ed5543ea850d34712a480cfc94e69bfb8eaf38a84cd346def59"
     },
     {
       "outputs": [
@@ -2267,7 +2267,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "50a18b4eeafd0f896d4e5ef0aaf7c52a5eb4dc6f5420994dd712f3b925b42932"
+      "sha256": "c92b062f869c2791044eccff3c93d664216f30a8e27bf20c4065b2c17eb3c7d9"
     },
     {
       "outputs": [
@@ -2281,7 +2281,7 @@
         "docs/handoff/max-effort-task-review.v2.json"
       ],
       "path": "scripts/generate_max_effort_review_template.py",
-      "sha256": "bf9835b8a34cf855503e34109b00ecdcc8ee77cf64e87df3552e3ccf4ac54f93"
+      "sha256": "2ea35eb5498ca3dd6324a6bebc7286fd65b6b79e76d7725bd8b646537e58e7e3"
     },
     {
       "outputs": [
@@ -2295,14 +2295,14 @@
         "docs/adr/B01_SELECTOR_CLOSURE_MATRIX.md"
       ],
       "path": "scripts/generate_selector_closure_matrix.py",
-      "sha256": "a6f9a35ead40e47e23a69f3a14e7cf3220d44f4e2138561f4bdbcf7e5bd2386a"
+      "sha256": "ee576d7a9698d4dcfdb249cc07560c50f95adffdbc6c78f6d6895ece71ef5d3d"
     },
     {
       "outputs": [
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "fe627cf13a51d0dcc3e907f8f80432f560810215f26f6a385f3888e3f93f9d76"
+      "sha256": "b7dc73e176e1eb1eca9f2cb2d997d9b71dd96a274e25817b9c63b8f6c1f9655e"
     },
     {
       "outputs": [

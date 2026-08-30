@@ -161,7 +161,7 @@ The following pre-release gates remain separate from the local gate:
 - performance qualification
 - signatures, SBOM, and provenance
 - clean-room reproduction
-- all nine exact consumer and extension role qualifications
+- all eleven exact consumer and extension role qualifications
 
 `pid-rs` is not an NCP peer. It receives no NCP role receipt.
 

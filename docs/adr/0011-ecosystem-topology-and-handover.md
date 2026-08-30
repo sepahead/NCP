@@ -34,8 +34,8 @@ and startup.
 
 | Component | Standalone boundary | Optional NCP boundary | Authority/evidence boundary |
 |---|---|---|---|
-| Engram | neural simulation without NCP or other applications | simulation responder and plant commander are separate adapters | simulation state authority is not plant authority |
-| Haldir | signed local intent decisions without NCP/Galadriel | NCP commander and default-off Galadriel assessment receiver | local ALLOW/DENY is not body admission or execution |
+| Engram | neural simulation without NCP or other applications | simulation responder, plant commander, and Haldir-intent publisher are separate adapters | simulation state authority is not plant authority |
+| Haldir | signed local intent decisions without NCP/Galadriel | NCP commander, Engram-intent receiver, and default-off Galadriel assessment receiver | local ALLOW/DENY is not body admission or execution |
 | Galadriel | local/synthetic cross-sensor analysis | read-only NCP observer and separate assessment extension producer | observations/assessments never grant command or plant authority |
 | Crebain | local body/research behavior without NCP | sole NCP body plus separate standard/extension telemetry producers | final software actuator admission and dispositions remain Crebain-owned |
 | Prisoma | offline research and run-log analysis | read-only capture of granted perception, command proposal, observation, and disposition routes | never publishes, commands, fills gaps, or enters the control path |
@@ -526,10 +526,11 @@ identity, only one commander mode may hold a live body lease:
 
 - **DIRECT_ENGRAM:** Engram is the enrolled NCP commander and publishes new NCP
   commands under its current Crebain-issued lease.
-- **GATED_HALDIR:** Engram holds no NCP plant lease. It sends a Haldir-local
-  signed intent. Haldir authenticates and evaluates that intent, then constructs
-  a new NCP command under Haldir's principal, declaration, idempotency context,
-  and current Crebain-issued lease.
+- **GATED_HALDIR:** Engram holds no NCP plant lease. It sends signed
+  `HaldirIntentV2` through the Haldir-owned registered NCP extension
+  `org.sepahead.haldir.intent.v2`. Haldir authenticates and evaluates that
+  intent. Haldir then constructs a new NCP command under Haldir's principal,
+  declaration, idempotency context, and current Crebain-issued lease.
 
 Every native commander, including direct Engram and gated Haldir, owns a bounded
 durable NCP outbox and an installed send-attempt protocol. It fixes the protected
@@ -585,6 +586,12 @@ reinterpret or expand V1. Retain it for its exact historical/local compatibility
 surface and add a separately versioned signed
 `HaldirIntentV2`/`haldir.intent.v2` contract for the native-1.0 gated path. The
 native profile and route reject V1 and every version downgrade.
+
+`HaldirIntentV2` is the semantic payload of the Haldir-owned registered NCP
+extension `org.sepahead.haldir.intent.v2`. The extension manifest binds its
+canonical-JSON schema, route, Engram publisher, Haldir receiver, security
+profile, bounds, and lifecycle. Engram and Haldir qualify those publisher and
+receiver roles separately. The extension does not add a stable core message.
 
 `NcpSourceRefV2` is Haldir's exact, non-lossy typed embedding of the ADR-004
 `NormativeSourceRef`. Its direct `AuthorityRealmKey` is the first member of the
@@ -647,7 +654,7 @@ V2 contains exactly one closed source union:
 Each watermark is a producer-declared resolved upstream-input position, not
 delivery order, authority, or proof of computation/causality. Haldir admits each
 full reference/transfer independently before any policy use. The V2 canonical
-CBOR preimage and controller signature cover the direct realm, union
+JSON preimage and controller signature cover the direct realm, union
 discriminant, every portable identity, ordered watermark, attachment digest,
 intent/session context, and all existing action/admission fields. Every primary
 and watermark source realm must equal the intent and plant-session realm.
@@ -658,7 +665,7 @@ redisclosure. H01's total conversion and H02's Gate decoder consume the same V2
 type; no adapter-local shadow struct is allowed.
 
 When a V2 intent carries a portable `NcpSourceRefV2`, it also carries a bounded
-Haldir-local `ProtectedOriginTransfer` in one closed form.
+extension-bound `ProtectedOriginTransfer` in one closed form.
 `EXACT_ORIGIN_TRANSFER` binds the exact original protected producer envelope and
 declaration/security evidence. `TRUSTED_PROJECTED_ORIGIN_TRANSFER` instead binds
 the protected projected frame plus the receiver-independent ADR-004
@@ -687,8 +694,8 @@ self-author a redisclosure policy, and no after-the-fact audience widening is
 accepted. The transfer-policy digest selects only Haldir's bounded acceptance
 rules; it grants no disclosure authority.
 
-This source-ingress capability belongs to the Haldir policy authority's existing
-authenticated local-intent surface, not the NCP commander surface. It accepts
+This source-ingress capability belongs to Haldir's registered extension-receiver
+surface, not the NCP commander surface. It accepts
 only an intent-bound attachment and exposes no observer attach, subscription,
 query, wildcard route, or generic read transport. Therefore it does not add an
 observer role or let policy-authority or commander credentials acquire observer
@@ -697,7 +704,7 @@ its portable reference matches the exact locally admitted origin or trusted
 projection. Missing local evidence rejects or holds the intent; it cannot
 silently become explicit source absence. The policy decision passes only the
 unchanged portable reference to the commander, never the protected transfer or
-Haldir-local receipt. The Haldir command likewise carries only that portable
+receiver-local receipt. The Haldir command likewise carries only that portable
 reference. Crebain and each downstream observer resolve the same portable
 identity in their own lineages. Standalone Gate keeps the same ownership in its
 separate deployment mode.
@@ -752,10 +759,10 @@ audit record. The configured absence posture may be advisory/no-additional-
 restriction or deny-new-missions; it may not turn missing evidence into a new
 grant.
 
-Haldir acknowledges each verified assessment with the authenticated bounded
-disposition defined by ADR-008. Galadriel may retry using the exact assessment
+Haldir issues an authenticated bounded assessment disposition for each verified
+assessment under ADR-008. Galadriel may retry using the exact assessment
 identity, but missing, delayed, rejected, or overflowed disposition cannot be
-interpreted as `APPLIED_DENY`. The acknowledgement reports Haldir-owned policy
+interpreted as `APPLIED_DENY`. The disposition reports Haldir-owned policy
 state and creates no body authority.
 
 ### Read-only and indirect components
@@ -814,6 +821,11 @@ role qualification, and every external or release gate remain **NOT RUN**.
 pid-rs operates on consumer-supplied protocol-neutral values. Its estimate can be
 one input to application policy but has no authenticated actor, lease, command,
 or outcome meaning.
+
+The [cross-project integration boundary](modules/adr-011-ecosystem-integration-boundary.md)
+defines presentation hosting, registered extensions, fleet session granularity,
+MUSIC separation, receipt terms, performance evidence, and required ecosystem
+qualification controls.
 
 NCP defines no runtime, export, observation, control, release, or
 documentation-import edge to or from Cortexel.
@@ -928,21 +940,78 @@ inventory names without changing dependency direction or qualification meaning.
 
 ```json
 {
+  "extension_id": "org.sepahead.haldir.intent.v2",
+  "schema_version": "2",
+  "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "semantic_encoding": "BOUNDED_CANONICAL_JSON",
+  "route": "realm-a/extension/org.sepahead.haldir.intent.v2/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/plant-alpha",
+  "producer_principal_id": "engram-intent-a",
+  "audience_principal_id": "haldir-intent-receiver-a",
   "authority_realm_key": {
     "server_authority_principal_id": "ncp-authority-a",
     "stable_realm_id": "realm-a"
   },
   "intent_id": "80ad94de-e7b7-4b31-8b69-119d89a97511",
-  "issuer": "engram-intent-a",
-  "audience": "haldir-gate-a",
+  "plant_session_kind": "PLANT",
+  "logical_session_id": "plant-alpha",
   "plant_session_generation": "00000000-0000-4000-8000-0000000000a2",
+  "freshness_grant": {
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "installation_receipt_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "clock_incarnation": "00000000-0000-4000-8000-0000000000c1",
+    "issue_tick_ns": 42000000000,
+    "maximum_not_after_tick_ns": 72000000000,
+    "first_slot": 1,
+    "last_slot_exclusive": 1024,
+    "maximum_requested_validity_ms": 30000,
+    "allowed_requested_effects": [
+      "mission-step"
+    ]
+  },
+  "selected_slot": 18,
+  "intent_stream_epoch": "00000000-0000-4000-8000-0000000000b7",
+  "intent_sequence": 18,
+  "controller_t_ns": 50000000000,
   "requested_effect": "mission-step",
-  "expires_at_utc_ms": 1784200030000
+  "requested_validity_ms": 30000,
+  "effective_deadline_tick_ns": 72000000000,
+  "source": {
+    "kind": "SOURCE_ABSENT",
+    "reason": "PROFILE_PERMITS_NO_SOURCE"
+  },
+  "signature_coverage": [
+    "audience_principal_id",
+    "authority_realm_key",
+    "controller_t_ns",
+    "effective_deadline_tick_ns",
+    "extension_id",
+    "freshness_grant",
+    "intent_id",
+    "intent_sequence",
+    "intent_stream_epoch",
+    "logical_session_id",
+    "manifest_digest",
+    "plant_session_generation",
+    "plant_session_kind",
+    "producer_principal_id",
+    "requested_effect",
+    "requested_validity_ms",
+    "route",
+    "schema_version",
+    "selected_slot",
+    "semantic_encoding",
+    "source"
+  ]
 }
 ```
 
-After local ALLOW, Haldir creates a separate NCP `CommandFrame`; the intent is
-audit correlation only and is never the command identity or lease.
+Extension admission proves only Haldir receiver acceptance. After policy ALLOW,
+Haldir creates a separate NCP `CommandFrame`. The intent is never the command
+identity, body lease, body disposition, or application evidence.
+
+This non-authorizing excerpt identifies the exact signed-preimage members. It
+does not perform cryptographic verification or prove that the example grant,
+receipt, store, clock, source policy, or principals exist.
 
 ## Invalid or hostile example
 
@@ -1150,10 +1219,11 @@ Required invariants:
 
 Provider ADRs and rebaseline land first. Consumer tasks then implement separate
 optional adapters against exact immutable NCP commits. Engram migrates responder
-and commander roles separately; Haldir adds a native commander and separate
-assessment receiver; Galadriel adds observer and assessor roles; Crebain adds the
-body and separate producers; Prisoma adds read-only capture. pid-rs and Cortexel
-receive no NCP peer role or aggregate qualification receipt.
+and commander roles separately. Engram adds a separate Haldir-intent extension
+publisher. Haldir adds a native commander, Engram-intent extension receiver, and
+separate assessment receiver. Galadriel adds observer and assessor roles. Crebain
+adds the body and separate producers. Prisoma adds read-only capture. pid-rs and
+Cortexel receive no NCP peer role or aggregate qualification receipt.
 
 The native migration adds direct `AuthorityRealmKey` members to every
 realm-scoped runtime and portable evidence schema above. All consumers migrate
@@ -1177,7 +1247,7 @@ legacy surface is a pin-check failure, not a migration shortcut.
 Haldir preserves `HaldirIntentV1` bytes and meaning. H01 adds V2 in parallel and
 H02 moves only the native-1.0 gated route/profile to V2. Engram E06 emits only V2.
 No migration rewrites stored V1 evidence, aliases V1 to V2, or accepts V1 on the
-native route. Canonical-CBOR/signature fixtures cover both versions independently.
+native route. Canonical-JSON/signature fixtures cover both versions independently.
 
 The native cutover is a complete body-profile transition, never dual-stack
 admission. Crebain enters HOLD, closes the v0.8 admission plane, stops old
@@ -1258,7 +1328,7 @@ evidence only and grants no release or gate status.
    outputs retain distinct non-claim boundaries.
 8. Operations: standalone modes, recovery, diagnostics, and incident ownership
    are executable.
-9. Evidence: composed faults and nine exact NCP role receipts remain distinct;
+9. Evidence: composed faults and eleven exact NCP role receipts remain distinct;
    pid-rs and Cortexel receive no peer receipt.
 10. Governance: each adapter/schema/key/namespace/support boundary has an owner.
 

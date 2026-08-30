@@ -26,7 +26,7 @@ unsigned evidence is a failure for initial release.
 | Candidate package builds/install smoke | five Rust archives, one Linux abi3 wheel, one Python sdist, and two npm tarballs were built twice as applicable and verified for historical source `ef357d20692f707e185495dcfd16b16556fec264` on 2026-07-15 | current source-only archive metadata resolves registry `zenoh-transport 1.9.0` to advisory-affected `lz4_flex 0.10.0` and its `twox-hash 1.6.3` dependency; only the exact consuming-root patch conditions the graph to patched `lz4_flex 0.11.6` and updates its `twox-hash` dependency to `2.1.3`; that result is `CONDITIONAL_PASS`, with `package_self_contained=false`, `self_contained_distribution_gate=OPEN_FAIL_CLOSED`, `decision=NO_GO`, and `release_authorized=false`; immutable multi-OS/ABI install matrix and public-registry ownership remain required |
 | Audit and traceability controls | deterministic OPEN threat register, complete tracked-file latent-path inventory, and generated 117-requirement local graph are machine-checked | local bookkeeping does not resolve threats, validate semantic edge adequacy, or replace independent review |
 | Supply-chain and candidate dossier | current local evidence selects patched `lz4_flex 0.11.6` and updates its `twox-hash` dependency to `2.1.3` through one exact reviewed Zenoh transport backport; the earlier held, one-platform dossier passed its checks at a superseded source and records `release_authorized=false` | Cargo does not verify Git signatures, a root patch does not propagate from a published library dependency, and final release-bound multi-platform artifacts, publisher signatures, registry ownership, independent clean-room reproduction, and release authorization remain **NOT RUN** |
-| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-surface handoff inventory across five canonical consumer repositories, the nine exact role subjects, an auxiliary non-peer importer inventory, and post-publication checks | predecessor gates and all nine exact consumer/extension role qualifications remain unresolved; neither a surface nor an importer is a role receipt |
+| Local convergence | generated artifact locks candidate identities, `NO_GO`, ten NOT-RUN non-local gates, a historical six-surface handoff inventory across five canonical consumer repositories, the eleven exact role subjects, an auxiliary non-peer importer inventory, and post-publication checks | predecessor gates and all eleven exact consumer/extension role qualifications remain unresolved; neither a surface nor an importer is a role receipt |
 | Package/runtime identity | package, wire, compact proto, complete normative digest, and RC build sentinel exposed; coherence gate implemented | `unreleased-worktree` is deliberately non-certifying |
 
 B01 is still `IN_PROGRESS`. Its maintained allocation oracle is intentionally
@@ -66,7 +66,7 @@ normative identity and candidate baseline match the checked source cut.
 
 The held local-convergence artifact retains the historical six handoff surfaces
 that its current candidate gate enumerates across five canonical consumer
-repositories. That inventory does not satisfy the nine exact role qualifications
+repositories. That inventory does not satisfy the eleven exact role qualifications
 listed below. `pid-rs` is not an NCP peer and receives no role receipt.
 
 The separate held-candidate workflow run
@@ -166,11 +166,13 @@ The following are **NOT RUN** and independently block release:
   signatures, and signature verification; the held one-platform candidate
   attestations above do not satisfy this gate;
 - independent clean-room build and core-conformance reproduction;
-- native installed-artifact qualification for all nine exact role subjects:
+- native installed-artifact qualification for all eleven exact role subjects:
 
   - Engram simulation responder
   - Engram plant commander
+  - Engram Haldir-intent extension publisher
   - Haldir NCP commander
+  - Haldir Engram-intent extension receiver
   - Haldir Galadriel-assessment receiver
   - Galadriel NCP observer
   - Galadriel raw-advisory publisher
@@ -196,8 +198,9 @@ pre-publication pass.
 ## Consumer state
 
 Engram has an explicit local native-1.0 migration in progress. Qualification of
-its installed responder and commander roles and its live transport is **NOT RUN**.
-The other five historical handoff surfaces remain on wire 0.8. None of the nine
+its installed simulation responder, plant commander, and Haldir-intent extension
+publisher is **NOT RUN**. Its live transport qualification is also **NOT RUN**.
+The other five historical handoff surfaces remain on wire 0.8. None of the eleven
 required role subjects is qualified for 1.0. The frozen Engram wire-0.8 inventory
 remains historical migration input. It does not describe the mutable migration
 worktree. `ncp-gateway` is a same-wire 1.0 Rust/Python edge. It cannot make an
@@ -210,7 +213,7 @@ not an installed peer or role subject.
 
 A `v1.0.0` tag is permitted only after all required pre-release rows are passed,
 every report contains the exact normative and corpus digests with no applicable
-skip, all packages self-identify consistently, all nine exact installed role
+skip, all packages self-identify consistently, all eleven exact installed role
 subjects have qualifying role receipts, and the signed release dossier is
 independently reproduced. The required post-release validations begin after
 publication. Until the pre-release threshold:

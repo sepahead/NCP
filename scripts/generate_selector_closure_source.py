@@ -382,11 +382,11 @@ EXACT_COMBINED_MIGRATION_PREDECESSOR_INVENTORY_SHA256 = (
 )
 EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_BYTE_LENGTH = 12_897_150
 EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_SHA256 = (
-    "7a6dd0dc2ead093c404c98344bfb33a906c21547b3c2927209df934c9703a6b3"
+    "ce6536faf4bf0763123ed7bd30118c535eed5d57b20be8ce194a9124bb721947"
 )
-EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_BYTE_LENGTH = 42_642
+EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_BYTE_LENGTH = 42_807
 EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_SHA256 = (
-    "68d5bf1a46d4219f41031d406e6cadf77b0dbc54dad1670ab739e99f816fc18b"
+    "0250b6b46a49ae009cc3bb08a501c4c5cdd6e5d2733bc44c76579e06bacb5e18"
 )
 V2_EMPTY_MIGRATION_DOCUMENT_ROW_COMMITMENT = {
     "algorithm": "SHA256",
@@ -3745,6 +3745,8 @@ def _run_review_git(repo_root: Path, *arguments: str) -> bytes:
 def _load_unbound_allocation_inventory(
     path: Path,
     schema: dict[str, Any],
+    *,
+    allow_exact_pre_adr011_module_roster: bool = False,
 ) -> tuple[bytes, dict[str, Any]]:
     """Load a canonical inventory without trusting a potentially stale binding."""
 
@@ -3759,7 +3761,11 @@ def _load_unbound_allocation_inventory(
         raw == inventory_bytes(inventory),
         "allocation inventory refresh input is not canonical JSON",
     )
-    validate_allocation_inventory(inventory, schema)
+    validate_allocation_inventory(
+        inventory,
+        schema,
+        allow_exact_pre_adr011_module_roster=allow_exact_pre_adr011_module_roster,
+    )
     return raw, inventory
 
 
@@ -4150,7 +4156,12 @@ def _prepare_exact_v2_empty_inventory_migration(
     module_keys = {"byte_length", "path", "sha256"}
     for index, document in enumerate(documents):
         expected_adr_id = f"ADR-{index + 1:03d}"
-        expected_module_paths = ADR_ALLOCATION_MODULE_PATHS[index]
+        historical_snapshot = V2_EMPTY_MIGRATION_DOCUMENT_SOURCE_SNAPSHOTS[index]
+        _require(
+            historical_snapshot[0] == expected_adr_id,
+            f"v2-empty migration snapshot order differs: {expected_adr_id}",
+        )
+        expected_module_paths = tuple(module[0] for module in historical_snapshot[3])
         _require(
             isinstance(document, dict)
             and set(document) == document_keys
@@ -4255,7 +4266,7 @@ def _refresh_inventory_document_snapshots(
 
     refreshed = copy.deepcopy(inventory)
     source_snapshots: list[tuple[Path, bytes]] = []
-    for document in refreshed["documents"]:
+    for index, document in enumerate(refreshed["documents"]):
         main_path = source_root / document["path"]
         main_raw = read_bounded_regular_file(
             main_path,
@@ -4265,15 +4276,21 @@ def _refresh_inventory_document_snapshots(
         document["byte_length"] = len(main_raw)
         document["sha256"] = sha256(main_raw).hexdigest()
         source_snapshots.append((main_path, main_raw))
-        for module in document["modules"]:
-            module_path = source_root / module["path"]
+        document["modules"] = []
+        for module_relative in ADR_ALLOCATION_MODULE_PATHS[index]:
+            module_path = source_root / module_relative
             module_raw = read_bounded_regular_file(
                 module_path,
                 maximum_bytes=MAX_ADR_DOCUMENT_BYTES,
                 label=f"{document['adr_id']} refresh module source",
             )
-            module["byte_length"] = len(module_raw)
-            module["sha256"] = sha256(module_raw).hexdigest()
+            document["modules"].append(
+                {
+                    "byte_length": len(module_raw),
+                    "path": module_relative,
+                    "sha256": sha256(module_raw).hexdigest(),
+                }
+            )
             source_snapshots.append((module_path, module_raw))
         document["source_set"] = copy.deepcopy(ADR_SOURCE_SET_SUITE)
         document["source_set"]["sha256"] = adr_source_set_sha256(
@@ -4335,9 +4352,7 @@ def _incomplete_refresh_preserved_inventory_projection(
         document.pop("byte_length")
         document.pop("sha256")
         document.pop("source_set")
-        for module in document["modules"]:
-            module.pop("byte_length")
-            module.pop("sha256")
+        document.pop("modules")
     return preserved
 
 
@@ -4759,6 +4774,7 @@ def refresh_incomplete_authoring(
         inventory_raw, inventory = _load_unbound_allocation_inventory(
             allocation_inventory_path,
             allocation_schema,
+            allow_exact_pre_adr011_module_roster=True,
         )
     for guard in migration_guards:
         for managed_path, managed_label in (

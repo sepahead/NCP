@@ -3707,6 +3707,8 @@ Galadriel's optional assessment producer uses a different principal, credentials
 manifest, route, and process boundary under ADR-008/011. Observer credentials
 cannot be upgraded or reused.
 
+ADR-011 owns host and SVG boundaries.
+
 ## Low-overhead observer reconciliation
 
 One short owner transition pins an immutable source record and reserves

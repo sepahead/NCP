@@ -143,6 +143,22 @@ emission. Defaults are non-authorizing and fail closed.
 
 ## Low-overhead QoS reconciliation
 
+NCP cannot have literal zero overhead. A performance claim binds one exact
+artifact, hardware target, workload, security profile, transport, and measurement
+method. Unqualified labels such as `zero-overhead`, `real-time`, or `low-latency`
+are not evidence.
+
+The prepared steady-state goal is zero payload-proportional allocation and at
+most one payload copy where the selected transport permits it. Release
+qualification records p50, p95, p99, p99.9, maximum latency, jitter, deadline
+misses, throughput, CPU time, allocation count, allocation bytes, queue depth,
+and retained bytes. It reports outliers and failures without filtering.
+
+Static UI work, observer work, attachment fetches, and extension callbacks use
+separate finite capacity. They cannot borrow reserved control or action capacity.
+No documentation image, including SVG, enters a QoS plane or runtime evidence
+set.
+
 Every installed QoS profile has a closed shape. It names:
 
 - the plane, message class, route, and audience.

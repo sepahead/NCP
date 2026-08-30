@@ -603,7 +603,7 @@ mutable map or hold a lock across a callback.
 | Core perception plane | body | newest valid sample wins | replace latest |
 | Core action plane | lease holder or enrolled emergency principal | direct bounded body admission, then preserve strongest unconsumed mode | one body priority slot |
 | Core observation plane | body or declared producer | read-only delivery | drop oldest and count |
-| Non-core extension traffic | manifest-authorized producer | isolated reassembly and parser callback | reject or follow the selected delivery profile |
+| Non-core extension traffic | manifest-authorized producer | isolated canonical-envelope parser and callback | reject or follow the selected delivery profile |
 
 NCP has exactly four core planes. The `unknown` plane is a
 non-authorizing sentinel. Extension traffic uses a separate manifest-authorized
@@ -1339,7 +1339,9 @@ The production implementation target has these properties:
 - a verified connection exposes receiver-owned opaque ingress contexts.
 - observer-only processes retain no publisher private key.
 - a production adapter exposes no raw transport handle that can publish into an
-  NCP namespace. Diagnostic or host-sharing access uses a separate capability.
+  NCP namespace. A diagnostic artifact has no protected namespace access.
+- a presentation host receives no transport handle, credential, route, or role
+  state. It can consume only a non-authoritative presentation projection.
 - a wrong route, class, audience, manifest, realm, session, or security state
   rejects before typed delivery.
 - unauthenticated payloads never enter a trusted subscriber callback.
@@ -1349,7 +1351,8 @@ The production implementation target has these properties:
 
 The selected transport profile also bounds work that occurs before application
 ingress. It sets a finite fragment count, complete delivered-byte limit, and
-concurrent reassembly budget. Application-level compression is off on core hot
+concurrent transport-reassembly budget. This mechanism is transport-internal and
+does not define an NCP chunk profile. Application-level compression is off on core hot
 planes. If a transport or extension profile permits compression, it bounds both
 compressed and expanded bytes plus the expansion ratio before semantic parsing.
 An implementation cannot cite the application frame limit after an unbounded
@@ -2452,12 +2455,12 @@ Stable NCP routes contain no consumer name. Extensions use an explicit extension
 namespace under a manifest-authorized route. A core peer that has no matching
 manifest entry rejects the route before extension allocation.
 
-Extension packages are opaque to the core reassembly layer. The recommended
-prepared path derives an activation-context digest. It commits the publisher,
-audience, realm, scope, extension manifest, route, package class, parser,
-callback, resource, frame, and route-encoding profiles. It also commits the
-security-state digest, receiver-clock incarnation, exclusive activation expiry,
-and one never-reused receiver activation incarnation.
+Each extension message contains one bounded canonical-JSON semantic envelope.
+The prepared path derives an activation-context digest. It commits the publisher,
+audience, realm, scope, extension manifest, route, schema, canonical encoding,
+callback, resource, frame, and route profiles. It also commits the security-state
+digest, receiver-clock incarnation, exclusive activation expiry, and one
+never-reused receiver activation incarnation.
 
 The security-state projection commits accepted extension manifest identities.
 It does not commit a derived activation-context digest. The receiver computes
@@ -2468,80 +2471,55 @@ B03 allocation work.
 The activation registry retains the exact canonical projection bytes for the
 activation lifetime. One digest resolves to exactly one installed byte sequence.
 A different projection with the same digest rejects without changing the
-existing activation. This collision check is activation work and adds no chunk
-hot-path comparison or field.
+existing activation. This collision check is activation work. It adds no
+message hot-path comparison or field.
 
-The selected B01 transport direction uses a fixed binary header followed by
-raw bytes. It carries a magic value, wrapper version, activation-context digest,
-package class, package digest, total length, index, count, and chunk length. It
-does not base64-encode package bytes or repeat variable route and identity strings.
+The selected B01 direction uses bounded canonical JSON. One delivered transport
+message contains one complete semantic envelope. The receiver does not
+reassemble generic chunks or accept base64 attachment bytes inside the envelope.
 
-The selected frame and resource profiles jointly provide a closed package-class
-registry. Each literal class has one positive hard package-byte ceiling. Unknown
-or default classes reject. Payload bytes cannot create a class or select a
-ceiling.
+The installed manifest selects one closed schema and canonicalization profile.
+It also selects positive limits for frame bytes, depth, members, strings, arrays,
+numbers, attachment count, each attachment, and aggregate attachment bytes.
+Unknown members, duplicate decoded keys, non-canonical numbers, and unsupported
+encodings reject before callback work.
 
-The installed resource profile fixes one positive chunk payload `C` and a
-positive chunk-count maximum no greater than 65,536.
-The fixed header plus one chunk payload must fit the authenticated transport's
-complete delivered-byte limit. The profile derives `C` from that limit rather
-than applying the universal structured-JSON limit to reassembled package bytes.
-For a positive total length `L`, the declared count must equal `ceil(L / C)` and
-remain within the profile maximum. Chunk `i` has checked offset `i * C` and exact
-length `min(C, L - i * C)`. Any overflow, alternate count, overlap, gap, or
-non-final short chunk rejects before reservation.
-
-The byte partition is explicit. Let $L,L_{\max},C\in\mathbb{Z}_{>0}$,
-with $L\leq L_{\max}$. The canonical count and its finite maximum are:
+Let $L,L_{\max}\in\mathbb{Z}_{>0}$ be the delivered envelope bytes and their
+installed maximum. Let $A,A_{\max}\in\mathbb{Z}_{\geq0}$ be the attachment count
+and its installed maximum. For attachment lengths $b_i$ and aggregate maximum
+$B_{\mathrm{att}}$, admission requires:
 
 $$
-N=\left\lceil\frac{L}{C}\right\rceil,
+0<L\leq L_{\max},
 \qquad
-1\leq N\leq
-\left\lceil\frac{L_{\max}}{C}\right\rceil=N_{\max}.
-$$
-
-Because $C>0$, the defining ceiling relation is equivalent to:
-
-$$
-(N-1)C<L\leq NC.
-$$
-
-For $i\in\{0,\ldots,N-1\}$, checked arithmetic derives the offset, decoded
-length, and half-open destination interval:
-
-$$
-o_i=iC,
+0\leq A\leq A_{\max},
 \qquad
-\ell_i=\min(C,L-o_i)>0,
-\qquad
-I_i=[o_i,o_i+\ell_i).
+\sum_{i=0}^{A-1} b_i\leq B_{\mathrm{att}}.
 $$
 
-For $i<N-1$, the ceiling relation gives $(i+1)C<L$. Those chunks have
-length $C$. The final chunk ends at $L$. Therefore:
+Every attachment reference binds an attachment ID, enrolled store ID, canonical
+object key, digest, byte length, media type, schema ID, and purpose. The protected
+envelope also binds its realm, activation, audience, manifest, and replay coordinate.
 
-$$
-I_i=
-\begin{cases}
-[iC,(i+1)C), & 0\leq i<N-1, \\
-[(N-1)C,L), & i=N-1.
-\end{cases}
-$$
+The installed manifest enrolls the exact HTTPS origin, resolved address set, TLS
+identity, scoped credential source, timeouts, media types, and byte limits. The
+wire cannot supply a URL, user information, query, fragment, local path, or
+redirect target. Fetches use no ambient credential. Redirects, DNS or address
+drift, private-address substitution, local-file resolution, and symlink traversal
+reject.
 
-The right endpoint of each non-final interval equals the next interval's left
-endpoint. The first left endpoint is zero, and the final right endpoint is $L$.
+A reference grants no fetch authority. After complete resource reservation, the
+receiver mints one local one-use fetch capability. It binds the envelope digest
+and exact attachment reference. The receiver verifies length and digest before
+semantic use.
 
-The canonical count and lengths give a complete, non-overlapping partition:
-
-$$
-I_i\cap I_j=\varnothing\quad(i\ne j),
-\qquad
-\bigcup_{i=0}^{N-1}I_i=[0,L).
-$$
+Missing, partial, redirected, oversized, mismatched, or unavailable attachment
+bytes make the dependent semantic branch unusable. NCP 1.0 defines no generic
+chunk-reassembly protocol. A future binary profile needs a separate identity,
+negotiation, bounds, hostile tests, and qualification.
 
 Let $C_{\mathrm{ext}}\in\mathbb{Z}_{\geq0}$ be the deployment maximum for
-active and retained outer-package slots in one activation. Let
+active and retained semantic-envelope slots in one activation. Let
 $B_{\mathrm{ext},0}$ be the deployment maximum for its fixed portable charge.
 Let $H_{\mathrm{ext}}^{\max}$ be the deployment maximum of the greater active
 or terminal metadata charge for one slot. Every accepted activation profile is
@@ -2561,7 +2539,7 @@ $$
 0\leq n_{\mathrm{ext}}\leq C_c.
 $$
 
-Let $M_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s portable outer-package
+Let $M_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s portable envelope
 charge. Summing the per-activation bound gives:
 
 $$
@@ -2580,107 +2558,76 @@ B_{\mathrm{ext},0}
 $$
 
 Let $J_{\mathrm{ext},0}$ be the fixed per-activation local charge. Let
-$J_{\mathrm{ext,slot}}(L_{\max},N_{\max})$ be a finite local slot charge that
+$J_{\mathrm{ext,slot}}(L_{\max},A_{\max})$ be a finite local slot charge that
 is monotone in both arguments. Let $J_{\mathrm{ext,outer}}^{(a)}$ be activation
-$a$'s local outer-package charge. The corresponding per-activation and
+$a$'s local envelope charge. The corresponding per-activation and
 deployment local bounds are:
 
 $$
 \begin{aligned}
 J_{\mathrm{ext,outer}}
 &\leq J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max}), \\
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max}), \\
 J_{\mathrm{ext,total}}
 &=\sum_{a=1}^{n_{\mathrm{ext}}}J_{\mathrm{ext,outer}}^{(a)} \\
 &\leq n_{\mathrm{ext}}\left[
 J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max})
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max})
 \right] \\
 &\leq C_c\left[
 J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},N_{\max})
++C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max})
 \right].
 \end{aligned}
 $$
 
 Every product, sum, and offset uses checked arithmetic. Overflow rejects the
-profile or activation before it allocates a context or package slot. These
-outer bounds exclude transport scratch, the inner parser arena, callback state,
-and unrelated process memory.
+profile or activation before it allocates a context or envelope slot. These
+bounds exclude transport scratch, attachment bytes, parser state, callback state,
+and unrelated process memory. Attachment reservations use their separate
+aggregate limit.
 
-An activation context remains charged while any active package slot or terminal
+An activation context remains charged while any active envelope slot or terminal
 tombstone refers to it. The owner cannot release that context first. Therefore,
 a retained tombstone cannot escape the $C_c$ multiplier.
 
-The header package class must be one closed registry entry and exactly match the
-class in the resolved prepared activation context. That class selects its hard
-positive package-byte ceiling.
-The installed resource profile can only tighten it. `L` must not exceed either
-ceiling. An unknown or mismatched class, unavailable ceiling, or oversized `L`
-rejects before slot lookup or reservation.
+Verified transport identity, frame bounds, and the installed manifest are checked
+before slot lookup. The stable slot key binds the activation context and replay
+coordinate. Lookup precedes any work admission or semantic allocation.
 
-Raw header structure, class binding, arithmetic, bounds, and verified transport
-identity run before slot lookup. The stable slot key binds the prepared
-activation-context digest and package digest. Lookup precedes activation
-currentness that could admit work. It does not allocate or call extension code.
+The slot retains the protected envelope digest and immutable metadata. An active
+slot changes only after exact identity and current authorization match. Changed
+bytes or metadata under one replay coordinate create a terminal conflict.
 
-The slot retains the complete immutable wrapper metadata. An active slot changes
-state only after its identity and current authorization match. An authorized
-metadata mismatch becomes a conflict. Changed length, count, version, class, or
-context cannot allocate a parallel assembly under the same slot.
+When the slot is absent, the receiver reserves the envelope, parser, attachment,
+callback, and terminal-tombstone budgets. Capacity failure creates no slot and
+starts no fetch. The reservation selects concrete bounded storage.
 
-When the slot is absent, the receiver reserves the complete package bytes, fixed
-per-chunk metadata, and the greater of active-state or terminal-tombstone
-overhead. Capacity failure creates no slot. Any valid first index can create the
-reserved slot after those checks.
+The receiver rechecks current security and disclosure permission before it
+reveals an active or terminal result. A retired or revoked context receives only
+a generic terminal no-reuse result. It cannot read protected retained state.
 
-The receiver rechecks current security and exact disclosure permission before it
-reveals an active-slot or tombstone result. A retired or revoked context receives
-only a generic terminal no-reuse result. It cannot read protected retained state.
-That result allocates no slot, changes no tombstone, and admits no new work.
+The receiver validates the complete protected envelope once. It checks the
+canonical JSON and closed schema inside the reserved arena. It rejects any raw
+asset, executable, package, SVG, or arbitrary project file distribution request.
 
-The receiver then copies each new raw chunk once into its checked offset in one
-final package buffer and tracks a bitmap with fixed fingerprints. An exact
-duplicate compares without another package copy. Different bytes at an accepted
-index terminalize the slot as a conflict without overwriting package bytes.
+If the admitted envelope references attachments, the receiver resolves only
+manifest-enrolled store and object keys through its one-use fetch capability. It
+runs fetches outside owner locks. It verifies each declared length and digest
+before the dependent semantic branch can proceed.
 
-Chunk retention uses two short activation-owner transitions. The first rechecks
-currentness and expiry, claims an empty index, and pins the slot buffer. The
-bounded copy runs outside the owner lock. The second transition repeats the
-checks and commits or discards the copied index. A same-index arrival while that
-claim is in flight returns a generic in-progress result without waiting or
-allocation. A cut marks the claim as draining and retains the buffer until the
-copy returns. It cannot advance that slot into schema work.
+Attachment failure records an unusable branch. It never creates a partial
+callback, retries under a new identity, or weakens a control decision. Rotation,
+revocation, or expiry prevents new work and preserves every unresolved obligation.
 
-Activation records one receiver-clock incarnation, admitted tick, and checked
-exclusive expiry derived from the installed resource profile. Each slot binds
-that unchanged activation context. Later chunks recheck the activation, security
-state, route, producer, audience, receiver clock, and expiry before retention. A
-duplicate does not extend the expiry. A receiver-owned timer can expire an
-incomplete slot without waiting for more traffic.
+The receiver rechecks currentness and expiry before callback entry. An exact
+replay returns the retained result only under current disclosure authorization.
+A conflicting replay cannot create another slot or callback.
 
-Before callback entry, rotation, revocation, expiry, conflict, or capacity
-rejection can release package bytes and leave a compact no-reuse tombstone.
-Successful reassembly completion transfers its reservation into parsing and
-callback state. It releases no buffer while either can reference it. After
-callback entry, a currentness cut prevents new work and result use. The receiver
-keeps the bounded arena and resolution obligation until callback return or
-proved isolation termination. No owner lock waits for that resolution. An exact
-replay returns a retained result only under current disclosure authorization.
-Altered or absent-index replay remains a conflict and cannot create another
-assembly or callback.
-
-The receiver checks the complete length and hashes the completed buffer once. It
-rechecks currentness and expiry before bounded schema parsing and again
-immediately before callback entry. Before parsing, it reserves the complete
-schema-specific node, string, item, decoded-byte, and callback-slot budgets from
-the activation profile.
-
-Capacity failure terminalizes the package without parser or callback work. The
-reservation selects a concrete bounded arena and callback slot, not only an
-accounting value. A schema-specific parser runs only after complete authentication,
-digest verification, and that reservation. This recommendation is not wire until
-the deliberate rebaseline and B03 allocation authorize it.
+Capacity failure terminalizes the envelope without callback work. The selected
+schema parser runs only after authentication, canonical validation, digest checks,
+and complete reservation. This recommendation is not wire until B02 and B03
+authorize the rebaseline and allocations.
 
 The final currentness and expiry recheck and callback entry are one indivisible
 activation-owner transition. It installs a boundary state and consumes the one
@@ -2688,19 +2635,19 @@ callback right before extension code can run. A cut wins before that transition,
 or callback entry wins before the cut. A restart-resumable profile persists the
 state before entry. The default memory-only profile instead retires the
 activation on restart and reports no callback success. Both forms bind the
-package, activation, callback profile, and entry state. A normal return installs
+envelope, activation, callback profile, and entry state. A normal return installs
 its bounded terminal result. A proved process exit, confirmed isolation
 termination, or lost result after either event becomes
 `UNKNOWN_AFTER_CALLBACK_BOUNDARY`. Timeout or task cancellation alone cannot
 free callback-owned state or prove completion. The at-most-once profile never
 re-enters the callback.
 
-An at-most-once activation retains package no-reuse state until the activation
-retires. Capacity exhaustion rejects a new package before callback work. An
+An at-most-once activation retains envelope no-reuse state until the activation
+retires. Capacity exhaustion rejects a new envelope before callback work. An
 activation can use shorter evidence retention without permitting execution
 again. Only an explicitly selected at-least-once profile can discard no-reuse
-state earlier, and its callback must be idempotent by activation and package
-digest. The profile also bounds accepted packages per activation. A long-lived
+state earlier, and its callback must be idempotent by activation and envelope
+digest. The profile also bounds accepted envelopes per activation. A long-lived
 at-most-once activation therefore rotates explicitly or stops accepting new
 packages when its no-reuse budget fills.
 
@@ -2711,9 +2658,11 @@ control, or simulation truth.
 
 Let
 $\mathcal{D}_{\mathrm{aux}}=
-\{\mathrm{rx},\mathrm{json},\mathrm{extparse},\mathrm{callback}\}$
+\{\mathrm{rx},\mathrm{json},\mathrm{attachment},\mathrm{extparse},
+\mathrm{callback}\}$
 identify transport receive or flattening scratch, structured-JSON arenas,
-extension inner-parser arenas, and typed callback buffers. B03 selects one
+verified attachment storage, extension inner-parser arenas, and typed callback
+buffers. B03 selects one
 deployment-wide portable ceiling $B_y\in\mathbb{Z}_{\geq0}$ and one finite
 monotone local charge $J_y(B_y)$ for every $y\in\mathcal{D}_{\mathrm{aux}}$.
 It also selects
@@ -2729,7 +2678,7 @@ J_{\mathrm{aux}}
 \end{aligned}
 $$
 
-These domains are disjoint from lifecycle, queue, step-window, and outer-package
+These domains are disjoint from lifecycle, queue, step-window, and envelope
 storage. Adding the previously derived deployment bounds gives:
 
 $$
@@ -2849,7 +2798,9 @@ They do not copy protocol source trees or maintain private wire variants.
 |---|---|
 | Engram simulation responder | simulation session responder |
 | Engram plant commander | direct plant commander using advisory simulation output |
+| Engram Haldir-intent extension publisher | isolated registered-extension publisher |
 | Haldir NCP commander | gated plant commander |
+| Haldir Engram-intent extension receiver | isolated registered-extension receiver |
 | Haldir Galadriel-assessment receiver | isolated extension consumer |
 | Galadriel NCP observer | read-only observer |
 | Galadriel raw-advisory publisher | isolated extension publisher |
@@ -2862,12 +2813,29 @@ Each installed role has its own principal, manifest grants, routes, and receipt.
 One repository may implement multiple roles, but a broad process credential must
 not collapse them.
 
+Integrated Haldir uses four separate deployable processes:
+
+| Process | Exclusive ownership | Excluded authority |
+|---|---|---|
+| intent receiver | intent-extension transport, protected-envelope replay, attachment fetch, ingress reservations, and admission records | no policy store or NCP commander credential |
+| assessment receiver | assessment-extension ingress, raw evidence, assessor replay, admission records, and external dispositions | no intent or NCP commander credential |
+| policy-state authority | installed monitor profiles, base policy, intent replay, freshness grants, deny latches, and policy receipts | no extension transport or NCP commander credential; not an NCP peer |
+| commander | intent-to-command conversion, body-issued authority, stream allocation, publication, and body-disposition reconciliation | no policy evaluation, raw extension evidence, admission replay, or profile store |
+
+The receivers send only immutable admission records and currentness receipts to
+the policy-state authority. The commander receives only bounded publication
+results. Standalone Gate remains a separate deployment mode. It is not a fifth
+integrated process.
+
 Direct Engram command and Haldir-gated command are mutually exclusive for one
 live plant authority term. In direct mode, Engram holds the body-issued lease.
-In gated mode, Engram sends a Haldir-local signed intent and holds no NCP plant
-lease. Haldir evaluates its local policy, creates a new NCP command under the
-Haldir principal, and holds the sole body-issued lease. It never forwards or
-re-signs Engram bytes as transferred NCP identity.
+In gated mode, Engram publishes `haldir.intent.v2` through the Haldir-owned
+registered NCP extension. Engram holds no plant lease. The dedicated Haldir
+receiver records an immutable admission through narrow internal IPC.
+
+Haldir evaluates its local policy. Its commander creates a fresh standard NCP
+command under the Haldir principal and sole body-issued lease. Haldir never
+forwards or re-signs Engram bytes as transferred NCP identity.
 
 A Galadriel assessment enters Haldir only through its isolated extension role.
 It cannot create `ALLOW`, widen a lease, publish a command, or grant authority.
@@ -2876,6 +2844,70 @@ Crebain body still performs final software admission and disposition.
 
 pid-rs receives no NCP peer or role receipt. The enclosing NCP role owns every
 network identity, session, stream, authority, and disposition obligation.
+
+The release matrix contains eleven exact role subjects. A repository-level
+receipt cannot replace a role receipt. The Engram publisher and Haldir receiver
+cannot reuse either commander's receipt.
+
+### Presentation and runtime planes
+
+Engram can host verified presentation UI assets and a presentation-only panel. The host
+can own layout, theme, readiness, heartbeat, and container lifecycle.
+
+An Engram NCP adapter can create a bounded read-only presentation projection.
+The projection binds an opaque source-receipt digest. The host can render the
+projection and its stale state. It receives no live NCP object, credential, route,
+grant, lease, opaque project state, or mutable role state. An agent, runtime, or
+controller cannot consume the projection as input.
+
+The panel submits one bounded operator intent through an Engram-local UI ingress.
+That ingress can use Host API, private IPC, or a callback inside Engram's trust
+boundary. Its payload contains no NCP object, credential, route, grant, lease,
+receipt, or remote result. Engram policy maps an accepted intent to one
+role-specific adapter call.
+
+Only that adapter crosses the project boundary, and it uses NCP. Host API,
+private IPC, `postMessage`, and host callbacks cannot transport cross-project
+runtime semantics. Panel closure does not close a session, revoke authority, or
+stop CREBAIN's body daemon.
+
+SVG is presentation-only and non-contract. SVG bytes, elements, paths,
+attributes, pixels, and derived identifiers cannot become protocol messages,
+schemas, authority objects, receipts, or runtime evidence. Hosted SVG rejects
+scripts, event handlers, `foreignObject`, external resources, navigation,
+network fetches, and external fonts.
+
+### CREBAIN fleet sessions and MUSIC
+
+One plant session represents one authority and admission domain. The selected
+X02 profile requires CREBAIN to advance its selected drones atomically. Each
+required 1, 2, or 3-drone run uses one composite fleet session.
+
+The content-addressed plant profile binds a sorted stable-drone-ID roster and
+one exact channel-layout digest. Each drone maps, in roster order, to ENU
+`position[x,y,z]`, `velocity[x,y,z]`, and
+`acceleration_command[x,y,z]`. The aggregate `SensorFrame` has `6N` scalars.
+The aggregate `CommandFrame` has `3N`.
+
+CREBAIN validates the descriptor digest, layout digest, roster order, and whole
+command frame before simulator callback entry. A partial, duplicate, unknown,
+stale, misordered, non-finite, unit-mismatched, wrong-drone, same-unit
+cross-drone swap, or roster-permuted channel rejects the whole frame. Physical
+atomicity remains CREBAIN executor evidence and never follows from transport
+acceptance.
+
+Future independently scheduled drones use disjoint sessions. NCP provides no
+cross-session barrier or atomic commit. A composite session cannot overlap the
+same actuator resources with component sessions.
+
+MUSIC alone owns shared-clock simulator coupling. NCP cannot implement, tunnel,
+reinterpret, or replace MUSIC time grants, lookahead, barriers, ticks, or
+deadlock handling. The selected X02 profile uses independent clocks and exact
+NCP source correlation. Any shared-clock claim needs a separate MUSIC-qualified
+deployment and evidence set.
+
+X02 remains `OPEN`. Historical Host API 2 fleet evidence cannot satisfy a native
+NCP role, transport, closed-loop, or release qualification.
 
 ## Ecosystem integration surface
 
@@ -2944,7 +2976,7 @@ The implementation review uses these structural budgets:
 | Body admission | Use one bounded event and one body-owned transition. No external work runs under its state lock. |
 | Replay and disposition | Use one bounded key lookup and one retained record. Do not traverse a receipt graph on the hot path. |
 | Simulation step | Prepare the complete fixed request and response window. Move one request into its reserved slot and mark it in flight before mutation. Execute once outside the owner lock. Correlate by request position, not FIFO arrival. |
-| Extension reassembly | Reserve the complete budget first. Store package bytes once and fixed per-chunk state. |
+| Extension envelope | Reserve envelope, parser, attachment, callback, and terminal-state budgets before semantic work. Parse the canonical envelope once. |
 
 For a fixed-layout compact core, steady-state codec work should require no heap
 allocation after preparation. A transport implementation can still own one
@@ -2971,7 +3003,7 @@ into success. Operators can distinguish at least these conditions:
 - authentication, authorization, currentness, and route rejection.
 - stale position, changed-digest conflict, and evidence unavailability.
 - queue count, reserved bytes, replacement, drop, and capacity rejection.
-- deadline, lease, grant, activation, and reassembly expiry.
+- deadline, lease, grant, activation, and envelope expiry.
 - local restrictive action, remote command result, and unresolved obligation.
 - insecure development mode.
 
@@ -3039,10 +3071,10 @@ matrix cannot complete those tasks.
 | Stream retry | Current wire has no digest-bound receiver result for a command position. It cannot distinguish retained admission from delivery ambiguity. | Never reassign a position. Bind an action position before lower semantic checks. Permit retransmission only after an accepted profile defines exact digest-bound replay state and retained outcomes. |
 | Source-correlation retention | The selected Active path requires an exact retained source publication, but the bounded-state list previously named only a latest sensor slot. A fast source can overwrite evidence before a valid command arrives. | Reserve a finite per-declaration correlation window by count, bytes, and receiver time. Absent or evicted source evidence rejects without timestamp, bare-sequence, or latest-value fallback. |
 | Disposition query | Earlier ADR-007 text left retained, retired, and unavailable query results open. | Keep the selected three-way union and bind every branch to the exact query coordinate. B03 selects finite journal capacities. |
-| Extension size | Earlier ADR-008 text allowed packages larger than the universal structured-frame limit without a selected outer transport. | Keep the selected raw bounded chunk framing. B03 allocates its exact identities and numeric limits. |
+| Extension size | Earlier ADR-008 text allowed packages larger than the universal structured-frame limit without a selected outer transport. | Use one bounded canonical-JSON envelope. Keep large bytes in bounded external attachment references. Define no generic chunk protocol in 1.0. |
 | Security and activation context | ADR-009 commits accepted extension manifest identities. ADR-008 makes installed activation realm-scoped but does not select a compact prepared-context identity. | Derive a prepared activation-context digest from the completed security-state digest. Keep its exact name and projection in B03 allocation work. |
 | Extension no-reuse | A finite evidence tombstone can expire while an at-most-once activation remains live. | Retain compact no-reuse state for the activation lifetime, or use an explicit idempotent at-least-once profile. |
-| Extension parser capacity | Package reassembly bounds do not reserve schema-tree or callback work. A complete authenticated package can otherwise trigger a second unreserved allocation domain. | Reserve the schema-specific semantic and callback budgets after digest verification and before parsing. Terminalize without callback when that reservation cannot be made. |
+| Extension parser capacity | Frame bounds alone do not reserve schema-tree, attachment, or callback work. An authenticated envelope could otherwise trigger an unreserved allocation domain. | Reserve semantic, attachment, and callback budgets before parsing or fetching. Terminalize without callback when that reservation cannot be made. |
 | Cross-store audit opening | ADR-009's companion module leaves its exact-opening byte maximum symbolic. A proposed JSON capsule cannot evade the universal structured-frame ceiling. | Derive and freeze one numeric payload maximum from the complete canonical capsule shell, encoding expansion, and the universal frame bound. Test exact, one-below, one-above, and aggregate optional-scope cases. |
 | QoS profile completeness | Earlier ADR-010 text left the required field set and corrupt-profile behavior open. Transport defaults cannot fill either gap. | Keep the selected count, aggregate-byte, deadline, retention, retry, overload, and shutdown fields. Missing, unknown, corrupt, zero-authority, or uninstalled profiles reject before queue allocation. B03 selects measured values without changing those meanings. |
 
@@ -3069,19 +3101,19 @@ review required by B01.
 | Lens | Selected target | Current gap or later evidence |
 |---|---|---|
 | Role and type separation | Simulation, plant, observer, extension, and local-library roles are disjoint. | B03 must allocate the required identities, and later N-series work must select exact schemas and role descriptors. The current wire still uses the older session shape. |
-| Identity and correlation | Realm, session generation, stream, request, command, package, and contract identities have explicit scopes and bounded portable grammars. | Exact field layouts, digest domains, and the durable generation issuer remain implementation work. The current transport path does not supply the selected prepared-context binding. |
+| Identity and correlation | Realm, session generation, stream, request, command, extension-envelope, and contract identities have explicit scopes and bounded portable grammars. | Exact field layouts, digest domains, and the durable generation issuer remain implementation work. The current transport path does not supply the selected prepared-context binding. |
 | Authentication and authorization | Direct transport context and explicit forwarded signing are default-deny and non-downgrading. | A-direct is not implemented. The current actor helper trusts caller-supplied transport evidence, and manifest grants are plane-wide. Live identity, route ACL, custody, rotation, and revocation remain external gates. |
-| Error precedence | Raw bounds and profile selection precede identity-sensitive diagnostics. Exact conflicts cannot become fresh admissions. | The selected diagnostic map remains B03 work. The current governor still merges some remote rejection and body-local responses. |
+| Error precedence | Wire bounds and profile selection precede identity-sensitive diagnostics. Exact conflicts cannot become fresh admissions. | The selected diagnostic map remains B03 work. The current governor still merges some remote rejection and body-local responses. |
 | Freshness and replay | Body-issued absolute freshness grants, per-stream positions, declared epochs, and post-admission rechecks fail closed. Receiver arrival never refreshes command lifetime. | Exact limits, grant encoding, digest-bound command replay, control retry-after-deadline behavior, and restart profiles remain B03 and implementation work. |
 | Lifecycle and concurrency | One-way session and security currentness feed one body owner that orders stream, lease, restrictive, disposition, and executor transitions. | The reference runtime does not yet have those owners, their complete order, or atomic handover. |
-| Resource and denial of service | Raw limits precede semantic allocation, command grants reserve completion state, every queue is finite, and planes cannot borrow action capacity. | B03 must select numeric profiles and aggregate budgets. Current bounded queues do not form one accepted end-to-end profile. |
-| Hot-path overhead | Prepared contexts avoid manifest scans. Compact sensor, command, simulation-step, and numeric-observer frames decode once. Extension bytes use one raw package buffer. | A-direct and compact framing are absent. Performance qualification remains **NOT RUN**. |
+| Resource and denial of service | Wire limits precede semantic allocation, command grants reserve completion state, every queue is finite, and planes cannot borrow action capacity. | B03 must select numeric profiles and aggregate budgets. Current bounded queues do not form one accepted end-to-end profile. |
+| Hot-path overhead | Prepared contexts avoid manifest scans. Compact sensor, command, simulation-step, and numeric-observer frames decode once. Extension envelopes parse once in reserved storage. | A-direct and compact framing are absent. Performance qualification remains **NOT RUN**. |
 | Mathematical consistency | State scopes, equality rules, monotonic order, checked successors, and finite symbolic envelopes are explicit. A digest never substitutes for exact retained bytes. | B03 must allocate every numeric ceiling and exact projection. Model, implementation, and cross-language boundary tests must agree before rebaseline. |
 | Failure and crash recovery | Restart grants no Active authority, retired identities do not revive, and ambiguity never becomes success. | The durable generation issuer, no-reuse state, and disposition recovery profiles are not implemented. The compatibility idempotency key is narrower than the selected target. Fault campaigns remain later work. |
 | Plant safety and effect claims | Crebain owns final software admission, restrictive modes remain plant-specific, and protocol receipts stop at software boundaries. | The current body path is incomplete. Consumer safety cases and physical qualification remain external. |
 | QoS and overload | Lifecycle control, simulation-step, action, perception, observation, and extension resources have separate finite policies. Source correlation, step responses, and extension parsing have explicit reservations. | Exact scheduler, aggregate byte budgets, non-wrapping metrics, transport mappings, and load evidence remain B03 and implementation work. |
 | SDK buffering | Per-request bounds compose with a checked aggregate byte reservation and one finite pending-request count. | The TypeScript WebSocket client currently bounds only count. Browser and installed-peer load qualification remain later work. |
-| Extension isolation | A prepared activation and raw binary chunks keep extension parsing and load outside stable action semantics. | B03 must select the exact activation-context identity, its one-way derivation, and the delivery profile. Galadriel schemas and installed qualification remain later work. |
+| Extension isolation | A prepared activation and bounded canonical envelope keep extension parsing and load outside stable action semantics. External attachments use separate reserved capacity. | B03 must select the exact activation-context identity, its one-way derivation, and the delivery profile. Galadriel schemas and installed qualification remain later work. |
 | Evolution and compatibility | Stable-core, release, corpus, extension, and publication identities remain distinct. | B02 must authorize the rebaseline before any normative or generated contract change. |
 | Wire and schema parity | Each selected wire object has one source, generated forms, canonical projection, and cross-language corpus. | Current prototype source is not normative parity. B03 and N01 must select and generate the exact forms. |
 | Ecosystem dependency direction | Consumers pin NCP packages and expose thin role adapters. NCP imports no consumer application code. | Consumer work starts only after provider dependencies are ready. No installed role is qualified. |
@@ -3140,8 +3172,8 @@ source-publication correlation window.
 Only ESTOP can bypass ordinary stream replay and live-lease checks for its
 separately attributed restrictive latch. One command position selects one
 setpoint and one application attempt. A future trajectory cannot inherit
-compatibility horizon replay. ADR-008 must reserve schema and callback work
-separately from raw reassembly.
+compatibility horizon replay. ADR-008 must reserve schema, attachment, and
+callback work before semantic use.
 
 The ADRs must distinguish required wire/runtime behavior from retained
 proof-model analysis. The retained analysis does not need to be deleted. Each

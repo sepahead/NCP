@@ -111,6 +111,10 @@ SHA256_REFERENCE = re.compile(r"^sha256:[0-9a-f]{64}$")
 IDENTITY_URI = re.compile(r"^[a-z][a-z0-9+.-]*:[\x21-\x7e]+$")
 DNS_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 MEDIA_TYPE = re.compile(r"^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$")
+ATTACHMENT_STORE_ID = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?$")
+ATTACHMENT_OBJECT_KEY = re.compile(r"^sha256/[0-9a-f]{64}$")
+ATTACHMENT_SCHEMA_ID = re.compile(r"^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$")
+ATTACHMENT_PURPOSE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$")
 TASK_ID = re.compile(r"^[BEHNFGCPXR][0-9]{2}$")
 TIMESTAMP = re.compile(r"^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 RELATIVE_PATH = re.compile(r"^(?!/)(?![A-Za-z]:[\\/])(?!.*(?:^|/)\.\.(?:/|$)).+$")
@@ -11816,7 +11820,7 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "H02",
-        "Integrate body-issued authority and dispositions into Haldir Gate",
+        "Integrate body authority, dispositions, and Engram-intent extension ingress into Haldir Gate",
         ("H01",),
         "Haldir",
     ),
@@ -11864,7 +11868,7 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "E06",
-        "Implement Engram's optional Haldir-gated integration",
+        "Implement Engram's registered Haldir-intent extension publisher",
         ("E04", "H02"),
         "Engram",
     ),
@@ -11894,7 +11898,7 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "E05",
-        "Qualify Engram's exact installed native-1.0 roles",
+        "Qualify Engram's simulation-responder and direct-commander roles",
         ("E04", "X01"),
         "Engram qualification environment",
     ),
@@ -11907,6 +11911,18 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     (
         "H05",
         "Qualify Haldir's optional assessment-receiver role",
+        ("X02",),
+        "Haldir qualification environment",
+    ),
+    (
+        "E07",
+        "Qualify Engram's Haldir-intent extension-publisher role",
+        ("X02",),
+        "Engram qualification environment",
+    ),
+    (
+        "H06",
+        "Qualify Haldir's Engram-intent extension-receiver role",
         ("X02",),
         "Haldir qualification environment",
     ),
@@ -11936,8 +11952,8 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "X03",
-        "Issue nine exact consumer and extension role qualification receipts",
-        ("H05", "C05", "P03", "F04"),
+        "Issue eleven exact consumer and extension role qualification receipts",
+        ("H05", "C05", "P03", "F04", "E07", "H06"),
         "cross-ecosystem adjudication",
     ),
     (
@@ -12022,8 +12038,10 @@ MINIMUM_TERMINAL_CLASS: dict[str, str] = {
     "F01": "INDEPENDENT",
     "R11": "EXTERNAL",
     "E05": "INDEPENDENT",
+    "E07": "INDEPENDENT",
     "H03": "INDEPENDENT",
     "H05": "INDEPENDENT",
+    "H06": "INDEPENDENT",
     "G03": "INDEPENDENT",
     "P03": "INDEPENDENT",
     "F04": "EXTERNAL",
@@ -12051,8 +12069,10 @@ INDEPENDENT_REVIEWER_MINIMUM: dict[str, int] = {
     "B01": 2,
     "F01": 2,
     "E05": 1,
+    "E07": 1,
     "H03": 1,
     "H05": 1,
+    "H06": 1,
     "G03": 1,
     "P03": 1,
     "C05": 1,
@@ -12095,6 +12115,8 @@ TASK_CLAIM_TIER: dict[str, str] = {
             "E05",
             "H03",
             "H05",
+            "E07",
+            "H06",
             "G03",
             "P03",
             "F04",
@@ -12137,7 +12159,7 @@ DEFECT_TRACEABILITY: dict[str, tuple[str, ...]] = {
     "D06": ("N04", "N06", "F04"),
     "D07": ("N03", "H02", "C02", "C05", "X02"),
     "D08": ("N03", "E04", "E06", "H02", "C02", "X02"),
-    "D09": ("B03", "G01", "H02", "H04", "C03", "N10"),
+    "D09": ("B03", "G01", "H02", "H04", "C03", "E07", "H06", "N10"),
     "D10": ("C01", "C02", "C05", "F03"),
     "D11": ("E05", "P02", "P03"),
     "D12": ("F01", "F02", "F03"),
@@ -12151,8 +12173,10 @@ DEFECT_TRACEABILITY: dict[str, tuple[str, ...]] = {
         "N07",
         "E01",
         "E06",
+        "E07",
         "H01",
         "H02",
+        "H06",
         "H04",
         "G01",
         "C01",
@@ -12735,7 +12759,16 @@ def _validate_adr008_attachment_reference(value: Any, path: str) -> str:
         _fail(f"{path} must be one protected-attachment reference object")
     _exact_keys(
         value,
-        {"attachment_id", "digest", "byte_length", "media_type"},
+        {
+            "attachment_id",
+            "store_id",
+            "object_key",
+            "digest",
+            "byte_length",
+            "media_type",
+            "schema_id",
+            "purpose",
+        },
         path,
     )
     attachment_id = _string(
@@ -12751,12 +12784,27 @@ def _validate_adr008_attachment_reference(value: Any, path: str) -> str:
             f"{path}.digest must contain sha256: followed by exactly "
             "64 lowercase hexadecimal characters"
         )
+    store_id = _string(value["store_id"], f"{path}.store_id", maximum=128)
+    if not ATTACHMENT_STORE_ID.fullmatch(store_id):
+        _fail(f"{path}.store_id must be one canonical enrolled-store identifier")
+    object_key = _string(value["object_key"], f"{path}.object_key", maximum=71)
+    if (
+        not ATTACHMENT_OBJECT_KEY.fullmatch(object_key)
+        or object_key != f"sha256/{digest.removeprefix('sha256:')}"
+    ):
+        _fail(f"{path}.object_key must be the canonical digest-derived object key")
     byte_length = _integer(value["byte_length"], f"{path}.byte_length", minimum=1)
     if byte_length > MAX_EVIDENCE_REFERENCED_BYTES:
         _fail(f"{path}.byte_length exceeds the protected-attachment bound")
     media_type = _string(value["media_type"], f"{path}.media_type", maximum=128)
     if not MEDIA_TYPE.fullmatch(media_type):
         _fail(f"{path}.media_type must be a bounded lowercase media type")
+    schema_id = _string(value["schema_id"], f"{path}.schema_id", maximum=128)
+    if not ATTACHMENT_SCHEMA_ID.fullmatch(schema_id):
+        _fail(f"{path}.schema_id must be one canonical schema identifier")
+    purpose = _string(value["purpose"], f"{path}.purpose", maximum=128)
+    if not ATTACHMENT_PURPOSE.fullmatch(purpose):
+        _fail(f"{path}.purpose must be one canonical uppercase purpose token")
     return attachment_id
 
 
@@ -17318,6 +17366,14 @@ def _validate_task(
         if task_id == "B00"
         else {f"{task_id}-acceptance"}
     )
+    if task_id == "X02":
+        required_base.update(
+            {
+                "X02-nest39-fleet-1-2-3",
+                "X02-music-separation",
+                "X02-presentation-runtime-boundary",
+            }
+        )
     if not required_base.issubset(task["requirement_ids"]):
         _fail(f"{path}.requirement_ids lacks the checked task acceptance requirement")
     if task_id == "B01" and task["adr_ids"] != [
@@ -17559,6 +17615,29 @@ def _validate_blueprint_binding(blueprint: Any) -> None:
     expected_blueprint = hashlib.sha256(BLUEPRINT.read_bytes()).hexdigest()
     if blueprint["sha256"] != expected_blueprint:
         _fail("$.blueprint.sha256 is stale")
+
+
+def _validate_blueprint_task_headings(
+    expected_task_ids: list[str], *, content: bytes | None = None
+) -> None:
+    raw = BLUEPRINT.read_bytes() if content is None else content
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"blueprint is not UTF-8: {error}")
+    headings = re.findall(r"^#### ([A-Z][0-9]{2}) — [^\r\n]+$", text, re.MULTILINE)
+    if len(headings) != len(expected_task_ids) or set(headings) != set(
+        expected_task_ids
+    ):
+        missing = sorted(set(expected_task_ids) - set(headings))
+        extra = sorted(set(headings) - set(expected_task_ids))
+        duplicates = sorted(
+            task_id for task_id in set(headings) if headings.count(task_id) > 1
+        )
+        _fail(
+            "blueprint task headings differ from the exact ledger catalog: "
+            f"missing={missing}, extra={extra}, duplicates={duplicates}"
+        )
 
 
 def _canonical_distribution_name(value: Any, path: str) -> str:
@@ -18003,6 +18082,7 @@ def validate(data: Any) -> None:
     expected_ids = [task[0] for task in TASK_CATALOG]
     if ids != expected_ids or len(ids) != len(set(ids)):
         _fail("$.tasks contains duplicate, unknown, missing, or out-of-order task IDs")
+    _validate_blueprint_task_headings(expected_ids)
     dependency_graph = {
         task_id: dependencies for task_id, _, dependencies, _ in TASK_CATALOG
     }
@@ -20124,6 +20204,23 @@ def _self_test_git_empty_tree() -> str:
 def self_test(data: dict[str, Any]) -> None:
     """Prove the clean ledger passes and representative hostile mutations fail closed."""
     validate(copy.deepcopy(data))
+    heading_fixture = "\n".join(
+        f"#### {task_id} — task {task_id}" for task_id, _, _, _ in TASK_CATALOG
+    ).encode("utf-8")
+    expected_task_ids = [task_id for task_id, _, _, _ in TASK_CATALOG]
+    _validate_blueprint_task_headings(expected_task_ids, content=heading_fixture)
+    _must_fail(
+        lambda: _validate_blueprint_task_headings(
+            expected_task_ids,
+            content=heading_fixture.replace(
+                f"#### {expected_task_ids[-1]} —".encode("utf-8"),
+                "#### Z99 —".encode("utf-8"),
+                1,
+            ),
+        ),
+        "blueprint missing and extra task heading",
+        "blueprint task headings differ",
+    )
     _self_test_receipt_artifact_portability(data)
     _self_test_local_admission_and_receipt_boundaries(data)
     adr008_raw = ADR008.read_bytes()
@@ -20165,6 +20262,46 @@ def self_test(data: dict[str, Any]) -> None:
         lambda: _validate_adr008_illustrative_value(mutant),
         "malformed ADR-008 source-authority bundle attachment",
         "keys differ",
+    )
+
+    mutant = copy.deepcopy(adr008_value)
+    mutant["lifecycle_outcome_evidence"]["ncp_source_authority_bundle_attachment"][
+        "store_id"
+    ] = "https://store.example.test"
+    _must_fail(
+        lambda: _validate_adr008_illustrative_value(mutant),
+        "URL used as ADR-008 attachment store ID",
+        "canonical enrolled-store identifier",
+    )
+
+    mutant = copy.deepcopy(adr008_value)
+    mutant["lifecycle_outcome_evidence"]["ncp_source_authority_bundle_attachment"][
+        "object_key"
+    ] = "sha256/" + "0" * 64
+    _must_fail(
+        lambda: _validate_adr008_illustrative_value(mutant),
+        "ADR-008 attachment object key differs from its digest",
+        "canonical digest-derived object key",
+    )
+
+    mutant = copy.deepcopy(adr008_value)
+    mutant["lifecycle_outcome_evidence"]["ncp_source_authority_bundle_attachment"][
+        "schema_id"
+    ] = "../schema"
+    _must_fail(
+        lambda: _validate_adr008_illustrative_value(mutant),
+        "noncanonical ADR-008 attachment schema ID",
+        "canonical schema identifier",
+    )
+
+    mutant = copy.deepcopy(adr008_value)
+    mutant["lifecycle_outcome_evidence"]["ncp_source_authority_bundle_attachment"][
+        "purpose"
+    ] = "source_authority_verification"
+    _must_fail(
+        lambda: _validate_adr008_illustrative_value(mutant),
+        "noncanonical ADR-008 attachment purpose",
+        "canonical uppercase purpose token",
     )
 
     mutant = copy.deepcopy(adr008_value)
@@ -20363,7 +20500,7 @@ def self_test(data: dict[str, Any]) -> None:
     mutant_by_id["X03"]["requirement_ids"].append("V11")
     _must_fail(
         lambda: validate(mutant),
-        "atlas work added to the nine role receipts",
+        "atlas work added to the eleven role receipts",
         "V11 atlas ownership",
     )
     mutant = copy.deepcopy(data)

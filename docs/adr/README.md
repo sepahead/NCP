@@ -226,12 +226,13 @@ schema versions registered to exact types, not runtime class names.
 | [ADR-010](0010-plane-qos-retention-and-overload.md) | Specify finite per-plane QoS, retention, priority, overload, and observer isolation. | Real-time and performance reviewer; Engram consumer reviewer; Haldir consumer reviewer; Galadriel consumer reviewer; Crebain consumer reviewer; Prisoma consumer reviewer |
 | [ADR-011](0011-ecosystem-topology-and-handover.md) | Ratify standalone-first dependency direction, per-surface migration identity, exclusive commander modes, body-coordinated handover, deny-only assessment, and pid-rs neutrality. | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
 
-Two decisions use maintained companion modules:
+Three decisions use maintained companion modules:
 
 - [ADR-004 cross-store observer closure and enrollment](modules/adr-004-cross-store-observer-closure-and-enrollment.md)
 - [ADR-009 cross-store producer and compromise evidence](modules/adr-009-cross-store-producer-and-compromise-evidence.md)
+- [ADR-011 ecosystem integration boundary](modules/adr-011-ecosystem-integration-boundary.md)
 
-The source registry assigns these two paths explicitly. Every other decision has
+The source registry assigns these three paths explicitly. Every other decision has
 an empty `module_paths` list. An unlisted module path fails registry generation.
 
 ## Common state and digest rules

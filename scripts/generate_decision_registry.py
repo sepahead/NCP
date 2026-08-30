@@ -88,6 +88,9 @@ EXPECTED_MODULE_PATHS = {
     "ADR-009": (
         "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
     ),
+    "ADR-011": (
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+    ),
 }
 
 MAX_JSON_BYTES = 2 * 1024 * 1024
@@ -251,8 +254,8 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "ADR-007",
         3,
     ),
-    "adr008.raw-chunk.semantic-projection.v1": (
-        "ADR008_RAW_CHUNK_PROJECTION_V1",
+    "adr008.extension-envelope.semantic-projection.v1": (
+        "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
         "PROPOSED_SEMANTIC_PROJECTION",
         "POSITIVE",
         "ADR-008",
@@ -300,9 +303,9 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "ADR-010",
         2,
     ),
-    "adr011.gated-intent-correlation.excerpt.v1": (
-        "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
-        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
+    "adr011.registered-haldir-intent.extension-envelope.v1": (
+        "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
+        "PROPOSED_EXTENSION_ENVELOPE",
         "POSITIVE",
         "ADR-011",
         1,
@@ -575,13 +578,13 @@ EXPECTED_B03_BINDINGS = {
             ("BODY_AUTHORITY_PROVENANCE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("ASSESSOR_REPLAY_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("ADAPTER_PROOF_REFERENCE_IDENTITIES", "EXACT_IDENTITY_SET"),
-            ("CHUNK_FRAME_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
+            ("CANONICAL_ENCODING_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("ROUTE_ENCODING_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("PARSER_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("CALLBACK_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("RESOURCE_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("ACTIVATION_LIFETIME_NS_MAX", "BOUNDED_INTEGER"),
-            ("CHUNK_COUNT_MAX", "BOUNDED_INTEGER"),
+            ("ATTACHMENT_COUNT_MAX", "BOUNDED_INTEGER"),
         ),
     ),
     "ADR-009-Q01": (
@@ -626,10 +629,10 @@ EXPECTED_SEMANTIC_EXAMPLE_CONTRACT = {
     "positive_authority": "NON_AUTHORIZING_EXCERPT_NOT_PRODUCTION_ADMISSION",
     "external_effect": "NONE_LOCAL_CHALLENGE_EVIDENCE_ONLY",
 }
-EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 107
-EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 3_543
+EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 127
+EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 4_301
 EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
-    "f8e704286f7a0c30b6525e5835bcf2d46e21e5c1bc8db7bbef928cff17208d2d"
+    "6f045da9a79f06135fa9bae69f4fb4a6c82af4e522b27f116a6eda8382e344cc"
 )
 EXPECTED_SEMANTIC_SOURCE_BINDING = {
     "fence_capture": (
@@ -643,7 +646,7 @@ EXPECTED_SEMANTIC_LIMITS = {
     "allow_floats": False,
     "engine_timeout_seconds": 120,
     "expected_case_count": 25,
-    "expected_mutation_count": 132,
+    "expected_mutation_count": 160,
     "maximum_adr_bytes": 262_144,
     "maximum_aggregate_adr_bytes": 2_097_152,
     "maximum_array_items": 4_096,
@@ -655,7 +658,7 @@ EXPECTED_SEMANTIC_LIMITS = {
     "maximum_fixture_bytes": 16_384,
     "maximum_json_nodes": 100_000,
     "maximum_key_utf8_bytes": 128,
-    "maximum_mutations_per_case": 24,
+    "maximum_mutations_per_case": 32,
     "maximum_object_members": 4_096,
     "maximum_string_utf8_bytes": 65_536,
     "maximum_total_string_utf8_bytes": 131_072,
@@ -674,7 +677,6 @@ EXPECTED_SEMANTIC_CLOSED_VALUES = {
     "scope": [
         "AUTHENTICATED_WIRE_OBJECT",
         "DECODED_HEADER_FRAGMENT",
-        "NON_NCP_INTENT_CORRELATION_FRAGMENT",
         "NON_WIRE_INTERNAL_STATE",
         "PROPOSED_EXTENSION_ENVELOPE",
         "PROPOSED_SEMANTIC_PROJECTION",

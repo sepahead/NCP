@@ -382,7 +382,7 @@ def render(data: dict[str, Any], expanded_sha256: str) -> str:
         "- performance qualification",
         "- signatures, SBOM, and provenance",
         "- clean-room reproduction",
-        "- all nine exact consumer and extension role qualifications",
+        "- all eleven exact consumer and extension role qualifications",
         "",
         "## Allocation provenance gate",
         "",

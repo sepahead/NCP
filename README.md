@@ -226,7 +226,7 @@ authenticated-principal binding must first be implemented before the live
 mTLS/ACL/certificate rotation and revocation campaign can run. Two independently
 installed non-Rust peers, fault/soak, duration fuzzing and sanitizers, performance
 qualification, signed SBOM/provenance, and clean-room reproduction remain
-required. All nine exact consumer and extension role qualifications are also
+required. All eleven exact consumer and extension role qualifications are also
 required. These gates are explicitly **NOT RUN** for this candidate. Publication
 follows those gates. The separate post-publication checks validate the published
 artifacts and cannot be prerequisites for their own publication.
@@ -237,11 +237,13 @@ The candidate registry retains a historical six-surface handoff inventory across
 five canonical consumer repositories: `Engram`, `crebain`,
 `crebain-galadriel-producer`, `galadriel`, `haldir`, and `prisoma`. The producer
 surface belongs to canonical Crebain; it is not a sixth repository. Release
-authorization requires these nine exact role subjects:
+authorization requires these eleven exact role subjects:
 
 - Engram simulation responder
 - Engram plant commander
+- Engram Haldir-intent extension publisher
 - Haldir NCP commander
+- Haldir Engram-intent extension receiver
 - Haldir Galadriel-assessment receiver
 - Galadriel NCP observer
 - Galadriel raw-advisory publisher
@@ -252,7 +254,7 @@ authorization requires these nine exact role subjects:
 A historical surface entry is not a role receipt. Engram has an explicit local
 native-1.0 migration in progress. Its installed roles and live transport are not
 qualified. The other five historical handoff surfaces remain on wire 0.8. None
-of the nine roles is qualified for 1.0. The frozen v0.8 Engram inventory is
+of the eleven roles is qualified for 1.0. The frozen v0.8 Engram inventory is
 historical migration input. It does not describe the mutable migration worktree.
 A consumer cannot claim native 1.0 support before its exact installed role and
 live-transport matrix passes.

@@ -57,7 +57,7 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
   "docs/adr/0007-command-disposition-journal.md#3":
     "ADR007_INVALID_DISPOSITION_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#1":
-    "ADR008_RAW_CHUNK_PROJECTION_V1",
+    "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#2":
     "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#3":
@@ -71,7 +71,7 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
   "docs/adr/0010-plane-qos-retention-and-overload.md#2":
     "ADR010_INVALID_ACTION_QOS_PROFILE_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#1":
-    "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
+    "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#2":
     "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#3":
@@ -150,8 +150,8 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
     case "ADR007_INVALID_DISPOSITION_V1":
       adr007(document, input.fixture, diagnostics);
       break;
-    case "ADR008_RAW_CHUNK_PROJECTION_V1":
-      adr008RawChunk(document, diagnostics);
+    case "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1":
+      adr008ExtensionEnvelope(document, diagnostics);
       break;
     case "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1":
       adr008Assessment(document, input.fixture, diagnostics);
@@ -171,8 +171,8 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
     case "ADR010_INVALID_ACTION_QOS_PROFILE_V1":
       adr010Invalid(document, input.fixture, diagnostics);
       break;
-    case "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1":
-      adr011Intent(document, input.fixture, diagnostics);
+    case "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1":
+      adr011RegisteredIntent(document, input.fixture, diagnostics);
       break;
     case "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1":
       adr011Command(document, input.fixture, diagnostics);
@@ -190,7 +190,7 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
     input.profile === "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1"
       ? "NOT_APPLICABLE"
       : result === "REJECT" ||
-          input.profile === "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1"
+          input.profile === "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1"
         ? "REJECT"
         : "NOT_EVALUATED";
   return {
@@ -518,58 +518,72 @@ function adr007(document: JsonObject, fixture: JsonValue, diagnostics: string[])
   }
 }
 
-function adr008RawChunk(document: JsonObject, diagnostics: string[]): void {
+function adr008ExtensionEnvelope(document: JsonObject, diagnostics: string[]): void {
   requireExactProjectionMembers(
     document,
     [
       "activation_context_binds_clock_and_expiry",
-      "activation_context_binds_processing_profiles",
-      "callback_after_schema_reservation",
+      "ambient_fetch_credentials_allowed",
+      "attachment_redirect_allowed",
+      "attachment_ref_grants_fetch_authority",
+      "attachment_store_enrollment_required",
+      "callback_after_complete_validation",
       "callback_boundary_state_before_entry",
-      "complete_hash_once",
-      "conflict_overwrites_bytes",
-      "currentness_and_expiry_rechecked_before_callback",
-      "currentness_and_expiry_rechecked_before_schema",
-      "duplicate_copies_bytes",
-      "entered_callback_releases_resources_before_resolution",
-      "first_index_can_reserve",
-      "header_class_registry_and_length_checked_before_reservation",
-      "outer_encoding",
-      "package_is_structured_frame",
+      "callback_right_consumed_with_final_recheck",
+      "core_or_registered_extension_required",
+      "duplicate_decoded_keys_reject",
+      "extension_manifest_selected_before_decode",
+      "external_attachment_refs_bounded",
+      "generic_chunk_protocol_in_v1",
+      "inline_attachment_bytes_allowed",
+      "length_and_digest_before_semantic_use",
+      "noncanonical_numbers_reject",
+      "one_semantic_envelope_per_message",
+      "partial_attachment_is_usable",
+      "post_fetch_currentness_recheck_required",
       "receiver_activation_incarnation_bound",
-      "reserve_before_copy",
+      "reserve_before_fetch",
       "retired_context_discloses_result",
-      "slot_transition_orders_currentness_cut",
-      "stable_slot_excludes_mutable_declarations",
+      "semantic_encoding",
+      "svg_is_protocol_input",
       "terminal_lookup_precedes_work_admission",
       "terminal_tombstone_required",
+      "unknown_members_reject",
+      "wire_supplied_url_allowed",
     ],
-    "EXTENSION_OUTER_ENCODING_INVALID",
+    "EXTENSION_ONE_ENVELOPE_REQUIRED",
     diagnostics,
   );
-  if (document.outer_encoding !== "BOUNDED_RAW_CHUNK") {
-    diagnostics.push("EXTENSION_OUTER_ENCODING_INVALID");
+  if (document.semantic_encoding !== "BOUNDED_CANONICAL_JSON") {
+    diagnostics.push("EXTENSION_SEMANTIC_ENCODING_INVALID");
   }
   for (const [field, expected, diagnostic] of [
-    ["package_is_structured_frame", false, "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN"],
-    ["stable_slot_excludes_mutable_declarations", true, "EXTENSION_STABLE_SLOT_INVALID"],
+    ["one_semantic_envelope_per_message", true, "EXTENSION_ONE_ENVELOPE_REQUIRED"],
+    ["extension_manifest_selected_before_decode", true, "EXTENSION_MANIFEST_SELECTION_REQUIRED"],
+    ["unknown_members_reject", true, "EXTENSION_UNKNOWN_MEMBER_POLICY_INVALID"],
+    ["duplicate_decoded_keys_reject", true, "EXTENSION_DUPLICATE_KEY_POLICY_INVALID"],
+    ["noncanonical_numbers_reject", true, "EXTENSION_CANONICAL_NUMBER_POLICY_INVALID"],
+    ["inline_attachment_bytes_allowed", false, "EXTENSION_INLINE_ATTACHMENT_FORBIDDEN"],
+    ["external_attachment_refs_bounded", true, "EXTENSION_ATTACHMENT_REFERENCE_BOUNDS_REQUIRED"],
+    ["attachment_store_enrollment_required", true, "EXTENSION_ATTACHMENT_STORE_ENROLLMENT_REQUIRED"],
+    ["wire_supplied_url_allowed", false, "EXTENSION_WIRE_URL_FORBIDDEN"],
+    ["ambient_fetch_credentials_allowed", false, "EXTENSION_AMBIENT_FETCH_CREDENTIAL_FORBIDDEN"],
+    ["attachment_redirect_allowed", false, "EXTENSION_ATTACHMENT_REDIRECT_FORBIDDEN"],
+    ["attachment_ref_grants_fetch_authority", false, "EXTENSION_ATTACHMENT_FETCH_AUTHORITY_INVALID"],
+    ["reserve_before_fetch", true, "EXTENSION_RESERVATION_ORDER_INVALID"],
+    ["length_and_digest_before_semantic_use", true, "EXTENSION_ATTACHMENT_VERIFICATION_REQUIRED"],
+    ["partial_attachment_is_usable", false, "EXTENSION_PARTIAL_ATTACHMENT_USE_FORBIDDEN"],
+    ["post_fetch_currentness_recheck_required", true, "EXTENSION_POST_FETCH_CURRENTNESS_RECHECK_REQUIRED"],
+    ["callback_right_consumed_with_final_recheck", true, "EXTENSION_CALLBACK_RIGHT_CONSUMPTION_REQUIRED"],
+    ["callback_after_complete_validation", true, "EXTENSION_CALLBACK_VALIDATION_ORDER_INVALID"],
+    ["callback_boundary_state_before_entry", true, "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED"],
+    ["core_or_registered_extension_required", true, "EXTENSION_CORE_OR_REGISTERED_REQUIRED"],
+    ["svg_is_protocol_input", false, "EXTENSION_SVG_PROTOCOL_INPUT_FORBIDDEN"],
+    ["generic_chunk_protocol_in_v1", false, "EXTENSION_GENERIC_CHUNK_PROTOCOL_FORBIDDEN"],
     ["receiver_activation_incarnation_bound", true, "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED"],
-    ["activation_context_binds_processing_profiles", true, "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED"],
     ["activation_context_binds_clock_and_expiry", true, "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED"],
-    ["header_class_registry_and_length_checked_before_reservation", true, "EXTENSION_HEADER_ADMISSION_INVALID"],
     ["terminal_lookup_precedes_work_admission", true, "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID"],
     ["retired_context_discloses_result", false, "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN"],
-    ["first_index_can_reserve", true, "EXTENSION_FIRST_INDEX_RULE_INVALID"],
-    ["reserve_before_copy", true, "EXTENSION_RESERVATION_ORDER_INVALID"],
-    ["slot_transition_orders_currentness_cut", true, "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID"],
-    ["duplicate_copies_bytes", false, "EXTENSION_DUPLICATE_COPY_FORBIDDEN"],
-    ["conflict_overwrites_bytes", false, "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN"],
-    ["complete_hash_once", true, "EXTENSION_COMPLETE_HASH_RULE_INVALID"],
-    ["currentness_and_expiry_rechecked_before_schema", true, "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED"],
-    ["callback_after_schema_reservation", true, "EXTENSION_SCHEMA_RESERVATION_REQUIRED"],
-    ["currentness_and_expiry_rechecked_before_callback", true, "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED"],
-    ["callback_boundary_state_before_entry", true, "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED"],
-    ["entered_callback_releases_resources_before_resolution", false, "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID"],
     ["terminal_tombstone_required", true, "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED"],
   ] as const) {
     requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
@@ -850,25 +864,191 @@ function validateQosRealm(
   }
 }
 
-function adr011Intent(
+function adr011RegisteredIntent(
   document: JsonObject,
   fixture: JsonValue,
   diagnostics: string[],
 ): void {
+  requireExactProjectionMembers(
+    document,
+    [
+      "audience_principal_id",
+      "authority_realm_key",
+      "controller_t_ns",
+      "effective_deadline_tick_ns",
+      "extension_id",
+      "freshness_grant",
+      "intent_id",
+      "intent_sequence",
+      "intent_stream_epoch",
+      "logical_session_id",
+      "manifest_digest",
+      "plant_session_generation",
+      "plant_session_kind",
+      "producer_principal_id",
+      "requested_effect",
+      "requested_validity_ms",
+      "route",
+      "schema_version",
+      "selected_slot",
+      "semantic_encoding",
+      "signature_coverage",
+      "source",
+    ],
+    "INTENT_ENVELOPE_SHAPE_INVALID",
+    diagnostics,
+  );
   const expectedRealm = fixtureObject(fixture, "authenticated_realm_key");
   const realm = asObject(document.authority_realm_key);
   if (!isRealmKey(realm) || !objectsExactlyEqualOn(realm, expectedRealm, REALM_KEY_FIELDS)) {
     diagnostics.push("AUTHORITY_REALM_MISMATCH");
   }
-  if (document.audience !== fixtureString(fixture, "expected_audience")) {
-    diagnostics.push("INTENT_AUDIENCE_MISMATCH");
+  for (const [field, fixtureField, diagnostic] of [
+    ["extension_id", "expected_extension_id", "EXTENSION_ID_MISMATCH"],
+    ["schema_version", "expected_schema_version", "EXTENSION_SCHEMA_VERSION_MISMATCH"],
+    ["manifest_digest", "expected_manifest_digest", "EXTENSION_MANIFEST_DIGEST_MISMATCH"],
+    ["semantic_encoding", "expected_semantic_encoding", "EXTENSION_SEMANTIC_ENCODING_INVALID"],
+    ["route", "expected_route", "REALM_ROUTE_MISMATCH"],
+    ["producer_principal_id", "expected_producer_principal_id", "INTENT_ISSUER_MISMATCH"],
+    ["audience_principal_id", "expected_audience_principal_id", "INTENT_AUDIENCE_MISMATCH"],
+    ["plant_session_kind", "expected_plant_session_kind", "SESSION_KIND_MISMATCH"],
+    ["logical_session_id", "expected_logical_session_id", "INTENT_SESSION_MISMATCH"],
+    ["plant_session_generation", "expected_plant_session_generation", "INTENT_SESSION_MISMATCH"],
+    ["intent_stream_epoch", "expected_intent_stream_epoch", "INTENT_REPLAY_COORDINATE_INVALID"],
+  ] as const) {
+    if (document[field] !== fixtureString(fixture, fixtureField)) diagnostics.push(diagnostic);
   }
-  if (document.issuer !== fixtureString(fixture, "expected_issuer")) {
-    diagnostics.push("INTENT_ISSUER_MISMATCH");
+  if (nonemptyString(document.intent_id) === undefined) {
+    diagnostics.push("INTENT_REPLAY_COORDINATE_INVALID");
   }
-  const expires = safeInteger(document.expires_at_utc_ms);
-  if (expires === undefined || expires <= fixtureInteger(fixture, "evaluation_utc_ms")) {
+  const sequence = safeInteger(document.intent_sequence);
+  if (
+    sequence === undefined ||
+    sequence <= 0 ||
+    sequence !== fixtureInteger(fixture, "expected_intent_sequence")
+  ) {
+    diagnostics.push("INTENT_REPLAY_COORDINATE_INVALID");
+  }
+  const grant = asObject(document.freshness_grant);
+  requireExactProjectionMembers(
+    grant ?? {},
+    [
+      "allowed_requested_effects",
+      "clock_incarnation",
+      "digest",
+      "first_slot",
+      "installation_receipt_digest",
+      "issue_tick_ns",
+      "last_slot_exclusive",
+      "maximum_not_after_tick_ns",
+      "maximum_requested_validity_ms",
+    ],
+    "INTENT_FRESHNESS_GRANT_MISMATCH",
+    diagnostics,
+  );
+  const expectedGrant = fixtureObject(fixture, "expected_freshness_grant");
+  for (const [field, diagnostic] of [
+    ["digest", "INTENT_FRESHNESS_GRANT_MISMATCH"],
+    ["installation_receipt_digest", "INTENT_FRESHNESS_GRANT_INSTALLATION_RECEIPT_MISMATCH"],
+    ["clock_incarnation", "INTENT_FRESHNESS_CLOCK_MISMATCH"],
+  ] as const) {
+    if (grant?.[field] !== expectedGrant[field]) diagnostics.push(diagnostic);
+  }
+  for (const field of [
+    "issue_tick_ns",
+    "maximum_not_after_tick_ns",
+    "first_slot",
+    "last_slot_exclusive",
+    "maximum_requested_validity_ms",
+  ] as const) {
+    if (safeInteger(grant?.[field]) !== safeInteger(expectedGrant[field])) {
+      diagnostics.push("INTENT_FRESHNESS_GRANT_MISMATCH");
+      break;
+    }
+  }
+  const allowed = asArray(grant?.allowed_requested_effects);
+  const expectedAllowedValues = asArray(expectedGrant.allowed_requested_effects);
+  const expectedAllowed = expectedAllowedValues?.every((value) => typeof value === "string")
+    ? expectedAllowedValues as string[]
+    : undefined;
+  if (
+    allowed === undefined ||
+    expectedAllowed === undefined ||
+    !arraysEqual(allowed, expectedAllowed)
+  ) {
+    diagnostics.push("INTENT_REQUESTED_EFFECT_INVALID");
+  }
+  const firstSlot = safeInteger(grant?.first_slot);
+  const lastSlot = safeInteger(grant?.last_slot_exclusive);
+  const selectedSlot = safeInteger(document.selected_slot);
+  if (
+    firstSlot === undefined ||
+    lastSlot === undefined ||
+    selectedSlot === undefined ||
+    firstSlot <= 0 ||
+    firstSlot >= lastSlot ||
+    selectedSlot < firstSlot ||
+    selectedSlot >= lastSlot
+  ) {
+    diagnostics.push("INTENT_FRESHNESS_SLOT_INVALID");
+  }
+  if (
+    document.requested_effect !== fixtureString(fixture, "expected_requested_effect") ||
+    allowed === undefined ||
+    !allowed.includes(document.requested_effect)
+  ) {
+    diagnostics.push("INTENT_REQUESTED_EFFECT_INVALID");
+  }
+  const issueTick = safeInteger(grant?.issue_tick_ns);
+  const maximumDeadline = safeInteger(grant?.maximum_not_after_tick_ns);
+  const maximumValidity = safeInteger(grant?.maximum_requested_validity_ms);
+  const requestedValidity = safeInteger(document.requested_validity_ms);
+  let computedDeadline: number | undefined;
+  if (
+    issueTick === undefined ||
+    maximumDeadline === undefined ||
+    maximumValidity === undefined ||
+    requestedValidity === undefined ||
+    requestedValidity <= 0 ||
+    requestedValidity > maximumValidity
+  ) {
+    diagnostics.push("INTENT_VALIDITY_INVALID");
+  } else {
+    const duration = requestedValidity * 1_000_000;
+    const candidate = issueTick + duration;
+    if (!Number.isSafeInteger(duration) || !Number.isSafeInteger(candidate)) {
+      diagnostics.push("INTENT_VALIDITY_INVALID");
+    } else {
+      computedDeadline = Math.min(candidate, maximumDeadline);
+    }
+  }
+  const effectiveDeadline = safeInteger(document.effective_deadline_tick_ns);
+  if (effectiveDeadline !== computedDeadline) diagnostics.push("INTENT_DEADLINE_INVALID");
+  if (
+    effectiveDeadline === undefined ||
+    effectiveDeadline <= fixtureInteger(fixture, "evaluation_tick_ns")
+  ) {
     diagnostics.push("INTENT_EXPIRED");
+  }
+  const expectedSource = fixtureObject(fixture, "expected_source");
+  const source = asObject(document.source);
+  if (
+    source === undefined ||
+    !objectsExactlyEqualOn(source, expectedSource, ["kind", "reason"]) ||
+    Object.keys(source).length !== 2
+  ) {
+    diagnostics.push("INTENT_SOURCE_UNION_INVALID");
+  }
+  const signatureCoverage = asArray(document.signature_coverage);
+  const expectedCoverage = fixtureStringArray(fixture, "expected_signature_coverage");
+  if (
+    signatureCoverage === undefined ||
+    !arraysEqual(signatureCoverage, expectedCoverage)
+  ) {
+    diagnostics.push("INTENT_SIGNATURE_COVERAGE_INVALID");
+  }
+  if (safeInteger(document.controller_t_ns) === undefined) {
+    diagnostics.push("INTENT_ENVELOPE_SHAPE_INVALID");
   }
 }
 
@@ -1022,7 +1202,7 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       return;
     }
     case "ADR007_DISPOSITION_QUERY_PROJECTION_V1":
-    case "ADR008_RAW_CHUNK_PROJECTION_V1":
+    case "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1":
       exactFixtureKeys(value, [], profile);
       return;
     case "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1":
@@ -1080,17 +1260,79 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireFixtureInteger(value.maximum_capacity_per_stream, profile, true);
       requireStringArray(value.required_fail_safe_priority, profile);
       return;
-    case "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1":
+    case "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1":
       exactFixtureKeys(value, [
         "authenticated_realm_key",
-        "evaluation_utc_ms",
-        "expected_audience",
-        "expected_issuer",
+        "evaluation_tick_ns",
+        "expected_audience_principal_id",
+        "expected_extension_id",
+        "expected_freshness_grant",
+        "expected_intent_sequence",
+        "expected_intent_stream_epoch",
+        "expected_logical_session_id",
+        "expected_manifest_digest",
+        "expected_plant_session_generation",
+        "expected_plant_session_kind",
+        "expected_producer_principal_id",
+        "expected_requested_effect",
+        "expected_route",
+        "expected_schema_version",
+        "expected_semantic_encoding",
+        "expected_signature_coverage",
+        "expected_source",
       ], profile);
       validateRealmFixture(value.authenticated_realm_key, profile);
-      requireFixtureInteger(value.evaluation_utc_ms, profile, true);
-      requireFixtureString(value.expected_audience, profile);
-      requireFixtureString(value.expected_issuer, profile);
+      requireFixtureInteger(value.evaluation_tick_ns, profile, true);
+      requireFixtureInteger(value.expected_intent_sequence, profile, true);
+      for (const key of [
+        "expected_audience_principal_id",
+        "expected_extension_id",
+        "expected_intent_stream_epoch",
+        "expected_logical_session_id",
+        "expected_manifest_digest",
+        "expected_plant_session_generation",
+        "expected_plant_session_kind",
+        "expected_producer_principal_id",
+        "expected_requested_effect",
+        "expected_route",
+        "expected_schema_version",
+        "expected_semantic_encoding",
+      ] as const) requireFixtureString(value[key], profile);
+      {
+        const grant = requiredObject(
+          value.expected_freshness_grant,
+          `${profile}.expected_freshness_grant`,
+        );
+        exactFixtureKeys(grant, [
+          "allowed_requested_effects",
+          "clock_incarnation",
+          "digest",
+          "first_slot",
+          "installation_receipt_digest",
+          "issue_tick_ns",
+          "last_slot_exclusive",
+          "maximum_not_after_tick_ns",
+          "maximum_requested_validity_ms",
+        ], `${profile}.expected_freshness_grant`);
+        for (const key of ["clock_incarnation", "digest", "installation_receipt_digest"] as const) {
+          requireFixtureString(grant[key], profile);
+        }
+        for (const key of [
+          "first_slot",
+          "issue_tick_ns",
+          "last_slot_exclusive",
+          "maximum_not_after_tick_ns",
+          "maximum_requested_validity_ms",
+        ] as const) requireFixtureInteger(grant[key], profile, true);
+        requireStringArray(grant.allowed_requested_effects, profile);
+      }
+      requireStringArray(value.expected_signature_coverage, profile);
+      {
+        const source = requiredObject(value.expected_source, `${profile}.expected_source`);
+        exactFixtureKeys(source, ["kind", "reason"], `${profile}.expected_source`);
+        requireFixtureString(source.kind, profile);
+        requireFixtureString(source.reason, profile);
+      }
       return;
     case "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1":
       exactFixtureKeys(value, [

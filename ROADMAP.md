@@ -33,7 +33,7 @@ rebaseline, and boundary evidence remain open for both findings.
 | independent peers | TypeScript decision code implemented | second non-Rust implementation and secure live matrix |
 | package coordination | RC manifests/build scripts implemented | clean multi-platform installed artifacts, reproducibility, SBOM/signatures |
 | 0.8 migration gateway | bounded explicit channel mapping implemented | installed 0.8↔1.0 gateway fault/idempotency proof |
-| consumer migration | Engram in progress; no role qualified | migrate the six historical handoff surfaces and qualify all nine exact role subjects |
+| consumer migration | Engram in progress; no role qualified | migrate the six historical handoff surfaces and qualify all eleven exact role subjects |
 | 1.0 release | blocked | every required pre-release gate passed against one artifact set |
 
 ## Execution order
@@ -50,7 +50,7 @@ rebaseline, and boundary evidence remain open for both findings.
    artifacts.
 4. Run combined fault/restart/backpressure/soak, fuzz/sanitizer, and performance
    campaigns; archive raw logs and environment/toolchain manifests.
-5. Migrate the six historical handoff surfaces one by one, then qualify all nine
+5. Migrate the six historical handoff surfaces one by one, then qualify all eleven
    exact role subjects. A historical surface entry is not a role receipt. A native
    1.0 result cannot transit a legacy gateway, and each body supplies its own plant
    profile and safety case.

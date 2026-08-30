@@ -10,7 +10,7 @@ pub(crate) const CORPUS_SCHEMA: &str = "ncp.b01-adr-example-semantics-corpus.v1"
 pub(crate) const RESULT_SCHEMA: &str = "ncp.b01-adr-example-semantics-result.v1";
 pub(crate) const MAXIMUM_PATCH_PATH_UTF8_BYTES: usize = 512;
 const MAXIMUM_MUTATION_PURPOSE_UTF8_BYTES: usize = 512;
-const EXPECTED_MUTATION_COUNT: usize = 132;
+const EXPECTED_MUTATION_COUNT: usize = 160;
 const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "ALGORITHM_LABEL_FORBIDDEN",
     "ALGORITHM_LABEL_REQUIRED",
@@ -40,39 +40,59 @@ const DIAGNOSTIC_REGISTRY: &[&str] = &[
     "EFFECT_PATH_ISOLATION_REQUIRED",
     "EFFECT_WRITE_FENCING_TERM_REQUIRED",
     "ESTOP_RESERVATION_CURRENTNESS_RECHECK_REQUIRED",
-    "EXTENSION_ACTIVATION_PROFILE_BINDING_REQUIRED",
     "EXTENSION_ACTIVATION_TIME_BINDING_REQUIRED",
+    "EXTENSION_AMBIENT_FETCH_CREDENTIAL_FORBIDDEN",
+    "EXTENSION_ATTACHMENT_FETCH_AUTHORITY_INVALID",
+    "EXTENSION_ATTACHMENT_REDIRECT_FORBIDDEN",
+    "EXTENSION_ATTACHMENT_REFERENCE_BOUNDS_REQUIRED",
+    "EXTENSION_ATTACHMENT_STORE_ENROLLMENT_REQUIRED",
+    "EXTENSION_ATTACHMENT_VERIFICATION_REQUIRED",
     "EXTENSION_CALLBACK_BOUNDARY_STATE_REQUIRED",
-    "EXTENSION_CALLBACK_RESOURCE_LIFETIME_INVALID",
-    "EXTENSION_COMPLETE_HASH_RULE_INVALID",
-    "EXTENSION_CONFLICT_OVERWRITE_FORBIDDEN",
-    "EXTENSION_CURRENTNESS_CUT_ORDER_INVALID",
-    "EXTENSION_DUPLICATE_COPY_FORBIDDEN",
-    "EXTENSION_FIRST_INDEX_RULE_INVALID",
-    "EXTENSION_HEADER_ADMISSION_INVALID",
+    "EXTENSION_CALLBACK_RIGHT_CONSUMPTION_REQUIRED",
+    "EXTENSION_CALLBACK_VALIDATION_ORDER_INVALID",
+    "EXTENSION_CANONICAL_NUMBER_POLICY_INVALID",
+    "EXTENSION_CORE_OR_REGISTERED_REQUIRED",
+    "EXTENSION_DUPLICATE_KEY_POLICY_INVALID",
+    "EXTENSION_GENERIC_CHUNK_PROTOCOL_FORBIDDEN",
     "EXTENSION_ID_MISMATCH",
-    "EXTENSION_OUTER_ENCODING_INVALID",
-    "EXTENSION_PACKAGE_FRAME_NESTING_FORBIDDEN",
+    "EXTENSION_INLINE_ATTACHMENT_FORBIDDEN",
+    "EXTENSION_MANIFEST_DIGEST_MISMATCH",
+    "EXTENSION_MANIFEST_SELECTION_REQUIRED",
+    "EXTENSION_ONE_ENVELOPE_REQUIRED",
+    "EXTENSION_PARTIAL_ATTACHMENT_USE_FORBIDDEN",
     "EXTENSION_POLICY_FIELD_FORBIDDEN",
-    "EXTENSION_PRE_CALLBACK_CURRENTNESS_RECHECK_REQUIRED",
-    "EXTENSION_PRE_SCHEMA_CURRENTNESS_RECHECK_REQUIRED",
+    "EXTENSION_POST_FETCH_CURRENTNESS_RECHECK_REQUIRED",
     "EXTENSION_PRODUCER_ROLE_INVALID",
     "EXTENSION_RECEIVER_ACTIVATION_INCARNATION_REQUIRED",
     "EXTENSION_RECEIVER_ROLE_INVALID",
     "EXTENSION_RESERVATION_ORDER_INVALID",
     "EXTENSION_RETIRED_RESULT_DISCLOSURE_FORBIDDEN",
-    "EXTENSION_SCHEMA_RESERVATION_REQUIRED",
     "EXTENSION_SCHEMA_VERSION_MISMATCH",
-    "EXTENSION_STABLE_SLOT_INVALID",
+    "EXTENSION_SEMANTIC_ENCODING_INVALID",
+    "EXTENSION_SVG_PROTOCOL_INPUT_FORBIDDEN",
     "EXTENSION_TERMINAL_LOOKUP_ORDER_INVALID",
     "EXTENSION_TERMINAL_TOMBSTONE_REQUIRED",
+    "EXTENSION_UNKNOWN_MEMBER_POLICY_INVALID",
+    "EXTENSION_WIRE_URL_FORBIDDEN",
     "FAIL_SAFE_EARLY_EFFECT_MODE_INVALID",
     "FAIL_SAFE_EFFECT_BOUNDARY_RECHECK_REQUIRED",
     "FAIL_SAFE_PRIORITY_INVALID",
     "HOLD_ADMISSION_ORDER_INVALID",
     "INTENT_AUDIENCE_MISMATCH",
+    "INTENT_DEADLINE_INVALID",
+    "INTENT_ENVELOPE_SHAPE_INVALID",
     "INTENT_EXPIRED",
+    "INTENT_FRESHNESS_CLOCK_MISMATCH",
+    "INTENT_FRESHNESS_GRANT_INSTALLATION_RECEIPT_MISMATCH",
+    "INTENT_FRESHNESS_GRANT_MISMATCH",
+    "INTENT_FRESHNESS_SLOT_INVALID",
     "INTENT_ISSUER_MISMATCH",
+    "INTENT_REPLAY_COORDINATE_INVALID",
+    "INTENT_REQUESTED_EFFECT_INVALID",
+    "INTENT_SESSION_MISMATCH",
+    "INTENT_SIGNATURE_COVERAGE_INVALID",
+    "INTENT_SOURCE_UNION_INVALID",
+    "INTENT_VALIDITY_INVALID",
     "KEY_EPOCH_MEMBERSHIP_REQUIRED",
     "KEY_ID_NOT_CONTENT_ADDRESSED",
     "LEASE_ISSUER_NOT_BODY",
@@ -280,7 +300,6 @@ pub(crate) struct Patch {
 pub(crate) enum Scope {
     AuthenticatedWireObject,
     DecodedHeaderFragment,
-    NonNcpIntentCorrelationFragment,
     NonWireInternalState,
     ProposedExtensionEnvelope,
     ProposedSemanticProjection,
@@ -610,7 +629,7 @@ impl Corpus {
             expected_case_count: 25,
             expected_mutation_count: EXPECTED_MUTATION_COUNT,
             minimum_mutations_per_case: 2,
-            maximum_mutations_per_case: 24,
+            maximum_mutations_per_case: 32,
             maximum_engine_output_bytes: 262_144,
             engine_timeout_seconds: 120,
         };
@@ -629,7 +648,6 @@ impl Corpus {
             &[
                 Scope::AuthenticatedWireObject,
                 Scope::DecodedHeaderFragment,
-                Scope::NonNcpIntentCorrelationFragment,
                 Scope::NonWireInternalState,
                 Scope::ProposedExtensionEnvelope,
                 Scope::ProposedSemanticProjection,
@@ -952,7 +970,7 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
             }
             require_fixture_positive_safe_integer(lease, "term", profile)
         }
-        "ADR007_DISPOSITION_QUERY_PROJECTION_V1" | "ADR008_RAW_CHUNK_PROJECTION_V1" => {
+        "ADR007_DISPOSITION_QUERY_PROJECTION_V1" | "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1" => {
             expect_fixture_keys(fixture, &[], profile)
         }
         "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1" | "ADR007_INVALID_DISPOSITION_V1" => {
@@ -1036,21 +1054,97 @@ pub(crate) fn validate_bounded_fixture(profile: &str, fixture: &Value) -> Engine
             require_fixture_positive_safe_integer(fixture, "maximum_capacity_per_stream", profile)?;
             require_fixture_string_array(fixture, "required_fail_safe_priority", profile)
         }
-        "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1" => {
+        "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1" => {
             expect_fixture_keys(
                 fixture,
                 &[
                     "authenticated_realm_key",
-                    "evaluation_utc_ms",
-                    "expected_audience",
-                    "expected_issuer",
+                    "evaluation_tick_ns",
+                    "expected_audience_principal_id",
+                    "expected_extension_id",
+                    "expected_freshness_grant",
+                    "expected_intent_sequence",
+                    "expected_intent_stream_epoch",
+                    "expected_logical_session_id",
+                    "expected_manifest_digest",
+                    "expected_plant_session_generation",
+                    "expected_plant_session_kind",
+                    "expected_producer_principal_id",
+                    "expected_requested_effect",
+                    "expected_route",
+                    "expected_schema_version",
+                    "expected_semantic_encoding",
+                    "expected_signature_coverage",
+                    "expected_source",
                 ],
                 profile,
             )?;
             validate_realm_fixture(fixture.get("authenticated_realm_key"), profile)?;
-            require_fixture_positive_safe_integer(fixture, "evaluation_utc_ms", profile)?;
-            require_fixture_string(fixture, "expected_audience", profile)?;
-            require_fixture_string(fixture, "expected_issuer", profile)
+            require_fixture_positive_safe_integer(fixture, "evaluation_tick_ns", profile)?;
+            require_fixture_positive_safe_integer(fixture, "expected_intent_sequence", profile)?;
+            for key in [
+                "expected_audience_principal_id",
+                "expected_extension_id",
+                "expected_intent_stream_epoch",
+                "expected_logical_session_id",
+                "expected_manifest_digest",
+                "expected_plant_session_generation",
+                "expected_plant_session_kind",
+                "expected_producer_principal_id",
+                "expected_requested_effect",
+                "expected_route",
+                "expected_schema_version",
+                "expected_semantic_encoding",
+            ] {
+                require_fixture_string(fixture, key, profile)?;
+            }
+            let grant = fixture
+                .get("expected_freshness_grant")
+                .and_then(Value::as_object)
+                .ok_or_else(|| {
+                    EngineError::corpus(format!(
+                        "{profile} expected_freshness_grant must be an object"
+                    ))
+                })?;
+            expect_fixture_keys(
+                grant,
+                &[
+                    "allowed_requested_effects",
+                    "clock_incarnation",
+                    "digest",
+                    "first_slot",
+                    "installation_receipt_digest",
+                    "issue_tick_ns",
+                    "last_slot_exclusive",
+                    "maximum_not_after_tick_ns",
+                    "maximum_requested_validity_ms",
+                ],
+                profile,
+            )?;
+            for key in ["clock_incarnation", "digest", "installation_receipt_digest"] {
+                require_fixture_string(grant, key, profile)?;
+            }
+            for key in [
+                "first_slot",
+                "issue_tick_ns",
+                "last_slot_exclusive",
+                "maximum_not_after_tick_ns",
+                "maximum_requested_validity_ms",
+            ] {
+                require_fixture_positive_safe_integer(grant, key, profile)?;
+            }
+            require_fixture_string_array(grant, "allowed_requested_effects", profile)?;
+            require_fixture_string_array(fixture, "expected_signature_coverage", profile)?;
+            let source = fixture
+                .get("expected_source")
+                .and_then(Value::as_object)
+                .ok_or_else(|| {
+                    EngineError::corpus(format!("{profile} expected_source must be an object"))
+                })?;
+            expect_fixture_keys(source, &["kind", "reason"], profile)?;
+            require_fixture_string(source, "kind", profile)?;
+            require_fixture_string(source, "reason", profile)?;
+            Ok(())
         }
         "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1" => {
             expect_fixture_keys(
@@ -1316,8 +1410,8 @@ fn validate_case_identity(case: &Case) -> EngineResult<()> {
             "ADR-007",
             3,
         ),
-        "adr008.raw-chunk.semantic-projection.v1" => (
-            "ADR008_RAW_CHUNK_PROJECTION_V1",
+        "adr008.extension-envelope.semantic-projection.v1" => (
+            "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
             Scope::ProposedSemanticProjection,
             Polarity::Positive,
             "ADR-008",
@@ -1365,9 +1459,9 @@ fn validate_case_identity(case: &Case) -> EngineResult<()> {
             "ADR-010",
             2,
         ),
-        "adr011.gated-intent-correlation.excerpt.v1" => (
-            "ADR011_GATED_INTENT_CORRELATION_EXCERPT_V1",
-            Scope::NonNcpIntentCorrelationFragment,
+        "adr011.registered-haldir-intent.extension-envelope.v1" => (
+            "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
+            Scope::ProposedExtensionEnvelope,
             Polarity::Positive,
             "ADR-011",
             1,

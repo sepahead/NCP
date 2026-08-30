@@ -174,7 +174,7 @@ a qualification receipt.
 | Crebain | Crebain | inactive, unregistered wire-0.8 body-control bridge; native body absent |
 | Crebain Galadriel producer | Crebain | off-by-default, environment-gated wire-0.8 producer is in canonical main; not a separate repository |
 | Galadriel | Galadriel | optional operational read-only wire-0.8 receiver; native migration absent |
-| Haldir | Haldir | optional immutable `haldir-ncp08` commander; native commander and assessment receiver absent |
+| Haldir | Haldir | optional immutable `haldir-ncp08` commander; native commander, Engram-intent receiver, and assessment receiver absent |
 | Prisoma | Prisoma | real read-only wire-0.8 observer crate, workspace-excluded and explicitly CI-tested |
 
 Release authorization requires a separate installed-artifact receipt for each
@@ -184,7 +184,9 @@ exact subject below. Every qualification remains **NOT RUN**.
 |---|---|
 | Engram simulation responder | native-1.0 development implementation exists; installed/live qualification absent |
 | Engram plant commander | development controller exists; disjoint artifact, principal, route, store, authority, and plant evidence absent |
+| Engram Haldir-intent extension publisher | absent |
 | Haldir NCP commander | optional wire-0.8 implementation only; native-1.0 surface absent |
+| Haldir Engram-intent extension receiver | absent |
 | Haldir Galadriel-assessment receiver | absent |
 | Galadriel NCP observer | operational read-only wire-0.8 receiver; native-1.0 surface absent |
 | Galadriel raw-advisory publisher | absent; assessment schemas and receiver logic do not constitute this publisher |

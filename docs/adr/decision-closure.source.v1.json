@@ -108,7 +108,7 @@
   "decisions": [
     {
       "id": "ADR-001",
-      "adr_source_set_sha256": "2079ba17c410709ce0c8442d9a21b8ab089fb9046e3763a6fb5fe7c784f97967",
+      "adr_source_set_sha256": "a6a574d824b97047dc251367ecea95cd0d3c69ab55fc5dfa7ec35fde5fe17af8",
       "questions": [
         {
           "question_id": "ADR-001-Q01",
@@ -257,7 +257,7 @@
     },
     {
       "id": "ADR-004",
-      "adr_source_set_sha256": "6333acce53ce4706dfc96bc9e28d680d345218bb2c525a02111860612561223a",
+      "adr_source_set_sha256": "46df7a65c63d9fba2ef39cb35ee62dfa94fe8441d124fbde9cecba285696d421",
       "questions": [
         {
           "question_id": "ADR-004-Q01",
@@ -643,14 +643,14 @@
     },
     {
       "id": "ADR-008",
-      "adr_source_set_sha256": "14eda4beecdb1f65bce3ab8cab7bd3ac2afdbd65897172debfa8ad88c5b1f9cc",
+      "adr_source_set_sha256": "97f866be59b69d5c9fe0d8f84fdbdd37a5ae069492efdf7698379b0c717e57d7",
       "questions": [
         {
           "question_id": "ADR-008-Q01",
           "question_anchor": "docs/adr/0008-extension-namespace-and-galadriel-separation.md#bounds-and-resource-behavior",
           "statement": "How do extension object limits and digest spelling conform to the universal JSON frame limit and one canonical content address?",
           "state": "CLOSED",
-          "resolution": "The outer extension transport is a bounded raw chunk frame under one prepared activation context. One reserved slot orders chunk retention, cuts, digest verification, schema reservation, and at-most-once callback entry. The reassembled package uses a separate bounded parser profile.",
+          "resolution": "The extension default is one bounded canonical-JSON semantic envelope under one installed manifest. Large bytes use bounded content-addressed attachment references. Admission orders complete validation, resource reservation, attachment verification, and at-most-once callback entry.",
           "resolution_anchor": "docs/adr/0008-extension-namespace-and-galadriel-separation.md#low-overhead-extension-transport-reconciliation",
           "b03_deferral": null
         },
@@ -771,7 +771,7 @@
                 ]
               },
               {
-                "parameter_id": "CHUNK_FRAME_PROFILE_IDENTITIES",
+                "parameter_id": "CANONICAL_ENCODING_PROFILE_IDENTITIES",
                 "value_kind": "EXACT_IDENTITY_SET",
                 "selection_predicate_id": "ADR-008-Q02-P06-SELECTION-PREDICATE",
                 "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
@@ -896,7 +896,7 @@
                 ]
               },
               {
-                "parameter_id": "CHUNK_COUNT_MAX",
+                "parameter_id": "ATTACHMENT_COUNT_MAX",
                 "value_kind": "BOUNDED_INTEGER",
                 "selection_predicate_id": "ADR-008-Q02-P12-SELECTION-PREDICATE",
                 "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-008-v1",
@@ -904,7 +904,7 @@
                 "b03_selection_verifier_required": true,
                 "inherits_excluded_no_edge_components": true,
                 "minimum": 1,
-                "maximum": 65536,
+                "maximum": 1024,
                 "required_tests": [
                   "ADR-008-B03-P12-MIN-EQUALITY",
                   "ADR-008-B03-P12-MAX-EQUALITY",
@@ -943,7 +943,7 @@
                 "eligible_identities_sha256": null
               },
               {
-                "parameter_id": "CHUNK_FRAME_PROFILE_IDENTITIES",
+                "parameter_id": "CANONICAL_ENCODING_PROFILE_IDENTITIES",
                 "eligible_identities": [],
                 "eligible_identities_sha256": null
               },
@@ -989,7 +989,7 @@
           "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
         ],
         "required_case_ids": [
-          "adr008.raw-chunk.semantic-projection.v1",
+          "adr008.extension-envelope.semantic-projection.v1",
           "adr008.evaluated-envelope.excerpt.v1",
           "adr008.self-policy.hostile.v1"
         ]
@@ -1088,7 +1088,7 @@
     },
     {
       "id": "ADR-010",
-      "adr_source_set_sha256": "ff6e362c453a5f44c262c8f66dcca54d752ef60f0a5bb0fc1fca798ba2415bf7",
+      "adr_source_set_sha256": "cf1e3c5d30d6df34d94468861a5d6cb637fa989f727ae4f15fef2689321ec51c",
       "questions": [
         {
           "question_id": "ADR-010-Q01",
@@ -1347,7 +1347,7 @@
     },
     {
       "id": "ADR-011",
-      "adr_source_set_sha256": "f9f78c3c8f5cf6cc37555e346017b286a683c9b0248782698c0d06b7aa001a92",
+      "adr_source_set_sha256": "b46c23c37970f73e001e46dc97b852f5897e3d651692edb69a9f6e0b043f5882",
       "questions": [
         {
           "question_id": "ADR-011-Q01",
@@ -1524,11 +1524,12 @@
       "example_requirements": {
         "corpus_path": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
         "required_corpus_status": "COMPLETE_CURRENT",
-        "required_source_paths": [
-          "docs/adr/0011-ecosystem-topology-and-handover.md"
-        ],
+      "required_source_paths": [
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+      ],
         "required_case_ids": [
-          "adr011.gated-intent-correlation.excerpt.v1",
+          "adr011.registered-haldir-intent.extension-envelope.v1",
           "adr011.identity-laundering-command.hostile.v1",
           "adr011.effect-path-fencing.semantic-projection.v1"
         ]

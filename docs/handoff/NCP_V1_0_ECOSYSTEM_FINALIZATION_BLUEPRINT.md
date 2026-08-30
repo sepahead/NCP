@@ -659,9 +659,10 @@ in-flight commands and lifecycle operations at the boundary. A controller cannot
 acquire action authority merely because it can publish a valid frame.
 
 Direct and gated modes are mutually exclusive. In direct mode Engram may be the
-enrolled commander. In gated mode Engram supplies a Haldir-local signed intent,
-Haldir creates a new NCP command under Haldir's principal, and Haldir is the only
-NCP commander. A transition must revoke the old lease, advance the persisted
+enrolled commander. In gated mode Engram publishes signed `HaldirIntentV2`
+through the Haldir-owned registered NCP extension. Haldir creates a new NCP
+command under Haldir's principal, and Haldir is the only NCP commander. A
+transition must revoke the old lease, advance the persisted
 authority term, quiesce at the plant-profile HOLD/safe boundary, retire the old
 command stream, and issue a new bounded lease and stream. It cannot be a
 configuration toggle or credential swap. The body rejects stale `(plant, logical
@@ -1014,7 +1015,7 @@ subject to either anchor. A protocol profile cannot create the independence that
 its safety argument requires.
 
 X05 remains proposed protocol infrastructure. It is not a consumer or extension
-role, and it never counts toward the nine X03 role receipts. Signature, trust,
+role, and it never counts toward the eleven X03 role receipts. Signature, trust,
 identity, revocation, deployment, and currentness requirements remain blueprint
 design material only. This repository-local checker intentionally contains no X05
 signature, trust-root, qualification, revocation, or currentness acceptance
@@ -1124,7 +1125,8 @@ Retain `haldir-ncp08` and its frozen evidence as immutable history. Create a
 parallel native `haldir-ncp10` adapter; do not rewrite old fixtures to look current.
 Haldir cannot be a transparent NCP identity proxy because native 1.0 does not grant
 delegation. It must be the enrolled NCP commander/lease holder/command publisher;
-upstream signed controller intents remain Haldir-local inputs.
+upstream signed controller intents enter through Haldir's registered NCP
+extension receiver.
 
 The native adapter must bind the exact live generation, session transcript,
 plant profile, security state, declared command stream, authority lease, source
@@ -2814,36 +2816,48 @@ For Galadriel, use an owned extension ID such as
 reviewed. If an adapter emits stable NCP, it publishes a separately declared
 standard frame; it does not wrap the project envelope on a core route.
 
-The selected extension outer transport is a bounded raw chunk frame. It is not a
-generic JSON wrapper and does not base64-encode package bytes. A prepared
-activation-context digest binds the producer, audience, direct realm, complete
-scope, manifest, literal route, package class, security state, processing
-profiles, receiver-clock incarnation, exclusive activation expiry, and
-never-reused receiver activation incarnation.
+The selected extension default is one bounded canonical-JSON semantic envelope.
+The installed manifest binds the producer, audience, direct realm, scope, schema,
+canonicalization, literal route, security state, processing profiles, receiver
+clock, exclusive activation expiry, and never-reused receiver incarnation.
 
-The fixed header carries only the wrapper profile, package class, activation
-context digest, package digest and length, and chunk index, count, and length.
-The installed frame/resource profile derives one fixed chunk payload from the
-authenticated transport limit. It also binds a closed package-class registry,
-hard package ceilings, and exact parser mapping. Unknown class, invalid
-arithmetic, oversized package, or alternate chunk geometry rejects before slot
-reservation.
+The receiver selects that manifest from trusted route context before semantic
+allocation. It enforces hard byte, nesting, member, string, array, attachment,
+and numeric limits. Unknown members, duplicate decoded keys, non-canonical
+numbers, and unsupported encodings reject before callback.
 
-One slot is keyed by activation-context and package digests. It reserves the
-complete package, per-chunk no-reuse state, larger active-or-terminal overhead,
-before it copies a chunk. Each new chunk moves once into its final offset. Exact
-duplicates do not copy. Conflicts never overwrite. Completion hashes the final
-buffer once.
+Large bytes remain outside the semantic envelope. A bounded attachment reference
+contains an attachment ID, enrolled store ID, canonical object key, digest, byte
+length, media type, schema ID, and purpose. The protected envelope binds the
+reference to its realm, activation, audience, manifest, and replay coordinate.
 
-Chunk retention claims an index and pins the buffer in one short owner
-transition. It copies outside the lock, then rechecks currentness and commits or
-discards the index in a second transition. A cut drains an in-flight claim
-without waiting under the lock. The receiver then reserves the schema arena and
-callback obligation before parsing. The final currentness recheck and callback
-entry are one indivisible owner transition. Entry consumes one right before
-extension code starts, and unresolved work keeps its reserved state until return
-or proved isolation termination. Rotation, revocation, expiry, replay, and
-disclosure remain fail closed.
+An attachment reference grants no fetch authority. The manifest enrolls the
+exact HTTPS origin, resolved address set, TLS identity, scoped credential source,
+timeouts, media types, count, and byte limits. The wire cannot supply a URL,
+user information, query, fragment, local path, or redirect target. Fetches use
+no ambient credential. Redirects, DNS or address drift, private-address
+substitution, local-file resolution, and symlink traversal reject.
+
+After envelope admission, the receiver reserves the complete attachment and
+callback budget. It mints a one-use local fetch capability for the envelope
+digest and exact reference. The receiver verifies the declared length and digest
+before semantic use. Missing, partial, oversized, mismatched, or unavailable
+bytes make the dependent semantic branch unusable.
+
+After every attachment verifies, the activation owner performs one atomic
+transition. It rechecks activation, security, principal, audience, manifest,
+realm, session, freshness, revocation, expiry, and resource currentness. The
+same transition consumes the one callback right. A cut during fetch prevents
+callback entry.
+
+Unresolved callback work keeps its resources until normal return or proved
+isolation termination. Rotation, revocation, expiry, replay, and disclosure
+remain fail closed.
+
+NCP 1.0 defines no generic chunk-reassembly protocol. A future binary extension
+profile needs a distinct identity, explicit negotiation, independent bounds,
+hostile tests, and separate qualification. It cannot tunnel static assets,
+packages, executables, SVG, or arbitrary project files.
 
 ### 7.12 Plane, QoS, and backpressure contract
 
@@ -2900,7 +2914,7 @@ ten lens decisions.
 | ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems reviewer; Engram stream owner; Haldir stream owner; Galadriel stream owner; Crebain stream owner; Prisoma stream owner |
 | ADR-006 | body-issued authority operations and temporal model | safety reviewer; distributed-systems reviewer; Haldir owner; Crebain owner |
 | ADR-007 | command disposition states, boundary meanings, journal and query | plant and safety reviewer; Haldir owner; Crebain owner |
-| ADR-008 | extension namespace and Galadriel sidecar separation | protocol reviewer; Galadriel owner; Haldir owner; Crebain owner |
+| ADR-008 | extension namespace and registered ecosystem extension separation | protocol reviewer; Galadriel owner; Haldir owner; Crebain owner; Engram owner |
 | ADR-009 | security-state semantic digest, key rotation and revocation | security reviewer; operations reviewer; supply-chain reviewer; security-artifact-anchor infrastructure owner/operator; independent anchor security reviewer |
 | ADR-010 | exact per-plane QoS, retention and overload semantics | real-time and performance reviewer; Engram consumer reviewer; Haldir consumer reviewer; Galadriel consumer reviewer; Crebain consumer reviewer; Prisoma consumer reviewer |
 | ADR-011 | ecosystem dependency directions, standalone modes, Engram role separation and simulation-resource authority, exclusive direct/gated plant command, body-coordinated handover, Galadriel-to-Haldir deny-only extension, and protocol-neutral pid-rs boundary | Engram owner; Haldir owner; Galadriel owner; Crebain owner; Prisoma owner; pid-rs owner; independent security and distributed-systems reviewer; release and package-tooling reviewer; Crebain plant and safety reviewer |
@@ -2937,7 +2951,7 @@ boundaries. It does not show completed migration or qualification.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/ecosystem-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/ecosystem-light.svg">
-  <img alt="Informative proposed NCP ecosystem map for the unreleased, release-blocked 1.0 candidate. Engram, Haldir, Crebain, Galadriel, and Prisoma own optional thin NCP adapters. Crebain remains final software body authority. Direct Engram and Haldir-gated command are mutually exclusive per term. Galadriel advice cannot widen permission. Observers gain no command authority. pid-rs remains protocol-neutral, and Cortexel has no NCP edge. No consumer qualification is complete." src="../diagrams/ecosystem-light.svg" width="980">
+  <img alt="Informative proposed NCP ecosystem map for the unreleased, release-blocked 1.0 candidate. It lists eleven exact role subjects. Haldir uses four integrated processes. The policy authority is not an NCP peer. Standalone Gate is a separate mode. The selected X02 fleet profile uses one composite session for one, two, or three drones. Its frames contain 6N sensor and 3N command scalars. MUSIC alone owns shared-clock coupling. SVG is presentation-only and non-contract. X02 and all consumer qualifications remain open." src="../diagrams/ecosystem-light.svg" width="980">
 </picture>
 
 The topology was derived from repository manifests, runtime surfaces and trust
@@ -2988,11 +3002,14 @@ configured.
 | Surface | Build-time | Startup-time | Runtime/dataflow | Trust and authority | Evidence boundary |
 |---|---|---|---|---|---|
 | NCP core/provider | no consumer application | no consumer application | supplies typed contract, conformance and optional transport SDKs | grants nothing by package presence; runtime actor comes from verified transport principal plus manifest | local provider tests cannot qualify any consumer or deployment |
-| Independent challenge-exposure anchor | installed protocol-infrastructure implementation for the exact NCP source cut; no consumer-role identity | separately owned authority, operator, principal, key/credential, security epoch, store/selector incarnation, failure domain and bounded policies | receives protected eligibility/challenge inputs, appends anchor evidence, returns paired-frame admission evidence, and publishes permanent closure | grants no plant or consumer authority; every source-versus-anchor control identity is compared and disjoint; ADR-009 anchor state remains a distinct qualified subject | X05 external qualification and an independent security/operations adjudicator are mandatory; this infrastructure never counts toward X03's nine role receipts |
+| Independent challenge-exposure anchor | installed protocol-infrastructure implementation for the exact NCP source cut; no consumer-role identity | separately owned authority, operator, principal, key/credential, security epoch, store/selector incarnation, failure domain and bounded policies | receives protected eligibility/challenge inputs, appends anchor evidence, returns paired-frame admission evidence, and publishes permanent closure | grants no plant or consumer authority; every source-versus-anchor control identity is compared and disjoint; ADR-009 anchor state remains a distinct qualified subject | X05 external qualification and an independent security/operations adjudicator are mandatory; this infrastructure never counts toward X03's eleven role receipts |
 | Engram core | no Crebain, Haldir, Galadriel, Prisoma or pid-rs requirement for basic simulation | none for standalone simulation | standalone neural simulation | owns only its simulation state; simulation output has no plant authority | always `is_simulation_output=true`, `calibrated_posterior=false` |
+| Engram extension host | no NCP transport or consumer runtime dependency | verified static assets and bounded presentation schema | panel layout, theme, readiness, heartbeat, container lifecycle, and stale-aware read-only projections from an Engram NCP adapter | holds no NCP object, credential, route, grant, lease, mutable role state, or project-opaque state; projections cannot become agent, runtime, or controller input | presentation cannot prove NCP delivery, authority, body effect, or scientific evidence |
 | Engram simulation adapter | optional NCP responder-only types; no plant commander linkage | responder principal, manifest, bounded resource policy | authorized clients request simulation operations | Engram issues simulation-scoped operation grants; these are non-fungible with plant leases | independent responder interop and real-backend evidence remain separate |
-| Engram commander adapter | optional NCP commander types; optional separate Haldir-intent adapter | exact plant descriptor, commander principal and either direct or gated mode | direct NCP commands to Crebain **or** Haldir-local intents, never both for one live plant term | direct mode holds only a bounded Crebain-issued lease; gated mode holds no NCP plant lease | command usefulness, plant effect and science are not inferred from protocol success |
+| Engram commander adapter | optional NCP commander types | exact plant descriptor, commander principal and direct mode | direct NCP commands to Crebain | holds only a bounded Crebain-issued lease | command usefulness, plant effect and science are not inferred from protocol success |
+| Engram Haldir-intent extension publisher | optional Haldir-owned registered NCP extension | distinct publisher principal, extension manifest, exact Haldir audience and gated mode | publishes bounded `haldir.intent.v2` envelopes | holds no plant lease, command credential, Haldir policy, or body authority | extension delivery never proves policy admission, decision, command publication, or plant effect |
 | Haldir core/Gate | no NCP or Galadriel requirement for standalone signed-intent decisions | local policy, signer roots, anti-replay state; fail closed | signed local intents in, immutable local decisions/receipts out | standalone mode owns local ALLOW/DENY only; it is not an extra process in the integrated topology | decision evidence is not plant execution or PID validity |
+| Haldir Engram-intent extension receiver | optional Haldir-owned registered NCP extension | distinct receiver principal, extension manifest, bounded ingress policy and narrow internal API | receives bounded `haldir.intent.v2` envelopes and writes immutable admission records | holds no body command credential, policy store, plant lease, or Galadriel receiver authority | receiver admission never proves policy decision, command publication, or plant effect |
 | Haldir NCP commander | optional NCP adapter | Haldir commander principal, default-deny manifest, fresh Crebain lease and policy-authority publication-fence API | converts an authority-admitted intent and publishes only through an exact one-use release reservation | evaluates no policy; Crebain remains sole admission/application/disposition authority | installed Haldir plus independent body tests required |
 | Haldir policy-state authority | integrated local policy target; no NCP or extension transport | base-policy and monitor-profile issuer trust, installed policy/fence selectors and replay | signed local intents and immutable admission records in; authenticated evaluations and one-use publication reservations/fence results out | sole integrated owner of base/monitor policy CAS, deny latches and release cancellation; has no NCP or extension credential | process/API/store isolation, deny-before-release races and crash idempotency required; not an NCP peer |
 | Haldir Galadriel receiver | optional default-off registered-extension adapter; not Galadriel app code | distinct assessor trust root/principal and exact evidence schema/absence bounds; no profile store | push-only raw advisory evidence in; emits an evidence-only admission and authenticated bounded external disposition | producer and receiver select no policy; qualified authority-side meet composition can preserve/remove permission only | current Galadriel evidence is record-only; exact deployment calibration/qualification, profile, monotonicity/property/fuzz/live freshness and disposition-binding evidence are required before restriction |
@@ -3014,7 +3031,7 @@ Mode-mandatory edges exist only while their named mode is active:
 |---|---|---|
 | authorized client → Engram simulation responder | typed simulation open/step/run/close | Engram owns simulation state and issues simulation-scoped receipts |
 | Engram commander → Crebain body | NCP command under current direct-mode lease | Crebain admits/applies/disposes; Engram only proposes |
-| Engram Haldir adapter → Haldir Gate | Haldir-local signed intent, not an NCP command | Haldir authenticates signer and owns local decision |
+| Engram Haldir-intent extension publisher → Haldir Engram-intent extension receiver | registered `haldir.intent.v2` NCP extension, not a stable `CommandFrame` | Haldir authenticates the NCP principal; the receiver records admission and the internal policy authority decides |
 | Haldir commander → Crebain body | newly constructed NCP command under current gated-mode lease | Crebain admits/applies/disposes; Haldir never becomes actuator authority |
 | Crebain body → current commander | lease status, revocation and command receipts | Crebain is authoritative; reply loss is resolved by idempotent query |
 | Crebain body → attached observers | declared standard frames/dispositions | Crebain owns publication; each grant bounds reader scope |
@@ -4552,7 +4569,7 @@ description or table. It does not require one unreadable master diagram.
 | observers and privacy | grant scope, non-authority, delivery versus admission, expiry, revocation, detach, restart, gaps, retention and disclosure boundaries |
 | identity and migration | wire, stable-core, normative release and corpus identities, unreleased candidate versus immutable 0.8, and native migration without a private fork |
 | packages and languages | Rust provider, Python, TypeScript, C and C++ boundaries, generated sources, installed-artifact evidence and independent-peer limits |
-| conformance and release | corpus, local gates, external qualification, nine exact role receipts, publication, post-publication checks and emergency revocation |
+| conformance and release | corpus, local gates, external qualification, eleven exact role receipts, publication, post-publication checks and emergency revocation |
 | ecosystem topology | Engram, Haldir, Galadriel, Crebain and Prisoma roles; pid-rs shown only as a protocol-neutral consumer dependency with no authority edge; unrelated repositories are omitted |
 
 Each owning repository generates all variants from one semantic graph:
@@ -4578,8 +4595,8 @@ semantic sources. Each consumer owns the graph for its own implemented roles:
 | Producer | Required role-specific atlas ownership |
 |---|---|
 | NCP | all shared semantic families above, without presenting informative visuals as normative contract or qualification evidence |
-| Engram | simulation responder plus mutually exclusive direct and Haldir-gated commander paths, with simulation/science limits |
-| Haldir | commander, separate policy-state authority and default-off Galadriel assessment receiver, with no body authority |
+| Engram | simulation responder, plant commander, and mutually exclusive Haldir-intent extension publisher, with simulation and science limits |
+| Haldir | separate intent receiver, assessment receiver, policy-state authority, and commander processes; the policy authority is not an NCP peer |
 | Galadriel | authenticated read-only observer and separate raw-advisory publisher, with advisory/non-calibration and deny-only downstream limits |
 | Crebain | body/final-actuator boundary and consolidated Galadriel producer surface, with physical-safety limitations |
 | Prisoma | read-only capture, missingness/provenance and research-claim partition, with no control edge |
@@ -5236,6 +5253,10 @@ Implementation:
   limits, default/unknown behavior, conformance requirements and retirement rule;
 - reserve Galadriel's project extension under its own extension namespace; do not
   legitimize the current standard sensor-route sidecar;
+- reserve Haldir's `org.sepahead.haldir.intent.v2` extension with its exact
+  Haldir owner, `haldir.intent.v2` schema, bounded canonical-JSON encoding,
+  route, publisher, receiver, security, resource, lifecycle, and callback
+  profiles. Reserve the Engram publisher and Haldir receiver as distinct roles;
 - allocate `SecurityAuthorityStateHead`,
   `InstalledSecurityAuthorityStateSelector`, and
   `SecurityAuthorityStateCommitReceipt`,
@@ -5847,11 +5868,15 @@ Implementation:
   heads and successful authorization-span/lifecycle compare-and-swap, preserves
   qualified state. Every genesis or other tuple change requires a separately
   authenticated boundary and full warm-up or retirement;
-- allocate one bounded protected attachment-reference shape over exact
-  ID/digest/byte-length/media-type. Require local bytes for every lifecycle/
-  currentness object, complete NCP source-authority bundle, adapter-mapping
-  receipt and cited source capture. Digest-only or fetch-later references are
-  invalid. Bind exact receipt/raw-vector attachments, NUL-terminated lifecycle
+- allocate one bounded protected attachment-reference shape over exact attachment
+  ID, enrolled store ID, canonical object key, digest, byte length, media type,
+  schema ID, and purpose. Bind each reference to realm, activation, audience,
+  manifest, and replay coordinate. Require a manifest-enrolled HTTPS origin,
+  address set, TLS identity, scoped non-ambient credential, and no redirects.
+  Reject wire URLs, user information, query, fragment, local paths, DNS or address
+  drift, private-address substitution, and symlink traversal. Require verified
+  local bytes before semantic admission. A bare digest is invalid. Bind exact
+  receipt/raw-vector attachments, NUL-terminated lifecycle
   domains, U64/U128 big-endian encodings, length prefixes, optional-digest tags,
   canonical nested JSON including reviewed finite-float/Ryu spelling, suite,
   vector/member identity, total ordered raw-to-projection mapping, observations
@@ -5933,7 +5958,7 @@ Implementation:
   post-CAS `HaldirIntentSourceAdmissionReceipt`,
   authority-signed `HaldirPolicyDecisionRecord`, and
   `HaldirPolicyDecisionCommitReceipt`. The policy authority, not the commander,
-  owns local-intent and source admission. It constructs the fact before source-
+  owns registered intent and source admission. It constructs the fact before source-
   admission CAS; the successor binds it, then the generic commit and receipt
   bind the installed transition. A later policy-state compare-and-swap consumes
   that installed source receipt and commits the acyclic decision plus history
@@ -6096,7 +6121,8 @@ Implementation:
   `producer_declared_resolved_source`: it proves neither internal computational
   consumption nor causality. None of these types assigns a scientific variable
   meaning. Register, as an extension rather than core type, Haldir's
-  separately versioned `haldir.intent.v2` schema/kind and canonical-CBOR profile:
+  separately versioned `haldir.intent.v2` schema/kind and bounded
+  canonical-JSON profile:
   exactly one `SOURCE_PRESENT` with full reference/transfer and full ordered
   reference/transfer watermarks, or `SOURCE_ABSENT` with no dummy/transfer/
   source-derived watermark. Preserve V1 allocation/meaning and reject downgrade;
@@ -6206,10 +6232,12 @@ Implementation:
 - add `ContractIdentity` to Rust/proto/JSON with exact fixed lowercase-hex lengths;
   reject missing, uppercase, truncated, prefixed, wrong-algorithm and conflicting
   identity values before session allocation;
-- materialize the B03-selected extension outer-frame profile as one fixed raw
-  header plus payload bytes. Generate its magic, version, package-class table,
-  field widths, byte order, digest domains, chunk arithmetic, and parser-profile
-  mapping from the accepted allocations. Do not create a JSON or base64 wrapper.
+- materialize the B03-selected extension profile as one complete bounded
+  canonical-JSON semantic envelope per NCP message. Generate its closed schema,
+  canonicalization rules, limits, digest domains, attachment-reference profile,
+  and parser mapping from accepted allocations. Do not put attachment bytes in
+  base64 or define NCP chunk reassembly. Transport-internal fragmentation remains
+  below NCP and has no protocol semantics;
 - make the manifest generator derive all identities and emit one dependency graph;
   no Rust/TypeScript/Python hard-coded copy is accepted without generated equality;
 - add prefix-free projection test vectors including empty, Unicode, reordered,
@@ -6721,11 +6749,14 @@ Implementation:
   undeclare guards, and retire them on generation/security/grant/stream change;
 - implement per-plane queues, priority, congestion, retention and deadlines exactly;
   control/data overload cannot refresh leases/watchdogs or starve admitted fail-safe;
-- implement the selected raw extension chunk path with header/class/arithmetic
-  checks before slot reservation, one copy into each final offset, digest-once
-  completion, pre-reserved schema arena, one callback right, and compact
-  activation-lifetime tombstones. Rotation, revocation, expiry, conflict, and
-  unresolved callback work must preserve the ADR-008 resource and no-reuse rules.
+- implement the selected bounded canonical-JSON extension path. Authenticate and
+  enforce frame, schema, parser, attachment, and callback bounds before semantic
+  allocation. Reserve all resources before fetch. Use only manifest-enrolled
+  content stores and receiver-minted one-use fetch capabilities. Verify every
+  length and digest. Atomically recheck currentness and consume one callback right
+  before entry. Retain compact activation-lifetime tombstones. Rotation,
+  revocation, expiry, conflict, and unresolved callback work must preserve the
+  ADR-008 resource and no-reuse rules. NCP defines no generic chunk protocol;
 - expose development loopback/UDS only behind visibly insecure types/config; reject
   non-loopback endpoints and any production negotiation;
 - close and audit on ACL/cert expiry/revocation/rotation faults; no silent reconnect
@@ -7652,8 +7683,8 @@ future-receipt/cycle, local-receipt/time/
 command-position substitution and source-to-absence downgrade negatives;
 V1-on-native/downgrade, weak-ref-as-V2, dummy absence, source-without-transfer,
 transfer-without-source, changed declaration/content/session generation,
-attachment-under-same-signature, weak/full watermark substitution and canonical-
-CBOR/signature coverage;
+attachment-under-same-signature, weak/full watermark substitution, bounded
+canonical-JSON/signature coverage, and CBOR-on-V2 rejection;
 two-commander conflict and both body-coordinated handover directions. This task
 creates integration evidence, not a new NCP role receipt. The Engram atlas passes
 the V11 semantic, variant, accessibility, motion, manifest and 20-lens review
@@ -7672,6 +7703,59 @@ Ten-lens record:
 8. **L8:** mode, handover and rejection status are operable.
 9. **L9:** identity, audience, source and two-writer mutants reject.
 10. **L10:** body owns commander selection; each project owns its local evidence.
+
+#### E07 — qualify Engram's Haldir-intent extension publisher role
+
+**Status:** `OPEN`<br>
+**Depends on:** E06, X02<br>
+**Repository/environment:** Engram publisher and isolated qualification
+environment<br>
+**Update:** publisher deployment, security, operations, evidence, claim, and
+consumer-surface records.
+
+Build and install the dedicated publisher from one clean pushed Engram commit.
+Bind the exact NCP package, Haldir manifest, publisher principal, audience,
+route, security state, source-transfer policy, and gated-mode configuration.
+Activate no Engram plant lease or NCP command credential.
+
+Run positive campaigns for grant query, exact slot use, monotonic deadline,
+`SOURCE_PRESENT`, `SOURCE_ABSENT`, attachment references, ambiguous transport,
+same-byte retry, restart, and body-coordinated mode handover. Record sender
+attempt, Haldir ingress outcome, policy outcome, command outcome, and body outcome
+as separate evidence.
+
+Run negative campaigns for V1, CBOR on V2, sender-UTC freshness, missing or wrong
+grant receipt, slot, clock incarnation, validity, deadline, requested effect,
+signature field, source branch, source transfer, watermark, principal, audience,
+manifest, route, realm, session, and replay coordinate. Reject direct and gated
+commander overlap.
+
+Exercise the Engram-local bounded operator-intent ingress. Prove that Host API,
+private IPC, `postMessage`, and host callbacks carry no cross-project semantics.
+Prove that presentation projections cannot feed an agent, runtime, or controller.
+Panel lifecycle cannot mutate a daemon, session, lease, authority, or body state.
+Historical Host API 2 evidence cannot satisfy this role.
+
+Acceptance: exact installed artifact and configuration; zero skips; distinct
+publisher identity; no plant lease or command capability; all positive and
+negative campaigns pass; exact resource and latency receipts; independent review;
+and one publisher-only role receipt. The receipt proves no Haldir admission,
+policy decision, command publication, body admission, application, physical
+effect, or scientific result. Commit/push
+`evidence: qualify Engram's Haldir-intent extension publisher`.
+
+Ten-lens record:
+
+1. **L1:** installed publisher bytes match the registered V2 extension.
+2. **L2:** actor, route, audience, manifest, signature, and replay failures reject.
+3. **L3:** the publisher has no body lease, command key, or actuator authority.
+4. **L4:** retry, ambiguity, restart, expiry, revocation, and handover execute.
+5. **L5:** envelope, attachment, queue, latency, and retained-state bounds measure.
+6. **L6:** installed Engram and Haldir receiver artifacts interoperate exactly.
+7. **L7:** transport evidence creates no policy, plant, or scientific claim.
+8. **L8:** gated-mode status, recovery, and local UI ingress remain operable.
+9. **L9:** zero-skip logs bind every required positive and hostile control.
+10. **L10:** extension, key, support, retention, and incident owners are recorded.
 
 #### H01 — add a parallel `haldir-ncp10` adapter without mutating v0.8 history
 
@@ -7694,7 +7778,8 @@ Implementation:
 - preserve `HaldirIntentV1` and `NcpSourceRefV1` exactly. V1's mandatory weak
   `{source_key, stream_epoch, stream_seq}` cannot represent native-1.0 session/
   declaration/content identity, protected transfer, or explicit absence. Add a
-  parallel signed `HaldirIntentV2`/`haldir.intent.v2` canonical-CBOR contract.
+  parallel signed `HaldirIntentV2`/`haldir.intent.v2` canonical-JSON extension
+  contract under `org.sepahead.haldir.intent.v2`.
   Its closed source union is exactly `SOURCE_PRESENT { NormativeSourceRef,
   ProtectedOriginTransfer, full ordered reference/transfer watermarks }` or
   `SOURCE_ABSENT { profile-permitted reason }`; absence forbids dummy source,
@@ -7704,7 +7789,7 @@ Implementation:
 - map Haldir mission/action/identity/lease/status types to NCP plant-session,
   authority request and command types through total fallible conversions. Map the
   V2 receiver-independent `NormativeSourceRef` as one indivisible portable origin
-  identity or explicit absence; never accept V1 weak reference, an Haldir-local
+  identity or explicit absence; never accept V1 weak reference, a receiver-local
   admission receipt, receiver time, or command-own-stream position as that
   identity. H01's conversion and H02's decoder use the same exported V2 type, not
   shadow structs;
@@ -7719,7 +7804,7 @@ checks; conversion/property/negative vectors, including altered source
 session/generation/epoch/sequence/declaration/content/transfer and local-receipt/
 time substitution; V1-on-native/downgrade, dummy/empty absence, source without
 transfer, transfer without source, weak/full watermark substitution and
-canonical-CBOR/signature mutations; dependency
+canonical-JSON/signature mutations; dependency
 feature audit; no single
 deployable artifact, dependency closure, feature graph, process, profile,
 credential set, state store, resolved transport namespace, or plant session can
@@ -7741,37 +7826,40 @@ Ten-lens record:
 9. **L9:** provider corpus plus Haldir property/mutation tests cover conversions.
 10. **L10:** adapter owners, pin update and v0.8 retirement policy are recorded.
 
-#### H02 — integrate body-issued authority and dispositions into Haldir Gate
+#### H02 — integrate body authority, dispositions, and Engram-intent extension ingress into Haldir Gate
 
 **Status:** `OPEN`<br>
 **Depends on:** H01<br>
 **Repository:** Haldir<br>
 **Create/update:** preserve standalone `crates/haldir-gate`, and factor its
 decision core into an integrated `crates/haldir-policy-authority` target/process
-plus an NCP conversion/publication-commander target; add the narrow
-receiver-to-policy evaluation API and commander-to-policy publication
-reservation/fence API;
-update `haldir-contracts`, distinct receiver/policy/commander state and durable/
+plus a dedicated Engram-intent receiver and an NCP
+conversion/publication-commander target. Add the narrow intent-admission,
+assessment-evaluation, and commander-publication APIs. Update
+`haldir-contracts`, distinct intent-receiver/policy/commander state and durable
 evidence crates, `haldir-transport-zenoh/src/keys.rs`,
 `deploy/secure-reference-v1/profile.json`, authority ADR/docs and tests.
 
 Implementation:
 
-- make the policy-state authority a separate process, completing the three-process
-  topology when H04 adds the optional receiver. It embeds the existing Gate
-  decision core and alone owns base policy, signed-intent replay/admission,
+- create three integrated base processes: intent receiver, policy-state
+  authority, and commander. H04 adds the default-off assessment receiver as the
+  fourth process. The policy authority embeds the existing Gate decision core.
+  It alone owns base policy, intent decision replay,
   installed monitor profiles, `HaldirPolicyStateHead`/selector, deny latches,
   policy-evaluation single-flight state, command-publication reservations/fence,
-  and policy commit receipts. It has a Haldir-local API credential but neither
+  and policy commit receipts. It has an internal Haldir API credential but neither
   extension-ingress nor NCP commander credential, route, bus handle, or state
-  store. The assessment receiver sends only immutable evidence-only
+  store. The intent receiver sends only immutable
+  `HaldirIntentAdmissionRecord` plus its post-CAS currentness receipt. The
+  assessment receiver sends only immutable evidence-only
   `AssessmentAdmissionRecord` plus its post-CAS
   `HaldirAssessmentAdmissionCurrentnessReceipt` and receives only authenticated
   `HaldirPolicyIngressStamp` plus `HaldirPolicyEvaluationResult`. The commander
   submits exact publication preimages and receives only one-use reservation/fence
   results; it cannot evaluate policy or read raw assessment/admission/replay/
   profile state. Preserve standalone Gate as a different deployment mode, not a
-  fourth integrated process. No integrated process activates two role surfaces,
+  fifth integrated process. No integrated process activates two role surfaces,
   and the policy authority is not an NCP peer;
 - keep Haldir's local policy authorization distinct from NCP body authority: a
   policy allow may request/acquire/renew a body lease but cannot fabricate one;
@@ -7788,60 +7876,54 @@ Implementation:
   `HaldirPolicyDecisionCommitReceipt`. The commander requires the record, commit
   and exact current or permission-preserving ancestry proof. It alone transforms
   that ALLOW into later body/NCP context and bytes;
-- accept upstream controller input only through the policy authority as a
-  Haldir-local signed intent. After authority admission, the commander constructs
-  a new NCP command under Haldir's enrolled commander principal and retains the
-  intent/decision digests as provenance data, never delegated identity or
-  authority. Publication still requires the one-use release fence below. The
-  native route accepts only the parallel
-  `HaldirIntentV2`, never frozen `HaldirIntentV1` or its weak
-  `NcpSourceRefV1`. Decode the exact shared H01 V2 canonical-CBOR/signature type
-  and its closed `SOURCE_PRESENT`/`SOURCE_ABSENT` union. The present branch
-  carries the exact portable `NormativeSourceRef` from the controller's
-  authenticated/admitted origin input and a bounded Haldir-local
-  `ProtectedOriginTransfer` in one closed form. `EXACT_ORIGIN_TRANSFER` binds the
-  exact original protected producer envelope and declaration/security evidence.
-  `TRUSTED_PROJECTED_ORIGIN_TRANSFER` binds protected projected bytes plus exact
-  receiver-independent `TrustedProjectionRecord` from the portable original
-  identity through the projector/policy/transform/audience. It never carries a
-  controller-local receiver receipt. Both bind the intended Haldir policy-
-  authority ingress, intent/plant-session context and transfer-policy digest.
-  The integrated policy
-  authority strictly decodes
-  before allocation, independently verifies the applicable producer or trusted
-  projector chain, manifest, declaration, session, security state and transfer
-  actor/audience/context, compare-and-swaps the pending operation in subordinate
-  `HaldirIntentIngressState`, constructs receipt-free
-  `HaldirIntentSourceAdmissionFact`, and compare-and-swaps a successor that binds
-  it. The generic policy commit and post-CAS
-  `HaldirIntentSourceAdmissionReceipt` then bind the fact, prior/installed heads
-  and selector. For
-  projected evidence, the policy authority creates
-  Haldir-local `TrustedProjectionProvenance` from the record digest and that
-  installed receipt. A losing source fact creates neither receipt nor
-  provenance. Projected evidence remains labeled
-  projected and cannot claim unavailable original content. The protected
-  producer/projector evidence must already include the exact Haldir audience;
-  the controller signature and transfer-policy digest cannot widen disclosure.
-  Source freshness requires an authenticated
-  clock mapping with bounded uncertainty when policy depends on source age;
-  Haldir arrival time alone proves only transfer arrival.
-
-  This capability is part of the policy authority's authenticated local-intent
-  surface and accepts only intent-bound attachments. It exposes no observer
-  attach, subscription, history query, wildcard route, or generic read transport
-  and creates no additional NCP role. The commander copies only the unchanged
-  portable identity from the authority decision into the new command, never the
-  local receipt. A controller-local or
-  other receiver's receipt, arrival time, either command stream position,
-  unauthorized attachment, portable reference without matching local origin
-  evidence cannot substitute. Missing local evidence rejects or holds the
-  source-bearing intent and cannot silently downgrade it to explicit absence.
-  The absent branch forbids source/transfer/dummy values and source-derived
-  watermarks. Every present watermark carries a full portable reference and
-  matching transfer, is independently admitted, and remains a declared input
-  position rather than delivery order, authority, or computational-causality
-  proof;
+- accept upstream controller input only through the dedicated registered
+  Haldir-intent receiver. The policy authority idempotently installs each
+  `HaldirIntentFreshnessGrant` and its installation receipt. The grant binds the
+  exact receiver, publisher, realm, plant session, route, slot range, intent
+  classes, Haldir clock incarnation, issue tick, exclusive maximum deadline, and
+  capacity. The sender selects no range or deadline;
+- admit only exact `HaldirIntentV2` bounded canonical JSON. Reject frozen V1,
+  CBOR on V2, and weak `NcpSourceRefV1`. The signed preimage binds the grant,
+  installation receipt, selected slot, clock incarnation, positive bounded
+  `requested_validity_ms`, derived effective deadline, requested effect, and
+  closed source union. Sender UTC and receive time cannot define or refresh the
+  deadline. Equality is expired;
+- make the intent receiver own extension transport, replay, attachment fetch,
+  `HaldirIntentIngressStateHead`, its selector, reservations, admission records,
+  currentness receipts, and transport dispositions. It fetches only
+  manifest-enrolled content-addressed objects. It verifies every byte, performs
+  the final currentness recheck, and consumes callback entry in one local
+  transition. It has no policy store or NCP command credential;
+- send only the immutable `HaldirIntentAdmissionRecord`, complete verified
+  bytes, and `HaldirIntentAdmissionCurrentnessReceipt` through the narrow
+  audience-bound API. The policy authority receives no transport handle, fetch
+  credential, or receiver-store authority. Receiver admission and policy CAS are
+  separate transactions. Neither claims atomicity across stores;
+- make the policy authority independently decode and verify the V2 envelope,
+  grant, receipt, slot, unchanged deadline, actor, audience, manifest, source
+  union, and source transfer. `SOURCE_PRESENT` carries the exact portable
+  `NormativeSourceRef` and one `ProtectedOriginTransfer`.
+  `EXACT_ORIGIN_TRANSFER` binds original protected producer evidence.
+  `TRUSTED_PROJECTED_ORIGIN_TRANSFER` binds projected bytes and the exact
+  receiver-independent `TrustedProjectionRecord`. Neither carries another
+  receiver's local receipt;
+- require protected producer or projector evidence to name the exact Haldir
+  audience. A controller signature cannot widen disclosure. The policy authority
+  constructs receipt-free `HaldirIntentSourceAdmissionFact` against its own
+  prior policy head. Its winning policy CAS binds the fact. The later generic
+  commit and `HaldirIntentSourceAdmissionReceipt` bind the installed transition.
+  For projected evidence, Haldir creates its own
+  `TrustedProjectionProvenance`. A losing fact creates no receipt or provenance;
+- expose no observer attach, subscription, history query, wildcard route, or
+  generic read transport through the intent receiver. The commander copies only
+  the unchanged portable source identity from the authority decision. Missing
+  local evidence rejects or holds a source-present intent. It cannot become
+  source absence. Every watermark carries a full reference and matching transfer.
+  A watermark proves declared input position, not causality; and
+- after policy admission, construct a new NCP command under Haldir's enrolled
+  commander principal. Retain intent and decision digests only as provenance.
+  Never delegate Engram identity or authority. Publication still requires the
+  one-use release fence below;
 - bind the frame and transport actor for every attempted Active, HOLD, or ESTOP
   publication to the enrolled Haldir commander. Bind an initiating authenticated
   operator, when present, only as separate provenance; it never becomes the
@@ -7977,7 +8059,7 @@ Implementation:
   it, require an authenticated operator reconciliation operation and an exact
   profile-required body disposition for a fresh fail-safe sequence before later
   Active. No lower-severity action can pass an unresolved higher-severity attempt;
-- move Haldir-local intent and local evidence payloads to exact registered
+- move cross-project intent and evidence payloads to exact registered
   extension routes. Standard NCP `CommandFrame` and body command dispositions
   stay on their stable registered routes. Wrong-direction route/message
   combinations reject;
@@ -8043,10 +8125,12 @@ substitution and no-mapping timing;
 disposition delivered-byte mismatch, missing predecessor,
 historical/sibling current head, losing append, stale compaction membership, and
 applied-without/mismatched post-CAS evidence; intent identity-laundering
-negatives; three-target process/credential/route/store isolation; receiver cannot
-publish NCP, commander cannot read assessment/admission/replay/profile state,
-policy authority has neither transport credential, wrong narrow-API audience/
-message rejection; installed Haldir policy-selector rollback/sibling/currentness and
+negatives; four-target process, credential, route, and store isolation; neither
+receiver can publish NCP; the intent receiver has no policy store; the assessment
+receiver has no intent credential; the commander cannot read extension evidence,
+admission, replay, or profile state; the policy authority has no extension
+transport credential; wrong narrow-API audience/message rejection; installed
+Haldir policy-selector rollback/sibling/currentness and
 commit-receipt hostiles; valid first policy genesis, post-deny empty genesis,
 sibling empty genesis, restart reset and reused-lineage hostiles; source
 loss/altered portable source/local
@@ -8350,6 +8434,55 @@ Ten-lens record:
 8. **L8:** deployment, rotation, status and recovery are reproducible.
 9. **L9:** exact logs/hashes/skips and review bind only this role.
 10. **L10:** profile, key, support, expiry and incident owners are recorded.
+
+#### H06 — qualify Haldir's Engram-intent extension receiver role
+
+**Status:** `OPEN`<br>
+**Depends on:** H02, X02<br>
+**Repository/environment:** Haldir intent receiver, Engram publisher, isolated
+policy authority, and secure transport environment<br>
+**Update:** intent-receiver deployment, security, operations, evidence, claim,
+and consumer-surface records.
+
+Build and install the dedicated intent receiver from one clean pushed Haldir
+commit. Bind the exact NCP package, registered manifest, receiver principal,
+route, audience, security state, clock authority, enrolled attachment store,
+resource profile, and narrow policy API. Activate no commander credential, body
+lease, Galadriel receiver credential, or policy store.
+
+Run positive campaigns for freshness-grant query, installed receipt, exact slot,
+monotonic deadline, present and absent source unions, enrolled attachment fetch,
+same-byte retry, ambiguity resolution, restart, revocation, and admission-to-
+policy handoff. Prove receiver admission and policy CAS as separate transactions.
+
+Run negative campaigns for V1, CBOR on V2, sender-UTC or arrival-time freshness,
+grant/receipt/slot/clock/validity/deadline/requested-effect/signature/source
+substitution, wrong principal/audience/manifest/route/realm/session/replay key,
+wire URL, redirect, DNS or address drift, private-address substitution, ambient
+credential, local path, symlink escape, oversized content, digest mismatch, and
+revocation or expiry during fetch. The final currentness recheck and callback-
+right consumption must prevent callback entry after a winning cut.
+
+Acceptance: exact installed artifact and configuration; zero skips; live
+transport, identity, attachment, revocation, restart, and overload campaigns;
+four-process credential, route, API, and store isolation; exact resource and
+latency receipts; independent review; and one receiver-only role receipt. The
+receipt proves no policy ALLOW, command publication, body admission, application,
+physical effect, or scientific result. Commit/push
+`evidence: qualify Haldir's Engram-intent extension receiver`.
+
+Ten-lens record:
+
+1. **L1:** installed receiver matches the registered V2 extension exactly.
+2. **L2:** identity, route, manifest, fetch, currentness, and replay failures reject.
+3. **L3:** the receiver has no command, lease, policy, or actuator authority.
+4. **L4:** ambiguity, retry, restart, expiry, revocation, and fetch races execute.
+5. **L5:** parser, attachment, queue, latency, and retained-state bounds measure.
+6. **L6:** installed Engram publisher and Haldir receiver interoperate exactly.
+7. **L7:** admission evidence creates no policy, plant, or scientific claim.
+8. **L8:** deployment, rotation, query, recovery, and status are reproducible.
+9. **L9:** zero-skip logs bind every required positive and hostile control.
+10. **L10:** extension, store, key, support, retention, and incident owners record.
 
 #### G01 — create Galadriel's native-1.0 observer and extension adapter
 
@@ -10133,7 +10266,7 @@ Acceptance is intentionally unavailable in the current ledger. X05 stays
 **NOT RUN**; the checker has no production trust-root set or configuration path;
 and there is no current X05 window or expiry to report. Do not invent one from
 local time or a placeholder artifact. The proposed infrastructure remains
-`counts_toward_nine_consumer_role_receipts=false`.
+`counts_toward_eleven_consumer_role_receipts=false`.
 
 Ten-lens record:
 
@@ -10159,13 +10292,31 @@ Execute compositions, not only pairs:
 - Engram simulation responder with an independent client;
 - Engram simulation service concurrently with observation and each plant commander
   mode, proving its principal/grants/state never enter plant authority;
+- real NEST Simulator 3.9 closed loops for exactly 1, 2, and 3 simulated CREBAIN
+  drones. Each run uses one composite fleet plant session, one aggregate
+  `SensorFrame` with `6N` scalars, and one aggregate `CommandFrame` with
+  `3N` scalars. The plant profile binds a sorted stable drone-ID roster and the
+  exact per-drone ENU `position[x,y,z]`, `velocity[x,y,z]`, and
+  `acceleration_command[x,y,z]` channel order. Every frame binds the descriptor
+  and layout digests plus identical roster order;
+- exact NEST controller-step and sensor-source correlation for every fleet epoch.
+  Retain NEST 3.9 version, Engram and CREBAIN commits, NCP artifact and contract
+  identities, fleet size and roster, descriptor and layout digests, seeds,
+  simulation duration and resolution, frame and command digests, stream
+  coordinates, authority and disposition chains, step counts, timing, resource
+  measures, and terminal state;
+- whole-frame negatives for missing, duplicate, unknown, stale, misordered,
+  non-finite, unit-mismatched, wrong-drone, same-unit cross-drone swap, roster
+  permutation, descriptor drift, layout drift, and partial command input. Each
+  rejects before simulator callback and creates no partial fleet application;
 - direct Engram commander and gated Haldir commander contending for one Crebain
   body, including acquire/conflict, both handover directions, quiesce, crash at
   every transition boundary, old-commander partition, lease-deadline expiry,
   restart, stale
   buffered commands and disposition query;
-- Engram-to-Haldir local signed intent, proving Haldir constructs a new command and
-  never launders Engram identity/authority;
+- Engram-to-Haldir `haldir.intent.v2` through the registered NCP extension,
+  proving Haldir constructs a new command and never launders Engram identity or
+  authority;
 - Galadriel and Prisoma attaching read-only during operation, restart, key rotation
   and grant revocation;
 - source, Galadriel, and Prisoma using the exact X05 anchor deployment during
@@ -10180,35 +10331,49 @@ Execute compositions, not only pairs:
   pid-runlog capture, proving pid-rs remains protocol-neutral and off every control
   path;
 - close/reset/reopen while commands, observations and dispositions are in flight;
+- Engram-hosted presentation integration. A bounded Engram-local operator intent
+  can enter its adapter, but Host API, private IPC, `postMessage`, and host
+  callbacks cannot cross a project boundary. A presentation projection never
+  becomes agent, runtime, or controller input. Panel lifecycle cannot mutate a
+  daemon, NCP session, lease, authority, or body state. Historical Host API 2
+  fleet evidence cannot count as an NCP campaign result;
+- MUSIC boundary negatives. NCP defines, tunnels, or reinterprets no MUSIC time
+  grant, lookahead, scheduler barrier, tick ownership, or deadlock semantics.
+  The NEST–CREBAIN loops use independent clocks and make no shared-clock claim.
+  A future shared-clock campaign must use separately qualified MUSIC artifacts;
 - old 0.8 and superseded RC peers attempting connection and failing closed, plus an
   explicitly terminating migration gateway if one is shipped.
 
-Acceptance: all cross-module TLA scenarios have live counterparts; exact expected
-state at every participant; no private core fork; no authority split brain; no
-observer mutation; bounded resources; independent review. Commit/push
+Acceptance: all cross-module TLA scenarios have live counterparts; all three
+NEST 3.9 fleet sizes pass with exact receipts and zero skipped epoch; every
+whole-frame hostile case rejects before callback; exact expected state at every
+participant; no private core fork; no Host API 2 substitution; no NCP-owned MUSIC
+semantics; no authority split brain; no observer mutation; bounded resources;
+independent review. Commit/push
 `evidence: record the composed NCP 1.0 ecosystem campaign`.
 
 Ten-lens record:
 
 1. **L1:** all roles observe one session/stream/authority/disposition truth.
 2. **L2:** actor/role/manifest/route/lease isolation holds in composition.
-3. **L3:** contention/faults remain non-actuating and preserve ESTOP boundary.
-4. **L4:** multi-writer, observer, rotation, close/reset and in-flight races execute.
-5. **L5:** aggregate queues/CPU/memory/disk/deadlines stay bounded by plane.
-6. **L6:** every named consumer and independent peer interoperates without forks.
+3. **L3:** fleet faults reject before callback and preserve the ESTOP boundary.
+4. **L4:** multi-writer, fleet, observer, rotation, close/reset and races execute.
+5. **L5:** queues, CPU, memory, disk, deadlines, and fleet dimensions stay bounded.
+6. **L6:** every consumer, fleet size, and independent peer interoperates without forks.
 7. **L7:** observer outputs retain missingness/advisory/non-calibration truth.
 8. **L8:** operators can diagnose ownership, failure, recovery and evidence gaps.
 9. **L9:** model-to-live scenario map and exact multi-repo receipts are retained.
 10. **L10:** cross-repo incident/upgrade/rollback/support coordination is exercised.
 
-#### X03 — issue nine exact consumer and extension role qualification receipts
+#### X03 — issue eleven exact consumer and extension role qualification receipts
 
 **Status:** `OPEN`<br>
-**Depends on:** H05, C05, P03, F04<br>
-**Subjects:** Engram simulation responder; Engram plant commander; Haldir NCP
-commander; Haldir Galadriel-assessment receiver; Galadriel NCP observer; Galadriel
-raw-advisory publisher; Crebain body; Crebain Galadriel-producer surface; Prisoma NCP
-observer.
+**Depends on:** H05, C05, P03, F04, E07, H06<br>
+**Subjects:** Engram simulation responder; Engram plant commander; Engram
+Haldir-intent extension publisher; Haldir NCP commander; Haldir Engram-intent
+extension receiver; Haldir Galadriel-assessment receiver; Galadriel NCP observer; Galadriel
+raw-advisory publisher; Crebain body; Crebain Galadriel-producer surface; and
+Prisoma NCP observer.
 
 For each role subject issue a distinct receipt binding repository/commit/tree, installed
 artifact hashes, NCP identities, configuration/security/plant/extension profiles,
@@ -10221,10 +10386,10 @@ Galadriel/Prisoma receipts. X05 receives no role receipt because it is protocol
 infrastructure, not a consumer or extension role. A failure in one receipt does
 not get averaged into fleet success.
 
-Acceptance: all nine exact role subjects pass their mandatory role gates with no critical
+Acceptance: all eleven exact role subjects pass their mandatory role gates with no critical
 open finding or unexplained skip; provider validates signatures/schema/subjects;
 receipts cannot be replayed for later commits/configs. Commit/push
-`evidence: record nine NCP 1.0 ecosystem role receipts`.
+`evidence: record eleven NCP 1.0 ecosystem role receipts`.
 
 Ten-lens record:
 
@@ -10233,7 +10398,7 @@ Ten-lens record:
 3. **L3:** plant versus observer/simulation boundaries remain distinct.
 4. **L4:** required lifecycle/fault scenarios are subject-specific and complete.
 5. **L5:** platform/resource/deadline scope is explicit.
-6. **L6:** all nine pass individually; no copied pin or aggregate inference.
+6. **L6:** all eleven pass individually; no copied pin or aggregate inference.
 7. **L7:** subject claim tiers and scientific exclusions are explicit.
 8. **L8:** install/operate/recover/support evidence is attached.
 9. **L9:** commands/counts/skips/artifacts/review make each result auditable.
@@ -10296,7 +10461,7 @@ Ten-lens record:
 3. **L3:** safety/hazard/plant limitations and evidence are visible.
 4. **L4:** faults, rollback and incident states have passed qualification.
 5. **L5:** supported resource/performance bounds are evidenced.
-6. **L6:** installed peers and nine consumer/extension role subjects are exact.
+6. **L6:** installed peers and eleven consumer/extension role subjects are exact.
 7. **L7:** scientific/benchmark claims remain properly scoped.
 8. **L8:** release/operator/support/documentation inputs are executable.
 9. **L9:** every gate receipt is current, independent where required and zero-skip.
@@ -10374,7 +10539,7 @@ The final authorization bundle must contain one current receipt for every row:
 | installed package matrix | N07, N09, X01, X04 | exact crates/wheel/sdist/npm/C++ artifacts install and pass applicable behavior on supported platforms |
 | registry namespace ownership | N09 | every final distribution name is controlled, verified and collision-free before upload |
 | disjoint independent challenge-exposure anchor infrastructure | X05, X02, F04 | admission intentionally unavailable in the repository-local checker, which contains no X05 acceptance parser, cryptographic dependency, or trust-root configuration path; requires a separately authenticated, independently qualified verifier boundary plus an explicit reviewed checker/schema integration; local identities, refs, clocks, and receipts grant no status; does not count toward consumer-role receipts |
-| nine consumer/extension-role qualifications | E05, H03, G03, C05, P03, X03 | nine exact role receipts: Engram simulation responder; Engram plant commander; Haldir NCP commander; Haldir Galadriel-assessment receiver; Galadriel NCP observer; Galadriel raw-advisory publisher; Crebain body; Crebain Galadriel-producer surface; Prisoma NCP observer; `pid-rs` is not an NCP peer and receives no NCP role receipt; no aggregate substitution |
+| eleven consumer/extension-role qualifications | E05, E07, H03, H06, G03, C05, P03, X03 | eleven exact role receipts: Engram simulation responder; Engram plant commander; Engram Haldir-intent extension publisher; Haldir NCP commander; Haldir Engram-intent extension receiver; Haldir Galadriel-assessment receiver; Galadriel NCP observer; Galadriel raw-advisory publisher; Crebain body; Crebain Galadriel-producer surface; Prisoma NCP observer; `pid-rs` is not an NCP peer and receives no NCP role receipt; no aggregate substitution |
 | independent clean-room reproduction | X04 | at least two independent builders from public inputs; promised byte/semantic reproduction succeeds |
 | signed SBOM/provenance | N09, X04 | complete subjects, licenses/advisories, publisher signatures/attestations and independent verification |
 | formal/evidence claim boundary | F01–F03 | all required models/obligations/refinements pass under disclosed bounds and no broad proof claim |
@@ -10651,7 +10816,7 @@ zenoh
 Update `README.md` from source/generators with: released/version badges linked to
 the exact release; two-minute simulation, plant and observer quick starts; package
 matrix and verification commands; architecture/session/security diagrams; stable
-identity values; supported platforms; 0.8 migration; nine scoped role receipts;
+identity values; supported platforms; 0.8 migration; eleven scoped role receipts;
 security/safety/science limitations; docs map; support/security contacts; citation
 and license. Refresh the NCP-owned atlas semantic inputs against the immutable tag,
 regenerate every static, compact and finite-motion variant, and retain the
@@ -10735,7 +10900,7 @@ tuple whose closure contains NCP is inventoried exactly once; shared same-wire
 nodes agree;
 each native surface resolves to the immutable release subject appropriate to its
 subject kind; retained 0.8 surfaces remain unchanged; all five producer-owned
-consumer atlases and manifests resolve the immutable tag; nine role receipts
+consumer atlases and manifests resolve the immutable tag; eleven role receipts
 reference the tag/published hashes or a signed equivalence supplement; no consumer
 work is lost. Suggested commit: `build: pin NCP v1.0.0 release artifacts`.
 
@@ -10747,7 +10912,7 @@ Ten-lens record:
 4. **L4:** coordinated locks/rollback and concurrent-repo refusal prevent partial
    hidden mutation.
 5. **L5:** lock/install/package resource bounds and scripts are controlled.
-6. **L6:** all five NCP consumer repositories and nine qualified roles use the
+6. **L6:** all five NCP consumer repositories and eleven qualified roles use the
    public immutable anchor without forks; pid-rs remains outside the NCP pin set.
 7. **L7:** stable pin changes no scientific status.
 8. **L8:** professional per-repo commits, clear PRs and recovery are provided.
@@ -10936,7 +11101,7 @@ Response:
 7. patch as `1.0.x` only when stable-core meaning remains identical. If security or
    safety repair requires changing core semantics, use an explicit new major wire
    or terminating gateway; do not reinterpret 1.0;
-8. update all nine role revocation/deny records, affected pid-rs compatibility
+8. update all eleven role revocation/deny records, affected pid-rs compatibility
    receipts, and profile/public metadata with exact impact; do not delete history;
 9. perform root-cause, counterexample/vector/test/model additions and independent
    review before replacement; and

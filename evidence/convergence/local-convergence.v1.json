@@ -56,7 +56,7 @@
       "auxiliary_non_peer_importers": [
         "phd_thesis/formal/ncp-v080-counterexamples"
       ],
-      "evidence_required": "native installed-artifact qualification for each of the nine exact role subjects against the same NCP source and artifacts",
+      "evidence_required": "native installed-artifact qualification for each exact required role subject against the same NCP source and artifacts",
       "historical_handoff_surface_inventory": [
         "Engram",
         "crebain",
@@ -67,10 +67,13 @@
       ],
       "id": "consumer-certification",
       "owner": "consumer repositories",
+      "required_role_subject_count": 11,
       "required_role_subjects": [
         "Engram simulation responder",
         "Engram plant commander",
+        "Engram Haldir-intent extension publisher",
         "Haldir NCP commander",
+        "Haldir Engram-intent extension receiver",
         "Haldir Galadriel-assessment receiver",
         "Galadriel NCP observer",
         "Galadriel raw-advisory publisher",
@@ -245,7 +248,7 @@
     "contract/manifest.v1.json": "7a71920ebbd4df59e00a0f83026280de1e9395a545ecab1f879d13b1a1ba1e97",
     "contract/release-gates.v1.json": "fad29f287f446e4cd2144ef919457d39f1c5a47d38498ac892cf704c08830179",
     "docs/handoff/max-effort-audit-inputs.v2.json": "18b18684b24f8464ac2b305f48d85bc2404a1bb7844030e7f36179a08dcadc02",
-    "docs/handoff/max-effort-task-review.v2.json": "7c1c7d187de2b31abc61018fab1b22956ea81af3e352bf8eac666e278488a73a"
+    "docs/handoff/max-effort-task-review.v2.json": "14730a6f2a916d5133748defeca5e5a4384b8a5adcbe4dde292ae6f6284fec94"
   },
   "wire_version": "1.0"
 }

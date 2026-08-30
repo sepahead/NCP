@@ -47,7 +47,9 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
   - Engram simulation responder
   - Engram plant commander
+  - Engram Haldir-intent extension publisher
   - Haldir NCP commander
+  - Haldir Engram-intent extension receiver
   - Haldir Galadriel-assessment receiver
   - Galadriel NCP observer
   - Galadriel raw-advisory publisher
