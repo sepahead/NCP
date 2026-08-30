@@ -1,23 +1,21 @@
-# B01 superseded architecture review packet
+# B01 current architecture review packet
 
-> **SUPERSEDED REVIEW SUBJECT — REVIEW CAPTURE DISABLED.** This historical
-> packet binds the eleven proposed ADRs to clean pushed source commit
-> `99672dd48bffe3f8504d4fb66d5a7c9140b122cf`. It contains zero review records.
-> It was superseded before semantic-closure work. It cannot receive review
-> records, accept an ADR, satisfy B01, authorize a rebaseline, certify
-> interoperability or plant safety, or release NCP 1.0.
+> **CURRENT NON-NORMATIVE REVIEW SUBJECT.** This packet binds all eleven
+> proposed ADRs to clean pushed source commit `ca7fa729f982690a4d3d8b1829c20a842d9f5612`.
+> It contains zero review records. It enables human review capture.
+> It does not accept an ADR, authorize implementation, or release NCP 1.0.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "SUPERSEDED"
+  "state": "CURRENT"
 }
 ```
 
 ```json
 {
-  "schema": "ncp.b01-review-subject-history.v1",
-  "state": "SUPERSEDED",
+  "schema": "ncp.b01-review-subject.v1",
+  "state": "CURRENT",
   "normative": false,
   "claim_boundary": "This generated registry records non-normative architecture decisions and structurally checked review claims. It cannot prove external authorship, role authority, or independence. It cannot satisfy B01 by itself, authorize the pre-release rebaseline or publication, or grant runtime identity, authority, plant action, safety, interoperability, or a scientific claim.",
   "promotion_blocked": true,
@@ -25,7 +23,19 @@
     "schema": "ncp.b01-decision-set.v1",
     "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
     "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
-    "sha256": "794c90203c662f1e12d78844c8ac8dcfc0162b0d3813b7df04cbe2e10cdd835a"
+    "sha256": "d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd",
+    "semantic_closure": {
+      "source": {
+        "path": "docs/adr/decision-closure.source.v1.json",
+        "sha256": "4058229f4d2d9776aa3827f92d06a80295b1a8d17980c9df9a6be89b6c747f96",
+        "bytes": 72917
+      },
+      "json_schema": {
+        "path": "docs/adr/decision-closure.source.schema.v1.json",
+        "sha256": "e607c7402691fac1cb72f6b470835f82f00f321e8445e4be15e968f57117f455",
+        "bytes": 22016
+      }
+    }
   },
   "review_policy": {
     "schema": "ncp.b01-review-policy.v1",
@@ -33,22 +43,22 @@
     "output_schema": "ncp.proposed-decision-registry.v1",
     "generator": {
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "4970e98e6f6a84c088a0965ff5b10b5a4b4b5e222a7a6c0f761f66d1ffd990d7",
-      "bytes": 132781
+      "sha256": "ce438efffcb79ed5543ea850d34712a480cfc94e69bfb8eaf38a84cd346def59",
+      "bytes": 254325
     },
     "output_json_schema": {
       "path": "docs/adr/decision-registry.proposed.schema.v1.json",
-      "sha256": "6977a739dc0328c993f002fc558934f76aa100555dd97448fe8f93e3d28c8e02",
-      "bytes": 23695
+      "sha256": "46a0b681c0e4440918cf69649bb656ad778bcdbf5059f7d6f3c6fe873d8805b2",
+      "bytes": 31030
     }
   },
   "source": {
-    "commit": "99672dd48bffe3f8504d4fb66d5a7c9140b122cf",
-    "tree": "b0c8858503753747ded585b91dd48095776dc241",
+    "commit": "ca7fa729f982690a4d3d8b1829c20a842d9f5612",
+    "tree": "03ff9b1007192f2839146b31b791541f8fada86b",
     "decision_source": {
       "path": "docs/adr/decision-registry.source.v1.json",
-      "sha256": "fe4c81e1bdd32889f396f72bcc9ef094977d8f065a3ac814e90a43a013769a2b",
-      "bytes": 14187
+      "sha256": "da5ed49018e20a004196cfa7129ccc1eb83880a20a3a3f46721743d72898360b",
+      "bytes": 14259
     }
   },
   "decisions": [
@@ -57,8 +67,8 @@
       "title": "Separate simulation-service and plant-control sessions",
       "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
       "module_paths": [],
-      "content_sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
-      "bytes": 152215,
+      "content_sha256": "f09b4622c81dfe6193747d0036441a742a50906097812b52bb9e2ab8cbb8fbce",
+      "bytes": 163669,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-001",
@@ -66,13 +76,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-            "sha256": "b76926aa12c0eb7e24a1de7cb7d130f798c07ae888cf38b2808aed43fc7adaf9",
-            "bytes": 152215
+            "sha256": "f09b4622c81dfe6193747d0036441a742a50906097812b52bb9e2ab8cbb8fbce",
+            "bytes": 163669
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "7ecbfe8dfceef42a14bccf74916025fc9ab519ede4bee4465edcf32bcd37529d"
+        "sha256": "a6a574d824b97047dc251367ecea95cd0d3c69ab55fc5dfa7ec35fde5fe17af8"
       },
       "required_reviews": [
         {
@@ -109,8 +119,8 @@
       "title": "Separate contract identity and release authorization",
       "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
       "module_paths": [],
-      "content_sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
-      "bytes": 16004,
+      "content_sha256": "e01d2cb2eb6e11bbc78ed3149dae46bbc80243f5202bf5749c26affd4a268689",
+      "bytes": 21943,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-002",
@@ -118,13 +128,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
-            "sha256": "d3f4d096933ae88389c068648f29eaf880d2e8b3318ba3aa5c52651fa73e7b44",
-            "bytes": 16004
+            "sha256": "e01d2cb2eb6e11bbc78ed3149dae46bbc80243f5202bf5749c26affd4a268689",
+            "bytes": 21943
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "7710e1610a5bf78a3dc269de4f1d93d6d9056d1bee7c311de1dd5bdfb756034c"
+        "sha256": "3a234d7196cc920b809a9abf19765a28ed72e3f2846a40a2dcc9ff3c2aa1a764"
       },
       "required_reviews": [
         {
@@ -152,8 +162,8 @@
       "title": "Authenticate production ingress before interpretation",
       "path": "docs/adr/0003-authenticated-production-ingress.md",
       "module_paths": [],
-      "content_sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
-      "bytes": 21273,
+      "content_sha256": "08aa3d60d4c050daaa52b5c16d864272bb1c7a48a37e59c5ad1bfea5cfb5fb88",
+      "bytes": 24082,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-003",
@@ -161,13 +171,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0003-authenticated-production-ingress.md",
-            "sha256": "d3743d483114b24d5b08a3477b6525d927d5233be41c2609ee16209d7d4e8af4",
-            "bytes": 21273
+            "sha256": "08aa3d60d4c050daaa52b5c16d864272bb1c7a48a37e59c5ad1bfea5cfb5fb88",
+            "bytes": 24082
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "2323d20a36394dc267a674ae5ea61935d480ecc5566d6850ac12dcbe29030fa4"
+        "sha256": "cb9d0948d5e5277a81ca57e3fbaa5d1fc1d8c41441237a3ce8016a314895413a"
       },
       "required_reviews": [
         {
@@ -195,8 +205,8 @@
       "module_paths": [
         "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
       ],
-      "content_sha256": "a192232e3cf97bafec8e55a02ee8f411a7c298256639bec5fdc7fbcd47506904",
-      "bytes": 261552,
+      "content_sha256": "255f51b97670813bb9c067583fa9bacb9b7b972a045ea82652692a2d872746e1",
+      "bytes": 262141,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-004",
@@ -204,19 +214,19 @@
           {
             "kind": "main",
             "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
-            "sha256": "a192232e3cf97bafec8e55a02ee8f411a7c298256639bec5fdc7fbcd47506904",
-            "bytes": 261552
+            "sha256": "255f51b97670813bb9c067583fa9bacb9b7b972a045ea82652692a2d872746e1",
+            "bytes": 262141
           },
           {
             "kind": "module",
             "path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
-            "sha256": "ed70f11100eb0eee6377084206025309502e5c6275e9c49a1061c4e949e9f8fb",
-            "bytes": 118633
+            "sha256": "24c4b431ef1b5add127b832858d2b38539f1ae6e7da30cc53da7cbb706c627ee",
+            "bytes": 118688
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "ea0651c10b1c42d40f339532106cefcc5192afd8ad22981b15684dd5157f3e87"
+        "sha256": "46df7a65c63d9fba2ef39cb35ee62dfa94fe8441d124fbde9cecba285696d421"
       },
       "required_reviews": [
         {
@@ -267,8 +277,8 @@
       "title": "Declare and retire every stream explicitly",
       "path": "docs/adr/0005-declared-stream-lifecycle.md",
       "module_paths": [],
-      "content_sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
-      "bytes": 38308,
+      "content_sha256": "b8a61fd9c238535ec87d8db8430e415318cc6f61ab657dfe2d8b7114bff26649",
+      "bytes": 42464,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-005",
@@ -276,13 +286,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0005-declared-stream-lifecycle.md",
-            "sha256": "6c1e1baf207d3eb74cd3923f51c19eba673a54e199700be0fa62e9f39e4a3d29",
-            "bytes": 38308
+            "sha256": "b8a61fd9c238535ec87d8db8430e415318cc6f61ab657dfe2d8b7114bff26649",
+            "bytes": 42464
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "73384f873d12e9ff6eca4b41ce1fcb681d5908ad843d96c27f84ead8eb5f27f2"
+        "sha256": "9452684ee327c0d20ed6a84dc7a8718af3d07e926071c3df72a4d116597b783c"
       },
       "required_reviews": [
         {
@@ -331,8 +341,8 @@
       "title": "Use body-issued authority and receiver-local time",
       "path": "docs/adr/0006-body-issued-authority-and-time.md",
       "module_paths": [],
-      "content_sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
-      "bytes": 55367,
+      "content_sha256": "d066e8b83a5422f431e95d071f99c25c84ad2c27b00343f2689378f5e0ea4dd1",
+      "bytes": 59342,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-006",
@@ -340,13 +350,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0006-body-issued-authority-and-time.md",
-            "sha256": "b16c4cfbf4d93315e94991f1a7558861b308e56abf45683e3c82ab2a43d09f13",
-            "bytes": 55367
+            "sha256": "d066e8b83a5422f431e95d071f99c25c84ad2c27b00343f2689378f5e0ea4dd1",
+            "bytes": 59342
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "a9a5cff24bfbdc8462acd15b025a52fd2ed31335a1ca59ea84c1ffa78753d13a"
+        "sha256": "8b79bad8223797d5ba2e962817be574ae20e472fad3d5c878db4f0b45bffa407"
       },
       "required_reviews": [
         {
@@ -384,8 +394,8 @@
       "title": "Journal body-issued command dispositions",
       "path": "docs/adr/0007-command-disposition-journal.md",
       "module_paths": [],
-      "content_sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
-      "bytes": 221493,
+      "content_sha256": "90a9fdeb9f6bba65458cc992117631db75d11fb9e8371d8a519d195bb6a9a669",
+      "bytes": 229776,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-007",
@@ -393,13 +403,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0007-command-disposition-journal.md",
-            "sha256": "833fd9b84650defd46b02731b5ebc871a06152d4ceb8d6ba559605a1d4c5fe83",
-            "bytes": 221493
+            "sha256": "90a9fdeb9f6bba65458cc992117631db75d11fb9e8371d8a519d195bb6a9a669",
+            "bytes": 229776
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "974564f616d53789846f93b5cd8f9abc4514189c7d1d52e66ea81a401953f293"
+        "sha256": "8bdd49ae7be27380b64e6113a2a3afe28e904513196dcf7cd1e8a708ed539580"
       },
       "required_reviews": [
         {
@@ -430,8 +440,8 @@
       "title": "Separate stable routes from Galadriel extensions",
       "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
       "module_paths": [],
-      "content_sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
-      "bytes": 170617,
+      "content_sha256": "bb98e8fd68c792d36303c757c9bb22f08e288fcce2dc7eacb84d066c97064b70",
+      "bytes": 180151,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-008",
@@ -439,13 +449,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-            "sha256": "3da4b8131bcb7ecc9b2c723b7a8a02d40242e37687fd7bbfca98d3034ec052f2",
-            "bytes": 170617
+            "sha256": "bb98e8fd68c792d36303c757c9bb22f08e288fcce2dc7eacb84d066c97064b70",
+            "bytes": 180151
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "cb0853d68c64d89e87b22e6eec36db349b824ead1657141a0b99cd11fea68f77"
+        "sha256": "97f866be59b69d5c9fe0d8f84fdbdd37a5ae069492efdf7698379b0c717e57d7"
       },
       "required_reviews": [
         {
@@ -471,6 +481,12 @@
           "label": "Crebain owner",
           "min_distinct_identities": 1,
           "requires_independence": false
+        },
+        {
+          "role_id": "engram-owner",
+          "label": "Engram owner",
+          "min_distinct_identities": 1,
+          "requires_independence": false
         }
       ],
       "defect_ids": [
@@ -484,8 +500,8 @@
       "module_paths": [
         "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md"
       ],
-      "content_sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
-      "bytes": 257562,
+      "content_sha256": "c69f9bce33f576518b966c457acc58a195de97b613f91161f313c40b1a64fb66",
+      "bytes": 260084,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-009",
@@ -493,8 +509,8 @@
           {
             "kind": "main",
             "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
-            "sha256": "b8031cdaa2ae7e3024ee4c623e99ff63bcb231353e66ee299888bec7b86841e4",
-            "bytes": 257562
+            "sha256": "c69f9bce33f576518b966c457acc58a195de97b613f91161f313c40b1a64fb66",
+            "bytes": 260084
           },
           {
             "kind": "module",
@@ -505,7 +521,7 @@
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "9dd098dea0786d83d09b0465db56da289f7a61b3b3705ef243ec49a1f3039b9c"
+        "sha256": "1858eba7ad14008757382d0921b03517828f8bacc2c43201b76846c7504ed114"
       },
       "required_reviews": [
         {
@@ -549,8 +565,8 @@
       "title": "Specify finite per-plane QoS and overload behavior",
       "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
       "module_paths": [],
-      "content_sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
-      "bytes": 15683,
+      "content_sha256": "a94372baf29091cece03a83d99b952b6a5cffdb669af0cefd09771126548aa07",
+      "bytes": 22442,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-010",
@@ -558,13 +574,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
-            "sha256": "4a326e610f1d9b942f7a0fa3a4e320b34f990062cf39067417f32015fcafc36c",
-            "bytes": 15683
+            "sha256": "a94372baf29091cece03a83d99b952b6a5cffdb669af0cefd09771126548aa07",
+            "bytes": 22442
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "26ef01e63136bea412d7f3d249f21978efaad48d1c9af2f20866d66725670999"
+        "sha256": "cf1e3c5d30d6df34d94468861a5d6cb637fa989f727ae4f15fef2689321ec51c"
       },
       "required_reviews": [
         {
@@ -612,9 +628,11 @@
       "id": "ADR-011",
       "title": "Fix ecosystem dependency direction and plant handover",
       "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-      "module_paths": [],
-      "content_sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
-      "bytes": 70553,
+      "module_paths": [
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+      ],
+      "content_sha256": "48742bd6f68c9b9304e20b347e304f475407ba6bf7d105f970af9d4c73a7120b",
+      "bytes": 79822,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-011",
@@ -622,13 +640,19 @@
           {
             "kind": "main",
             "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-            "sha256": "7594ce4e746f4c2084e2ad7f40675684f0c9b68d33bffe2234a26688e49800ae",
-            "bytes": 70553
+            "sha256": "48742bd6f68c9b9304e20b347e304f475407ba6bf7d105f970af9d4c73a7120b",
+            "bytes": 79822
+          },
+          {
+            "kind": "module",
+            "path": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+            "sha256": "8052f1ea04b14a797a4a141eaa5c2565e9ea5092d8dfb248b9b3019bdbfdec98",
+            "bytes": 10497
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "3d0df976883070a88ada52c7d1bb554309959b2e6cb31ca68ee63de2cdeb452e"
+        "sha256": "b46c23c37970f73e001e46dc97b852f5897e3d651692edb69a9f6e0b043f5882"
       },
       "required_reviews": [
         {
@@ -658,12 +682,6 @@
         {
           "role_id": "prisoma-owner",
           "label": "Prisoma owner",
-          "min_distinct_identities": 1,
-          "requires_independence": false
-        },
-        {
-          "role_id": "cortexel-owner",
-          "label": "Cortexel owner",
           "min_distinct_identities": 1,
           "requires_independence": false
         },
@@ -711,9 +729,9 @@ exactly one matching `CURRENT` review-subject block before it can receive review
 records. A `SUPERSEDED` or `TEMPLATE` packet cannot contain that block or receive
 review records.
 
-## Superseded packet bindings
+## Current packet bindings
 
-The archived review subject binds `decision_set.sha256`. The
+The current review subject binds `decision_set.sha256`. The
 decision-set digest covers all exact ADR bytes, role obligations, defect
 mappings, review-policy version, and exact generator and output-schema
 identities. It excludes review records, so later review capture does not change
@@ -748,38 +766,13 @@ review record content-address the immutable packet bytes with
 `review_packet_sha256`. This acyclic rule lets the generator compare that digest
 with the current packet file.
 
-The archival JSON block above has schema
-`ncp.b01-review-subject-history.v1` and state `SUPERSEDED`. It retains the exact
-decision-set and review-policy identities, source commit and tree, claim
-boundary, promotion block, ADR digests, byte lengths, role obligations, and
-defect mappings. It is not a review-capture subject.
+The JSON block above uses schema `ncp.b01-review-subject.v1` and state
+`CURRENT`. It retains the exact decision set, policy, source commit, source tree,
+ADR source sets, role obligations, and defect mappings.
 
-The bound source had zero review records. The generator ignores the archival
-subject and rejects review records while the machine-readable packet lifecycle
-is not `CURRENT`. A later packet can become current only through the acyclic
-source-commit and packet-commit sequence below.
-
-Composite local runs at the bound source commit covered every command in
-`scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed
-out during the Python source-distribution build. The exact failed step and
-remaining suffix then passed separately. This is composite coverage, not one
-uninterrupted complete-gate receipt.
-
-The clean command `./prototypes/b01-architecture-evidence/run.sh` passed at that
-commit. It covered 15,379 composition states and 169 observer-authorization
-hostile inputs. It also covered 444 observer-capture hostile inputs, 547
-freshness and acceptance cases, and 188 source-index hostile cases. Separate
-Rust and TypeScript engines agreed on 22 content-bound ADR-example semantic
-cases. They rejected all 90 registered bounded mutations. The verifier rejected
-all registered hostile mutations.
-
-The decision-probe verifier builds and canonicalizes a fresh replay oracle
-before it serializes caller-controlled values. A hostile `dict`-subclass
-self-test mutates shared state during caller serialization. It requires exactly
-one oracle build before that serialization. It rejects candidate influence on
-the oracle. These results are local preliminary evidence only. They do not
-satisfy an external, independent, consumer, safety, performance, or release
-gate.
+The bound source contains zero review records. The emitted subject resolves each
+reviewed input from the pushed source commit. This packet enables review capture.
+It does not supply review evidence or accept a decision.
 
 Review capture follows an acyclic sequence:
 

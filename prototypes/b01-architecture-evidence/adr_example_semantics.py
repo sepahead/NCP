@@ -4,6 +4,9 @@
 This module verifies bounded source identity and exact result parity. It contains
 no ADR profile rules and grants no ADR acceptance, wire admission, conformance,
 interoperability, external-evidence, or release claim.
+
+The decision-registry generator resolves review-subject Git and blob identities.
+This harness validates their closed shape without duplicating that Git resolver.
 """
 
 from __future__ import annotations
@@ -44,6 +47,9 @@ CORPUS_SCHEMA = "ncp.b01-adr-example-semantics-corpus.v1"
 ENGINE_RESULT_SCHEMA = "ncp.b01-adr-example-semantics-result.v1"
 COORDINATOR_RESULT_SCHEMA = "ncp.b01-adr-example-semantics-coordinator-result.v1"
 REVIEW_PACKET_LIFECYCLE_SCHEMA = "ncp.b01-review-packet-lifecycle.v1"
+REVIEW_SUBJECT_SCHEMA = "ncp.b01-review-subject.v1"
+REVIEW_SUBJECT_DECISION_SOURCE_PATH = "docs/adr/decision-registry.source.v1.json"
+MAX_REVIEW_SUBJECT_DECISION_SOURCE_BYTES = 2_097_152
 ADR_SOURCE_SET_SCHEMA = "ncp.b01-adr-source-set.v1"
 ADR_SOURCE_SET_DIGEST_ALGORITHM = (
     "sha256(domain || u64be(projection_bytes) || projection)"
@@ -64,13 +70,37 @@ MAX_ADR_MODULES_PER_DECISION = 8
 MAX_MUTATION_PURPOSE_BYTES = 512
 MAX_PATCH_PATH_BYTES = 512
 EXPECTED_CASE_COUNT = 25
-EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 29, "typescript": 47}
+EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 50, "typescript": 68}
+EXPECTED_COORDINATOR_SELF_TEST_COUNT = 48
 EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 127
 EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 4_301
 EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
     "6f045da9a79f06135fa9bae69f4fb4a6c82af4e522b27f116a6eda8382e344cc"
 )
 EXPECTED_ADR_IDS = tuple(f"ADR-{index:03d}" for index in range(1, 12))
+REVIEW_SUBJECT_MEMBERS = {
+    "schema",
+    "state",
+    "normative",
+    "claim_boundary",
+    "promotion_blocked",
+    "decision_set",
+    "review_policy",
+    "source",
+    "decisions",
+}
+REVIEW_SUBJECT_SOURCE_MEMBERS = {"commit", "tree", "decision_source"}
+REVIEW_SUBJECT_DECISION_MEMBERS = (
+    "id",
+    "title",
+    "path",
+    "module_paths",
+    "content_sha256",
+    "bytes",
+    "source_set",
+    "required_reviews",
+    "defect_ids",
+)
 EXPECTED_CASE_IDENTITIES = {
     "adr001.open-plant-session.kind-separation.v1": (
         "ADR001_PLANT_KIND_SEPARATION_FRAGMENT_V1",
@@ -248,6 +278,7 @@ EXPECTED_CASE_IDENTITIES = {
         3,
     ),
 }
+HEX40 = re.compile(r"[0-9a-f]{40}\Z")
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 ADR_MAIN_PATH = re.compile(
     r"docs/adr/(000[1-9]|001[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md\Z"
@@ -839,9 +870,108 @@ def _verify_review_packet_binding(
         review_subject = _object(
             registry.get("review_packet_subject"), "review_packet_subject"
         )
-        _exact_keys(review_subject, {"decision_set"}, "review_packet_subject")
-        if review_subject.get("decision_set") != registered_identity:
-            _fail("review subject has a different decision-set identity")
+        _exact_keys(review_subject, REVIEW_SUBJECT_MEMBERS, "review_packet_subject")
+        if (
+            review_subject.get("schema") != REVIEW_SUBJECT_SCHEMA
+            or review_subject.get("state") != "CURRENT"
+            or review_subject.get("normative") is not False
+            or review_subject.get("promotion_blocked") is not True
+        ):
+            _fail("review packet CURRENT subject has invalid fixed semantics")
+
+        claim_boundary = _string(
+            registry.get("claim_boundary"), "decision registry claim_boundary"
+        )
+        review_policy = _object(
+            registry.get("review_policy"), "decision registry review_policy"
+        )
+        subject_source = _object(
+            review_subject.get("source"), "review_packet_subject source"
+        )
+        _exact_keys(
+            subject_source,
+            REVIEW_SUBJECT_SOURCE_MEMBERS,
+            "review_packet_subject source",
+        )
+        source_commit = _string(
+            subject_source.get("commit"), "review_packet_subject source commit"
+        )
+        source_tree = _string(
+            subject_source.get("tree"), "review_packet_subject source tree"
+        )
+        if not HEX40.fullmatch(source_commit) or not HEX40.fullmatch(source_tree):
+            _fail("review packet source commit or tree is not lowercase hexadecimal")
+        # Review capture changes registry.source. The CURRENT packet keeps its
+        # immutable identity, which the decision-registry generator resolves.
+        decision_source = _object(
+            subject_source.get("decision_source"),
+            "review_packet_subject source decision_source",
+        )
+        _exact_keys(
+            decision_source,
+            {"path", "sha256", "bytes"},
+            "review_packet_subject source decision_source",
+        )
+        decision_source_path = _string(
+            decision_source.get("path"),
+            "review_packet_subject source decision_source path",
+        )
+        source_digest = _string(
+            decision_source.get("sha256"),
+            "review_packet_subject source decision_source sha256",
+        )
+        decision_source_bytes = _positive_integer(
+            decision_source.get("bytes"),
+            "review_packet_subject source decision_source bytes",
+        )
+        if (
+            decision_source_path != REVIEW_SUBJECT_DECISION_SOURCE_PATH
+            or decision_source_bytes > MAX_REVIEW_SUBJECT_DECISION_SOURCE_BYTES
+            or not HEX64.fullmatch(source_digest)
+        ):
+            _fail(
+                "review packet decision-source identity is outside its closed envelope"
+            )
+
+        registry_decisions = _array(
+            registry.get("decisions"), "decision registry decisions"
+        )
+        projected_decisions: list[dict[str, Any]] = []
+        for index, raw_decision in enumerate(registry_decisions):
+            decision = _object(raw_decision, f"decision registry decision {index}")
+            missing = [
+                member
+                for member in REVIEW_SUBJECT_DECISION_MEMBERS
+                if member not in decision
+            ]
+            if missing:
+                _fail(
+                    f"decision registry decision {index} lacks review-subject members"
+                )
+            projected_decisions.append(
+                {member: decision[member] for member in REVIEW_SUBJECT_DECISION_MEMBERS}
+            )
+
+        expected_subject = {
+            "schema": REVIEW_SUBJECT_SCHEMA,
+            "state": "CURRENT",
+            "normative": False,
+            "claim_boundary": claim_boundary,
+            "promotion_blocked": True,
+            "decision_set": registered_identity,
+            "review_policy": review_policy,
+            "source": {
+                "commit": source_commit,
+                "tree": source_tree,
+                "decision_source": decision_source,
+            },
+            "decisions": projected_decisions,
+        }
+        if _canonical_json(review_subject) != _canonical_json(expected_subject):
+            _fail(
+                "review packet CURRENT subject differs from the bound registry "
+                "projection"
+            )
         return
     if state in {"SUPERSEDED", "TEMPLATE"}:
         if (
@@ -1737,18 +1867,235 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
         **decision_set_identity,
         "sha256": "b" * 64,
     }
-    executed += 1
-    _verify_review_packet_binding(
-        {
+
+    def current_review_registry(identity: dict[str, Any]) -> dict[str, Any]:
+        review_policy = {
+            "schema": "ncp.b01-review-policy.v1",
+            "generator": {"path": "scripts/generate_decision_registry.py"},
+        }
+        packet_decision_source = {
+            "path": "docs/adr/decision-registry.source.v1.json",
+            "sha256": "c" * 64,
+            "bytes": 1,
+        }
+        registry_decision = {
+            "id": "ADR-001",
+            "title": "Self-test decision",
+            "path": "docs/adr/0001-self-test.md",
+            "module_paths": [],
+            "content_sha256": "d" * 64,
+            "bytes": 1,
+            "source_set": {},
+            "required_reviews": [
+                {
+                    "role_id": "reviewer",
+                    "requires_independence": False,
+                }
+            ],
+            "defect_ids": ["D01"],
+            "status": "PROPOSED",
+        }
+        registry: dict[str, Any] = {
+            "normative": False,
+            "promotion_blocked": True,
+            "claim_boundary": "Self-test non-authorizing claim boundary.",
+            "review_policy": review_policy,
+            "source": {
+                "path": "docs/adr/decision-registry.source.v1.json",
+                "sha256": "1" * 64,
+                "bytes": 2,
+            },
+            "decisions": [registry_decision],
             "review_packet_lifecycle": {
                 "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
                 "state": "CURRENT",
             },
-            "review_packet_subject": {"decision_set": decision_set_identity},
             "review_records": [{}],
-        },
-        decision_set_identity,
+        }
+        registry["review_packet_subject"] = {
+            "schema": REVIEW_SUBJECT_SCHEMA,
+            "state": "CURRENT",
+            "normative": False,
+            "claim_boundary": registry["claim_boundary"],
+            "promotion_blocked": True,
+            "decision_set": deepcopy(identity),
+            "review_policy": deepcopy(review_policy),
+            "source": {
+                "commit": "e" * 40,
+                "tree": "f" * 40,
+                "decision_source": deepcopy(packet_decision_source),
+            },
+            "decisions": [
+                {
+                    member: deepcopy(registry_decision[member])
+                    for member in REVIEW_SUBJECT_DECISION_MEMBERS
+                }
+            ],
+        }
+        return registry
+
+    current_registry = current_review_registry(decision_set_identity)
+    executed += 1
+    _verify_review_packet_binding(current_registry, decision_set_identity)
+
+    hostile_current_registries: list[tuple[str, dict[str, Any]]] = []
+
+    def hostile_subject_member(member: str, value: Any) -> dict[str, Any]:
+        hostile = deepcopy(current_registry)
+        hostile["review_packet_subject"][member] = value
+        return hostile
+
+    hostile_current_registries.extend(
+        [
+            (
+                "CURRENT subject with a wrong schema",
+                hostile_subject_member("schema", "ncp.b01-review-subject.v0"),
+            ),
+            (
+                "CURRENT subject with a wrong state",
+                hostile_subject_member("state", "SUPERSEDED"),
+            ),
+            (
+                "CURRENT subject with numeric false",
+                hostile_subject_member("normative", 0),
+            ),
+            (
+                "CURRENT subject with numeric true",
+                hostile_subject_member("promotion_blocked", 1),
+            ),
+            (
+                "CURRENT subject with a different claim boundary",
+                hostile_subject_member("claim_boundary", "different"),
+            ),
+            (
+                "CURRENT subject with a mismatched decision-set identity",
+                hostile_subject_member(
+                    "decision_set", mismatched_decision_set_identity
+                ),
+            ),
+            (
+                "CURRENT subject with a different review policy",
+                hostile_subject_member(
+                    "review_policy", {"schema": "ncp.b01-review-policy.v0"}
+                ),
+            ),
+            (
+                "CURRENT subject without decisions",
+                {
+                    **deepcopy(current_registry),
+                    "review_packet_subject": {
+                        key: value
+                        for key, value in deepcopy(
+                            current_registry["review_packet_subject"]
+                        ).items()
+                        if key != "decisions"
+                    },
+                },
+            ),
+        ]
     )
+    hostile_source_commit = deepcopy(current_registry)
+    hostile_source_commit["review_packet_subject"]["source"]["commit"] = "A" * 40
+    hostile_current_registries.append(
+        ("CURRENT subject with a noncanonical commit", hostile_source_commit)
+    )
+    hostile_source_tree = deepcopy(current_registry)
+    hostile_source_tree["review_packet_subject"]["source"]["tree"] = "0" * 39
+    hostile_current_registries.append(
+        ("CURRENT subject with a truncated tree", hostile_source_tree)
+    )
+    hostile_decision_source = deepcopy(current_registry)
+    hostile_decision_source["review_packet_subject"]["source"]["decision_source"][
+        "sha256"
+    ] = "A" * 64
+    hostile_current_registries.append(
+        ("CURRENT subject with a noncanonical decision source", hostile_decision_source)
+    )
+    hostile_decision_source_path = deepcopy(current_registry)
+    hostile_decision_source_path["review_packet_subject"]["source"]["decision_source"][
+        "path"
+    ] = "docs/adr/other.json"
+    hostile_current_registries.append(
+        (
+            "CURRENT subject with a different decision-source path",
+            hostile_decision_source_path,
+        )
+    )
+    hostile_decision_source_bytes = deepcopy(current_registry)
+    hostile_decision_source_bytes["review_packet_subject"]["source"]["decision_source"][
+        "bytes"
+    ] = MAX_REVIEW_SUBJECT_DECISION_SOURCE_BYTES + 1
+    hostile_current_registries.append(
+        (
+            "CURRENT subject with oversized decision-source bytes",
+            hostile_decision_source_bytes,
+        )
+    )
+    hostile_source_member = deepcopy(current_registry)
+    hostile_source_member["review_packet_subject"]["source"]["unexpected"] = False
+    hostile_current_registries.append(
+        ("CURRENT subject source with an extra member", hostile_source_member)
+    )
+    hostile_decision_value = deepcopy(current_registry)
+    hostile_decision_value["review_packet_subject"]["decisions"][0]["title"] = (
+        "Different self-test decision"
+    )
+    hostile_current_registries.append(
+        ("CURRENT subject with a different decision projection", hostile_decision_value)
+    )
+    hostile_decision_member = deepcopy(current_registry)
+    hostile_decision_member["review_packet_subject"]["decisions"][0]["status"] = (
+        "PROPOSED"
+    )
+    hostile_current_registries.append(
+        ("CURRENT subject decision with an extra member", hostile_decision_member)
+    )
+    hostile_nested_boolean = deepcopy(current_registry)
+    hostile_nested_boolean["review_packet_subject"]["decisions"][0]["required_reviews"][
+        0
+    ]["requires_independence"] = 0
+    hostile_current_registries.append(
+        ("CURRENT subject with a numeric nested boolean", hostile_nested_boolean)
+    )
+    hostile_empty_claim = deepcopy(current_registry)
+    hostile_empty_claim["claim_boundary"] = ""
+    hostile_empty_claim["review_packet_subject"]["claim_boundary"] = ""
+    hostile_current_registries.append(
+        ("CURRENT registry with an empty claim boundary", hostile_empty_claim)
+    )
+    ordered_registry = deepcopy(current_registry)
+    second_registry_decision = deepcopy(ordered_registry["decisions"][0])
+    second_registry_decision.update(
+        {
+            "id": "ADR-002",
+            "title": "Second self-test decision",
+            "path": "docs/adr/0002-self-test.md",
+            "content_sha256": "2" * 64,
+        }
+    )
+    ordered_registry["decisions"].append(second_registry_decision)
+    ordered_registry["review_packet_subject"]["decisions"].append(
+        {
+            member: deepcopy(second_registry_decision[member])
+            for member in REVIEW_SUBJECT_DECISION_MEMBERS
+        }
+    )
+    executed += 1
+    _verify_review_packet_binding(ordered_registry, decision_set_identity)
+    swapped_decisions = deepcopy(ordered_registry)
+    swapped_decisions["review_packet_subject"]["decisions"].reverse()
+    hostile_current_registries.append(
+        ("CURRENT subject with reordered decisions", swapped_decisions)
+    )
+    for label, hostile in hostile_current_registries:
+        executed += 1
+        _expect_failure(
+            lambda hostile=hostile: _verify_review_packet_binding(
+                hostile, decision_set_identity
+            ),
+            label,
+            CoordinatorError,
+        )
     executed += 1
     _verify_review_packet_binding(
         {
@@ -1789,25 +2136,6 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
         "CURRENT packet without a subject",
         CoordinatorError,
         "review_packet_subject is not an exact JSON object",
-    )
-    executed += 1
-    _expect_failure(
-        lambda: _verify_review_packet_binding(
-            {
-                "review_packet_lifecycle": {
-                    "schema": REVIEW_PACKET_LIFECYCLE_SCHEMA,
-                    "state": "CURRENT",
-                },
-                "review_packet_subject": {
-                    "decision_set": mismatched_decision_set_identity
-                },
-                "review_records": [],
-            },
-            decision_set_identity,
-        ),
-        "CURRENT packet with a mismatched subject",
-        CoordinatorError,
-        "review subject has a different decision-set identity",
     )
     executed += 1
     _expect_failure(
@@ -2182,6 +2510,8 @@ def _coordinator_self_test(prepared: PreparedCorpus) -> dict[str, int]:
             raise
     else:
         _fail("coordinator self-test accepted an unrelated exception type")
+    if executed != EXPECTED_COORDINATOR_SELF_TEST_COUNT:
+        _fail("coordinator self-test suite differs from its closed count")
     return {"executed": executed, "detected": executed}
 
 

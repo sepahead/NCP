@@ -829,7 +829,8 @@ def _verify_adr_example_semantics(value: Any) -> None:
     _exact_keys(self_tests, {"detected", "executed"}, "semantic coordinator tests")
     executed = _positive_int(self_tests.get("executed"), "semantic tests executed")
     detected = _positive_int(self_tests.get("detected"), "semantic tests detected")
-    if executed != 29 or detected != 29:
+    expected_self_tests = adr_example_semantics.EXPECTED_COORDINATOR_SELF_TEST_COUNT
+    if executed != expected_self_tests or detected != expected_self_tests:
         raise ResultError("ADR-example semantic self-tests are incomplete")
     claims = value.get("claim_boundary")
     expected_claims = {

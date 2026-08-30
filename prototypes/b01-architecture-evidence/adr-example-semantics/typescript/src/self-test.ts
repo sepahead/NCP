@@ -10,9 +10,15 @@ import {
 import { applyPatch, JsonPointerError } from "./json-pointer.ts";
 import { evaluateSemantics, SemanticConfigurationError } from "./semantics.ts";
 import { extractExactJsonFences, SourceFileError } from "./file-io.ts";
-import { strictJsonParse, StrictJsonError, type JsonLimits } from "./strict-json.ts";
+import {
+  strictJsonParse,
+  StrictJsonError,
+  type JsonLimits,
+  type JsonValue,
+} from "./strict-json.ts";
 
 const encoder = new TextEncoder();
+type JsonObject = { [key: string]: JsonValue };
 
 export interface SelfTestReport {
   readonly executed: number;
@@ -157,33 +163,17 @@ export function runSelfTests(): SelfTestReport {
     ...decisionSetIdentity,
     sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   };
-  report.executed += 1;
-  validateReviewPacketBinding(
-    {
-      review_packet_lifecycle: {
-        schema: "ncp.b01-review-packet-lifecycle.v1",
-        state: "CURRENT",
-      },
-      review_packet_subject: { decision_set: decisionSetIdentity },
-      review_records: [{}],
-    },
+  const currentReviewRegistry = currentReviewPacketRegistry(
     decisionSetIdentity,
+    [{}],
   );
+  report.executed += 1;
+  validateReviewPacketBinding(currentReviewRegistry, decisionSetIdentity);
   report.detected += 1;
   let extraSubjectMemberRejected = false;
   try {
     validateReviewPacketBinding(
-      {
-        review_packet_lifecycle: {
-          schema: "ncp.b01-review-packet-lifecycle.v1",
-          state: "CURRENT",
-        },
-        review_packet_subject: {
-          decision_set: decisionSetIdentity,
-          unexpected: false,
-        },
-        review_records: [],
-      },
+      reviewSubjectOverride(currentReviewRegistry, { unexpected: false }),
       decisionSetIdentity,
     );
   } catch (error) {
@@ -241,14 +231,7 @@ export function runSelfTests(): SelfTestReport {
   expectThrows(
     () =>
       validateReviewPacketBinding(
-        {
-          review_packet_lifecycle: {
-            schema: "ncp.b01-review-packet-lifecycle.v1",
-            state: "CURRENT",
-          },
-          review_packet_subject: { decision_set: mismatchedDecisionSetIdentity },
-          review_records: [],
-        },
+        currentReviewPacketRegistry(mismatchedDecisionSetIdentity, []),
         decisionSetIdentity,
       ),
     DecisionBindingError,
@@ -263,7 +246,9 @@ export function runSelfTests(): SelfTestReport {
             schema: "ncp.b01-review-packet-lifecycle.v1",
             state: "SUPERSEDED",
           },
-          review_packet_subject: { decision_set: decisionSetIdentity },
+          review_packet_subject: structuredClone(
+            currentReviewRegistry.review_packet_subject as JsonValue,
+          ),
           review_records: [],
         },
         decisionSetIdentity,
@@ -280,7 +265,9 @@ export function runSelfTests(): SelfTestReport {
             schema: "ncp.b01-review-packet-lifecycle.v1",
             state: "TEMPLATE",
           },
-          review_packet_subject: { decision_set: decisionSetIdentity },
+          review_packet_subject: structuredClone(
+            currentReviewRegistry.review_packet_subject as JsonValue,
+          ),
           review_records: [],
         },
         decisionSetIdentity,
@@ -406,6 +393,164 @@ export function runSelfTests(): SelfTestReport {
     "packet lifecycle missing-review-records guard",
     report,
   );
+
+  const numericNestedBoolean = structuredClone(currentReviewRegistry);
+  const numericNestedSubject = requiredSelfTestObject(
+    numericNestedBoolean.review_packet_subject,
+    "numeric nested subject",
+  );
+  const numericNestedDecisions = requiredSelfTestArray(
+    numericNestedSubject.decisions,
+    "numeric nested decisions",
+  );
+  const numericNestedDecision = requiredSelfTestObject(
+    numericNestedDecisions[0],
+    "numeric nested decision",
+  );
+  const numericNestedReviews = requiredSelfTestArray(
+    numericNestedDecision.required_reviews,
+    "numeric nested required reviews",
+  );
+  requiredSelfTestObject(
+    numericNestedReviews[0],
+    "numeric nested required review",
+  ).requires_independence = 0;
+
+  const emptyClaim = reviewSubjectOverride(currentReviewRegistry, {
+    claim_boundary: "",
+  });
+  emptyClaim.claim_boundary = "";
+
+  const orderedRegistry = structuredClone(currentReviewRegistry);
+  const orderedRegistryDecisions = requiredSelfTestArray(
+    orderedRegistry.decisions,
+    "ordered registry decisions",
+  );
+  const orderedSubject = requiredSelfTestObject(
+    orderedRegistry.review_packet_subject,
+    "ordered review subject",
+  );
+  const orderedSubjectDecisions = requiredSelfTestArray(
+    orderedSubject.decisions,
+    "ordered review decisions",
+  );
+  const secondRegistryDecision = structuredClone(
+    requiredSelfTestObject(orderedRegistryDecisions[0], "first registry decision"),
+  );
+  secondRegistryDecision.id = "ADR-002";
+  secondRegistryDecision.title = "Second self-test decision";
+  secondRegistryDecision.path = "docs/adr/0002-self-test.md";
+  secondRegistryDecision.content_sha256 = "2".repeat(64);
+  orderedRegistryDecisions.push(secondRegistryDecision);
+  const secondSubjectDecision = structuredClone(
+    requiredSelfTestObject(orderedSubjectDecisions[0], "first review decision"),
+  );
+  secondSubjectDecision.id = "ADR-002";
+  secondSubjectDecision.title = "Second self-test decision";
+  secondSubjectDecision.path = "docs/adr/0002-self-test.md";
+  secondSubjectDecision.content_sha256 = "2".repeat(64);
+  orderedSubjectDecisions.push(secondSubjectDecision);
+  report.executed += 1;
+  validateReviewPacketBinding(orderedRegistry, decisionSetIdentity);
+  report.detected += 1;
+  const swappedDecisions = structuredClone(orderedRegistry);
+  requiredSelfTestArray(
+    requiredSelfTestObject(
+      swappedDecisions.review_packet_subject,
+      "swapped review subject",
+    ).decisions,
+    "swapped review decisions",
+  ).reverse();
+
+  const hostileReviewBindings: ReadonlyArray<readonly [string, JsonObject]> = [
+    [
+      "CURRENT subject schema guard",
+      reviewSubjectOverride(currentReviewRegistry, {
+        schema: "ncp.b01-review-subject.v0",
+      }),
+    ],
+    [
+      "CURRENT subject state guard",
+      reviewSubjectOverride(currentReviewRegistry, { state: "SUPERSEDED" }),
+    ],
+    [
+      "CURRENT subject numeric-false guard",
+      reviewSubjectOverride(currentReviewRegistry, { normative: 0 }),
+    ],
+    [
+      "CURRENT subject numeric-true guard",
+      reviewSubjectOverride(currentReviewRegistry, { promotion_blocked: 1 }),
+    ],
+    [
+      "CURRENT subject claim-boundary guard",
+      reviewSubjectOverride(currentReviewRegistry, { claim_boundary: "different" }),
+    ],
+    [
+      "CURRENT subject review-policy guard",
+      reviewSubjectOverride(currentReviewRegistry, {
+        review_policy: { schema: "ncp.b01-review-policy.v0" },
+      }),
+    ],
+    [
+      "CURRENT subject missing-member guard",
+      reviewSubjectWithoutMember(currentReviewRegistry, "decisions"),
+    ],
+    [
+      "CURRENT source commit guard",
+      reviewSubjectSourceOverride(currentReviewRegistry, { commit: "A".repeat(40) }),
+    ],
+    [
+      "CURRENT source tree guard",
+      reviewSubjectSourceOverride(currentReviewRegistry, { tree: "0".repeat(39) }),
+    ],
+    [
+      "CURRENT decision-source digest guard",
+      reviewDecisionSourceOverride(currentReviewRegistry, { sha256: "A".repeat(64) }),
+    ],
+    [
+      "CURRENT decision-source path guard",
+      reviewDecisionSourceOverride(currentReviewRegistry, {
+        path: "docs/adr/other.json",
+      }),
+    ],
+    [
+      "CURRENT decision-source byte guard",
+      reviewDecisionSourceOverride(currentReviewRegistry, { bytes: 2_097_153 }),
+    ],
+    [
+      "CURRENT decision-source member-set guard",
+      reviewDecisionSourceOverride(currentReviewRegistry, { unexpected: false }),
+    ],
+    [
+      "CURRENT source member-set guard",
+      reviewSubjectSourceOverride(currentReviewRegistry, { unexpected: false }),
+    ],
+    [
+      "CURRENT decision projection guard",
+      reviewSubjectDecisionOverride(currentReviewRegistry, {
+        title: "Different self-test decision",
+      }),
+    ],
+    [
+      "CURRENT decision extra-member guard",
+      reviewSubjectDecisionOverride(currentReviewRegistry, { status: "PROPOSED" }),
+    ],
+    [
+      "CURRENT decision missing-member guard",
+      reviewSubjectDecisionWithoutMember(currentReviewRegistry, "defect_ids"),
+    ],
+    ["CURRENT nested boolean type guard", numericNestedBoolean],
+    ["CURRENT aligned empty-claim guard", emptyClaim],
+    ["CURRENT decision-order guard", swappedDecisions],
+  ];
+  for (const [label, hostile] of hostileReviewBindings) {
+    expectThrows(
+      () => validateReviewPacketBinding(hostile, decisionSetIdentity),
+      DecisionBindingError,
+      label,
+      report,
+    );
+  }
 
   const patched = applyPatch(
     { a: { b: 1 }, list: ["x"] },
@@ -753,6 +898,139 @@ export function runSelfTests(): SelfTestReport {
   return report;
 }
 
+function currentReviewPacketRegistry(
+  registeredIdentity: JsonObject,
+  reviewRecords: JsonValue[],
+): JsonObject {
+  const reviewPolicy: JsonObject = {
+    schema: "ncp.b01-review-policy.v1",
+    generator: { path: "scripts/generate_decision_registry.py" },
+  };
+  const packetDecisionSource: JsonObject = {
+    path: "docs/adr/decision-registry.source.v1.json",
+    sha256: "c".repeat(64),
+    bytes: 1,
+  };
+  const subjectDecision: JsonObject = {
+    id: "ADR-001",
+    title: "Self-test decision",
+    path: "docs/adr/0001-self-test.md",
+    module_paths: [],
+    content_sha256: "d".repeat(64),
+    bytes: 1,
+    source_set: {},
+    required_reviews: [{ role_id: "reviewer", requires_independence: false }],
+    defect_ids: ["D01"],
+  };
+  return {
+    normative: false,
+    promotion_blocked: true,
+    claim_boundary: "Self-test non-authorizing claim boundary.",
+    review_policy: structuredClone(reviewPolicy),
+    source: {
+      path: "docs/adr/decision-registry.source.v1.json",
+      sha256: "1".repeat(64),
+      bytes: 2,
+    },
+    decisions: [{ ...structuredClone(subjectDecision), status: "PROPOSED" }],
+    review_packet_lifecycle: {
+      schema: "ncp.b01-review-packet-lifecycle.v1",
+      state: "CURRENT",
+    },
+    review_packet_subject: {
+      schema: "ncp.b01-review-subject.v1",
+      state: "CURRENT",
+      normative: false,
+      claim_boundary: "Self-test non-authorizing claim boundary.",
+      promotion_blocked: true,
+      decision_set: structuredClone(registeredIdentity),
+      review_policy: structuredClone(reviewPolicy),
+      source: {
+        commit: "e".repeat(40),
+        tree: "f".repeat(40),
+        decision_source: structuredClone(packetDecisionSource),
+      },
+      decisions: [structuredClone(subjectDecision)],
+    },
+    review_records: structuredClone(reviewRecords),
+  };
+}
+
+function reviewSubjectOverride(registry: JsonObject, override: JsonObject): JsonObject {
+  const hostile = structuredClone(registry);
+  Object.assign(requiredSelfTestObject(hostile.review_packet_subject, "review subject"), override);
+  return hostile;
+}
+
+function reviewSubjectSourceOverride(
+  registry: JsonObject,
+  override: JsonObject,
+): JsonObject {
+  const hostile = structuredClone(registry);
+  const subject = requiredSelfTestObject(hostile.review_packet_subject, "review subject");
+  Object.assign(requiredSelfTestObject(subject.source, "review subject source"), override);
+  return hostile;
+}
+
+function reviewDecisionSourceOverride(
+  registry: JsonObject,
+  override: JsonObject,
+): JsonObject {
+  const hostile = structuredClone(registry);
+  const subject = requiredSelfTestObject(hostile.review_packet_subject, "review subject");
+  const source = requiredSelfTestObject(subject.source, "review subject source");
+  Object.assign(
+    requiredSelfTestObject(source.decision_source, "review subject decision source"),
+    override,
+  );
+  return hostile;
+}
+
+function reviewSubjectDecisionOverride(
+  registry: JsonObject,
+  override: JsonObject,
+): JsonObject {
+  const hostile = structuredClone(registry);
+  const subject = requiredSelfTestObject(hostile.review_packet_subject, "review subject");
+  if (!Array.isArray(subject.decisions) || subject.decisions.length === 0) {
+    throw new Error("review subject decisions fixture is empty");
+  }
+  Object.assign(requiredSelfTestObject(subject.decisions[0], "review subject decision"), override);
+  return hostile;
+}
+
+function reviewSubjectWithoutMember(registry: JsonObject, member: string): JsonObject {
+  const hostile = structuredClone(registry);
+  delete requiredSelfTestObject(hostile.review_packet_subject, "review subject")[member];
+  return hostile;
+}
+
+function reviewSubjectDecisionWithoutMember(
+  registry: JsonObject,
+  member: string,
+): JsonObject {
+  const hostile = structuredClone(registry);
+  const subject = requiredSelfTestObject(hostile.review_packet_subject, "review subject");
+  if (!Array.isArray(subject.decisions) || subject.decisions.length === 0) {
+    throw new Error("review subject decisions fixture is empty");
+  }
+  delete requiredSelfTestObject(subject.decisions[0], "review subject decision")[member];
+  return hostile;
+}
+
+function requiredSelfTestObject(value: JsonValue | undefined, label: string): JsonObject {
+  if (!isObject(value)) throw new Error(`${label} fixture is not an object`);
+  return value;
+}
+
+function requiredSelfTestArray(
+  value: JsonValue | undefined,
+  label: string,
+): JsonValue[] {
+  if (!Array.isArray(value)) throw new Error(`${label} fixture is not an array`);
+  return value;
+}
+
 function expectStrictRejection(
   source: string,
   limits: JsonLimits,
@@ -806,6 +1084,6 @@ function expectThrows(
   throw new Error(`${label} did not reject`);
 }
 
-function isObject(value: unknown): value is { [key: string]: unknown } {
+function isObject(value: unknown): value is JsonObject {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }

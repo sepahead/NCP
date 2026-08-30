@@ -9,8 +9,36 @@ const DECISION_SOURCE_PATH =
   /^docs\/adr\/(000[1-9]|001[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 const MODULE_SOURCE_PATH =
   /^docs\/adr\/modules\/adr-(00[1-9]|01[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
+const GIT_OBJECT = /^[0-9a-f]{40}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const REVIEW_PACKET_LIFECYCLE_SCHEMA = "ncp.b01-review-packet-lifecycle.v1";
+const REVIEW_SUBJECT_SCHEMA = "ncp.b01-review-subject.v1";
+const REVIEW_SUBJECT_DECISION_SOURCE_PATH =
+  "docs/adr/decision-registry.source.v1.json";
+const MAXIMUM_REVIEW_SUBJECT_DECISION_SOURCE_BYTES = 2_097_152;
+const REVIEW_SUBJECT_MEMBERS = [
+  "schema",
+  "state",
+  "normative",
+  "claim_boundary",
+  "promotion_blocked",
+  "decision_set",
+  "review_policy",
+  "source",
+  "decisions",
+] as const;
+const REVIEW_SUBJECT_SOURCE_MEMBERS = ["commit", "tree", "decision_source"] as const;
+const REVIEW_SUBJECT_DECISION_MEMBERS = [
+  "id",
+  "title",
+  "path",
+  "module_paths",
+  "content_sha256",
+  "bytes",
+  "source_set",
+  "required_reviews",
+  "defect_ids",
+] as const;
 const ADR_SOURCE_SET_SCHEMA = "ncp.b01-adr-source-set.v1";
 const ADR_SOURCE_SET_DIGEST_ALGORITHM =
   "sha256(domain || u64be(projection_bytes) || projection)";
@@ -349,19 +377,142 @@ export function validateReviewPacketBinding(
       registry.review_packet_subject,
       "decision registry review_packet_subject",
     );
-    if (
-      Object.keys(reviewSubject).length !== 1 ||
-      !Object.hasOwn(reviewSubject, "decision_set")
-    ) {
+    if (!hasExactMembers(reviewSubject, REVIEW_SUBJECT_MEMBERS)) {
       throw new DecisionBindingError(
-        "CURRENT review packet subject must contain only decision_set",
+        "CURRENT review packet subject has an invalid member set",
       );
     }
+    if (
+      reviewSubject.schema !== REVIEW_SUBJECT_SCHEMA ||
+      reviewSubject.state !== "CURRENT" ||
+      reviewSubject.normative !== false ||
+      reviewSubject.promotion_blocked !== true
+    ) {
+      throw new DecisionBindingError(
+        "CURRENT review packet subject has invalid fixed semantics",
+      );
+    }
+
+    const claimBoundary = requiredString(
+      registry.claim_boundary,
+      "decision registry claim_boundary",
+    );
+    if (claimBoundary.length === 0) {
+      throw new DecisionBindingError("decision registry claim_boundary must not be empty");
+    }
+    requiredObject(registry.review_policy, "decision registry review_policy");
+    const subjectSource = requiredObject(
+      reviewSubject.source,
+      "review packet subject source",
+    );
+    if (!hasExactMembers(subjectSource, REVIEW_SUBJECT_SOURCE_MEMBERS)) {
+      throw new DecisionBindingError("review packet subject source has an invalid member set");
+    }
+    const sourceCommit = requiredString(
+      subjectSource.commit,
+      "review packet subject source commit",
+    );
+    const sourceTree = requiredString(
+      subjectSource.tree,
+      "review packet subject source tree",
+    );
+    if (!GIT_OBJECT.test(sourceCommit) || !GIT_OBJECT.test(sourceTree)) {
+      throw new DecisionBindingError(
+        "review packet subject source commit or tree is invalid",
+      );
+    }
+    // Review capture changes registry.source. The CURRENT packet keeps its
+    // immutable identity, which the registry generator resolves.
+    const decisionSource = requiredObject(
+      subjectSource.decision_source,
+      "review packet subject decision_source",
+    );
+    if (!hasExactMembers(decisionSource, ["path", "sha256", "bytes"] as const)) {
+      throw new DecisionBindingError(
+        "review packet subject decision_source has an invalid member set",
+      );
+    }
+    if (
+      requiredString(
+        decisionSource.path,
+        "review packet subject decision_source path",
+      ) !== REVIEW_SUBJECT_DECISION_SOURCE_PATH ||
+      !SHA256.test(
+        requiredString(
+          decisionSource.sha256,
+          "review packet subject decision_source sha256",
+        ),
+      )
+    ) {
+      throw new DecisionBindingError(
+        "review packet subject decision_source has an invalid identity",
+      );
+    }
+    const decisionSourceBytes = requiredPositiveInteger(
+      decisionSource.bytes,
+      "review packet subject decision_source bytes",
+    );
+    if (decisionSourceBytes > MAXIMUM_REVIEW_SUBJECT_DECISION_SOURCE_BYTES) {
+      throw new DecisionBindingError(
+        "review packet subject decision_source exceeds its byte envelope",
+      );
+    }
+
+    requireExactJsonValue(
+      reviewSubject.claim_boundary,
+      registry.claim_boundary as JsonValue,
+      "review packet subject claim_boundary",
+    );
     requireExactJsonValue(
       reviewSubject.decision_set,
       registeredIdentity,
       "review packet subject decision_set",
     );
+    requireExactJsonValue(
+      reviewSubject.review_policy,
+      registry.review_policy as JsonValue,
+      "review packet subject review_policy",
+    );
+    const subjectDecisions = requiredArray(
+      reviewSubject.decisions,
+      "review packet subject decisions",
+    );
+    const registryDecisions = requiredArray(
+      registry.decisions,
+      "decision registry decisions",
+    );
+    if (subjectDecisions.length !== registryDecisions.length) {
+      throw new DecisionBindingError(
+        "review packet decisions differ from the decision registry",
+      );
+    }
+    for (let index = 0; index < registryDecisions.length; index += 1) {
+      const subjectDecision = requiredObject(
+        subjectDecisions[index],
+        `review packet subject decisions[${index}]`,
+      );
+      const registryDecision = requiredObject(
+        registryDecisions[index],
+        `decision registry decisions[${index}]`,
+      );
+      if (!hasExactMembers(subjectDecision, REVIEW_SUBJECT_DECISION_MEMBERS)) {
+        throw new DecisionBindingError(
+          `review packet subject decisions[${index}] has an invalid member set`,
+        );
+      }
+      for (const member of REVIEW_SUBJECT_DECISION_MEMBERS) {
+        if (!Object.hasOwn(registryDecision, member)) {
+          throw new DecisionBindingError(
+            `decision registry decisions[${index}] lacks review-subject member ${member}`,
+          );
+        }
+        requireExactJsonValue(
+          subjectDecision[member],
+          registryDecision[member] as JsonValue,
+          `review packet subject decisions[${index}].${member}`,
+        );
+      }
+    }
     return;
   }
   if (state === "SUPERSEDED" || state === "TEMPLATE") {
@@ -446,6 +597,16 @@ function requiredPositiveInteger(value: JsonValue | undefined, label: string): n
     throw new DecisionBindingError(`${label} must be a positive safe integer`);
   }
   return value;
+}
+
+function hasExactMembers(
+  object: JsonObject,
+  expected: readonly string[],
+): boolean {
+  return (
+    Object.keys(object).length === expected.length &&
+    expected.every((member) => Object.hasOwn(object, member))
+  );
 }
 
 function requiredDecisionPath(

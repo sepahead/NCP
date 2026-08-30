@@ -10,6 +10,32 @@ use crate::source::{read_bounded, resolve_regular_relative_file};
 use crate::strict_json::parse_strict;
 
 const REVIEW_PACKET_LIFECYCLE_SCHEMA: &str = "ncp.b01-review-packet-lifecycle.v1";
+const REVIEW_SUBJECT_SCHEMA: &str = "ncp.b01-review-subject.v1";
+const REVIEW_SUBJECT_DECISION_SOURCE_PATH: &str = "docs/adr/decision-registry.source.v1.json";
+const MAXIMUM_REVIEW_SUBJECT_DECISION_SOURCE_BYTES: u64 = 2_097_152;
+const REVIEW_SUBJECT_MEMBERS: [&str; 9] = [
+    "schema",
+    "state",
+    "normative",
+    "claim_boundary",
+    "promotion_blocked",
+    "decision_set",
+    "review_policy",
+    "source",
+    "decisions",
+];
+const REVIEW_SUBJECT_SOURCE_MEMBERS: [&str; 3] = ["commit", "tree", "decision_source"];
+const REVIEW_SUBJECT_DECISION_MEMBERS: [&str; 9] = [
+    "id",
+    "title",
+    "path",
+    "module_paths",
+    "content_sha256",
+    "bytes",
+    "source_set",
+    "required_reviews",
+    "defect_ids",
+];
 const ADR_SOURCE_SET_SCHEMA: &str = "ncp.b01-adr-source-set.v1";
 const ADR_SOURCE_SET_DIGEST_ALGORITHM: &str =
     "sha256(domain || u64be(projection_bytes) || projection)";
@@ -504,11 +530,19 @@ fn decision_source(identity: &Map<String, Value>) -> EngineResult<DecisionSource
     })
 }
 
-fn valid_sha256(value: &str) -> bool {
-    value.len() == 64
+fn valid_lowercase_hex(value: &str, expected_length: usize) -> bool {
+    value.len() == expected_length
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn valid_sha256(value: &str) -> bool {
+    valid_lowercase_hex(value, 64)
+}
+
+fn has_exact_members(object: &Map<String, Value>, expected: &[&str]) -> bool {
+    object.len() == expected.len() && expected.iter().all(|member| object.contains_key(*member))
 }
 
 fn validate_review_packet_binding(
@@ -543,10 +577,127 @@ fn validate_review_packet_binding(
                 .ok_or_else(|| {
                     EngineError::corpus("CURRENT review packet subject must be an object")
                 })?;
-            if subject.len() != 1 || subject.get("decision_set") != Some(registered_identity) {
+            if !has_exact_members(subject, &REVIEW_SUBJECT_MEMBERS) {
                 return Err(EngineError::corpus(
-                    "CURRENT review packet subject does not carry the bound identity",
+                    "CURRENT review packet subject has an invalid member set",
                 ));
+            }
+            if subject.get("schema").and_then(Value::as_str) != Some(REVIEW_SUBJECT_SCHEMA)
+                || subject.get("state").and_then(Value::as_str) != Some("CURRENT")
+                || subject.get("normative") != Some(&Value::Bool(false))
+                || subject.get("promotion_blocked") != Some(&Value::Bool(true))
+            {
+                return Err(EngineError::corpus(
+                    "CURRENT review packet subject has invalid fixed semantics",
+                ));
+            }
+
+            registry
+                .get("claim_boundary")
+                .and_then(Value::as_str)
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| {
+                    EngineError::corpus("decision registry claim boundary must be a string")
+                })?;
+            registry
+                .get("review_policy")
+                .and_then(Value::as_object)
+                .ok_or_else(|| {
+                    EngineError::corpus("decision registry review policy must be an object")
+                })?;
+            let source = subject
+                .get("source")
+                .and_then(Value::as_object)
+                .ok_or_else(|| EngineError::corpus("review packet source must be an object"))?;
+            if !has_exact_members(source, &REVIEW_SUBJECT_SOURCE_MEMBERS) {
+                return Err(EngineError::corpus(
+                    "review packet source has an invalid member set",
+                ));
+            }
+            if !source
+                .get("commit")
+                .and_then(Value::as_str)
+                .is_some_and(|value| valid_lowercase_hex(value, 40))
+                || !source
+                    .get("tree")
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| valid_lowercase_hex(value, 40))
+            {
+                return Err(EngineError::corpus(
+                    "review packet source commit or tree is invalid",
+                ));
+            }
+            // Review capture changes registry.source. The CURRENT packet keeps
+            // its immutable identity, which the registry generator resolves.
+            let decision_source = source
+                .get("decision_source")
+                .and_then(Value::as_object)
+                .ok_or_else(|| {
+                    EngineError::corpus("review packet decision source must be an object")
+                })?;
+            if !has_exact_members(decision_source, &["path", "sha256", "bytes"])
+                || decision_source.get("path").and_then(Value::as_str)
+                    != Some(REVIEW_SUBJECT_DECISION_SOURCE_PATH)
+                || !decision_source
+                    .get("sha256")
+                    .and_then(Value::as_str)
+                    .is_some_and(valid_sha256)
+                || decision_source
+                    .get("bytes")
+                    .and_then(Value::as_u64)
+                    .is_none_or(|value| {
+                        value == 0 || value > MAXIMUM_REVIEW_SUBJECT_DECISION_SOURCE_BYTES
+                    })
+            {
+                return Err(EngineError::corpus(
+                    "review packet decision source has an invalid identity",
+                ));
+            }
+
+            if subject.get("claim_boundary") != registry.get("claim_boundary")
+                || subject.get("decision_set") != Some(registered_identity)
+                || subject.get("review_policy") != registry.get("review_policy")
+            {
+                return Err(EngineError::corpus(
+                    "CURRENT review packet subject differs from the bound registry projection",
+                ));
+            }
+
+            let subject_decisions = subject
+                .get("decisions")
+                .and_then(Value::as_array)
+                .ok_or_else(|| EngineError::corpus("review packet decisions must be an array"))?;
+            let registry_decisions = registry
+                .get("decisions")
+                .and_then(Value::as_array)
+                .ok_or_else(|| {
+                    EngineError::corpus("decision registry decisions must be an array")
+                })?;
+            if subject_decisions.len() != registry_decisions.len() {
+                return Err(EngineError::corpus(
+                    "review packet decisions differ from the decision registry",
+                ));
+            }
+            for (index, (subject_decision, registry_decision)) in
+                subject_decisions.iter().zip(registry_decisions).enumerate()
+            {
+                let subject_decision = subject_decision.as_object().ok_or_else(|| {
+                    EngineError::corpus(format!("review packet decision {index} must be an object"))
+                })?;
+                let registry_decision = registry_decision.as_object().ok_or_else(|| {
+                    EngineError::corpus(format!(
+                        "decision registry entry {index} must be an object"
+                    ))
+                })?;
+                if !has_exact_members(subject_decision, &REVIEW_SUBJECT_DECISION_MEMBERS)
+                    || REVIEW_SUBJECT_DECISION_MEMBERS.iter().any(|member| {
+                        subject_decision.get(*member) != registry_decision.get(*member)
+                    })
+                {
+                    return Err(EngineError::corpus(format!(
+                        "review packet decision {index} differs from its registry projection"
+                    )));
+                }
             }
         }
         "SUPERSEDED" | "TEMPLATE" => {
@@ -577,15 +728,17 @@ pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
         "schema": "ncp.b01-decision-set.v1",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     });
-    let subject = serde_json::json!({"decision_set": registered_identity.clone()});
-    let mismatched_subject = serde_json::json!({
-        "decision_set": {
-            "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
-            "domain_hex": "00",
-            "schema": "ncp.b01-decision-set.v1",
-            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-        }
+    let mismatched_identity = serde_json::json!({
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": "00",
+        "schema": "ncp.b01-decision-set.v1",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     });
+    let current = current_review_packet_registry(&registered_identity, vec![serde_json::json!({})]);
+    let subject = current
+        .get("review_packet_subject")
+        .cloned()
+        .ok_or_else(|| EngineError::corpus("self-test CURRENT subject is absent"))?;
     let mut wrong_schema = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
     lifecycle_mut(&mut wrong_schema)?.insert(
         "schema".to_owned(),
@@ -593,24 +746,139 @@ pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
     );
     let mut extra_member = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
     lifecycle_mut(&mut extra_member)?.insert("unexpected".to_owned(), Value::Bool(false));
-    let mut extra_subject_member = review_packet_registry("CURRENT", subject.clone(), vec![]);
-    extra_subject_member
-        .get_mut("review_packet_subject")
-        .and_then(Value::as_object_mut)
-        .ok_or_else(|| EngineError::corpus("self-test review subject is not an object"))?
+    let mut extra_subject_member = current.clone();
+    review_subject_mut(&mut extra_subject_member)?
         .insert("unexpected".to_owned(), Value::Bool(false));
     let mut missing_state = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
     lifecycle_mut(&mut missing_state)?.remove("state");
     let mut missing_subject = review_packet_registry("SUPERSEDED", Value::Null, vec![]);
     missing_subject.remove("review_packet_subject");
-    let mut missing_records = review_packet_registry("CURRENT", subject.clone(), vec![]);
+    let mut missing_records = current.clone();
     missing_records.remove("review_records");
-    let controls = [
-        validate_review_packet_binding(
-            &review_packet_registry("CURRENT", subject.clone(), vec![serde_json::json!({})]),
-            &registered_identity,
-        )
-        .is_ok(),
+
+    let mut wrong_subject_schema = current.clone();
+    review_subject_mut(&mut wrong_subject_schema)?.insert(
+        "schema".to_owned(),
+        Value::String("ncp.b01-review-subject.v0".to_owned()),
+    );
+    let mut wrong_subject_state = current.clone();
+    review_subject_mut(&mut wrong_subject_state)?
+        .insert("state".to_owned(), Value::String("SUPERSEDED".to_owned()));
+    let mut numeric_false = current.clone();
+    review_subject_mut(&mut numeric_false)?.insert("normative".to_owned(), Value::from(0));
+    let mut numeric_true = current.clone();
+    review_subject_mut(&mut numeric_true)?.insert("promotion_blocked".to_owned(), Value::from(1));
+    let mut wrong_claim = current.clone();
+    review_subject_mut(&mut wrong_claim)?.insert(
+        "claim_boundary".to_owned(),
+        Value::String("different".to_owned()),
+    );
+    let mut wrong_policy = current.clone();
+    review_subject_mut(&mut wrong_policy)?.insert(
+        "review_policy".to_owned(),
+        serde_json::json!({"schema": "ncp.b01-review-policy.v0"}),
+    );
+    let mut bad_commit = current.clone();
+    review_subject_source_mut(&mut bad_commit)?
+        .insert("commit".to_owned(), Value::String("A".repeat(40)));
+    let mut bad_tree = current.clone();
+    review_subject_source_mut(&mut bad_tree)?
+        .insert("tree".to_owned(), Value::String("0".repeat(39)));
+    let mut bad_decision_source = current.clone();
+    review_subject_source_mut(&mut bad_decision_source)?
+        .get_mut("decision_source")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test decision source is not an object"))?
+        .insert("sha256".to_owned(), Value::String("A".repeat(64)));
+    let mut bad_decision_source_path = current.clone();
+    review_subject_source_mut(&mut bad_decision_source_path)?
+        .get_mut("decision_source")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test decision source is not an object"))?
+        .insert(
+            "path".to_owned(),
+            Value::String("docs/adr/other.json".to_owned()),
+        );
+    let mut oversized_decision_source = current.clone();
+    review_subject_source_mut(&mut oversized_decision_source)?
+        .get_mut("decision_source")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test decision source is not an object"))?
+        .insert(
+            "bytes".to_owned(),
+            Value::from(MAXIMUM_REVIEW_SUBJECT_DECISION_SOURCE_BYTES + 1),
+        );
+    let mut extra_decision_source_member = current.clone();
+    review_subject_source_mut(&mut extra_decision_source_member)?
+        .get_mut("decision_source")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test decision source is not an object"))?
+        .insert("unexpected".to_owned(), Value::Bool(false));
+    let mut extra_source_member = current.clone();
+    review_subject_source_mut(&mut extra_source_member)?
+        .insert("unexpected".to_owned(), Value::Bool(false));
+    let mut changed_decision = current.clone();
+    first_review_subject_decision_mut(&mut changed_decision)?.insert(
+        "title".to_owned(),
+        Value::String("Different self-test decision".to_owned()),
+    );
+    let mut extra_decision_member = current.clone();
+    first_review_subject_decision_mut(&mut extra_decision_member)?
+        .insert("status".to_owned(), Value::String("PROPOSED".to_owned()));
+    let mut missing_decision_member = current.clone();
+    first_review_subject_decision_mut(&mut missing_decision_member)?.remove("defect_ids");
+    let mut numeric_nested_boolean = current.clone();
+    first_review_subject_decision_mut(&mut numeric_nested_boolean)?
+        .get_mut("required_reviews")
+        .and_then(Value::as_array_mut)
+        .and_then(|reviews| reviews.first_mut())
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test required review is not an object"))?
+        .insert("requires_independence".to_owned(), Value::from(0));
+    let mut missing_decisions = current.clone();
+    review_subject_mut(&mut missing_decisions)?.remove("decisions");
+    let mut empty_claim = current.clone();
+    empty_claim.insert("claim_boundary".to_owned(), Value::String(String::new()));
+    review_subject_mut(&mut empty_claim)?
+        .insert("claim_boundary".to_owned(), Value::String(String::new()));
+
+    let mut ordered_registry = current.clone();
+    let registry_decisions = ordered_registry
+        .get_mut("decisions")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| EngineError::corpus("self-test registry decisions are not an array"))?;
+    let mut second_registry_decision = registry_decisions
+        .first()
+        .cloned()
+        .and_then(|value| value.as_object().cloned())
+        .ok_or_else(|| EngineError::corpus("self-test registry decision is not an object"))?;
+    second_registry_decision.insert("id".to_owned(), Value::String("ADR-002".to_owned()));
+    second_registry_decision.insert(
+        "title".to_owned(),
+        Value::String("Second self-test decision".to_owned()),
+    );
+    second_registry_decision.insert(
+        "path".to_owned(),
+        Value::String("docs/adr/0002-self-test.md".to_owned()),
+    );
+    second_registry_decision.insert("content_sha256".to_owned(), Value::String("2".repeat(64)));
+    registry_decisions.push(Value::Object(second_registry_decision.clone()));
+    let subject_decisions = review_subject_mut(&mut ordered_registry)?
+        .get_mut("decisions")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| EngineError::corpus("self-test review decisions are not an array"))?;
+    second_registry_decision.remove("status");
+    subject_decisions.push(Value::Object(second_registry_decision));
+    let mut swapped_decisions = ordered_registry.clone();
+    review_subject_mut(&mut swapped_decisions)?
+        .get_mut("decisions")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| EngineError::corpus("self-test review decisions are not an array"))?
+        .reverse();
+
+    let controls = vec![
+        validate_review_packet_binding(&current, &registered_identity).is_ok(),
+        validate_review_packet_binding(&ordered_registry, &registered_identity).is_ok(),
         validate_review_packet_binding(
             &review_packet_registry("SUPERSEDED", Value::Null, vec![]),
             &registered_identity,
@@ -627,7 +895,7 @@ pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
         )
         .is_err(),
         validate_review_packet_binding(
-            &review_packet_registry("CURRENT", mismatched_subject, vec![]),
+            &current_review_packet_registry(&mismatched_identity, vec![]),
             &registered_identity,
         )
         .is_err(),
@@ -657,6 +925,27 @@ pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
         validate_review_packet_binding(&missing_state, &registered_identity).is_err(),
         validate_review_packet_binding(&missing_subject, &registered_identity).is_err(),
         validate_review_packet_binding(&missing_records, &registered_identity).is_err(),
+        validate_review_packet_binding(&wrong_subject_schema, &registered_identity).is_err(),
+        validate_review_packet_binding(&wrong_subject_state, &registered_identity).is_err(),
+        validate_review_packet_binding(&numeric_false, &registered_identity).is_err(),
+        validate_review_packet_binding(&numeric_true, &registered_identity).is_err(),
+        validate_review_packet_binding(&wrong_claim, &registered_identity).is_err(),
+        validate_review_packet_binding(&wrong_policy, &registered_identity).is_err(),
+        validate_review_packet_binding(&bad_commit, &registered_identity).is_err(),
+        validate_review_packet_binding(&bad_tree, &registered_identity).is_err(),
+        validate_review_packet_binding(&bad_decision_source, &registered_identity).is_err(),
+        validate_review_packet_binding(&bad_decision_source_path, &registered_identity).is_err(),
+        validate_review_packet_binding(&oversized_decision_source, &registered_identity).is_err(),
+        validate_review_packet_binding(&extra_decision_source_member, &registered_identity)
+            .is_err(),
+        validate_review_packet_binding(&extra_source_member, &registered_identity).is_err(),
+        validate_review_packet_binding(&changed_decision, &registered_identity).is_err(),
+        validate_review_packet_binding(&extra_decision_member, &registered_identity).is_err(),
+        validate_review_packet_binding(&missing_decision_member, &registered_identity).is_err(),
+        validate_review_packet_binding(&numeric_nested_boolean, &registered_identity).is_err(),
+        validate_review_packet_binding(&missing_decisions, &registered_identity).is_err(),
+        validate_review_packet_binding(&empty_claim, &registered_identity).is_err(),
+        validate_review_packet_binding(&swapped_decisions, &registered_identity).is_err(),
     ];
     let detected = controls.iter().filter(|detected| **detected).count();
     if detected != controls.len() {
@@ -666,6 +955,90 @@ pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
         )));
     }
     Ok(detected)
+}
+
+fn current_review_packet_registry(
+    registered_identity: &Value,
+    review_records: Vec<Value>,
+) -> Map<String, Value> {
+    let subject = serde_json::json!({
+        "schema": REVIEW_SUBJECT_SCHEMA,
+        "state": "CURRENT",
+        "normative": false,
+        "claim_boundary": "Self-test non-authorizing claim boundary.",
+        "promotion_blocked": true,
+        "decision_set": registered_identity,
+        "review_policy": {
+            "schema": "ncp.b01-review-policy.v1",
+            "generator": {"path": "scripts/generate_decision_registry.py"}
+        },
+        "source": {
+            "commit": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "tree": "ffffffffffffffffffffffffffffffffffffffff",
+            "decision_source": {
+                "path": "docs/adr/decision-registry.source.v1.json",
+                "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "bytes": 1
+            }
+        },
+        "decisions": [{
+            "id": "ADR-001",
+            "title": "Self-test decision",
+            "path": "docs/adr/0001-self-test.md",
+            "module_paths": [],
+            "content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "bytes": 1,
+            "source_set": {},
+            "required_reviews": [{
+                "role_id": "reviewer",
+                "requires_independence": false
+            }],
+            "defect_ids": ["D01"]
+        }]
+    });
+    let mut registry = review_packet_registry("CURRENT", subject, review_records);
+    registry.extend(Map::from_iter([
+        ("normative".to_owned(), Value::Bool(false)),
+        ("promotion_blocked".to_owned(), Value::Bool(true)),
+        (
+            "claim_boundary".to_owned(),
+            Value::String("Self-test non-authorizing claim boundary.".to_owned()),
+        ),
+        (
+            "review_policy".to_owned(),
+            serde_json::json!({
+                "schema": "ncp.b01-review-policy.v1",
+                "generator": {"path": "scripts/generate_decision_registry.py"}
+            }),
+        ),
+        (
+            "source".to_owned(),
+            serde_json::json!({
+                "path": "docs/adr/decision-registry.source.v1.json",
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+                "bytes": 2
+            }),
+        ),
+        (
+            "decisions".to_owned(),
+            serde_json::json!([{
+                "id": "ADR-001",
+                "title": "Self-test decision",
+                "path": "docs/adr/0001-self-test.md",
+                "module_paths": [],
+                "content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "bytes": 1,
+                "source_set": {},
+                "required_reviews": [{
+                    "role_id": "reviewer",
+                    "requires_independence": false
+                }],
+                "defect_ids": ["D01"],
+                "status": "PROPOSED"
+            }]),
+        ),
+    ]));
+    registry
 }
 
 fn review_packet_registry(
@@ -691,6 +1064,33 @@ fn lifecycle_mut(registry: &mut Map<String, Value>) -> EngineResult<&mut Map<Str
         .get_mut("review_packet_lifecycle")
         .and_then(Value::as_object_mut)
         .ok_or_else(|| EngineError::corpus("self-test lifecycle fixture is not an object"))
+}
+
+fn review_subject_mut(registry: &mut Map<String, Value>) -> EngineResult<&mut Map<String, Value>> {
+    registry
+        .get_mut("review_packet_subject")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test review subject is not an object"))
+}
+
+fn review_subject_source_mut(
+    registry: &mut Map<String, Value>,
+) -> EngineResult<&mut Map<String, Value>> {
+    review_subject_mut(registry)?
+        .get_mut("source")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test review subject source is not an object"))
+}
+
+fn first_review_subject_decision_mut(
+    registry: &mut Map<String, Value>,
+) -> EngineResult<&mut Map<String, Value>> {
+    review_subject_mut(registry)?
+        .get_mut("decisions")
+        .and_then(Value::as_array_mut)
+        .and_then(|decisions| decisions.first_mut())
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| EngineError::corpus("self-test review decision is not an object"))
 }
 
 fn decision_identity(binding: &DecisionSetBinding) -> Value {
