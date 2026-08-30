@@ -981,10 +981,11 @@ incompatible wires. The complete quiesced body-profile cut remains mandatory.
 
 ### D19 — ratification evidence and normative promotion form an uncloseable cycle
 
-B01 is responsible for ratifying eleven ADRs, but the current non-normative
-registry permits only `PROPOSED` decisions and zero review records. The generic
+B01 is responsible for ratifying eleven ADRs. The initial non-normative registry
+contains only `PROPOSED` decisions and zero review records. Its source permits
+later same-subject review records. The generic
 implementation ledger can retain independent reviewer identities. The ledger
-cannot prove that all 51 exact ADR role obligations, with 52 minimum identity
+cannot prove that all 52 exact ADR role obligations, with 53 minimum identity
 slots, reviewed the same bytes. It also cannot prove that a conditional review
 was closed. B01 also names the normative decision registry as its output and
 requires owner authorization for a candidate rebaseline. B02 owns that

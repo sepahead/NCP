@@ -846,7 +846,116 @@ mechanical normative promotion. N01 rejects a promoted copy that alters any
 review, policy, evidence, decision-set, schema, generator, or predecessor
 provenance field.
 
+## Current review response contract
+
+The current packet contains 52 ADR-role obligations and 53 minimum identity
+slots. The obligations use 38 unique role IDs. Exactly 5 obligations require
+independent review, with 6 minimum independent identity slots.
+
+The generated current subject gives this exact review burden:
+
+| ADR | Obligations | Minimum slots |
+|---|---:|---:|
+| ADR-001 | 4 | 4 |
+| ADR-002 | 2 | 2 |
+| ADR-003 | 2 | 3 |
+| ADR-004 | 6 | 6 |
+| ADR-005 | 6 | 6 |
+| ADR-006 | 4 | 4 |
+| ADR-007 | 3 | 3 |
+| ADR-008 | 5 | 5 |
+| ADR-009 | 5 | 5 |
+| ADR-010 | 6 | 6 |
+| ADR-011 | 9 | 9 |
+| Total | 52 | 53 |
+
+The 53-slot total sums each obligation's minimum. It does not require 53
+globally distinct reviewer identities.
+
+Submit one source review record for each reviewer, ADR, and role. Do not add the
+generated `derived` member. The registry generator adds that member after it
+validates the source record.
+
+Each source review record must contain these members:
+
+```text
+review_id
+adr_id
+role_id
+reviewer
+  identity
+  identity_kind: PERSON | TEAM
+  independence_claimed: true | false
+  implementation_owner_identities
+subject
+  decision_set_sha256
+  adr_content_sha256
+  adr_bytes
+  adr_source_set
+  source_commit
+  source_tree
+  review_packet_sha256
+decision: ACCEPT | REJECT | ACCEPT_WITH_CONDITIONS
+conditions
+role_authorization
+independence_assessment
+external_receipt
+timestamp_utc
+supersedes
+```
+
+The `adr_source_set` value must be the complete object for the selected ADR.
+Do not submit only its digest. The generator rejects an omitted, truncated, or
+altered source-set object.
+
+The object contains `schema`, `decision_id`, `sources`, `digest_algorithm`,
+`domain_hex`, and `sha256`. Each source contains `kind`, `path`, `sha256`, and
+`bytes`. ADR-004, ADR-009, and ADR-011 each include one module source.
+
+Use the generated registry from the exact packet commit. This command emits the
+complete current subject for one ADR:
+
+```bash
+adr_id=ADR-001
+python3 - "$adr_id" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path("docs/adr/decision-registry.proposed.v1.json")
+with path.open("rb") as handle:
+    raw = handle.read(2 * 1024 * 1024 + 1)
+if len(raw) > 2 * 1024 * 1024:
+    raise SystemExit("registry exceeds the 2 MiB review bound")
+registry = json.loads(raw)
+packet = registry["review_packet_subject"]
+decision = next(item for item in packet["decisions"] if item["id"] == sys.argv[1])
+subject = {
+    "decision_set_sha256": packet["decision_set"]["sha256"],
+    "adr_content_sha256": decision["content_sha256"],
+    "adr_bytes": decision["bytes"],
+    "adr_source_set": decision["source_set"],
+    "source_commit": packet["source"]["commit"],
+    "source_tree": packet["source"]["tree"],
+    "review_packet_sha256": registry["review_packet"]["sha256"],
+}
+print(json.dumps(subject, indent=2, sort_keys=True))
+PY
+```
+
+Independently hash `docs/adr/B01_REVIEW_PACKET.md`. Require equality with the
+external request and generated registry before review. Each evidence reference
+must contain `url`, `path`, `sha256`, `bytes`, and `media_type`.
+
+Use `conditions: []` for `ACCEPT` or `REJECT`. Use the closed condition object
+from the registry schema for `ACCEPT_WITH_CONDITIONS`. Use a separate retained
+receipt for each review, role authorization, and required independence
+assessment.
+
 ## Historical superseded packet
+
+The remaining subsections preserve a superseded review surface. Do not use its
+hashes, commands, or response fields for a current review.
 
 This packet requests human, same-digest review of the eleven **PROPOSED** NCP
 1.0 architecture decisions. It is not an approval record. It does not accept an
@@ -1015,7 +1124,10 @@ in each ADR. In particular, try to find a counterexample involving:
 - migration, packaging, or local tests being overstated as release or installed
   interoperability evidence.
 
-### Replacement review response fields
+### Historical response field list
+
+This list is incomplete under the current schema. It omits the full
+`adr_source_set` object and must not be used for a current review.
 
 ```text
 review_id:

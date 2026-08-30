@@ -15113,6 +15113,577 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _canonical_b01_source_set(
+    decision_id: str, sources: list[dict[str, Any]]
+) -> dict[str, Any]:
+    projection = {
+        "schema": "ncp.b01-adr-source-set.v1",
+        "decision_id": decision_id,
+        "sources": sources,
+    }
+    payload = json.dumps(
+        projection,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    domain = b"ncp.b01-adr-source-set.v1\x00"
+    return {
+        **projection,
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": domain.hex(),
+        "sha256": hashlib.sha256(
+            domain + len(payload).to_bytes(8, "big") + payload
+        ).hexdigest(),
+    }
+
+
+def _trusted_b01_decision_source(
+    source_subject: Any,
+) -> tuple[dict[str, Any], str, str]:
+    if not isinstance(source_subject, dict):
+        _fail("B01 current subject source must be an object")
+    _exact_keys(source_subject, {"commit", "tree", "decision_source"}, "B01 source")
+    commit = _hex(source_subject["commit"], HEX40, "B01 source.commit")
+    tree = _hex(source_subject["tree"], HEX40, "B01 source.tree")
+    if _resolved_git_tree(str(ROOT), commit) != tree:
+        _fail("B01 current subject source tree differs from its commit")
+    identity = source_subject["decision_source"]
+    if not isinstance(identity, dict):
+        _fail("B01 current subject decision-source identity must be an object")
+    _exact_keys(identity, {"path", "sha256", "bytes"}, "B01 decision source")
+    relative = _relative_path(identity["path"], "B01 decision source.path")
+    if relative != DECISION_REGISTRY_SOURCE.relative_to(ROOT).as_posix():
+        _fail("B01 current subject names the wrong decision source")
+    _, raw = _resolved_git_blob(str(ROOT), commit, relative)
+    if identity["sha256"] != hashlib.sha256(raw).hexdigest() or identity[
+        "bytes"
+    ] != len(raw):
+        _fail("B01 current subject decision-source identity is stale")
+    trusted = _load_bounded_json_bytes(raw, "B01 committed zero-review source")
+    if (
+        trusted.get("schema") != "ncp.proposed-decision-registry-source.v1"
+        or trusted.get("review_records") != []
+    ):
+        _fail("B01 packet source is not the exact zero-review registry source")
+    return trusted, commit, tree
+
+
+def _parse_b01_packet_markdown(
+    packet_text: str,
+) -> tuple[list[tuple[str, int, int]], list[tuple[str, str, int, int]]]:
+    """Return visible headings and top-level fences under the packet profile."""
+    if "\r" in packet_text:
+        _fail("B01 current packet must use LF line endings")
+
+    headings: list[tuple[str, int, int]] = []
+    fences: list[tuple[str, str, int, int]] = []
+    active_character: str | None = None
+    active_length = 0
+    active_language = ""
+    active_start = 0
+    active_content: list[str] = []
+    offset = 0
+
+    for line in packet_text.splitlines(keepends=True):
+        visible = line[:-1] if line.endswith("\n") else line
+        if active_character is not None:
+            closing = re.fullmatch(
+                rf" {{0,3}}{re.escape(active_character)}{{{active_length},}}[ \t]*",
+                visible,
+            )
+            if closing is not None:
+                fences.append(
+                    (
+                        active_language,
+                        "".join(active_content),
+                        active_start,
+                        offset + len(line),
+                    )
+                )
+                active_character = None
+                active_length = 0
+                active_language = ""
+                active_start = 0
+                active_content = []
+            else:
+                active_content.append(line)
+            offset += len(line)
+            continue
+
+        if "<!--" in visible or "-->" in visible:
+            _fail("B01 current packet cannot contain Markdown HTML comments")
+        if re.match(
+            r"(?i) {0,3}<(?:/?[a-z][a-z0-9-]*(?:[ \t/>]|$)|\?|![a-z]|!\[cdata\[)",
+            visible,
+        ):
+            _fail("B01 current packet cannot contain raw Markdown HTML blocks")
+
+        opening = re.fullmatch(r" {0,3}([`~]{3,})(.*)", visible)
+        if opening is not None and len(set(opening.group(1))) == 1:
+            marker = opening.group(1)
+            info = opening.group(2).strip()
+            if marker[0] == "`" and "`" in info:
+                opening = None
+            else:
+                active_character = marker[0]
+                active_length = len(marker)
+                active_language = info
+                active_start = offset
+                active_content = []
+        if opening is None and visible.startswith("## "):
+            headings.append((visible, offset, offset + len(line)))
+        offset += len(line)
+
+    if active_character is not None:
+        _fail("B01 current packet contains an unterminated Markdown fence")
+    return headings, fences
+
+
+def _validate_b01_review_plumbing(
+    registry: dict[str, Any],
+    packet_text: str,
+    b01_task: dict[str, Any],
+) -> None:
+    if registry.get("schema") != "ncp.proposed-decision-registry.v1":
+        _fail("B01 review plumbing requires the proposed registry")
+    if registry.get("review_packet_lifecycle") != {
+        "schema": "ncp.b01-review-packet-lifecycle.v1",
+        "state": "CURRENT",
+    }:
+        _fail("B01 review plumbing requires one CURRENT packet")
+    review_records = registry.get("review_records")
+    if not isinstance(review_records, list):
+        _fail("B01 current registry review_records must be an array")
+
+    packet_bytes = packet_text.encode("utf-8")
+    packet_identity = registry.get("review_packet")
+    if not isinstance(packet_identity, dict):
+        _fail("B01 current registry lacks its packet identity")
+    _exact_keys(packet_identity, {"path", "sha256", "bytes"}, "B01 packet identity")
+    if (
+        packet_identity["path"] != DECISION_REVIEW_PACKET.relative_to(ROOT).as_posix()
+        or packet_identity["sha256"] != hashlib.sha256(packet_bytes).hexdigest()
+        or packet_identity["bytes"] != len(packet_bytes)
+    ):
+        _fail("B01 current packet identity is stale")
+
+    packet_headings, packet_fences = _parse_b01_packet_markdown(packet_text)
+    packet_json_fences = [
+        content for language, content, _, _ in packet_fences if language == "json"
+    ]
+    if len(packet_json_fences) != 2:
+        _fail("B01 current packet must contain two exact machine JSON blocks")
+    lifecycle_block = _load_bounded_json_bytes(
+        packet_json_fences[0].encode("utf-8"),
+        "B01 packet lifecycle block",
+    )
+    machine_subject = _load_bounded_json_bytes(
+        packet_json_fences[1].encode("utf-8"),
+        "B01 packet review-subject block",
+    )
+    if lifecycle_block != registry["review_packet_lifecycle"]:
+        _fail("B01 packet lifecycle block differs from the generated registry")
+
+    packet_subject = registry.get("review_packet_subject")
+    if not isinstance(packet_subject, dict):
+        _fail("B01 current registry lacks its review packet subject")
+    if machine_subject != packet_subject:
+        _fail("B01 packet machine subject differs from the generated registry")
+    decision_set = packet_subject.get("decision_set")
+    if not isinstance(decision_set, dict):
+        _fail("B01 current subject lacks its decision-set identity")
+    decision_set_sha256 = _hex(
+        decision_set.get("sha256"),
+        HEX64,
+        "B01 current subject decision_set.sha256",
+    )
+    trusted_source, source_commit, source_tree = _trusted_b01_decision_source(
+        packet_subject.get("source")
+    )
+    if source_tree != packet_subject["source"]["tree"]:
+        _fail("B01 packet source tree changed after resolution")
+
+    def committed_identity(relative: str) -> dict[str, Any]:
+        _, raw = _resolved_git_blob(str(ROOT), source_commit, relative)
+        return {
+            "path": relative,
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes": len(raw),
+        }
+
+    review_policy = packet_subject.get("review_policy")
+    if not isinstance(review_policy, dict):
+        _fail("B01 packet lacks its review policy")
+    expected_review_policy = {
+        "schema": "ncp.b01-review-policy.v1",
+        "source_schema": "ncp.proposed-decision-registry-source.v1",
+        "output_schema": "ncp.proposed-decision-registry.v1",
+        "generator": committed_identity(
+            DECISION_REGISTRY_GENERATOR.relative_to(ROOT).as_posix(),
+        ),
+        "output_json_schema": committed_identity(
+            DECISION_REGISTRY_SCHEMA.relative_to(ROOT).as_posix(),
+        ),
+    }
+    if review_policy != expected_review_policy:
+        _fail("B01 packet review policy differs from the committed source cut")
+
+    semantic_closure = decision_set.get("semantic_closure")
+    if not isinstance(semantic_closure, dict):
+        _fail("B01 decision set lacks its semantic-closure binding")
+    expected_semantic_closure = {
+        "source": committed_identity(
+            "docs/adr/decision-closure.source.v1.json",
+        ),
+        "json_schema": committed_identity(
+            "docs/adr/decision-closure.source.schema.v1.json",
+        ),
+    }
+    if semantic_closure != expected_semantic_closure:
+        _fail("B01 semantic-closure binding differs from the committed source cut")
+
+    trusted_decisions = trusted_source.get("decisions")
+    decisions = packet_subject.get("decisions")
+    generated_decisions = registry.get("decisions")
+    if (
+        not isinstance(trusted_decisions, list)
+        or not isinstance(decisions, list)
+        or not isinstance(generated_decisions, list)
+        or len(trusted_decisions) != 11
+        or len(decisions) != len(trusted_decisions)
+        or len(generated_decisions) != len(trusted_decisions)
+        or any(not isinstance(decision, dict) for decision in trusted_decisions)
+        or any(not isinstance(decision, dict) for decision in decisions)
+        or any(not isinstance(decision, dict) for decision in generated_decisions)
+    ):
+        _fail("B01 current subject lacks the ordered eleven ADRs")
+    expected_ids = [f"ADR-{number:03d}" for number in range(1, 12)]
+    if [decision["id"] for decision in trusted_decisions] != expected_ids:
+        _fail("B01 committed source lacks the ordered eleven ADRs")
+
+    burden_rows: list[tuple[str, int, int]] = []
+    role_ids: set[str] = set()
+    independent_obligations = 0
+    independent_slots = 0
+    source_fields = (
+        "id",
+        "title",
+        "path",
+        "module_paths",
+        "required_reviews",
+        "defect_ids",
+    )
+    generated_fields = (
+        *source_fields,
+        "content_sha256",
+        "bytes",
+        "source_set",
+    )
+    for decision_index, (trusted, decision, generated) in enumerate(
+        zip(trusted_decisions, decisions, generated_decisions, strict=True)
+    ):
+        decision_path = f"B01 current subject decision {decision_index}"
+        decision_id = trusted["id"]
+        if any(decision.get(field) != trusted.get(field) for field in source_fields):
+            _fail(f"{decision_path} differs from the committed decision source")
+        if any(
+            generated.get(field) != decision.get(field) for field in generated_fields
+        ):
+            _fail(f"{decision_path} differs from the generated decision")
+
+        required_reviews = decision["required_reviews"]
+        if not isinstance(required_reviews, list) or not required_reviews:
+            _fail(f"{decision_path} has no review obligations")
+        slot_count = 0
+        for review_index, review in enumerate(required_reviews):
+            review_path = f"{decision_path} review {review_index}"
+            if not isinstance(review, dict):
+                _fail(f"{review_path} must be an object")
+            _exact_keys(
+                review,
+                {
+                    "role_id",
+                    "label",
+                    "min_distinct_identities",
+                    "requires_independence",
+                },
+                review_path,
+            )
+            role_ids.add(_string(review["role_id"], f"{review_path}.role_id"))
+            minimum = _integer(
+                review["min_distinct_identities"],
+                f"{review_path}.min_distinct_identities",
+                minimum=1,
+            )
+            slot_count += minimum
+            requires_independence = review["requires_independence"]
+            if not isinstance(requires_independence, bool):
+                _fail(f"{review_path}.requires_independence must be boolean")
+            if requires_independence:
+                independent_obligations += 1
+                independent_slots += minimum
+        burden_rows.append((decision_id, len(required_reviews), slot_count))
+
+        expected_paths = [decision["path"], *decision["module_paths"]]
+        expected_kinds = ["main", *("module" for _ in decision["module_paths"])]
+        sources: list[dict[str, Any]] = []
+        for source_index, (kind, relative) in enumerate(
+            zip(expected_kinds, expected_paths, strict=True)
+        ):
+            source_path = f"{decision_path}.source_set.sources[{source_index}]"
+            relative = _relative_path(relative, f"{source_path}.path")
+            _, source_bytes = _resolved_git_blob(str(ROOT), source_commit, relative)
+            sources.append(
+                {
+                    "kind": kind,
+                    "path": relative,
+                    "sha256": hashlib.sha256(source_bytes).hexdigest(),
+                    "bytes": len(source_bytes),
+                }
+            )
+        expected_source_set = _canonical_b01_source_set(decision_id, sources)
+        if decision.get("source_set") != expected_source_set:
+            _fail(f"{decision_path} source set differs from the committed source cut")
+        if (
+            decision.get("content_sha256") != sources[0]["sha256"]
+            or decision.get("bytes") != sources[0]["bytes"]
+        ):
+            _fail(f"{decision_path} main-source identity is stale")
+
+        if not review_records:
+            expected_blockers = [
+                {
+                    "code": "MISSING_ROLE_ACCEPTANCE",
+                    "role_id": review["role_id"],
+                    "review_ids": [],
+                    "detail": (
+                        "requires "
+                        f"{review['min_distinct_identities']} distinct qualifying "
+                        "identities; observed 0"
+                    ),
+                }
+                for review in required_reviews
+            ]
+            if (
+                generated.get("status") != "PROPOSED"
+                or generated.get("acceptance_blockers") != expected_blockers
+            ):
+                _fail("B01 zero-review decision claims acceptance")
+
+    decision_projection = {
+        "schema": "ncp.b01-decision-set.v1",
+        "candidate": trusted_source.get("candidate"),
+        "wire_version": trusted_source.get("wire_version"),
+        "review_policy": review_policy,
+        "semantic_closure": semantic_closure,
+        "decisions": [
+            {field: decision[field] for field in generated_fields}
+            for decision in decisions
+        ],
+    }
+    decision_payload = json.dumps(
+        decision_projection,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    decision_domain = b"ncp.b01-decision-set.v1\x00"
+    expected_decision_set = {
+        "schema": "ncp.b01-decision-set.v1",
+        "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+        "domain_hex": decision_domain.hex(),
+        "sha256": hashlib.sha256(
+            decision_domain
+            + len(decision_payload).to_bytes(8, "big")
+            + decision_payload
+        ).hexdigest(),
+        "semantic_closure": semantic_closure,
+    }
+    if decision_set != expected_decision_set:
+        _fail("B01 decision-set identity differs from its committed projection")
+
+    obligation_count = sum(row[1] for row in burden_rows)
+    identity_slots = sum(row[2] for row in burden_rows)
+    current_heading = "## Current review response contract"
+    historical_heading = "## Historical superseded packet"
+    current_matches = [
+        heading for heading in packet_headings if heading[0] == current_heading
+    ]
+    historical_matches = [
+        heading for heading in packet_headings if heading[0] == historical_heading
+    ]
+    if len(current_matches) != 1 or len(historical_matches) != 1:
+        _fail(
+            "B01 packet must contain one visible level-2 current section and "
+            "one visible level-2 historical section"
+        )
+    section_start = current_matches[0][2]
+    section_end = historical_matches[0][1]
+    if section_end <= section_start:
+        _fail("B01 packet review sections are out of order")
+    current_section = packet_text[section_start:section_end]
+    expected_table = "\n".join(
+        [
+            "| ADR | Obligations | Minimum slots |",
+            "|---|---:|---:|",
+            *[
+                f"| {decision_id} | {obligations} | {slots} |"
+                for decision_id, obligations, slots in burden_rows
+            ],
+            f"| Total | {obligation_count} | {identity_slots} |",
+        ]
+    )
+    if expected_table not in current_section:
+        _fail("B01 current review table differs from the derived burden")
+    burden_summary = (
+        f"The current packet contains {obligation_count} ADR-role obligations and "
+        f"{identity_slots} minimum identity\nslots. The obligations use "
+        f"{len(role_ids)} unique role IDs. Exactly {independent_obligations} "
+        "obligations require\n"
+        "independent review, with "
+        f"{independent_slots} minimum independent identity slots."
+    )
+    if burden_summary not in current_section:
+        _fail("B01 current review summary differs from the derived burden")
+
+    current_fences = [
+        (language, content)
+        for language, content, start, end in packet_fences
+        if start >= section_start and end <= section_end
+    ]
+    text_fences = [
+        content for language, content in current_fences if language == "text"
+    ]
+    expected_template = """review_id
+adr_id
+role_id
+reviewer
+  identity
+  identity_kind: PERSON | TEAM
+  independence_claimed: true | false
+  implementation_owner_identities
+subject
+  decision_set_sha256
+  adr_content_sha256
+  adr_bytes
+  adr_source_set
+  source_commit
+  source_tree
+  review_packet_sha256
+decision: ACCEPT | REJECT | ACCEPT_WITH_CONDITIONS
+conditions
+role_authorization
+independence_assessment
+external_receipt
+timestamp_utc
+supersedes
+"""
+    if text_fences != [expected_template]:
+        _fail("B01 current review-record template is not exact")
+
+    bash_fences = [
+        content for language, content in current_fences if language == "bash"
+    ]
+    expected_extractor = """adr_id=ADR-001
+python3 - "$adr_id" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path("docs/adr/decision-registry.proposed.v1.json")
+with path.open("rb") as handle:
+    raw = handle.read(2 * 1024 * 1024 + 1)
+if len(raw) > 2 * 1024 * 1024:
+    raise SystemExit("registry exceeds the 2 MiB review bound")
+registry = json.loads(raw)
+packet = registry["review_packet_subject"]
+decision = next(item for item in packet["decisions"] if item["id"] == sys.argv[1])
+subject = {
+    "decision_set_sha256": packet["decision_set"]["sha256"],
+    "adr_content_sha256": decision["content_sha256"],
+    "adr_bytes": decision["bytes"],
+    "adr_source_set": decision["source_set"],
+    "source_commit": packet["source"]["commit"],
+    "source_tree": packet["source"]["tree"],
+    "review_packet_sha256": registry["review_packet"]["sha256"],
+}
+print(json.dumps(subject, indent=2, sort_keys=True))
+PY
+"""
+    if bash_fences != [expected_extractor]:
+        _fail("B01 current subject extractor is not the exact fenced command")
+
+    b01_status = b01_task.get("status")
+    if b01_status not in {"IN_PROGRESS", "INDEPENDENT_PASS", "COMPLETE"}:
+        _fail("B01 review plumbing has an invalid lifecycle state")
+    if not review_records and b01_status != "IN_PROGRESS":
+        _fail("B01 must remain IN_PROGRESS while the registry has no reviews")
+    residual_risks = b01_task.get("residual_risks")
+    reviewer_comment = b01_task.get("reviewer_comment")
+    if (
+        not isinstance(residual_risks, list)
+        or any(not isinstance(risk, str) for risk in residual_risks)
+        or not isinstance(reviewer_comment, str)
+    ):
+        _fail("B01 ledger review-packet checkpoint is malformed")
+    checkpoint = "\n".join([reviewer_comment, *residual_risks])
+    checkpoint_folded = checkpoint.casefold()
+    stale_phrases = ("packet remains SUPERSEDED", "No CURRENT subject")
+    if any(phrase.casefold() in checkpoint_folded for phrase in stale_phrases):
+        _fail("B01 ledger review-packet checkpoint is stale")
+    for required_text in ("CURRENT", decision_set_sha256, source_commit, source_tree):
+        if required_text.casefold() not in checkpoint_folded:
+            _fail("B01 ledger review-packet checkpoint is incomplete")
+    required_zero_state_phrases = (
+        "zero review records",
+        f"{obligation_count} obligations and {identity_slots} minimum identity slots "
+        "remain unfilled",
+    )
+    stale_zero_state_phrases = (*required_zero_state_phrases, "zero reviews")
+    if not review_records:
+        if any(
+            phrase.casefold() not in checkpoint_folded
+            for phrase in required_zero_state_phrases
+        ):
+            _fail("B01 zero-review ledger checkpoint is incomplete")
+    elif any(
+        phrase.casefold() in checkpoint_folded for phrase in stale_zero_state_phrases
+    ):
+        _fail("B01 reviewed registry retains a stale zero-review ledger checkpoint")
+
+
+@lru_cache(maxsize=1)
+def _require_b01_current_registry_gate() -> None:
+    _run_exact_python_gate(
+        DECISION_REGISTRY_GENERATOR,
+        ["--check"],
+        "B01 current staging decision-registry gate",
+    )
+
+
+def _load_b01_review_plumbing(*, promoted: bool = False) -> tuple[dict[str, Any], str]:
+    if not promoted:
+        _require_b01_current_registry_gate()
+    registry = _load_bounded_json_file(
+        DECISION_REGISTRY,
+        "B01 current review registry",
+    )
+    try:
+        packet_raw = read_bounded_regular_file(
+            DECISION_REVIEW_PACKET,
+            limits=TASK_SUBJECT_FILE_LIMITS,
+            label="B01 current review packet",
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    try:
+        packet_text = packet_raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"B01 current review packet is not UTF-8: {error}")
+    return registry, packet_text
+
+
 def _require_registry_gate() -> None:
     try:
         result = subprocess.run(  # noqa: S603
@@ -18111,6 +18682,13 @@ def validate(data: Any) -> None:
         _validate_task(task, expected, f"$.tasks[{index}]", budget=evidence_budget)
     _validate_legacy_portability_exception_inventory(tasks)
     task_by_id = {task["id"]: task for task in tasks}
+    promoted = _task_reached_minimum(task_by_id["N01"])
+    b01_registry, b01_packet_text = _load_b01_review_plumbing(promoted=promoted)
+    _validate_b01_review_plumbing(
+        b01_registry,
+        b01_packet_text,
+        task_by_id["B01"],
+    )
     observed_v11_tasks = {
         task["id"] for task in tasks if "V11" in task["requirement_ids"]
     }
@@ -19817,6 +20395,503 @@ def _self_test_local_admission_and_receipt_boundaries(
         _fail("self-test requires X05 to remain OPEN with no asserted receipt")
     if task_by_id["B01"]["status"] != "IN_PROGRESS":
         _fail("self-test requires B01 to remain IN_PROGRESS")
+
+    b01_registry, b01_packet_text = _load_b01_review_plumbing()
+    b01_task = task_by_id["B01"]
+    _validate_b01_review_plumbing(
+        b01_registry,
+        b01_packet_text,
+        b01_task,
+    )
+
+    def rebind_packet_identity(
+        registry_mutant: dict[str, Any], packet_mutant: str
+    ) -> None:
+        raw = packet_mutant.encode("utf-8")
+        registry_mutant["review_packet"] = {
+            "path": DECISION_REVIEW_PACKET.relative_to(ROOT).as_posix(),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes": len(raw),
+        }
+
+    def bind_machine_subject(
+        registry_mutant: dict[str, Any], packet_mutant: str
+    ) -> str:
+        matches = list(re.finditer(r"(?ms)^```json\n(.*?)^```\n", packet_mutant))
+        if len(matches) != 2:
+            _fail("self-test B01 packet lacks its two machine blocks")
+        match = matches[1]
+        replacement = (
+            json.dumps(
+                registry_mutant["review_packet_subject"],
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n"
+        )
+        updated = (
+            packet_mutant[: match.start(1)]
+            + replacement
+            + packet_mutant[match.end(1) :]
+        )
+        rebind_packet_identity(registry_mutant, updated)
+        return updated
+
+    def packet_text_mutant(replacement: tuple[str, str]) -> tuple[dict[str, Any], str]:
+        old, new = replacement
+        packet_mutant = b01_packet_text.replace(old, new, 1)
+        if packet_mutant == b01_packet_text:
+            _fail("self-test B01 packet replacement did not change the packet")
+        registry_mutant = copy.deepcopy(b01_registry)
+        rebind_packet_identity(registry_mutant, packet_mutant)
+        return registry_mutant, packet_mutant
+
+    missing_source_registry, missing_source_packet = packet_text_mutant(
+        ("  adr_source_set\n", "")
+    )
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            missing_source_registry,
+            missing_source_packet,
+            b01_task,
+        ),
+        "B01 review template without adr_source_set",
+        "review-record template is not exact",
+    )
+    digest_source_registry, digest_source_packet = packet_text_mutant(
+        ("  adr_source_set\n", "  adr_source_set_sha256\n")
+    )
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            digest_source_registry,
+            digest_source_packet,
+            b01_task,
+        ),
+        "B01 review template with digest-only source set",
+        "review-record template is not exact",
+    )
+    broken_extractor_registry, broken_extractor_packet = packet_text_mutant(
+        (
+            '    "adr_source_set": decision["source_set"],',
+            '    "adr_source_set": None,\n'
+            '<!-- decoy: "adr_source_set": decision["source_set"], -->',
+        )
+    )
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            broken_extractor_registry,
+            broken_extractor_packet,
+            b01_task,
+        ),
+        "B01 broken subject extractor with a decoy marker",
+        "subject extractor is not the exact fenced command",
+    )
+
+    reordered_packet = b01_packet_text.replace(
+        "## Current review response contract\n",
+        "@@B01_CURRENT_SECTION@@",
+        1,
+    )
+    reordered_packet = reordered_packet.replace(
+        "## Historical superseded packet\n",
+        "## Current review response contract\n",
+        1,
+    ).replace(
+        "@@B01_CURRENT_SECTION@@",
+        "## Historical superseded packet\n",
+        1,
+    )
+    reordered_registry = copy.deepcopy(b01_registry)
+    rebind_packet_identity(reordered_registry, reordered_packet)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            reordered_registry,
+            reordered_packet,
+            b01_task,
+        ),
+        "B01 historical section before current section",
+        "review sections are out of order",
+    )
+
+    comment_wrapped_packet = b01_packet_text.replace(
+        "## Current review response contract\n",
+        "<!--\n## Current review response contract\n",
+        1,
+    ).replace(
+        "## Historical superseded packet\n",
+        "-->\n## Historical superseded packet\n",
+        1,
+    )
+    comment_wrapped_registry = copy.deepcopy(b01_registry)
+    rebind_packet_identity(comment_wrapped_registry, comment_wrapped_packet)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            comment_wrapped_registry,
+            comment_wrapped_packet,
+            b01_task,
+        ),
+        "B01 comment-wrapped current review section",
+        "cannot contain Markdown HTML comments",
+    )
+
+    html_wrapped_packet = b01_packet_text.replace(
+        "## Current review response contract\n",
+        '<script type="text/plain">\n## Current review response contract\n',
+        1,
+    ).replace(
+        "## Historical superseded packet\n",
+        "</script>\n## Historical superseded packet\n",
+        1,
+    )
+    html_wrapped_registry = copy.deepcopy(b01_registry)
+    rebind_packet_identity(html_wrapped_registry, html_wrapped_packet)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            html_wrapped_registry,
+            html_wrapped_packet,
+            b01_task,
+        ),
+        "B01 raw-HTML-wrapped current review section",
+        "cannot contain raw Markdown HTML blocks",
+    )
+
+    html_machine_packet = b01_packet_text.replace(
+        "```json\n",
+        "<pre>\n```json\n",
+        1,
+    ).replace(
+        "## Current packet bindings\n",
+        "</pre>\n## Current packet bindings\n",
+        1,
+    )
+    html_machine_registry = copy.deepcopy(b01_registry)
+    rebind_packet_identity(html_machine_registry, html_machine_packet)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            html_machine_registry,
+            html_machine_packet,
+            b01_task,
+        ),
+        "B01 raw-HTML-wrapped machine blocks",
+        "cannot contain raw Markdown HTML blocks",
+    )
+
+    fenced_packet = b01_packet_text.replace(
+        "## Current review response contract\n",
+        "~~~~markdown\n## Current review response contract\n",
+        1,
+    ).replace(
+        "## Historical superseded packet\n",
+        "~~~~\n## Historical superseded packet\n",
+        1,
+    )
+    fenced_registry = copy.deepcopy(b01_registry)
+    rebind_packet_identity(fenced_registry, fenced_packet)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            fenced_registry,
+            fenced_packet,
+            b01_task,
+        ),
+        "B01 fenced current review section",
+        "visible level-2 current section",
+    )
+
+    for malformed_heading in (
+        "### Current review response contract\n",
+        "x## Current review response contract\n",
+    ):
+        malformed_registry, malformed_packet = packet_text_mutant(
+            ("## Current review response contract\n", malformed_heading)
+        )
+        _must_fail(
+            lambda malformed_registry=malformed_registry, malformed_packet=malformed_packet: (
+                _validate_b01_review_plumbing(
+                    malformed_registry,
+                    malformed_packet,
+                    b01_task,
+                )
+            ),
+            "B01 malformed current review heading",
+            "visible level-2 current section",
+        )
+
+    for module_decision_id in ("ADR-004", "ADR-009", "ADR-011"):
+        coordinated_omission = copy.deepcopy(b01_registry)
+        subject_decision = next(
+            decision
+            for decision in coordinated_omission["review_packet_subject"]["decisions"]
+            if decision["id"] == module_decision_id
+        )
+        generated_decision = next(
+            decision
+            for decision in coordinated_omission["decisions"]
+            if decision["id"] == module_decision_id
+        )
+        subject_decision["module_paths"] = []
+        subject_decision["source_set"] = _canonical_b01_source_set(
+            module_decision_id,
+            subject_decision["source_set"]["sources"][:1],
+        )
+        generated_decision["module_paths"] = []
+        generated_decision["source_set"] = copy.deepcopy(subject_decision["source_set"])
+        omission_packet = bind_machine_subject(
+            coordinated_omission,
+            b01_packet_text,
+        )
+        _must_fail(
+            lambda coordinated_omission=coordinated_omission, omission_packet=omission_packet: (
+                _validate_b01_review_plumbing(
+                    coordinated_omission,
+                    omission_packet,
+                    b01_task,
+                )
+            ),
+            f"B01 coordinated module omission for {module_decision_id}",
+            "differs from the committed decision source",
+        )
+
+    substituted_module = copy.deepcopy(b01_registry)
+    subject_decision = next(
+        decision
+        for decision in substituted_module["review_packet_subject"]["decisions"]
+        if decision["id"] == "ADR-004"
+    )
+    generated_decision = next(
+        decision
+        for decision in substituted_module["decisions"]
+        if decision["id"] == "ADR-004"
+    )
+    attacker_path = "docs/adr/modules/adr-004-attacker.md"
+    subject_decision["module_paths"] = [attacker_path]
+    attacker_sources = copy.deepcopy(subject_decision["source_set"]["sources"])
+    attacker_sources[1]["path"] = attacker_path
+    subject_decision["source_set"] = _canonical_b01_source_set(
+        "ADR-004",
+        attacker_sources,
+    )
+    generated_decision["module_paths"] = [attacker_path]
+    generated_decision["source_set"] = copy.deepcopy(subject_decision["source_set"])
+    substitution_packet = bind_machine_subject(substituted_module, b01_packet_text)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            substituted_module,
+            substitution_packet,
+            b01_task,
+        ),
+        "B01 coordinated module substitution",
+        "differs from the committed decision source",
+    )
+
+    corrupt_source = copy.deepcopy(b01_registry)
+    corrupt_subject = next(
+        decision
+        for decision in corrupt_source["review_packet_subject"]["decisions"]
+        if decision["id"] == "ADR-004"
+    )
+    corrupt_generated = next(
+        decision
+        for decision in corrupt_source["decisions"]
+        if decision["id"] == "ADR-004"
+    )
+    corrupt_sources = copy.deepcopy(corrupt_subject["source_set"]["sources"])
+    corrupt_sources[1]["sha256"] = "0" * 64
+    corrupt_subject["source_set"] = _canonical_b01_source_set(
+        "ADR-004",
+        corrupt_sources,
+    )
+    corrupt_generated["source_set"] = copy.deepcopy(corrupt_subject["source_set"])
+    corrupt_packet = bind_machine_subject(corrupt_source, b01_packet_text)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            corrupt_source,
+            corrupt_packet,
+            b01_task,
+        ),
+        "B01 corrupted module source identity",
+        "source set differs from the committed source cut",
+    )
+
+    swapped_roles = copy.deepcopy(b01_registry)
+    swapped_subject = swapped_roles["review_packet_subject"]["decisions"][0]
+    swapped_generated = swapped_roles["decisions"][0]
+    swapped_subject["required_reviews"][0], swapped_subject["required_reviews"][1] = (
+        swapped_subject["required_reviews"][1],
+        swapped_subject["required_reviews"][0],
+    )
+    swapped_generated["required_reviews"] = copy.deepcopy(
+        swapped_subject["required_reviews"]
+    )
+    swapped_packet = bind_machine_subject(swapped_roles, b01_packet_text)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            swapped_roles,
+            swapped_packet,
+            b01_task,
+        ),
+        "B01 swapped role obligations",
+        "differs from the committed decision source",
+    )
+
+    moved_independence = copy.deepcopy(b01_registry)
+    independence_subject = moved_independence["review_packet_subject"]["decisions"][0]
+    independence_generated = moved_independence["decisions"][0]
+    independence_subject["required_reviews"][0]["requires_independence"] = True
+    independence_subject["required_reviews"][3]["requires_independence"] = False
+    independence_generated["required_reviews"] = copy.deepcopy(
+        independence_subject["required_reviews"]
+    )
+    independence_packet = bind_machine_subject(moved_independence, b01_packet_text)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            moved_independence,
+            independence_packet,
+            b01_task,
+        ),
+        "B01 moved independence obligation",
+        "differs from the committed decision source",
+    )
+
+    changed_subject = copy.deepcopy(b01_registry)
+    changed_subject["review_packet_subject"]["source"]["tree"] = "0" * 40
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            changed_subject,
+            b01_packet_text,
+            b01_task,
+        ),
+        "B01 changed source tree outside the packet",
+        "machine subject differs",
+    )
+
+    changed_digest = copy.deepcopy(b01_registry)
+    changed_digest["review_packet_subject"]["decision_set"]["sha256"] = "0" * 64
+    changed_digest_task = copy.deepcopy(b01_task)
+    changed_digest_task["reviewer_comment"] = changed_digest_task[
+        "reviewer_comment"
+    ].replace(
+        b01_registry["review_packet_subject"]["decision_set"]["sha256"],
+        "0" * 64,
+    )
+    changed_digest_packet = bind_machine_subject(changed_digest, b01_packet_text)
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            changed_digest,
+            changed_digest_packet,
+            changed_digest_task,
+        ),
+        "B01 changed decision-set digest",
+        "decision-set identity differs from its committed projection",
+    )
+
+    optimistic_decisions = copy.deepcopy(b01_registry)
+    for decision in optimistic_decisions["decisions"]:
+        decision["status"] = "ACCEPTED"
+        decision["acceptance_blockers"] = []
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            optimistic_decisions,
+            b01_packet_text,
+            b01_task,
+        ),
+        "B01 accepted decisions with zero reviews",
+        "zero-review decision claims acceptance",
+    )
+
+    stale_packet_identity = copy.deepcopy(b01_registry)
+    stale_packet_identity["review_packet"]["sha256"] = "0" * 64
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            stale_packet_identity,
+            b01_packet_text,
+            b01_task,
+        ),
+        "B01 stale packet digest",
+        "packet identity is stale",
+    )
+
+    wrong_table_registry, wrong_table_packet = packet_text_mutant(
+        ("| Total | 52 | 53 |", "| Total | 51 | 52 |")
+    )
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            wrong_table_registry,
+            wrong_table_packet,
+            b01_task,
+        ),
+        "B01 incorrect review burden table",
+        "table differs from the derived burden",
+    )
+
+    stale_b01_task = copy.deepcopy(b01_task)
+    stale_b01_task["residual_risks"].append(
+        "The review packet remains SUPERSEDED. No CURRENT subject exists."
+    )
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            b01_registry,
+            b01_packet_text,
+            stale_b01_task,
+        ),
+        "B01 stale packet lifecycle prose",
+        "review-packet checkpoint is stale",
+    )
+
+    nonzero_review_registry = copy.deepcopy(b01_registry)
+    nonzero_review_registry["review_records"].append({})
+    # The exact registry generator validates real review records. This local
+    # mutant tests only that ledger prose transitions away from zero-review state.
+    _must_fail(
+        lambda: _validate_b01_review_plumbing(
+            nonzero_review_registry,
+            b01_packet_text,
+            b01_task,
+        ),
+        "B01 reviewed registry with stale zero-review prose",
+        "stale zero-review ledger checkpoint",
+    )
+    reviewed_b01_task = copy.deepcopy(b01_task)
+    obligation_count = sum(
+        len(decision["required_reviews"])
+        for decision in b01_registry["review_packet_subject"]["decisions"]
+    )
+    identity_slots = sum(
+        review["min_distinct_identities"]
+        for decision in b01_registry["review_packet_subject"]["decisions"]
+        for review in decision["required_reviews"]
+    )
+    unfilled = (
+        f"All {obligation_count} obligations and {identity_slots} minimum identity "
+        "slots remain unfilled."
+    )
+    reviewed_b01_task["reviewer_comment"] = (
+        reviewed_b01_task["reviewer_comment"]
+        .replace("zero reviews", "captured reviews")
+        .replace(
+            unfilled,
+            "Review coverage remains incomplete.",
+        )
+    )
+    reviewed_b01_task["residual_risks"] = [
+        risk.replace("zero review records", "captured review records").replace(
+            unfilled,
+            "Review coverage remains incomplete.",
+        )
+        for risk in reviewed_b01_task["residual_risks"]
+    ]
+    _validate_b01_review_plumbing(
+        nonzero_review_registry,
+        b01_packet_text,
+        reviewed_b01_task,
+    )
+    passing_reviewed_b01_task = copy.deepcopy(reviewed_b01_task)
+    passing_reviewed_b01_task["status"] = "INDEPENDENT_PASS"
+    _validate_b01_review_plumbing(
+        nonzero_review_registry,
+        b01_packet_text,
+        passing_reviewed_b01_task,
+    )
+
     schema_mutant = copy.deepcopy(data)
     schema_x05 = next(task for task in schema_mutant["tasks"] if task["id"] == "X05")
     schema_x05["status"] = "EXTERNAL_PASS"

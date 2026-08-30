@@ -6,13 +6,14 @@ documents changes the current unreleased, release-blocked `1.0.0-rc.1`
 normative contract, compact proto hash, runtime authority, release status, or
 external evidence state.
 
-[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is the current zero-review
+[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is the immutable current review
 packet. Its subject binds the eleven proposed ADRs to clean pushed source commit
 `ca7fa729f982690a4d3d8b1829c20a842d9f5612` and decision-set digest
 `d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd`.
-The packet enables human review capture. It contains no review records.
-No qualifying review or independent adjudication is recorded. All eleven
-decisions remain **PROPOSED**, and B01 remains `IN_PROGRESS`.
+The packet contains no review records. It enables later human review capture
+without changing its subject. At this publication cut, the generated registry
+also contains no review records. Consult that registry for current coverage.
+All eleven decisions remain **PROPOSED**, and B01 remains `IN_PROGRESS`.
 
 The current candidate remains wire `1.0` with compact proto contract hash
 `163acc57d8a62b66`. The immutable `v0.8.0` release remains a different wire and
