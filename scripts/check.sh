@@ -7,9 +7,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-b01_source_staging_args=()
+b01_source_staging_arg=""
 if [[ "${1:-}" == "--b01-source-staging" ]]; then
-    b01_source_staging_args=("--b01-source-staging")
+    b01_source_staging_arg="--b01-source-staging"
     shift
 fi
 if [[ "$#" != "0" ]]; then
@@ -60,10 +60,15 @@ bun install --frozen-lockfile --backend=copyfile --force
 "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
 
 step "NCP 1.0 implementation ledger + mandatory resumption views"
-"$evidence_schema_python" scripts/check_implementation_ledger.py \
-    --self-test "${b01_source_staging_args[@]}"
-"$evidence_schema_python" scripts/generate_implementation_ledger.py \
-    --check "${b01_source_staging_args[@]}"
+if [[ -n "$b01_source_staging_arg" ]]; then
+    "$evidence_schema_python" scripts/check_implementation_ledger.py \
+        --self-test "$b01_source_staging_arg"
+    "$evidence_schema_python" scripts/generate_implementation_ledger.py \
+        --check "$b01_source_staging_arg"
+else
+    "$evidence_schema_python" scripts/check_implementation_ledger.py --self-test
+    "$evidence_schema_python" scripts/generate_implementation_ledger.py --check
+fi
 "$evidence_schema_python" scripts/generate_decision_registry.py --self-test --check
 
 step "B01 fail-closed review-candidate integrity (non-completion)"

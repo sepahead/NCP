@@ -64,9 +64,9 @@ jobs:
             prototypes/b01-architecture-evidence/source_inventory.py --self-test
           "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
           "$evidence_schema_python" scripts/check_implementation_ledger.py \
-            --self-test --b01-source-staging
+            --self-test
           "$evidence_schema_python" scripts/generate_implementation_ledger.py \
-            --check --b01-source-staging
+            --check
           "$evidence_schema_python" scripts/generate_decision_registry.py \
             --self-test --check
 

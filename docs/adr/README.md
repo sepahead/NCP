@@ -6,15 +6,13 @@ documents changes the current unreleased, release-blocked `1.0.0-rc.1`
 normative contract, compact proto hash, runtime authority, release status, or
 external evidence state.
 
-[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) retains the superseded review
-packet. Its historical subject binds the eleven proposed ADRs to source commit
-`ca7fa729f982690a4d3d8b1829c20a842d9f5612` and decision-set digest
-`d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd`.
-It also binds the exact prior current packet at commit
-`c0302b79faf0543448a0240aa055be6a9dca7125`. The staging checker reconstructs
-the historical subject from that immutable packet.
-The packet contains no review records and no longer permits review capture.
-The amended source needs a new clean pushed subject before human review starts.
+[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is the current review packet.
+Its subject binds the eleven proposed ADRs to source commit
+`adfb064d901cc8ae459dbddd5d7b26cda7ba02c0` and decision-set digest
+`1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4`.
+Git history retains the prior packet without granting it current authority.
+The current packet contains no review records. It permits bound human review
+capture after its immutable bytes are pushed and content-addressed.
 The generated registry also contains no review records.
 All eleven decisions remain **PROPOSED**, and B01 remains `IN_PROGRESS`.
 
@@ -36,15 +34,16 @@ them portable or exported. They are not mandatory deployed types, stores, or
 services by default. A decision needs revision when its observable behavior
 cannot fit the minimal deployed object graph without losing an invariant.
 
-## Staging rule
+## Current review rule
 
-A zero-review ADR source amendment uses the explicit
-`--b01-source-staging` gate mode. The mode accepts only a `SUPERSEDED` packet
-without a current subject. B01 must remain `IN_PROGRESS`. N01 must not have
-started. The registry must contain zero reviews and eleven `PROPOSED` decisions.
-Promotion must remain blocked. N01 must be exactly `OPEN` with no transitions.
-Normal gate mode rejects this state. Stop using the staging flag after a clean
-pushed commit receives a new current subject.
+The source-staging step is complete for commit
+`adfb064d901cc8ae459dbddd5d7b26cda7ba02c0`. Use normal gate mode for this
+current packet. Do not use `--b01-source-staging` while this packet is current.
+
+A future zero-review ADR amendment uses `--b01-source-staging` only after it
+supersedes this packet. The mode accepts no current subject. B01 must remain
+`IN_PROGRESS`. N01 must remain `OPEN` with no transitions. The registry must
+contain zero reviews and eleven `PROPOSED` decisions. Promotion stays blocked.
 
 The generated non-normative review registry is
 [`decision-registry.proposed.v1.json`](decision-registry.proposed.v1.json). Its

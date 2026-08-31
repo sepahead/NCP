@@ -1,30 +1,21 @@
-# B01 superseded architecture review packet
+# B01 current architecture review packet
 
-> **SUPERSEDED NON-NORMATIVE REVIEW SUBJECT.** This packet binds all eleven
-> proposed ADRs to clean pushed source commit `ca7fa729f982690a4d3d8b1829c20a842d9f5612`.
-> It contains zero review records. It no longer permits review capture.
+> **CURRENT NON-NORMATIVE REVIEW SUBJECT.** This packet binds all eleven
+> proposed ADRs to clean pushed source commit `adfb064d901cc8ae459dbddd5d7b26cda7ba02c0`.
+> It contains zero review records. It permits bound human review capture.
 > It does not accept an ADR, authorize implementation, or release NCP 1.0.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "SUPERSEDED"
+  "state": "CURRENT"
 }
 ```
 
 ```json
 {
-  "schema": "ncp.b01-review-subject-history.v1",
-  "state": "SUPERSEDED",
-  "historical_packet_source": {
-    "commit": "c0302b79faf0543448a0240aa055be6a9dca7125",
-    "tree": "8f63cee02c46346bbc414e934753d9eb2528281c",
-    "packet": {
-      "path": "docs/adr/B01_REVIEW_PACKET.md",
-      "sha256": "3cf47efb0843671edd819099bab3567f4ab74c00e806533a3a866f34c054ee6f",
-      "bytes": 47612
-    }
-  },
+  "schema": "ncp.b01-review-subject.v1",
+  "state": "CURRENT",
   "normative": false,
   "claim_boundary": "This generated registry records non-normative architecture decisions and structurally checked review claims. It cannot prove external authorship, role authority, or independence. It cannot satisfy B01 by itself, authorize the pre-release rebaseline or publication, or grant runtime identity, authority, plant action, safety, interoperability, or a scientific claim.",
   "promotion_blocked": true,
@@ -32,12 +23,12 @@
     "schema": "ncp.b01-decision-set.v1",
     "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
     "domain_hex": "6e63702e6230312d6465636973696f6e2d7365742e763100",
-    "sha256": "d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd",
+    "sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "4058229f4d2d9776aa3827f92d06a80295b1a8d17980c9df9a6be89b6c747f96",
-        "bytes": 72917
+        "sha256": "39feee6b6b45bdb4b24a50712836af45d042d82a4d82ec2507947aa8cd91b515",
+        "bytes": 74751
       },
       "json_schema": {
         "path": "docs/adr/decision-closure.source.schema.v1.json",
@@ -52,22 +43,22 @@
     "output_schema": "ncp.proposed-decision-registry.v1",
     "generator": {
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "ce438efffcb79ed5543ea850d34712a480cfc94e69bfb8eaf38a84cd346def59",
-      "bytes": 254325
+      "sha256": "175bb668ed4f78f0d28cb3b9f85cb29d4aa9419cc1507c81e71fbb3460ab7418",
+      "bytes": 256310
     },
     "output_json_schema": {
       "path": "docs/adr/decision-registry.proposed.schema.v1.json",
-      "sha256": "46a0b681c0e4440918cf69649bb656ad778bcdbf5059f7d6f3c6fe873d8805b2",
-      "bytes": 31030
+      "sha256": "635a35065702116401a95358f09ba7b225b0e159e12e6f2b16fdbd46cb5821e7",
+      "bytes": 31036
     }
   },
   "source": {
-    "commit": "ca7fa729f982690a4d3d8b1829c20a842d9f5612",
-    "tree": "03ff9b1007192f2839146b31b791541f8fada86b",
+    "commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+    "tree": "21b1e14fe6cb80950d251a68347c4007b67d6410",
     "decision_source": {
       "path": "docs/adr/decision-registry.source.v1.json",
-      "sha256": "da5ed49018e20a004196cfa7129ccc1eb83880a20a3a3f46721743d72898360b",
-      "bytes": 14259
+      "sha256": "8159668a4ee665bce93c550f24e5f8975ec11367a85c55ef0b5f200bce9c86d8",
+      "bytes": 14349
     }
   },
   "decisions": [
@@ -76,7 +67,7 @@
       "title": "Separate simulation-service and plant-control sessions",
       "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
       "module_paths": [],
-      "content_sha256": "f09b4622c81dfe6193747d0036441a742a50906097812b52bb9e2ab8cbb8fbce",
+      "content_sha256": "126daf508c8bc2123ccaf705f0209dd2d341e8598e5ba943c663dcf34d2e9325",
       "bytes": 163669,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
@@ -85,13 +76,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
-            "sha256": "f09b4622c81dfe6193747d0036441a742a50906097812b52bb9e2ab8cbb8fbce",
+            "sha256": "126daf508c8bc2123ccaf705f0209dd2d341e8598e5ba943c663dcf34d2e9325",
             "bytes": 163669
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "a6a574d824b97047dc251367ecea95cd0d3c69ab55fc5dfa7ec35fde5fe17af8"
+        "sha256": "a4fef4b32d7984d880d2d64068988505982ec836cb9f22984fce032bd5fae9d0"
       },
       "required_reviews": [
         {
@@ -214,8 +205,8 @@
       "module_paths": [
         "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
       ],
-      "content_sha256": "255f51b97670813bb9c067583fa9bacb9b7b972a045ea82652692a2d872746e1",
-      "bytes": 262141,
+      "content_sha256": "77e0e420665d6b7b2af13be203d84d43b531db897a4b53f70e1021734c0eddfc",
+      "bytes": 262142,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-004",
@@ -223,8 +214,8 @@
           {
             "kind": "main",
             "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
-            "sha256": "255f51b97670813bb9c067583fa9bacb9b7b972a045ea82652692a2d872746e1",
-            "bytes": 262141
+            "sha256": "77e0e420665d6b7b2af13be203d84d43b531db897a4b53f70e1021734c0eddfc",
+            "bytes": 262142
           },
           {
             "kind": "module",
@@ -235,7 +226,7 @@
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "46df7a65c63d9fba2ef39cb35ee62dfa94fe8441d124fbde9cecba285696d421"
+        "sha256": "d70f1297dffee51a6cfeb2ea8ed03006d06eaf547b45b0eff65d57ec6c4cdc28"
       },
       "required_reviews": [
         {
@@ -278,7 +269,8 @@
       "defect_ids": [
         "D02",
         "D05",
-        "D20"
+        "D20",
+        "D21"
       ]
     },
     {
@@ -286,8 +278,8 @@
       "title": "Declare and retire every stream explicitly",
       "path": "docs/adr/0005-declared-stream-lifecycle.md",
       "module_paths": [],
-      "content_sha256": "b8a61fd9c238535ec87d8db8430e415318cc6f61ab657dfe2d8b7114bff26649",
-      "bytes": 42464,
+      "content_sha256": "1620292c21142ec153670e039ce24baefb32702998a9262f22b3a13483367356",
+      "bytes": 45226,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-005",
@@ -295,13 +287,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0005-declared-stream-lifecycle.md",
-            "sha256": "b8a61fd9c238535ec87d8db8430e415318cc6f61ab657dfe2d8b7114bff26649",
-            "bytes": 42464
+            "sha256": "1620292c21142ec153670e039ce24baefb32702998a9262f22b3a13483367356",
+            "bytes": 45226
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "9452684ee327c0d20ed6a84dc7a8718af3d07e926071c3df72a4d116597b783c"
+        "sha256": "6705dccd0466c41ff7a62a0047e8b191dd0460679e8aaa1d5df440518b08a4a6"
       },
       "required_reviews": [
         {
@@ -342,7 +334,8 @@
         }
       ],
       "defect_ids": [
-        "D03"
+        "D03",
+        "D21"
       ]
     },
     {
@@ -403,8 +396,8 @@
       "title": "Journal body-issued command dispositions",
       "path": "docs/adr/0007-command-disposition-journal.md",
       "module_paths": [],
-      "content_sha256": "90a9fdeb9f6bba65458cc992117631db75d11fb9e8371d8a519d195bb6a9a669",
-      "bytes": 229776,
+      "content_sha256": "57aeafcb3db1ee565797dcaddaeb5f77a231896e2054758702a89307280cc5e7",
+      "bytes": 231553,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-007",
@@ -412,13 +405,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0007-command-disposition-journal.md",
-            "sha256": "90a9fdeb9f6bba65458cc992117631db75d11fb9e8371d8a519d195bb6a9a669",
-            "bytes": 229776
+            "sha256": "57aeafcb3db1ee565797dcaddaeb5f77a231896e2054758702a89307280cc5e7",
+            "bytes": 231553
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "8bdd49ae7be27380b64e6113a2a3afe28e904513196dcf7cd1e8a708ed539580"
+        "sha256": "c9e09aa0fe0cfc588953f773f28191b1364d35dff68c1fc7d20f2a3adb8f0887"
       },
       "required_reviews": [
         {
@@ -441,7 +434,8 @@
         }
       ],
       "defect_ids": [
-        "D07"
+        "D07",
+        "D21"
       ]
     },
     {
@@ -449,8 +443,8 @@
       "title": "Separate stable routes from Galadriel extensions",
       "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
       "module_paths": [],
-      "content_sha256": "bb98e8fd68c792d36303c757c9bb22f08e288fcce2dc7eacb84d066c97064b70",
-      "bytes": 180151,
+      "content_sha256": "2e01889e4ba266a2b7a1e37612a5225bbd2493b2ae9fa6fe651d78ddba3be2bc",
+      "bytes": 182936,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-008",
@@ -458,13 +452,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
-            "sha256": "bb98e8fd68c792d36303c757c9bb22f08e288fcce2dc7eacb84d066c97064b70",
-            "bytes": 180151
+            "sha256": "2e01889e4ba266a2b7a1e37612a5225bbd2493b2ae9fa6fe651d78ddba3be2bc",
+            "bytes": 182936
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "97f866be59b69d5c9fe0d8f84fdbdd37a5ae069492efdf7698379b0c717e57d7"
+        "sha256": "1f3dc5b2396f4156b546ea533f5f171d0a389c5e445bb8f2e76318ff429f2bf9"
       },
       "required_reviews": [
         {
@@ -499,7 +493,8 @@
         }
       ],
       "defect_ids": [
-        "D09"
+        "D09",
+        "D21"
       ]
     },
     {
@@ -574,8 +569,8 @@
       "title": "Specify finite per-plane QoS and overload behavior",
       "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
       "module_paths": [],
-      "content_sha256": "a94372baf29091cece03a83d99b952b6a5cffdb669af0cefd09771126548aa07",
-      "bytes": 22442,
+      "content_sha256": "826e9e5dc471c3ab4f48add4b441dbc94c6513ad25a3cd4cddf2e19b06bf9809",
+      "bytes": 25225,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-010",
@@ -583,13 +578,13 @@
           {
             "kind": "main",
             "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
-            "sha256": "a94372baf29091cece03a83d99b952b6a5cffdb669af0cefd09771126548aa07",
-            "bytes": 22442
+            "sha256": "826e9e5dc471c3ab4f48add4b441dbc94c6513ad25a3cd4cddf2e19b06bf9809",
+            "bytes": 25225
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "cf1e3c5d30d6df34d94468861a5d6cb637fa989f727ae4f15fef2689321ec51c"
+        "sha256": "f4ba27f269db247e2f7ed03799c41d37a851172a1586c6c13f4be673dbb40ea0"
       },
       "required_reviews": [
         {
@@ -630,7 +625,8 @@
         }
       ],
       "defect_ids": [
-        "D14"
+        "D14",
+        "D21"
       ]
     },
     {
@@ -640,8 +636,8 @@
       "module_paths": [
         "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
       ],
-      "content_sha256": "48742bd6f68c9b9304e20b347e304f475407ba6bf7d105f970af9d4c73a7120b",
-      "bytes": 79822,
+      "content_sha256": "0a4fa4404e9d13f2e873ebd86a804fe4f9136f0b6ae80c2d5bf4ba8de6ca6881",
+      "bytes": 84415,
       "source_set": {
         "schema": "ncp.b01-adr-source-set.v1",
         "decision_id": "ADR-011",
@@ -649,19 +645,19 @@
           {
             "kind": "main",
             "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
-            "sha256": "48742bd6f68c9b9304e20b347e304f475407ba6bf7d105f970af9d4c73a7120b",
-            "bytes": 79822
+            "sha256": "0a4fa4404e9d13f2e873ebd86a804fe4f9136f0b6ae80c2d5bf4ba8de6ca6881",
+            "bytes": 84415
           },
           {
             "kind": "module",
             "path": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
-            "sha256": "8052f1ea04b14a797a4a141eaa5c2565e9ea5092d8dfb248b9b3019bdbfdec98",
-            "bytes": 10497
+            "sha256": "af6eac1c07c3551ebaf22190efa9153e31633a2bfeca03e046f87a389d9ecfab",
+            "bytes": 19789
           }
         ],
         "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
         "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
-        "sha256": "b46c23c37970f73e001e46dc97b852f5897e3d651692edb69a9f6e0b043f5882"
+        "sha256": "97b55623419650db210013fa4281935aabca179986526c2486846fb23d90a747"
       },
       "required_reviews": [
         {
@@ -725,7 +721,8 @@
         "D09",
         "D11",
         "D12",
-        "D18"
+        "D18",
+        "D21"
       ]
     }
   ]
@@ -738,9 +735,9 @@ exactly one matching `CURRENT` review-subject block before it can receive review
 records. A `SUPERSEDED` or `TEMPLATE` packet cannot contain that block or receive
 review records.
 
-## Historical packet bindings
+## Current packet bindings
 
-This historical review subject binds `decision_set.sha256`. The
+This current review subject binds `decision_set.sha256`. The
 decision-set digest covers all exact ADR bytes, role obligations, defect
 mappings, review-policy version, and exact generator and output-schema
 identities. It excludes review records, so later review capture does not change
@@ -775,16 +772,10 @@ review record content-address the immutable packet bytes with
 `review_packet_sha256`. This acyclic rule lets the generator compare that digest
 with the applicable current packet file.
 
-The retained block above now uses history schema
-`ncp.b01-review-subject-history.v1` and state `SUPERSEDED`. It preserves the
-former decision set, policy, source commit, source tree,
-ADR source sets, role obligations, and defect mappings.
-Its `historical_packet_source` binds the exact prior current packet. The staging
-checker reconstructs that subject and permits only the schema and state change.
-
 The bound source contains zero review records. The emitted subject resolves each
-reviewed input from the pushed source commit. This packet cannot receive review
-records. It does not supply review evidence or accept a decision.
+reviewed input from the pushed source commit. This packet permits human review
+records after its immutable bytes are pushed and addressed. It supplies no
+review evidence and accepts no decision by itself.
 
 Review capture follows an acyclic sequence:
 
@@ -858,13 +849,13 @@ mechanical normative promotion. N01 rejects a promoted copy that alters any
 review, policy, evidence, decision-set, schema, generator, or predecessor
 provenance field.
 
-## Historical review response contract
+## Current review response contract
 
-This superseded packet contains 52 ADR-role obligations and 53 minimum identity
+The current packet contains 52 ADR-role obligations and 53 minimum identity
 slots. The obligations use 38 unique role IDs. Exactly 5 obligations require
 independent review, with 6 minimum independent identity slots.
 
-The historical subject records this review burden:
+The current subject records this review burden:
 
 | ADR | Obligations | Minimum slots |
 |---|---:|---:|

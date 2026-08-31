@@ -21898,7 +21898,7 @@ def _self_test_local_admission_and_receipt_boundaries(
             "hostile N03-to-N04 replay",
         ),
         "N03 receipt copied to N04",
-        "does not bind the exact task",
+        "requirement-and-acceptance digest differs",
     )
     replayed_transition = copy.deepcopy(n03_transition)
     replayed_transition["correlation_id"] = "self-test-replayed-correlation"
