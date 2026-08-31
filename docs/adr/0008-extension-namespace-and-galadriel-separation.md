@@ -1961,6 +1961,26 @@ slowness, or overload cannot enter command/fail-safe queues. Policy-eligible
 assessment evaluation shares the bounded policy-authority scheduler described
 above; its qualified local claim is bounded nonstarvation, not zero delay.
 
+Crebain can also publish optional sensor-condition detail through one registered
+extension. The closed detail record contains only a complete
+`NormativeSourceRef` and bounded `entries`. It repeats no availability bitmap,
+sensor layout, or scalar value.
+
+Each entry contains only `group_ordinal` and registered bounded `reason_code`.
+Entries use increasing group ordinals and contain no duplicate ordinal.
+
+The receiver resolves the exact pinned core source before it checks an entry.
+Each entry must name a group that the pinned source marks unavailable.
+
+The detail extension uses a separate producer principal and resource partition.
+Missing, late, rejected, or overflowed detail means that the reason is
+unavailable. It never blocks perception or action.
+
+A wrong or evicted source rejects only the extension. An available or unknown
+group also rejects only the extension. A duplicate or unsorted entry rejects
+only the extension. An unknown `reason_code` or contradiction does the same.
+These failures never change the stable-core sensor frame.
+
 ## Low-overhead extension transport reconciliation
 
 The NCP 1.0 extension default is one bounded canonical-JSON semantic envelope.
@@ -1975,16 +1995,17 @@ decoded keys, non-canonical numbers, and unsupported encodings reject before
 callback.
 
 One semantic envelope creates one replay coordinate and one admission result.
-The receiver validates the protected envelope, direct realm, activation,
-producer, audience, schema, security state, freshness, and bounds before it
-reserves callback work. An exact retry returns the retained result. Conflicting
-reuse rejects.
+The receiver validates the selected authenticated-ingress profile, direct realm,
+activation, producer, audience, schema, security state, freshness, and bounds
+before it reserves callback work. A-direct requires the receiver-owned context.
+B-over-A requires the restricted carrier and protected JWS. An exact retry
+returns the retained result. Conflicting reuse rejects.
 
 Large bytes remain outside the semantic envelope. Each
 `ExtensionAttachmentRef` contains an enrolled store ID, canonical object key,
-content digest, byte length, media type, schema ID, and purpose. The protected
-envelope binds each reference to its realm, activation, audience, manifest, and
-replay coordinate.
+content digest, byte length, media type, schema ID, and purpose. The selected
+ingress profile binds each reference to its realm, activation, audience,
+manifest, and replay coordinate.
 
 The installed manifest enrolls the store's exact HTTPS origin, resolved address
 set, TLS identity, scoped credential source, timeouts, media types, and byte
@@ -2270,6 +2291,24 @@ placeholder identities or artifacts exist.
 This fails schema, principal-role, and semantic validation. A producer cannot
 self-admit its evidence or select Haldir policy. It also omits the required
 direct `AuthorityRealmKey` and cannot reach realm-scoped replay or policy state.
+
+The following non-wire projection closes optional sensor-condition detail.
+The detail record contains only `source` and bounded `entries`.
+Each entry contains only `group_ordinal` and `reason_code`.
+Entries use increasing group ordinals and contain no duplicate ordinal.
+
+The detail record carries no bitmap, layout, or scalar values.
+The receiver resolves the exact pinned core source before it checks entries.
+Each entry must name a group that the pinned source marks unavailable.
+
+A wrong or evicted source rejects only the extension.
+An available or unknown group also rejects only the extension.
+A duplicate, unsorted, unknown-code, or contradictory entry rejects only the
+extension.
+
+```json
+{"absent_late_rejected_or_overflowed_result":"REASON_UNAVAILABLE","available_or_unknown_group_rejects":true,"complete_normative_source_ref_required":true,"contradictory_group_rejects":true,"detail_can_authorize":false,"detail_can_block_action":false,"detail_can_block_perception":false,"detail_can_change_availability":false,"detail_entry_members":["group_ordinal","reason_code"],"detail_record_is_optional":true,"detail_record_members":["source","entries"],"detail_repeats_bitmap":false,"detail_repeats_layout":false,"detail_repeats_scalars":false,"duplicate_group_rejects":true,"entries_bounded":true,"entries_sorted_by_group_ordinal":true,"exact_pinned_core_source_resolved_before_entry_checks":true,"invalid_detail_rejects_extension_only":true,"reason_codes_bounded":true,"separate_principal_and_resource_partition":true,"unknown_reason_code_rejects":true,"wrong_or_evicted_source_rejects":true}
+```
 
 ## Actors and state transitions
 

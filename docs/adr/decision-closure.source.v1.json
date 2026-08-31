@@ -108,7 +108,7 @@
   "decisions": [
     {
       "id": "ADR-001",
-      "adr_source_set_sha256": "a6a574d824b97047dc251367ecea95cd0d3c69ab55fc5dfa7ec35fde5fe17af8",
+      "adr_source_set_sha256": "a4fef4b32d7984d880d2d64068988505982ec836cb9f22984fce032bd5fae9d0",
       "questions": [
         {
           "question_id": "ADR-001-Q01",
@@ -257,7 +257,7 @@
     },
     {
       "id": "ADR-004",
-      "adr_source_set_sha256": "46df7a65c63d9fba2ef39cb35ee62dfa94fe8441d124fbde9cecba285696d421",
+      "adr_source_set_sha256": "d70f1297dffee51a6cfeb2ea8ed03006d06eaf547b45b0eff65d57ec6c4cdc28",
       "questions": [
         {
           "question_id": "ADR-004-Q01",
@@ -277,13 +277,14 @@
           "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md"
         ],
         "required_case_ids": [
-          "adr004.pending-release-reservation-nonallocation.v1"
+          "adr004.pending-release-reservation-nonallocation.v1",
+          "adr004.sensor-projection.anti-laundering.v1"
         ]
       }
     },
     {
       "id": "ADR-005",
-      "adr_source_set_sha256": "9452684ee327c0d20ed6a84dc7a8718af3d07e926071c3df72a4d116597b783c",
+      "adr_source_set_sha256": "6705dccd0466c41ff7a62a0047e8b191dd0460679e8aaa1d5df440518b08a4a6",
       "questions": [
         {
           "question_id": "ADR-005-Q01",
@@ -407,7 +408,9 @@
         ],
         "required_case_ids": [
           "adr005.declare-stream.excerpt.v1",
-          "adr005.undeclared-frame.hostile.v1"
+          "adr005.undeclared-frame.hostile.v1",
+          "adr005.sensor-availability.source-bound.v1",
+          "adr005.sensor-availability.detached-mask.hostile.v1"
         ]
       }
     },
@@ -503,7 +506,7 @@
     },
     {
       "id": "ADR-007",
-      "adr_source_set_sha256": "8bdd49ae7be27380b64e6113a2a3afe28e904513196dcf7cd1e8a708ed539580",
+      "adr_source_set_sha256": "c9e09aa0fe0cfc588953f773f28191b1364d35dff68c1fc7d20f2a3adb8f0887",
       "questions": [
         {
           "question_id": "ADR-007-Q01",
@@ -637,13 +640,14 @@
         "required_case_ids": [
           "adr007.disposition-query.semantic-projection.v1",
           "adr007.received-disposition.excerpt.v1",
-          "adr007.unknown-disposition.hostile.v1"
+          "adr007.unknown-disposition.hostile.v1",
+          "adr007.unavailable-source-restrictive-action.v1"
         ]
       }
     },
     {
       "id": "ADR-008",
-      "adr_source_set_sha256": "97f866be59b69d5c9fe0d8f84fdbdd37a5ae069492efdf7698379b0c717e57d7",
+      "adr_source_set_sha256": "1f3dc5b2396f4156b546ea533f5f171d0a389c5e445bb8f2e76318ff429f2bf9",
       "questions": [
         {
           "question_id": "ADR-008-Q01",
@@ -991,7 +995,8 @@
         "required_case_ids": [
           "adr008.extension-envelope.semantic-projection.v1",
           "adr008.evaluated-envelope.excerpt.v1",
-          "adr008.self-policy.hostile.v1"
+          "adr008.self-policy.hostile.v1",
+          "adr008.sensor-condition-detail.semantic-projection.v1"
         ]
       }
     },
@@ -1088,7 +1093,7 @@
     },
     {
       "id": "ADR-010",
-      "adr_source_set_sha256": "cf1e3c5d30d6df34d94468861a5d6cb637fa989f727ae4f15fef2689321ec51c",
+      "adr_source_set_sha256": "f4ba27f269db247e2f7ed03799c41d37a851172a1586c6c13f4be673dbb40ea0",
       "questions": [
         {
           "question_id": "ADR-010-Q01",
@@ -1341,18 +1346,19 @@
         ],
         "required_case_ids": [
           "adr010.action-qos-profile.excerpt.v1",
-          "adr010.best-effort-receipt-free-profile.hostile.v1"
+          "adr010.best-effort-receipt-free-profile.hostile.v1",
+          "adr010.perception-queue-missingness.semantic-projection.v1"
         ]
       }
     },
     {
       "id": "ADR-011",
-      "adr_source_set_sha256": "b46c23c37970f73e001e46dc97b852f5897e3d651692edb69a9f6e0b043f5882",
+      "adr_source_set_sha256": "97b55623419650db210013fa4281935aabca179986526c2486846fb23d90a747",
       "questions": [
         {
           "question_id": "ADR-011-Q01",
           "question_anchor": "docs/adr/0011-ecosystem-topology-and-handover.md#open-questions",
-          "statement": "Which exact extension, package, consumer-inventory, effect-path, fencing-capacity, and handover allocations preserve the no-edge topology?",
+          "statement": "Which exact extension, package, consumer-inventory, effect-path, plant-layout-profile, fencing-capacity, and handover allocations preserve topology with bound availability and encoding?",
           "state": "DEFERRED_B03",
           "resolution": null,
           "resolution_anchor": null,
@@ -1483,6 +1489,27 @@
                   "ADR-011-B03-P06-OVERFLOW",
                   "ADR-011-B03-P06-UNKNOWN-DEFAULT-REJECT"
                 ]
+              },
+              {
+                "parameter_id": "PLANT_CHANNEL_LAYOUT_PROFILE_IDENTITIES",
+                "value_kind": "EXACT_IDENTITY_SET",
+                "selection_predicate_id": "ADR-011-Q01-P07-SELECTION-PREDICATE",
+                "selection_predicate_source_anchor": "ncp-b01-selector-allocation-adr-011-v1",
+                "selection_profile": "B03_EXACT_IDENTITY_SET_SELECTION_V1",
+                "b03_selection_verifier_required": true,
+                "inherits_excluded_no_edge_components": true,
+                "minimum": 1,
+                "maximum": 64,
+                "required_tests": [
+                  "ADR-011-B03-P07-MIN-EQUALITY",
+                  "ADR-011-B03-P07-MAX-EQUALITY",
+                  "ADR-011-B03-P07-BELOW-MINIMUM",
+                  "ADR-011-B03-P07-ABOVE-MAXIMUM",
+                  "ADR-011-B03-P07-INELIGIBLE-MEMBER-REJECT",
+                  "ADR-011-B03-P07-PROHIBITED-MEMBER-REJECT",
+                  "ADR-011-B03-P07-OVERFLOW",
+                  "ADR-011-B03-P07-UNKNOWN-DEFAULT-REJECT"
+                ]
               }
             ],
             "identity_eligibility_universes": [
@@ -1503,6 +1530,11 @@
               },
               {
                 "parameter_id": "EFFECT_PATH_DESCRIPTOR_PROFILE_IDENTITIES",
+                "eligible_identities": [],
+                "eligible_identities_sha256": null
+              },
+              {
+                "parameter_id": "PLANT_CHANNEL_LAYOUT_PROFILE_IDENTITIES",
                 "eligible_identities": [],
                 "eligible_identities_sha256": null
               }
@@ -1531,7 +1563,9 @@
         "required_case_ids": [
           "adr011.registered-haldir-intent.extension-envelope.v1",
           "adr011.identity-laundering-command.hostile.v1",
-          "adr011.effect-path-fencing.semantic-projection.v1"
+          "adr011.effect-path-fencing.semantic-projection.v1",
+          "adr011.prepared-frame-publisher-boundary.semantic-projection.v1",
+          "adr011.x02-fleet-availability-layout.v1"
         ]
       }
     }

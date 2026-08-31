@@ -2002,7 +2002,7 @@ profile can describe one entity or one composite plant. It is not required to
 map one session to one physical device.
 
 The selected X02 qualification profile uses one composite fleet session for each
-1, 2, and 3-drone run. CREBAIN must advance the fleet atomically. Engram must
+1, 2, and 3-drone run. Crebain must advance the fleet atomically. Engram must
 advance one NEST controller epoch from one aggregate observation. Separate drone
 sessions would require a cross-session barrier that NCP does not define.
 

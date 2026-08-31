@@ -6,7 +6,7 @@
 > `--write` and verify with `--check`.
 > This is evidence bookkeeping, not release authorization or certification.
 
-Blueprint SHA-256: `e2a8993c1cb75e655cf918b882688057be2cc0c4a4cbcbe0ba3a42d986d899a3`.
+Blueprint SHA-256: `c5b8f053315e14c930e94e656317edf4690241019a9dd2e3c69b852ba6d80aea`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -38,7 +38,7 @@ complete prerequisite ancestry.
 
 ### `B01` — Decide and ratify ADR-001 through ADR-011
 
-ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, D18, D19, and consumer scopes changed after cross-repository review. Earlier requests, model results, and gates bind superseded bytes only. The CURRENT packet has zero reviews. Its subject binds decision set d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd to source ca7fa729f982690a4d3d8b1829c20a842d9f5612 and tree 03ff9b1007192f2839146b31b791541f8fada86b. It enables capture only. All 52 obligations and 53 minimum identity slots remain unfilled. Composite local runs covered every command in `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed out during the Python source-distribution build. The exact failed step and remaining suffix then passed separately. The exact clean B01 runner passed. The current bounded 25-case, 160-mutation semantic replay passes in separate Rust and TypeScript engines. The selector authoring artifact retains a superseded pre-atomic-HOLD allocation as an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED diagnostic outside the semantic-closure subject. It cannot accept an ADR or replace required human review. These local results do not satisfy B01's independent evidence floor and are not passing task evidence. The Ed25519 screen uses a fixed-sample p95 computational tripwire of 100,000 microseconds for thread and process CPU. Maximum CPU and wall time remain observational. This coordination entry has no passing task-source receipt, external same-digest request, owner or independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. Obtain qualifying same-digest reviews and external adjudications before a passing B01 receipt. Do not create the normative registry, start descendants, or infer release readiness.
+ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, D18 through D21, and consumer scopes changed after cross-repository review. Earlier requests, model results, and gates bind superseded bytes only. The prior packet is SUPERSEDED. No CURRENT subject exists. The current proposed decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 has zero review records. It cannot receive reviews until a clean pushed subject is installed. All 52 obligations and 53 minimum identity slots remain unfilled. Composite local runs covered every command in `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed out during the Python source-distribution build. The exact failed step and remaining suffix then passed separately. The exact clean B01 runner passed. The current bounded 33-case, 289-mutation semantic replay passes in separate Rust and TypeScript engines. The selector authoring artifact retains a superseded pre-atomic-HOLD allocation as an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED diagnostic outside the semantic-closure subject. It cannot accept an ADR or replace required human review. These local results do not satisfy B01's independent evidence floor and are not passing task evidence. The Ed25519 screen uses a fixed-sample p95 computational tripwire of 100,000 microseconds for thread and process CPU. Maximum CPU and wall time remain observational. This coordination entry has no passing task-source receipt, external same-digest request, owner or independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. Install a new current subject before requesting qualifying reviews and external adjudications. Do not create the normative registry, start descendants, or infer release readiness.
 
 Current residual risks:
 
@@ -46,10 +46,10 @@ Current residual risks:
 - The maintained low-overhead architecture is reconciled into all eleven proposed ADR sources. The selector authoring artifact remains an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED historical diagnostic whose allocation predates atomic HOLD admission. It is outside the semantic-closure subject, cannot accept or block a decision, and cannot replace required human review. This local design work does not accept an ADR, change normative sources, or authorize implementation.
 - Nine deterministic light and dark diagram pairs now explain the proposed overview, runtime, lifecycle, planes, version gate, simulation sequence, command admission, plant state, and ecosystem boundaries. Local rendering and accessibility checks do not implement the target or satisfy the later N10 documentation task, F05 final visual campaign, independent review, performance qualification, or release gates.
 - The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.
-- The 25 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 25 cases and rejects 160 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.
-- Local semantic closure is current only when the source-bound 25-case, 160-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.
+- The 30 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 33 cases and rejects 289 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.
+- Local semantic closure is current only when the source-bound 33-case, 289-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.
 - B01 inventories the full 72-file set under 72-file and 8 MiB caps, including this architecture. Python imports precede its first snapshot, so this is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without provenance. The reader rejects leaf links and in-read changes. Privileged parent replacement is outside the claim.
-- The CURRENT packet binds one zero-review subject to decision set d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd and source ca7fa729f982690a4d3d8b1829c20a842d9f5612. It enables capture only. It has no retained external request. The registry contains zero review records. All 52 obligations and 53 minimum identity slots remain unfilled. No owner review, independent review, external adjudication, or passing B01 receipt exists. Formal refinement and downstream implementation remain open.
+- The prior packet is SUPERSEDED. No CURRENT subject exists. The proposed registry binds decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 and contains zero review records. It has no retained external request. All 52 obligations and 53 minimum identity slots remain unfilled. No owner review, independent review, external adjudication, or passing B01 receipt exists. Formal refinement and downstream implementation remain open.
 - The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.
 - Checked codec paths can invent midpoint or zero values, accept sparse components, and select a unit by mapping order. The plant helper is not integrated into Active admission, and `PlantCommand` erases units. `PlantProfile::validate_active_command` also revalidates, hashes, and rebuilds a name set per call. The ADR-007 target now selects an ESTOP-only early latch and ordinary HOLD admission. B02, B03, N01, N03, N05, N07, N08, E04, H02, and C02 remain open.
 - The idempotency cache can evict terminal no-reuse state before its retention deadline. Pending entries have no execution deadline or runtime terminalization path, so a lost backend can retain capacity indefinitely while deletion risks a second mutation. B02, B03, N03, N05, N06, and N07 remain open.
@@ -1653,13 +1653,17 @@ absence. It is never verified authority. Closed `CommandAuthorityEvidence` keeps
 first `CANDIDATE_NOT_EVALUATED` state, verified body lease, permitted ESTOP lease
 absence, and rejected-candidate branch distinct. Only verified body lease or the exact
 installed ESTOP-absence rule can admit a command.
-Hard byte and shape bounds, the protected envelope, default-deny manifest actor and
+Hard byte and shape bounds, the selected-profile authenticated-ingress result, default-deny manifest actor and
 action plane, actual route and audience, canonical frame kind/version, live session
 generation, declared stream epoch, positive syntactic position, current security
 state, one unambiguous structurally valid mode, and an installed plant-profile
 action must pass. An installed unexpired grant and slot, or the exact preserved
 HOLD escalation snapshot and unused ESTOP slot, must also pass before
-any remote side effect. ESTOP alone can then reserve a fresh attempt identity before
+any remote side effect. For A-direct, that result contains the verified native
+transport principal and current receiver-owned opaque context. For B-over-A, it
+contains the authenticated restricted carrier and distinct verified JWS signer.
+Neither profile can be selected by caller bytes. ESTOP alone can then reserve a
+fresh attempt identity before
 ordinary stream replay and live-lease checks. It appends
 `CommandIngressAttemptRecord` with the exact bytes, context, receive clock, and the
 exact `CLEAR_AND_LATCH_ESTOP` intent. HOLD has no pre-replay reservation. It first
@@ -1674,7 +1678,8 @@ reservation. It binds the exact intent, named buffer/latch transition, and one
 `UNKNOWN_AFTER_SIDE_EFFECT_BOUNDARY` outcome. This earlier body-local effect grants
 no action-queue priority or entry, command admission, disposition, or `stop_latched`.
 An ambiguous or unresolved reservation blocks later Active admission.
-Full command admission independently requires the complete envelope, manifest, route,
+Full command admission independently requires the complete admitted frame and
+profile-specific ingress context, manifest, route,
 audience, session, declared stream, replay, operation, body-grant deadline, source,
 channel, profile, authority, and semantic gates. ESTOP action-queue priority,
 admission, and
@@ -1691,7 +1696,7 @@ equivalent invalid HOLD has no remote side effect and uses
 when it has a new identity. Exact same-bytes replay joins the installed attempt and
 chain without another effect or `received`. A qualified changed ESTOP at an occupied
 position can use only the preallocated restrictive-conflict attribution. Wrong-context,
-unsigned, oversize, unverifiable, ambiguous, or expired candidates create no attempt
+unauthenticated, cross-profile, oversize, unverifiable, ambiguous, or expired candidates create no attempt
 and have no remote side effect. An invalid Active candidate has no fail-safe side
 effect. Only a fully validated, admitted ESTOP can later reach `stop_latched`.
 A later `BodyFailSafeSideEffectResolution` binds the exact side-effect record and
@@ -1849,23 +1854,23 @@ close a requirement, or change a task's evidence floor.
 |---|---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | `B00-ledger-integrity`, `B00-no-optimistic-status`, `B00-resumption-control`, `B00-current-generation-evidence`, `B00-content-bound-receipts` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
 | `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | `B04-acceptance` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
-| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | `B01-acceptance`, `D01`, `D02`, `D03`, `D04`, `D05`, `D06`, `D07`, `D08`, `D09`, `D10`, `D11`, `D12`, `D13`, `D14`, `D15`, `D16`, `D17`, `D18`, `D19`, `D20` | Decide and ratify ADR-001 through ADR-011 | `B04` | NCP | `—` | 49 |
-| `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | `B02-acceptance`, `D19` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
-| `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | `B03-acceptance`, `D09`, `D13`, `D19` | Reserve registries, namespaces, error codes, and owners | `B02` | NCP | `—` | 0 |
-| `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N01-acceptance`, `D04`, `D19` | Establish the single normative source graph and identity projections | `B03` | NCP | `—` | 0 |
-| `N02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N02-acceptance`, `D01`, `D02`, `D05`, `D20` | Implement typed simulation, plant, and observer session lifecycles | `N01` | NCP | `—` | 0 |
-| `N03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N03-acceptance`, `D03`, `D07`, `D08`, `D15` | Implement declared streams, domain-separated authority, and command disposition | `N02` | NCP | `—` | 0 |
-| `N04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N04-acceptance`, `D05`, `D06`, `D16`, `D20` | Implement the production authenticated envelope and semantic security state | `N02` | NCP | `—` | 0 |
-| `X00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X00-acceptance` | Prototype an early independent non-Rust draft peer | `N03`, `N04` | independent draft-peer environment | `—` | 0 |
-| `N05` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N05-acceptance` | Refactor critical Rust behavior into pure checked transition cores | `N03`, `N04` | NCP | `—` | 0 |
-| `N06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N06-acceptance`, `D06`, `D16` | Integrate security and state machines into Zenoh without trusting callbacks | `N05` | NCP | `—` | 0 |
-| `N07` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N07-acceptance`, `D04`, `D14`, `D18` | Regenerate and harden all supported language and package surfaces | `N06`, `X00` | NCP | `—` | 0 |
-| `N08` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N08-acceptance`, `D04`, `D05`, `D14` | Rebuild conformance, behavior, migration, and fixture coverage | `N07` | NCP | `—` | 0 |
+| `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | `B01-acceptance`, `D01`, `D02`, `D03`, `D04`, `D05`, `D06`, `D07`, `D08`, `D09`, `D10`, `D11`, `D12`, `D13`, `D14`, `D15`, `D16`, `D17`, `D18`, `D19`, `D20`, `D21` | Decide and ratify ADR-001 through ADR-011 | `B04` | NCP | `—` | 49 |
+| `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | `B02-acceptance`, `D19`, `D21` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
+| `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | `B03-acceptance`, `D09`, `D13`, `D19`, `D21` | Reserve registries, namespaces, error codes, and owners | `B02` | NCP | `—` | 0 |
+| `N01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N01-acceptance`, `D04`, `D19`, `D21` | Establish the single normative source graph and identity projections | `B03` | NCP | `—` | 0 |
+| `N02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N02-acceptance`, `D01`, `D02`, `D05`, `D20`, `D21` | Implement typed simulation, plant, and observer session lifecycles | `N01` | NCP | `—` | 0 |
+| `N03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N03-acceptance`, `D03`, `D07`, `D08`, `D15`, `D21` | Implement declared streams, domain-separated authority, and command disposition | `N02` | NCP | `—` | 0 |
+| `N04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N04-acceptance`, `D05`, `D06`, `D16`, `D20`, `D21` | Implement production authenticated ingress and semantic security state | `N02` | NCP | `—` | 0 |
+| `X00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X00-acceptance`, `D21` | Prototype an early independent non-Rust draft peer | `N03`, `N04` | independent draft-peer environment | `—` | 0 |
+| `N05` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N05-acceptance`, `D21` | Refactor critical Rust behavior into pure checked transition cores | `N03`, `N04` | NCP | `—` | 0 |
+| `N06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N06-acceptance`, `D06`, `D16`, `D21` | Integrate security and state machines into Zenoh without trusting callbacks | `N05` | NCP | `—` | 0 |
+| `N07` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N07-acceptance`, `D04`, `D14`, `D18`, `D21` | Regenerate and harden all supported language and package surfaces | `N06`, `X00` | NCP | `—` | 0 |
+| `N08` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N08-acceptance`, `D04`, `D05`, `D14`, `D21` | Rebuild conformance, behavior, migration, and fixture coverage | `N07` | NCP | `—` | 0 |
 | `N09` | `OPEN` | `IMPLEMENTATION_ONLY` | `EXTERNAL` | `N09-acceptance`, `D13` | Remove supply-chain and package-identity release blockers | `N07` | NCP | `—` | 0 |
-| `N10` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N10-acceptance`, `D09`, `D14`, `V11` | Rewrite normative and user documentation and regenerate visuals | `N08`, `N09` | NCP | `—` | 0 |
-| `F01` | `OPEN` | `IMPLEMENTATION_ONLY` | `INDEPENDENT` | `F01-acceptance`, `D12` | Implement and independently review the TLA+ model suite | `N03`, `N04` | NCP | `—` | 0 |
-| `F02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `F02-acceptance`, `D05`, `D12` | Implement SMT, Kani, and model-to-Rust refinement checks | `N05`, `F01` | NCP | `—` | 0 |
-| `F03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `F03-acceptance`, `D10`, `D12` | Implement differential, property, fuzz, sanitizer, and mutation campaigns | `N08`, `F02` | NCP | `—` | 0 |
+| `N10` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `N10-acceptance`, `D09`, `D14`, `V11`, `D21` | Rewrite normative and user documentation and regenerate visuals | `N08`, `N09` | NCP | `—` | 0 |
+| `F01` | `OPEN` | `IMPLEMENTATION_ONLY` | `INDEPENDENT` | `F01-acceptance`, `D12`, `D21` | Implement and independently review the TLA+ model suite | `N03`, `N04` | NCP | `—` | 0 |
+| `F02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `F02-acceptance`, `D05`, `D12`, `D21` | Implement SMT, Kani, and model-to-Rust refinement checks | `N05`, `F01` | NCP | `—` | 0 |
+| `F03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `F03-acceptance`, `D10`, `D12`, `D21` | Implement differential, property, fuzz, sanitizer, and mutation campaigns | `N08`, `F02` | NCP | `—` | 0 |
 | `R01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `R01-acceptance`, `D17` | Create the final untagged 1.0.0 source cut and publication machinery | `N10`, `F03` | NCP | `—` | 0 |
 | `R11` | `OPEN` | `GOVERNANCE_OPERATION` | `EXTERNAL` | `R11-acceptance` | Establish durable 1.0 stewardship without pretending software is eternal | `N10` | NCP and ecosystem governance | `—` | 0 |
 | `E01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E01-acceptance`, `D18` | Establish Engram's clean native-1.0 integration baseline | `R01` | Engram | `—` | 0 |
@@ -1874,31 +1879,31 @@ close a requirement, or change a task's evidence floor.
 | `C01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C01-acceptance`, `D01`, `D10`, `D18` | Create Crebain's separate native-1.0 plant adapter and exact pins | `R01` | Crebain | `—` | 0 |
 | `P01` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `P01-acceptance`, `D02`, `D03`, `D18` | Add a parallel native-1.0 Prisoma observer | `R01` | Prisoma | `—` | 0 |
 | `E02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E02-acceptance`, `D01` | Split Engram's simulation responder from plant commander types | `E01` | Engram | `—` | 0 |
-| `H02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H02-acceptance`, `D07`, `D08`, `D09`, `D15`, `D18` | Integrate body authority, dispositions, and Engram-intent extension ingress into Haldir Gate | `H01` | Haldir | `—` | 0 |
+| `H02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H02-acceptance`, `D07`, `D08`, `D09`, `D15`, `D18`, `D21` | Integrate body authority, dispositions, and Engram-intent extension ingress into Haldir Gate | `H01` | Haldir | `—` | 0 |
 | `H04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `H04-acceptance`, `D09`, `D18`, `V11` | Implement Haldir's isolated optional assessment receiver | `H02`, `G01` | Haldir | `—` | 0 |
-| `G02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `G02-acceptance`, `D02`, `D03`, `D20`, `V11` | Bind Galadriel lifecycle and monitoring to authenticated observer state | `G01` | Galadriel | `—` | 0 |
-| `C02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C02-acceptance`, `D07`, `D08`, `D10`, `D15` | Implement Crebain as body-issued authority and disposition source | `C01` | Crebain | `—` | 0 |
-| `P02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `P02-acceptance`, `D11`, `D20`, `V11` | Preserve missing-variable and research-claim semantics in native capture | `P01` | Prisoma | `—` | 0 |
-| `E03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E03-acceptance`, `D03`, `D20` | Implement Engram's authenticated transport and declared streams | `E02` | Engram | `—` | 0 |
-| `C03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C03-acceptance`, `D03`, `D09` | Migrate Crebain sensor and Galadriel-extension publication | `C02`, `G01` | Crebain | `—` | 0 |
-| `E04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E04-acceptance`, `D08`, `D15` | Implement Engram's direct plant integration | `E03`, `C02` | Engram | `—` | 0 |
-| `E06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E06-acceptance`, `D08`, `D15`, `D18`, `V11` | Implement Engram's registered Haldir-intent extension publisher | `E04`, `H02` | Engram | `—` | 0 |
+| `G02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `G02-acceptance`, `D02`, `D03`, `D20`, `V11`, `D21` | Bind Galadriel lifecycle and monitoring to authenticated observer state | `G01` | Galadriel | `—` | 0 |
+| `C02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C02-acceptance`, `D07`, `D08`, `D10`, `D15`, `D21` | Implement Crebain as body-issued authority and disposition source | `C01` | Crebain | `—` | 0 |
+| `P02` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `P02-acceptance`, `D11`, `D20`, `V11`, `D21` | Preserve missing-variable and research-claim semantics in native capture | `P01` | Prisoma | `—` | 0 |
+| `E03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E03-acceptance`, `D03`, `D20`, `D21` | Implement Engram's authenticated transport and declared streams | `E02` | Engram | `—` | 0 |
+| `C03` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C03-acceptance`, `D03`, `D09`, `D21` | Migrate Crebain sensor and Galadriel-extension publication | `C02`, `G01` | Crebain | `—` | 0 |
+| `E04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E04-acceptance`, `D08`, `D15`, `D21` | Implement Engram's direct plant integration | `E03`, `C02` | Engram | `—` | 0 |
+| `E06` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `E06-acceptance`, `D08`, `D15`, `D18`, `D21`, `V11` | Implement Engram's registered Haldir-intent extension publisher | `E04`, `H02` | Engram | `—` | 0 |
 | `C04` | `OPEN` | `IMPLEMENTATION_ONLY` | `LOCAL` | `C04-acceptance`, `V11` | Verify the consolidated Galadriel producer lineage and retire stale branch references | `C03` | Crebain canonical repository | `—` | 0 |
-| `X01` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X01-acceptance`, `D04` | Qualify two genuinely independent installed non-Rust peers | `E03` | independent peer lab | `—` | 0 |
+| `X01` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X01-acceptance`, `D04`, `D21` | Qualify two genuinely independent installed non-Rust peers | `E03` | independent peer lab | `—` | 0 |
 | `X05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X05-acceptance`, `D20` | Qualify the disjoint observer challenge-exposure anchor infrastructure | `G02`, `P02`, `X01` | independent challenge-exposure anchor lab | `—` | 0 |
-| `X02` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X02-acceptance`, `X02-nest39-fleet-1-2-3`, `X02-music-separation`, `X02-presentation-runtime-boundary`, `D07`, `D08`, `D09`, `D20` | Run the composed ecosystem and multi-writer campaign | `E06`, `H04`, `C04`, `X05` | isolated ecosystem lab | `—` | 0 |
-| `E05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E05-acceptance`, `D11` | Qualify Engram's simulation-responder and direct-commander roles | `E04`, `X01` | Engram qualification environment | `—` | 0 |
-| `H03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H03-acceptance` | Qualify Haldir's secure commander role | `H02`, `C02`, `X01` | Haldir qualification environment | `—` | 0 |
+| `X02` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `X02-acceptance`, `X02-nest39-fleet-1-2-3`, `X02-music-separation`, `X02-presentation-runtime-boundary`, `X02-sensor-availability-fault-correlation`, `D07`, `D08`, `D09`, `D20`, `D21` | Run the composed ecosystem and multi-writer campaign | `E06`, `H04`, `C04`, `X05` | isolated ecosystem lab | `—` | 0 |
+| `E05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E05-acceptance`, `D11`, `D21` | Qualify Engram's simulation-responder and direct-commander roles | `E04`, `X01` | Engram qualification environment | `—` | 0 |
+| `H03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H03-acceptance`, `D21` | Qualify Haldir's secure commander role | `H02`, `C02`, `X01` | Haldir qualification environment | `—` | 0 |
 | `H05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H05-acceptance` | Qualify Haldir's optional assessment-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
-| `E07` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E07-acceptance`, `D09`, `D18` | Qualify Engram's Haldir-intent extension-publisher role | `X02` | Engram qualification environment | `—` | 0 |
-| `H06` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H06-acceptance`, `D09`, `D18` | Qualify Haldir's Engram-intent extension-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
-| `G03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `G03-acceptance` | Qualify Galadriel NCP observer and raw-advisory publisher roles | `X02` | Galadriel qualification environment | `—` | 0 |
-| `P03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `P03-acceptance`, `D11` | Migrate the fault observatory and qualify Prisoma's observer role | `X02` | Prisoma qualification environment | `—` | 0 |
-| `F04` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F04-acceptance`, `D06`, `D16`, `D20` | Execute the live security, fault, soak, rotation, and revocation campaign | `X02` | cross-ecosystem lab | `—` | 0 |
-| `C05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `C05-acceptance`, `D07`, `D10` | Qualify Crebain body and Galadriel-producer surface separately | `E05`, `H03`, `G03` | Crebain qualification environment | `—` | 0 |
+| `E07` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `E07-acceptance`, `D09`, `D18`, `D21` | Qualify Engram's Haldir-intent extension-publisher role | `X02` | Engram qualification environment | `—` | 0 |
+| `H06` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `H06-acceptance`, `D09`, `D18`, `D21` | Qualify Haldir's Engram-intent extension-receiver role | `X02` | Haldir qualification environment | `—` | 0 |
+| `G03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `G03-acceptance`, `D21` | Qualify Galadriel NCP observer and raw-advisory publisher roles | `X02` | Galadriel qualification environment | `—` | 0 |
+| `P03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `P03-acceptance`, `D11`, `D21` | Migrate the fault observatory and qualify Prisoma's observer role | `X02` | Prisoma qualification environment | `—` | 0 |
+| `F04` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F04-acceptance`, `D06`, `D16`, `D20`, `D21` | Execute the live security, fault, soak, rotation, and revocation campaign | `X02` | cross-ecosystem lab | `—` | 0 |
+| `C05` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `C05-acceptance`, `D07`, `D10`, `D21` | Qualify Crebain body and Galadriel-producer surface separately | `E05`, `H03`, `G03` | Crebain qualification environment | `—` | 0 |
 | `X03` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X03-acceptance` | Issue eleven exact consumer and extension role qualification receipts | `H05`, `C05`, `P03`, `F04`, `E07`, `H06` | cross-ecosystem adjudication | `—` | 0 |
 | `X04` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `X04-acceptance`, `D13` | Reproduce the provider and ecosystem from clean rooms | `X03` | independent clean builders | `—` | 0 |
-| `F05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F05-acceptance`, `V11` | Execute release-bound performance, resource, and final visual campaigns | `X04` | cross-ecosystem lab | `—` | 0 |
+| `F05` | `OPEN` | `QUALIFICATION_REQUIRED` | `EXTERNAL` | `F05-acceptance`, `V11`, `D21` | Execute release-bound performance, resource, and final visual campaigns | `X04` | cross-ecosystem lab | `—` | 0 |
 | `R00` | `OPEN` | `QUALIFICATION_REQUIRED` | `INDEPENDENT` | `R00-acceptance` | Hand the qualified candidate to the release runbook | `F05` | NCP | `—` | 0 |
 | `R10` | `OPEN` | `GOVERNANCE_OPERATION` | `EXTERNAL` | `R10-acceptance` | Execute rollback, withdrawal, revocation, and incident response | `F04` | incident-response exercise | `—` | 0 |
 | `R02` | `OPEN` | `RELEASE_OPERATION` | `INDEPENDENT` | `R02-acceptance`, `D17` | Issue the signed release-authorization bundle | `R00`, `R10`, `R11` | independent release adjudication | `—` | 0 |
@@ -1909,6 +1914,49 @@ close a requirement, or change a task's evidence floor.
 | `R07` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R07-acceptance`, `D18`, `V11` | Repin and revalidate every consumer against the immutable tag | `R05` | all consumer repositories | `—` | 0 |
 | `R08` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R08-acceptance`, `V11` | Update ecosystem repository metadata and the public selected-work profile | `R06`, `R07` | ecosystem GitHub and profile | `—` | 0 |
 | `R09` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R09-acceptance` | Run post-publication installs and emergency-revocation exercise | `R05` | public install hosts and revocation lab | `—` | 0 |
+
+## D21 compact-availability overlay ownership
+
+Each listed task owns its exact part of availability preservation, restrictive
+behavior, observation, or qualification. D21 scope is a requirement binding; it
+does not close the defect or grant runtime, qualification, or release authority.
+
+Checked closure-task roster: `B01`, `B02`, `B03`, `N01`, `N02`, `N03`, `N04`, `N05`, `N06`, `N07`, `N08`, `N10`, `F01`, `F02`, `F03`, `E03`, `E04`, `E05`, `E06`, `E07`, `H02`, `H03`, `H06`, `C02`, `C03`, `C05`, `G02`, `G03`, `P02`, `P03`, `X00`, `X01`, `X02`, `F04`, `F05`.
+Traceability-only non-execution owners are `B01` and `B02` for governance,
+`F01` through `F03` for formal/refinement/fuzz evidence, and `X00` for
+pre-freeze ambiguity detection. `X01` owns final independent execution.
+
+| Task | Status | Repository | Owned overlay slice |
+|---|---|---|---|
+| `B03` | `OPEN` | NCP | Reserve registries, namespaces, error codes, and owners |
+| `N01` | `OPEN` | NCP | Establish the single normative source graph and identity projections |
+| `N02` | `OPEN` | NCP | Implement typed simulation, plant, and observer session lifecycles |
+| `N03` | `OPEN` | NCP | Implement declared streams, domain-separated authority, and command disposition |
+| `N04` | `OPEN` | NCP | Implement production authenticated ingress and semantic security state |
+| `N05` | `OPEN` | NCP | Refactor critical Rust behavior into pure checked transition cores |
+| `N06` | `OPEN` | NCP | Integrate security and state machines into Zenoh without trusting callbacks |
+| `N07` | `OPEN` | NCP | Regenerate and harden all supported language and package surfaces |
+| `N08` | `OPEN` | NCP | Rebuild conformance, behavior, migration, and fixture coverage |
+| `N10` | `OPEN` | NCP | Rewrite normative and user documentation and regenerate visuals |
+| `E03` | `OPEN` | Engram | Implement Engram's authenticated transport and declared streams |
+| `E04` | `OPEN` | Engram | Implement Engram's direct plant integration |
+| `E05` | `OPEN` | Engram qualification environment | Qualify Engram's simulation-responder and direct-commander roles |
+| `E06` | `OPEN` | Engram | Implement Engram's registered Haldir-intent extension publisher |
+| `E07` | `OPEN` | Engram qualification environment | Qualify Engram's Haldir-intent extension-publisher role |
+| `H02` | `OPEN` | Haldir | Integrate body authority, dispositions, and Engram-intent extension ingress into Haldir Gate |
+| `H03` | `OPEN` | Haldir qualification environment | Qualify Haldir's secure commander role |
+| `H06` | `OPEN` | Haldir qualification environment | Qualify Haldir's Engram-intent extension-receiver role |
+| `C02` | `OPEN` | Crebain | Implement Crebain as body-issued authority and disposition source |
+| `C03` | `OPEN` | Crebain | Migrate Crebain sensor and Galadriel-extension publication |
+| `C05` | `OPEN` | Crebain qualification environment | Qualify Crebain body and Galadriel-producer surface separately |
+| `G02` | `OPEN` | Galadriel | Bind Galadriel lifecycle and monitoring to authenticated observer state |
+| `G03` | `OPEN` | Galadriel qualification environment | Qualify Galadriel NCP observer and raw-advisory publisher roles |
+| `P02` | `OPEN` | Prisoma | Preserve missing-variable and research-claim semantics in native capture |
+| `P03` | `OPEN` | Prisoma qualification environment | Migrate the fault observatory and qualify Prisoma's observer role |
+| `X01` | `OPEN` | independent peer lab | Qualify two genuinely independent installed non-Rust peers |
+| `X02` | `OPEN` | isolated ecosystem lab | Run the composed ecosystem and multi-writer campaign |
+| `F04` | `OPEN` | cross-ecosystem lab | Execute the live security, fault, soak, rotation, and revocation campaign |
+| `F05` | `OPEN` | cross-ecosystem lab | Execute release-bound performance, resource, and final visual campaigns |
 
 ## V11 ecosystem-atlas ownership
 
@@ -1967,9 +2015,9 @@ after success or failure.
     "$ncp_ledger_python" -m pip install \
         --disable-pip-version-check --require-hashes --only-binary=:all: \
         -r scripts/requirements-evidence-schema.txt
-    "$ncp_ledger_python" scripts/check_implementation_ledger.py --self-test
-    "$ncp_ledger_python" scripts/generate_implementation_ledger.py --check
-    scripts/check.sh
+    "$ncp_ledger_python" scripts/check_implementation_ledger.py --self-test --b01-source-staging
+    "$ncp_ledger_python" scripts/generate_implementation_ledger.py --check --b01-source-staging
+    scripts/check.sh --b01-source-staging
 )
 ```
 

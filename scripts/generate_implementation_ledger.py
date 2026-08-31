@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 
 from check_implementation_ledger import (
+    D21_NON_EXECUTION_TASK_IDS,
+    D21_OVERLAY_TASK_IDS,
+    D21_TRACEABILITY_TASK_IDS,
     INDEPENDENT_REVIEWER_MINIMUM,
     LEDGER,
     REQUIRED_EXTERNAL_GATES,
@@ -16,6 +19,7 @@ from check_implementation_ledger import (
     LedgerError,
     _task_reached_minimum,
     load,
+    set_b01_source_staging_mode,
 )
 
 
@@ -72,6 +76,30 @@ def _v11_task_groups(
     return owners, consumers
 
 
+def _d21_overlay_tasks(
+    tasks: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    by_id = {task["id"]: task for task in tasks}
+    missing = [task_id for task_id in D21_TRACEABILITY_TASK_IDS if task_id not in by_id]
+    if missing:
+        raise LedgerError(f"missing D21 closure tasks: {', '.join(missing)}")
+    closure_tasks = [by_id[task_id] for task_id in D21_TRACEABILITY_TASK_IDS]
+    for task in closure_tasks:
+        if "D21" not in task["requirement_ids"]:
+            raise LedgerError(f"D21 closure task {task['id']} does not carry D21 scope")
+    expected_overlay = tuple(
+        task_id
+        for task_id in D21_TRACEABILITY_TASK_IDS
+        if task_id not in D21_NON_EXECUTION_TASK_IDS
+    )
+    if D21_OVERLAY_TASK_IDS != expected_overlay:
+        raise LedgerError(
+            "D21 execution overlay differs from the exact closure roster minus "
+            "checked non-execution owners"
+        )
+    return [by_id[task_id] for task_id in D21_OVERLAY_TASK_IDS]
+
+
 def _render_active_task_recovery(
     lines: list[str],
     active_tasks: list[dict[str, object]],
@@ -98,7 +126,10 @@ def _render_active_task_recovery(
         lines.extend(f"- {risk}" for risk in task["residual_risks"])
 
 
-def _verification_lines(*, include_markdown_links: bool) -> list[str]:
+def _verification_lines(
+    *, include_markdown_links: bool, b01_source_staging: bool
+) -> list[str]:
+    staging_suffix = " --b01-source-staging" if b01_source_staging else ""
     lines = [
         "The focused ledger commands require a disposable environment built from the",
         "hash-locked evidence-tool requirements. The checker intentionally rejects an",
@@ -117,14 +148,20 @@ def _verification_lines(*, include_markdown_links: bool) -> list[str]:
         '    "$ncp_ledger_python" -m pip install \\',
         "        --disable-pip-version-check --require-hashes --only-binary=:all: \\",
         "        -r scripts/requirements-evidence-schema.txt",
-        '    "$ncp_ledger_python" scripts/check_implementation_ledger.py --self-test',
-        '    "$ncp_ledger_python" scripts/generate_implementation_ledger.py --check',
+        (
+            '    "$ncp_ledger_python" scripts/check_implementation_ledger.py '
+            f"--self-test{staging_suffix}"
+        ),
+        (
+            '    "$ncp_ledger_python" scripts/generate_implementation_ledger.py '
+            f"--check{staging_suffix}"
+        ),
     ]
     if include_markdown_links:
         lines.append("    python3 scripts/check_markdown_links.py")
     lines.extend(
         [
-            "    scripts/check.sh",
+            f"    scripts/check.sh{staging_suffix}",
             ")",
             "```",
             "",
@@ -135,7 +172,7 @@ def _verification_lines(*, include_markdown_links: bool) -> list[str]:
     return lines
 
 
-def render_ledger(data: dict[str, object]) -> str:
+def render_ledger(data: dict[str, object], *, b01_source_staging: bool = False) -> str:
     tasks = data["tasks"]
     repositories = data["repositories"]
     perspectives = data["perspective_mapping"]
@@ -1767,13 +1804,17 @@ def render_ledger(data: dict[str, object]) -> str:
             "first `CANDIDATE_NOT_EVALUATED` state, verified body lease, permitted ESTOP lease",
             "absence, and rejected-candidate branch distinct. Only verified body lease or the exact",
             "installed ESTOP-absence rule can admit a command.",
-            "Hard byte and shape bounds, the protected envelope, default-deny manifest actor and",
+            "Hard byte and shape bounds, the selected-profile authenticated-ingress result, default-deny manifest actor and",
             "action plane, actual route and audience, canonical frame kind/version, live session",
             "generation, declared stream epoch, positive syntactic position, current security",
             "state, one unambiguous structurally valid mode, and an installed plant-profile",
             "action must pass. An installed unexpired grant and slot, or the exact preserved",
             "HOLD escalation snapshot and unused ESTOP slot, must also pass before",
-            "any remote side effect. ESTOP alone can then reserve a fresh attempt identity before",
+            "any remote side effect. For A-direct, that result contains the verified native",
+            "transport principal and current receiver-owned opaque context. For B-over-A, it",
+            "contains the authenticated restricted carrier and distinct verified JWS signer.",
+            "Neither profile can be selected by caller bytes. ESTOP alone can then reserve a",
+            "fresh attempt identity before",
             "ordinary stream replay and live-lease checks. It appends",
             "`CommandIngressAttemptRecord` with the exact bytes, context, receive clock, and the",
             "exact `CLEAR_AND_LATCH_ESTOP` intent. HOLD has no pre-replay reservation. It first",
@@ -1788,7 +1829,8 @@ def render_ledger(data: dict[str, object]) -> str:
             "`UNKNOWN_AFTER_SIDE_EFFECT_BOUNDARY` outcome. This earlier body-local effect grants",
             "no action-queue priority or entry, command admission, disposition, or `stop_latched`.",
             "An ambiguous or unresolved reservation blocks later Active admission.",
-            "Full command admission independently requires the complete envelope, manifest, route,",
+            "Full command admission independently requires the complete admitted frame and",
+            "profile-specific ingress context, manifest, route,",
             "audience, session, declared stream, replay, operation, body-grant deadline, source,",
             "channel, profile, authority, and semantic gates. ESTOP action-queue priority,",
             "admission, and",
@@ -1805,7 +1847,7 @@ def render_ledger(data: dict[str, object]) -> str:
             "when it has a new identity. Exact same-bytes replay joins the installed attempt and",
             "chain without another effect or `received`. A qualified changed ESTOP at an occupied",
             "position can use only the preallocated restrictive-conflict attribution. Wrong-context,",
-            "unsigned, oversize, unverifiable, ambiguous, or expired candidates create no attempt",
+            "unauthenticated, cross-profile, oversize, unverifiable, ambiguous, or expired candidates create no attempt",
             "and have no remote side effect. An invalid Active candidate has no fail-safe side",
             "effect. Only a fully validated, admitted ESTOP can later reach `stop_latched`.",
             "A later `BodyFailSafeSideEffectResolution` binds the exact side-effect record and",
@@ -1957,6 +1999,32 @@ def render_ledger(data: dict[str, object]) -> str:
             f"{_cell(task['title'])} | {dependencies} | {_cell(task['repository'])} | "
             f"`{_short(task['source_commit'])}` | {len(task['residual_risks'])} |"
         )
+    d21_owners = _d21_overlay_tasks(tasks)
+    lines.extend(
+        [
+            "",
+            "## D21 compact-availability overlay ownership",
+            "",
+            "Each listed task owns its exact part of availability preservation, restrictive",
+            "behavior, observation, or qualification. D21 scope is a requirement binding; it",
+            "does not close the defect or grant runtime, qualification, or release authority.",
+            "",
+            "Checked closure-task roster: "
+            + ", ".join(f"`{task_id}`" for task_id in D21_TRACEABILITY_TASK_IDS)
+            + ".",
+            "Traceability-only non-execution owners are `B01` and `B02` for governance,",
+            "`F01` through `F03` for formal/refinement/fuzz evidence, and `X00` for",
+            "pre-freeze ambiguity detection. `X01` owns final independent execution.",
+            "",
+            "| Task | Status | Repository | Owned overlay slice |",
+            "|---|---|---|---|",
+        ]
+    )
+    for task in d21_owners:
+        lines.append(
+            f"| `{task['id']}` | `{task['status']}` | {_cell(task['repository'])} | "
+            f"{_cell(task['title'])} |"
+        )
     v11_owners, v11_consumers = _v11_task_groups(tasks)
     lines.extend(
         [
@@ -2040,7 +2108,12 @@ def render_ledger(data: dict[str, object]) -> str:
             "",
         ]
     )
-    lines.extend(_verification_lines(include_markdown_links=False))
+    lines.extend(
+        _verification_lines(
+            include_markdown_links=False,
+            b01_source_staging=b01_source_staging,
+        )
+    )
     lines.extend(
         [
             "",
@@ -2054,7 +2127,9 @@ def render_ledger(data: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def render_resumption(data: dict[str, object]) -> str:
+def render_resumption(
+    data: dict[str, object], *, b01_source_staging: bool = False
+) -> str:
     tasks = data["tasks"]
     repositories = data["repositories"]
     assert isinstance(tasks, list)
@@ -2073,7 +2148,7 @@ def render_resumption(data: dict[str, object]) -> str:
         "## What the prior work actually established",
         "",
         "The prior pass produced a deep, implementation-grade audit and dependency DAG. It",
-        "did **not** implement the 20 identified architectural defects, migrate the consumers,",
+        "did **not** implement the 21 identified architectural defects, migrate the consumers,",
         "or make NCP 1.0 releasable. Treating blueprint completion as product completion was the",
         "central imperfection. The live ledger now makes that distinction executable.",
         "",
@@ -2109,7 +2184,7 @@ def render_resumption(data: dict[str, object]) -> str:
         "  channel set, arity, unit, range, and session. It also checks the lease, source pin,",
         "  and grant deadline. It owns the body-local",
         "  HOLD/ESTOP action. A midpoint or zero is not implicit safety.",
-        "- Current 1, 2, and 3-drone CREBAIN qualification runs use one composite fleet",
+        "- Current 1, 2, and 3-drone Crebain qualification runs use one composite fleet",
         "  plant session per run. One aggregate sensor frame has `6N` scalars, and one",
         "  aggregate acceleration command has `3N` scalars. Future independently scheduled",
         "  drones use disjoint sessions; NCP grants no cross-session barrier or atomicity.",
@@ -2269,7 +2344,12 @@ def render_resumption(data: dict[str, object]) -> str:
             "",
         ]
     )
-    lines.extend(_verification_lines(include_markdown_links=True))
+    lines.extend(
+        _verification_lines(
+            include_markdown_links=True,
+            b01_source_staging=b01_source_staging,
+        )
+    )
     lines.extend(
         [
             "",
@@ -2307,11 +2387,25 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--write", action="store_true")
     mode.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--b01-source-staging",
+        action="store_true",
+        help="admit and document only the fail-closed superseded B01 source cut",
+    )
     args = parser.parse_args()
     try:
+        set_b01_source_staging_mode(args.b01_source_staging)
         data = load(LEDGER)
-        _write_or_check(LEDGER_VIEW, render_ledger(data), write=args.write)
-        _write_or_check(RESUMPTION_VIEW, render_resumption(data), write=args.write)
+        _write_or_check(
+            LEDGER_VIEW,
+            render_ledger(data, b01_source_staging=args.b01_source_staging),
+            write=args.write,
+        )
+        _write_or_check(
+            RESUMPTION_VIEW,
+            render_resumption(data, b01_source_staging=args.b01_source_staging),
+            write=args.write,
+        )
         if not args.write:
             print("OK generated implementation ledger and mandatory resumption brief")
         return 0

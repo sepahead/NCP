@@ -9,7 +9,7 @@ release. No DOI or archive-deposition claim is recorded here.
 ## Artifacts
 
 - threat-register.v1.json records the current system dimensions, trust
-  boundaries, ten mandatory counterfactuals, and 24 threat, misuse, failure, and
+  boundaries, ten mandatory counterfactuals, and 26 threat, misuse, failure, and
   unusual-input cases. Every risk remains explicitly OPEN, with accepted and
   rejected cases, controls, tests, evidence paths, and residual gaps.
 - latent-path-inventory.v1.json inventories configured deferred-work,

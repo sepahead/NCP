@@ -79,19 +79,37 @@ B01_QOS_FALLBACK_GUARD_LINES = {
 
 PUBLICATION_REVIEWED_GAP_LINES = {
     (
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+        "M005",
+    ): frozenset(
+        {
+            "| Authentication profiles | Trusted configuration selects A-direct or "
+            "B-over-A before bytes. No downgrade or caller selection exists. | The "
+            "receiver-owned direct context and qualified forwarded JWS path remain "
+            "unimplemented. |"
+        }
+    ),
+    (
         "docs/publication/ncp-system-design.tex",
         "M008",
-    ): (
-        "\\item The tick API returns the same command type for local unadmitted "
-        "fallback and an admitted"
+    ): frozenset(
+        {
+            "\\item The tick API returns the same command type for local unadmitted "
+            "fallback and an admitted"
+        }
     ),
     (
         "docs/publication/ncp-system-design.tex",
         "M005",
-    ): (
-        "Lifecycle and concurrency & One owner orders lifecycle state.  Ambiguity "
-        "retains the same operation. & Cross-process fencing and durable atomicity "
-        "remain unimplemented. \\\\"
+    ): frozenset(
+        {
+            "Lifecycle and concurrency & One owner orders lifecycle state.  "
+            "Ambiguity retains the same operation. & Cross-process fencing and "
+            "durable atomicity remain unimplemented. \\\\",
+            "Source-conditioned safety & The source pin retains availability and "
+            "selects profile-specific restrictive lanes. & Body admission and "
+            "disposition bindings remain unimplemented. \\\\",
+        }
     ),
 }
 
@@ -1146,12 +1164,125 @@ def threat_records() -> list[dict[str, Any]]:
             "Application-level lineage, deployment isolation, independent science review, and live plant evidence remain open.",
             True,
         ),
+        _threat(
+            25,
+            "A frame publisher bypasses final slot preparation",
+            "integrity",
+            "typed entity records to authenticated direct frame publication",
+            "ordered plant-channel identity without an extra hot-frame tag",
+            "raw publisher access, a retained mutable alias, or a second credential holder",
+            ["a fixed-layout multi-entity sensor or command frame is prepared"],
+            "An application retains a mutable alias or raw publisher, rebinds a detached buffer to another context, uses a foreign slot handle, or overclaims TLS protection.",
+            "One prepared publisher owns its layout and transport slot, assigns final slots, serializes once, and transfers the immutable bytes.",
+            "A foreign or stale slot handle, detached-buffer rebind, raw publisher, mutable alias, redundant tag, or provenance overclaim rejects.",
+            "A command or observation can be associated with the wrong plant entity while retaining valid units and plausible values.",
+            [
+                "source-bound Rust and TypeScript semantic parity",
+                "source-projection and layout-bound publisher-capability negatives",
+                "sealed-record and protected-envelope mutation-before-open negatives",
+                "sender-pre-seal and receiver-post-open non-detectability controls",
+                "multi-entity end-to-end slot-order tests",
+            ],
+            [
+                "selected plant-channel-layout profile",
+                "single prepared publisher with one layout-bound transport slot",
+                "one immutable byte transfer into protected transport",
+                "explicit pre-seal and equal-value non-detection boundary",
+            ],
+            "Reject publication, hold the affected plant session, and correct the adapter mapping before a fresh session opens.",
+            ["CF-01", "CF-03", "CF-07", "CF-08"],
+            ["NCP-ADR-011"],
+            [
+                "docs/adr/0011-ecosystem-topology-and-handover.md",
+                "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+            ],
+            [
+                "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+                "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts",
+            ],
+            [
+                "python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test",
+                "python3 scripts/generate_decision_registry.py --self-test --check",
+            ],
+            [
+                "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+                "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+            ],
+            "PARTIAL_LOCAL",
+            "The semantic boundary is proposed. Consumer implementation, independent review, and live multi-entity qualification remain open.",
+            True,
+        ),
+        _threat(
+            26,
+            "Sensor availability is laundered, detached, or erased across overlays",
+            "integrity",
+            "prepared compact SensorFrame through source pinning, consumer projection, command selection, and observation",
+            "source-bound missingness and unavailable-group restrictive behavior",
+            "a producer, adapter, controller, privacy projection, or observer that loses the exact availability identity",
+            [
+                "a compact frame contains one or more unavailable sensor groups",
+                "the frame crosses a provider, binding, consumer, command, or observer overlay",
+            ],
+            "Availability laundering converts an unavailable group into valid zero; detachment separates the bitmap from its frame digest or source pin; a nonrestrictive lane treats unavailable input as Active; or observer missingness loss omits the exact gap.",
+            "Every overlay preserves the exact digest-covered bitmap, unavailable groups remain typed missingness, the installed restrictive lane wins, and observers retain the exact gap.",
+            "A decode/re-encode, projection, detached mask, ordinary Active lane, or observer record converts unavailable state into values, authority, or silence without explicit missingness.",
+            "A plausible zero can enter control or evidence as if it were measured, while a dependent command or observer loses the originating fault.",
+            [
+                "cross-language source-bound and detached-mask hostile cases",
+                "unavailable-source restrictive-action mutants",
+                "direct, gated, Galadriel, and Prisoma missingness checks",
+                "native one-, two-, and three-drone correlated fault campaigns",
+            ],
+            [
+                "one mandatory layout-sized availability bitmap inside the exact frame digest",
+                "bitmap and scalars use one indivisible queue item",
+                "source pins and projections retain the exact availability identity",
+                "condition detail uses separate capacity and never overrides core",
+                "unavailable groups select the installed restrictive lane before Active",
+                "observers retain typed gaps and never expose internal placeholder bits",
+            ],
+            "Reject the frame or overlay, apply the affected lane's installed restrictive action, preserve the explicit observer gap, and reopen each affected D21 task.",
+            ["CF-01", "CF-03", "CF-06", "CF-08"],
+            [
+                "NCP-ADR-004",
+                "NCP-ADR-005",
+                "NCP-ADR-007",
+                "NCP-ADR-008",
+                "NCP-ADR-010",
+                "NCP-ADR-011",
+            ],
+            [
+                "docs/adr/0004-observer-attach-grants-and-revocation.md",
+                "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+                "docs/adr/0010-plane-qos-retention-and-overload.md",
+                "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+                "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+                "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts",
+            ],
+            [
+                "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+                "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+                "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/self-test.ts",
+            ],
+            [
+                "python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test",
+                "cargo test --locked --manifest-path prototypes/b01-architecture-evidence/adr-example-semantics/rust/Cargo.toml",
+                "bun run --cwd prototypes/b01-architecture-evidence/adr-example-semantics/typescript check",
+            ],
+            [
+                "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+                "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+            ],
+            "PARTIAL_LOCAL",
+            "The semantic corpus is local and proposed. Consumer overlays, observer capture, independent review, and native one-, two-, and three-drone qualification remain open.",
+            True,
+        ),
     ]
     if [entry["id"] for entry in records] != [
-        f"NCP-THREAT-{number:03d}" for number in range(1, 25)
+        f"NCP-THREAT-{number:03d}" for number in range(1, 27)
     ]:
         raise AuditGenerationError(
-            "threat identifiers must be exact ordered 001 through 024"
+            "threat identifiers must be exact ordered 001 through 026"
         )
     return records
 
@@ -1611,7 +1742,11 @@ def release_gate_nodes(
         ],
         "fuzz-sanitizer-duration": ["NCP-THREAT-006", "NCP-THREAT-015"],
         "registry-namespace-ownership": ["NCP-THREAT-016"],
-        "consumer-certification": ["NCP-THREAT-018"],
+        "consumer-certification": [
+            "NCP-THREAT-018",
+            "NCP-THREAT-025",
+            "NCP-THREAT-026",
+        ],
         "signed-sbom-provenance": [
             "NCP-THREAT-007",
             "NCP-THREAT-016",
@@ -2296,7 +2431,9 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
             "NO_AUTHORITY_WHILE_DORMANT",
             [path],
         )
-    if line.strip() == PUBLICATION_REVIEWED_GAP_LINES.get((path, token_id)):
+    if line.strip() in PUBLICATION_REVIEWED_GAP_LINES.get(
+        (path, token_id), frozenset()
+    ):
         return (
             "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
             "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
@@ -2635,6 +2772,35 @@ def self_test() -> None:
         raise AssertionError(
             "threat register does not cover every mandatory counterfactual"
         )
+    availability_threat = first["threats"][-1]
+    if (
+        availability_threat["id"] != "NCP-THREAT-026"
+        or availability_threat["control_status"] != "PARTIAL_LOCAL"
+        or availability_threat["release_blocking"] is not True
+    ):
+        raise AssertionError("threat 026 lost its exact release-blocking control state")
+    availability_semantics = " ".join(
+        str(availability_threat[field]).casefold()
+        for field in (
+            "misuse_or_failure",
+            "accepted_case",
+            "rejected_case",
+            "detection",
+            "prevention",
+            "failure_response",
+        )
+    )
+    for phrase in (
+        "availability laundering",
+        "detachment",
+        "projection",
+        "condition detail",
+        "queue item",
+        "nonrestrictive lane",
+        "observer missingness loss",
+    ):
+        if phrase not in availability_semantics:
+            raise AssertionError(f"threat 026 lost {phrase}")
     safety_trace = NORMATIVE_TRACE["NCP-REQ-010"]
     if not {
         "ncp-python/src/lib.rs",
@@ -2760,6 +2926,17 @@ def self_test() -> None:
             "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
         ),
         (
+            "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+            (
+                b"| Authentication profiles | Trusted configuration selects "
+                b"A-direct or B-over-A before bytes. No downgrade or caller "
+                b"selection exists. | The receiver-owned direct context and "
+                b"qualified forwarded JWS path remain unimplemented. |\n"
+            ),
+            "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
+            "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
+        ),
+        (
             "docs/publication/ncp-system-design.tex",
             (
                 b"\\item The tick API returns the same command type for local "
@@ -2774,6 +2951,16 @@ def self_test() -> None:
                 b"Lifecycle and concurrency & One owner orders lifecycle state.  "
                 b"Ambiguity retains the same operation. & Cross-process fencing and "
                 b"durable atomicity remain unimplemented. \\\\\n"
+            ),
+            "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
+            "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
+        ),
+        (
+            "docs/publication/ncp-system-design.tex",
+            (
+                b"Source-conditioned safety & The source pin retains availability "
+                b"and selects profile-specific restrictive lanes. & Body admission "
+                b"and disposition bindings remain unimplemented. \\\\\n"
             ),
             "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
             "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
@@ -2820,6 +3007,19 @@ def self_test() -> None:
             raise AssertionError(
                 "publication gap classification widened beyond its exact reviewed lines"
             )
+    architecture_near_miss, is_text = _scan_content(
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+        b"The receiver-owned direct context remains unimplemented.\n",
+    )
+    if (
+        not is_text
+        or len(architecture_near_miss) != 1
+        or architecture_near_miss[0]["disposition"] != "UNREVIEWED_ACTION_PATH"
+        or architecture_near_miss[0]["claim_effect"] != "BLOCKS_LOCAL_CLOSURE"
+    ):
+        raise AssertionError(
+            "architecture gap classification widened beyond its exact reviewed line"
+        )
     if _scan_content("binary.bin", b"TODO\0fallback")[1]:
         raise AssertionError("binary input was treated as tracked text")
 

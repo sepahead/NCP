@@ -125,7 +125,7 @@ sentinels=(
     "NCP 1.0 System Design"
     "PROPOSED B01 DESIGN"
     "Finite memory and queue isolation"
-    "Twenty-lens design review"
+    "Thirty-lens design review"
     "NOT RUN"
     "The equations expose the design accounting used here."
 )

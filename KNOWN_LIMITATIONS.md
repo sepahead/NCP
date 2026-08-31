@@ -59,6 +59,27 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
   The historical six-surface inventory spans five canonical consumer
   repositories and is not a role-qualification result.
+- **The prepared multi-entity publisher boundary is not implemented.** The
+  proposed design makes one prepared publisher own its layout and transport
+  slot. It assigns final slots, serializes once, and moves immutable bytes into
+  transport ownership. The runtime still exposes raw publishing surfaces. It
+  also lacks the selected layout profile and instance.
+
+  TLS record protection covers bytes only from seal through successful open. It
+  does not attest application provenance. It cannot detect sender changes before
+  seal or receiver changes after open. Static layout cannot detect plausible
+  same-unit errors, equal-value swaps, bad wiring, or a compromised packer.
+  Independent per-entity attestation needs a separate registered profile. NCP
+  does not own MUSIC clock semantics.
+- **Source-bound sensor availability is not implemented.** The proposed compact
+  `SensorFrame` still lacks a mandatory digest-covered availability bitmap.
+  Ordinary zero values cannot represent unavailable sensor groups.
+
+  Stable 1.0 fixes bitmap polarity, bit order, and padding. B03 must allocate the
+  field identity, limits, errors, profiles, and profile-specific placeholders.
+  Runtime work must prove prepared packing, typed decoding, source pinning, and
+  restrictive commands. Native NEST 3.9 runs must exhaust 1, 2, and 3-drone
+  faults without kernel resets. Host API 2 evidence cannot satisfy this gate.
 
 ## Protocol and implementation boundaries
 

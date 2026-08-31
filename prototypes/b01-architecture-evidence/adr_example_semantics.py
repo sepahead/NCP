@@ -69,13 +69,13 @@ MAX_AGGREGATE_ENGINE_SOURCE_BYTES = 2_097_152
 MAX_ADR_MODULES_PER_DECISION = 8
 MAX_MUTATION_PURPOSE_BYTES = 512
 MAX_PATCH_PATH_BYTES = 512
-EXPECTED_CASE_COUNT = 25
+EXPECTED_CASE_COUNT = 33
 EXPECTED_ENGINE_SELF_TEST_COUNTS = {"rust": 50, "typescript": 68}
 EXPECTED_COORDINATOR_SELF_TEST_COUNT = 48
-EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 127
-EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 4_301
+EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 253
+EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 10_137
 EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
-    "6f045da9a79f06135fa9bae69f4fb4a6c82af4e522b27f116a6eda8382e344cc"
+    "d10fddf688ca52b18eaf145e868e191201b404ebc65ecf1d28d1467f3fd02264"
 )
 EXPECTED_ADR_IDS = tuple(f"ADR-{index:03d}" for index in range(1, 12))
 REVIEW_SUBJECT_MEMBERS = {
@@ -158,6 +158,13 @@ EXPECTED_CASE_IDENTITIES = {
         "ADR-004",
         1,
     ),
+    "adr004.sensor-projection.anti-laundering.v1": (
+        "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-004",
+        2,
+    ),
     "adr005.declare-stream.excerpt.v1": (
         "ADR005_DECLARE_STREAM_EXCERPT_V1",
         "PROPOSED_WIRE_FRAGMENT",
@@ -171,6 +178,20 @@ EXPECTED_CASE_IDENTITIES = {
         "NEGATIVE",
         "ADR-005",
         2,
+    ),
+    "adr005.sensor-availability.source-bound.v1": (
+        "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-005",
+        3,
+    ),
+    "adr005.sensor-availability.detached-mask.hostile.v1": (
+        "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "NEGATIVE",
+        "ADR-005",
+        4,
     ),
     "adr006.body-lease.excerpt.v1": (
         "ADR006_BODY_LEASE_EXCERPT_V1",
@@ -207,6 +228,13 @@ EXPECTED_CASE_IDENTITIES = {
         "ADR-007",
         3,
     ),
+    "adr007.unavailable-source-restrictive-action.v1": (
+        "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-007",
+        4,
+    ),
     "adr008.extension-envelope.semantic-projection.v1": (
         "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
         "PROPOSED_SEMANTIC_PROJECTION",
@@ -227,6 +255,13 @@ EXPECTED_CASE_IDENTITIES = {
         "NEGATIVE",
         "ADR-008",
         3,
+    ),
+    "adr008.sensor-condition-detail.semantic-projection.v1": (
+        "ADR008_SENSOR_CONDITION_DETAIL_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-008",
+        4,
     ),
     "adr009.security-state.semantic-projection.v1": (
         "ADR009_SECURITY_STATE_PROJECTION_V1",
@@ -256,6 +291,13 @@ EXPECTED_CASE_IDENTITIES = {
         "ADR-010",
         2,
     ),
+    "adr010.perception-queue-missingness.semantic-projection.v1": (
+        "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-010",
+        3,
+    ),
     "adr011.registered-haldir-intent.extension-envelope.v1": (
         "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
         "PROPOSED_EXTENSION_ENVELOPE",
@@ -276,6 +318,20 @@ EXPECTED_CASE_IDENTITIES = {
         "POSITIVE",
         "ADR-011",
         3,
+    ),
+    "adr011.prepared-frame-publisher-boundary.semantic-projection.v1": (
+        "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-011",
+        4,
+    ),
+    "adr011.x02-fleet-availability-layout.v1": (
+        "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-011",
+        5,
     ),
 }
 HEX40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -306,7 +362,7 @@ EXPECTED_LIMITS = {
     "maximum_integer_characters": 32,
     "allow_floats": False,
     "expected_case_count": EXPECTED_CASE_COUNT,
-    "expected_mutation_count": 160,
+    "expected_mutation_count": 289,
     "minimum_mutations_per_case": 2,
     "maximum_mutations_per_case": 32,
     "maximum_engine_output_bytes": MAX_ENGINE_OUTPUT_BYTES,

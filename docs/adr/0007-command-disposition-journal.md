@@ -2263,8 +2263,9 @@ ESTOP fail-safe effects and command admission are orthogonal. Remote HOLD effect
 are not. Both modes first pass these checks:
 
 - strict raw byte and shape limits.
-- protected-envelope validation and canonical frame kind and version.
-- the verified transport principal.
+- selected-profile authentication and canonical frame kind and version.
+- for A-direct, the verified transport principal and current receiver-owned context.
+- for B-over-A, the restricted carrier and distinct verified JWS signer.
 - current default-deny manifest permission for the actor and action plane.
 - the exact route, audience, and direct realm.
 - the live session and generation.
@@ -2474,8 +2475,8 @@ upgrade cannot invoke.
 
 The body records the boundary state change in a distinct non-authorizing
 `BodyFailSafeSideEffectRecord`, never by skipping `admitted` in a command
-disposition chain. The record binds the exact protected envelope and command
-candidate bytes/digests, `CommandIngressAttemptRecord`, verified current-session context,
+disposition chain. The record binds the exact profile-specific ingress evidence
+and command candidate bytes/digests, `CommandIngressAttemptRecord`, verified current-session context,
 closed mode classification, exact body buffer/latch boundary, before/after state
 commitments, body clock and global journal position, and one closed outcome:
 `CONFIRMED_CHANGED | CONFIRMED_ALREADY_EFFECTIVE |
@@ -3315,6 +3316,25 @@ Active command uses the exact retained and pinned source publication. No
 timestamp, bare source position, digest without values, or latest-value fallback
 can substitute.
 
+The source pin also retains the exact sensor-availability projection and its
+prepared layout identity. Each unavailable source group selects its installed
+plant-profile restrictive action. The command must carry that exact dependent
+lane. NCP defines no universal zero action.
+
+The installed layout binds each group to sorted dependent command slots and
+exact restrictive bytes. Admission checks every unavailable group as one unit.
+Preparation rejects conflicting overlap requirements before session creation.
+
+The body validates the complete command before simulator callback. Any
+restrictive-lane mismatch rejects the complete remote command. The body then
+uses its separately attributed local fail-safe. A correctly restricted Active
+command receives `APPLIED`, not `HOLD_EFFECTIVE`. The latter remains exclusive
+to an admitted whole-command HOLD.
+
+The disposition binds the source pin, availability projection, profile check,
+callback boundary, and exact applied-value reference. Optional condition detail
+cannot change source validity, command admission, or disposition meaning.
+
 Freshness comes from the unchanged exclusive deadline in the body-issued grant.
 Receiver arrival does not start or refresh a TTL. Grant installation reserves
 the complete no-reuse, source-pin, restrictive, and disposition capacity for its
@@ -3382,6 +3402,13 @@ This incomplete excerpt grants no state.
 ```
 
 Unknown states and non-body issuers reject.
+
+The following non-wire projection closes source-conditioned restrictive-action
+semantics. It does not select a future wire shape or universal action.
+
+```json
+{"source_pin_retains_availability":true,"unavailable_group_requires_installed_restrictive_lane":true,"group_dependency_map_is_layout_bound":true,"conflicting_dependency_overlap_rejects_preparation":true,"restrictive_action_is_universal_zero":false,"complete_command_rejects_on_lane_mismatch":true,"correctly_restricted_active_disposition":"APPLIED","optional_detail_can_authorize":false}
+```
 
 ## Actors and state transitions
 

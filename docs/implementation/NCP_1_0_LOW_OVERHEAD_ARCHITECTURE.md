@@ -1641,15 +1641,56 @@ A later deliberate rebaseline should add a negotiated compact encoding. It must
 not appear as an unannounced consumer extension.
 
 The session descriptor carries channel names, units, arities, ranges, frame
-identity, encoding ID, byte order, and layout digest. A hot frame carries only
-changing values and the minimum correlation data.
+identity, encoding ID, byte order, and layout digest. A reusable layout profile
+defines encoding, bounds, digest construction, slot vocabulary, and packer rules.
+A content-addressed layout instance binds its profile, subject roster, slots,
+and physical resources. A hot frame carries only changing values and minimum
+correlation data.
+
+One opaque typed publisher owns each production frame class. Preparation accepts
+the complete key roster. It resolves names and offsets before the tick loop.
+It returns opaque scalar and availability-group handles bound to one publisher
+generation.
+
+Each sensor frame resets every availability group to undecided. The publisher
+marks each group exactly once. An available group requires every finite,
+in-range member exactly once. An unavailable group forbids caller values. The
+packer writes the profile's canonical placeholder bits internally.
+
+Foreign, stale, duplicate, inherited, or post-seal handles reject. Missing
+groups or values reject before position assignment. Input order grants no
+meaning. A typed decoder never exposes unavailable placeholders as observations.
+
+The publisher owns one layout-bound transport slot. It assigns the final
+position, serializes once, and moves the immutable buffer into that slot. The
+API exposes no detached buffer, context-rebind operation, raw namespace handle,
+mutable byte alias, separate signer, or byte-oriented publish method.
 
 A compact sensor frame needs:
 
 - stream sequence.
 - one fixed-width unsigned producer-monotonic tick in the descriptor's registered
   time unit.
-- ordered finite binary64 channel values.
+- one mandatory layout-sized availability bitmap.
+- ordered binary64 scalar storage.
+
+Stable 1.0 fixes one bitmap bit per ordered group. It uses
+least-significant-bit-first order, `1 = AVAILABLE`, `0 = UNAVAILABLE`, and zero
+high padding. The bitmap uses `ceil(group_count / 8)` bytes. A non-sensor fixed
+layout uses zero groups and zero bitmap bytes.
+
+The layout partitions every sensor slot into one nonempty group. It fixes group
+membership and profile-specific placeholder bits. The complete frame digest
+covers the header, bitmap, and every scalar byte. A one-bit change creates a
+different source identity.
+
+Header, bitmap, and scalars form one queue item. They share one position, digest,
+supersession decision, replay record, drop result, and receipt. No path can drop,
+inherit, or replace the bitmap separately.
+
+Received available zero, received unavailable, malformed frame, transport gap,
+and whole-frame loss are distinct states. Compatibility JSON preserves the same
+availability. It never infers availability from zero or an omitted channel.
 
 A compact command frame needs:
 
@@ -1669,6 +1710,21 @@ The body resolves a source position through its retained publication record.
 The command does not repeat the source timestamp because that copy cannot replace
 the exact retained source identity or prove freshness.
 
+The retained record and source pin keep the exact availability projection. Pin
+capacity is pre-reserved. A live pin remains until terminal disposition or
+evidence handoff. Restart restores its exact state or retires the generation.
+
+Each layout group binds sorted dependent command slots and exact restrictive
+bytes. Conflicting overlaps reject during preparation. A source-bound Active
+command carries the installed action in every unavailable dependent lane.
+Mismatch rejects the complete command before callback. NCP defines no universal
+zero action.
+
+Optional sensor-condition detail uses one separately resourced registered
+extension. It can explain an unavailable group. It cannot change availability,
+source validity, command admission, or fail-safe behavior. Missing or overloaded
+detail does not block perception or action.
+
 The compact command also omits the publisher's local timestamp. Its stream
 sequence already orders publisher evidence. The body-issued grant and body clock
 govern every live deadline. A deployment can carry publisher timing in a separate
@@ -1677,6 +1733,20 @@ bounded diagnostic stream, but that value grants no command authority.
 The prepared context binds the route, session generation, publisher, frame class,
 layout, profile, manifest, security state, and any source-stream declaration.
 Those values do not need to repeat inside each compact payload.
+
+An A-direct frame also omits slot tags, a layout digest, a preparation digest, a
+key ID, and an application signature. B-over-A uses its protected exact-byte
+envelope when forwarding must preserve origin.
+
+TLS record protection covers the exact bytes from seal through successful
+receiver open. It detects sealed-record mutation during that interval. It does
+not attest application provenance or the packer's prior state. It cannot detect
+sender changes before seal or receiver changes after open.
+
+The capability boundary removes application mutation paths after transfer. The
+receiver cannot infer same-unit misassociation, bad wiring, or a compromised
+packer. Equal binary64 values remain byte-identical. Stronger origin claims need
+independent per-entity attestors.
 
 Binary64 values use one fixed network byte order and preserve exact bits. Each
 mode has one prepared exact length. Decoders never truncate, pad, invent a unit,
@@ -2595,7 +2665,7 @@ Verified transport identity, frame bounds, and the installed manifest are checke
 before slot lookup. The stable slot key binds the activation context and replay
 coordinate. Lookup precedes any work admission or semantic allocation.
 
-The slot retains the protected envelope digest and immutable metadata. An active
+The slot retains the semantic-envelope digest and profile-specific ingress metadata. An active
 slot changes only after exact identity and current authorization match. Changed
 bytes or metadata under one replay coordinate create a terminal conflict.
 
@@ -2607,7 +2677,7 @@ The receiver rechecks current security and disclosure permission before it
 reveals an active or terminal result. A retired or revoked context receives only
 a generic terminal no-reuse result. It cannot read protected retained state.
 
-The receiver validates the complete protected envelope once. It checks the
+The receiver validates the complete semantic envelope once. It checks the
 canonical JSON and closed schema inside the reserved arena. It rejects any raw
 asset, executable, package, SVG, or arbitrary project file distribution request.
 
@@ -2817,7 +2887,7 @@ Integrated Haldir uses four separate deployable processes:
 
 | Process | Exclusive ownership | Excluded authority |
 |---|---|---|
-| intent receiver | intent-extension transport, protected-envelope replay, attachment fetch, ingress reservations, and admission records | no policy store or NCP commander credential |
+| intent receiver | intent-extension transport, profile-authenticated replay, attachment fetch, ingress reservations, and admission records | no policy store or NCP commander credential |
 | assessment receiver | assessment-extension ingress, raw evidence, assessor replay, admission records, and external dispositions | no intent or NCP commander credential |
 | policy-state authority | installed monitor profiles, base policy, intent replay, freshness grants, deny latches, and policy receipts | no extension transport or NCP commander credential; not an NCP peer |
 | commander | intent-to-command conversion, body-issued authority, stream allocation, publication, and body-disposition reconciliation | no policy evaluation, raw extension evidence, admission replay, or profile store |
@@ -2869,7 +2939,7 @@ role-specific adapter call.
 Only that adapter crosses the project boundary, and it uses NCP. Host API,
 private IPC, `postMessage`, and host callbacks cannot transport cross-project
 runtime semantics. Panel closure does not close a session, revoke authority, or
-stop CREBAIN's body daemon.
+stop Crebain's body daemon.
 
 SVG is presentation-only and non-contract. SVG bytes, elements, paths,
 attributes, pixels, and derived identifiers cannot become protocol messages,
@@ -2877,24 +2947,69 @@ schemas, authority objects, receipts, or runtime evidence. Hosted SVG rejects
 scripts, event handlers, `foreignObject`, external resources, navigation,
 network fetches, and external fonts.
 
-### CREBAIN fleet sessions and MUSIC
+### Crebain fleet sessions and MUSIC
 
 One plant session represents one authority and admission domain. The selected
-X02 profile requires CREBAIN to advance its selected drones atomically. Each
+X02 profile requires Crebain to advance its selected drones atomically. Each
 required 1, 2, or 3-drone run uses one composite fleet session.
 
-The content-addressed plant profile binds a sorted stable-drone-ID roster and
-one exact channel-layout digest. Each drone maps, in roster order, to ENU
+The reusable layout profile defines encoding, bounds, digest construction, slot
+vocabulary, and typed packing. The content-addressed layout instance binds the
+plant profile, stable-drone-ID roster, ordered scalar slots, and physical
+resources. Each slot fixes the drone, plane, frame class, direction, semantic,
+axis, ENU frame, unit, binary64 encoding, and numeric domain.
+
+The X02 layout maps each drone, in roster order, to ENU
 `position[x,y,z]`, `velocity[x,y,z]`, and
 `acceleration_command[x,y,z]`. The aggregate `SensorFrame` has `6N` scalars.
-The aggregate `CommandFrame` has `3N`.
+The aggregate `CommandFrame` has `3N`. NCP treats this as profile data and does
+not branch on Crebain, drones, or the selected fleet sizes.
 
-CREBAIN validates the descriptor digest, layout digest, roster order, and whole
-command frame before simulator callback entry. A partial, duplicate, unknown,
-stale, misordered, non-finite, unit-mismatched, wrong-drone, same-unit
-cross-drone swap, or roster-permuted channel rejects the whole frame. Physical
-atomicity remains CREBAIN executor evidence and never follows from transport
-acceptance.
+The layout assigns one availability group to each drone. N=1 exhausts `00` and
+`01`. N=2 exhausts `00` through `03`. N=3 exhausts `00` through `07`. These
+sets cover each single fault, every pair, and the all-fault state. Unused high
+bits are zero. Unavailable scalar storage contains canonical binary64 positive
+zero, but decoders expose no placeholder observation.
+
+The source pin retains the exact bitmap. Zero-based group `g` maps to command slots
+`[3g, 3g+1, 3g+2]`. Each unavailable drone selects the installed X02
+positive-zero command lane. A mismatch rejects the complete `3N` Active command.
+A correct restrictive command receives `APPLIED`.
+
+Crebain prepares and publishes sensors. Engram prepares and publishes direct
+commands. Haldir prepares and publishes gated commands. Each opaque publisher
+owns its layout and transport slot. Engram publishes only intent during a gated
+authority term.
+
+Crebain validates the current prepared context and whole command before
+simulator callback. A foreign or stale slot handle rejects before packing. A
+partial, stale, non-finite, wrong-length, wrong-profile, wrong-layout,
+wrong-roster, wrong-source, or unauthorized frame rejects as one unit.
+
+TLS record protection detects mutation after seal and before open. The protected
+forwarding envelope applies the same exact-byte boundary to B-over-A. Neither
+boundary attests application provenance.
+
+TLS cannot detect sender changes before seal or receiver changes after open. It
+also cannot detect plausible same-unit value errors. X02 records these
+non-detectability controls. Physical atomicity remains Crebain executor evidence.
+
+One NEST 3.9 kernel advances the whole fleet at `0.1 ms` resolution. Each
+controller epoch is `20 ms`, and the qualification seed is `20260826`.
+
+A receipt-bound controller manifest fixes the exact NEST build, graph, models,
+parameters, devices, `6N` input transform, and `3N` decoder. It also fixes
+clamps, targets, lane state, counter-based streams, threads, seeds, and artifact
+digest. Per-drone nodes, connections, devices, and RNG streams are disjoint.
+
+Each lane uses `NORMAL`, `UNAVAILABLE_RESTRICTIVE`, or `RECOVERY_WASHOUT`.
+Unavailable and washout epochs neutralize only that lane and emit its restrictive
+output. The first available frame after `UNAVAILABLE_RESTRICTIVE` enters
+`RECOVERY_WASHOUT`. A second consecutive available frame enters `NORMAL`. Any
+washout fault returns to `UNAVAILABLE_RESTRICTIVE` and restarts this two-frame
+recovery. Fault recovery never resets the kernel. Restart restores exact lane
+state or retires and reopens the session. Other lanes remain bitwise equal to
+their receipt-qualified no-fault baseline.
 
 Future independently scheduled drones use disjoint sessions. NCP provides no
 cross-session barrier or atomic commit. A composite session cannot overlap the
@@ -3070,6 +3185,7 @@ matrix cannot complete those tasks.
 | Local command handoff | The current tick API returns an unadmitted fallback in the same type as an admitted command. Its transport result binds a position but not the exact retained bytes. | Return a closed prepared-versus-admitted result. Bind every admitted slot to the owner incarnation, exact position, and payload digest before reporting admission. |
 | Stream retry | Current wire has no digest-bound receiver result for a command position. It cannot distinguish retained admission from delivery ambiguity. | Never reassign a position. Bind an action position before lower semantic checks. Permit retransmission only after an accepted profile defines exact digest-bound replay state and retained outcomes. |
 | Source-correlation retention | The selected Active path requires an exact retained source publication, but the bounded-state list previously named only a latest sensor slot. A fast source can overwrite evidence before a valid command arrives. | Reserve a finite per-declaration correlation window by count, bytes, and receiver time. Absent or evicted source evidence rejects without timestamp, bare-sequence, or latest-value fallback. |
+| Sensor availability | Finite compact sensor scalars cannot distinguish unavailable inputs from legitimate zero values. Host API 2 missingness cannot cross the NCP boundary. | Add one mandatory digest-covered layout bitmap. Use opaque group handles, typed unavailable decoding, source-pin retention, profile-specific restrictive lanes, and 1/2/3-drone fault controls. |
 | Disposition query | Earlier ADR-007 text left retained, retired, and unavailable query results open. | Keep the selected three-way union and bind every branch to the exact query coordinate. B03 selects finite journal capacities. |
 | Extension size | Earlier ADR-008 text allowed packages larger than the universal structured-frame limit without a selected outer transport. | Use one bounded canonical-JSON envelope. Keep large bytes in bounded external attachment references. Define no generic chunk protocol in 1.0. |
 | Security and activation context | ADR-009 commits accepted extension manifest identities. ADR-008 makes installed activation realm-scoped but does not select a compact prepared-context identity. | Derive a prepared activation-context digest from the completed security-state digest. Keep its exact name and projection in B03 allocation work. |
@@ -3093,7 +3209,7 @@ does not need reconstruction for B01. Its generated matrix remains
 `INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED` so nobody can mistake it for current
 allocation or review evidence.
 
-## 20-lens maintainer review
+## 30-lens maintainer review
 
 This table records the maintainer-side design review. It is not the independent
 review required by B01.
@@ -3120,6 +3236,16 @@ review required by B01.
 | Operability and observability | Bounded gaps, drops, supersessions, deadlines, terminal reasons, and insecure mode are visible. | Exact metrics, labels, persistence, and operator procedures remain B03 and deployment work. |
 | Documentation and visual traceability | Each figure has one reading order, redundant color and text cues, direct-view accessibility text, and a complete prose description. Equations define every symbol. | Figures remain informative. Render review and local checks cannot accept an ADR, qualify performance, or replace independent review. |
 | Claims and release state | Local code and tests cannot imply safety, interoperability, publication, or release authorization. | B01 independent review and every declared external gate remain unsatisfied. |
+| Sensor missingness | One mandatory bitmap distinguishes unavailable groups from legitimate zero values. Stable 1.0 fixes polarity, bit order, and padding. | B03 must allocate the field identity, limits, errors, profiles, and profile-specific placeholder bits. |
+| Source-conditioned safety | The source pin retains availability. Each unavailable group selects its installed restrictive lane. | The body owner, source window, pin, profile check, and disposition binding are not implemented. |
+| Fleet topology | X02 uses one composite session and one atomic `3N` command for one, two, or three drones. | Stable drone identities, layouts, and physical-resource assignments remain B03 and consumer work. |
+| NEST execution | One NEST 3.9 kernel advances every fault, washout, and normal epoch. | Real 1/2/3-drone fault, isolation, recovery, timing, and disposition evidence is **NOT RUN**. |
+| Authentication profiles | Trusted configuration selects A-direct or B-over-A before bytes. No downgrade or caller selection exists. | The receiver-owned direct context and qualified forwarded JWS path remain unimplemented. |
+| Language boundary | Opaque capabilities cross Python FFI. Raw credentials, namespaces, detached buffers, and mutable bytes do not. | PyO3 prepared transport and availability handles remain N-series work. |
+| Standalone and UI boundary | Crebain's default artifact excludes NCP adapters. Presentation hosting carries no runtime semantics or lifecycle authority. | Consumer packaging, feature closure, and read-only UI tests remain unqualified. |
+| MUSIC separation | NCP owns heterogeneous boundary semantics. MUSIC alone owns shared-clock simulator coupling. | X02 qualifies independent clocks only. Any shared-clock claim needs separate MUSIC evidence. |
+| Supply chain and independent peers | Exact pins, clean archives, SBOMs, and two native non-Rust peers bind the final contract. | Package namespace, self-contained distribution, clean-room, and installed-peer gates remain open. |
+| Operational qualification | Security, fault, rotation, restart, overload, soak, and performance campaigns bind exact artifacts. | No native ecosystem role or release campaign has passed. |
 
 ## B01 closure criteria
 
@@ -3174,6 +3300,12 @@ separately attributed restrictive latch. One command position selects one
 setpoint and one application attempt. A future trajectory cannot inherit
 compatibility horizon replay. ADR-008 must reserve schema, attachment, and
 callback work before semantic use.
+
+ADR-004, ADR-005, ADR-007, ADR-008, ADR-010, and ADR-011 must also close sensor
+availability. One bitmap belongs to the compact sensor frame and its digest.
+Prepared packing decides each group exactly once. Typed decoding exposes no
+placeholder values. Source pins retain the bitmap projection. Profile-specific
+restrictive lanes reject mismatches before callback.
 
 The ADRs must distinguish required wire/runtime behavior from retained
 proof-model analysis. The retained analysis does not need to be deleted. Each

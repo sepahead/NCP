@@ -66,8 +66,8 @@ ALLOWED_SCHEMA_PATTERNS = frozenset(
         r"^(?!/)(?![A-Za-z]:[\\/])(?!.*(?:^|/)\.\.(?:/|$)).+$",
         r"^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
         r"^ADR-0(0[1-9]|1[01])$",
-        r"^D(0[1-9]|1[0-9]|20)$",
-        r"^D(?:0[1-9]|1[0-9]|20)$",
+        r"^D(0[1-9]|1[0-9]|2[01])$",
+        r"^D(?:0[1-9]|1[0-9]|2[01])$",
         r"^L(?:0[1-9]|1[0-9]|20)$",
         r"^L(?:10|[1-9])$",
         r"^[0-9a-f]{40}$",
@@ -717,23 +717,23 @@ def self_test() -> None:
     )
 
     hostile_schema = copy.deepcopy(ledger_schema)
-    hostile_schema["properties"]["defect_traceability"]["maxItems"] = 19
+    hostile_schema["properties"]["defect_traceability"]["maxItems"] = 20
     _must_fail(
         lambda: validate_instance(
             hostile_schema, ledger, "hostile implementation ledger"
         ),
-        "schema count silently excludes D20",
+        "schema count silently excludes D21",
         "maxItems",
     )
     hostile_schema = copy.deepcopy(ledger_schema)
     hostile_schema["properties"]["defect_traceability"]["items"]["properties"]["id"][
         "pattern"
-    ] = r"^D(?:0[1-9]|1[0-9])$"
+    ] = r"^D(?:0[1-9]|1[0-9]|20)$"
     _must_fail(
         lambda: validate_instance(
             hostile_schema, ledger, "hostile implementation ledger"
         ),
-        "schema pattern silently excludes D20",
+        "schema pattern silently excludes D21",
         "pattern",
     )
     hostile_registry = copy.deepcopy(registry_fixture)

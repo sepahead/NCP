@@ -561,11 +561,24 @@ principals. Default-deny ACL configuration and successful TLS setup do not by
 themselves give the application a per-message verified actor.
 
 Do not weaken the identity rule. Tasks N04 and N06 must implement and independently
-review a production security envelope or a trusted terminating ingress that
-produces an application-visible authenticated actor. The recommended stable design is a
-domain-separated, end-to-end signed canonical payload using a tightly profiled JWS
-representation and an enrolled key manifest, while retaining TLS 1.3 and
-default-deny ACLs for hop confidentiality and route minimization. The profile must:
+review two exclusive production ingress profiles. Trusted configuration selects
+one profile before attacker-controlled bytes reach a parser. Payload bytes cannot
+negotiate, switch, or downgrade profiles.
+
+**A-direct** authenticates a TLS 1.3 connection and resolves its native transport
+principal through an exact default-deny manifest entry. The receiver mints an
+opaque, non-serializable context for one connection, route, class, audience,
+realm, session, declaration, security state, parser, bounds, and payload buffer.
+The context can remain in one process or cross an authenticated protected handoff.
+A copied identity, digest, or public value cannot reconstruct it. A-direct hot
+frames carry canonical NCP bytes without a per-frame application signature.
+Direct Zenoh remains unavailable until its callback exposes verified principal
+evidence that can mint this context.
+
+**B-over-A** applies only to explicit forwarding when the original operation
+signer is not the transport peer. A authenticates a restricted carrier. A strict
+flattened JWS separately authenticates the original signer. Carrier and signer
+must be distinct, authorized, and congruent. The JWS profile must:
 
 - allow exactly one pinned, fully specified signature algorithm in the first
   release (JOSE `Ed25519`), never accept deprecated polymorphic `EdDSA`, `none`,
@@ -585,12 +598,10 @@ default-deny ACLs for hop confidentiality and route minimization. The profile mu
 - retain cross-language known-answer, mutation, substitution, confusion,
   downgrade, and performance evidence.
 
-This recommendation uses standardized JWS framing rather than inventing signature
-serialization. It still requires a security architecture review, threat model,
-cryptographic library review, and measured deadline impact. If that review selects
-a terminating ingress instead, the ADR must prove equivalent per-message actor,
-route, rotation, revocation, anti-confusion, and provenance properties; generic
-Zenoh ACL inference is not equivalent.
+This forwarding profile uses standardized JWS framing instead of a custom
+signature carrier. Both profiles require security review, threat modeling,
+implementation review, and measured deadline impact. Generic Zenoh ACL inference
+cannot satisfy A-direct. A copied principal cannot satisfy either profile.
 
 Primary standards and substrate references:
 
@@ -630,7 +641,7 @@ cannot certify a universal physical zero-safe condition.
 Do not encode fail-safe priority as a disposition shortcut. Before the early
 ESTOP path, require:
 
-- raw bounds and protected-envelope verification.
+- raw bounds and the selected profile's authenticated-ingress result.
 - the verified transport principal and default-deny actor/action permission.
 - canonical frame kind and version.
 - the exact route, audience, and direct realm.
@@ -712,19 +723,21 @@ deny-new-missions, never as a new ALLOW. Galadriel remains outside actuation and
 permission granting. Haldir's admitted use of its evidence can have a negative
 control consequence and must be described honestly.
 
-### D10 — one Crebain ESTOP path bypasses full envelope validation
+### D10 — one Crebain ESTOP path bypasses complete ingress validation
 
 Both inspected Crebain worktrees contain a legacy path that recognizes raw JSON
 `mode="estop"` and constructs a minimal ESTOP before full wire validation. NCP 1.0
 permits authenticated ESTOP to omit only the authority lease. It does not permit a
-wrong-session, wrong-route, wrong-principal/audience, unsigned/unverifiable,
-oversized, or duplicate/ambiguous-mode envelope to reach the latch.
+wrong-session, wrong-route, wrong-principal/audience, unauthenticated,
+profile-mismatched, oversized, or duplicate/ambiguous-mode frame to reach the latch.
 
 Delete the bypass during native-1.0 migration. Before local fail-safe mutation,
-apply byte and structure limits, duplicate-key rejection, protected-envelope
-verification, and canonical kind and version. Require the verified transport
-principal, default-deny actor/action permission, and exact route, audience, and
-direct realm. Require the live session generation, publisher incarnation,
+apply byte and structure limits, duplicate-key rejection, profile-specific
+authenticated-ingress verification, and canonical kind and version. A-direct
+requires the verified transport principal and current opaque context. B-over-A
+requires the restricted carrier and distinct verified JWS signer. Require
+default-deny actor/action permission and the exact route, audience, and direct
+realm. Require the live session generation, publisher incarnation,
 declaration, stream epoch, positive syntactic position, current security,
 structurally valid ESTOP, and installed plant-profile action. Require either an
 authorized unexpired live grant slot or one exact current post-HOLD
@@ -1064,6 +1077,55 @@ generation. They preserve B00 and B04 as local evidence. B01 remains
 `IN_PROGRESS`. X05 remains `OPEN`, its external gate remains **NOT RUN**, and D20
 cannot close.
 
+### D21 — compact plant sensor frames lack source-bound availability
+
+The proposed compact `SensorFrame` carries finite scalars but no mandatory
+source-digest-covered availability state. It cannot distinguish an unavailable
+group from valid zero values. Host API 2 records this distinction separately.
+Migration would otherwise launder a scheduled Crebain fault into ordinary sensor
+evidence.
+
+Stable 1.0 requires one inline availability bitmap in each compact sensor frame.
+Its length is `ceil(group_count / 8)` bytes. Zero-based group `g` uses bit `g` in
+least-significant-bit-first order. One means `AVAILABLE`. Zero means
+`UNAVAILABLE`. Unused high bits are zero. The complete frame digest covers the
+header, bitmap, and every scalar byte.
+
+Each sensor layout partitions every scalar into one nonempty ordered group. A
+non-sensor fixed layout uses zero groups and zero availability bytes. The frame
+carries no group metadata. A group is decided exactly once per frame.
+
+An available group requires every finite in-range member exactly once. An
+unavailable group forbids caller values. The packer writes the selected scalar
+encoding's canonical fixed-width placeholder bits. X02 binary64 uses positive
+zero. Placeholder bytes are neither observations nor safety policy. A decoder
+exposes `Available(values)` or `Unavailable`.
+
+For X02, each drone owns one group covering its six position and velocity values.
+Zero-based group `g` maps to command slots `[3g, 3g+1, 3g+2]`. The instance binds exact
+restrictive scalar bytes. The required fleets use one bitmap byte. The scalar
+counts remain `6N` and `3N`.
+
+B03 allocates field identities, ceilings, errors, profiles, and extension
+identities after B02 authorizes the rebaseline. B03 cannot invert stable bitmap
+polarity, bit order, or padding.
+
+The body retains the exact admitted frame with the source window and pin. A live
+pin remains non-evictable through terminal disposition or evidence handoff.
+`NormativeSourceRef` does not repeat the bitmap. Its origin content digest binds
+the complete frame. A bare position, timestamp, route, latest frame, or optional
+diagnostic cannot substitute.
+
+One source-bound Active command still carries all `3N` values. Each unavailable
+source group requires the exact profile-compiled restrictive command lane. A
+mismatch rejects the whole remote command before callback. The body applies its
+separate local fail-safe. NCP defines no universal safe zero.
+
+Optional fault detail belongs to a bounded registered Crebain extension. It can
+explain a bitmap bit but cannot change availability, freshness, authority,
+command validity, NEST behavior, or queue admission. Missing, late, rejected, or
+overloaded detail means only that the reason is unavailable.
+
 ### 5.1 Defect closure map
 
 No defect is closed by this blueprint. The implementation ledger must retain these
@@ -1092,6 +1154,46 @@ edge or mark a defect closed from prose alone.
 | D18 | B01, N07, E01, H01, H02, G01, C01, P01, R07 | versioned per-surface pin inventory, hostile discovery/coherence tests and runtime wire-exclusion proof |
 | D19 | B01, B02, B03, N01 | role-complete current-digest human review state, separate rebaseline authorization, bounded allocations and single-owner normative promotion |
 | D20 | B01, N02, N04, E03, G02, P02, X05, X02, F04 | installed independent-anchor subject, concrete disjoint identities, full live lifecycle/fault campaign, current external receipt and independent security/operations adjudication |
+| D21 | B01, B02, B03, N01, N02, N03, N04, N05, N06, N07, N08, N10, F01, F02, F03, E03, E04, E05, E06, E07, H02, H03, H06, C02, C03, C05, G02, G03, P02, P03, X00, X01, X02, F04, F05 | mandatory source-bound availability, prepared packing, restrictive-action projection, cross-language hostile controls, and native 1/2/3-drone fault evidence |
+
+<a id="ncp-d21-task-acceptance-overlay-v1"></a>
+
+### 5.2 D21 task acceptance overlay
+
+These rows add exact D21 acceptance to the named tasks. They do not replace each
+task's acceptance block. The local acceptance digest binds both sources.
+
+| Task | Additional D21 acceptance |
+|---|---|
+| B03 | Allocate bounded field, group, layout, restrictive-map, error, profile, and condition-detail identities. Do not change stable bitmap meaning. |
+| N01 | Generate one normative bitmap, group, layout, source-reference, restrictive-map, condition-detail, and typed-missingness contract across every supported surface. |
+| N02 | Implement opaque group handles, exact packing, typed decoding, canonical placeholders, and complete producer-stage rejection without a detached bitmap path. |
+| N03 | Implement position stages, atomic queueing, non-evictable source pins, restart, restrictive admission, and disposition binding over exact bitmap-plus-scalar bytes. |
+| N04 | Authenticate the exact header, bitmap, and scalars for A-direct and B-over-A. Reject detachment, substitution, and profile confusion. |
+| N05 | Implement pure checked bitmap, group, dependency, pin, queue, projection, and lane-state transitions with positive and negative controls. |
+| N06 | Transfer each compact sensor frame as one immutable transport item. Preserve gaps and never infer unavailable state from zero. |
+| N07 | Generate cross-language APIs that preserve bitmap bytes, typed unavailability, exact source identity, and profile-specific placeholders without consumer forks. |
+| N08 | Add exhaustive masks, boundary vectors, hostile mutations, compatibility parity, projection controls, and five-state missingness to conformance. |
+| N10 | Document stable bitmap semantics, source correlation, extension isolation, queue atomicity, lane recovery, low overhead, and every claim boundary. |
+| E03 | Preserve exact source availability and identity through Engram's direct authenticated transport and declared streams. |
+| E04 | Use typed availability in Engram's direct commander. Emit the exact restrictive lane without Host API or private IPC. |
+| E05 | Qualify Engram's exact installed roles with source faults, pin pressure, lane recovery, restart, and native NEST evidence. |
+| E06 | Preserve exact source reference, layout, bitmap, position, and digests through Engram's gated Haldir intent path. |
+| E07 | Qualify Engram's Haldir-intent publisher with availability-preserving positive, hostile, overload, restart, and downgrade controls. |
+| H02 | Preserve intent source identity and availability. Construct only standard commands with complete restrictive dependent lanes. |
+| H03 | Qualify Haldir's commander against bitmap substitution, source drift, partial restrictive lanes, faults, overload, restart, and revocation. |
+| H06 | Qualify Haldir's intent receiver with exact source preservation, typed unavailability, separate extension resources, and no authority laundering. |
+| C02 | Validate the exact source pin, installed restrictive lane, and body-owned availability-dependent command as one fail-closed unit. |
+| C03 | Mark every availability group exactly once. Write every member of each available group exactly once. Write no member of any unavailable group. Let the packer materialize every bound slot. |
+| C05 | Qualify exhaustive native one-, two-, and three-drone availability masks, correlated faults, source pins, restrictive lanes, restart, washout, and recovery. |
+| G02 | Preserve typed missingness, exact source correlation, gaps, and privacy projection without gaining command or availability authority. |
+| G03 | Qualify Galadriel's observer and raw-advisory roles with unavailable, malformed, gap, loss, projection, overload, and restart controls. |
+| P02 | Capture typed missingness and source identity. Keep unavailable data distinct from valid zero, malformed input, gaps, and loss. |
+| P03 | Qualify Prisoma's observer with availability-preserving capture, privacy projection, overload isolation, restart, and research-claim boundaries. |
+| X01 | Require both independent peers to match exact bitmap bytes, typed decode, source identity, restrictive mapping, JSON parity, and hostile errors. |
+| X02 | Execute exhaustive 1, 2, and 3-drone faults, atomic commands, lane isolation, washout, recovery, restart, and real NEST 3.9 evidence. |
+| F04 | Execute security, fault, rotation, revocation, restart, pin-pressure, queue, projection, detail-overload, and soak campaigns over exact artifacts. |
+| F05 | Gate bitmap cost, allocation, latency, queue depth, pin memory, fleet scaling, deterministic NEST settings, and final visual consistency. |
 
 ## 6. Ecosystem-specific audit conclusions
 
@@ -1114,8 +1216,8 @@ Required direction:
 - replace silent observation-epoch rollover with explicit stream redeclaration;
 - make arbitrary `NCP_CONTRACT_ROOT` overrides development-only and impossible in
   a qualification/install path;
-- keep `production-secure` unavailable until the selected authenticated-envelope
-  or terminating-ingress design is implemented and live-tested;
+- keep `production-secure` unavailable until the selected profile-specific
+  authenticated ingress is implemented and live-tested;
 - correct the Prisoma missing-`L` description; and
 - obtain installed-artifact, cross-process, real-NEST, live-security, and fault
   evidence without claiming posterior calibration or paper reproduction.
@@ -1259,9 +1361,10 @@ The stable 1.0 design must obey these laws:
    simulator issues bounded simulation-operation authority and a plant body issues
    bounded plant-action authority. The domains use non-convertible types/routes;
    a requester proposes and never self-authorizes.
-4. **Authentication precedes interpretation.** Production input is bounded, its
-   signature and protected route context are verified, and its enrolled actor is
-   established before payload identity or semantic fields can authorize anything.
+4. **Authentication precedes interpretation.** Production input is bounded and
+   admitted only through its trusted-configured ingress profile. A-direct verifies
+   the native transport principal and opaque context. B-over-A verifies the
+   restricted carrier and protected JWS signer. Only then can semantics authorize.
 5. **Routes are part of the message context.** A payload valid on one exact route,
    plane, session, message class, or audience is invalid on another.
 6. **Negotiation is transcript-bound.** Contract, roles, session type, channels,
@@ -1469,7 +1572,7 @@ status                        non-authorizing lifecycle value at issue
 The mutually exclusive session-type fields are schema- and semantics-enforced.
 Unknown fields remain bounded forward-compatible metadata only and are excluded
 from all authorization unless a registered digest projection explicitly includes
-them. The descriptor is signed/authenticated as a control-plane response.
+them. The descriptor is returned through an authenticated control-plane response.
 
 ### 7.4 Split lifecycle messages
 
@@ -2193,8 +2296,9 @@ declared_at_utc_ms
 retired flag/reason when applicable
 ```
 
-Receivers admit a frame only after exact descriptor lookup and signature/actor,
-route, session, epoch, kind, channel, transcript, and monotonic sequence checks.
+Receivers admit a frame only after exact descriptor lookup and the selected
+profile's authenticated actor and context. Route, session, epoch, kind, channel,
+transcript, and monotonic sequence checks also pass.
 They also require the exact installed current descriptor/declaration/security
 state and, for observer delivery, the live grant/composite admission state.
 Rejection occurs before application callback, mutable state, watchdog refresh or
@@ -2214,7 +2318,8 @@ cannot be reopened or refreshed.
 Production role APIs expose only sealed declaration-bound publish/subscribe
 capabilities. A generic bus/session, raw `put`/`send`, caller-supplied frame or
 epoch, in-process shortcut, and direct actuator transport cannot bypass
-envelope/declaration admission or appear in the production dependency closure.
+authenticated-ingress and declaration admission or appear in the production
+dependency closure.
 
 The receiver stores a durable declaration ledger behind a separately
 authenticated installed current head; a coherent historical ledger/receipt pair
@@ -2312,8 +2417,8 @@ Safety rules:
 - every plant command admission preserves the exact authority/lifecycle and
   action-command declaration heads from its prior composite state in the winning
   journal successor;
-- authenticated same-session ESTOP may omit the lease only after full envelope,
-  route, actor, session, stream, and security admission; and
+- authenticated same-session ESTOP may omit the lease only after complete frame,
+  ingress-context, route, actor, session, stream, and security admission; and
 - lease query/status is non-authorizing and cannot be replayed as a grant.
 
 The “current lease” rule is domain-specific. Active and HOLD command admission
@@ -2338,14 +2443,29 @@ first, the commander emits no Active bytes and consumes any reserved position.
 The body independently performs final admission; a race after queue transfer is
 resolved only by disposition/query.
 
-### 7.9 Production authenticated envelope
+### 7.9 Production authenticated ingress
 
-For `production-secure`, carry every stable NCP JSON payload in the flattened JWS
-JSON Serialization from RFC 7515. The outer object has exactly `protected`,
-`payload`, and `signature`; an unprotected `header` member is forbidden. Each value
-is bounded base64url without padding. The decoded payload must be the exact NCP
-canonical JSON bytes for the typed message; round-trip canonicalization must match
-byte-for-byte before semantic acceptance.
+A `production-secure` endpoint selects exactly one trusted-configured ingress
+profile before attacker-controlled bytes are interpreted. Caller bytes cannot
+negotiate, switch, or downgrade profiles.
+
+A-direct authenticates the TLS 1.3 connection. It derives the actor from the
+verified native transport identity and one exact default-deny manifest entry. The
+receiver mints a non-serializable capability. It binds realm, route, plane,
+message class, audience, stable-core identity, transcript, security state,
+session, declaration, connection incarnation, bounds, parser, and payload buffer.
+A-direct hot frames carry canonical NCP bytes without a per-frame application
+signature, key ID, manifest scan, or repeated static context. A copied identity,
+context, or digest cannot reconstruct the capability. Direct Zenoh remains closed
+until its callback exposes verified principal evidence.
+
+B-over-A is available only for explicit forwarding where the original operation
+signer is not the transport peer. The authenticated carrier and distinct signer
+must both be authorized and congruent. B-over-A carries the exact canonical NCP
+payload in flattened JWS JSON Serialization from RFC 7515. The outer object has
+exactly `protected`, `payload`, and `signature`. An unprotected `header` member is
+forbidden. Each value is bounded base64url without padding. The decoded payload
+must match the canonical typed NCP bytes before semantic acceptance.
 
 The decoded protected header is also required to be exact canonical JSON with this
 closed profile:
@@ -2376,18 +2496,19 @@ class, route, digests, epochs, key use, key validity, and revocation independent
 of signature success. Require the inner `IdentityClaim` to equal the manifest actor
 and protected issuer.
 
-The actual transport route is adapter input, never copied from the envelope. Exact
-equality with `ncp_route` is checked before payload semantics. RPC responses use the
-requester's principal as audience. Action uses the exact body principal. Pub/sub
-perception/observation uses a content-addressed audience group whose manifest
-enumerates readers; changing membership changes the security state/epoch and ACL.
+The actual transport route is adapter input. B-over-A checks exact equality with
+`ncp_route` before payload semantics. A-direct compares the route with its prepared
+context. RPC responses use the requester's principal as audience. Action uses the
+exact body principal. Pub/sub perception and observation use a content-addressed
+audience group. Membership changes advance the security state and ACL.
 
 TLS 1.3 mutual authentication and default-deny ACLs remain mandatory for remote
 production transports to provide confidentiality, endpoint protection, and route
-minimization. End-to-end JWS supplies application-visible publisher provenance
-through routers; it does not make TLS optional. `dev-loopback-insecure` carries raw
-canonical JSON only on loopback/UDS, advertises unmistakable insecure state, and
-cannot negotiate, wrap, or downgrade into production.
+minimization. B-over-A JWS supplies original-signer provenance through forwarding.
+It does not make TLS optional. Production never accepts unauthenticated input.
+A-direct requires its current receiver capability and exact prepared context.
+B-over-A requires valid JWS. `dev-loopback-insecure` carries raw canonical input
+only on loopback or UDS. It cannot negotiate, wrap, or downgrade into production.
 
 #### Semantic security-state projection
 
@@ -2600,10 +2721,11 @@ digests from the authenticated delivered bytes; contradictory wrapper metadata
 rejects.
 
 Fail-safe side effects form a second body-local state machine. Before any remote
-side effect, the body requires raw bounds, protected-envelope verification,
-canonical frame kind and version, and the verified transport principal. It also
-requires default-deny actor/action permission, the exact route, audience, and
-direct realm, and the exact live session and generation. The publisher
+side effect, the body requires raw bounds, profile-specific authenticated-ingress
+verification, and canonical frame kind and version. It requires the selected
+profile's authenticated actor and current context. It also requires default-deny
+actor/action permission, the exact route, audience, and direct realm, and the
+exact live session and generation. The publisher
 incarnation, declaration, stream epoch, positive syntactic position, current
 security state, structurally valid mode, and installed plant-profile action must
 all match. ESTOP also requires an authorized unexpired live grant slot or one
@@ -2621,12 +2743,14 @@ exact `received -> admitted` predecessor and then requests `CLEAR_ACTIVE`.
 reservation-on-Active, or a missing reservation rejects. The latter applies to
 an otherwise-qualified admitted HOLD effect or qualified ESTOP effect. Attempt
 identity is not command identity. An old generation,
-wrong principal/route/audience, unverifiable envelope, oversized input,
+wrong principal/route/audience, unauthenticated or profile-mismatched input,
+oversized input,
 duplicate/ambiguous mode, invalid grant/slot, or unclassifiable bytes causes no
 attempt record or local side effect.
 
 `BodyFailSafeSideEffectRecord` is a distinct non-command global-journal append.
-It binds the exact protected envelope/candidate bytes and digests, ingress-attempt
+It binds the exact admitted frame bytes and ingress-context digest. B-over-A also
+binds the protected-envelope bytes and digest. The record binds the ingress-attempt
 record, verified current-session context, closed mode classification, named
 buffer/latch boundary, before/after state commitments, clock and global
 position, and exactly one outcome: `CONFIRMED_CHANGED`,
@@ -2910,7 +3034,7 @@ ten lens decisions.
 |---|---|---|
 | ADR-001 | split simulation-service and plant-control sessions | NCP maintainer; Engram owner; Crebain body owner; independent protocol reviewer |
 | ADR-002 | stable-core/release/corpus identity hierarchy, extension freeze and external exact-subject release authorization | protocol reviewer; release and supply-chain reviewer |
-| ADR-003 | production JWS authenticated envelope versus equivalent terminating ingress | security and cryptography reviewer (two distinct independent identities); transport implementer |
+| ADR-003 | trusted-configured A-direct authenticated ingress, with B-over-A signed forwarding only | security and cryptography reviewer (two distinct independent identities); transport implementer |
 | ADR-004 | observer attach, grants, descriptors, privacy and revocation | Prisoma owner; Galadriel owner; security reviewer; NCP/source-provider owner; observer-anchor infrastructure owner/operator; independent anchor security/distributed-systems reviewer |
 | ADR-005 | explicit stream declaration/retirement and exhaustion | distributed-systems reviewer; Engram stream owner; Haldir stream owner; Galadriel stream owner; Crebain stream owner; Prisoma stream owner |
 | ADR-006 | body-issued authority operations and temporal model | safety reviewer; distributed-systems reviewer; Haldir owner; Crebain owner |
@@ -2985,6 +3109,15 @@ ADR, authorize a rebaseline, or satisfy a consumer role.
   preserves ADR-007's earlier body-local restrictive effect ordering; N05 owns
   codec/plant/governor implementation, N07 binding parity, N08 vectors, B02 the
   rebaseline, E04 and H02 producer behavior, and C02 the final body check.
+- A static roster cannot detect a plausible same-unit entity misassociation.
+  The selected prepared publisher owns its layout and transport slot. It exposes
+  no detached buffer-to-context handoff. NCP adds no application tag.
+  TLS record protection covers bytes only from seal through successful open.
+  It does not attest application provenance. It cannot detect sender changes
+  before seal or receiver changes after open. B01 owns this threat boundary.
+  B03 allocates generic layout-profile identities. N01, N03, N05, N07, and N08
+  implement and verify the prepared-publisher boundary. E04, H02, C02, and C03
+  own their publishers. X02 retains every non-detectability control.
 
 B01 reviewers must challenge decoy metadata paths, member reordering, escaped
 and duplicate keys, independent map instances, and the exact 256/257 boundary.
@@ -4031,24 +4164,30 @@ Required invariants:
 
 #### `NcpSecurityEpoch`
 
-Model key IDs/epochs, manifest state, audience, exact route/message class, stable
-digest, JWS verification result, revocation, planned overlap rotation, session
-rebind, descriptor revision, stream retirement, and downgrade attempts. Cryptographic
-unforgeability is an assumption; signature verification is a boolean relation whose
-inputs must all be modeled explicitly.
+Model the selected ingress profile, manifest state, audience, exact route and
+message class, stable digest, revocation, session rebind, descriptor revision,
+stream retirement, and downgrade attempts. A-direct models the verified transport
+principal, receiver-owned context, and connection incarnation. B-over-A also models
+carrier, signer, JWS result, key epochs, and planned overlap rotation.
+Cryptographic unforgeability is an assumption. Model every verification input.
 
-Required invariants:
+Required invariants follow. Key, algorithm, and signature invariants apply only to
+B-over-A. Transport-principal and opaque-context invariants apply to A-direct.
 
-- `SemanticAdmissionImpliesSignatureVerified`;
+- `SemanticAdmissionImpliesSelectedIngressAuthenticated`;
+- `ADirectAdmissionImpliesVerifiedTransportPrincipalAndOpaqueContext`;
+- `ADirectHotFrameRequiresNoApplicationSignature`;
+- `BOverAAdmissionImpliesAuthorizedDistinctCarrierAndSigner`;
+- `BOverAAdmissionImpliesSignatureVerified`;
 - `VerifiedKeyMapsToExactInnerIdentityRoleAndPlane`;
-- `ActualRouteEqualsProtectedRoute`;
+- `ActualRouteEqualsPreparedOrProtectedRoute`;
 - `AudienceAndMessageClassMatchUse`;
 - `StableAndSecurityDigestsMatchSession`;
 - `RevokedOrExpiredKeyNeverAdmits`;
 - `UnknownAlgorithmNeverAdmits`;
 - `SecurityAuthorityGenesisConsumesProvisionedUninitializedExactlyOnce`;
 - `SecurityTransitionAuthorizationAloneIsNotInstalledState`;
-- `ProductionNeverAcceptsRawOrInsecureEnvelope`;
+- `ProductionNeverAcceptsUnpreparedDirectOrUnsignedForwardedInput`;
 - `DevelopmentProfileNeverNegotiatesAsProduction`;
 - `OldKeyStopsAtCommittedRotationBoundary`;
 - `SecurityChangeRetiresOldStreams`;
@@ -4157,7 +4296,7 @@ Required initial obligations:
 | `disposition_terminal.smt2` | `unsat` contradictory transition after an encoded terminal disposition; `sat` witnesses for every legal state |
 | `observer_non_authority.smt2` | `unsat` derivation of mutation/publish right from an observer grant |
 | `assessment_monotonicity.smt2` | `unsat` case where any accepted, absent or rejected Galadriel assessment widens Haldir's local decision under either configured absence mode; `sat` witness for each legal effect |
-| `security_admission_order.smt2` | `unsat` any local side effect before bounds, signature, manifest actor, actual route, audience, digest, canonical kind/version, live session/generation, declaration/epoch, positive position, security state, grant/slot, initial deadline, installed profile, and unambiguous structurally valid mode. `unsat` Active or HOLD effect, or any admitted disposition, before stream/replay/lease/source/channel/profile checks. `sat` witnesses cover a qualified ESTOP latch followed by stream-order, occupied-position, command-identity, or post-boundary currentness/deadline rejection. `unsat` equivalent invalid HOLD effect. |
+| `security_admission_order.smt2` | `unsat` any local side effect before bounds, selected profile authentication, manifest actor, actual route, audience, digest, canonical kind/version, live session/generation, declaration/epoch, positive position, security state, grant/slot, initial deadline, installed profile, and unambiguous structurally valid mode. A-direct requires the receiver-owned context and verified transport principal. B-over-A requires the restricted carrier and distinct verified JWS signer. `unsat` Active or HOLD effect, or any admitted disposition, before stream/replay/lease/source/channel/profile checks. `sat` witnesses cover a qualified ESTOP latch followed by stream-order, occupied-position, command-identity, or post-boundary currentness/deadline rejection. `unsat` equivalent invalid HOLD effect. |
 | `typed_digest_prefix_free.smt2` | `unsat` ambiguous parse for the bounded typed canonical projection grammar; explicitly assumes SHA-256 collision resistance rather than proving it |
 | `queue_bounds.smt2` | `unsat` capacity excess under each encoded overflow transition; `sat` witness for every overflow branch |
 
@@ -4187,7 +4326,8 @@ Add Kani harnesses for:
 - observer-grant subset and expiry checks;
 - Galadriel assessment parsing, replay/freshness and deny-only composition;
 - typed digest projections and length-prefix bounds;
-- JWS/base64 decoded-length arithmetic before allocation; and
+- A-direct capability/context identity and bound checks;
+- B-over-A JWS/base64 decoded-length arithmetic before allocation; and
 - FFI pointer/length/ownership state where Kani supports the used features.
 
 Each harness states its unwind bound, uses cover assertions for all branches, and
@@ -4213,10 +4353,11 @@ without deleting the original trace.
 ### 8.8 Canonical encoding and cross-language differential verification
 
 The independent TypeScript implementation and a native Python implementation must
-implement bounded outer-JWS parsing, protected-header validation, canonical payload
-bytes, typed digests, schemas, state transitions needed for their roles, and error
-classification without calling the Rust FFI. Rust-backed Python/C bindings remain
-useful package/ABI consumers but do not count as independent semantics.
+implement selected-profile admission semantics without calling the Rust FFI. They
+must cover A-direct context validation, bounded B-over-A JWS parsing, B-over-A protected
+headers, canonical payload bytes, typed digests, schemas, state transitions, and
+error classification. Rust-backed Python/C bindings remain useful package
+consumers. They do not count as independent semantics.
 
 Generate and execute a mandatory corpus containing:
 
@@ -4227,8 +4368,12 @@ Generate and execute a mandatory corpus containing:
   cases;
 - alternate JSON spellings that canonicalize identically and invalid
   non-canonical signed payloads;
-- valid RFC/JWS known-answer vectors and signature/header/payload mutations;
-- algorithm confusion, deprecated `EdDSA`, `none`, embedded/remote key, `crit`,
+- A-direct without an application signature, plus copied, serialized,
+  caller-built, stale, foreign-connection, wrong-route, wrong-class,
+  wrong-audience, wrong-session, and wrong-declaration context cases;
+- cross-profile A-at-B, B-at-A, attacker profile-selector, and raw Zenoh cases;
+- valid B-over-A RFC/JWS vectors and signature/header/payload mutations;
+- B-over-A algorithm confusion, deprecated `EdDSA`, `none`, embedded/remote key, `crit`,
   issuer, audience, route, kind, stable/security digest and key-epoch substitution;
 - every session-type cross-product;
 - every lifecycle, authority, observer, stream, disposition and security transition;
@@ -4264,7 +4409,10 @@ separate processes and at least two hosts. It must include:
   hostname mismatch, weak/disabled TLS version, plaintext and discovery downgrade;
 - default-deny ACL, every exact allowed role/plane/route, every cross-role/plane
   denial, wildcard action rejection, and extension/core separation;
-- JWS correct path plus every mutation/confusion/substitution case above;
+- A-direct without an application signature, plus every capability/context,
+  connection, route, class, audience, session, declaration, and profile negative;
+- B-over-A with distinct carrier and signer, plus every JWS mutation,
+  confusion, substitution, replay, retention, and outbox case above;
 - key overlap rotation with proof of possession and an exact old-key cutoff;
 - immediate revocation during idle, Active, pending mutation, stream publication,
   observer delivery, and reconnect;
@@ -4329,23 +4477,28 @@ reuse the repository's informative historical plots as acceptance evidence.
 
 Measure at least:
 
-- raw development and signed production envelopes;
+- raw development input, A-direct production hot frames, and B-over-A forwarded
+  JWS operations;
 - simulation and plant sessions;
 - 1, 10 and 100 active sessions where supported;
 - 0, 1, 4 and 16 observers;
 - 20, 100, 500 and 1,000 Hz declared streams;
 - minimum messages, representative channel sets, 4 KiB, 64 KiB and maximum
   permitted frames;
-- success, signature rejection, schema rejection, overload, expiry, ESTOP,
+- success, A-direct context rejection, B-over-A signature rejection, schema
+  rejection, overload, expiry, ESTOP,
   disposition and idempotent replay paths;
 - steady state, burst, queue saturation, router hop, cross-process and cross-host;
 - every release OS/architecture and at least the slowest supported body class; and
 - rotation/revocation and audit-enabled overhead.
 
-Record separately canonicalization, signing, verification, bounded parse, semantic
-validation, governor decision, serialization, transport, queue, application-boundary
-and end-to-end latency; CPU, resident/peak memory, allocation count/bytes, bandwidth,
-queue depth/drop, and energy where the target can measure it.
+Record A-direct capability admission separately from B-over-A signing,
+verification, base64, and protected-header parsing. Also record canonicalization,
+bounded parsing, semantic validation, governor decision, serialization, transport,
+queue, application-boundary, and end-to-end latency. Record CPU, memory,
+allocations, copies, bytes, bandwidth, queue depth, drops, and measurable energy.
+The A-direct hot path performs no per-frame signing, base64, protected-header
+parsing, or manifest scan.
 
 #### Acceptance threshold derivation
 
@@ -4542,9 +4695,9 @@ Assign the following minimum owner documents after the ADRs are accepted:
 | architecture overview | `README.md`: what NCP is, exact candidate/release boundary, typed session split, supported packages; no qualification implication |
 | ecosystem status | `README.md` or a dedicated ecosystem page: every named consumer, repository identity, exact pin/migration/qualification status, and no private-repository disclosure beyond authorized facts |
 | simulation-service sequence | protocol lifecycle section: request/reply, operation idempotency, provenance, result and close |
-| plant-control sequence | security/safety section: signed open, generation, stream declarations, body-issued authority, command/disposition, fail-safe and close |
+| plant-control sequence | security/safety section: profile-authenticated open, generation, stream declarations, body-issued authority, command/disposition, fail-safe and close |
 | observer-attach sequence | observer/privacy section: attach resolution, grants, route subset, expiry/revocation, detach and restart behavior |
-| production security envelope | `SECURITY.md`: TLS/ACL versus end-to-end signature responsibilities, exact protected fields, validation order, rotation/revocation/rebind |
+| production security ingress | `SECURITY.md`: A-direct TLS/capability and B-over-A forwarding-signature responsibilities, exact protected fields, validation order, rotation/revocation/rebind |
 | authority and stream lifecycle | protocol/state-machine section: body terms/deadlines and publisher-issued declared sequence space without silent rollover |
 | plant safety FSM | `RESILIENCE.md`: protocol state versus physical boundary, profile actions, reset and disposition truth |
 | version/identity gate | migration/version section: wire, stable-core, normative release and corpus identity; exact hard/advisory decisions |
@@ -4562,7 +4715,7 @@ description or table. It does not require one unreadable master diagram.
 |---|---|
 | architecture and planes | contract, transport, session, control, observation, extension, evidence and physical-actuator boundaries |
 | typed lifecycles | separate simulation-service, plant-control and observer-attach sequences, including close, restart and terminal states |
-| production security | principal binding, default-deny manifest, signature and transport responsibilities, exact validation order, rotation, revocation and rebind |
+| production security | principal binding, default-deny manifest, A-direct capability and B-over-A signature responsibilities, exact validation order, rotation, revocation and rebind |
 | authority and commands | body-issued terms and bounded leases, direct/gated exclusivity, handover quiescence, idempotency, dispositions and ambiguous-result recovery |
 | streams and resources | declaration, bounded sequence space, gaps, retire/redeclare, exhaustion, queues, overload and fail-closed allocation |
 | plant safety | body-final authority, profile identity, watchdog, HOLD/ESTOP effects, reset boundary, fail-safe action limits and absence of physical certification |
@@ -5015,7 +5168,7 @@ Implementation:
   without pretending an unavailable push exists, but require their exact active
   dependency-receipt bindings so a resume cannot launder stale lineage; reserve
   annotated-tag receipts for the signed-tag task only;
-- map D01–D20 explicitly to closure tasks and require the defect IDs in those task
+- map D01–D21 explicitly to closure tasks and require the defect IDs in those task
   records so architecture findings cannot disappear through a status edit;
 - reject unknown task IDs, missing dependencies, cycles, optimistic status,
   cross-task replay, repository transplantation, acausal dependency receipts,
@@ -5060,9 +5213,10 @@ assumptions rather than deciding them from prose:
 - prove exactly what authenticated peer/route identity the pinned Zenoh callback,
   query, liveliness and router APIs expose to application code, with source/API
   citations and a live negative probe; do not infer payload identity from TLS;
-- prototype both viable alternatives for D06: a terminating authenticated ingress
-  that supplies a verified principal, and a flattened per-message JWS envelope with
-  protected route, plane, session, stream, operation and semantic-content binding;
+- prototype both D06 profiles. A-direct terminates authenticated transport and
+  supplies a receiver-owned verified-principal capability. B-over-A uses a
+  restricted carrier and flattened JWS with protected route, plane, session,
+  stream, operation, and semantic-content binding;
 - use exact Ed25519 algorithm/profile identifiers, explicit key/manifest epochs,
   bounded protected-header parsing, unknown-key rejection, replay negatives and no
   fallback algorithm;
@@ -5075,7 +5229,7 @@ assumptions rather than deciding them from prose:
   as the independent parser, reviewer, security evidence or decision authority.
 
 Acceptance: the pinned transport capability is source- and live-probe-bound; both
-security alternatives have executable positive/hostile cases and measured bounds;
+ingress profiles have executable positive/hostile cases and measured bounds;
 two non-Rust parsers agree on the proposed examples without Rust FFI; B01 receives
 an explicit feasibility matrix and no wire field is changed. Commit/push
 `research: prove NCP authenticated-ingress feasibility`.
@@ -5128,6 +5282,12 @@ Implementation:
 - replace prose-only role lists with bounded role obligations. Compute one
   domain-separated decision-set digest over the candidate, wire, ordered ADR
   paths/content hashes/byte lengths, role obligations, and defect mapping;
+- use two immutable cuts for a zero-review source amendment. First supersede the
+  old packet and run the complete gate with `--b01-source-staging`. This mode
+  requires B01 `IN_PROGRESS`, N01 not started, zero reviews, eleven `PROPOSED`
+  decisions, no current subject, and blocked promotion. Push that source cut.
+  Then emit a current subject for its exact commit. Install the subject in a
+  second commit and return to normal gate mode before requesting review;
 - run human design review with every role named in section 7.14. Retain the
   authenticated provider response, stable reviewer identity, role authorization,
   implementation-owner set, independence result, exact decision-set/ADR/source
@@ -5137,14 +5297,17 @@ Implementation:
   unknown roles, manual optimistic status, stale or forked chains, self-review for
   an independent obligation, duplicate identities where distinct reviewers are
   required, active rejection, and unresolved conditional acceptance;
-- resolve the JWS versus terminating-ingress decision with a concrete threat model
-  and proof-of-API feasibility against the pinned Zenoh version; use `Ed25519`, not
-  polymorphic `EdDSA`, if the JOSE profile is accepted;
+- ratify non-negotiable A-direct and forwarding-only B-over-A. Bind their
+  exclusivity, protected handoff, and threat model to pinned transport evidence.
+  Use `Ed25519`, not polymorphic `EdDSA`, for the JOSE profile;
 - record the exact stable-core membership and whether any functionality moves to a
   separately versioned required extension; and
 - ratify the section 7.15 dependency matrix, orthogonal deployment state,
   direct/gated handover, simulation-resource separation, Galadriel deny-only
   extension and pid-rs boundary without adding consumer-specific core fields;
+- ratify one generic composite plant layout and fused typed-packer/A-direct
+  publisher boundary. State the exact pre-seal provenance limit. Do not add a
+  per-frame preparation authenticator or a drone-specific core operation;
 - close every semantic question. Defer only a bounded allocation to B03, and give
   it an owner, fail-closed default, maximum bound, and no power to change the
   accepted decision; and
@@ -5166,8 +5329,8 @@ states are accepted.
 Ten-lens record:
 
 1. **L1:** each normative meaning has one accepted decision and explicit precedence.
-2. **L2:** security reviewers approve principal, signature, manifest, lease and
-   downgrade rules, including protected-route binding.
+2. **L2:** security reviewers approve transport, capability, forwarding-signature,
+   manifest, lease, downgrade, and protected-route rules.
 3. **L3:** plant reviewers approve authority/disposition/ESTOP boundaries without
    implying physical certification.
 4. **L4:** decisions cover loss, replay, partition, restart, concurrency and
@@ -5252,6 +5415,10 @@ Implementation:
   prefix, error and disposition before code uses it;
 - give each entry owner, stability class, session types, actors, planes, authority,
   limits, default/unknown behavior, conformance requirements and retirement rule;
+- reserve the generic plant-channel-layout profile identity, digest rules, slot
+  vocabulary, typed-packer capability, prepared-context identity, and exact
+  owner. Keep concrete rosters, slots, and resources in layout instances.
+  Allocate no Crebain, drone, fleet-size, ENU, `6N`, or `3N` core branch;
 - reserve Galadriel's project extension under its own extension namespace; do not
   legitimize the current standard sensor-route sidecar;
 - reserve Haldir's `org.sepahead.haldir.intent.v2` extension with its exact
@@ -6098,9 +6265,11 @@ Implementation:
 - allocate receiver-independent `NormativeSourceRef`, receiver-owned
   `ResolvedOriginEvidence` and `ResolvedCaptureSourceCorrelation`, and generic
   receiver-independent `TrustedProjectionRecord` plus receiver-local
-  `TrustedProjectionProvenance` as separate identities. The first
-  binds an origin session/generation, full `StreamPosition {epoch, seq}`, stream
-  declaration, and origin frame/content identity and never contains a receiver
+  `TrustedProjectionProvenance` as separate identities. The first binds the
+  exact `AuthorityRealmKey`, source session kind, logical session, generation,
+  typed `StreamPosition {epoch, seq}`, declaration digest, and origin-frame
+  content digest. That digest covers the exact header, availability bitmap, and
+  scalar bytes. The reference repeats no bitmap and contains no receiver
   admission receipt. An origin `SensorFrame` establishes this identity from its
   own authenticated bytes without a self-reference. A driven command or
   observation carries the first identity. `ResolvedOriginEvidence` is a closed
@@ -6239,6 +6408,11 @@ Implementation:
   and parser mapping from accepted allocations. Do not put attachment bytes in
   base64 or define NCP chunk reassembly. Transport-internal fragmentation remains
   below NCP and has no protocol semantics;
+- materialize the accepted generic plant-channel-layout contract and its
+  generated Rust, protobuf, schema, TypeScript, Python, and FFI projections.
+  Separate reusable profile rules from content-addressed layout instances. Bind
+  roster, slots, semantics, axes, frames, units, encodings, domains, and physical
+  resources in the instance without a consumer-specific enum;
 - make the manifest generator derive all identities and emit one dependency graph;
   no Rust/TypeScript/Python hard-coded copy is accepted without generated equality;
 - add prefix-free projection test vectors including empty, Unicode, reordered,
@@ -6486,7 +6660,8 @@ Implementation:
 - add idempotent `DeclareStream`/`StreamDeclared` and
   `RetireStream`/`StreamRetired`; bind publisher actor/entity, session generation,
   plane, exact key, kind, security/transcript digest, epoch, first sequence,
-  capacity/QoS and expiry;
+  capacity/QoS, expiry, profile, layout, frame class, encoding, byte order, exact
+  length, publisher connection incarnation, and applicable source declaration;
 - consume a sequence number before an attempted publish and never reuse it after an
   ambiguous result; at exhaustion require explicit retirement/redeclaration—no
   silent epoch rollover or receiver adoption from an arbitrary frame;
@@ -6513,8 +6688,10 @@ Implementation:
 - require current generation, transcript, security epoch, exact actor/plane,
   unexpired live lease, operation context and plant gates for mutating/active paths;
   implement the exact two-stage fail-safe boundary. Before any remote local
-  mutation, require bounds, the protected envelope, canonical kind and version,
-  and the verified transport principal. Also require default-deny actor/action
+  mutation, require bounds, selected-profile authentication, and canonical kind
+  and version. A-direct requires the verified transport principal and current
+  receiver-owned context. B-over-A requires the restricted carrier and distinct
+  verified JWS signer. Also require default-deny actor/action
   permission, exact route, audience, direct realm, live session generation,
   publisher incarnation, declaration, stream epoch, positive syntactic position,
   current security, a structurally valid mode, the installed plant-profile
@@ -6583,8 +6760,8 @@ Acceptance requires:
 - unknown or mixed side-effect intent, reservation-on-Active, and missing
   reservation on a qualified HOLD/ESTOP effect reject. Absent, invalid, or stale
   lease candidates never appear as verified authority.
-- wrong-principal, route, audience, generation, unsigned, oversized, or
-  ambiguous-mode input causes no side effect.
+- wrong-principal, route, audience, generation, unauthenticated, cross-profile,
+  oversized, or ambiguous-mode input causes no side effect.
 - every crash point before, at, and after side-effect reservation, effect,
   record, result, and resolution.
 - replay of the TLA authority, stream, disposition, and side-effect traces.
@@ -6615,7 +6792,7 @@ Ten-lens record:
 10. **L10:** body/stream owners, retention, term exhaustion, revocation and incident
     rules are registered.
 
-#### N04 — implement the production authenticated envelope and semantic security state
+#### N04 — implement production authenticated ingress and semantic security state
 
 **Status:** `OPEN`<br>
 **Depends on:** N01, N02, B01 ADR-003/009<br>
@@ -6627,16 +6804,26 @@ security conformance vectors, deploy profiles/templates, `SECURITY.md`.
 
 Implementation:
 
-- implement the accepted flattened JWS JSON profile with exact protected header,
-  payload and signature members; require fully specified `alg=Ed25519`, known
-  critical headers and exact canonical bytes; reject `EdDSA`, `none`, algorithm/key
-  confusion, unprotected security context and duplicate JSON keys;
-- bind issuer key/principal/entity/role, audience, route, message kind, plane,
-  session/generation, stable-core, transcript, security epoch and bounded freshness
-  context in the protected projection before semantic decode;
-- enforce validation order: raw byte/depth/token/string/member limits; envelope
-  shape/base64 decoded-size arithmetic; algorithm/key/epoch/revocation; signature;
-  protected context versus actual delivery; then bounded inner decode and semantics;
+- implement one trusted-configured, non-negotiable ingress-profile selector. Reject
+  a missing, ambiguous, caller-selected, cross-profile, or downgrade attempt before
+  semantic decode;
+- implement A-direct as a receiver-owned, non-serializable capability. Mint it
+  from one verified native transport connection and one exact default-deny
+  manifest snapshot. Bind realm, actor, route, plane, message class, audience,
+  stable-core, transcript, security state, connection incarnation,
+  session/declaration, exact bounds, and the same payload buffer. A-direct hot
+  frames carry no per-frame application signature, key ID, or manifest scan;
+- implement B-over-A only for explicit forwarding. Require an authenticated
+  restricted carrier and a distinct authorized signer. Verify the accepted
+  flattened JWS JSON profile with exact `protected`, `payload`, and `signature`
+  members. Require fully specified `alg=Ed25519`. Reject `EdDSA`, `none`,
+  algorithm/key confusion, unprotected context, duplicate keys, and durable
+  replay/outbox mismatch;
+- enforce validation order for both profiles. Apply raw byte, depth, token,
+  string, and member limits first. A-direct then verifies its connection,
+  capability, manifest, context, and current state. B-over-A then verifies decoded
+  size, carrier, algorithm, key, epoch, revocation, signature, protected context,
+  replay, and outbox. Bounded inner decode and semantics follow authentication;
 - redesign security-state digest around normalized public trust anchors, public
   identity-key mappings, ACL/manifest rights, algorithm profile, revocation and
   epoch—not filesystem paths, private key bytes, timestamps or host-specific names;
@@ -6645,17 +6832,21 @@ Implementation:
   package class, processing profiles, clock incarnation, exclusive expiry, and
   never-reused receiver activation incarnation.
 - implement planned overlap rotation, emergency revocation, session rebind,
-  descriptor revision and old-stream retirement; production never accepts raw
-  unsigned messages and development never negotiates as production;
+  descriptor revision and old-stream retirement. Production never accepts
+  unauthenticated input. A-direct rejects a missing, copied, serialized, stale, or
+  context-mismatched capability. B-over-A rejects unsigned or invalid JWS.
+  Development never negotiates as production;
 - zeroize secret buffers where owned, prohibit secret logging/core dumps/test
   fixtures, and document HSM/process-boundary expectations without claiming them
   implemented by software.
 
-Acceptance: RFC-derived KATs within quotation limits, independent library agreement,
-hostile envelope corpus, cross-route/audience/replay/downgrade/rotation/revocation
-tests, no semantic callback before verification, semantic digest portability across
-paths/hosts and mutation sensitivity. Commit/push `security: bind NCP messages to
-authenticated session context`.
+Acceptance: A-direct capability, connection, and context positives plus hostile
+substitutions; B-over-A RFC-derived KATs, independent-library agreement, hostile
+envelope corpus, and durable replay/outbox crash cuts; cross-profile rejection; no
+semantic callback before the selected profile's authentication, manifest, route,
+session, and current-security checks; semantic-digest portability and mutation
+sensitivity. Commit/push `security: bind NCP messages to authenticated session
+context`.
 
 Ten-lens record:
 
@@ -6665,11 +6856,12 @@ Ten-lens record:
 3. **L3:** security failure/revocation drives the ratified non-actuating transition
    and never clears ESTOP.
 4. **L4:** replay, rotation overlap, partition, restart and rebind are epoch-fenced.
-5. **L5:** hostile input is bounded before base64 allocation, signature work and
-   inner decode.
-6. **L6:** independent JWS libraries and canonical vectors agree; transport identity
-   is not assumed from Zenoh callbacks.
-7. **L7:** signatures attest origin/integrity, not model validity or calibration.
+5. **L5:** hostile input is bounded before direct-context admission or B-over-A
+   base64 and signature work.
+6. **L6:** A-direct identity/capability implementations and B-over-A JWS libraries
+   agree on canonical vectors.
+7. **L7:** transport authentication and forwarding signatures attest only origin
+   and integrity. They do not attest model validity or calibration.
 8. **L8:** key/ACL configuration, rotation, revocation, audit and recovery are
    executable and secret-safe.
 9. **L9:** KATs, negative corpus, TLA security model, live mTLS/ACL campaign and
@@ -6689,9 +6881,14 @@ Implementation:
 
 - represent session, operation, stream, authority, disposition and security states
   as closed types with private fields and checked constructors;
+- implement opaque prepared plant layouts and frame packers with private fields.
+  Preparation accepts the complete key roster and returns layout-bound slot
+  handles. Each tick accepts values only through those handles. The packer
+  requires every slot once, assigns one final position, serializes once, and
+  moves the immutable buffer into its transport-owned slot;
 - implement pure `State × Event -> Result<State, EffectPlan, Error>` transitions;
-  transport, monotonic/UTC clocks, entropy, durable storage, signature verification,
-  audit and actuator calls are injected effects;
+  transport, monotonic/UTC clocks, entropy, durable storage, profile-specific
+  ingress verification, audit, and actuator calls are injected effects;
 - order transitions so validation/reservation/durable intent precede irreversible
   effects and success receipts follow the ratified commit boundary; represent
   ambiguous effect outcomes explicitly;
@@ -6741,11 +6938,13 @@ docs.
 Implementation:
 
 - retain TLS 1.3 mutual authentication and default-deny Zenoh ACL as link/router
-  defenses, but require the verified NCP envelope for message-to-principal binding;
+  defenses. Require the selected profile's authenticated-ingress result for
+  message-to-principal binding;
 - expose separate typed clients/servers for simulation, plant and observer roles;
   raw generic publish/query cannot enter stable semantic callbacks;
-- construct actual route and message class from transport delivery and compare them
-  to protected context; never accept route/payload declarations as self-proof;
+- construct actual route and message class from transport delivery. Compare them
+  with the A-direct prepared context or B-over-A protected context. Never accept
+  payload declarations as self-proof;
 - declare exact RPC keys and stream routes after authenticated session/grant, retain
   undeclare guards, and retire them on generation/security/grant/stream change;
 - implement per-plane queues, priority, congestion, retention and deadlines exactly;
@@ -6764,14 +6963,17 @@ Implementation:
   reuses a generation, stream or lease.
 
 Acceptance: in-process and cross-process tests, hostile raw publisher, wrong route,
-wrong audience, cert/ACL mutants, queue overload, reconnect/restart, zero semantic
-callback before signature+manifest+session checks, and external live campaign later.
-Commit/push `transport: enforce authenticated typed NCP sessions over Zenoh`.
+wrong audience, cert/ACL mutants, queue overload, reconnect/restart, and
+cross-profile negatives. No semantic callback occurs before A-direct capability,
+manifest, and session checks or B-over-A JWS, manifest, and session checks. Run the
+external live campaign later. Commit/push `transport: enforce authenticated typed
+NCP sessions over Zenoh`.
 
 Ten-lens record:
 
 1. **L1:** typed route builders and message kinds agree with contract registries.
-2. **L2:** TLS/ACL and JWS are layered; callback limitations cannot grant identity.
+2. **L2:** A-direct layers TLS/ACL with an opaque capability. B-over-A adds JWS to
+   an authenticated restricted carrier. Callback limitations cannot grant identity.
 3. **L3:** loss/overload/revocation invokes plant state rules and cannot fake stop.
 4. **L4:** query retry, sample duplication/reorder, reconnect and undeclare races are
    covered.
@@ -6801,13 +7003,18 @@ Implementation:
 - provide high-level TS/Rust/Python/C APIs for typed sessions, observer attach,
   streams, authority and dispositions; unsafe low-level decode/publish is clearly
   named and cannot bypass validation in production;
+- generate opaque plant-layout and prepared-publisher APIs. Preparation accepts
+  the complete key roster and returns generation-bound slot handles. The tick
+  API accepts values only through those handles. Production packages expose no
+  unbound positional array, caller-supplied position, mutable byte buffer,
+  detached transport slot, publisher credential, or protected namespace handle;
 - document and test the distinction between standalone governor output and
   publisher admission in every binding: the governor owns no position allocator
   or high-water mark, normalized `seq=1` is not freshness evidence, and an owning
   publisher must assign and admit the next fresh position before publication;
-- make TypeScript bounded parsing preserve safe integers/exact strings and implement
-  canonical JWS/identity bytes independently rather than calling Rust for the
-  required independent-peer evidence;
+- make TypeScript bounded parsing preserve safe integers and exact strings.
+  Implement A-direct context semantics and B-over-A canonical JWS/identity bytes
+  independently. Do not call Rust for required independent-peer evidence;
 - define C ABI ownership, alignment, nullability, length, error-buffer, panic and
   thread-safety contracts for every new type; add ABI version/size negotiation;
 - keep Python FFI packaging deterministic and ensure exceptions never turn unknown
@@ -6935,7 +7142,8 @@ Ten-lens record:
 Implementation:
 
 - create canonical positive, boundary and negative vectors for every message,
-  operation, state transition, protected envelope, digest and error;
+  operation, state transition, profile-specific ingress result, B-over-A
+  protected envelope, digest, and error;
 - require exact mandatory coverage by actor, session type, plane, transport class
   and implementation; a new stable field/state without vectors fails generation;
 - add stateful sequences for duplicate/lost replies, same-key/different-digest,
@@ -6946,11 +7154,18 @@ Implementation:
   latch and then receive stream-order, occupied-position, command-identity, or
   post-boundary currentness/deadline rejection. The equivalent invalid
   HOLD and invalid Active have no side effect. Wrong principal, route, audience,
-  generation, security state, signature, bounds, grant/slot, or ambiguous mode
-  cannot mutate the buffer/latch. Cover every crash cut through reservation,
+  generation, security state, A-direct context, B-over-A signature, bounds,
+  grant/slot, or ambiguous mode cannot mutate the buffer/latch. Cover every crash
+  cut through reservation,
   effect, side-effect record, command result, and resolution;
 - add malicious raw JSON/base64/Unicode/number/nesting/duplicate-key cases evaluated
   before semantic allocation;
+- add 1, 2, and 3-subject canonical-layout vectors. Cover distinctive values,
+  keyed-input permutation, missing, duplicate, unknown, foreign, and stale slot
+  handles. Cover detached-buffer context substitution and raw-publisher closure.
+  Mutate sealed records before receiver open. Retain non-detectability controls
+  for sender changes before seal, receiver changes after open, and same-unit
+  value errors;
 - freeze v0.8 baselines untouched; replace the unreleased candidate baseline only
   through B02-authorized generation and retain the superseded RC digest separately;
 - encode 0.8 migration as explicit reconstructability/terminating-gateway cases,
@@ -7217,7 +7432,8 @@ Ten-lens record:
 **Artifacts:** external evidence only; no private keys in Git.
 
 Execute section 8.9–8.10 on exact installed candidate artifacts: independent router,
-CA and principals; mTLS/ACL; NCP signatures; wrong cert/key/role/route/audience;
+CA and principals; mTLS/ACL; A-direct context validation; B-over-A JWS;
+wrong cert/key/role/route/audience;
 expiry, planned rotation, emergency revocation, ACL change, router/peer restart,
 packet loss/duplicate/reorder/delay/partition, queue/disk pressure, clock movement,
 operation reply loss, stream exhaustion, authority transfer and prolonged soak.
@@ -7350,7 +7566,8 @@ baseline test suite still passes before semantic migration begins. Commit/push
 Ten-lens record:
 
 1. **L1:** the full mirror and runtime point at one provider identity.
-2. **L2:** mirroring grants no trust; runtime signature/manifest gates remain needed.
+2. **L2:** mirroring grants no trust; runtime selected-profile authentication and
+   manifest gates remain needed.
 3. **L3:** no plant or action path activates during a source synchronization.
 4. **L4:** rebase and mirror updates are deterministic and reject partial copies.
 5. **L5:** mirror size/path/file-count/symlink limits and exact hashes are checked.
@@ -7432,11 +7649,12 @@ examples, documentation, and security/bus/transport tests.
 
 Implementation:
 
-- implement the NCP production envelope independently in Python using a reviewed
-  library/profile, exact canonical bytes and protected route/session context;
-- keep `production-secure` unavailable until message signature, key mapping,
-  manifest, route/audience, stable-core, transcript and security epoch are all
-  validated before semantic callbacks; do not infer peer identity from Zenoh;
+- implement A-direct independently in Python for hot production paths. Use a
+  receiver-owned opaque context minted from verified transport identity. Implement
+  B-over-A only for explicit forwarding, using a reviewed JWS library/profile;
+- keep `production-secure` unavailable until the selected profile verifies its
+  actor, manifest, route, audience, stable-core, transcript, security state,
+  session, and declaration before callbacks. Do not infer identity from Zenoh;
 - retain `dev-loopback-insecure` only for loopback/UDS with prominent insecure
   status, distinct types and no production negotiation;
 - inventory every stream-position producer, receiver, and caller-selected/raw
@@ -7450,8 +7668,8 @@ Implementation:
   succeed. A pull/RPC simulation result has no data-plane position; if Engram
   publishes an observation, it follows this same lifecycle;
 - remove `authorize_epoch(...)` and every first-frame adoption path. Before any
-  callback, state change, side effect or watchdog refresh, require the full
-  protected envelope, live grant where applicable, and installed current
+  callback, state change, side effect or watchdog refresh, require the selected
+  profile's authenticated-ingress result, live grant where applicable, and current
   descriptor/declaration/security state to match actor/entity/role, plane, actual
   route/audience, session/generation, kind/channels, transcript, epoch and
   monotonic sequence. Retire admission on generation, grant, descriptor,
@@ -7459,14 +7677,17 @@ Implementation:
 - export only sealed role-specific production publish/subscribe capabilities.
   Raw `Bus.put`, public `.bus`, caller-supplied frames/epochs, generic transport
   `send_*`, `InProcessTransport`, default empty positions and direct ROS
-  actuation must not bypass envelope/declaration admission or appear in the
+  actuation must not bypass authenticated-ingress and declaration admission or appear in the
   production closure. Migrate examples or explicitly label/exclude them from
   native evidence;
-- enforce preallocation JSON/JWS limits and per-plane queue/backpressure behavior;
+- enforce preallocation JSON and profile-specific limits. Apply capability/context
+  limits to A-direct and JWS/base64 limits only to B-over-A. Enforce per-plane
+  queue and backpressure behavior;
   data traffic never refreshes a lease/watchdog.
 
-Acceptance: independent crypto KAT/negative corpus; wrong route/key/role/session/
-epoch rejects; parameterized sensor/observation/command/status at max-minus-one,
+Acceptance: independent A-direct capability/context positives and negatives;
+B-over-A crypto KAT/negative corpus; wrong route/key/role/session/epoch rejects;
+parameterized sensor/observation/command/status at max-minus-one,
 max and the next attempt; constructors, bind/rebind, reconnect, HOLD and lease
 expiry never rotate; declaration/retirement failure, reply loss and crash before/
 after authority commit and local selector install; generation/security/
@@ -7481,11 +7702,13 @@ Commit/push `neurocontrol: authenticate and declare NCP streams`.
 
 Ten-lens record:
 
-1. **L1:** Python protected bytes/routes/declarations match provider exactly.
-2. **L2:** signature plus manifest supplies message identity; no callback trust gap.
+1. **L1:** Python profile bytes, contexts, routes, and declarations match provider.
+2. **L2:** A-direct capability or B-over-A signer plus manifest supplies identity.
+   No callback trust gap remains.
 3. **L3:** transport failure/revocation blocks active output and preserves ESTOP.
 4. **L4:** rollover, reorder, reconnect, rotation and callback races are fenced.
-5. **L5:** raw bytes/base64/JSON/queues/sequences and callback work are bounded.
+5. **L5:** raw bytes, contexts, B-over-A base64/JSON, queues, sequences, and callback
+   work are bounded.
 6. **L6:** independent Python and Rust/TS peers agree over live transport.
 7. **L7:** delivery/security does not establish simulation or posterior meaning.
 8. **L8:** configuration, metrics, rotation, errors and recovery are executable.
@@ -7503,6 +7726,12 @@ Ten-lens record:
 
 Implementation:
 
+- install the body-issued composite layout instance into one opaque Engram
+  command publisher. Preparation accepts the complete acceleration-key roster.
+  It returns publisher-generation-bound slot handles. Each tick writes every
+  required value once through those handles. The publisher owns the transport
+  slot and is the only direct application publisher. Python receives no raw byte
+  buffer, detached transport slot, credential, position, or namespace handle;
 - make the direct plant client request, renew and release authority from the body
   and use the body's monotonic-deadline receipt; Engram cannot execute a transfer,
   mint a lease or renew one from local state;
@@ -7619,7 +7848,7 @@ Commit/push `evidence: qualify Engram's NCP 1.0 integration roles`.
 Ten-lens record:
 
 1. **L1:** installed runtime, mirror, descriptor and provider identities agree.
-2. **L2:** production identity/ACL/signature negatives execute live.
+2. **L2:** production identity, ACL, and selected-profile authentication negatives execute live.
 3. **L3:** plant campaign is non-actuating or separately authorized and bounded.
 4. **L4:** fault/restart/partition/retry behavior is exercised.
 5. **L5:** declared platform/resource/latency bounds are measured.
@@ -7925,6 +8154,12 @@ Implementation:
   commander principal. Retain intent and decision digests only as provenance.
   Never delegate Engram identity or authority. Publication still requires the
   one-use release fence below;
+- use one opaque Haldir command publisher for that construction. Preparation
+  binds the complete acceleration-key roster and returns generation-bound slot
+  handles. Each tick writes every slot once. The publisher assigns the final
+  position and moves one immutable buffer into its transport slot. It is the
+  only gated application publisher. It exposes no detached buffer or raw
+  application publishing path;
 - bind the frame and transport actor for every attempted Active, HOLD, or ESTOP
   publication to the enrolled Haldir commander. Bind an initiating authenticated
   operator, when present, only as separate provenance; it never becomes the
@@ -8195,7 +8430,7 @@ one exact commander receipt and assessment-surface absence negatives. Commit/pus
 Ten-lens record:
 
 1. **L1:** deployed adapter/transport/docs use the same final contract.
-2. **L2:** live TLS/ACL/JWS/manifest/lease negatives reject.
+2. **L2:** live TLS/ACL/A-direct capability and B-over-A JWS negatives reject.
 3. **L3:** non-actuating fail-safe and ESTOP boundary are observed, not overclaimed.
 4. **L4:** transfer/restart/revocation/partition/overload execute live.
 5. **L5:** commander resource/latency/evidence bounds are measured.
@@ -8596,7 +8831,7 @@ permission widening. Commit/push
 Ten-lens record:
 
 1. **L1:** standard observations and Galadriel extension payloads are disjoint.
-2. **L2:** observer grant/signature/route/producer mapping authorizes read only.
+2. **L2:** observer grant, selected-profile authentication, route, and producer mapping authorize read only.
 3. **L3:** advisory outputs cannot acquire authority or actuate.
 4. **L4:** attach/restart/revoke/gap/reorder/producer epoch are explicit.
 5. **L5:** envelope, covariance/vector, reorder, queue and gap bounds remain strict.
@@ -8816,7 +9051,7 @@ Commit/push
 Ten-lens record:
 
 1. **L1:** lifecycle/assembler state follows descriptor, grant and stream contracts.
-2. **L2:** signatures and read-only route subset precede all evidence callbacks.
+2. **L2:** selected-profile authentication and the read-only route subset precede all evidence callbacks.
 3. **L3:** monitor faults/anomalies remain advisory and non-actuating.
 4. **L4:** startup race, reorder, gap, restart, revocation and close are deterministic.
 5. **L5:** line/envelope/vector/reorder/queue/time limits fail stop.
@@ -8835,8 +9070,8 @@ Ten-lens record:
 
 Run all default/pid-only/NCP-only/combined-feature Galadriel gates, JSONL and live
 extension corpora,
-installed NCP artifacts, Crebain producer, real authenticated router signature/
-ACL/grant negatives,
+installed NCP artifacts, Crebain producer, and real authenticated-router,
+ACL, A-direct capability, B-over-A JWS, and grant negatives,
 gap/reorder/overload/revocation faults and clean-room reproduction. Demonstrate by
 API and ACL that the observer credential cannot declare a publisher, queryable, or
 stream; publish core/extension frames; create commands or dispositions; acquire,
@@ -8953,6 +9188,9 @@ Implementation:
 
 - make plant-authority the sole software body for session generation, authority
   terms/deadlines, command admission, disposition journal and stream declarations;
+- install the content-addressed plant and layout instances once per generation.
+  Retain one opaque prepared ingress context with fixed offsets, bounds, exact
+  length, authorized publisher, and one-use executor capacity;
 - implement `BodySessionControlStateHead` as the sole installed currentness root
   for subordinate plant-authority/lifecycle, action-command declaration and
   disposition-journal heads. Authority transition facts precede their successor;
@@ -8971,8 +9209,8 @@ Implementation:
   or credential replacement cannot transfer authority;
   restart without proved continuity invalidates sessions/leases and enters the
   profile-defined non-actuating state;
-- before any remote fail-safe side effect, verify bounds, the protected envelope,
-  canonical kind and version, the transport principal, and default-deny
+- before any remote fail-safe side effect, verify bounds, the selected
+  authenticated-ingress profile, canonical kind and version, and default-deny
   actor/action permission. Verify the exact route, audience, direct realm, live
   session generation, publisher incarnation, declaration, stream epoch, positive
   syntactic position, current security state, structurally valid mode, installed
@@ -8990,8 +9228,9 @@ Implementation:
   fields separate from verified body-issued term/lease/holder provenance.
 - remove `minimal_estop_command`, the raw JSON `mode == "estop"` bypass, and the
   early unauthenticated/wrong-context typed ESTOP bypass in
-  `src-tauri/src/ncp/mod.rs`; unsigned, oversized, ambiguous-mode, wrong-principal/
-  route/audience/generation/security input cannot latch or actuate. An authenticated
+  `src-tauri/src/ncp/mod.rs`; unauthenticated, cross-profile, oversized,
+  ambiguous-mode, wrong-principal/route/audience/generation/security input cannot
+  latch or actuate. An authenticated
   current-session candidate that fails later semantics uses the exact side-effect
   attempt/record and, for a new identity, `received -> rejected`, never a repaired
   command; exact replay references its existing chain. Keep any plant-
@@ -9086,6 +9325,13 @@ Implementation:
 
 - declare standard NCP sensor/observation streams through the body and publish only
   valid standard frames on core routes;
+- make the Crebain sensor publisher the only application perception publisher.
+  Preparation binds the simulator-key roster and returns generation-bound slot
+  handles. Each tick marks every availability group exactly once. It writes every
+  member of each available group exactly once. It writes no member of any
+  unavailable group. The packer materializes every bound slot. The publisher
+  assigns one final position and moves the immutable aggregate buffer into its
+  transport slot;
 - publish `SidecarEnvelope`/monitor data only on registered Galadriel extension
   keys using the extension schema/security/source correlation from G01;
 - bind producer identity to the Crebain body deployment/manifest, exact plant
@@ -9178,7 +9424,7 @@ Ten-lens record:
 **Update:** release/security/hazard/NCP/producer docs, `.ncp-consumer`, evidence.
 
 Run default-off and NCP-on complete Crebain gates, installed artifacts, Haldir and
-Engram commanders, authority conflict/transfer, signed commands, malformed ESTOP,
+Engram commanders, authority conflict/transfer, profile-authenticated commands, malformed ESTOP,
 fail-safe/deadline/profile/reset/disposition, including an authenticated current-
 session ESTOP latch followed by command rejection, invalid HOLD and Active with
 no remote side effect, wrong-context no-mutation, and every side-effect crash cut.
@@ -10170,8 +10416,8 @@ Freeze a draft contract identity and mandatory positive/negative subset at the
 exact N02–N04 provider commit, then have an independent implementer build a minimal
 parser/validator/state-transition peer before package and documentation work hardens
 around Rust assumptions. It must cover typed session open/attach, contract identity,
-authenticated envelope, stream declaration, authority acquisition, disposition and
-unknown/default rejection. The peer is a draft ambiguity detector, not the final
+A-direct context admission, B-over-A authenticated forwarding, stream declaration,
+authority acquisition, disposition and unknown/default rejection. The peer is a draft ambiguity detector, not the final
 installed two-peer qualification and not a release artifact.
 
 Any byte, error, ordering or state disagreement reopens the owning ADR/provider
@@ -10188,7 +10434,7 @@ draft peer`.
 Ten-lens record:
 
 1. **L1:** independent parsing exposes ambiguous fields, bytes and errors early.
-2. **L2:** actor, signature, manifest, lease and unknown-value negatives are native.
+2. **L2:** actor, selected-profile authentication, manifest, lease and unknown-value negatives are native.
 3. **L3:** all plant cases use a non-actuating reference body.
 4. **L4:** retry, replay, reorder, close and restart traces are compared.
 5. **L5:** the independent parser enforces the same pre-allocation bounds.
@@ -10209,7 +10455,8 @@ or another clean-room non-Rust implementation.
 The Rust-backed Python and C FFI wrappers do not count. Install the candidate npm
 package from its archive in a clean environment and install/run the independent
 native Python implementation without importing the Rust codec. Each must parse,
-validate, sign/verify, canonicalize, compute identities, execute its supported state
+validate A-direct context and B-over-A JWS, sign or verify B-over-A JWS,
+canonicalize, compute identities, execute its supported state
 transitions and reject the full mandatory negative corpus. Exercise both against an
 installed Rust peer over actual transport and prove package-source independence.
 
@@ -10220,7 +10467,7 @@ Commit/push public summaries as `evidence: qualify independent NCP 1.0 peers`.
 Ten-lens record:
 
 1. **L1:** peers agree on bytes, errors, identities and state outcomes.
-2. **L2:** independent signature/manifest/admission implementations reject attacks.
+2. **L2:** independent A-direct capability, B-over-A JWS, manifest, and admission implementations reject attacks.
 3. **L3:** plant scenarios use a non-actuating reference body.
 4. **L4:** retries/reorder/restart/rotation are exercised cross-language.
 5. **L5:** each peer enforces the same limits before allocation.
@@ -10293,23 +10540,73 @@ Execute compositions, not only pairs:
 - Engram simulation responder with an independent client;
 - Engram simulation service concurrently with observation and each plant commander
   mode, proving its principal/grants/state never enter plant authority;
-- real NEST Simulator 3.9 closed loops for exactly 1, 2, and 3 simulated CREBAIN
+- real NEST Simulator 3.9 closed loops for exactly 1, 2, and 3 simulated Crebain
   drones. Each run uses one composite fleet plant session, one aggregate
   `SensorFrame` with `6N` scalars, and one aggregate `CommandFrame` with
-  `3N` scalars. The plant profile binds a sorted stable drone-ID roster and the
-  exact per-drone ENU `position[x,y,z]`, `velocity[x,y,z]`, and
-  `acceleration_command[x,y,z]` channel order. Every frame binds the descriptor
-  and layout digests plus identical roster order;
+  `3N` scalars. The reusable layout profile fixes generic rules. The selected
+  layout instance binds the stable drone roster and exact per-drone ENU
+  `position[x,y,z]`, `velocity[x,y,z]`, and
+  `acceleration_command[x,y,z]` channel order. The prepared context binds the
+  descriptor, profile, layout instance, roster, producer, declaration, frame
+  class, encoding, and length;
+- exhaustive availability masks for each required fleet. N=1 uses `00` through
+  `01`. N=2 uses `00` through `03`. N=3 uses `00` through `07`. Prove exact
+  least-significant-bit order, zero padding, frame length, and content digest;
+- source pins that retain the exact availability projection. Each unavailable
+  drone requires its installed three-value restrictive lane in the atomic
+  `3N` Active command;
+- one NEST 3.9 kernel at `0.1 ms` resolution. Every `20 ms` fleet epoch uses
+  seed `20260826` and advances exact biological time;
+- a receipt-bound Engram controller manifest. It binds the exact NEST 3.9 build,
+  models, parameters, graph, devices, `6N` input transform, `3N` decoder, clamps,
+  targets, seeds, thread settings, lane state machine, and artifact digest;
+- disjoint per-drone nodes, synapses, stimulators, recorders, and counter-based
+  input streams. Each stream key includes the seed, drone, population, neuron,
+  and epoch. A lane never consumes another lane's RNG state;
+- the exact lane states `NORMAL`, `UNAVAILABLE_RESTRICTIVE`, and
+  `RECOVERY_WASHOUT`. Unavailable and washout epochs neutralize only the affected
+  lane and emit its restrictive output. The first available frame after
+  `UNAVAILABLE_RESTRICTIVE` enters `RECOVERY_WASHOUT`. A second consecutive
+  available frame enters `NORMAL`. Any washout fault returns to
+  `UNAVAILABLE_RESTRICTIVE` and restarts this two-frame recovery;
+- no kernel reset during fault recovery. Restart restores exact lane state or
+  retires and reopens the session;
+- each single-drone fault, every pair, all drones, persistent faults, alternating
+  faults, fault during washout, recovery, and restart for N=1, N=2, and N=3;
+- bitwise-equal sibling lanes against the receipt-qualified no-fault baseline;
 - exact NEST controller-step and sensor-source correlation for every fleet epoch.
-  Retain NEST 3.9 version, Engram and CREBAIN commits, NCP artifact and contract
+  Retain NEST 3.9 version, Engram and Crebain commits, NCP artifact and contract
   identities, fleet size and roster, descriptor and layout digests, seeds,
   simulation duration and resolution, frame and command digests, stream
   coordinates, authority and disposition chains, step counts, timing, resource
   measures, and terminal state;
-- whole-frame negatives for missing, duplicate, unknown, stale, misordered,
-  non-finite, unit-mismatched, wrong-drone, same-unit cross-drone swap, roster
-  permutation, descriptor drift, layout drift, and partial command input. Each
-  rejects before simulator callback and creates no partial fleet application;
+- whole-frame negatives for missing, duplicate, unknown, stale, non-finite,
+  wrong-length, wrong-profile, wrong-layout, wrong-roster, wrong-source,
+  unauthorized, and partial command input. Include keyed-input permutation,
+  foreign and stale slot handles, detached-buffer context substitution,
+  sealed-record mutation before open, credential substitution, and raw
+  application-publisher closure. Each invalid frame rejects before simulator
+  callback and creates no partial fleet application;
+- bitmap negatives for missing, short, long, inverted, nonzero-padding, stale-
+  digest, split, spliced, inherited, and separately superseded state. Include
+  wrong group membership, conflicting dependencies, and nonrestrictive lanes;
+- the five distinct states: received available zero, received unavailable,
+  malformed frame, transport gap, and whole-frame loss;
+- source-pin pressure, pre-reserved capacity, exact restart restoration, and
+  generation retirement. Include producer pre-position rejection, post-position
+  gap creation, and receiver pre-admission rejection;
+- compatibility JSON parity with compact binary. Never infer availability from
+  zero values or omitted JSON channels;
+- absent, present, late, invalid, and overloaded condition-detail extensions.
+  None can change core admission, action, or availability;
+- direct Engram and gated Haldir paths that preserve the exact source reference,
+  layout, bitmap, position, declaration digest, and content digest;
+- Galadriel and Prisoma projections that preserve typed missingness. A removed or
+  reordered slot requires a new projected layout and recomputed bitmap;
+- explicit non-detectability controls for sender mutation before seal, receiver
+  mutation after open, unattested packer state, plausible same-unit entity
+  misassociation, equal-value swaps, bad wiring, and a compromised authorized
+  packer. Do not report these cases as receiver-detected provenance;
 - direct Engram commander and gated Haldir commander contending for one Crebain
   body, including acquire/conflict, both handover directions, quiesce, crash at
   every transition boundary, old-commander partition, lease-deadline expiry,
@@ -10340,17 +10637,20 @@ Execute compositions, not only pairs:
   fleet evidence cannot count as an NCP campaign result;
 - MUSIC boundary negatives. NCP defines, tunnels, or reinterprets no MUSIC time
   grant, lookahead, scheduler barrier, tick ownership, or deadlock semantics.
-  The NEST–CREBAIN loops use independent clocks and make no shared-clock claim.
+  The NEST–Crebain loops use independent clocks and make no shared-clock claim.
   A future shared-clock campaign must use separately qualified MUSIC artifacts;
 - old 0.8 and superseded RC peers attempting connection and failing closed, plus an
   explicitly terminating migration gateway if one is shipped.
 
 Acceptance: all cross-module TLA scenarios have live counterparts; all three
-NEST 3.9 fleet sizes pass with exact receipts and zero skipped epoch; every
-whole-frame hostile case rejects before callback; exact expected state at every
-participant; no private core fork; no Host API 2 substitution; no NCP-owned MUSIC
-semantics; no authority split brain; no observer mutation; bounded resources;
-independent review. Commit/push
+NEST 3.9 fleet sizes pass with exact receipts and zero skipped epoch; each fault
+retains its bitmap, source pin, restrictive lane, `APPLIED` disposition, lane
+isolation, washout, and recovery evidence; every
+receiver-detectable hostile frame rejects before callback; each information-
+theoretic non-detectability control retains its exact limitation; exact expected
+state at every participant; no private core fork; no Host API 2 substitution; no
+NCP-owned MUSIC semantics; no authority split brain; no observer mutation;
+bounded resources; independent review. Commit/push
 `evidence: record the composed NCP 1.0 ecosystem campaign`.
 
 Ten-lens record:
@@ -10532,7 +10832,7 @@ The final authorization bundle must contain one current receipt for every row:
 |---|---|---|
 | normative contract and generated parity | B01–B03, N01–N08 | accepted ADRs; exact stable/full/corpus identities; proto/Rust/schema/TS/FFI/manifest parity; no generated drift |
 | zero-skip conformance | N08, F03, X01 | every mandatory vector executed by every applicable implementation; no skip/unknown/unexplained difference |
-| live mTLS/ACL/signature/rotation/revocation | N04, N06, F04 | exact installed production profile; negative principals/routes/keys/epochs; planned rotation and emergency revocation |
+| live mTLS/ACL/selected-profile authentication/rotation/revocation | N04, N06, F04 | exact installed production profile; negative principals/routes/A-direct contexts/B-over-A keys/epochs; planned rotation and emergency revocation |
 | two independent non-Rust peers | X01 | two installed decision implementations with no Rust decision FFI; live and corpus pass |
 | fault/backpressure/restart/soak | F04, X02 | preregistered duration/scenarios, bounded resources, no open critical/high defect |
 | fuzz/sanitizer duration | F03 | release-duration matrix, retained coverage/seeds, no crash/race/UB/leak or critical surviving mutant |
@@ -11206,7 +11506,7 @@ release completion.
 |---|---|---|---|
 | P0 | mandated NCP documents and boundary | `LOCAL_PASS` | source cut and digest recorded above |
 | P1 | archive, local consumers, and public metadata inventory | `LOCAL_PASS` | archive digest and mutable snapshot recorded above |
-| P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings D01–D20 above; implementation remains open |
+| P2 | first-principles blockers and ecosystem conclusions | `LOCAL_PASS` | findings D01–D21 above; implementation remains open |
 | P3 | target 1.0 architecture and normative decision records | `LOCAL_PASS` | target laws, messages, security, extensions, and ADR gates in section 7; ADRs remain unratified |
 | P4 | formal, executable, statistical, security, and fault verification program | `LOCAL_PASS` | layered program, models, invariants, refinement, security/fault/fuzz and statistical rules in section 8; all new executions remain `NOT_RUN` |
 | P4A | documentation, diagram, graph, accessibility, and visual-quality program | `LOCAL_PASS` | current defects V01–V11 and exact automated/human acceptance program in section 9; remediation and release renders remain `NOT_RUN` |

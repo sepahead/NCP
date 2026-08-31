@@ -42,10 +42,16 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
     "ADR003_FLATTENED_FORWARDING_WRAPPER_V1",
   "docs/adr/0004-observer-attach-grants-and-revocation.md#1":
     "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1",
+  "docs/adr/0004-observer-attach-grants-and-revocation.md#2":
+    "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1",
   "docs/adr/0005-declared-stream-lifecycle.md#1":
     "ADR005_DECLARE_STREAM_EXCERPT_V1",
   "docs/adr/0005-declared-stream-lifecycle.md#2":
     "ADR005_UNDECLARED_FRAME_V1",
+  "docs/adr/0005-declared-stream-lifecycle.md#3":
+    "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1",
+  "docs/adr/0005-declared-stream-lifecycle.md#4":
+    "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1",
   "docs/adr/0006-body-issued-authority-and-time.md#1":
     "ADR006_BODY_LEASE_EXCERPT_V1",
   "docs/adr/0006-body-issued-authority-and-time.md#2":
@@ -56,12 +62,16 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
     "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1",
   "docs/adr/0007-command-disposition-journal.md#3":
     "ADR007_INVALID_DISPOSITION_V1",
+  "docs/adr/0007-command-disposition-journal.md#4":
+    "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#1":
     "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#2":
     "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1",
   "docs/adr/0008-extension-namespace-and-galadriel-separation.md#3":
     "ADR008_GALADRIEL_POLICY_INJECTION_V1",
+  "docs/adr/0008-extension-namespace-and-galadriel-separation.md#4":
+    "ADR008_SENSOR_CONDITION_DETAIL_V1",
   "docs/adr/0009-security-state-rotation-and-revocation.md#1":
     "ADR009_SECURITY_STATE_PROJECTION_V1",
   "docs/adr/0009-security-state-rotation-and-revocation.md#2":
@@ -70,12 +80,18 @@ const PROFILE_BY_SOURCE: Readonly<Record<string, string>> = Object.freeze({
     "ADR010_ACTION_QOS_PROFILE_V1",
   "docs/adr/0010-plane-qos-retention-and-overload.md#2":
     "ADR010_INVALID_ACTION_QOS_PROFILE_V1",
+  "docs/adr/0010-plane-qos-retention-and-overload.md#3":
+    "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#1":
     "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#2":
     "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1",
   "docs/adr/0011-ecosystem-topology-and-handover.md#3":
     "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1",
+  "docs/adr/0011-ecosystem-topology-and-handover.md#4":
+    "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1",
+  "docs/adr/0011-ecosystem-topology-and-handover.md#5":
+    "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1",
 });
 
 const HEADER_LIMITS: JsonLimits = Object.freeze({
@@ -133,11 +149,20 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
       adr004(document, input.fixture, diagnostics);
       matchingResult = "MATCH_NON_WIRE_EXCERPT";
       break;
+    case "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1":
+      adr004SensorProjection(document, diagnostics);
+      break;
     case "ADR005_DECLARE_STREAM_EXCERPT_V1":
       adr005Declaration(document, input.fixture, diagnostics);
       break;
     case "ADR005_UNDECLARED_FRAME_V1":
       adr005Undeclared(document, input.fixture, diagnostics);
+      break;
+    case "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1":
+      adr005SensorAvailability(document, diagnostics);
+      break;
+    case "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1":
+      adr005DetachedAvailability(document, diagnostics);
       break;
     case "ADR006_BODY_LEASE_EXCERPT_V1":
     case "ADR006_STALE_SELF_ISSUED_LEASE_V1":
@@ -150,6 +175,9 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
     case "ADR007_INVALID_DISPOSITION_V1":
       adr007(document, input.fixture, diagnostics);
       break;
+    case "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1":
+      adr007UnavailableSource(document, diagnostics);
+      break;
     case "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1":
       adr008ExtensionEnvelope(document, diagnostics);
       break;
@@ -158,6 +186,9 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
       break;
     case "ADR008_GALADRIEL_POLICY_INJECTION_V1":
       adr008Policy(document, input.fixture, diagnostics);
+      break;
+    case "ADR008_SENSOR_CONDITION_DETAIL_V1":
+      adr008SensorConditionDetail(document, diagnostics);
       break;
     case "ADR009_SECURITY_STATE_PROJECTION_V1":
       adr009Projection(document, input.fixture, diagnostics);
@@ -171,6 +202,9 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
     case "ADR010_INVALID_ACTION_QOS_PROFILE_V1":
       adr010Invalid(document, input.fixture, diagnostics);
       break;
+    case "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1":
+      adr010PerceptionQueueMissingness(document, diagnostics);
+      break;
     case "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1":
       adr011RegisteredIntent(document, input.fixture, diagnostics);
       break;
@@ -179,6 +213,12 @@ export function evaluateSemantics(input: SemanticInput): SemanticResult {
       break;
     case "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1":
       adr011EffectPathFencing(document, diagnostics);
+      break;
+    case "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1":
+      adr011PreparedPublisher(document, diagnostics);
+      break;
+    case "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1":
+      adr011X02FleetAvailability(document, diagnostics);
       break;
     default:
       throw new SemanticConfigurationError(`unknown profile ${input.profile}`);
@@ -369,6 +409,28 @@ function adr004(document: JsonObject, fixture: JsonValue, diagnostics: string[])
   }
 }
 
+function adr004SensorProjection(document: JsonObject, diagnostics: string[]): void {
+  const requirements = [
+    ["availability_projection_is_tighten_only", true, "SENSOR_PROJECTION_TIGHTEN_ONLY_REQUIRED"],
+    ["optional_detail_can_override_availability", false, "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN"],
+    ["portable_origin_identity_preserved", true, "SENSOR_PROJECTION_ORIGIN_IDENTITY_REQUIRED"],
+    ["projected_available_requires_origin_available_inputs", true, "SENSOR_PROJECTION_AVAILABLE_INPUT_REQUIRED"],
+    ["projection_binds_origin_and_projected_availability", true, "SENSOR_PROJECTION_AVAILABILITY_BINDING_REQUIRED"],
+    ["slot_removal_or_reorder_requires_new_layout_and_bitmap", true, "SENSOR_PROJECTION_LAYOUT_REBIND_REQUIRED"],
+    ["source_unavailable_can_project_available", false, "SENSOR_PROJECTION_UNAVAILABLE_UPGRADE_FORBIDDEN"],
+    ["unavailable_placeholder_can_be_observation", false, "SENSOR_PROJECTION_PLACEHOLDER_LAUNDERING_FORBIDDEN"],
+  ] as const;
+  requireExactProjectionMembers(
+    document,
+    requirements.map(([field]) => field),
+    "SENSOR_PROJECTION_ANTI_LAUNDERING_INVALID",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of requirements) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+}
+
 function adr005Declaration(
   document: JsonObject,
   fixture: JsonValue,
@@ -418,6 +480,60 @@ function adr005Undeclared(
   if (epoch === undefined || !liveEpochs.includes(epoch)) {
     diagnostics.push("STREAM_DECLARATION_NOT_LIVE");
   }
+}
+
+function adr005SensorAvailability(document: JsonObject, diagnostics: string[]): void {
+  const requirements = [
+    ["availability_bitmap_mandatory", true, "SENSOR_AVAILABILITY_BITMAP_REQUIRED"],
+    ["availability_covered_by_frame_digest", true, "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED"],
+    ["group_decision_exactly_once", true, "SENSOR_AVAILABILITY_GROUP_DECISION_REQUIRED"],
+    ["available_group_requires_all_values", true, "SENSOR_AVAILABLE_GROUP_COMPLETENESS_REQUIRED"],
+    ["unavailable_group_forbids_caller_values", true, "SENSOR_UNAVAILABLE_GROUP_VALUE_FORBIDDEN"],
+    ["unavailable_placeholder_is_internal", true, "SENSOR_UNAVAILABLE_PLACEHOLDER_INTERNAL_REQUIRED"],
+    ["decoder_exposes_placeholder_values", false, "SENSOR_UNAVAILABLE_PLACEHOLDER_EXPOSURE_FORBIDDEN"],
+    ["position_assigned_after_completeness", true, "SENSOR_AVAILABILITY_POSITION_ORDER_REQUIRED"],
+    ["post_assignment_failure_emits_gap", true, "SENSOR_POST_ASSIGNMENT_FAILURE_GAP_REQUIRED"],
+    ["receiver_rejection_unassigns_producer_position", false, "SENSOR_RECEIVER_REJECTION_POSITION_ROLLBACK_FORBIDDEN"],
+    ["live_source_pin_is_evictable", false, "SENSOR_LIVE_SOURCE_PIN_EVICTION_FORBIDDEN"],
+    ["live_source_pin_capacity_pre_reserved", true, "SENSOR_SOURCE_PIN_CAPACITY_RESERVATION_REQUIRED"],
+    ["pin_retained_until_terminal_disposition_or_evidence_handoff", true, "SENSOR_SOURCE_PIN_RETENTION_REQUIRED"],
+    ["restart_restores_pin_or_retires_generation", true, "SENSOR_SOURCE_PIN_RESTART_CLOSURE_REQUIRED"],
+    ["compatibility_json_infers_availability_from_zero_or_absence", false, "SENSOR_COMPATIBILITY_AVAILABILITY_INFERENCE_FORBIDDEN"],
+    ["compatibility_json_preserves_semantic_availability", true, "SENSOR_COMPATIBILITY_AVAILABILITY_PRESERVATION_REQUIRED"],
+    ["source_reference_repeats_bitmap", false, "SENSOR_AVAILABILITY_SOURCE_DUPLICATION_FORBIDDEN"],
+  ] as const;
+  requireExactProjectionMembers(
+    document,
+    requirements.map(([field]) => field),
+    "SENSOR_AVAILABILITY_PROJECTION_INVALID",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of requirements) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+}
+
+function adr005DetachedAvailability(document: JsonObject, diagnostics: string[]): void {
+  requireExactProjectionMembers(
+    document,
+    ["availability_transport", "availability_covered_by_frame_digest"],
+    "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN",
+    diagnostics,
+  );
+  requireProjectionLiteral(
+    document,
+    "availability_transport",
+    "INLINE_STABLE_CORE_SENSOR_FRAME",
+    "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN",
+    diagnostics,
+  );
+  requireProjectionBoolean(
+    document,
+    "availability_covered_by_frame_digest",
+    true,
+    "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED",
+    diagnostics,
+  );
 }
 
 function adr006(document: JsonObject, fixture: JsonValue, diagnostics: string[]): void {
@@ -516,6 +632,42 @@ function adr007(document: JsonObject, fixture: JsonValue, diagnostics: string[])
   ) {
     diagnostics.push("DISPOSITION_TERMINALITY_INVALID");
   }
+}
+
+function adr007UnavailableSource(document: JsonObject, diagnostics: string[]): void {
+  requireExactProjectionMembers(
+    document,
+    [
+      "source_pin_retains_availability",
+      "unavailable_group_requires_installed_restrictive_lane",
+      "group_dependency_map_is_layout_bound",
+      "conflicting_dependency_overlap_rejects_preparation",
+      "restrictive_action_is_universal_zero",
+      "complete_command_rejects_on_lane_mismatch",
+      "correctly_restricted_active_disposition",
+      "optional_detail_can_authorize",
+    ],
+    "SOURCE_RESTRICTIVE_PROJECTION_INVALID",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of [
+    ["source_pin_retains_availability", true, "SOURCE_PIN_AVAILABILITY_REQUIRED"],
+    ["unavailable_group_requires_installed_restrictive_lane", true, "SOURCE_RESTRICTIVE_ACTION_REQUIRED"],
+    ["group_dependency_map_is_layout_bound", true, "SOURCE_GROUP_DEPENDENCY_LAYOUT_BINDING_REQUIRED"],
+    ["conflicting_dependency_overlap_rejects_preparation", true, "SOURCE_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED"],
+    ["restrictive_action_is_universal_zero", false, "SOURCE_RESTRICTIVE_ACTION_UNIVERSAL_ZERO_FORBIDDEN"],
+    ["complete_command_rejects_on_lane_mismatch", true, "SOURCE_RESTRICTIVE_COMMAND_ATOMIC_REJECT_REQUIRED"],
+    ["optional_detail_can_authorize", false, "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN"],
+  ] as const) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+  requireProjectionLiteral(
+    document,
+    "correctly_restricted_active_disposition",
+    "APPLIED",
+    "SOURCE_RESTRICTED_ACTIVE_DISPOSITION_INVALID",
+    diagnostics,
+  );
 }
 
 function adr008ExtensionEnvelope(document: JsonObject, diagnostics: string[]): void {
@@ -676,6 +828,69 @@ function adr008Policy(
   }
 }
 
+function adr008SensorConditionDetail(
+  document: JsonObject,
+  diagnostics: string[],
+): void {
+  const requirements = [
+    ["available_or_unknown_group_rejects", true, "SENSOR_CONDITION_DETAIL_AVAILABLE_UNKNOWN_REJECTION_REQUIRED"],
+    ["complete_normative_source_ref_required", true, "SENSOR_CONDITION_DETAIL_SOURCE_REQUIRED"],
+    ["contradictory_group_rejects", true, "SENSOR_CONDITION_DETAIL_CONTRADICTION_REJECTION_REQUIRED"],
+    ["detail_can_authorize", false, "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN"],
+    ["detail_can_block_action", false, "SENSOR_CONDITION_DETAIL_ACTION_BLOCKING_FORBIDDEN"],
+    ["detail_can_block_perception", false, "SENSOR_CONDITION_DETAIL_PERCEPTION_BLOCKING_FORBIDDEN"],
+    ["detail_can_change_availability", false, "SENSOR_CONDITION_DETAIL_AVAILABILITY_AUTHORITY_FORBIDDEN"],
+    ["detail_record_is_optional", true, "SENSOR_CONDITION_DETAIL_OPTIONALITY_REQUIRED"],
+    ["detail_repeats_bitmap", false, "SENSOR_CONDITION_DETAIL_BITMAP_REPETITION_FORBIDDEN"],
+    ["detail_repeats_layout", false, "SENSOR_CONDITION_DETAIL_LAYOUT_REPETITION_FORBIDDEN"],
+    ["detail_repeats_scalars", false, "SENSOR_CONDITION_DETAIL_SCALAR_REPETITION_FORBIDDEN"],
+    ["duplicate_group_rejects", true, "SENSOR_CONDITION_DETAIL_DUPLICATE_REJECTION_REQUIRED"],
+    ["entries_bounded", true, "SENSOR_CONDITION_DETAIL_ENTRY_BOUNDS_REQUIRED"],
+    ["entries_sorted_by_group_ordinal", true, "SENSOR_CONDITION_DETAIL_ENTRY_ORDER_REQUIRED"],
+    ["exact_pinned_core_source_resolved_before_entry_checks", true, "SENSOR_CONDITION_DETAIL_SOURCE_RESOLUTION_ORDER_REQUIRED"],
+    ["invalid_detail_rejects_extension_only", true, "SENSOR_CONDITION_DETAIL_FAILURE_SCOPE_REQUIRED"],
+    ["reason_codes_bounded", true, "SENSOR_CONDITION_DETAIL_REASON_BOUNDS_REQUIRED"],
+    ["separate_principal_and_resource_partition", true, "SENSOR_CONDITION_DETAIL_RESOURCE_ISOLATION_REQUIRED"],
+    ["unknown_reason_code_rejects", true, "SENSOR_CONDITION_DETAIL_UNKNOWN_REASON_REJECTION_REQUIRED"],
+    ["wrong_or_evicted_source_rejects", true, "SENSOR_CONDITION_DETAIL_SOURCE_CURRENTNESS_REJECTION_REQUIRED"],
+  ] as const;
+  requireExactProjectionMembers(
+    document,
+    [
+      "absent_late_rejected_or_overflowed_result",
+      "detail_entry_members",
+      "detail_record_members",
+      ...requirements.map(([field]) => field),
+    ],
+    "SENSOR_CONDITION_DETAIL_PROJECTION_INVALID",
+    diagnostics,
+  );
+  requireProjectionLiteral(
+    document,
+    "absent_late_rejected_or_overflowed_result",
+    "REASON_UNAVAILABLE",
+    "SENSOR_CONDITION_DETAIL_ABSENCE_RESULT_INVALID",
+    diagnostics,
+  );
+  requireProjectionArray(
+    document,
+    "detail_entry_members",
+    ["group_ordinal", "reason_code"],
+    "SENSOR_CONDITION_DETAIL_ENTRY_SHAPE_INVALID",
+    diagnostics,
+  );
+  requireProjectionArray(
+    document,
+    "detail_record_members",
+    ["source", "entries"],
+    "SENSOR_CONDITION_DETAIL_RECORD_SHAPE_INVALID",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of requirements) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+}
+
 function requireProjectionBoolean(
   document: JsonObject,
   field: string,
@@ -684,6 +899,59 @@ function requireProjectionBoolean(
   diagnostics: string[],
 ): void {
   if (document[field] !== expected) diagnostics.push(diagnostic);
+}
+
+function requireProjectionLiteral(
+  document: JsonObject,
+  field: string,
+  expected: string | number,
+  diagnostic: string,
+  diagnostics: string[],
+): void {
+  if (document[field] !== expected) diagnostics.push(diagnostic);
+}
+
+function requireProjectionArray(
+  document: JsonObject,
+  field: string,
+  expected: readonly (string | number)[],
+  diagnostic: string,
+  diagnostics: string[],
+): void {
+  const actual = asArray(document[field]);
+  if (
+    actual === undefined ||
+    actual.length !== expected.length ||
+    actual.some((value, index) => value !== expected[index])
+  ) {
+    diagnostics.push(diagnostic);
+  }
+}
+
+function requireProjectionMatrix(
+  document: JsonObject,
+  field: string,
+  expected: readonly (readonly (string | number)[])[],
+  diagnostic: string,
+  diagnostics: string[],
+): void {
+  const actual = asArray(document[field]);
+  if (
+    actual === undefined ||
+    actual.length !== expected.length ||
+    actual.some((row, rowIndex) => {
+      const values = asArray(row);
+      const wanted = expected[rowIndex];
+      return (
+        wanted === undefined ||
+        values === undefined ||
+        values.length !== wanted.length ||
+        values.some((value, valueIndex) => value !== wanted[valueIndex])
+      );
+    })
+  ) {
+    diagnostics.push(diagnostic);
+  }
 }
 
 function requireExactProjectionMembers(
@@ -843,6 +1111,84 @@ function adr010Invalid(
   diagnostics: string[],
 ): void {
   adr010Action(document, fixture, diagnostics);
+}
+
+function adr010PerceptionQueueMissingness(
+  document: JsonObject,
+  diagnostics: string[],
+): void {
+  const fields = [
+    "authenticated_received_item_may_bear_producer_position",
+    "availability_bitmap_and_scalar_storage_indivisible",
+    "closed_perception_states",
+    "item_digest_count",
+    "item_position_count",
+    "item_queue_slot_count",
+    "item_supersession_decision_count",
+    "partial_drop_or_replace_allowed",
+    "producer_encode_or_queue_failure_after_assignment_consumes_position",
+    "producer_incomplete_or_malformed_rejects_before_position_assignment",
+    "received_available_zero_is_observation",
+    "received_unavailable_exposes_observation",
+    "receiver_malformed_rejection_creates_admission",
+    "receiver_malformed_rejection_creates_pin",
+    "receiver_malformed_rejection_invokes_typed_callback",
+    "receiver_malformed_rejection_rolls_back_producer_position",
+    "transport_gap_implies_sensor_unavailable",
+    "whole_frame_loss_equals_transport_gap",
+    "zero_or_omission_infers_availability",
+  ] as const;
+  requireExactProjectionMembers(
+    document,
+    fields,
+    "PERCEPTION_QUEUE_MISSINGNESS_PROJECTION_INVALID",
+    diagnostics,
+  );
+  requireProjectionBoolean(
+    document,
+    "availability_bitmap_and_scalar_storage_indivisible",
+    true,
+    "PERCEPTION_ITEM_INDIVISIBILITY_REQUIRED",
+    diagnostics,
+  );
+  requireProjectionArray(
+    document,
+    "closed_perception_states",
+    [
+      "RECEIVED_AVAILABLE_ZERO",
+      "RECEIVED_UNAVAILABLE",
+      "MALFORMED_FRAME",
+      "TRANSPORT_GAP",
+      "WHOLE_FRAME_LOSS",
+    ],
+    "PERCEPTION_MISSINGNESS_STATES_INVALID",
+    diagnostics,
+  );
+  for (const [field, diagnostic] of [
+    ["item_digest_count", "PERCEPTION_ITEM_DIGEST_UNITY_REQUIRED"],
+    ["item_position_count", "PERCEPTION_ITEM_POSITION_UNITY_REQUIRED"],
+    ["item_queue_slot_count", "PERCEPTION_ITEM_QUEUE_SLOT_UNITY_REQUIRED"],
+    ["item_supersession_decision_count", "PERCEPTION_ITEM_SUPERSESSION_UNITY_REQUIRED"],
+  ] as const) {
+    requireProjectionLiteral(document, field, 1, diagnostic, diagnostics);
+  }
+  for (const [field, expected, diagnostic] of [
+    ["authenticated_received_item_may_bear_producer_position", true, "PERCEPTION_AUTHENTICATED_PRODUCER_POSITION_PRESERVATION_REQUIRED"],
+    ["partial_drop_or_replace_allowed", false, "PERCEPTION_ITEM_PARTIAL_MUTATION_FORBIDDEN"],
+    ["producer_encode_or_queue_failure_after_assignment_consumes_position", true, "PERCEPTION_PRODUCER_POST_ASSIGNMENT_POSITION_CONSUMED_REQUIRED"],
+    ["producer_incomplete_or_malformed_rejects_before_position_assignment", true, "PERCEPTION_PRODUCER_PRE_ASSIGNMENT_VALIDATION_REQUIRED"],
+    ["received_available_zero_is_observation", true, "PERCEPTION_AVAILABLE_ZERO_OBSERVATION_REQUIRED"],
+    ["received_unavailable_exposes_observation", false, "PERCEPTION_UNAVAILABLE_OBSERVATION_FORBIDDEN"],
+    ["receiver_malformed_rejection_creates_admission", false, "PERCEPTION_RECEIVER_MALFORMED_ADMISSION_FORBIDDEN"],
+    ["receiver_malformed_rejection_creates_pin", false, "PERCEPTION_RECEIVER_MALFORMED_PIN_FORBIDDEN"],
+    ["receiver_malformed_rejection_invokes_typed_callback", false, "PERCEPTION_RECEIVER_MALFORMED_CALLBACK_FORBIDDEN"],
+    ["receiver_malformed_rejection_rolls_back_producer_position", false, "PERCEPTION_RECEIVER_POSITION_ROLLBACK_FORBIDDEN"],
+    ["transport_gap_implies_sensor_unavailable", false, "PERCEPTION_GAP_UNAVAILABILITY_INFERENCE_FORBIDDEN"],
+    ["whole_frame_loss_equals_transport_gap", false, "PERCEPTION_LOSS_GAP_COLLAPSE_FORBIDDEN"],
+    ["zero_or_omission_infers_availability", false, "PERCEPTION_ZERO_OMISSION_INFERENCE_FORBIDDEN"],
+  ] as const) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
 }
 
 function validateQosRealm(
@@ -1106,6 +1452,173 @@ function adr011EffectPathFencing(
   }
 }
 
+function adr011PreparedPublisher(
+  document: JsonObject,
+  diagnostics: string[],
+): void {
+  const requirements = [
+    ["layout_profile_defines_reusable_rules", true, "PREPARED_PROFILE_RULES_REQUIRED"],
+    ["layout_instance_binds_roster_slots_and_resources", true, "PREPARED_LAYOUT_INSTANCE_REQUIRED"],
+    ["prepared_publisher_owns_layout_bound_transport_slot", true, "PREPARED_LAYOUT_BOUND_TRANSPORT_SLOT_REQUIRED"],
+    ["foreign_or_stale_slot_handle_is_accepted", false, "PREPARED_FOREIGN_SLOT_HANDLE_FORBIDDEN"],
+    ["detached_buffer_context_rebind_is_exposed", false, "PREPARED_DETACHED_BUFFER_REBIND_FORBIDDEN"],
+    ["all_bound_slots_materialized_once_by_packer", true, "PREPARED_COMPLETE_FRAME_WRITE_REQUIRED"],
+    ["caller_writes_unavailable_slots", false, "PREPARED_CALLER_UNAVAILABLE_SLOT_WRITE_FORBIDDEN"],
+    ["sensor_layout_requires_positive_group_count", true, "PREPARED_SENSOR_LAYOUT_POSITIVE_GROUP_COUNT_REQUIRED"],
+    ["availability_groups_partition_sensor_slots_once", true, "PREPARED_AVAILABILITY_GROUP_PARTITION_REQUIRED"],
+    ["availability_bitmap_inline_with_scalar_storage", true, "PREPARED_AVAILABILITY_INLINE_REQUIRED"],
+    ["availability_byte_count_is_ceil_group_count_over_8", true, "PREPARED_AVAILABILITY_BYTE_COUNT_FORMULA_REQUIRED"],
+    ["packer_is_only_application_direct_publisher", true, "PREPARED_APPLICATION_PUBLISHER_EXCLUSIVITY_REQUIRED"],
+    ["final_position_assigned_before_transfer", true, "PREPARED_FINAL_POSITION_REQUIRED"],
+    ["exact_serialized_bytes_transferred_once", true, "PREPARED_EXACT_BYTE_TRANSFER_REQUIRED"],
+    ["application_mutable_alias_survives_transfer", false, "PREPARED_APPLICATION_MUTABLE_ALIAS_FORBIDDEN"],
+    ["raw_application_publisher_exposed", false, "PREPARED_RAW_APPLICATION_PUBLISHER_FORBIDDEN"],
+    ["separate_application_signer_or_publisher_holds_credentials", false, "PREPARED_SEPARATE_APPLICATION_CREDENTIAL_HOLDER_FORBIDDEN"],
+    ["direct_frame_adds_preparation_tag", false, "PREPARED_HOT_FRAME_TAG_FORBIDDEN"],
+    ["transport_record_protection_covers_exact_sealed_bytes", true, "PREPARED_SEALED_BYTE_PROTECTION_REQUIRED"],
+    ["sealed_record_mutation_before_open_is_accepted", false, "PREPARED_SEALED_RECORD_MUTATION_FORBIDDEN"],
+    ["sender_pre_seal_mutation_claimed_detectable", false, "PREPARED_SENDER_PRE_SEAL_DETECTION_OVERCLAIM"],
+    ["receiver_post_open_mutation_claimed_detectable", false, "PREPARED_RECEIVER_POST_OPEN_DETECTION_OVERCLAIM"],
+    ["receiver_attests_packer_output", false, "PREPARED_RECEIVER_ATTESTATION_OVERCLAIM"],
+    ["pre_seal_same_unit_misassociation_claimed_detectable", false, "PREPARED_PRE_SEAL_DETECTION_OVERCLAIM"],
+    ["equal_value_swap_claimed_detectable", false, "PREPARED_EQUAL_VALUE_DETECTION_OVERCLAIM"],
+    ["packer_owns_shared_clock_semantics", false, "PREPARED_CLOCK_OWNERSHIP_FORBIDDEN"],
+  ] as const;
+  requireExactProjectionMembers(
+    document,
+    [
+      ...requirements.map(([field]) => field),
+      "non_sensor_layout_availability_group_count",
+      "non_sensor_layout_availability_bytes",
+    ],
+    "PREPARED_APPLICATION_PUBLISHER_EXCLUSIVITY_REQUIRED",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of requirements) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+  requireProjectionLiteral(
+    document,
+    "non_sensor_layout_availability_group_count",
+    0,
+    "PREPARED_NON_SENSOR_GROUP_COUNT_INVALID",
+    diagnostics,
+  );
+  requireProjectionLiteral(
+    document,
+    "non_sensor_layout_availability_bytes",
+    0,
+    "PREPARED_NON_SENSOR_AVAILABILITY_BYTES_INVALID",
+    diagnostics,
+  );
+}
+
+function adr011X02FleetAvailability(document: JsonObject, diagnostics: string[]): void {
+  requireExactProjectionMembers(
+    document,
+    [
+      "bitmap_polarity",
+      "bit_order",
+      "unused_high_bits_zero",
+      "availability_groups_per_drone",
+      "sensor_scalars_per_drone",
+      "command_scalars_per_drone",
+      "availability_bytes_n1_n2_n3",
+      "exhaustive_masks_hex_n1_n2_n3",
+      "all_available_hex_n1_n2_n3",
+      "first_drone_unavailable_hex_n1_n2_n3",
+      "group_to_command_slots_n3",
+      "conflicting_dependency_overlap_rejected_at_preparation",
+      "unavailable_placeholder_f64_bits",
+      "lane_state_sequence",
+      "fault_during_washout_returns_to",
+      "one_composite_session",
+      "one_nest_kernel",
+      "music_shared_clock_owned",
+    ],
+    "X02_FLEET_AVAILABILITY_PROJECTION_INVALID",
+    diagnostics,
+  );
+  for (const [field, expected, diagnostic] of [
+    ["bitmap_polarity", "ONE_AVAILABLE_ZERO_UNAVAILABLE", "X02_AVAILABILITY_BITMAP_POLARITY_INVALID"],
+    ["bit_order", "LSB_FIRST_ROSTER_ORDER", "X02_AVAILABILITY_BIT_ORDER_INVALID"],
+    ["availability_groups_per_drone", 1, "X02_AVAILABILITY_GROUP_WIDTH_INVALID"],
+    ["sensor_scalars_per_drone", 6, "X02_SENSOR_SCALAR_WIDTH_INVALID"],
+    ["command_scalars_per_drone", 3, "X02_COMMAND_SCALAR_WIDTH_INVALID"],
+    ["unavailable_placeholder_f64_bits", "0000000000000000", "X02_UNAVAILABLE_PLACEHOLDER_BITS_INVALID"],
+  ] as const) {
+    requireProjectionLiteral(document, field, expected, diagnostic, diagnostics);
+  }
+  for (const [field, expected, diagnostic] of [
+    ["unused_high_bits_zero", true, "X02_AVAILABILITY_PADDING_INVALID"],
+    ["one_composite_session", true, "X02_COMPOSITE_SESSION_REQUIRED"],
+    ["one_nest_kernel", true, "X02_ONE_NEST_KERNEL_REQUIRED"],
+    ["music_shared_clock_owned", false, "X02_MUSIC_CLOCK_OWNERSHIP_FORBIDDEN"],
+  ] as const) {
+    requireProjectionBoolean(document, field, expected, diagnostic, diagnostics);
+  }
+  requireProjectionArray(
+    document,
+    "availability_bytes_n1_n2_n3",
+    [1, 1, 1],
+    "X02_AVAILABILITY_BYTE_COUNTS_INVALID",
+    diagnostics,
+  );
+  requireProjectionMatrix(
+    document,
+    "exhaustive_masks_hex_n1_n2_n3",
+    [
+      ["00", "01"],
+      ["00", "01", "02", "03"],
+      ["00", "01", "02", "03", "04", "05", "06", "07"],
+    ],
+    "X02_EXHAUSTIVE_MASKS_INVALID",
+    diagnostics,
+  );
+  requireProjectionArray(
+    document,
+    "all_available_hex_n1_n2_n3",
+    ["01", "03", "07"],
+    "X02_ALL_AVAILABLE_VECTOR_INVALID",
+    diagnostics,
+  );
+  requireProjectionArray(
+    document,
+    "first_drone_unavailable_hex_n1_n2_n3",
+    ["00", "02", "06"],
+    "X02_FIRST_UNAVAILABLE_VECTOR_INVALID",
+    diagnostics,
+  );
+  requireProjectionMatrix(
+    document,
+    "group_to_command_slots_n3",
+    [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
+    "X02_GROUP_COMMAND_SLOT_MAP_INVALID",
+    diagnostics,
+  );
+  requireProjectionBoolean(
+    document,
+    "conflicting_dependency_overlap_rejected_at_preparation",
+    true,
+    "X02_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED",
+    diagnostics,
+  );
+  requireProjectionArray(
+    document,
+    "lane_state_sequence",
+    ["NORMAL", "UNAVAILABLE_RESTRICTIVE", "RECOVERY_WASHOUT", "NORMAL"],
+    "X02_LANE_STATE_SEQUENCE_INVALID",
+    diagnostics,
+  );
+  requireProjectionLiteral(
+    document,
+    "fault_during_washout_returns_to",
+    "UNAVAILABLE_RESTRICTIVE",
+    "X02_WASHOUT_FAULT_RETURN_INVALID",
+    diagnostics,
+  );
+}
+
 function validateFixture(profile: string, fixture: JsonValue): void {
   const value = requiredObject(fixture, `fixture for ${profile}`);
   switch (profile) {
@@ -1201,8 +1714,15 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireFixtureInteger(lease.term, profile, true);
       return;
     }
+    case "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1":
+    case "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1":
+    case "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1":
     case "ADR007_DISPOSITION_QUERY_PROJECTION_V1":
+    case "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1":
     case "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1":
+    case "ADR008_SENSOR_CONDITION_DETAIL_V1":
+    case "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1":
+    case "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1":
       exactFixtureKeys(value, [], profile);
       return;
     case "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1":
@@ -1345,6 +1865,9 @@ function validateFixture(profile: string, fixture: JsonValue): void {
       requireFixtureString(value.gated_commander_principal_id, profile);
       return;
     case "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1":
+      exactFixtureKeys(value, [], profile);
+      return;
+    case "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1":
       exactFixtureKeys(value, [], profile);
       return;
     default:

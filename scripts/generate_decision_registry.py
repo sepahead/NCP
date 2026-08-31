@@ -73,7 +73,7 @@ SCHEMA_RELATIVE = SCHEMA.relative_to(ROOT).as_posix()
 CLOSURE_SOURCE_RELATIVE = CLOSURE_SOURCE.relative_to(ROOT).as_posix()
 CLOSURE_SCHEMA_RELATIVE = CLOSURE_SCHEMA.relative_to(ROOT).as_posix()
 EXPECTED_IDS = tuple(f"ADR-{number:03d}" for number in range(1, 12))
-EXPECTED_DEFECTS = {f"D{number:02d}" for number in range(1, 21)}
+EXPECTED_DEFECTS = {f"D{number:02d}" for number in range(1, 22)}
 ADR_MAIN_PATH = re.compile(
     r"docs/adr/(000[1-9]|001[01])-[a-z0-9]+(?:-[a-z0-9]+)*\.md\Z"
 )
@@ -88,9 +88,7 @@ EXPECTED_MODULE_PATHS = {
     "ADR-009": (
         "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
     ),
-    "ADR-011": (
-        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
-    ),
+    "ADR-011": ("docs/adr/modules/adr-011-ecosystem-integration-boundary.md",),
 }
 
 MAX_JSON_BYTES = 2 * 1024 * 1024
@@ -205,6 +203,13 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "ADR-004",
         1,
     ),
+    "adr004.sensor-projection.anti-laundering.v1": (
+        "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-004",
+        2,
+    ),
     "adr005.declare-stream.excerpt.v1": (
         "ADR005_DECLARE_STREAM_EXCERPT_V1",
         "PROPOSED_WIRE_FRAGMENT",
@@ -218,6 +223,20 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "NEGATIVE",
         "ADR-005",
         2,
+    ),
+    "adr005.sensor-availability.source-bound.v1": (
+        "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-005",
+        3,
+    ),
+    "adr005.sensor-availability.detached-mask.hostile.v1": (
+        "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "NEGATIVE",
+        "ADR-005",
+        4,
     ),
     "adr006.body-lease.excerpt.v1": (
         "ADR006_BODY_LEASE_EXCERPT_V1",
@@ -254,6 +273,13 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "ADR-007",
         3,
     ),
+    "adr007.unavailable-source-restrictive-action.v1": (
+        "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-007",
+        4,
+    ),
     "adr008.extension-envelope.semantic-projection.v1": (
         "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1",
         "PROPOSED_SEMANTIC_PROJECTION",
@@ -274,6 +300,13 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "NEGATIVE",
         "ADR-008",
         3,
+    ),
+    "adr008.sensor-condition-detail.semantic-projection.v1": (
+        "ADR008_SENSOR_CONDITION_DETAIL_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-008",
+        4,
     ),
     "adr009.security-state.semantic-projection.v1": (
         "ADR009_SECURITY_STATE_PROJECTION_V1",
@@ -303,6 +336,13 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "ADR-010",
         2,
     ),
+    "adr010.perception-queue-missingness.semantic-projection.v1": (
+        "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-010",
+        3,
+    ),
     "adr011.registered-haldir-intent.extension-envelope.v1": (
         "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1",
         "PROPOSED_EXTENSION_ENVELOPE",
@@ -323,6 +363,20 @@ EXPECTED_SEMANTIC_CASE_IDENTITIES = {
         "POSITIVE",
         "ADR-011",
         3,
+    ),
+    "adr011.prepared-frame-publisher-boundary.semantic-projection.v1": (
+        "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-011",
+        4,
+    ),
+    "adr011.x02-fleet-availability-layout.v1": (
+        "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1",
+        "PROPOSED_SEMANTIC_PROJECTION",
+        "POSITIVE",
+        "ADR-011",
+        5,
     ),
 }
 IDENTITY_URI = re.compile(r"^[a-z][a-z0-9+.-]*:[\x21-\x7e]+$")
@@ -618,6 +672,7 @@ EXPECTED_B03_BINDINGS = {
             ("EFFECT_PATH_DESCRIPTOR_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
             ("EFFECT_PATH_RESERVATION_CAPACITY", "BOUNDED_INTEGER"),
             ("HANDOVER_DEADLINE_NS", "BOUNDED_INTEGER"),
+            ("PLANT_CHANNEL_LAYOUT_PROFILE_IDENTITIES", "EXACT_IDENTITY_SET"),
         ),
     ),
 }
@@ -629,10 +684,10 @@ EXPECTED_SEMANTIC_EXAMPLE_CONTRACT = {
     "positive_authority": "NON_AUTHORIZING_EXCERPT_NOT_PRODUCTION_ADMISSION",
     "external_effect": "NONE_LOCAL_CHALLENGE_EVIDENCE_ONLY",
 }
-EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 127
-EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 4_301
+EXPECTED_DIAGNOSTIC_REGISTRY_COUNT = 253
+EXPECTED_DIAGNOSTIC_REGISTRY_BYTE_LENGTH = 10_137
 EXPECTED_DIAGNOSTIC_REGISTRY_SHA256 = (
-    "6f045da9a79f06135fa9bae69f4fb4a6c82af4e522b27f116a6eda8382e344cc"
+    "d10fddf688ca52b18eaf145e868e191201b404ebc65ecf1d28d1467f3fd02264"
 )
 EXPECTED_SEMANTIC_SOURCE_BINDING = {
     "fence_capture": (
@@ -645,8 +700,8 @@ EXPECTED_SEMANTIC_SOURCE_BINDING = {
 EXPECTED_SEMANTIC_LIMITS = {
     "allow_floats": False,
     "engine_timeout_seconds": 120,
-    "expected_case_count": 25,
-    "expected_mutation_count": 160,
+    "expected_case_count": 33,
+    "expected_mutation_count": 289,
     "maximum_adr_bytes": 262_144,
     "maximum_aggregate_adr_bytes": 2_097_152,
     "maximum_array_items": 4_096,
@@ -3400,7 +3455,7 @@ def validate_source(
     }
     if covered_defects != EXPECTED_DEFECTS:
         fail(
-            "$.decisions defect coverage differs from D01..D20: "
+            "$.decisions defect coverage differs from D01..D21: "
             f"missing={sorted(EXPECTED_DEFECTS - covered_defects)}, "
             f"extra={sorted(covered_defects - EXPECTED_DEFECTS)}"
         )
@@ -5625,8 +5680,14 @@ def self_test() -> None:
     must_fail(lambda: build_registry(hostile), "missing D20 coverage")
 
     hostile = copy.deepcopy(source)
-    hostile["decisions"][10]["defect_ids"].append("D21")
-    must_fail(lambda: build_registry(hostile), "unknown D21 defect")
+    for decision in hostile["decisions"]:
+        if "D21" in decision["defect_ids"]:
+            decision["defect_ids"].remove("D21")
+    must_fail(lambda: build_registry(hostile), "missing D21 coverage")
+
+    hostile = copy.deepcopy(source)
+    hostile["decisions"][10]["defect_ids"].append("D22")
+    must_fail(lambda: build_registry(hostile), "unknown D22 defect")
 
     hostile = copy.deepcopy(source)
     hostile["decisions"][10]["defect_ids"][0] = {}

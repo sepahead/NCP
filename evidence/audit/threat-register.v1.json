@@ -117,9 +117,9 @@
     }
   ],
   "counts": {
-    "threats": 24,
-    "open_risks": 24,
-    "release_blocking": 22
+    "threats": 26,
+    "open_risks": 26,
+    "release_blocking": 24
   },
   "threats": [
     {
@@ -1484,6 +1484,139 @@
       "risk_status": "OPEN",
       "release_blocking": true,
       "residual_risk": "Application-level lineage, deployment isolation, independent science review, and live plant evidence remain open."
+    },
+    {
+      "id": "NCP-THREAT-025",
+      "control_requirement_id": "NCP-THREAT-REQ-025",
+      "title": "A frame publisher bypasses final slot preparation",
+      "category": "integrity",
+      "boundary": "typed entity records to authenticated direct frame publication",
+      "asset_or_claim": "ordered plant-channel identity without an extra hot-frame tag",
+      "actor_or_trigger": "raw publisher access, a retained mutable alias, or a second credential holder",
+      "preconditions": [
+        "a fixed-layout multi-entity sensor or command frame is prepared"
+      ],
+      "misuse_or_failure": "An application retains a mutable alias or raw publisher, rebinds a detached buffer to another context, uses a foreign slot handle, or overclaims TLS protection.",
+      "accepted_case": "One prepared publisher owns its layout and transport slot, assigns final slots, serializes once, and transfers the immutable bytes.",
+      "rejected_case": "A foreign or stale slot handle, detached-buffer rebind, raw publisher, mutable alias, redundant tag, or provenance overclaim rejects.",
+      "impact": "A command or observation can be associated with the wrong plant entity while retaining valid units and plausible values.",
+      "detection": [
+        "source-bound Rust and TypeScript semantic parity",
+        "source-projection and layout-bound publisher-capability negatives",
+        "sealed-record and protected-envelope mutation-before-open negatives",
+        "sender-pre-seal and receiver-post-open non-detectability controls",
+        "multi-entity end-to-end slot-order tests"
+      ],
+      "prevention": [
+        "selected plant-channel-layout profile",
+        "single prepared publisher with one layout-bound transport slot",
+        "one immutable byte transfer into protected transport",
+        "explicit pre-seal and equal-value non-detection boundary"
+      ],
+      "failure_response": "Reject publication, hold the affected plant session, and correct the adapter mapping before a fresh session opens.",
+      "counterfactual_ids": [
+        "CF-01",
+        "CF-03",
+        "CF-07",
+        "CF-08"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-025"
+      ],
+      "code_paths": [
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+      ],
+      "test_paths": [
+        "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+      ],
+      "verification_commands": [
+        "python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test",
+        "python3 scripts/generate_decision_registry.py --self-test --check"
+      ],
+      "evidence_paths": [
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The semantic boundary is proposed. Consumer implementation, independent review, and live multi-entity qualification remain open."
+    },
+    {
+      "id": "NCP-THREAT-026",
+      "control_requirement_id": "NCP-THREAT-REQ-026",
+      "title": "Sensor availability is laundered, detached, or erased across overlays",
+      "category": "integrity",
+      "boundary": "prepared compact SensorFrame through source pinning, consumer projection, command selection, and observation",
+      "asset_or_claim": "source-bound missingness and unavailable-group restrictive behavior",
+      "actor_or_trigger": "a producer, adapter, controller, privacy projection, or observer that loses the exact availability identity",
+      "preconditions": [
+        "a compact frame contains one or more unavailable sensor groups",
+        "the frame crosses a provider, binding, consumer, command, or observer overlay"
+      ],
+      "misuse_or_failure": "Availability laundering converts an unavailable group into valid zero; detachment separates the bitmap from its frame digest or source pin; a nonrestrictive lane treats unavailable input as Active; or observer missingness loss omits the exact gap.",
+      "accepted_case": "Every overlay preserves the exact digest-covered bitmap, unavailable groups remain typed missingness, the installed restrictive lane wins, and observers retain the exact gap.",
+      "rejected_case": "A decode/re-encode, projection, detached mask, ordinary Active lane, or observer record converts unavailable state into values, authority, or silence without explicit missingness.",
+      "impact": "A plausible zero can enter control or evidence as if it were measured, while a dependent command or observer loses the originating fault.",
+      "detection": [
+        "cross-language source-bound and detached-mask hostile cases",
+        "unavailable-source restrictive-action mutants",
+        "direct, gated, Galadriel, and Prisoma missingness checks",
+        "native one-, two-, and three-drone correlated fault campaigns"
+      ],
+      "prevention": [
+        "one mandatory layout-sized availability bitmap inside the exact frame digest",
+        "bitmap and scalars use one indivisible queue item",
+        "source pins and projections retain the exact availability identity",
+        "condition detail uses separate capacity and never overrides core",
+        "unavailable groups select the installed restrictive lane before Active",
+        "observers retain typed gaps and never expose internal placeholder bits"
+      ],
+      "failure_response": "Reject the frame or overlay, apply the affected lane's installed restrictive action, preserve the explicit observer gap, and reopen each affected D21 task.",
+      "counterfactual_ids": [
+        "CF-01",
+        "CF-03",
+        "CF-06",
+        "CF-08"
+      ],
+      "requirement_ids": [
+        "NCP-ADR-004",
+        "NCP-ADR-005",
+        "NCP-ADR-007",
+        "NCP-ADR-008",
+        "NCP-ADR-010",
+        "NCP-ADR-011",
+        "NCP-THREAT-REQ-026"
+      ],
+      "code_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+      ],
+      "test_paths": [
+        "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/self-test.ts"
+      ],
+      "verification_commands": [
+        "python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test",
+        "cargo test --locked --manifest-path prototypes/b01-architecture-evidence/adr-example-semantics/rust/Cargo.toml",
+        "bun run --cwd prototypes/b01-architecture-evidence/adr-example-semantics/typescript check"
+      ],
+      "evidence_paths": [
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+      ],
+      "control_status": "PARTIAL_LOCAL",
+      "risk_status": "OPEN",
+      "release_blocking": true,
+      "residual_risk": "The semantic corpus is local and proposed. Consumer overlays, observer capture, independent review, and native one-, two-, and three-drone qualification remain open."
     }
   ]
 }

@@ -44,7 +44,7 @@ This prototype therefore asks narrower questions:
 7. Do freshness deadlines, acceptance linearization, protected-command
    idempotency, restrictive effects, Active watchdogs, retirement drains, and
    Haldir intent freshness remain fail-closed under bounded hostile mutations?
-8. Can separate Rust and TypeScript profile checkers classify all 25 maintained
+8. Can separate Rust and TypeScript profile checkers classify all 33 maintained
    ADR JSON fences and their bounded hostile mutations without production types?
 
 The strongest permitted result is:
@@ -52,8 +52,8 @@ The strongest permitted result is:
 > No counterexample was found within the recorded finite models, decision,
 > observer-authorization, observer-capture, freshness-and-acceptance,
 > source-issuance-index, fixed local resource, and ADR-example semantic probes.
-> The separate Rust and TypeScript profile engines agreed on 25 content-bound
-> semantic cases and rejected 160 registered bounded mutations. Every other
+> The separate Rust and TypeScript profile engines agreed on 33 content-bound
+> semantic cases and rejected 289 registered bounded mutations. Every other
 > registered executable mutant was detected. Every registered hostile input was
 > rejected. Every registered invariant and semantic-contrast witness was reached
 > within those encoded finite cases.
@@ -788,8 +788,8 @@ The runner:
 - compiles and lints the Python sources.
 - fetches the standalone Rust lock's dependencies, then formats, lints, and
   tests the Rust engine without source-tree build output.
-- typechecks the TypeScript engine and compares both engines across 25 exact ADR
-  fences and 160 registered bounded mutations.
+- typechecks the TypeScript engine and compares both engines across 33 exact ADR
+  fences and 289 registered bounded mutations.
 - directly executes each standalone observer probe and freshness/acceptance
   probe.
 - loads one bounded snapshot of `scripts/bounded_json.py` from exact bytes in

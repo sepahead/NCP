@@ -288,7 +288,7 @@ def validate_threat_register(value: dict[str, Any]) -> None:
 
     threats = value.get("threats")
     _require(isinstance(threats, list), "T004 threats must be an array")
-    expected_ids = [f"NCP-THREAT-{number:03d}" for number in range(1, 25)]
+    expected_ids = [f"NCP-THREAT-{number:03d}" for number in range(1, 27)]
     _require(
         [item.get("id") for item in threats] == expected_ids,
         "T004 threat IDs are not exact",
@@ -364,6 +364,54 @@ def validate_threat_register(value: dict[str, Any]) -> None:
         for field in PATH_FIELDS:
             for item_index, path in enumerate(threat[field]):
                 _safe_repo_path(path, f"{context}.{field}[{item_index}]")
+    availability_threat = threats[-1]
+    _require(
+        availability_threat.get("title")
+        == "Sensor availability is laundered, detached, or erased across overlays",
+        "T004 threat 026 title is not exact",
+    )
+    _require(
+        availability_threat.get("category") == "integrity"
+        and availability_threat.get("control_status") == "PARTIAL_LOCAL"
+        and availability_threat.get("release_blocking") is True,
+        "T004 threat 026 lost its release-blocking local control state",
+    )
+    availability_semantics = " ".join(
+        str(availability_threat[field]).casefold()
+        for field in (
+            "misuse_or_failure",
+            "accepted_case",
+            "rejected_case",
+            "detection",
+            "prevention",
+            "failure_response",
+        )
+    )
+    for phrase in (
+        "availability laundering",
+        "detachment",
+        "projection",
+        "condition detail",
+        "queue item",
+        "nonrestrictive lane",
+        "observer missingness loss",
+    ):
+        _require(
+            phrase in availability_semantics,
+            f"T004 threat 026 lost {phrase}",
+        )
+    _require(
+        {
+            "NCP-ADR-004",
+            "NCP-ADR-005",
+            "NCP-ADR-007",
+            "NCP-ADR-008",
+            "NCP-ADR-010",
+            "NCP-ADR-011",
+            "NCP-THREAT-REQ-026",
+        }.issubset(availability_threat["requirement_ids"]),
+        "T004 threat 026 requirement ownership is incomplete",
+    )
     _require(
         covered == set(generator.COUNTERFACTUALS),
         "T004 threats do not cover every mandatory counterfactual",
@@ -1093,6 +1141,12 @@ def _must_fail(function: Callable[..., None], *args: Any) -> None:
 def self_test(documents: dict[str, dict[str, Any]]) -> None:
     hostile = copy.deepcopy(documents["evidence/audit/threat-register.v1.json"])
     hostile["mandatory_counterfactuals"].pop()
+    _must_fail(validate_threat_register, hostile)
+
+    hostile = copy.deepcopy(documents["evidence/audit/threat-register.v1.json"])
+    hostile["threats"][-1]["misuse_or_failure"] = (
+        "A generic adapter loses context without named availability failure modes."
+    )
     _must_fail(validate_threat_register, hostile)
 
     hostile = copy.deepcopy(documents["evidence/audit/latent-path-inventory.v1.json"])

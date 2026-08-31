@@ -1,7 +1,7 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "e2a8993c1cb75e655cf918b882688057be2cc0c4a4cbcbe0ba3a42d986d899a3"
+    "sha256": "c5b8f053315e14c930e94e656317edf4690241019a9dd2e3c69b852ba6d80aea"
   },
   "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
@@ -102,7 +102,7 @@
       ]
     },
     {
-      "closure_rule": "Close only when the bypass deletion, ingress-attempt, ESTOP side-effect, resolution, model, hostile mutants, and crash recovery pass. The exact minimum current-context gate requires hard byte and shape bounds, a verified protected envelope, the authenticated transport principal, and default-deny manifest permission for the actor and action plane. It also requires the exact route, audience, direct realm, live session generation, declared stream epoch, publisher incarnation, syntactic position, and current security state. The mode must be one unambiguous and structurally valid ESTOP. The installed plant-profile action must match. Either the live declaration and body freshness grant or the preserved HOLD escalation snapshot must authorize the reserved slot. The receiver-clock sample must be strictly before the unchanged exclusive deadline. Immediately before ESTOP reservation and again at the effect boundary, the body rechecks the applicable security, permission, grant or escalation, deadline, and installed-action state. A cut that wins either order installs no new remote effect. A durable attempt then precedes the separate non-authorizing ESTOP side effect. Only that qualified ESTOP can apply the body-local latch before ordinary stream replay, live-lease, and lower semantic checks, then reject as a command. Remote HOLD must pass stream monotonicity and the exact live-holder lease before it can request the installed HOLD action. It structurally forbids source and remote value-vector fields. An independently attributed body-local policy action remains possible. Side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched. ESTOP queue priority, admission, and stop_latched require the full envelope, manifest, route, audience, session, stream, replay, operation, body-grant deadline, profile, authority, and semantic gates. They also require the structural absence of source, lease, and remote value-vector fields selected for ESTOP. Core command admission consumes one setpoint and one application attempt per position. Compatibility tick-zero or horizon replay cannot satisfy it. Exact replay creates no second received or latch invocation. A primary position record is immutable. A stale but unseen ESTOP uses its own pre-reserved primary record. Body-generation creation preallocates one separate restrictive-conflict attribution for the qualified changed ESTOP at an occupied position that performs the generation's first latch transition. It binds the complete coordinate, digest, command rejection, and attributed latch result. It never replaces a primary digest or creates a second received record. Exact replay returns that retained restrictive result. Once the latch or attribution exists, a different later conflict rejects without another latch invocation or allocation. Invalid Active or HOLD, any Init, absent, default, unknown, or ambiguous mode, and wrong-context, unsigned, oversize, unverifiable, ambiguous, or expired candidates cause no remote effect. Ambiguous or unresolved fail-safe state blocks Active. Every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts. Independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
+      "closure_rule": "Close only when the bypass deletion, ingress-attempt, ESTOP side-effect, resolution, model, hostile mutants, and crash recovery pass. The exact minimum current-context gate requires hard byte and shape bounds, a verified profile-specific authenticated-ingress result, and default-deny manifest permission for the actor and action plane. For A-direct, that result contains the verified native transport principal and current receiver-owned opaque context. For B-over-A, it contains the authenticated restricted carrier and distinct verified JWS signer. Neither profile can be selected by caller bytes. It also requires the exact route, audience, direct realm, live session generation, declared stream epoch, publisher incarnation, syntactic position, and current security state. The mode must be one unambiguous and structurally valid ESTOP. The installed plant-profile action must match. Either the live declaration and body freshness grant or the preserved HOLD escalation snapshot must authorize the reserved slot. The receiver-clock sample must be strictly before the unchanged exclusive deadline. Immediately before ESTOP reservation and again at the effect boundary, the body rechecks the applicable security, permission, grant or escalation, deadline, and installed-action state. A cut that wins either order installs no new remote effect. A durable attempt then precedes the separate non-authorizing ESTOP side effect. Only that qualified ESTOP can apply the body-local latch before ordinary stream replay, live-lease, and lower semantic checks, then reject as a command. Remote HOLD must pass stream monotonicity and the exact live-holder lease before it can request the installed HOLD action. It structurally forbids source and remote value-vector fields. An independently attributed body-local policy action remains possible. Side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched. ESTOP queue priority, admission, and stop_latched require the complete admitted frame and profile-specific ingress context, manifest, route, audience, session, stream, replay, operation, body-grant deadline, profile, authority, and semantic gates. They also require the structural absence of source, lease, and remote value-vector fields selected for ESTOP. Core command admission consumes one setpoint and one application attempt per position. Compatibility tick-zero or horizon replay cannot satisfy it. Exact replay creates no second received or latch invocation. A primary position record is immutable. A stale but unseen ESTOP uses its own pre-reserved primary record. Body-generation creation preallocates one separate restrictive-conflict attribution for the qualified changed ESTOP at an occupied position that performs the generation's first latch transition. It binds the complete coordinate, digest, command rejection, and attributed latch result. It never replaces a primary digest or creates a second received record. Exact replay returns that retained restrictive result. Once the latch or attribution exists, a different later conflict rejects without another latch invocation or allocation. Invalid Active or HOLD, any Init, absent, default, unknown, or ambiguous mode, and wrong-context, unauthenticated, cross-profile, oversize, unverifiable, ambiguous, or expired candidates cause no remote effect. Ambiguous or unresolved fail-safe state blocks Active. Every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts. Independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
       "id": "D10",
       "task_ids": [
         "C01",
@@ -220,24 +220,65 @@
         "X02",
         "F04"
       ]
+    },
+    {
+      "closure_rule": "Close only when every compact `SensorFrame` carries one inline `ceil(group_count / 8)` availability bitmap in the same exact digest and queue item as its header and scalar storage. Stable 1.0 uses one for AVAILABLE, zero for UNAVAILABLE, least-significant-bit-first group order, and zero high padding. Sensor groups are nonempty and partition every sensor slot exactly once. Available groups contain every finite in-range member exactly once. Unavailable groups forbid caller values and use profile-specific canonical placeholder bits that no decoder exposes as observations. Producer completeness failures reject before position assignment. Post-assignment encode or queue failure consumes the position and emits a gap. Receiver length, padding, digest, layout, or bitmap errors reject before admission, pinning, and callback without unassigning the producer position. Pin capacity is pre-reserved. A live source pin is non-evictable until terminal disposition or evidence handoff, and restart restores it exactly or retires the generation. `NormativeSourceRef` binds the declaration, position, and origin content digest without repeating the bitmap. Projection preserves unavailable state and installs a new layout and bitmap after slot removal or reorder. Each layout binds group-to-command dependencies and exact restrictive bytes. Conflicting overlaps reject at preparation. A source-bound Active command matches every unavailable restrictive lane or rejects as one unit. Optional condition detail uses a separate source-correlated extension and cannot override or block core behavior. Compact binary and compatibility JSON preserve the same typed availability. Real NEST 3.9 loops for one, two, and three drones exhaust fault masks, internal restrictive epochs (not NCP HOLD), washout, recovery, lane isolation, exact dispositions, restart, security, soak, and performance behavior without resetting the kernel.",
+      "id": "D21",
+      "task_ids": [
+        "B01",
+        "B02",
+        "B03",
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06",
+        "N07",
+        "N08",
+        "N10",
+        "F01",
+        "F02",
+        "F03",
+        "E03",
+        "E04",
+        "E05",
+        "E06",
+        "E07",
+        "H02",
+        "H03",
+        "H06",
+        "C02",
+        "C03",
+        "C05",
+        "G02",
+        "G03",
+        "P02",
+        "P03",
+        "X00",
+        "X01",
+        "X02",
+        "F04",
+        "F05"
+      ]
     }
   ],
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "8deaa133c7dd603a12475ad31cce752dc86f4b2f790b6e4896fc7e76ffb3b8be"
+      "sha256": "2d8987d10c153ba9f018b917c2795e0565af6573c90642ea3537ddc5eecfbf5c"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "c92b062f869c2791044eccff3c93d664216f30a8e27bf20c4065b2c17eb3c7d9"
+      "sha256": "f8a433076f75777588e78523467f1e5fa48d8022b1983b5009433037e1d3be02"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",
-      "sha256": "3af921e72756ce9702e39d9ecb7bb2238b3baad90b57b6cf80cccbb81fe69048"
+      "sha256": "96cb04ed86ca56ca44b83145374d8309235d84cb773fde655d17cc4a7ab9a9fa"
     },
     {
       "path": "scripts/validate_evidence_schemas.py",
-      "sha256": "7126bfaa60dd61083513b3d3f7cf8c49cb1d5726081b8b2a79562e95a60f0159"
+      "sha256": "f5d9e1907ad11db8074c90bd08683f7ae334b99284b15eb6ff59f998a2f3fed4"
     },
     {
       "path": "scripts/requirements-evidence-schema.txt",
@@ -911,7 +952,7 @@
               "from": "IN_PROGRESS",
               "receipt_kind": "passing",
               "repository": "NCP",
-              "requirement_acceptance_sha256": "7581d3ba904478678853b9be5694fba1500c7865a2bc305ef5dec1574f80a8f5",
+              "requirement_acceptance_sha256": "4d8958f1e910a514fd129dcf7c17e31bac751a900d139d97aaf8e38177a2fc84",
               "schema": "ncp.local-transition-subject.v1",
               "source_commit": "6381d2a7cc82f442a538df7616758dd1348714e6",
               "source_tree": "6392664f6607bd399aeb7b4bd43658cba0fffd43",
@@ -1205,7 +1246,7 @@
           "receipt": {
             "dependency_receipts": [
               {
-                "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                "receipt_sha256": "2f3d1aed68bdbef97fc95b50d1b47f31a8b09c36da41adc4e4031ced1ce864ca",
                 "task_id": "B00"
               }
             ],
@@ -1216,7 +1257,7 @@
               "correlation_id": "ncp-v1-finalization-20260716-b04",
               "dependency_receipts": [
                 {
-                  "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                  "receipt_sha256": "2f3d1aed68bdbef97fc95b50d1b47f31a8b09c36da41adc4e4031ced1ce864ca",
                   "task_id": "B00"
                 }
               ],
@@ -1225,7 +1266,7 @@
               "from": "OPEN",
               "receipt_kind": "start",
               "repository": "NCP",
-              "requirement_acceptance_sha256": "f0f8dcb79d6b5fe4c268730fc95d0d1747118adefc765d3ea6f7eb6a3d7c7918",
+              "requirement_acceptance_sha256": "57dd6868b1c4f4937b5e8139e7111e344737660ff62c0a4a677244217df258d8",
               "schema": "ncp.local-transition-subject.v1",
               "source_commit": null,
               "source_tree": null,
@@ -1372,7 +1413,7 @@
             "commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
             "dependency_receipts": [
               {
-                "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                "receipt_sha256": "2f3d1aed68bdbef97fc95b50d1b47f31a8b09c36da41adc4e4031ced1ce864ca",
                 "task_id": "B00"
               }
             ],
@@ -1487,7 +1528,7 @@
               "correlation_id": "ncp-v1-finalization-20260716-b04-local-pass",
               "dependency_receipts": [
                 {
-                  "receipt_sha256": "531867eec220d07efe24ca36eaa3bb3d2ac150e797191a1c5514a3a28ea9f3e8",
+                  "receipt_sha256": "2f3d1aed68bdbef97fc95b50d1b47f31a8b09c36da41adc4e4031ced1ce864ca",
                   "task_id": "B00"
                 }
               ],
@@ -1496,7 +1537,7 @@
               "from": "IN_PROGRESS",
               "receipt_kind": "passing",
               "repository": "NCP",
-              "requirement_acceptance_sha256": "f0f8dcb79d6b5fe4c268730fc95d0d1747118adefc765d3ea6f7eb6a3d7c7918",
+              "requirement_acceptance_sha256": "57dd6868b1c4f4937b5e8139e7111e344737660ff62c0a4a677244217df258d8",
               "schema": "ncp.local-transition-subject.v1",
               "source_commit": "3754635404f362bb700c324f4dba613a3b73b3eb",
               "source_tree": "5e4b0e8a455eae677cc922d417121caf2d1c35d9",
@@ -1693,17 +1734,18 @@
         "D17",
         "D18",
         "D19",
-        "D20"
+        "D20",
+        "D21"
       ],
       "residual_risks": [
         "All eleven ADRs remain PROPOSED and have no qualifying owner or independent same-digest review; B01 has not reached any passing evidence class.",
         "The maintained low-overhead architecture is reconciled into all eleven proposed ADR sources. The selector authoring artifact remains an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED historical diagnostic whose allocation predates atomic HOLD admission. It is outside the semantic-closure subject, cannot accept or block a decision, and cannot replace required human review. This local design work does not accept an ADR, change normative sources, or authorize implementation.",
         "Nine deterministic light and dark diagram pairs now explain the proposed overview, runtime, lifecycle, planes, version gate, simulation sequence, command admission, plant state, and ecosystem boundaries. Local rendering and accessibility checks do not implement the target or satisfy the later N10 documentation task, F05 final visual campaign, independent review, performance qualification, or release gates.",
         "The generated registry is intentionally non-normative and outside contract/; promotion and the deliberate candidate rebaseline remain blocked.",
-        "The 25 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 25 cases and rejects 160 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.",
-        "Local semantic closure is current only when the source-bound 25-case, 160-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.",
+        "The 30 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 33 cases and rejects 289 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.",
+        "Local semantic closure is current only when the source-bound 33-case, 289-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.",
         "B01 inventories the full 72-file set under 72-file and 8 MiB caps, including this architecture. Python imports precede its first snapshot, so this is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without provenance. The reader rejects leaf links and in-read changes. Privileged parent replacement is outside the claim.",
-        "The CURRENT packet binds one zero-review subject to decision set d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd and source ca7fa729f982690a4d3d8b1829c20a842d9f5612. It enables capture only. It has no retained external request. The registry contains zero review records. All 52 obligations and 53 minimum identity slots remain unfilled. No owner review, independent review, external adjudication, or passing B01 receipt exists. Formal refinement and downstream implementation remain open.",
+        "The prior packet is SUPERSEDED. No CURRENT subject exists. The proposed registry binds decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 and contains zero review records. It has no retained external request. All 52 obligations and 53 minimum identity slots remain unfilled. No owner review, independent review, external adjudication, or passing B01 receipt exists. Formal refinement and downstream implementation remain open.",
         "The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.",
         "Checked codec paths can invent midpoint or zero values, accept sparse components, and select a unit by mapping order. The plant helper is not integrated into Active admission, and `PlantCommand` erases units. `PlantProfile::validate_active_command` also revalidates, hashes, and rebuilds a name set per call. The ADR-007 target now selects an ESTOP-only early latch and ordinary HOLD admission. B02, B03, N01, N03, N05, N07, N08, E04, H02, and C02 remain open.",
         "The idempotency cache can evict terminal no-reuse state before its retention deadline. Pending entries have no execution deadline or runtime terminalization path, so a lost backend can retain capacity indefinitely while deletion risks a second mutation. B02, B03, N03, N05, N06, and N07 remain open.",
@@ -1746,7 +1788,7 @@
         "Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
         "The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked."
       ],
-      "reviewer_comment": "ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, D18, D19, and consumer scopes changed after cross-repository review. Earlier requests, model results, and gates bind superseded bytes only. The CURRENT packet has zero reviews. Its subject binds decision set d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd to source ca7fa729f982690a4d3d8b1829c20a842d9f5612 and tree 03ff9b1007192f2839146b31b791541f8fada86b. It enables capture only. All 52 obligations and 53 minimum identity slots remain unfilled. Composite local runs covered every command in `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed out during the Python source-distribution build. The exact failed step and remaining suffix then passed separately. The exact clean B01 runner passed. The current bounded 25-case, 160-mutation semantic replay passes in separate Rust and TypeScript engines. The selector authoring artifact retains a superseded pre-atomic-HOLD allocation as an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED diagnostic outside the semantic-closure subject. It cannot accept an ADR or replace required human review. These local results do not satisfy B01's independent evidence floor and are not passing task evidence. The Ed25519 screen uses a fixed-sample p95 computational tripwire of 100,000 microseconds for thread and process CPU. Maximum CPU and wall time remain observational. This coordination entry has no passing task-source receipt, external same-digest request, owner or independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. Obtain qualifying same-digest reviews and external adjudications before a passing B01 receipt. Do not create the normative registry, start descendants, or infer release readiness.",
+      "reviewer_comment": "ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, D18 through D21, and consumer scopes changed after cross-repository review. Earlier requests, model results, and gates bind superseded bytes only. The prior packet is SUPERSEDED. No CURRENT subject exists. The current proposed decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 has zero review records. It cannot receive reviews until a clean pushed subject is installed. All 52 obligations and 53 minimum identity slots remain unfilled. Composite local runs covered every command in `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed out during the Python source-distribution build. The exact failed step and remaining suffix then passed separately. The exact clean B01 runner passed. The current bounded 33-case, 289-mutation semantic replay passes in separate Rust and TypeScript engines. The selector authoring artifact retains a superseded pre-atomic-HOLD allocation as an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED diagnostic outside the semantic-closure subject. It cannot accept an ADR or replace required human review. These local results do not satisfy B01's independent evidence floor and are not passing task evidence. The Ed25519 screen uses a fixed-sample p95 computational tripwire of 100,000 microseconds for thread and process CPU. Maximum CPU and wall time remain observational. This coordination entry has no passing task-source receipt, external same-digest request, owner or independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. Install a new current subject before requesting qualifying reviews and external adjudications. Do not create the normative registry, start descendants, or infer release readiness.",
       "reviewers": [],
       "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
       "source_commit": null,
@@ -1762,7 +1804,7 @@
           "receipt": {
             "dependency_receipts": [
               {
-                "receipt_sha256": "ed1c48d9ab5014a7849ff1741aeb56710e006b9ca817742a5e1030896cbffc13",
+                "receipt_sha256": "76f2ef21cbee9a579e2b1cf346e95f7147f9efd6c4e13218ec87a0718da34134",
                 "task_id": "B04"
               }
             ],
@@ -1773,7 +1815,7 @@
               "correlation_id": "ncp-v1-finalization-20260716-b01",
               "dependency_receipts": [
                 {
-                  "receipt_sha256": "ed1c48d9ab5014a7849ff1741aeb56710e006b9ca817742a5e1030896cbffc13",
+                  "receipt_sha256": "76f2ef21cbee9a579e2b1cf346e95f7147f9efd6c4e13218ec87a0718da34134",
                   "task_id": "B04"
                 }
               ],
@@ -1782,7 +1824,7 @@
               "from": "OPEN",
               "receipt_kind": "start",
               "repository": "NCP",
-              "requirement_acceptance_sha256": "55d0da2605dcf73fa140fa65d9083d5902e6c53153eb15a1fa6c5a3908499630",
+              "requirement_acceptance_sha256": "eefc8f0a544cc3099bf6fdea9cba04798f7da320d4239de703ee734e86365ef3",
               "schema": "ncp.local-transition-subject.v1",
               "source_commit": null,
               "source_tree": null,
@@ -1813,7 +1855,8 @@
       "repository": "NCP",
       "requirement_ids": [
         "B02-acceptance",
-        "D19"
+        "D19",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1845,7 +1888,8 @@
         "B03-acceptance",
         "D09",
         "D13",
-        "D19"
+        "D19",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1876,7 +1920,8 @@
       "requirement_ids": [
         "N01-acceptance",
         "D04",
-        "D19"
+        "D19",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1909,7 +1954,8 @@
         "D01",
         "D02",
         "D05",
-        "D20"
+        "D20",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1942,7 +1988,8 @@
         "D03",
         "D07",
         "D08",
-        "D15"
+        "D15",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1975,7 +2022,8 @@
         "D05",
         "D06",
         "D16",
-        "D20"
+        "D20",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -1985,7 +2033,7 @@
       "status": "OPEN",
       "target_commit": null,
       "ten_lens_reviews": [],
-      "title": "Implement the production authenticated envelope and semantic security state",
+      "title": "Implement production authenticated ingress and semantic security state",
       "transitions": []
     },
     {
@@ -2005,7 +2053,8 @@
       "perspective_reviews": [],
       "repository": "independent draft-peer environment",
       "requirement_ids": [
-        "X00-acceptance"
+        "X00-acceptance",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2035,7 +2084,8 @@
       "perspective_reviews": [],
       "repository": "NCP",
       "requirement_ids": [
-        "N05-acceptance"
+        "N05-acceptance",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2066,7 +2116,8 @@
       "requirement_ids": [
         "N06-acceptance",
         "D06",
-        "D16"
+        "D16",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2099,7 +2150,8 @@
         "N07-acceptance",
         "D04",
         "D14",
-        "D18"
+        "D18",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2131,7 +2183,8 @@
         "N08-acceptance",
         "D04",
         "D05",
-        "D14"
+        "D14",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2194,7 +2247,8 @@
         "N10-acceptance",
         "D09",
         "D14",
-        "V11"
+        "V11",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2225,7 +2279,8 @@
       "repository": "NCP",
       "requirement_ids": [
         "F01-acceptance",
-        "D12"
+        "D12",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2257,7 +2312,8 @@
       "requirement_ids": [
         "F02-acceptance",
         "D05",
-        "D12"
+        "D12",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2289,7 +2345,8 @@
       "requirement_ids": [
         "F03-acceptance",
         "D10",
-        "D12"
+        "D12",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2569,7 +2626,8 @@
         "D08",
         "D09",
         "D15",
-        "D18"
+        "D18",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2635,7 +2693,8 @@
         "D02",
         "D03",
         "D20",
-        "V11"
+        "V11",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2668,7 +2727,8 @@
         "D07",
         "D08",
         "D10",
-        "D15"
+        "D15",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2700,7 +2760,8 @@
         "P02-acceptance",
         "D11",
         "D20",
-        "V11"
+        "V11",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2731,7 +2792,8 @@
       "requirement_ids": [
         "E03-acceptance",
         "D03",
-        "D20"
+        "D20",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2763,7 +2825,8 @@
       "requirement_ids": [
         "C03-acceptance",
         "D03",
-        "D09"
+        "D09",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2795,7 +2858,8 @@
       "requirement_ids": [
         "E04-acceptance",
         "D08",
-        "D15"
+        "D15",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2829,6 +2893,7 @@
         "D08",
         "D15",
         "D18",
+        "D21",
         "V11"
       ],
       "residual_risks": [],
@@ -2889,7 +2954,8 @@
       "repository": "independent peer lab",
       "requirement_ids": [
         "X01-acceptance",
-        "D04"
+        "D04",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2960,10 +3026,12 @@
         "X02-nest39-fleet-1-2-3",
         "X02-music-separation",
         "X02-presentation-runtime-boundary",
+        "X02-sensor-availability-fault-correlation",
         "D07",
         "D08",
         "D09",
-        "D20"
+        "D20",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -2994,7 +3062,8 @@
       "repository": "Engram qualification environment",
       "requirement_ids": [
         "E05-acceptance",
-        "D11"
+        "D11",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3025,7 +3094,8 @@
       "perspective_reviews": [],
       "repository": "Haldir qualification environment",
       "requirement_ids": [
-        "H03-acceptance"
+        "H03-acceptance",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3085,7 +3155,8 @@
       "requirement_ids": [
         "E07-acceptance",
         "D09",
-        "D18"
+        "D18",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3116,7 +3187,8 @@
       "requirement_ids": [
         "H06-acceptance",
         "D09",
-        "D18"
+        "D18",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3145,7 +3217,8 @@
       "perspective_reviews": [],
       "repository": "Galadriel qualification environment",
       "requirement_ids": [
-        "G03-acceptance"
+        "G03-acceptance",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3175,7 +3248,8 @@
       "repository": "Prisoma qualification environment",
       "requirement_ids": [
         "P03-acceptance",
-        "D11"
+        "D11",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3207,7 +3281,8 @@
         "F04-acceptance",
         "D06",
         "D16",
-        "D20"
+        "D20",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3240,7 +3315,8 @@
       "requirement_ids": [
         "C05-acceptance",
         "D07",
-        "D10"
+        "D10",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,
@@ -3334,7 +3410,8 @@
       "repository": "cross-ecosystem lab",
       "requirement_ids": [
         "F05-acceptance",
-        "V11"
+        "V11",
+        "D21"
       ],
       "residual_risks": [],
       "reviewer_comment": null,

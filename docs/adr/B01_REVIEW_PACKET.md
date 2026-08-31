@@ -1,21 +1,30 @@
-# B01 current architecture review packet
+# B01 superseded architecture review packet
 
-> **CURRENT NON-NORMATIVE REVIEW SUBJECT.** This packet binds all eleven
+> **SUPERSEDED NON-NORMATIVE REVIEW SUBJECT.** This packet binds all eleven
 > proposed ADRs to clean pushed source commit `ca7fa729f982690a4d3d8b1829c20a842d9f5612`.
-> It contains zero review records. It enables human review capture.
+> It contains zero review records. It no longer permits review capture.
 > It does not accept an ADR, authorize implementation, or release NCP 1.0.
 
 ```json
 {
   "schema": "ncp.b01-review-packet-lifecycle.v1",
-  "state": "CURRENT"
+  "state": "SUPERSEDED"
 }
 ```
 
 ```json
 {
-  "schema": "ncp.b01-review-subject.v1",
-  "state": "CURRENT",
+  "schema": "ncp.b01-review-subject-history.v1",
+  "state": "SUPERSEDED",
+  "historical_packet_source": {
+    "commit": "c0302b79faf0543448a0240aa055be6a9dca7125",
+    "tree": "8f63cee02c46346bbc414e934753d9eb2528281c",
+    "packet": {
+      "path": "docs/adr/B01_REVIEW_PACKET.md",
+      "sha256": "3cf47efb0843671edd819099bab3567f4ab74c00e806533a3a866f34c054ee6f",
+      "bytes": 47612
+    }
+  },
   "normative": false,
   "claim_boundary": "This generated registry records non-normative architecture decisions and structurally checked review claims. It cannot prove external authorship, role authority, or independence. It cannot satisfy B01 by itself, authorize the pre-release rebaseline or publication, or grant runtime identity, authority, plant action, safety, interoperability, or a scientific claim.",
   "promotion_blocked": true,
@@ -729,9 +738,9 @@ exactly one matching `CURRENT` review-subject block before it can receive review
 records. A `SUPERSEDED` or `TEMPLATE` packet cannot contain that block or receive
 review records.
 
-## Current packet bindings
+## Historical packet bindings
 
-The current review subject binds `decision_set.sha256`. The
+This historical review subject binds `decision_set.sha256`. The
 decision-set digest covers all exact ADR bytes, role obligations, defect
 mappings, review-policy version, and exact generator and output-schema
 identities. It excludes review records, so later review capture does not change
@@ -747,7 +756,7 @@ The review workflow has these additional binding obligations:
   byte length;
 - each stable `role_id`, label, minimum distinct identity count, and independence
   requirement;
-- the current parser, model, resource, and complete-gate evidence;
+- the parser, model, resource, and complete-gate evidence at that source cut;
 - the exact owner-free v4 allocation identity, origin/signal, semantic-shape,
   semantic-subject, document-row, ADR-source-set, and provenance commitment
   suites and their artifact-declared known-answer vectors;
@@ -764,15 +773,18 @@ The review workflow has these additional binding obligations:
 The packet must not embed its own digest. The external review request and every
 review record content-address the immutable packet bytes with
 `review_packet_sha256`. This acyclic rule lets the generator compare that digest
-with the current packet file.
+with the applicable current packet file.
 
-The JSON block above uses schema `ncp.b01-review-subject.v1` and state
-`CURRENT`. It retains the exact decision set, policy, source commit, source tree,
+The retained block above now uses history schema
+`ncp.b01-review-subject-history.v1` and state `SUPERSEDED`. It preserves the
+former decision set, policy, source commit, source tree,
 ADR source sets, role obligations, and defect mappings.
+Its `historical_packet_source` binds the exact prior current packet. The staging
+checker reconstructs that subject and permits only the schema and state change.
 
 The bound source contains zero review records. The emitted subject resolves each
-reviewed input from the pushed source commit. This packet enables review capture.
-It does not supply review evidence or accept a decision.
+reviewed input from the pushed source commit. This packet cannot receive review
+records. It does not supply review evidence or accept a decision.
 
 Review capture follows an acyclic sequence:
 
@@ -813,7 +825,7 @@ paths. A superseding record must have a later timestamp than its predecessor.
 The generator resolves the source commit as a real Git commit. It checks the
 tree, zero-review decision source, generator, output schema, and every ADR blob
 at that commit. It checks each digest and byte length. It also checks the review
-against the current packet bytes. These structural checks do not prove external
+against the applicable current packet bytes. These checks do not prove external
 authorship, role authority, or independence. Those facts remain B01 evidence
 obligations.
 
@@ -846,13 +858,13 @@ mechanical normative promotion. N01 rejects a promoted copy that alters any
 review, policy, evidence, decision-set, schema, generator, or predecessor
 provenance field.
 
-## Current review response contract
+## Historical review response contract
 
-The current packet contains 52 ADR-role obligations and 53 minimum identity
+This superseded packet contains 52 ADR-role obligations and 53 minimum identity
 slots. The obligations use 38 unique role IDs. Exactly 5 obligations require
 independent review, with 6 minimum independent identity slots.
 
-The generated current subject gives this exact review burden:
+The historical subject records this review burden:
 
 | ADR | Obligations | Minimum slots |
 |---|---:|---:|
@@ -1035,7 +1047,7 @@ v0.8 incarnation. Neither direction permits dual-stack body admission or revival
 of pre-cutover traffic. Generation and stream-epoch UUIDs are equality fences,
 not counters.
 
-### Current consumer baseline observation
+### Historical consumer baseline observation
 
 These observations prevent copied files, active worktrees, or prerelease branches
 from being mistaken for installed native-1.0 evidence. They are not review or

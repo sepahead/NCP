@@ -807,10 +807,11 @@ def _verify_adr_example_semantics(value: Any) -> None:
         or value.get("candidate") != "1.0.0-rc.1"
         or value.get("wire_version") != "1.0"
         or value.get("engines") != ["rust", "typescript"]
-        or value.get("case_count") != 25
+        or value.get("case_count") != adr_example_semantics.EXPECTED_CASE_COUNT
         or not isinstance(value.get("mutation_count"), int)
         or isinstance(value.get("mutation_count"), bool)
-        or value["mutation_count"] <= 0
+        or value["mutation_count"]
+        != adr_example_semantics.EXPECTED_LIMITS["expected_mutation_count"]
         or value.get("exact_semantic_match") is not True
         or value.get("exact_source_identity_match") is not True
         or value.get("source_tree_build_output_absent") is not True
@@ -2561,7 +2562,7 @@ def _self_test(value: dict[str, Any]) -> int:
         (
             "ADR semantic case count",
             ("adr_example_semantics", "case_count"),
-            24,
+            value["adr_example_semantics"]["case_count"] - 1,
         ),
         (
             "ADR semantic mutation count",

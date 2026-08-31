@@ -824,8 +824,13 @@ or outcome meaning.
 
 The [cross-project integration boundary](modules/adr-011-ecosystem-integration-boundary.md)
 defines presentation hosting, registered extensions, fleet session granularity,
-MUSIC separation, receipt terms, performance evidence, and required ecosystem
-qualification controls.
+typed frame preparation, MUSIC separation, receipt terms, performance evidence,
+and required ecosystem qualification controls.
+
+That module also defines mandatory source-bound sensor availability for X02.
+Each fleet frame carries one digest-covered bitmap. Each unavailable group
+selects the installed restrictive command lane. Real NEST fault evidence must
+cover one, two, and three drones without using Host API 2.
 
 NCP defines no runtime, export, observation, control, release, or
 documentation-import edge to or from Cortexel.
@@ -1037,6 +1042,30 @@ B01 challenge tests. B03 still selects concrete descriptor profiles and bounds.
 ```json
 {"endpoint_aliases_normalized":true,"overlap_uses_resource_intersection":true,"disjoint_paths_require_independent_fencing_domains":true,"write_requires_current_fencing_term":true,"fencing_token_binds_domain_incarnation":true,"unfenceable_replacement_requires_isolation":true,"handover_allows_live_writer_overlap":false,"hot_path_evaluates_proof_graph":false}
 ```
+
+The following non-wire projection closes the prepared-frame publisher boundary.
+The selected layout instance binds each ordered slot. One opaque publisher owns
+that layout and its transport slot. It serializes once and moves the exact
+immutable bytes into transport ownership.
+
+```json
+{"layout_profile_defines_reusable_rules":true,"layout_instance_binds_roster_slots_and_resources":true,"sensor_layout_requires_positive_group_count":true,"availability_groups_partition_sensor_slots_once":true,"availability_byte_count_is_ceil_group_count_over_8":true,"non_sensor_layout_availability_group_count":0,"non_sensor_layout_availability_bytes":0,"availability_bitmap_inline_with_scalar_storage":true,"prepared_publisher_owns_layout_bound_transport_slot":true,"foreign_or_stale_slot_handle_is_accepted":false,"detached_buffer_context_rebind_is_exposed":false,"all_bound_slots_materialized_once_by_packer":true,"caller_writes_unavailable_slots":false,"packer_is_only_application_direct_publisher":true,"final_position_assigned_before_transfer":true,"exact_serialized_bytes_transferred_once":true,"application_mutable_alias_survives_transfer":false,"raw_application_publisher_exposed":false,"separate_application_signer_or_publisher_holds_credentials":false,"direct_frame_adds_preparation_tag":false,"transport_record_protection_covers_exact_sealed_bytes":true,"sealed_record_mutation_before_open_is_accepted":false,"sender_pre_seal_mutation_claimed_detectable":false,"receiver_post_open_mutation_claimed_detectable":false,"receiver_attests_packer_output":false,"pre_seal_same_unit_misassociation_claimed_detectable":false,"equal_value_swap_claimed_detectable":false,"packer_owns_shared_clock_semantics":false}
+```
+
+The following non-wire projection closes the X02 fleet availability layout.
+B03 still allocates exact protocol fields and identities.
+
+```json
+{"bitmap_polarity":"ONE_AVAILABLE_ZERO_UNAVAILABLE","bit_order":"LSB_FIRST_ROSTER_ORDER","unused_high_bits_zero":true,"availability_groups_per_drone":1,"sensor_scalars_per_drone":6,"command_scalars_per_drone":3,"availability_bytes_n1_n2_n3":[1,1,1],"exhaustive_masks_hex_n1_n2_n3":[["00","01"],["00","01","02","03"],["00","01","02","03","04","05","06","07"]],"all_available_hex_n1_n2_n3":["01","03","07"],"first_drone_unavailable_hex_n1_n2_n3":["00","02","06"],"group_to_command_slots_n3":[[0,1,2],[3,4,5],[6,7,8]],"conflicting_dependency_overlap_rejected_at_preparation":true,"unavailable_placeholder_f64_bits":"0000000000000000","lane_state_sequence":["NORMAL","UNAVAILABLE_RESTRICTIVE","RECOVERY_WASHOUT","NORMAL"],"fault_during_washout_returns_to":"UNAVAILABLE_RESTRICTIVE","one_composite_session":true,"one_nest_kernel":true,"music_shared_clock_owned":false}
+```
+
+This boundary removes a detached buffer-to-context handoff. TLS record
+protection detects mutation after seal and before open. It supplies no
+application-provenance attestation. TLS cannot detect sender changes before seal
+or receiver changes after open. It also cannot detect a plausible wrong value
+association, equal-value swap, bad wiring, or compromised packer. Those claims
+require an independent-attestation profile. The packer does not own or
+reinterpret MUSIC clock semantics.
 
 ## Actors and state transitions
 
@@ -1285,18 +1314,20 @@ pin, copied file, or manifest-only repin establishes migration.
 
 <a id="ncp-b01-selector-allocation-adr-011-v1"></a>
 
-Exact extension identities, package feature names, and consumer inventory
-allocations remain implementation inputs. Topology ownership, handover, package
-coherence, and fail-closed consumer qualification rules are closed.
+Exact extension identities, package feature names, consumer inventory
+allocations, and plant-channel-layout profile identities remain implementation
+inputs. Topology ownership, handover, package coherence, and fail-closed
+consumer qualification rules are closed.
 
 B03 can select 0 through 256 extension identities and 0 through 256 package
 feature identities. It can also select 1 through 64 consumer inventory
-identities and 1 through 16 effect-path descriptor-profile identities. Each
-identity is 1 through 128 bytes and matches
+identities, 1 through 64 plant-channel-layout profile identities, and 1 through
+16 effect-path descriptor-profile identities. Each identity is 1 through 128
+bytes and matches
 `[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?`. It must satisfy the corresponding
-role, dependency-direction, package, inventory, or physical-descriptor predicate
-in this ADR. An alias, unregistered role, consumer-specific core fork, or
-protocol-neutral library role receipt rejects.
+role, dependency-direction, package, inventory, layout, or physical-descriptor
+predicate in this ADR. An alias, unregistered role, consumer-specific core fork,
+or protocol-neutral library role receipt rejects.
 
 Effect-path reservation capacity is 1 through 65,536 paths. The handover
 deadline is 1 through 300,000,000,000 receiver-local nanoseconds. Both values
@@ -1307,6 +1338,21 @@ Each effect-path descriptor profile fixes the alias enrollment source,
 resource and domain-incarnation identities, channel and interval encoding, and
 fencing store. It also fixes the effect-boundary check, isolation evidence,
 handover protocol, and recovery bounds.
+
+Each plant-channel-layout profile fixes scalar encoding, digest construction,
+bounds, availability-group grammar, placeholder bits, component semantics,
+coordinate frames, units, numeric domains, physical-resource reference grammar,
+and packer rules. Stable 1.0 fixes bitmap polarity, bit order, and padding. The
+profile fixes no deployment roster or resource assignment.
+
+Each content-addressed layout instance binds the concrete roster and registered
+profile. It also binds the slots, physical resources, and an exact partition of
+sensor slots into nonempty ordered availability groups. Each group binds sorted,
+unique dependent command-slot indices and their exact restrictive scalar bytes.
+Overlapping dependency sets are valid only when every required byte is identical.
+Their union covers all source-conditioned Active command slots. Preparation
+rejects gaps, duplicates, out-of-range indices, and conflicting overlaps before
+it creates a publisher or session.
 
 Future B03 allocation names and reviewed exclusions will be maintained in the
 [external selector-allocation inventory](selector-allocation.authoring.v1.json)

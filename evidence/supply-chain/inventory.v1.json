@@ -2223,7 +2223,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "ac9ed661e29853259aa2b79ffe938519624af5f0adea8cb67ac47e16dc996150"
+      "sha256": "0920956b30fb4f908af63179615f929e7b58bf397e3efa8c9a4374021ffd7876"
     },
     {
       "outputs": [
@@ -2251,7 +2251,7 @@
         "docs/adr/decision-registry.proposed.v1.json"
       ],
       "path": "scripts/generate_decision_registry.py",
-      "sha256": "ce438efffcb79ed5543ea850d34712a480cfc94e69bfb8eaf38a84cd346def59"
+      "sha256": "175bb668ed4f78f0d28cb3b9f85cb29d4aa9419cc1507c81e71fbb3460ab7418"
     },
     {
       "outputs": [
@@ -2267,7 +2267,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "c92b062f869c2791044eccff3c93d664216f30a8e27bf20c4065b2c17eb3c7d9"
+      "sha256": "f8a433076f75777588e78523467f1e5fa48d8022b1983b5009433037e1d3be02"
     },
     {
       "outputs": [
@@ -2302,7 +2302,7 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "b7dc73e176e1eb1eca9f2cb2d997d9b71dd96a274e25817b9c63b8f6c1f9655e"
+      "sha256": "b1b1784707a7098476cf1c1f6b13ee8a76c5b331d34abbda5d9c00b19da0e69b"
     },
     {
       "outputs": [

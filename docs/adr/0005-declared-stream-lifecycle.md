@@ -454,6 +454,34 @@ record and prepared safety projection. An absent or evicted record rejects. A
 timestamp, bare position, digest without values, or latest-value fallback cannot
 replace it.
 
+The profile pre-reserves capacity for every live source pin. An admitted pin is
+not evictable before terminal disposition or evidence handoff. Restart restores
+the exact pinned bytes and state. Otherwise, restart retires the generation.
+
+Each compact sensor frame carries one mandatory layout-sized availability
+bitmap. The prepared layout fixes every group, scalar member, bit order, padding
+rule, and unavailable placeholder encoding. Each group starts undecided. The
+publisher marks it exactly once as available or unavailable.
+
+An available group requires every finite in-range scalar exactly once. An
+unavailable group forbids caller values. The packer writes canonical placeholder
+bits internally. An undecided group rejects before position assignment. Group
+and scalar handles bind the prepared publisher generation. Stale, foreign,
+duplicate, inherited, or post-seal state rejects.
+
+The frame digest covers its header, bitmap, and every scalar byte. The decoder
+returns typed available values or typed unavailability. It never exposes
+unavailable placeholders as measurements.
+
+Producer completeness failures reject before position assignment. An encode or
+queue failure after assignment consumes that position and emits a visible gap.
+Receiver length, padding, digest, layout, or bitmap errors reject before
+admission, pinning, and callback. A receiver cannot unassign the producer's
+position.
+
+Compatibility JSON carries the same semantic availability as the compact frame.
+It never infers availability from zero values or missing JSON channels.
+
 A prepared simulation-step declaration uses the same no-reuse principles. Its
 grant binds one receiver clock and one non-refreshing exclusive grant deadline.
 It reserves a contiguous request range, strict execution cursor, request and
@@ -527,6 +555,20 @@ required direct `AuthorityRealmKey`, so it rejects before declaration lookup.
 Post-retirement historical delivery instead requires the exact retained
 declaration tombstone, descriptor window, `ProviderHistoryProvenance`, receiver
 retirement anchor, and installed history-admission head.
+
+The following non-wire projection closes source-bound availability semantics.
+It does not allocate the future wire member.
+
+```json
+{"availability_bitmap_mandatory":true,"availability_covered_by_frame_digest":true,"group_decision_exactly_once":true,"available_group_requires_all_values":true,"unavailable_group_forbids_caller_values":true,"unavailable_placeholder_is_internal":true,"decoder_exposes_placeholder_values":false,"position_assigned_after_completeness":true,"post_assignment_failure_emits_gap":true,"receiver_rejection_unassigns_producer_position":false,"live_source_pin_capacity_pre_reserved":true,"live_source_pin_is_evictable":false,"pin_retained_until_terminal_disposition_or_evidence_handoff":true,"restart_restores_pin_or_retires_generation":true,"compatibility_json_preserves_semantic_availability":true,"compatibility_json_infers_availability_from_zero_or_absence":false,"source_reference_repeats_bitmap":false}
+```
+
+The following hostile projection detaches availability from its sensor frame.
+Neither a side message nor unprotected metadata can carry mandatory missingness.
+
+```json
+{"availability_transport":"DETACHED_SIDE_MESSAGE","availability_covered_by_frame_digest":false}
+```
 
 ## Actors and state transitions
 

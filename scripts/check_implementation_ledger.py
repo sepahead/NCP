@@ -24,7 +24,7 @@ from datetime import datetime
 from functools import lru_cache
 from importlib import metadata as importlib_metadata
 from pathlib import Path, PurePosixPath
-from typing import Any, Mapping, NoReturn
+from typing import Any, Callable, Mapping, NoReturn
 from urllib.parse import unquote, urlsplit
 
 from bounded_json import (
@@ -47,6 +47,16 @@ DECISION_REGISTRY_SCHEMA = (
     ROOT / "docs" / "adr" / "decision-registry.proposed.schema.v1.json"
 )
 DECISION_REVIEW_PACKET = ROOT / "docs" / "adr" / "B01_REVIEW_PACKET.md"
+HOSTED_CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+EXPECTED_B01_SOURCE_STAGING_PREDECESSOR = {
+    "commit": "c0302b79faf0543448a0240aa055be6a9dca7125",
+    "tree": "8f63cee02c46346bbc414e934753d9eb2528281c",
+    "packet": {
+        "path": "docs/adr/B01_REVIEW_PACKET.md",
+        "sha256": "3cf47efb0843671edd819099bab3567f4ab74c00e806533a3a866f34c054ee6f",
+        "bytes": 47_612,
+    },
+}
 ADR008 = ROOT / "docs" / "adr" / "0008-extension-namespace-and-galadriel-separation.md"
 SELECTOR_CLOSURE_SOURCE = ROOT / "docs" / "adr" / "selector-closure.source.v1.json"
 SELECTOR_CLOSURE_SCHEMA = (
@@ -435,7 +445,7 @@ UNSUPPORTED_EVIDENCE_ADMISSION = (
     "DISABLED_NO_SEPARATELY_AUTHENTICATED_INDEPENDENT_VERIFIER"
 )
 LOCAL_TRANSITION_SUBJECT_SCHEMA = "ncp.local-transition-subject.v1"
-LOCAL_REQUIREMENT_ACCEPTANCE_SCHEMA = "ncp.local-requirement-acceptance.v1"
+LOCAL_REQUIREMENT_ACCEPTANCE_SCHEMA = "ncp.local-requirement-acceptance.v2"
 PROMOTED_REGISTRY_CLAIM_BOUNDARY = (
     "This normative registry records the exact N01 mechanical promotion of "
     "accepted architecture decisions and its bounded predecessor identities. "
@@ -11668,6 +11678,50 @@ class LedgerError(ValueError):
     """The implementation ledger is invalid or overclaims evidence."""
 
 
+B01_SOURCE_STAGING_AUTHORIZED = False
+
+
+def set_b01_source_staging_mode(enabled: bool) -> None:
+    """Authorize the exact zero-review superseded-packet source cut."""
+
+    global B01_SOURCE_STAGING_AUTHORIZED
+    B01_SOURCE_STAGING_AUTHORIZED = enabled
+
+
+def _hosted_ci_workflow_text() -> str:
+    try:
+        raw = read_bounded_regular_file(
+            HOSTED_CI_WORKFLOW,
+            limits=TASK_SUBJECT_FILE_LIMITS,
+            label="hosted CI workflow",
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"hosted CI workflow is not UTF-8: {error}")
+
+
+def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> None:
+    commands = (
+        "scripts/check_implementation_ledger.py",
+        "scripts/generate_implementation_ledger.py",
+    )
+    if "\r" in text or any(text.count(command) != 1 for command in commands):
+        _fail("hosted CI must invoke each B01 ledger command exactly once")
+    flag = "--b01-source-staging"
+    if source_staging:
+        for command in commands:
+            pattern = re.escape(command) + r"[^\n]*(?:\\\n[^\n]*)?" + flag
+            if re.search(pattern, text) is None:
+                _fail("hosted CI does not bind the B01 source-staging mode")
+        if text.count(flag) != len(commands):
+            _fail("hosted CI has an ambiguous B01 source-staging flag count")
+    elif flag in text:
+        _fail("hosted CI retains B01 source-staging mode for a current packet")
+
+
 # This catalog is the checked implementation DAG. Descriptive detail remains in
 # the blueprint; status and receipts live only in the JSON ledger.
 TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
@@ -11706,7 +11760,7 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     ),
     (
         "N04",
-        "Implement the production authenticated envelope and semantic security state",
+        "Implement production authenticated ingress and semantic security state",
         ("N02",),
         "NCP",
     ),
@@ -12150,6 +12204,105 @@ V11_ATLAS_TASKS = frozenset(
     }
 )
 
+D21_OVERLAY_TASK_IDS = (
+    "B03",
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N10",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "H02",
+    "H03",
+    "H06",
+    "C02",
+    "C03",
+    "C05",
+    "G02",
+    "G03",
+    "P02",
+    "P03",
+    "X01",
+    "X02",
+    "F04",
+    "F05",
+)
+
+# D21 traceability is broader than execution ownership. B01/B02 govern review and
+# rebaseline. F01-F03 own formal/refinement/fuzz evidence. X00 is the pre-freeze
+# ambiguity prototype; X01 owns final independent execution.
+D21_NON_EXECUTION_TASK_IDS = (
+    "B01",
+    "B02",
+    "F01",
+    "F02",
+    "F03",
+    "X00",
+)
+
+D21_EXACT_CREBAIN_OVERLAY_ACCEPTANCE = {
+    "C02": (
+        "Validate the exact source pin, installed restrictive lane, and body-owned "
+        "availability-dependent command as one fail-closed unit."
+    ),
+    "C03": (
+        "Mark every availability group exactly once. Write every member of each "
+        "available group exactly once. Write no member of any unavailable group. "
+        "Let the packer materialize every bound slot."
+    ),
+    "C05": (
+        "Qualify exhaustive native one-, two-, and three-drone availability masks, "
+        "correlated faults, source pins, restrictive lanes, restart, washout, and "
+        "recovery."
+    ),
+}
+
+D21_TRACEABILITY_TASK_IDS = (
+    "B01",
+    "B02",
+    "B03",
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N10",
+    "F01",
+    "F02",
+    "F03",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "H02",
+    "H03",
+    "H06",
+    "C02",
+    "C03",
+    "C05",
+    "G02",
+    "G03",
+    "P02",
+    "P03",
+    "X00",
+    "X01",
+    "X02",
+    "F04",
+    "F05",
+)
+
 DEFECT_TRACEABILITY: dict[str, tuple[str, ...]] = {
     "D01": ("N02", "E02", "C01"),
     "D02": ("N02", "G01", "G02", "P01"),
@@ -12185,6 +12338,7 @@ DEFECT_TRACEABILITY: dict[str, tuple[str, ...]] = {
     ),
     "D19": ("B01", "B02", "B03", "N01"),
     "D20": ("B01", "N02", "N04", "E03", "G02", "P02", "X05", "X02", "F04"),
+    "D21": D21_TRACEABILITY_TASK_IDS,
 }
 
 DEFECT_CLOSURE_RULES: dict[str, str] = {
@@ -12253,7 +12407,7 @@ DEFECT_CLOSURE_RULES: dict[str, str] = {
     "D07": "Close only when body-issued dispositions, query and replay tests, and composed live traces pass; every authority/lifecycle/latch, action-command declaration, disposition, attempt, side-effect, clock, retention, rebind, and terminal transition compare-and-swaps the sole BodySessionControlState selector, and generic plus specialized post-CAS receipts bind identical prior and installed composite and subordinate heads; each normal plant command append constructs receipt-free LocalSecurityCurrentnessCASCondition over the exact operation and authority scopes, expected operation predecessor, local durable transaction-store identity, security-authority domain and lineage incarnation, authority-state version, security and revocation epochs, semantic security-state and installed authority-head digests, installed selector incarnation/version/digest, and authenticated installed authority head/selector/commit source; the security-dependent consumer successor and generic plus specialized post-CAS receipts bind the exact condition digest, and the winning composite CAS uses the identified local store to conditionally compare the exact security selector; unavailable, omitted-condition, wrong-store, wrong-source, separate-check, planned-stop, and concurrent-security mutants fail closed.",
     "D08": "Close only when acquire, conflict, transfer, expiry, restart, and multi-writer campaigns pass; each operation uses pre-CAS PlantAuthorityTransitionFact, installs authority under the sole composite CAS, and emits generic, authority-commit, and live-lease currentness receipts; stale security version, unavailable common local transactional state, separate remote or before/after security checks, planned stop, concurrent declaration/journal/security change, sibling, and candidate-lease-as-current mutants reject.",
     "D09": "Close only when the extension route is registered and disjoint, core-route rejection passes, and visuals are corrected; Galadriel and Haldir release paths must each follow receipt-free commitment, successor composite head, generic commit plus specialized post-CAS release, then complete item binding that release in one local transaction; successor heads exclude complete items and post-CAS receipts, and head-item, head-release, partial-item, and crash-cut mutants reject; Galadriel FINALIZE binds a trusted assessor-clock sample in the current incarnation in its winning CAS and requires strict time before not-after, while equality, later time, or restart without the exact GALADRIEL_ASSESSOR_CLOCK_RESTART fact-to-successor-to-commit chain cancels with no item; its local queue result is exactly CANCELED_BEFORE_LOCAL_QUEUE or RELEASED_TO_LOCAL_DURABLE_EXTENSION_QUEUE, and only a separate later external disposition may be DELIVERED, REJECTED, or AMBIGUOUS_AFTER_EXTERNAL_TRANSPORT; Haldir source admission is pre-CAS fact, successor policy head, generic commit, then source-admission receipt; commander preflight is receipt-free until its local head CAS consumes the position and emits the generic plus installation receipts; NO_PROFILE terminal H2 newly binds only the ingress stamp and closed outcome and excludes both post-CAS receipts; a selected-profile barrier follows receipt-free HaldirAssessmentEvaluationBarrierFact, a winning policy CAS that reverifies the current authority-clock incarnation and sample strictly before deadline, H2 binding that exact fact, generic policy commit binding fact and H2, then post-CAS barrier receipt binding fact/H2/selector/commit; exact HALDIR_POLICY_CLOCK_RESTART and HALDIR_COMMANDER_CLOCK_RESTART fact-to-successor-to-generic-to-specialized receipt chains preserve or tighten every pending deadline, otherwise cancel pending allow/publication while preserving deny, fail-safe, consumed-position, and evidence state; deadline equality is expired, policy and commander clocks never substitute, and NCP queue transfer proves neither Crebain admission nor application.",
-    "D10": "Close only when the bypass deletion, ingress-attempt, ESTOP side-effect, resolution, model, hostile mutants, and crash recovery pass. The exact minimum current-context gate requires hard byte and shape bounds, a verified protected envelope, the authenticated transport principal, and default-deny manifest permission for the actor and action plane. It also requires the exact route, audience, direct realm, live session generation, declared stream epoch, publisher incarnation, syntactic position, and current security state. The mode must be one unambiguous and structurally valid ESTOP. The installed plant-profile action must match. Either the live declaration and body freshness grant or the preserved HOLD escalation snapshot must authorize the reserved slot. The receiver-clock sample must be strictly before the unchanged exclusive deadline. Immediately before ESTOP reservation and again at the effect boundary, the body rechecks the applicable security, permission, grant or escalation, deadline, and installed-action state. A cut that wins either order installs no new remote effect. A durable attempt then precedes the separate non-authorizing ESTOP side effect. Only that qualified ESTOP can apply the body-local latch before ordinary stream replay, live-lease, and lower semantic checks, then reject as a command. Remote HOLD must pass stream monotonicity and the exact live-holder lease before it can request the installed HOLD action. It structurally forbids source and remote value-vector fields. An independently attributed body-local policy action remains possible. Side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched. ESTOP queue priority, admission, and stop_latched require the full envelope, manifest, route, audience, session, stream, replay, operation, body-grant deadline, profile, authority, and semantic gates. They also require the structural absence of source, lease, and remote value-vector fields selected for ESTOP. Core command admission consumes one setpoint and one application attempt per position. Compatibility tick-zero or horizon replay cannot satisfy it. Exact replay creates no second received or latch invocation. A primary position record is immutable. A stale but unseen ESTOP uses its own pre-reserved primary record. Body-generation creation preallocates one separate restrictive-conflict attribution for the qualified changed ESTOP at an occupied position that performs the generation's first latch transition. It binds the complete coordinate, digest, command rejection, and attributed latch result. It never replaces a primary digest or creates a second received record. Exact replay returns that retained restrictive result. Once the latch or attribution exists, a different later conflict rejects without another latch invocation or allocation. Invalid Active or HOLD, any Init, absent, default, unknown, or ambiguous mode, and wrong-context, unsigned, oversize, unverifiable, ambiguous, or expired candidates cause no remote effect. Ambiguous or unresolved fail-safe state blocks Active. Every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts. Independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
+    "D10": "Close only when the bypass deletion, ingress-attempt, ESTOP side-effect, resolution, model, hostile mutants, and crash recovery pass. The exact minimum current-context gate requires hard byte and shape bounds, a verified profile-specific authenticated-ingress result, and default-deny manifest permission for the actor and action plane. For A-direct, that result contains the verified native transport principal and current receiver-owned opaque context. For B-over-A, it contains the authenticated restricted carrier and distinct verified JWS signer. Neither profile can be selected by caller bytes. It also requires the exact route, audience, direct realm, live session generation, declared stream epoch, publisher incarnation, syntactic position, and current security state. The mode must be one unambiguous and structurally valid ESTOP. The installed plant-profile action must match. Either the live declaration and body freshness grant or the preserved HOLD escalation snapshot must authorize the reserved slot. The receiver-clock sample must be strictly before the unchanged exclusive deadline. Immediately before ESTOP reservation and again at the effect boundary, the body rechecks the applicable security, permission, grant or escalation, deadline, and installed-action state. A cut that wins either order installs no new remote effect. A durable attempt then precedes the separate non-authorizing ESTOP side effect. Only that qualified ESTOP can apply the body-local latch before ordinary stream replay, live-lease, and lower semantic checks, then reject as a command. Remote HOLD must pass stream monotonicity and the exact live-holder lease before it can request the installed HOLD action. It structurally forbids source and remote value-vector fields. An independently attributed body-local policy action remains possible. Side-effect reservation, record, and resolution grant no action-queue priority or entry, admission, disposition, or stop_latched. ESTOP queue priority, admission, and stop_latched require the complete admitted frame and profile-specific ingress context, manifest, route, audience, session, stream, replay, operation, body-grant deadline, profile, authority, and semantic gates. They also require the structural absence of source, lease, and remote value-vector fields selected for ESTOP. Core command admission consumes one setpoint and one application attempt per position. Compatibility tick-zero or horizon replay cannot satisfy it. Exact replay creates no second received or latch invocation. A primary position record is immutable. A stale but unseen ESTOP uses its own pre-reserved primary record. Body-generation creation preallocates one separate restrictive-conflict attribution for the qualified changed ESTOP at an occupied position that performs the generation's first latch transition. It binds the complete coordinate, digest, command rejection, and attributed latch result. It never replaces a primary digest or creates a second received record. Exact replay returns that retained restrictive result. Once the latch or attribution exists, a different later conflict rejects without another latch invocation or allocation. Invalid Active or HOLD, any Init, absent, default, unknown, or ambiguous mode, and wrong-context, unauthenticated, cross-profile, oversize, unverifiable, ambiguous, or expired candidates cause no remote effect. Ambiguous or unresolved fail-safe state blocks Active. Every attempt, side-effect, and resolution transition CASes the composite body-session-control selector, preserves unrelated state, and binds its generic and specialized receipts. Independent-journal-selector, stale-composite, sibling, gate-substitution, and receipt-head mismatch mutants reject.",
     "D11": "Close only when missingness mapping, producer_declared_resolved_source non-causality, the closed neural/categorical/excluded Prisoma numeric contracts, exhaustive environment manifest and applicability branches, authenticated executor state, pre-CAS execution fact, and post-CAS one-use evidence, shared execution-receipt branches, canonical binary64 recomputation, environment/executable/dependency/state/fact-cycle/map/output/exclusion/nondeterminism mutants, and independent statistical and scientific claim review pass; PrisomaNumericExecutorStateHead binds exact imported trust_state_digest and policy_head_digest, ordinary successors preserve both byte-identical, and any trust/policy change fences the process state and requires a fresh never-used incarnation; each native capture event follows receipt-free fact, segment/composite successor plus generic commit and complete event/outbox item in one local transaction, and an idempotent worker drains only that exact immutable item.",
     "D12": "Close only when bounded models, witnesses, refinement, and mutation evidence are retained and reviewed.",
     "D13": "Close only when names are owned, clean installs and advisory resolution pass, and SBOM and publication receipts exist.",
@@ -12264,6 +12418,35 @@ DEFECT_CLOSURE_RULES: dict[str, str] = {
     "D18": "Close only when every discovered executable, CI-built, or deployment-activated repository/root/target-kind/target/default-feature-mode/effective-feature-set/role/activation-profile/resolution-context-digest tuple whose closure contains NCP has one coherent versioned surface identity; separate ConsumerSurfaceInputManifest and actual build/deployment inputs determine keys, contexts, discovery, scanner evidence, and Python mirror location; resolution contexts bind pre-build inputs only; resulting artifact digests are computed separately, exclude .ncp-consumer bytes and digest, and precede sibling descriptor generation; .ncp-consumer is output-only and excluded from every digest it contains; one installed repository-local inventory head/selector/commit root binds stable scope, never-reused incarnation, exact prior-plus-one version, descriptor floor, complete canonical TrustedSubjectAuthorizationState and TrustedScannerAuthorizationState content plus recomputed digests, and a closed ACTIVE, MIGRATION_REQUIRED_DISABLED, AUTHORIZATION_REVOKED_DISABLED, FENCED, or RETIRED status; subject state binds authorization domain/policy/version, sorted authorized receipt digests, and authenticated grant/revoke ancestry, scanner state binds principal, content-addressed binary/dependency closure, scan policy/version, receipt eligibility, and authenticated grant/revoke ancestry, both are subordinate with no independent selector, and a bare digest cannot authorize; genesis, repin, floor advance, subject/scanner grant/revoke, fence, and retire all use the same selector, preserve unrelated surfaces/evidence, and serialize same-predecessor races; repin requires the current authorized scanner binary/closure/policy and eligible receipt, while no proven common transaction disables repin and real scanner execution remains NOT RUN until exact external evidence exists; cross-repository work stays staged; self-hash, output-artifact cycle, omission, stale-input, sibling-CAS, scope, authorization-state substitution, scanner-binary substitution, shared-node disagreement, and mixed-wire deployment mutants reject.",
     "D19": "Close only when exact current-subject human review chains can derive every non-normative ADR acceptance without stale, self, rejected, forked, or unresolved conditional evidence; B02 separately authorizes the candidate subject; B03 makes bounded allocations; and N01 alone promotes the accepted registry into the normative graph.",
     "D20": "Close only after a separately authenticated and independently qualified verifier boundary exists outside this repository-local coordination checker and admits the exact installed challenge-exposure anchor subject. Local JSON, URLs, booleans, reviewer labels, Git refs, remote-tracking observations and in-process cryptography are never external or independent authority. Until that boundary is implemented and integrated by an explicit reviewed checker and schema change, EXTERNAL_PASS, INDEPENDENT_PASS and externally dependent COMPLETE admission are unconditionally disabled before any asserted signature, identity, currentness, revocation, qualification or gate result can grant status; X05 stays OPEN, its gate stays NOT RUN and D20 cannot close. This local checker intentionally contains no X05 signature, trust-root, qualification, revocation, or currentness acceptance parser, no cryptographic dependency, and no trust-root configuration path. Supported LOCAL receipts bind one exact canonical transition subject containing the task, from/to states, requirement-and-acceptance digest, exact repository policy and unambiguous branch, immutable local source/evidence cuts, dependency receipt generation, task-subject generation and correlation ID. Dependency receipts strictly predate each dependent receipt; same-repository dependency source cuts are ancestors of dependent source cuts; a pass generation cannot change source or subject without an IN_PROGRESS reopen and exact descendant invalidation. Local remote-tracking observations prove no configured-remote reachability, and reviewer-name separation proves no independence.",
+    "D21": (
+        "Close only when every compact `SensorFrame` carries one inline "
+        "`ceil(group_count / 8)` availability bitmap in the same exact digest and "
+        "queue item as its header and scalar storage. Stable 1.0 uses one for "
+        "AVAILABLE, zero for UNAVAILABLE, least-significant-bit-first group order, "
+        "and zero high padding. Sensor groups are nonempty and partition every "
+        "sensor slot exactly once. Available groups contain every finite in-range "
+        "member exactly once. Unavailable groups forbid caller values and use "
+        "profile-specific canonical placeholder bits that no decoder exposes as "
+        "observations. Producer completeness failures reject before position "
+        "assignment. Post-assignment encode or queue failure consumes the position "
+        "and emits a gap. Receiver length, padding, digest, layout, or bitmap errors "
+        "reject before admission, pinning, and callback without unassigning the "
+        "producer position. Pin capacity is pre-reserved. A live source pin is "
+        "non-evictable until terminal disposition or evidence handoff, and restart "
+        "restores it exactly or retires the generation. `NormativeSourceRef` binds "
+        "the declaration, position, and origin content digest without repeating the "
+        "bitmap. Projection preserves unavailable state and installs a new layout "
+        "and bitmap after slot removal or reorder. Each layout binds group-to-command "
+        "dependencies and exact restrictive bytes. Conflicting overlaps reject at "
+        "preparation. A source-bound Active command matches every unavailable "
+        "restrictive lane or rejects as one unit. Optional condition detail uses a "
+        "separate source-correlated extension and cannot override or block core "
+        "behavior. Compact binary and compatibility JSON preserve the same typed "
+        "availability. Real NEST 3.9 loops for one, two, and three drones exhaust "
+        "fault masks, internal restrictive epochs (not NCP HOLD), washout, recovery, "
+        "lane isolation, exact dispositions, restart, security, soak, and performance "
+        "behavior without resetting the kernel."
+    ),
 }
 
 
@@ -14900,6 +15083,12 @@ def _task_reached_minimum(task: dict[str, Any]) -> bool:
     }
 
 
+def _task_has_started(task: dict[str, Any]) -> bool:
+    """Return whether a validated task has left its initial OPEN state."""
+
+    return task.get("status") != "OPEN" or bool(task.get("transitions"))
+
+
 def _receipt_sha256(receipt: dict[str, Any]) -> str:
     encoded = json.dumps(
         receipt, sort_keys=True, separators=(",", ":"), ensure_ascii=False
@@ -14907,7 +15096,201 @@ def _receipt_sha256(receipt: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _requirement_acceptance_sha256(task: dict[str, Any]) -> str:
+def _parse_blueprint_task_acceptance_rows(
+    raw: bytes,
+) -> dict[str, dict[str, str]]:
+    if b"\r" in raw or not raw.endswith(b"\n"):
+        _fail("blueprint must use canonical LF lines with a final line feed")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"blueprint is not UTF-8: {error}")
+    headings = list(
+        re.finditer(
+            r"^#### (?P<task_id>[A-Z][0-9]{2}) — (?P<title>[^\r\n]+)$",
+            text,
+            re.MULTILINE,
+        )
+    )
+    rows: dict[str, dict[str, str]] = {}
+    for heading in headings:
+        task_id = heading.group("task_id")
+        if task_id in rows:
+            _fail(f"blueprint duplicates task section {task_id}")
+        following_heading = re.search(r"^#{1,4} ", text[heading.end() :], re.MULTILINE)
+        section_end = (
+            heading.end() + following_heading.start()
+            if following_heading is not None
+            else len(text)
+        )
+        section = text[heading.start() : section_end]
+        acceptance_matches = list(re.finditer(r"^Acceptance\b", section, re.MULTILINE))
+        if len(acceptance_matches) != 1:
+            _fail(f"blueprint task {task_id} must contain exactly one Acceptance block")
+        acceptance_start = acceptance_matches[0].start()
+        acceptance_end = section.find(
+            "\n\nTen-lens record:", acceptance_matches[0].end()
+        )
+        if acceptance_end < 0:
+            _fail(
+                f"blueprint task {task_id} Acceptance block lacks its exact "
+                "Ten-lens boundary"
+            )
+        rows[task_id] = {
+            "path": BLUEPRINT.relative_to(ROOT).as_posix(),
+            "heading": heading.group(0),
+            "section": section,
+            "acceptance": section[acceptance_start:acceptance_end],
+        }
+    return rows
+
+
+@lru_cache(maxsize=1)
+def _checked_blueprint_task_acceptance_rows() -> dict[str, dict[str, str]]:
+    try:
+        raw = read_bounded_regular_file(
+            BLUEPRINT,
+            limits=TASK_SUBJECT_FILE_LIMITS,
+            label="implementation blueprint",
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    return _parse_blueprint_task_acceptance_rows(raw)
+
+
+def _blueprint_task_acceptance_row(
+    task_id: str, *, content: bytes | None = None
+) -> dict[str, str]:
+    rows = (
+        _checked_blueprint_task_acceptance_rows()
+        if content is None
+        else _parse_blueprint_task_acceptance_rows(content)
+    )
+    row = rows.get(task_id)
+    if row is None:
+        _fail(f"blueprint lacks the exact task-specific section for {task_id}")
+    return row
+
+
+def _validate_d21_execution_overlay_roster(
+    overlay_task_ids: tuple[str, ...],
+) -> None:
+    if (
+        len(set(D21_TRACEABILITY_TASK_IDS)) != len(D21_TRACEABILITY_TASK_IDS)
+        or len(set(D21_NON_EXECUTION_TASK_IDS)) != len(D21_NON_EXECUTION_TASK_IDS)
+        or not set(D21_NON_EXECUTION_TASK_IDS).issubset(D21_TRACEABILITY_TASK_IDS)
+    ):
+        _fail("D21 checked traceability or non-execution roster is malformed")
+    expected = tuple(
+        task_id
+        for task_id in D21_TRACEABILITY_TASK_IDS
+        if task_id not in D21_NON_EXECUTION_TASK_IDS
+    )
+    if overlay_task_ids != expected:
+        _fail(
+            "D21 execution overlay must equal the exact closure roster minus "
+            "the checked non-execution owners"
+        )
+
+
+def _parse_d21_task_acceptance_overlay(raw: bytes) -> dict[str, dict[str, str]]:
+    if b"\r" in raw or not raw.endswith(b"\n"):
+        _fail("blueprint must use canonical LF lines with a final line feed")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"blueprint is not UTF-8: {error}")
+    anchor = '<a id="ncp-d21-task-acceptance-overlay-v1"></a>'
+    if text.count(anchor) != 1:
+        _fail("blueprint must contain one exact D21 task acceptance overlay anchor")
+    section_start = text.index(anchor)
+    section_end = text.find("\n## 6. ", section_start)
+    if section_end < 0:
+        _fail("blueprint D21 task acceptance overlay lacks its section boundary")
+    section = text[section_start:section_end]
+    expected_header = "| Task | Additional D21 acceptance |\n|---|---|\n"
+    if section.count(expected_header) != 1:
+        _fail("blueprint D21 task acceptance overlay header is not exact")
+    rows: dict[str, dict[str, str]] = {}
+    for match in re.finditer(
+        r"^\| (?P<task_id>[A-Z][0-9]{2}) \| (?P<acceptance>[^|\r\n]+) \|$",
+        section,
+        re.MULTILINE,
+    ):
+        task_id = match.group("task_id")
+        if task_id in rows:
+            _fail(f"blueprint D21 task acceptance overlay duplicates {task_id}")
+        rows[task_id] = {
+            "path": BLUEPRINT.relative_to(ROOT).as_posix(),
+            "anchor": anchor,
+            "row": match.group(0),
+            "acceptance": match.group("acceptance"),
+        }
+    _validate_d21_execution_overlay_roster(tuple(rows))
+    for task_id, expected_acceptance in D21_EXACT_CREBAIN_OVERLAY_ACCEPTANCE.items():
+        if rows.get(task_id, {}).get("acceptance") != expected_acceptance:
+            _fail(
+                f"blueprint D21 task acceptance overlay {task_id} text differs "
+                "from the checked execution ownership"
+            )
+    return rows
+
+
+@lru_cache(maxsize=1)
+def _checked_d21_task_acceptance_overlay() -> dict[str, dict[str, str]]:
+    try:
+        raw = read_bounded_regular_file(
+            BLUEPRINT,
+            limits=TASK_SUBJECT_FILE_LIMITS,
+            label="implementation blueprint",
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    return _parse_d21_task_acceptance_overlay(raw)
+
+
+def _d21_task_acceptance_overlay_row(
+    task_id: str, *, content: bytes | None = None
+) -> dict[str, str] | None:
+    if task_id not in D21_OVERLAY_TASK_IDS:
+        return None
+    rows = (
+        _checked_d21_task_acceptance_overlay()
+        if content is None
+        else _parse_d21_task_acceptance_overlay(content)
+    )
+    row = rows.get(task_id)
+    if row is None:
+        _fail(f"blueprint lacks the exact D21 acceptance overlay for {task_id}")
+    return row
+
+
+def _requirement_acceptance_sha256(
+    task: dict[str, Any],
+    *,
+    blueprint_content: bytes | None = None,
+    defect_closure_rules: Mapping[str, str] | None = None,
+) -> str:
+    closure_rules = (
+        DEFECT_CLOSURE_RULES if defect_closure_rules is None else defect_closure_rules
+    )
+    defect_ids = [
+        defect_id
+        for defect_id in DEFECT_TRACEABILITY
+        if defect_id in task["requirement_ids"]
+    ]
+    closure_rows: list[dict[str, Any]] = []
+    for defect_id in defect_ids:
+        closure_rule = closure_rules.get(defect_id)
+        if closure_rule is None:
+            _fail(f"task {task['id']} has no checked closure rule for {defect_id}")
+        closure_rows.append(
+            {
+                "id": defect_id,
+                "task_ids": list(DEFECT_TRACEABILITY[defect_id]),
+                "closure_rule": closure_rule,
+            }
+        )
     return _canonical_sha256(
         {
             "schema": LOCAL_REQUIREMENT_ACCEPTANCE_SCHEMA,
@@ -14918,11 +15301,37 @@ def _requirement_acceptance_sha256(task: dict[str, Any]) -> str:
             "minimum_terminal_class": task["minimum_terminal_class"],
             "claim_tier": task["claim_tier"],
             "requirement_ids": task["requirement_ids"],
+            "defect_closure_rows": closure_rows,
+            "blueprint_task_acceptance": _blueprint_task_acceptance_row(
+                task["id"], content=blueprint_content
+            ),
+            "d21_task_acceptance_overlay": _d21_task_acceptance_overlay_row(
+                task["id"], content=blueprint_content
+            ),
             "adr_ids": task["adr_ids"],
             "perspective_ids": [review["id"] for review in task["perspective_reviews"]],
             "lens_ids": [review["id"] for review in task["ten_lens_reviews"]],
         }
     )
+
+
+def _require_exact_requirement_acceptance_sha256(
+    task: dict[str, Any],
+    observed: Any,
+    *,
+    blueprint_content: bytes | None = None,
+    defect_closure_rules: Mapping[str, str] | None = None,
+) -> None:
+    expected = _requirement_acceptance_sha256(
+        task,
+        blueprint_content=blueprint_content,
+        defect_closure_rules=defect_closure_rules,
+    )
+    if observed != expected:
+        _fail(
+            f"task {task['id']} requirement-and-acceptance digest differs from "
+            "the exact defect closure rows and blueprint acceptance section or overlay"
+        )
 
 
 def _expected_receipt_repository(task: Mapping[str, Any]) -> str:
@@ -15010,6 +15419,10 @@ def _validate_local_transition_subject(
     repository_by_name: Mapping[str, dict[str, Any]],
     path: str,
 ) -> None:
+    _require_exact_requirement_acceptance_sha256(
+        task,
+        receipt["transition_subject"]["requirement_acceptance_sha256"],
+    )
     expected = _expected_local_transition_subject(
         task,
         transition,
@@ -15244,14 +15657,18 @@ def _validate_b01_review_plumbing(
     registry: dict[str, Any],
     packet_text: str,
     b01_task: dict[str, Any],
+    *,
+    n01_started: bool = False,
 ) -> None:
     if registry.get("schema") != "ncp.proposed-decision-registry.v1":
         _fail("B01 review plumbing requires the proposed registry")
-    if registry.get("review_packet_lifecycle") != {
-        "schema": "ncp.b01-review-packet-lifecycle.v1",
-        "state": "CURRENT",
-    }:
-        _fail("B01 review plumbing requires one CURRENT packet")
+    lifecycle = registry.get("review_packet_lifecycle")
+    if (
+        not isinstance(lifecycle, dict)
+        or lifecycle.get("schema") != ("ncp.b01-review-packet-lifecycle.v1")
+        or lifecycle.get("state") not in {"CURRENT", "SUPERSEDED"}
+    ):
+        _fail("B01 review plumbing requires a closed packet lifecycle")
     review_records = registry.get("review_records")
     if not isinstance(review_records, list):
         _fail("B01 current registry review_records must be an array")
@@ -15286,6 +15703,174 @@ def _validate_b01_review_plumbing(
         _fail("B01 packet lifecycle block differs from the generated registry")
 
     packet_subject = registry.get("review_packet_subject")
+    if lifecycle["state"] == "SUPERSEDED":
+        if not B01_SOURCE_STAGING_AUTHORIZED:
+            _fail("B01 superseded packet requires explicit source-staging mode")
+        if n01_started:
+            _fail("B01 source staging is forbidden after N01 starts")
+        if (
+            registry.get("normative") is not False
+            or registry.get("promotion_blocked") is not True
+            or registry.get("candidate") != "1.0.0-rc.1"
+            or registry.get("wire_version") != "1.0"
+        ):
+            _fail("B01 superseded source staging crosses its registry boundary")
+        if review_records or packet_subject is not None:
+            _fail("B01 superseded source staging cannot contain review authority")
+        if not isinstance(machine_subject, dict):
+            _fail("B01 superseded packet lacks its historical subject")
+        expected_history_members = {
+            "schema",
+            "state",
+            "historical_packet_source",
+            "normative",
+            "claim_boundary",
+            "promotion_blocked",
+            "decision_set",
+            "review_policy",
+            "source",
+            "decisions",
+        }
+        _exact_keys(
+            machine_subject,
+            expected_history_members,
+            "B01 superseded historical subject",
+        )
+        if (
+            machine_subject.get("schema") != "ncp.b01-review-subject-history.v1"
+            or machine_subject.get("state") != "SUPERSEDED"
+            or machine_subject.get("normative") is not False
+            or machine_subject.get("promotion_blocked") is not True
+        ):
+            _fail("B01 superseded packet history crosses its claim boundary")
+        historical_packet_source = machine_subject.get("historical_packet_source")
+        if not isinstance(historical_packet_source, dict):
+            _fail("B01 superseded history lacks its immutable packet source")
+        if historical_packet_source != EXPECTED_B01_SOURCE_STAGING_PREDECESSOR:
+            _fail("B01 superseded history does not bind the checked predecessor")
+        _exact_keys(
+            historical_packet_source,
+            {"commit", "tree", "packet"},
+            "B01 superseded historical packet source",
+        )
+        historical_commit = _hex(
+            historical_packet_source["commit"],
+            HEX40,
+            "B01 superseded historical packet source.commit",
+        )
+        historical_tree = _hex(
+            historical_packet_source["tree"],
+            HEX40,
+            "B01 superseded historical packet source.tree",
+        )
+        if _resolved_git_tree(str(ROOT), historical_commit) != historical_tree:
+            _fail("B01 superseded historical packet tree differs from its commit")
+        historical_packet_identity = historical_packet_source["packet"]
+        if not isinstance(historical_packet_identity, dict):
+            _fail("B01 superseded historical packet identity must be an object")
+        _exact_keys(
+            historical_packet_identity,
+            {"path", "sha256", "bytes"},
+            "B01 superseded historical packet identity",
+        )
+        historical_packet_path = _relative_path(
+            historical_packet_identity["path"],
+            "B01 superseded historical packet identity.path",
+        )
+        if (
+            historical_packet_path
+            != DECISION_REVIEW_PACKET.relative_to(ROOT).as_posix()
+        ):
+            _fail("B01 superseded history names the wrong packet path")
+        _, historical_packet_bytes = _resolved_git_blob(
+            str(ROOT), historical_commit, historical_packet_path
+        )
+        if historical_packet_identity["sha256"] != hashlib.sha256(
+            historical_packet_bytes
+        ).hexdigest() or historical_packet_identity["bytes"] != len(
+            historical_packet_bytes
+        ):
+            _fail("B01 superseded historical packet identity is stale")
+        try:
+            historical_packet_text = historical_packet_bytes.decode("utf-8")
+        except UnicodeDecodeError as error:
+            _fail(f"B01 superseded historical packet is not UTF-8: {error}")
+        _, historical_fences = _parse_b01_packet_markdown(historical_packet_text)
+        historical_json_fences = [
+            content
+            for language, content, _, _ in historical_fences
+            if language == "json"
+        ]
+        if len(historical_json_fences) != 2:
+            _fail("B01 superseded historical packet lacks two machine JSON blocks")
+        historical_lifecycle = _load_bounded_json_bytes(
+            historical_json_fences[0].encode("utf-8"),
+            "B01 superseded historical lifecycle",
+        )
+        historical_subject = _load_bounded_json_bytes(
+            historical_json_fences[1].encode("utf-8"),
+            "B01 superseded historical subject",
+        )
+        if historical_lifecycle != {
+            "schema": "ncp.b01-review-packet-lifecycle.v1",
+            "state": "CURRENT",
+        }:
+            _fail("B01 superseded history does not bind a CURRENT predecessor")
+        if not isinstance(historical_subject, dict):
+            _fail("B01 superseded historical subject must be an object")
+        expected_historical_subject = copy.deepcopy(historical_subject)
+        expected_historical_subject["schema"] = "ncp.b01-review-subject-history.v1"
+        expected_historical_subject["state"] = "SUPERSEDED"
+        expected_historical_subject["historical_packet_source"] = (
+            historical_packet_source
+        )
+        if machine_subject != expected_historical_subject:
+            _fail("B01 superseded history differs from its immutable CURRENT packet")
+        if b01_task.get("status") != "IN_PROGRESS":
+            _fail("B01 superseded source staging must remain IN_PROGRESS")
+        decisions = registry.get("decisions")
+        if (
+            not isinstance(decisions, list)
+            or len(decisions) != 11
+            or any(
+                not isinstance(decision, dict)
+                or decision.get("status") != "PROPOSED"
+                or not decision.get("acceptance_blockers")
+                for decision in decisions
+            )
+        ):
+            _fail("B01 superseded source staging must keep every ADR proposed")
+        visible_headings = {heading for heading, _, _ in packet_headings}
+        if (
+            "## Current review response contract" in visible_headings
+            or "## Historical review response contract" not in visible_headings
+        ):
+            _fail("B01 superseded packet exposes an invalid review-response section")
+        checkpoint_parts = [
+            b01_task.get("reviewer_comment"),
+            *(b01_task.get("residual_risks") or []),
+        ]
+        if any(not isinstance(part, str) for part in checkpoint_parts):
+            _fail("B01 superseded ledger checkpoint is malformed")
+        checkpoint = "\n".join(checkpoint_parts).casefold()
+        decision_set = registry.get("decision_set")
+        decision_set_sha256 = (
+            decision_set.get("sha256") if isinstance(decision_set, dict) else None
+        )
+        required_staging_text = (
+            "SUPERSEDED",
+            "No CURRENT subject",
+            "zero review records",
+            decision_set_sha256,
+        )
+        if any(
+            not isinstance(item, str) or item.casefold() not in checkpoint
+            for item in required_staging_text
+        ):
+            _fail("B01 superseded ledger checkpoint is incomplete")
+        return
+    if B01_SOURCE_STAGING_AUTHORIZED:
+        _fail("B01 source-staging mode requires one SUPERSEDED packet")
     if not isinstance(packet_subject, dict):
         _fail("B01 current registry lacks its review packet subject")
     if machine_subject != packet_subject:
@@ -17943,6 +18528,7 @@ def _validate_task(
                 "X02-nest39-fleet-1-2-3",
                 "X02-music-separation",
                 "X02-presentation-runtime-boundary",
+                "X02-sensor-availability-fault-correlation",
             }
         )
     if not required_base.issubset(task["requirement_ids"]):
@@ -18191,12 +18777,12 @@ def _validate_blueprint_binding(blueprint: Any) -> None:
 def _validate_blueprint_task_headings(
     expected_task_ids: list[str], *, content: bytes | None = None
 ) -> None:
-    raw = BLUEPRINT.read_bytes() if content is None else content
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as error:
-        _fail(f"blueprint is not UTF-8: {error}")
-    headings = re.findall(r"^#### ([A-Z][0-9]{2}) — [^\r\n]+$", text, re.MULTILINE)
+    rows = (
+        _checked_blueprint_task_acceptance_rows()
+        if content is None
+        else _parse_blueprint_task_acceptance_rows(content)
+    )
+    headings = list(rows)
     if len(headings) != len(expected_task_ids) or set(headings) != set(
         expected_task_ids
     ):
@@ -18461,7 +19047,7 @@ def _validate_defect_traceability(defect_traceability: Any) -> None:
     if not isinstance(defect_traceability, list) or len(defect_traceability) != len(
         DEFECT_TRACEABILITY
     ):
-        _fail("$.defect_traceability must map D01-D20 exactly")
+        _fail("$.defect_traceability must map D01-D21 exactly")
     expected_defects = list(DEFECT_TRACEABILITY)
     if [
         entry.get("id") for entry in defect_traceability if isinstance(entry, dict)
@@ -18476,6 +19062,10 @@ def _validate_defect_traceability(defect_traceability: Any) -> None:
             _fail(f"{entry_path}.task_ids differs from the checked closure map")
         if entry["closure_rule"] != DEFECT_CLOSURE_RULES[entry["id"]]:
             _fail(f"{entry_path}.closure_rule differs from the checked closure rule")
+    _validate_d21_execution_overlay_roster(D21_OVERLAY_TASK_IDS)
+    overlay_rows = _checked_d21_task_acceptance_overlay()
+    if tuple(overlay_rows) != D21_OVERLAY_TASK_IDS:
+        _fail("blueprint D21 task acceptance overlay task roster differs")
 
 
 def _validate_ledger_root_identity(data: Any) -> dict[str, Any]:
@@ -18508,6 +19098,10 @@ def _validate_ledger_root_identity(data: Any) -> dict[str, Any]:
 def validate(data: Any) -> None:
     _walk_limits(data)
     _scan_sensitive(data)
+    _validate_hosted_ci_b01_mode_text(
+        _hosted_ci_workflow_text(),
+        source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+    )
     try:
         adr008_raw = read_bounded_regular_file(
             ADR008,
@@ -18683,11 +19277,13 @@ def validate(data: Any) -> None:
     _validate_legacy_portability_exception_inventory(tasks)
     task_by_id = {task["id"]: task for task in tasks}
     promoted = _task_reached_minimum(task_by_id["N01"])
+    n01_started = _task_has_started(task_by_id["N01"])
     b01_registry, b01_packet_text = _load_b01_review_plumbing(promoted=promoted)
     _validate_b01_review_plumbing(
         b01_registry,
         b01_packet_text,
         task_by_id["B01"],
+        n01_started=n01_started,
     )
     observed_v11_tasks = {
         task["id"] for task in tasks if "V11" in task["requirement_ids"]
@@ -20414,6 +21010,242 @@ def _self_test_local_admission_and_receipt_boundaries(
             "bytes": len(raw),
         }
 
+    if b01_registry["review_packet_lifecycle"]["state"] == "SUPERSEDED":
+        reviewed_staging = copy.deepcopy(b01_registry)
+        reviewed_staging["review_records"] = [{"decision": "ACCEPT"}]
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                reviewed_staging,
+                b01_packet_text,
+                b01_task,
+            ),
+            "review record in superseded source staging",
+            "cannot contain review authority",
+        )
+        accepted_staging = copy.deepcopy(b01_registry)
+        accepted_staging["decisions"][0]["status"] = "ACCEPTED"
+        accepted_staging["decisions"][0]["acceptance_blockers"] = []
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                accepted_staging,
+                b01_packet_text,
+                b01_task,
+            ),
+            "accepted ADR in superseded source staging",
+            "keep every ADR proposed",
+        )
+        passing_staging_task = copy.deepcopy(b01_task)
+        passing_staging_task["status"] = "INDEPENDENT_PASS"
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                b01_registry,
+                b01_packet_text,
+                passing_staging_task,
+            ),
+            "passing B01 status in superseded source staging",
+            "must remain IN_PROGRESS",
+        )
+        promoted_staging = copy.deepcopy(b01_registry)
+        promoted_staging["promotion_blocked"] = False
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                promoted_staging,
+                b01_packet_text,
+                b01_task,
+            ),
+            "promotion-enabled superseded source staging",
+            "crosses its registry boundary",
+        )
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                b01_registry,
+                b01_packet_text,
+                b01_task,
+                n01_started=True,
+            ),
+            "superseded source staging after N01",
+            "forbidden after N01 starts",
+        )
+        started_ledger = copy.deepcopy(data)
+        started_task_by_id = {task["id"]: task for task in started_ledger["tasks"]}
+        started_task_by_id["N01"]["status"] = "IN_PROGRESS"
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                b01_registry,
+                b01_packet_text,
+                b01_task,
+                n01_started=_task_has_started(started_task_by_id["N01"]),
+            ),
+            "full-ledger N01 IN_PROGRESS source staging",
+            "forbidden after N01 starts",
+        )
+
+        def mutate_historical_subject(
+            mutator: Callable[[dict[str, Any]], None],
+        ) -> tuple[dict[str, Any], str]:
+            matches = list(re.finditer(r"(?ms)^```json\n(.*?)^```\n", b01_packet_text))
+            if len(matches) != 2:
+                _fail("self-test B01 staging packet lacks two machine blocks")
+            match = matches[1]
+            subject = json.loads(match.group(1))
+            if not isinstance(subject, dict):
+                _fail("self-test B01 historical subject must be an object")
+            mutator(subject)
+            return install_historical_subject(subject, matches[1])
+
+        def install_historical_subject(
+            subject: dict[str, Any], match: re.Match[str] | None = None
+        ) -> tuple[dict[str, Any], str]:
+            if match is None:
+                matches = list(
+                    re.finditer(r"(?ms)^```json\n(.*?)^```\n", b01_packet_text)
+                )
+                if len(matches) != 2:
+                    _fail("self-test B01 staging packet lacks two machine blocks")
+                match = matches[1]
+            replacement = json.dumps(subject, ensure_ascii=False, indent=2) + "\n"
+            packet_mutant = (
+                b01_packet_text[: match.start(1)]
+                + replacement
+                + b01_packet_text[match.end(1) :]
+            )
+            registry_mutant = copy.deepcopy(b01_registry)
+            rebind_packet_identity(registry_mutant, packet_mutant)
+            return registry_mutant, packet_mutant
+
+        alternate_packet_source = {
+            "commit": "2ec6b374a1e85fd675d2745f3ced0d53935ad535",
+            "tree": "1edbc1d0adf225716ccac4c2e5cc0511fb74d9da",
+            "packet": {
+                "path": "docs/adr/B01_REVIEW_PACKET.md",
+                "sha256": (
+                    "5051cbfe55671d52103d7bbe78e8195591fa44cb36adbc81cb0de91a67a9875e"
+                ),
+                "bytes": 44_026,
+            },
+        }
+        _, alternate_packet_bytes = _resolved_git_blob(
+            str(ROOT),
+            alternate_packet_source["commit"],
+            alternate_packet_source["packet"]["path"],
+        )
+        alternate_packet_text = alternate_packet_bytes.decode("utf-8")
+        _, alternate_fences = _parse_b01_packet_markdown(alternate_packet_text)
+        alternate_json_fences = [
+            content
+            for language, content, _, _ in alternate_fences
+            if language == "json"
+        ]
+        if len(alternate_json_fences) != 2:
+            _fail("self-test alternate B01 packet lacks two machine blocks")
+        alternate_subject = _load_bounded_json_bytes(
+            alternate_json_fences[1].encode("utf-8"),
+            "self-test alternate B01 subject",
+        )
+        if not isinstance(alternate_subject, dict):
+            _fail("self-test alternate B01 subject must be an object")
+        alternate_subject["schema"] = "ncp.b01-review-subject-history.v1"
+        alternate_subject["state"] = "SUPERSEDED"
+        alternate_subject["historical_packet_source"] = alternate_packet_source
+        alternate_registry, alternate_history_packet = install_historical_subject(
+            alternate_subject
+        )
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                alternate_registry,
+                alternate_history_packet,
+                b01_task,
+            ),
+            "alternate valid CURRENT historical predecessor",
+            "does not bind the checked predecessor",
+        )
+
+        historical_mutants: tuple[tuple[str, Callable[[dict[str, Any]], None]], ...] = (
+            (
+                "historical source commit",
+                lambda subject: subject["source"].__setitem__("commit", "0" * 40),
+            ),
+            (
+                "historical decision-set digest",
+                lambda subject: subject["decision_set"].__setitem__("sha256", "0" * 64),
+            ),
+            (
+                "historical review-policy generator",
+                lambda subject: subject["review_policy"]["generator"].__setitem__(
+                    "sha256", "0" * 64
+                ),
+            ),
+            (
+                "historical ADR module identity",
+                lambda subject: subject["decisions"][10]["source_set"]["sources"][
+                    1
+                ].__setitem__("sha256", "0" * 64),
+            ),
+            (
+                "historical role obligation",
+                lambda subject: subject["decisions"][0]["required_reviews"][
+                    0
+                ].__setitem__("role_id", "mutated-role"),
+            ),
+            (
+                "historical defect mapping",
+                lambda subject: subject["decisions"][0].__setitem__(
+                    "defect_ids", ["D99"]
+                ),
+            ),
+        )
+        for label, mutator in historical_mutants:
+            historical_registry, historical_packet = mutate_historical_subject(mutator)
+            _must_fail(
+                lambda registry=historical_registry, packet=historical_packet: (
+                    _validate_b01_review_plumbing(
+                        registry,
+                        packet,
+                        b01_task,
+                    )
+                ),
+                label,
+                "differs from its immutable CURRENT packet",
+            )
+
+        historical_tree_registry, historical_tree_packet = mutate_historical_subject(
+            lambda subject: subject["historical_packet_source"].__setitem__(
+                "tree", "0" * 40
+            )
+        )
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                historical_tree_registry,
+                historical_tree_packet,
+                b01_task,
+            ),
+            "historical packet tree",
+            "does not bind the checked predecessor",
+        )
+        current_mode_registry = copy.deepcopy(b01_registry)
+        current_mode_registry["review_packet_lifecycle"]["state"] = "CURRENT"
+        current_mode_packet = b01_packet_text.replace(
+            '"state": "SUPERSEDED"',
+            '"state": "CURRENT"',
+            1,
+        )
+        current_mode_raw = current_mode_packet.encode("utf-8")
+        current_mode_registry["review_packet"] = {
+            "path": DECISION_REVIEW_PACKET.relative_to(ROOT).as_posix(),
+            "sha256": hashlib.sha256(current_mode_raw).hexdigest(),
+            "bytes": len(current_mode_raw),
+        }
+        _must_fail(
+            lambda: _validate_b01_review_plumbing(
+                current_mode_registry,
+                current_mode_packet,
+                b01_task,
+            ),
+            "CURRENT packet in source-staging mode",
+            "requires one SUPERSEDED packet",
+        )
+        return
+
     def bind_machine_subject(
         registry_mutant: dict[str, Any], packet_mutant: str
     ) -> str:
@@ -21279,8 +22111,33 @@ def _self_test_git_empty_tree() -> str:
 def self_test(data: dict[str, Any]) -> None:
     """Prove the clean ledger passes and representative hostile mutations fail closed."""
     validate(copy.deepcopy(data))
+    ci_text = _hosted_ci_workflow_text()
+    if B01_SOURCE_STAGING_AUTHORIZED:
+        _must_fail(
+            lambda: _validate_hosted_ci_b01_mode_text(
+                ci_text.replace("--b01-source-staging", "", 1),
+                source_staging=True,
+            ),
+            "hosted CI missing one B01 source-staging flag",
+            "does not bind the B01 source-staging mode",
+        )
+    else:
+        _must_fail(
+            lambda: _validate_hosted_ci_b01_mode_text(
+                ci_text + "\n# --b01-source-staging\n",
+                source_staging=False,
+            ),
+            "hosted CI staging flag with a current B01 packet",
+            "retains B01 source-staging mode for a current packet",
+        )
     heading_fixture = "\n".join(
-        f"#### {task_id} — task {task_id}" for task_id, _, _, _ in TASK_CATALOG
+        (
+            f"#### {task_id} — task {task_id}\n\n"
+            "Acceptance: exact hostile-fixture acceptance.\n\n"
+            "Ten-lens record:\n\n"
+            "1. Exact hostile-fixture lens.\n"
+        )
+        for task_id, _, _, _ in TASK_CATALOG
     ).encode("utf-8")
     expected_task_ids = [task_id for task_id, _, _, _ in TASK_CATALOG]
     _validate_blueprint_task_headings(expected_task_ids, content=heading_fixture)
@@ -22947,11 +23804,98 @@ def self_test(data: dict[str, Any]) -> None:
         "dependencies differ from the checked DAG",
     )
     mutant = copy.deepcopy(data)
-    mutant["defect_traceability"][-1]["task_ids"].remove("X05")
+    mutant["defect_traceability"][-2]["task_ids"].remove("X05")
     _must_fail(
         lambda: validate(mutant),
         "D20 closure without X05",
         "differs from the checked closure map",
+    )
+    mutant = copy.deepcopy(data)
+    mutant["defect_traceability"][-1]["task_ids"].remove("X02")
+    _must_fail(
+        lambda: validate(mutant),
+        "D21 closure without X02",
+        "differs from the checked closure map",
+    )
+    d21_task = next(task for task in data["tasks"] if task["id"] == "N04")
+    exact_acceptance_sha256 = _requirement_acceptance_sha256(d21_task)
+    substituted_closure_rules = dict(DEFECT_CLOSURE_RULES)
+    substituted_closure_rules["D21"] = (
+        "Close after a substituted availability statement without exact ownership."
+    )
+    _must_fail(
+        lambda: _require_exact_requirement_acceptance_sha256(
+            d21_task,
+            exact_acceptance_sha256,
+            defect_closure_rules=substituted_closure_rules,
+        ),
+        "substituted D21 closure text",
+        "exact defect closure rows and blueprint acceptance section",
+    )
+    blueprint_raw = BLUEPRINT.read_bytes()
+    exact_acceptance = _blueprint_task_acceptance_row("N04")["acceptance"]
+    exact_acceptance_bytes = exact_acceptance.encode("utf-8")
+    if blueprint_raw.count(exact_acceptance_bytes) != 1:
+        _fail("N04 hostile acceptance fixture is not uniquely replaceable")
+    substituted_blueprint = blueprint_raw.replace(
+        exact_acceptance_bytes,
+        b"Acceptance: substituted task acceptance without the named controls.",
+        1,
+    )
+    _must_fail(
+        lambda: _require_exact_requirement_acceptance_sha256(
+            d21_task,
+            exact_acceptance_sha256,
+            blueprint_content=substituted_blueprint,
+        ),
+        "substituted N04 blueprint acceptance",
+        "exact defect closure rows and blueprint acceptance section",
+    )
+    exact_overlay = _d21_task_acceptance_overlay_row("N04")
+    if exact_overlay is None:
+        _fail("N04 hostile overlay fixture is missing")
+    exact_overlay_row = exact_overlay["row"].encode("utf-8")
+    if blueprint_raw.count(exact_overlay_row) != 1:
+        _fail("N04 hostile overlay fixture is not uniquely replaceable")
+    substituted_overlay = blueprint_raw.replace(
+        exact_overlay_row,
+        b"| N04 | Accept substituted bytes without authentication. |",
+        1,
+    )
+    _must_fail(
+        lambda: _require_exact_requirement_acceptance_sha256(
+            d21_task,
+            exact_acceptance_sha256,
+            blueprint_content=substituted_overlay,
+        ),
+        "substituted N04 D21 acceptance overlay",
+        "exact defect closure rows and blueprint acceptance section",
+    )
+    exact_c02_overlay = _d21_task_acceptance_overlay_row("C02")
+    if exact_c02_overlay is None:
+        _fail("C02 hostile overlay fixture is missing")
+    omitted_c02_overlay = blueprint_raw.replace(
+        (exact_c02_overlay["row"] + "\n").encode("utf-8"),
+        b"",
+        1,
+    )
+    _must_fail(
+        lambda: _parse_d21_task_acceptance_overlay(omitted_c02_overlay),
+        "D21 execution overlay without C02",
+        "exact closure roster minus the checked non-execution owners",
+    )
+    exact_c03_overlay = _d21_task_acceptance_overlay_row("C03")
+    if exact_c03_overlay is None:
+        _fail("C03 hostile overlay fixture is missing")
+    substituted_c03_overlay = blueprint_raw.replace(
+        exact_c03_overlay["row"].encode("utf-8"),
+        b"| C03 | Write every slot once and infer unavailable values. |",
+        1,
+    )
+    _must_fail(
+        lambda: _parse_d21_task_acceptance_overlay(substituted_c03_overlay),
+        "substituted C03 D21 execution ownership",
+        "C03 text differs from the checked execution ownership",
     )
 
     nested: Any = "leaf"
@@ -23029,8 +23973,17 @@ def self_test(data: dict[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument(
+        "--b01-source-staging",
+        action="store_true",
+        help=(
+            "admit only the zero-review SUPERSEDED B01 source cut; this mode "
+            "rejects CURRENT packets and grants no review authority"
+        ),
+    )
     args = parser.parse_args()
     try:
+        set_b01_source_staging_mode(args.b01_source_staging)
         data = load()
         if args.self_test:
             self_test(data)

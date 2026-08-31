@@ -29,14 +29,14 @@
       "required_reviews",
       "defect_ids"
     ],
-    "projection_byte_length": 16950,
-    "projection_sha256": "acd696dcda0e1d1c4b268bfe2cd1c6f78da4bb98e95e2e52eba9985f662c0050",
-    "sha256": "d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd",
+    "projection_byte_length": 16986,
+    "projection_sha256": "34ae35266e6fa76cdc7c28a6db6f20082077f7206dad75c639f7173ba30f6ff8",
+    "sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
     "semantic_closure": {
       "source": {
         "path": "docs/adr/decision-closure.source.v1.json",
-        "sha256": "4058229f4d2d9776aa3827f92d06a80295b1a8d17980c9df9a6be89b6c747f96",
-        "bytes": 72917
+        "sha256": "39feee6b6b45bdb4b24a50712836af45d042d82a4d82ec2507947aa8cd91b515",
+        "bytes": 74751
       },
       "json_schema": {
         "path": "docs/adr/decision-closure.source.schema.v1.json",
@@ -67,8 +67,8 @@
     "maximum_total_string_utf8_bytes": 131072,
     "maximum_integer_characters": 32,
     "allow_floats": false,
-    "expected_case_count": 25,
-    "expected_mutation_count": 160,
+    "expected_case_count": 33,
+    "expected_mutation_count": 289,
     "minimum_mutations_per_case": 2,
     "maximum_mutations_per_case": 32,
     "maximum_engine_output_bytes": 262144,
@@ -198,10 +198,58 @@
     "OUTPUT_ALLOCATION_FLAG_INVALID",
     "PENDING_STATE_ALLOCATES_OUTPUT",
     "PENDING_STATE_INVALID",
+    "PERCEPTION_AUTHENTICATED_PRODUCER_POSITION_PRESERVATION_REQUIRED",
+    "PERCEPTION_AVAILABLE_ZERO_OBSERVATION_REQUIRED",
+    "PERCEPTION_GAP_UNAVAILABILITY_INFERENCE_FORBIDDEN",
+    "PERCEPTION_ITEM_DIGEST_UNITY_REQUIRED",
+    "PERCEPTION_ITEM_INDIVISIBILITY_REQUIRED",
+    "PERCEPTION_ITEM_PARTIAL_MUTATION_FORBIDDEN",
+    "PERCEPTION_ITEM_POSITION_UNITY_REQUIRED",
+    "PERCEPTION_ITEM_QUEUE_SLOT_UNITY_REQUIRED",
+    "PERCEPTION_ITEM_SUPERSESSION_UNITY_REQUIRED",
+    "PERCEPTION_LOSS_GAP_COLLAPSE_FORBIDDEN",
+    "PERCEPTION_MISSINGNESS_STATES_INVALID",
+    "PERCEPTION_PRODUCER_POST_ASSIGNMENT_POSITION_CONSUMED_REQUIRED",
+    "PERCEPTION_PRODUCER_PRE_ASSIGNMENT_VALIDATION_REQUIRED",
+    "PERCEPTION_QUEUE_MISSINGNESS_PROJECTION_INVALID",
+    "PERCEPTION_RECEIVER_MALFORMED_ADMISSION_FORBIDDEN",
+    "PERCEPTION_RECEIVER_MALFORMED_CALLBACK_FORBIDDEN",
+    "PERCEPTION_RECEIVER_MALFORMED_PIN_FORBIDDEN",
+    "PERCEPTION_RECEIVER_POSITION_ROLLBACK_FORBIDDEN",
+    "PERCEPTION_UNAVAILABLE_OBSERVATION_FORBIDDEN",
+    "PERCEPTION_ZERO_OMISSION_INFERENCE_FORBIDDEN",
     "PLANT_CONTAINS_SIMULATION_ONLY_MEMBER",
     "PLANT_PROFILE_MISSING",
     "PLANT_SECURITY_CONTEXT_MISSING",
     "POST_EFFECT_ADMISSION_MODE_INVALID",
+    "PREPARED_APPLICATION_MUTABLE_ALIAS_FORBIDDEN",
+    "PREPARED_APPLICATION_PUBLISHER_EXCLUSIVITY_REQUIRED",
+    "PREPARED_AVAILABILITY_BYTE_COUNT_FORMULA_REQUIRED",
+    "PREPARED_AVAILABILITY_GROUP_PARTITION_REQUIRED",
+    "PREPARED_AVAILABILITY_INLINE_REQUIRED",
+    "PREPARED_CALLER_UNAVAILABLE_SLOT_WRITE_FORBIDDEN",
+    "PREPARED_CLOCK_OWNERSHIP_FORBIDDEN",
+    "PREPARED_COMPLETE_FRAME_WRITE_REQUIRED",
+    "PREPARED_DETACHED_BUFFER_REBIND_FORBIDDEN",
+    "PREPARED_EQUAL_VALUE_DETECTION_OVERCLAIM",
+    "PREPARED_EXACT_BYTE_TRANSFER_REQUIRED",
+    "PREPARED_FINAL_POSITION_REQUIRED",
+    "PREPARED_FOREIGN_SLOT_HANDLE_FORBIDDEN",
+    "PREPARED_HOT_FRAME_TAG_FORBIDDEN",
+    "PREPARED_LAYOUT_BOUND_TRANSPORT_SLOT_REQUIRED",
+    "PREPARED_LAYOUT_INSTANCE_REQUIRED",
+    "PREPARED_NON_SENSOR_AVAILABILITY_BYTES_INVALID",
+    "PREPARED_NON_SENSOR_GROUP_COUNT_INVALID",
+    "PREPARED_PRE_SEAL_DETECTION_OVERCLAIM",
+    "PREPARED_PROFILE_RULES_REQUIRED",
+    "PREPARED_RAW_APPLICATION_PUBLISHER_FORBIDDEN",
+    "PREPARED_RECEIVER_ATTESTATION_OVERCLAIM",
+    "PREPARED_RECEIVER_POST_OPEN_DETECTION_OVERCLAIM",
+    "PREPARED_SEALED_BYTE_PROTECTION_REQUIRED",
+    "PREPARED_SEALED_RECORD_MUTATION_FORBIDDEN",
+    "PREPARED_SENDER_PRE_SEAL_DETECTION_OVERCLAIM",
+    "PREPARED_SENSOR_LAYOUT_POSITIVE_GROUP_COUNT_REQUIRED",
+    "PREPARED_SEPARATE_APPLICATION_CREDENTIAL_HOLDER_FORBIDDEN",
     "PRINCIPAL_MEMBERSHIP_REQUIRED",
     "PROTECTED_HEADER_AUDIENCE_MISMATCH",
     "PROTECTED_HEADER_NOT_JSON",
@@ -223,9 +271,68 @@
     "SECURITY_ALGORITHM_NOT_EXACT",
     "SECURITY_EPOCH_INVALID",
     "SECURITY_PROFILE_INVALID",
+    "SENSOR_AVAILABILITY_BITMAP_REQUIRED",
+    "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN",
+    "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED",
+    "SENSOR_AVAILABILITY_GROUP_DECISION_REQUIRED",
+    "SENSOR_AVAILABILITY_POSITION_ORDER_REQUIRED",
+    "SENSOR_AVAILABILITY_PROJECTION_INVALID",
+    "SENSOR_AVAILABILITY_SOURCE_DUPLICATION_FORBIDDEN",
+    "SENSOR_AVAILABLE_GROUP_COMPLETENESS_REQUIRED",
+    "SENSOR_COMPATIBILITY_AVAILABILITY_INFERENCE_FORBIDDEN",
+    "SENSOR_COMPATIBILITY_AVAILABILITY_PRESERVATION_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_ABSENCE_RESULT_INVALID",
+    "SENSOR_CONDITION_DETAIL_ACTION_BLOCKING_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_AVAILABILITY_AUTHORITY_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_AVAILABLE_UNKNOWN_REJECTION_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_BITMAP_REPETITION_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_CONTRADICTION_REJECTION_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_DUPLICATE_REJECTION_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_ENTRY_BOUNDS_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_ENTRY_ORDER_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_ENTRY_SHAPE_INVALID",
+    "SENSOR_CONDITION_DETAIL_FAILURE_SCOPE_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_LAYOUT_REPETITION_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_OPTIONALITY_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_PERCEPTION_BLOCKING_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_PROJECTION_INVALID",
+    "SENSOR_CONDITION_DETAIL_REASON_BOUNDS_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_RECORD_SHAPE_INVALID",
+    "SENSOR_CONDITION_DETAIL_RESOURCE_ISOLATION_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_SCALAR_REPETITION_FORBIDDEN",
+    "SENSOR_CONDITION_DETAIL_SOURCE_CURRENTNESS_REJECTION_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_SOURCE_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_SOURCE_RESOLUTION_ORDER_REQUIRED",
+    "SENSOR_CONDITION_DETAIL_UNKNOWN_REASON_REJECTION_REQUIRED",
+    "SENSOR_LIVE_SOURCE_PIN_EVICTION_FORBIDDEN",
+    "SENSOR_POST_ASSIGNMENT_FAILURE_GAP_REQUIRED",
+    "SENSOR_PROJECTION_ANTI_LAUNDERING_INVALID",
+    "SENSOR_PROJECTION_AVAILABILITY_BINDING_REQUIRED",
+    "SENSOR_PROJECTION_AVAILABLE_INPUT_REQUIRED",
+    "SENSOR_PROJECTION_LAYOUT_REBIND_REQUIRED",
+    "SENSOR_PROJECTION_ORIGIN_IDENTITY_REQUIRED",
+    "SENSOR_PROJECTION_PLACEHOLDER_LAUNDERING_FORBIDDEN",
+    "SENSOR_PROJECTION_TIGHTEN_ONLY_REQUIRED",
+    "SENSOR_PROJECTION_UNAVAILABLE_UPGRADE_FORBIDDEN",
+    "SENSOR_RECEIVER_REJECTION_POSITION_ROLLBACK_FORBIDDEN",
+    "SENSOR_SOURCE_PIN_CAPACITY_RESERVATION_REQUIRED",
+    "SENSOR_SOURCE_PIN_RESTART_CLOSURE_REQUIRED",
+    "SENSOR_SOURCE_PIN_RETENTION_REQUIRED",
+    "SENSOR_UNAVAILABLE_GROUP_VALUE_FORBIDDEN",
+    "SENSOR_UNAVAILABLE_PLACEHOLDER_EXPOSURE_FORBIDDEN",
+    "SENSOR_UNAVAILABLE_PLACEHOLDER_INTERNAL_REQUIRED",
     "SESSION_KIND_MISMATCH",
     "SIGNATURE_LENGTH_INVALID",
     "SIGNATURE_NOT_VALID",
+    "SOURCE_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED",
+    "SOURCE_GROUP_DEPENDENCY_LAYOUT_BINDING_REQUIRED",
+    "SOURCE_PIN_AVAILABILITY_REQUIRED",
+    "SOURCE_RESTRICTED_ACTIVE_DISPOSITION_INVALID",
+    "SOURCE_RESTRICTIVE_ACTION_REQUIRED",
+    "SOURCE_RESTRICTIVE_ACTION_UNIVERSAL_ZERO_FORBIDDEN",
+    "SOURCE_RESTRICTIVE_COMMAND_ATOMIC_REJECT_REQUIRED",
+    "SOURCE_RESTRICTIVE_PROJECTION_INVALID",
     "STABLE_CORE_DIGEST_INVALID",
     "STABLE_CORE_DIGEST_MISMATCH",
     "STABLE_CORE_DIGEST_MISSING_OR_NULL",
@@ -234,7 +341,26 @@
     "STREAM_EPOCH_REQUIRED",
     "STREAM_SEQUENCE_START_INVALID",
     "UNPROTECTED_HEADER_FORBIDDEN",
-    "WIRE_VERSION_MISMATCH"
+    "WIRE_VERSION_MISMATCH",
+    "X02_ALL_AVAILABLE_VECTOR_INVALID",
+    "X02_AVAILABILITY_BITMAP_POLARITY_INVALID",
+    "X02_AVAILABILITY_BIT_ORDER_INVALID",
+    "X02_AVAILABILITY_BYTE_COUNTS_INVALID",
+    "X02_AVAILABILITY_GROUP_WIDTH_INVALID",
+    "X02_AVAILABILITY_PADDING_INVALID",
+    "X02_COMMAND_SCALAR_WIDTH_INVALID",
+    "X02_COMPOSITE_SESSION_REQUIRED",
+    "X02_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED",
+    "X02_EXHAUSTIVE_MASKS_INVALID",
+    "X02_FIRST_UNAVAILABLE_VECTOR_INVALID",
+    "X02_FLEET_AVAILABILITY_PROJECTION_INVALID",
+    "X02_GROUP_COMMAND_SLOT_MAP_INVALID",
+    "X02_LANE_STATE_SEQUENCE_INVALID",
+    "X02_MUSIC_CLOCK_OWNERSHIP_FORBIDDEN",
+    "X02_ONE_NEST_KERNEL_REQUIRED",
+    "X02_SENSOR_SCALAR_WIDTH_INVALID",
+    "X02_UNAVAILABLE_PLACEHOLDER_BITS_INVALID",
+    "X02_WASHOUT_FAULT_RETURN_INVALID"
   ],
   "claim_boundary": {
     "adrs_accepted": false,
@@ -918,6 +1044,169 @@
       ]
     },
     {
+      "id": "adr004.sensor-projection.anti-laundering.v1",
+      "source": {
+        "adr": "ADR-004",
+        "json_fence_ordinal": 2,
+        "fence_byte_length": 420,
+        "fence_sha256": "2ab8b5a5c2b4dcd62fd6c317cf6232e149849d5010c0a155df49886e22d9a0d7"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr004.sensor-projection.loosen-availability.v1",
+          "purpose": "A projection may preserve or tighten availability only.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_projection_is_tighten_only",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_TIGHTEN_ONLY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.detail-override.v1",
+          "purpose": "Optional condition detail must not override authoritative availability.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/optional_detail_can_override_availability",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.drop-origin-identity.v1",
+          "purpose": "A projection must preserve its portable origin identity.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/portable_origin_identity_preserved",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_ORIGIN_IDENTITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.available-without-origin.v1",
+          "purpose": "Every projected available output must derive from available origin inputs.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/projected_available_requires_origin_available_inputs",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_AVAILABLE_INPUT_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.unbound-availability.v1",
+          "purpose": "The projection record must bind origin and projected availability.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/projection_binds_origin_and_projected_availability",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_AVAILABILITY_BINDING_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.reuse-layout-after-slot-change.v1",
+          "purpose": "Slot removal or reordering must create a new layout and bitmap binding.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/slot_removal_or_reorder_requires_new_layout_and_bitmap",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_LAYOUT_REBIND_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.upgrade-unavailable.v1",
+          "purpose": "A projection must not upgrade an unavailable source to available.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/source_unavailable_can_project_available",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_UNAVAILABLE_UPGRADE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.placeholder-observation.v1",
+          "purpose": "An unavailable placeholder must not become an observation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unavailable_placeholder_can_be_observation",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_PLACEHOLDER_LAUNDERING_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr004.sensor-projection.ambient-authority-member.v1",
+          "purpose": "An ambient authority member must not extend the closed projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/ambient_projection_authority",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_PROJECTION_ANTI_LAUNDERING_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
       "id": "adr005.declare-stream.excerpt.v1",
       "source": {
         "adr": "ADR-005",
@@ -1128,6 +1417,367 @@
           "production_admission": "REJECT",
           "expected_diagnostics": [
             "REALM_REQUIRED"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr005.sensor-availability.source-bound.v1",
+      "source": {
+        "adr": "ADR-005",
+        "json_fence_ordinal": 3,
+        "fence_byte_length": 798,
+        "fence_sha256": "00d1c93820a01c7037d590cb28241a53c8c313f05ee2b73fb58c497f4bd0026b"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr005.sensor-availability.bitmap-optional.v1",
+          "purpose": "Every compact sensor frame must contain its layout-sized availability bitmap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_bitmap_mandatory",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_BITMAP_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.digest-exclusion.v1",
+          "purpose": "The exact frame digest must cover the availability bitmap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_covered_by_frame_digest",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.redecidable-group.v1",
+          "purpose": "Each availability group must receive exactly one decision per frame.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/group_decision_exactly_once",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_GROUP_DECISION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.partial-available-group.v1",
+          "purpose": "An available group must contain every declared member value.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/available_group_requires_all_values",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABLE_GROUP_COMPLETENESS_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.unavailable-caller-values.v1",
+          "purpose": "An unavailable group must reject caller-supplied scalar values.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unavailable_group_forbids_caller_values",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_UNAVAILABLE_GROUP_VALUE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.external-placeholder.v1",
+          "purpose": "Only the packer may write the canonical unavailable placeholder bits.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unavailable_placeholder_is_internal",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_UNAVAILABLE_PLACEHOLDER_INTERNAL_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.placeholder-exposed.v1",
+          "purpose": "A decoder must expose typed unavailability instead of placeholder observations.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/decoder_exposes_placeholder_values",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_UNAVAILABLE_PLACEHOLDER_EXPOSURE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.position-before-completeness.v1",
+          "purpose": "A frame must become complete before it receives a stream position.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/position_assigned_after_completeness",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_POSITION_ORDER_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.post-assignment-failure-without-gap.v1",
+          "purpose": "A failure after position assignment must emit a transport gap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/post_assignment_failure_emits_gap",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_POST_ASSIGNMENT_FAILURE_GAP_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.receiver-rejection-rolls-back-position.v1",
+          "purpose": "Receiver rejection must not unassign an observed producer position.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_rejection_unassigns_producer_position",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_RECEIVER_REJECTION_POSITION_ROLLBACK_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.evict-live-source-pin.v1",
+          "purpose": "A live source pin must not be evictable.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/live_source_pin_is_evictable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_LIVE_SOURCE_PIN_EVICTION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.unreserved-source-pin-capacity.v1",
+          "purpose": "Source-pin capacity must be reserved before live publication.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/live_source_pin_capacity_pre_reserved",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_SOURCE_PIN_CAPACITY_RESERVATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.release-source-pin-early.v1",
+          "purpose": "A source pin must survive until terminal disposition or evidence handoff.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/pin_retained_until_terminal_disposition_or_evidence_handoff",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_SOURCE_PIN_RETENTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.restart-drops-live-pin.v1",
+          "purpose": "Restart must restore the live pin or retire its generation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/restart_restores_pin_or_retires_generation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_SOURCE_PIN_RESTART_CLOSURE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.compatibility-infers-zero.v1",
+          "purpose": "Compatibility JSON must not infer availability from zero or absence.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/compatibility_json_infers_availability_from_zero_or_absence",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_COMPATIBILITY_AVAILABILITY_INFERENCE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.compatibility-drops-semantics.v1",
+          "purpose": "Compatibility JSON must preserve semantic availability.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/compatibility_json_preserves_semantic_availability",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_COMPATIBILITY_AVAILABILITY_PRESERVATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.source-duplication.v1",
+          "purpose": "The source reference must bind the frame digest without duplicating the bitmap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/source_reference_repeats_bitmap",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_SOURCE_DUPLICATION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.ambient-override-member.v1",
+          "purpose": "An ambient availability override must not extend the closed projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/detached_availability_override",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_PROJECTION_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr005.sensor-availability.detached-mask.hostile.v1",
+      "source": {
+        "adr": "ADR-005",
+        "json_fence_ordinal": 4,
+        "fence_byte_length": 95,
+        "fence_sha256": "d445756ffea2b4ca2e5c97771bec8843ded8fb5006ccd2a20d2b9de1187472fc"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1",
+      "polarity": "NEGATIVE",
+      "expected_profile_result": "REJECT",
+      "production_admission": "REJECT",
+      "bounded_fixture": {},
+      "expected_diagnostics": [
+        "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN",
+        "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED"
+      ],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr005.sensor-availability.detached-mask.repair-location-only.v1",
+          "purpose": "Moving the mask inline must not repair absent digest coverage.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_transport",
+            "value": "INLINE_STABLE_CORE_SENSOR_FRAME"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr005.sensor-availability.detached-mask.repair-digest-only.v1",
+          "purpose": "Digest coverage must not authorize a detached availability message.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_covered_by_frame_digest",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN"
           ],
           "payload_interpreted": true
         }
@@ -1636,6 +2286,169 @@
           "production_admission": "REJECT",
           "expected_diagnostics": [
             "DISPOSITION_TERMINALITY_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr007.unavailable-source-restrictive-action.v1",
+      "source": {
+        "adr": "ADR-007",
+        "json_fence_ordinal": 4,
+        "fence_byte_length": 387,
+        "fence_sha256": "711611f3d5149e3e549d5baabd503f4f09dfb513e0528469c6b039f32f934eed"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr007.unavailable-source.availability-not-pinned.v1",
+          "purpose": "The body must retain availability with the exact source frame pin.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/source_pin_retains_availability",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_PIN_AVAILABILITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.restrictive-lane-optional.v1",
+          "purpose": "Each unavailable group must select its installed restrictive command lane.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unavailable_group_requires_installed_restrictive_lane",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_RESTRICTIVE_ACTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.unbound-dependency-map.v1",
+          "purpose": "The availability-group dependency map must bind the exact layout.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/group_dependency_map_is_layout_bound",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_GROUP_DEPENDENCY_LAYOUT_BINDING_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.conflicting-dependency-overlap.v1",
+          "purpose": "Conflicting group dependencies must reject during preparation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/conflicting_dependency_overlap_rejects_preparation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.universal-zero-assumption.v1",
+          "purpose": "A profile-specific restrictive action must not become a universal zero rule.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/restrictive_action_is_universal_zero",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_RESTRICTIVE_ACTION_UNIVERSAL_ZERO_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.partial-lane-acceptance.v1",
+          "purpose": "One mismatched unavailable lane must reject the complete command unit.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/complete_command_rejects_on_lane_mismatch",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_RESTRICTIVE_COMMAND_ATOMIC_REJECT_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.hold-disposition-confusion.v1",
+          "purpose": "A correctly restricted Active command remains APPLIED, not HOLD_EFFECTIVE.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/correctly_restricted_active_disposition",
+            "value": "HOLD_EFFECTIVE"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_RESTRICTED_ACTIVE_DISPOSITION_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.detail-authority.v1",
+          "purpose": "Optional sensor condition detail must never authorize or override control.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/optional_detail_can_authorize",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr007.unavailable-source.ambient-policy-member.v1",
+          "purpose": "An ambient restrictive override must not extend the closed projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/ambient_restrictive_override",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SOURCE_RESTRICTIVE_PROJECTION_INVALID"
           ],
           "payload_interpreted": true
         }
@@ -2408,6 +3221,417 @@
       ]
     },
     {
+      "id": "adr008.sensor-condition-detail.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-008",
+        "json_fence_ordinal": 4,
+        "fence_byte_length": 899,
+        "fence_sha256": "f49324b72a89bc04c45868503b83ff5a695539a64d0eba43e5c9fbc49101c797"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR008_SENSOR_CONDITION_DETAIL_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr008.sensor-condition-detail.absence-result-substitution.v1",
+          "purpose": "An absent or unusable detail result must remain reason unavailable.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/absent_late_rejected_or_overflowed_result",
+            "value": "IGNORE"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_ABSENCE_RESULT_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.available-or-unknown-group.v1",
+          "purpose": "An available or unknown source group must reject the condition-detail extension.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/available_or_unknown_group_rejects",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_AVAILABLE_UNKNOWN_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.incomplete-source-ref.v1",
+          "purpose": "Each detail record must bind its complete normative source reference.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/complete_normative_source_ref_required",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_SOURCE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.allow-contradiction.v1",
+          "purpose": "A condition detail that contradicts availability must reject.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/contradictory_group_rejects",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_CONTRADICTION_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.authority.v1",
+          "purpose": "Condition detail must not authorize control.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_can_authorize",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.action-blocking.v1",
+          "purpose": "Condition detail must not independently block an action.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_can_block_action",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_ACTION_BLOCKING_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.perception-blocking.v1",
+          "purpose": "Condition detail must not independently block perception.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_can_block_perception",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_PERCEPTION_BLOCKING_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.availability-authority.v1",
+          "purpose": "Condition detail must not change semantic availability.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_can_change_availability",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_AVAILABILITY_AUTHORITY_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.entry-shape.v1",
+          "purpose": "Each detail entry must contain only group ordinal and reason code.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_entry_members",
+            "value": [
+              "group_ordinal",
+              "reason_code",
+              "availability"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_ENTRY_SHAPE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.mandatory-record.v1",
+          "purpose": "The semantic condition-detail record must remain optional.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_record_is_optional",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_OPTIONALITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.record-shape.v1",
+          "purpose": "A detail record must contain only its pinned source and bounded entries.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_record_members",
+            "value": [
+              "source",
+              "entries",
+              "layout"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_RECORD_SHAPE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.repeat-bitmap.v1",
+          "purpose": "Condition detail must not repeat the authoritative availability bitmap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_repeats_bitmap",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_BITMAP_REPETITION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.repeat-layout.v1",
+          "purpose": "Condition detail must not repeat the authoritative sensor layout.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_repeats_layout",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_LAYOUT_REPETITION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.repeat-scalars.v1",
+          "purpose": "Condition detail must not repeat authoritative scalar observations.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detail_repeats_scalars",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_SCALAR_REPETITION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.allow-duplicate-group.v1",
+          "purpose": "A detail record must reject duplicate group entries.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/duplicate_group_rejects",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_DUPLICATE_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.unbounded-entries.v1",
+          "purpose": "The condition-detail entry list must remain bounded.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/entries_bounded",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_ENTRY_BOUNDS_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.unsorted-entries.v1",
+          "purpose": "Condition-detail entries must use increasing group ordinals.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/entries_sorted_by_group_ordinal",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_ENTRY_ORDER_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.source-resolution-after-entry-check.v1",
+          "purpose": "The receiver must resolve the exact pinned core source before it checks entries.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/exact_pinned_core_source_resolved_before_entry_checks",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_SOURCE_RESOLUTION_ORDER_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.invalid-detail-blocks-core.v1",
+          "purpose": "Invalid condition detail must reject only the extension.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/invalid_detail_rejects_extension_only",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_FAILURE_SCOPE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.unbounded-reasons.v1",
+          "purpose": "Condition-detail reason codes must use a bounded registry.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/reason_codes_bounded",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_REASON_BOUNDS_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.merge-security-domains.v1",
+          "purpose": "Condition detail must preserve principal and resource partitions.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/separate_principal_and_resource_partition",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_RESOURCE_ISOLATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.unknown-reason-code.v1",
+          "purpose": "An unknown reason code must reject the condition-detail extension.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unknown_reason_code_rejects",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_UNKNOWN_REASON_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.wrong-or-evicted-source.v1",
+          "purpose": "A wrong or evicted core source must reject the condition-detail extension.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/wrong_or_evicted_source_rejects",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_SOURCE_CURRENTNESS_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr008.sensor-condition-detail.ambient-policy-member.v1",
+          "purpose": "An ambient policy member must not extend the closed detail projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/ambient_policy_authority",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "SENSOR_CONDITION_DETAIL_PROJECTION_INVALID"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
       "id": "adr009.security-state.semantic-projection.v1",
       "source": {
         "adr": "ADR-009",
@@ -2924,6 +4148,350 @@
             "QOS_RETENTION_REQUIRED",
             "QOS_ROUTE_REQUIRED",
             "REALM_ROUTE_MISMATCH"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr010.perception-queue-missingness.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-010",
+        "json_fence_ordinal": 3,
+        "fence_byte_length": 1016,
+        "fence_sha256": "1138e7e5ef620c4a6978c08b57201deaf8c5b66d23c2dc48eaf4204c25f882d8"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr010.perception-queue.split-availability-and-scalars.v1",
+          "purpose": "Availability and scalar storage must remain one indivisible queue item.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_bitmap_and_scalar_storage_indivisible",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ITEM_INDIVISIBILITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.collapse-missingness-state.v1",
+          "purpose": "The queue model must preserve all five perception states.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/closed_perception_states",
+            "value": [
+              "RECEIVED_AVAILABLE_ZERO",
+              "RECEIVED_UNAVAILABLE",
+              "TRANSPORT_GAP",
+              "WHOLE_FRAME_LOSS"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_MISSINGNESS_STATES_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.multiple-digests.v1",
+          "purpose": "Each queue item must have exactly one digest.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/item_digest_count",
+            "value": 2
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ITEM_DIGEST_UNITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.multiple-positions.v1",
+          "purpose": "Each queue item must have exactly one stream position.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/item_position_count",
+            "value": 2
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ITEM_POSITION_UNITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.multiple-slots.v1",
+          "purpose": "Each queue item must consume exactly one queue slot.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/item_queue_slot_count",
+            "value": 2
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ITEM_QUEUE_SLOT_UNITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.multiple-supersession-decisions.v1",
+          "purpose": "Each queue item must receive exactly one supersession decision.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/item_supersession_decision_count",
+            "value": 2
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ITEM_SUPERSESSION_UNITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.disallow-received-producer-position.v1",
+          "purpose": "An authenticated received item can already bear its producer-assigned position.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/authenticated_received_item_may_bear_producer_position",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_AUTHENTICATED_PRODUCER_POSITION_PRESERVATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.reuse-position-after-producer-failure.v1",
+          "purpose": "A producer encode or queue failure after assignment must consume its position.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/producer_encode_or_queue_failure_after_assignment_consumes_position",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_PRODUCER_POST_ASSIGNMENT_POSITION_CONSUMED_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.assign-position-before-producer-validation.v1",
+          "purpose": "The producer must reject an incomplete or malformed item before position assignment.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/producer_incomplete_or_malformed_rejects_before_position_assignment",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_PRODUCER_PRE_ASSIGNMENT_VALIDATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.receiver-malformed-admission.v1",
+          "purpose": "Receiver malformed rejection must not create receiver admission.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_malformed_rejection_creates_admission",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_RECEIVER_MALFORMED_ADMISSION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.receiver-malformed-pin.v1",
+          "purpose": "Receiver malformed rejection must not create a source pin.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_malformed_rejection_creates_pin",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_RECEIVER_MALFORMED_PIN_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.receiver-malformed-callback.v1",
+          "purpose": "Receiver malformed rejection must not invoke a typed callback.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_malformed_rejection_invokes_typed_callback",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_RECEIVER_MALFORMED_CALLBACK_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.receiver-malformed-position-rollback.v1",
+          "purpose": "Receiver malformed rejection must not roll back the producer position.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_malformed_rejection_rolls_back_producer_position",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_RECEIVER_POSITION_ROLLBACK_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.partial-replacement.v1",
+          "purpose": "A queue must not drop or replace part of a perception item.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/partial_drop_or_replace_allowed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ITEM_PARTIAL_MUTATION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.zero-not-observation.v1",
+          "purpose": "An available numeric zero must remain an observation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/received_available_zero_is_observation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_AVAILABLE_ZERO_OBSERVATION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.expose-unavailable-observation.v1",
+          "purpose": "A received unavailable group must expose no observation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/received_unavailable_exposes_observation",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_UNAVAILABLE_OBSERVATION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.gap-implies-unavailability.v1",
+          "purpose": "A transport gap must not imply semantic sensor unavailability.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/transport_gap_implies_sensor_unavailable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_GAP_UNAVAILABILITY_INFERENCE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.collapse-loss-and-gap.v1",
+          "purpose": "Whole-frame queue loss must remain distinct from a transport gap.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/whole_frame_loss_equals_transport_gap",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_LOSS_GAP_COLLAPSE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.infer-from-zero-or-omission.v1",
+          "purpose": "Zero or omission must not infer semantic availability.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/zero_or_omission_infers_availability",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_ZERO_OMISSION_INFERENCE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr010.perception-queue.ambient-loss-member.v1",
+          "purpose": "An ambient loss rule must not extend the closed queue projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/ambient_loss_semantics",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PERCEPTION_QUEUE_MISSINGNESS_PROJECTION_INVALID"
           ],
           "payload_interpreted": true
         }
@@ -3668,6 +5236,848 @@
           "production_admission": "REJECT",
           "expected_diagnostics": [
             "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr011.prepared-frame-publisher-boundary.semantic-projection.v1",
+      "source": {
+        "adr": "ADR-011",
+        "json_fence_ordinal": 4,
+        "fence_byte_length": 1415,
+        "fence_sha256": "d6fbc0e0e606ddae1fae87f08c64f9a5508305d9aa6c8fbe61640759bbf9c96c"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr011.prepared-frame.profile-rules-unbound.v1",
+          "purpose": "The reusable profile must define the generic layout and packer rules.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/layout_profile_defines_reusable_rules",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_PROFILE_RULES_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.layout-instance-unbound.v1",
+          "purpose": "The deployment instance must bind its roster, slots, and physical resources.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/layout_instance_binds_roster_slots_and_resources",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_LAYOUT_INSTANCE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.sensor-layout-without-groups.v1",
+          "purpose": "A sensor layout must declare at least one availability group.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/sensor_layout_requires_positive_group_count",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_SENSOR_LAYOUT_POSITIVE_GROUP_COUNT_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.overlapping-availability-groups.v1",
+          "purpose": "Availability groups must partition every sensor slot exactly once.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_groups_partition_sensor_slots_once",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_AVAILABILITY_GROUP_PARTITION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.invalid-availability-byte-count-formula.v1",
+          "purpose": "Availability byte count must equal the ceiling of group count divided by eight.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_byte_count_is_ceil_group_count_over_8",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_AVAILABILITY_BYTE_COUNT_FORMULA_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.non-sensor-groups.v1",
+          "purpose": "A non-sensor fixed layout must have zero availability groups.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/non_sensor_layout_availability_group_count",
+            "value": 1
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_NON_SENSOR_GROUP_COUNT_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.non-sensor-availability-bytes.v1",
+          "purpose": "A non-sensor fixed layout must have zero availability bytes.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/non_sensor_layout_availability_bytes",
+            "value": 1
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_NON_SENSOR_AVAILABILITY_BYTES_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.detached-availability-bitmap.v1",
+          "purpose": "The availability bitmap must remain inline with scalar storage.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_bitmap_inline_with_scalar_storage",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_AVAILABILITY_INLINE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.layout-bound-transport-slot-missing.v1",
+          "purpose": "The prepared publisher must own the transport slot bound to its exact layout.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/prepared_publisher_owns_layout_bound_transport_slot",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_LAYOUT_BOUND_TRANSPORT_SLOT_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.foreign-slot-handle-accepted.v1",
+          "purpose": "A publisher must reject a slot handle from another layout or generation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/foreign_or_stale_slot_handle_is_accepted",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_FOREIGN_SLOT_HANDLE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.detached-buffer-context-rebind.v1",
+          "purpose": "The production API must expose no detached buffer-to-context rebind path.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/detached_buffer_context_rebind_is_exposed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_DETACHED_BUFFER_REBIND_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.incomplete-bound-slot-write.v1",
+          "purpose": "The packer must materialize every bound slot exactly once before position assignment.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/all_bound_slots_materialized_once_by_packer",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_COMPLETE_FRAME_WRITE_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.caller-writes-unavailable-slot.v1",
+          "purpose": "The caller must not write values into unavailable slots.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/caller_writes_unavailable_slots",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_CALLER_UNAVAILABLE_SLOT_WRITE_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.second-direct-publisher.v1",
+          "purpose": "Only the prepared publisher can publish on its application route.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/packer_is_only_application_direct_publisher",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_APPLICATION_PUBLISHER_EXCLUSIVITY_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.position-after-transfer.v1",
+          "purpose": "Each record must receive its final slot before buffer transfer.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/final_position_assigned_before_transfer",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_FINAL_POSITION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.reserialized-after-transfer.v1",
+          "purpose": "Transport must receive the one exact serialized byte sequence.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/exact_serialized_bytes_transferred_once",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_EXACT_BYTE_TRANSFER_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.mutable-alias-after-transfer.v1",
+          "purpose": "No application mutable alias can survive buffer transfer.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/application_mutable_alias_survives_transfer",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_APPLICATION_MUTABLE_ALIAS_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.raw-application-publisher-exposed.v1",
+          "purpose": "The adapter cannot bypass the typed packer through a raw publisher handle.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/raw_application_publisher_exposed",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_RAW_APPLICATION_PUBLISHER_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.separate-credential-holder.v1",
+          "purpose": "A second signer or publisher cannot retain the direct publishing credential.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/separate_application_signer_or_publisher_holds_credentials",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_SEPARATE_APPLICATION_CREDENTIAL_HOLDER_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.extra-hot-tag.v1",
+          "purpose": "The direct hot frame must not add a redundant preparation tag.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/direct_frame_adds_preparation_tag",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_HOT_FRAME_TAG_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.sealed-byte-protection-gap.v1",
+          "purpose": "Transport record protection must cover the exact bytes passed to seal.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/transport_record_protection_covers_exact_sealed_bytes",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_SEALED_BYTE_PROTECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.sealed-record-mutation-accepted.v1",
+          "purpose": "A sealed-record mutation before receiver open must fail transport admission.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/sealed_record_mutation_before_open_is_accepted",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_SEALED_RECORD_MUTATION_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.sender-pre-seal-detection-overclaim.v1",
+          "purpose": "The receiver cannot claim transport detection of sender mutation before seal.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/sender_pre_seal_mutation_claimed_detectable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_SENDER_PRE_SEAL_DETECTION_OVERCLAIM"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.receiver-post-open-detection-overclaim.v1",
+          "purpose": "Transport cannot claim detection of receiver mutation after successful open.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_post_open_mutation_claimed_detectable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_RECEIVER_POST_OPEN_DETECTION_OVERCLAIM"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.packer-output-attestation-overclaim.v1",
+          "purpose": "The receiver cannot treat unauthenticated prior packer bytes as attested.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/receiver_attests_packer_output",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_RECEIVER_ATTESTATION_OVERCLAIM"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.pre-seal-detection-overclaim.v1",
+          "purpose": "The boundary cannot claim detection of plausible same-unit errors made before sealing.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/pre_seal_same_unit_misassociation_claimed_detectable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_PRE_SEAL_DETECTION_OVERCLAIM"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.equal-value-detection-overclaim.v1",
+          "purpose": "No value-only boundary can claim detection when swapped values are equal.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/equal_value_swap_claimed_detectable",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_EQUAL_VALUE_DETECTION_OVERCLAIM"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.prepared-frame.music-clock-ownership.v1",
+          "purpose": "The packer cannot own or reinterpret MUSIC shared-clock semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/packer_owns_shared_clock_semantics",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "PREPARED_CLOCK_OWNERSHIP_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        }
+      ]
+    },
+    {
+      "id": "adr011.x02-fleet-availability-layout.v1",
+      "source": {
+        "adr": "ADR-011",
+        "json_fence_ordinal": 5,
+        "fence_byte_length": 863,
+        "fence_sha256": "232672f3110ea9fd622f0a1152dcd0f220fd64c8daf62d98271567098faeb62d"
+      },
+      "scope": "PROPOSED_SEMANTIC_PROJECTION",
+      "profile": "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1",
+      "polarity": "POSITIVE",
+      "expected_profile_result": "MATCH_NON_AUTHORIZING_EXCERPT",
+      "production_admission": "NOT_EVALUATED",
+      "bounded_fixture": {},
+      "expected_diagnostics": [],
+      "payload_interpreted": true,
+      "mutations": [
+        {
+          "id": "adr011.x02-availability.inverted-polarity.v1",
+          "purpose": "The X02 bitmap must use one for available and zero for unavailable.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/bitmap_polarity",
+            "value": "ONE_UNAVAILABLE_ZERO_AVAILABLE"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_AVAILABILITY_BITMAP_POLARITY_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.bit-order-substitution.v1",
+          "purpose": "X02 must assign least-significant bits in roster order.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/bit_order",
+            "value": "MSB_FIRST_ROSTER_ORDER"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_AVAILABILITY_BIT_ORDER_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.nonzero-padding.v1",
+          "purpose": "Unused high availability bits must remain zero.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unused_high_bits_zero",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_AVAILABILITY_PADDING_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.group-count-drift.v1",
+          "purpose": "X02 must allocate exactly one availability group per drone.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_groups_per_drone",
+            "value": 2
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_AVAILABILITY_GROUP_WIDTH_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.sensor-width-drift.v1",
+          "purpose": "X02 must retain six position and velocity sensor scalars per drone.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/sensor_scalars_per_drone",
+            "value": 5
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_SENSOR_SCALAR_WIDTH_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.command-width-drift.v1",
+          "purpose": "X02 must retain three command scalars per drone.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/command_scalars_per_drone",
+            "value": 4
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_COMMAND_SCALAR_WIDTH_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.byte-count-drift.v1",
+          "purpose": "One, two, and three drones must each require one availability byte.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/availability_bytes_n1_n2_n3",
+            "value": [
+              1,
+              1,
+              2
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_AVAILABILITY_BYTE_COUNTS_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.all-available-vector-drift.v1",
+          "purpose": "The all-available vectors must bind the exact one, two, and three-drone bits.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/all_available_hex_n1_n2_n3",
+            "value": [
+              "01",
+              "03",
+              "03"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_ALL_AVAILABLE_VECTOR_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.first-unavailable-vector-drift.v1",
+          "purpose": "The first-drone-unavailable vectors must preserve every other drone bit.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/first_drone_unavailable_hex_n1_n2_n3",
+            "value": [
+              "00",
+              "02",
+              "02"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_FIRST_UNAVAILABLE_VECTOR_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.negative-zero-placeholder.v1",
+          "purpose": "Unavailable X02 scalars must use canonical binary64 positive-zero bits.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/unavailable_placeholder_f64_bits",
+            "value": "8000000000000000"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_UNAVAILABLE_PLACEHOLDER_BITS_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.split-session.v1",
+          "purpose": "The fleet must use one composite NCP session.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/one_composite_session",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_COMPOSITE_SESSION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.split-nest-kernels.v1",
+          "purpose": "The fleet qualification must use one NEST kernel.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/one_nest_kernel",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_ONE_NEST_KERNEL_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.music-clock-takeover.v1",
+          "purpose": "NCP must not own MUSIC shared-clock semantics.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/music_shared_clock_owned",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_MUSIC_CLOCK_OWNERSHIP_FORBIDDEN"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.incomplete-mask-enumeration.v1",
+          "purpose": "The X02 projection must enumerate every one-, two-, and three-drone mask.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/exhaustive_masks_hex_n1_n2_n3",
+            "value": [
+              [
+                "00",
+                "01"
+              ],
+              [
+                "00",
+                "01",
+                "02",
+                "03"
+              ],
+              [
+                "00",
+                "01",
+                "02",
+                "03",
+                "04",
+                "05",
+                "07"
+              ]
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_EXHAUSTIVE_MASKS_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.group-command-slot-drift.v1",
+          "purpose": "Each N3 availability group must bind its exact command slots.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/group_to_command_slots_n3",
+            "value": [
+              [
+                0,
+                1,
+                2
+              ],
+              [
+                3,
+                4,
+                5
+              ],
+              [
+                6,
+                7,
+                7
+              ]
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_GROUP_COMMAND_SLOT_MAP_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.allow-conflicting-overlap.v1",
+          "purpose": "Conflicting group dependencies must reject during X02 preparation.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/conflicting_dependency_overlap_rejected_at_preparation",
+            "value": false
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.skip-washout.v1",
+          "purpose": "The lane must follow the exact restrictive and recovery-washout sequence.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/lane_state_sequence",
+            "value": [
+              "NORMAL",
+              "UNAVAILABLE_RESTRICTIVE",
+              "NORMAL"
+            ]
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_LANE_STATE_SEQUENCE_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.washout-fault-returns-normal.v1",
+          "purpose": "A fault during washout must return the lane to unavailable restrictive.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "REPLACE",
+            "path": "/fault_during_washout_returns_to",
+            "value": "NORMAL"
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_WASHOUT_FAULT_RETURN_INVALID"
+          ],
+          "payload_interpreted": true
+        },
+        {
+          "id": "adr011.x02-availability.ambient-layout-member.v1",
+          "purpose": "An ambient layout override must not extend the closed X02 projection.",
+          "patch": {
+            "target": "DOCUMENT",
+            "op": "ADD",
+            "path": "/ambient_layout_override",
+            "value": true
+          },
+          "expected_profile_result": "REJECT",
+          "production_admission": "REJECT",
+          "expected_diagnostics": [
+            "X02_FLEET_AVAILABILITY_PROJECTION_INVALID"
           ],
           "payload_interpreted": true
         }

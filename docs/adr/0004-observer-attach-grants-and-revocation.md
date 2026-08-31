@@ -2470,46 +2470,41 @@ generation before it discards identity history. A stale, rolled-back, consumed,
 or dead grant cannot renew; it can be replaced only by the closed terminal
 reattachment transition when that transition is allowed.
 
-Every queued delivery binds:
+Every queued delivery binds these exact values:
 
-- the exact neutral `AuthorityRealmKey` and full source-kind/logical-session/
-  generation identity;
-- the exact descriptor revision plus descriptor and grant digests;
-- the exact grant-registry key, current registry head/selector proof, and keyed
-  ledger head;
-- the exact `TrustedDeliveryBoundaryGrantEnforcementReceipt` and installed
-  renewal-ledger head;
-- the exact `TrustedDeliveryReleaseReceipt` for these complete bytes/result and
-  boundary output-queue ownership transfer;
-- the exact enforcement-boundary principal/instance, boundary security state,
-  literal delivery domain, deadline policy, and clock incarnation named by that
-  receipt;
+- the neutral `AuthorityRealmKey` and complete source-kind, logical-session,
+  and generation identity;
+- the descriptor revision and digest, grant digest and scope, grant-registry
+  key, current registry head/selector proof, and keyed ledger head;
+- `TrustedDeliveryBoundaryGrantEnforcementReceipt`, installed renewal-ledger
+  head, and `TrustedDeliveryReleaseReceipt` for the complete bytes/result and
+  output-queue ownership transfer;
+- the enforcement-boundary principal/instance, security state, literal delivery
+  domain, deadline policy, and clock incarnation;
 - session, generation, security-state digest, security epoch, and revocation
   epoch;
-- the exact grant scope tuple used for that frame;
-- the grant's issuer UTC audit interval and maximum duration, and the trusted
-  boundary's local not-after deadline and monotonic-clock incarnation; and
-- for history, the exact publisher, stream epoch, schema, semantic contract,
-  source position, requested window, and `ProviderHistoryProvenance`.
+- the issuer UTC audit interval and maximum duration, plus the local not-after
+  deadline and monotonic-clock incarnation; and
+- for history, publisher, stream epoch, schema, semantic contract, source
+  position, requested window, and `ProviderHistoryProvenance`.
 
-After receipt, the observer's delivery/admission envelope separately binds its
-own `ObserverGrantInstallationReceipt`, exact neutral `AuthorityRealmKey`, full
-source identity, observer receive/admission times and clock incarnation,
-transport principal, and frame-admission transition. Neither
-boundary copies numeric time from the other.
+After receipt, the observer envelope separately binds its own
+`ObserverGrantInstallationReceipt`, neutral `AuthorityRealmKey`, full source
+identity, receive/admission times, clock incarnation, transport principal, and
+frame-admission transition. Neither boundary copies the other's numeric time.
 
-Producer bytes and receiver evidence use different identities. A driven command
-or observation can carry a producer-authenticated, receiver-independent
-`NormativeSourceRef`. It binds the origin session and generation, complete typed
-`StreamPosition {epoch, seq}`, stream-declaration digest, origin frame/content
-identity, and exact neutral `AuthorityRealmKey` plus source session kind. The
-canonical portable source identity is therefore
-`(AuthorityRealmKey, source_session_kind, logical_session_id, generation)`; it
-cannot be projected to the last three fields.
-It never contains an observer admission receipt. An origin
-`SensorFrame` does not need a self-referential source field: its authenticated
-frame bytes, declaration, and own position establish that portable origin
-identity.
+A receiver-independent `NormativeSourceRef` binds the exact
+`AuthorityRealmKey`, source session kind, logical session, generation, typed
+`StreamPosition {epoch, seq}`, declaration digest, and origin-frame content
+digest. `(AuthorityRealmKey, source_session_kind, logical_session_id,
+generation)` is only a source-session prefix, not a portable frame identity.
+The content digest covers the exact header, availability bitmap, and scalar
+bytes. The reference repeats no bitmap and contains no observer admission
+receipt.
+
+An origin `SensorFrame` needs no self-reference. Its authenticated bytes,
+declaration, position, and digest establish that identity. Decoders never expose
+placeholders. Condition detail cannot change this authority.
 
 `TrustedProjectionRecord` is the transferable, receiver-independent protected
 projector evidence for any privacy projection. Its canonical content binds the
@@ -2525,41 +2520,39 @@ protected projector envelope/signature, receiver admission receipt, then local
 provenance. The projected content/frame contains no projection-record digest,
 local provenance, or admission receipt; the record contains no later receipt.
 
-After admission, the receiver records one `ResolvedOriginEvidence` in a closed
-union. `EXACT_ORIGIN` binds the portable identity to this receiver's immutable
-admission receipt for the exact original protected frame/content.
-`TRUSTED_PROJECTED_ORIGIN` binds the same portable identity to
-`TrustedProjectionProvenance`: exact `TrustedProjectionRecord` digest, this
-receiver principal/evidence lineage, and this receiver's projected-frame
-admission receipt. It proves only the declared projection, not the unavailable
-original value. Swapping the record, original, policy, projected bytes,
-audience, receiver, or receipt rejects. Two named receivers can admit the same
-record, but they create distinct local provenance objects and cannot exchange
-receipts.
+For a sensor projection, the record also binds the exact origin and projected
+layouts, availability projections, and frame/content digests. A projection can
+preserve availability or tighten `AVAILABLE` to `UNAVAILABLE` when its policy
+removes data. It cannot upgrade `UNAVAILABLE` or expose placeholder bytes. Each
+available projected group derives only from origin-available observations under
+the declared transform. Removing or reordering a slot requires a new projected
+layout, bitmap, and digest. The portable origin identity remains unchanged.
 
-`ResolvedCaptureSourceCorrelation` binds either an admitted origin/projection or
-a driven command/observation to one exact local `ResolvedOriginEvidence`. For a
-driven object, the receiver verifies its `NormativeSourceRef` against that
-evidence, then reuses the same local evidence identity; the driven object's own
-receipt cannot replace it. All forms bind the receiver and full
-`(AuthorityRealmKey, source_session_kind, logical_session_id, generation)`
-identity.
-Independent receivers have different admission receipts but resolve the same
-portable origin identity. A
-driven frame's own stream position is not its driving-source position. Epoch and
-sequence cannot be split, recombined, inferred from receiver time, or replaced by
-a nearest frame. A frame with neither an admitted origin identity nor a valid
-normative source reference records explicit absence and is not eligible for a
-join that requires source correlation.
+After admission, one closed `ResolvedOriginEvidence` union records the result.
+`EXACT_ORIGIN` binds the portable identity and this receiver's immutable receipt
+for the original protected frame/content. `TRUSTED_PROJECTED_ORIGIN` binds that
+identity to `TrustedProjectionProvenance`: the `TrustedProjectionRecord` digest,
+receiver principal/evidence lineage, and projected-frame admission receipt. It
+proves only the declared projection, not an unavailable original value. Any
+record, original, policy, projected-byte, audience, receiver, or receipt swap
+rejects. Receivers of one record keep distinct local provenance and receipts.
 
-This correlation proves only that the producer declared one exact source and
-that this receiver resolved the reference to exact admitted original or
-projected bytes. It does not prove that the producer's internal computation
-consumed those bytes, that no unrecorded input influenced the result, or that the
-source caused a later command, observation, assessment, or outcome. A consumer
-must label the relation `producer_declared_resolved_source`. Any stronger
-computational-dependence or causal claim requires separately instrumented,
-content-bound, and independently qualified evidence.
+`ResolvedCaptureSourceCorrelation` binds an admitted origin/projection or driven
+command/observation to exact local `ResolvedOriginEvidence`. For a driven object,
+the receiver verifies its `NormativeSourceRef` and reuses that evidence identity;
+the object's receipt cannot replace it. Every form binds the receiver and full
+`(AuthorityRealmKey, source_session_kind, logical_session_id, generation)`.
+Independent receivers resolve one portable identity with distinct receipts. A
+driven position differs from its source position. Its epoch and sequence cannot
+split, recombine, follow receiver time, or select a nearest frame. Without an
+admitted origin or valid reference, the frame records absence and cannot join.
+
+This proves only that one declared source resolved to exact admitted bytes. It
+proves neither producer consumption, exclusion
+of unrecorded inputs, nor causation of a command, observation, assessment, or
+outcome. Consumers label it `producer_declared_resolved_source`. Stronger
+dependence or causation needs separate instrumented, content-bound, independently
+qualified evidence.
 
 The trusted body/service or terminating gateway is the confidentiality
 enforcement boundary. It first constructs and bounds the complete live payload
@@ -2662,6 +2655,12 @@ Illustrative non-wire pending state:
 
 ```json
 {"allocates_output_slot":false,"state":"PENDING_INTENT_ONLY"}
+```
+
+This non-wire projection closes sensor anti-laundering.
+
+```json
+{"availability_projection_is_tighten_only":true,"optional_detail_can_override_availability":false,"portable_origin_identity_preserved":true,"projected_available_requires_origin_available_inputs":true,"projection_binds_origin_and_projected_availability":true,"slot_removal_or_reorder_requires_new_layout_and_bitmap":true,"source_unavailable_can_project_available":false,"unavailable_placeholder_can_be_observation":false}
 ```
 
 `TrustedDeliveryReleaseReceipt` binds commitment, prior/installed
@@ -4018,24 +4017,22 @@ pair or disables the adapter; wildcard trust never returns.
 
 No semantic question remains in this decision. Unknown or default values deny.
 
-Future B03 allocation names and reviewed exclusions will be maintained in the
-[external selector-allocation inventory](selector-allocation.authoring.v1.json)
-under this stable ADR anchor. The current inventory is incomplete, has not been
-reviewed, and contains no allocation or exclusion rows. It is coordination
-evidence only and grants no release or gate status.
+The [external selector-allocation inventory](selector-allocation.authoring.v1.json)
+will maintain future B03 names and reviewed exclusions under this anchor. It is
+incomplete, unreviewed, and empty. It grants no release or gate status.
 
 ## Ten-lens review
 
-1. Protocol semantics keep attach, grant, and outcome distinct.
-2. Security fails identity and freshness closed.
-3. Safety prohibits observer actuation.
-4. Distributed lifecycle is explicit.
-5. Resource use is bounded.
+1. Semantics separates attach, grant, outcome.
+2. Security fails closed.
+3. Observers cannot actuate.
+4. Lifecycle is explicit.
+5. Resources are finite.
 6. Interoperability requires native migration.
-7. Science separates delivery from truth and effect.
-8. Operations use receipts, not fictitious cross-store atomicity.
-9. Verification tests adversarial recovery.
-10. Lifecycle governance preserves owner authority.
+7. Science separates delivery, truth, effect.
+8. Operations use receipts.
+9. Verification tests hostile recovery.
+10. Governance preserves owner authority.
 
 ## Ratification record
 

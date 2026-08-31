@@ -35,6 +35,27 @@ envelope and cannot borrow control or action capacity. A future non-core traffic
 class requires its own registered profile and does not widen the `Plane` enum by
 default.
 
+The sensor availability bitmap and scalar storage form one indivisible
+perception item. They use one position, digest, queue slot, and supersession
+decision. A queue cannot drop or replace the bitmap separately. Frame loss,
+malformed input, a transport gap, received sensor unavailability, and a received
+available zero remain five distinct states. A zero is an observation only when
+its group is available. Omission never supplies availability.
+
+Producer-local incomplete or malformed input rejects before producer position
+assignment. A receiver can reject malformed authenticated bytes that already
+carry a producer-assigned position. Receiver rejection creates no receiver
+admission, pin, or typed callback. It cannot roll the producer position back.
+
+A transport gap records an absent transport sequence. Whole-frame loss records
+an indivisible item lost at a stated queue boundary. Neither state becomes sensor
+unavailability.
+
+Optional sensor-condition detail uses a registered extension partition. Its
+item, byte, retention, and callback budgets are finite. Detail overload cannot
+borrow perception or action capacity. It cannot delay source admission, command
+admission, or the body fail-safe.
+
 ADR-001 `AuthorityRealmKey` is the canonical tuple of server authority principal
 and stable realm ID. It excludes credential/security epochs, queue/store
 incarnations, and every session or stream generation. A reusable QoS profile
@@ -73,7 +94,8 @@ incarnations are not comparable. The body-owned event order merges their
 attempts and applies severity priority.
 
 ESTOP receives action-queue priority, admission, and a `stop_latched`
-disposition only after full envelope, manifest actor/plane, route, audience,
+disposition only after selected-profile authentication, manifest actor/plane,
+route, audience,
 session, stream, and semantic validation. It may omit only the authority lease
 as separately specified. ADR-007's distinct body-local early ESTOP reservation
 can latch after its complete pre-replay restrictive gate but before the
@@ -95,7 +117,7 @@ therefore uses two bounded scheduling stages before semantic severity arbitratio
    realm/principal/route. A reserved emergency lane is usable only by a
    separately enrolled emergency transport credential/principal in the exact
    realm and on its exact manifest route; bytes that merely decode to HOLD/ESTOP
-   cannot enter it. Both lanes perform the complete bounded-envelope,
+   cannot enter it. Both lanes perform complete bounded selected-profile
    authentication, manifest, realm, route, audience, session, grant, mode,
    deadline, and installed-profile checks in ADR-007's pre-replay restrictive
    gate. Only then can the verified severity arbiter classify ESTOP, HOLD, and
@@ -181,7 +203,7 @@ separate finite partition under that outer cap.
 
 Action ingress reserves separate normal and enrolled emergency verification
 work. Raw bytes that look like ESTOP cannot select the emergency lane. Complete
-envelope authentication and the checks required to classify an enrolled
+selected-profile authentication and the checks required to classify an enrolled
 emergency candidate run before severity arbitration. Command admission then
 runs its remaining stream and authority checks. Only ADR-007's separately
 attributed early ESTOP latch can precede them. The body keeps fixed capacity for
@@ -270,6 +292,20 @@ Unknown, zero, unbounded, best-effort authority, or receipt-free recovery
 profiles reject. A realm-scoped installed profile also rejects when its direct
 `AuthorityRealmKey` is missing, default, wildcard, or inconsistent with the
 route and authenticated endpoint.
+
+The following non-wire projection closes perception-item queue and missingness
+semantics. Producer position assignment and receiver admission are separate.
+
+The producer rejects an incomplete or malformed item before position assignment.
+An encode or outbound-queue failure after assignment consumes that position.
+An authenticated received item can already carry its producer position.
+
+A receiver malformed rejection creates no admission, pin, or typed callback.
+The rejection never rolls back the producer position.
+
+```json
+{"authenticated_received_item_may_bear_producer_position":true,"availability_bitmap_and_scalar_storage_indivisible":true,"closed_perception_states":["RECEIVED_AVAILABLE_ZERO","RECEIVED_UNAVAILABLE","MALFORMED_FRAME","TRANSPORT_GAP","WHOLE_FRAME_LOSS"],"item_digest_count":1,"item_position_count":1,"item_queue_slot_count":1,"item_supersession_decision_count":1,"partial_drop_or_replace_allowed":false,"producer_encode_or_queue_failure_after_assignment_consumes_position":true,"producer_incomplete_or_malformed_rejects_before_position_assignment":true,"received_available_zero_is_observation":true,"received_unavailable_exposes_observation":false,"receiver_malformed_rejection_creates_admission":false,"receiver_malformed_rejection_creates_pin":false,"receiver_malformed_rejection_invokes_typed_callback":false,"receiver_malformed_rejection_rolls_back_producer_position":false,"transport_gap_implies_sensor_unavailable":false,"whole_frame_loss_equals_transport_gap":false,"zero_or_omission_infers_availability":false}
+```
 
 ## Actors and state transitions
 

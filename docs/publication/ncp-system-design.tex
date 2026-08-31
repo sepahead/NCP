@@ -665,23 +665,46 @@ a different payload.
 
 \subsection{Fixed-layout frame size}
 
-Let $n_v,N_v,H_f\in\mathbb{Z}_{\geq0}$ and $w_v\in\mathbb{Z}_{>0}$.  A prepared frame contains
-$n_v$ numeric values, each encoded value uses $w_v$ bytes, and the fixed header uses $H_f$ bytes.
+Let $n_v,N_v,n_g,N_g,H_f\in\mathbb{Z}_{\geq0}$ and
+$w_v\in\mathbb{Z}_{>0}$.  A prepared frame contains $n_v$ numeric slots.
+Each encoded value uses $w_v$ bytes.  The fixed header uses $H_f$ bytes.
+The compact-sensor group count is $n_g$, bounded by $N_g$.  Its mandatory
+availability storage is
+\begin{equation}\label{eq:availability-bytes}
+A_f(n_g)=\left\lceil\frac{n_g}{8}\right\rceil .
+\end{equation}
+A sensor layout requires $n_g\geq1$.  Its nonempty ordered groups partition every sensor slot
+exactly once.  A non-sensor fixed layout uses $n_g=0$ and no availability bytes.
 The complete frame length is
 \begin{equation}\label{eq:fixed-payload}
-L_{\mathrm{frame}}=H_f+n_vw_v.
+L_{\mathrm{frame}}=H_f+A_f(n_g)+n_vw_v.
 \end{equation}
-Suppose the profile selects $0\leq n_v\leq N_v$.  Then
+Suppose the profile selects $0\leq n_v\leq N_v$ and
+$0\leq n_g\leq N_g$.  Then
 \begin{align}
 L_{\mathrm{frame}}
-&=H_f+n_vw_v\label{eq:payload-bound-step}\\
-&\leq H_f+N_vw_v=L_{\mathrm{frame}}^{\max}.
+&=H_f+A_f(n_g)+n_vw_v\label{eq:payload-bound-step}\\
+&\leq H_f+\left\lceil\frac{N_g}{8}\right\rceil+N_vw_v
+=L_{\mathrm{frame}}^{\max}.
 \label{eq:payload-bound}
 \end{align}
 The receiver checks $n_v$ and the complete length before it decodes values.  The names, units,
 ranges, and offsets live in the prepared layout.  The product and sum use checked arithmetic.
 An unavailable product or sum rejects before value decoding.  Names and units are not repeated
 or allocated per frame.
+
+Stable 1.0 fixes one bit per ordered group, least-significant-bit-first order,
+$1=\mathrm{AVAILABLE}$, $0=\mathrm{UNAVAILABLE}$, and zero high padding.  A compact sensor
+layout fixes group membership and profile-specific unavailable placeholder bits.  Every group is
+decided once.  Available groups contain every finite in-range value.  Unavailable groups forbid
+caller values.  The decoder returns typed unavailability and never exposes placeholders as
+observations.  The complete frame digest covers the header, bitmap, and every scalar byte.
+
+The header, bitmap, and scalar storage form one queue item.  They share one position, digest,
+supersession decision, replay record, drop result, and receipt.  Received available zero,
+received unavailable, malformed frame, transport gap, and whole-frame loss remain distinct.
+Compatibility JSON carries the same semantic availability and never infers it from zero or
+omission.
 
 For a direct linear decode, the work count satisfies
 \begin{equation}\label{eq:codec-linear}
@@ -899,7 +922,9 @@ The installed manifest selects one closed schema and canonicalization profile.  
 unknown members, duplicate decoded keys, non-canonical numbers, unsupported encodings, and
 inline attachment bytes before callback work.  Each reference binds an attachment ID, enrolled
 store ID, canonical object key, digest, byte length, media type, schema ID, and purpose.  The
-protected envelope also binds the realm, activation, audience, manifest, and replay coordinate.
+selected ingress profile also binds the realm, activation, audience, manifest, and replay
+coordinate.  A-direct uses the receiver-owned context.  B-over-A uses the protected JWS
+envelope.
 
 The installed manifest enrolls the exact HTTPS origin, resolved address set, TLS identity,
 scoped credential source, timeouts, media types, and byte limits.  The wire cannot supply a URL,
@@ -1101,9 +1126,48 @@ remains a separate deployment mode.  It is not a fifth integrated process.
 \subsection{Fleet, time, and presentation boundaries}
 
 The selected X02 profile requires one composite fleet session for each required 1, 2, or 3-drone
-run.  The plant profile binds a sorted stable-drone-ID roster and one exact channel-layout digest.
+run.  A reusable layout profile fixes generic encoding, bounds, digest, and packing rules.  A
+content-addressed layout instance binds the stable-drone-ID roster, scalar slots, and resources.
 One aggregate \texttt{SensorFrame} contains \texttt{6N} ENU position and velocity scalars.  One
 aggregate \texttt{CommandFrame} contains \texttt{3N} ENU acceleration-command scalars.
+
+The layout assigns one availability group to each drone.  N=1 exhausts \texttt{00} through
+\texttt{01}.  N=2 exhausts \texttt{00} through \texttt{03}.  N=3 exhausts \texttt{00} through
+\texttt{07}.  Unused high bits are zero.  Placeholder storage uses binary64 positive zero,
+but the decoder exposes only typed unavailability.  Zero-based group $g$ maps to command slots
+$[3g,3g+1,3g+2]$ with exact layout-bound restrictive bytes.
+
+The exact source pin retains the bitmap.  Each unavailable drone requires its installed
+three-value restrictive lane in the atomic \texttt{3N} Active command.  A mismatch rejects the
+whole command.  A correct restrictive Active command receives \texttt{APPLIED}, not
+\texttt{HOLD\_EFFECTIVE}.
+
+The instance binds each scalar index to its entity, semantic, axis, coordinate frame, unit,
+encoding, numeric domain, and applicable physical resource.  One opaque publisher owns the layout
+and its transport slot for each frame class.  It assigns the final position, serializes once, and
+moves the immutable bytes into that slot.  The API exposes no detached buffer-to-context handoff.
+The compact frame adds no slot tag, layout digest, preparation digest, or application authenticator.
+
+TLS record protection detects mutation after seal and before receiver open.  It does not attest
+application provenance.  It cannot detect sender changes before seal or receiver changes after
+open.  It cannot infer a plausible same-unit misassociation.  Equal values are byte-identical.  Bad
+wiring and a compromised authorized packer also remain outside this claim.  Stronger origin claims
+require independent per-entity attestors.
+
+One NEST 3.9 kernel advances the complete fleet at \texttt{0.1 ms} resolution.  Each
+controller epoch is \texttt{20 ms}, and the qualification seed is \texttt{20260826}.  A
+receipt-bound manifest fixes the NEST build, graph, models, parameters, devices, input transform,
+decoder, clamps, targets, lane states, threads, seeds, and counter-based streams.  Per-drone nodes,
+connections, devices, and RNG streams are disjoint.
+
+Each lane uses \texttt{NORMAL}, \texttt{UNAVAILABLE\_RESTRICTIVE}, or
+\texttt{RECOVERY\_WASHOUT}.  Unavailable and washout epochs neutralize only that lane and emit
+its restrictive output.  The first available frame after
+\texttt{UNAVAILABLE\_RESTRICTIVE} enters \texttt{RECOVERY\_WASHOUT}.  A second consecutive
+available frame enters \texttt{NORMAL}.  Any washout fault returns to
+\texttt{UNAVAILABLE\_RESTRICTIVE} and restarts this two-frame recovery.  Fault recovery never
+resets the kernel.  Restart restores exact lane state or retires the session.
+Other lanes remain bitwise equal to their receipt-qualified no-fault baseline.
 
 X02 remains \textbf{OPEN}.  Historical Host API 2 fleet evidence cannot satisfy native NCP role,
 transport, closed-loop, or release qualification.
@@ -1146,6 +1210,8 @@ The current candidate does not implement the complete target.  The most importan
         compact restrictive profiles forbid.
   \item No accepted compact data-plane encoding, complete no-reuse owner, durable generation
         issuer, or complete disposition journal exists.
+  \item Compact sensor frames lack mandatory source-bound availability.  Zero values cannot
+        represent unavailable sensor groups.
   \item The TypeScript WebSocket client bounds pending request count but not aggregate bytes.
 \end{itemize}
 
@@ -1160,12 +1226,12 @@ It is not the complete proposed lifecycle, authority, stream, disposition, and e
 The proposed admission ordering remains the target shown earlier in this report.
 
 \clearpage
-\section{Twenty-lens design review}
+\section{Thirty-lens design review}
 
 This review is a maintainer-side critique.  It does not satisfy the independent B01 review floor.
 
 \begin{longtable}{L{0.19\linewidth}L{0.37\linewidth}L{0.36\linewidth}}
-\caption{Twenty-lens review of the proposed target.}\label{tab:twenty-lens}\\
+\caption{Thirty-lens review of the proposed target.}\label{tab:thirty-lens}\\
 \toprule
 \NcpTableHeaderRow
 Lens & Selected target & Gap or required evidence \\
@@ -1198,6 +1264,16 @@ Ecosystem direction & Consumers pin NCP and expose thin adapters. & No installed
 Operability & Gaps, drops, expiry, ambiguity, and insecure mode are visible. & Exact metrics and deployment procedures remain open. \\
 Visual traceability & Figures use ordered flow, text labels, redundant cues, and prose descriptions. & Visual review cannot accept an ADR or qualify performance. \\
 Claims and release & Every local result stays inside a named evidence boundary. & Independent review and all external release gates remain unsatisfied. \\
+Sensor missingness & One mandatory bitmap distinguishes unavailable groups from valid zeros.  Stable 1.0 fixes polarity, bit order, and padding. & B03 allocates field identity, limits, errors, profiles, and profile-specific placeholders. \\
+Source-conditioned safety & The source pin retains availability and selects profile-specific restrictive lanes. & Body admission and disposition bindings remain unimplemented. \\
+Fleet topology & X02 uses one composite session and atomic command for one to three drones. & Exact rosters and layouts remain unallocated. \\
+NEST execution & One NEST 3.9 kernel advances normal, fault, washout, and recovery epochs. & Real one-, two-, and three-drone evidence is \textbf{NOT RUN}. \\
+Authentication profiles & Trusted configuration selects A-direct or B-over-A before bytes. & Direct capability and forwarded JWS implementations remain open. \\
+Language boundary & Opaque capabilities cross Python FFI.  Raw credentials and detached buffers do not. & Prepared PyO3 transport remains open. \\
+Standalone and UI boundary & Default Crebain artifacts omit NCP adapters.  Presentation hosting carries no runtime semantics. & Consumer packaging and UI tests remain open. \\
+MUSIC separation & NCP owns boundary semantics.  MUSIC alone owns shared-clock coupling. & X02 qualifies independent clocks only. \\
+Supply chain and peers & Exact pins, clean archives, SBOMs, and native non-Rust peers bind the final contract. & Publication and clean-room gates remain open. \\
+Operational qualification & Security, faults, rotation, restart, overload, soak, and performance bind exact artifacts. & No ecosystem role campaign has passed. \\
 \end{longtable}
 
 The review exposes three high-level conclusions.  First, low overhead depends on prepared context
@@ -1273,7 +1349,7 @@ Equations & Unit & Meaning, assumptions, and failure behavior \\
 \eqref{eq:ordinal-domain}--\eqref{eq:ordinal-monotone} & ordinal & Zero is the initial high-water sentinel and is never assigned.  Checked succession is strictly monotone.  Exhaustion seals the epoch instead of wrapping or saturating. \\
 \eqref{eq:no-dedicated-service} & service count & Session state uses bounded shared owners.  The design allocates no thread, socket, or store service per session. \\
 \eqref{eq:position-domain}--\eqref{eq:gap-set} & position & Position zero is the initial high-water sentinel and is never assigned.  Checked succession is strictly monotone.  Exhaustion seals the epoch.  Assignment commits before later work, so failure creates a visible gap and never permits reuse. \\
-\eqref{eq:fixed-payload}--\eqref{eq:codec-linear} & bytes and work units & A prepared fixed layout bounds value count and exact frame length.  Linear work is a structural count, not elapsed time. \\
+\eqref{eq:availability-bytes}--\eqref{eq:codec-linear} & bytes and work units & A prepared fixed layout bounds group count, bitmap bytes, value count, and exact frame length.  Linear work is a structural count, not elapsed time. \\
 \eqref{eq:step-window}--\eqref{eq:step-window-local-global} & requests, bytes, and local charge & Admission leaves one free request slot.  Every coefficient is a deployment maximum.  Each window reserves portable and local storage before backend work.  The active-session capacity lifts both bounds across the deployment. \\
 \eqref{eq:step-order}--\eqref{eq:step-response-coordinate} & position, digest, and bytes & Only the next exact position executes.  Completion advances by checked succession.  Response release also requires exact retained request bytes. \\
 \eqref{eq:freshness-deadline}--\eqref{eq:active-admission} & ticks and Boolean & One receiver clock and body-issued grant define an exclusive deadline.  Every currentness, lease, grant, stream, profile, and executor predicate must be true. \\

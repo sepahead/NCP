@@ -12,17 +12,17 @@
     "release_gates": 14,
     "surface_claims": 55,
     "proposed_decisions": 11,
-    "threat_controls": 24
+    "threat_controls": 26
   },
   "counts": {
-    "requirements": 117,
-    "edges": 755,
+    "requirements": 119,
+    "edges": 783,
     "by_evidence_status": {
       "LOCAL_VERIFIED": 58,
       "NOT_CLAIMED": 6,
       "NOT_RUN_EXTERNAL": 11,
       "NOT_RUN_POST_PUBLICATION": 2,
-      "PARTIAL_LOCAL": 40
+      "PARTIAL_LOCAL": 42
     }
   },
   "requirements": [
@@ -145,7 +145,8 @@
       "claim_tier": "independent-review-required",
       "release_effect": "release-blocking-open",
       "threat_ids": [
-        "NCP-THREAT-023"
+        "NCP-THREAT-023",
+        "NCP-THREAT-026"
       ],
       "vector_ids": []
     },
@@ -175,7 +176,9 @@
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "independent-review-required",
       "release_effect": "release-blocking-open",
-      "threat_ids": [],
+      "threat_ids": [
+        "NCP-THREAT-026"
+      ],
       "vector_ids": []
     },
     {
@@ -235,7 +238,9 @@
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "independent-review-required",
       "release_effect": "release-blocking-open",
-      "threat_ids": [],
+      "threat_ids": [
+        "NCP-THREAT-026"
+      ],
       "vector_ids": []
     },
     {
@@ -265,7 +270,8 @@
       "claim_tier": "independent-review-required",
       "release_effect": "release-blocking-open",
       "threat_ids": [
-        "NCP-THREAT-022"
+        "NCP-THREAT-022",
+        "NCP-THREAT-026"
       ],
       "vector_ids": []
     },
@@ -324,7 +330,9 @@
       "evidence_status": "PARTIAL_LOCAL",
       "claim_tier": "independent-review-required",
       "release_effect": "release-blocking-open",
-      "threat_ids": [],
+      "threat_ids": [
+        "NCP-THREAT-026"
+      ],
       "vector_ids": []
     },
     {
@@ -358,7 +366,9 @@
         "NCP-THREAT-021",
         "NCP-THREAT-022",
         "NCP-THREAT-023",
-        "NCP-THREAT-024"
+        "NCP-THREAT-024",
+        "NCP-THREAT-025",
+        "NCP-THREAT-026"
       ],
       "vector_ids": []
     },
@@ -442,7 +452,9 @@
       "claim_tier": "external-evidence-required",
       "release_effect": "release-blocking-open",
       "threat_ids": [
-        "NCP-THREAT-018"
+        "NCP-THREAT-018",
+        "NCP-THREAT-025",
+        "NCP-THREAT-026"
       ],
       "vector_ids": []
     },
@@ -3718,6 +3730,74 @@
         "NCP-THREAT-024"
       ],
       "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-025",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for a frame publisher bypasses final slot preparation as specified by NCP-THREAT-025.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/24"
+      ],
+      "code_paths": [
+        "docs/adr/0011-ecosystem-topology-and-handover.md",
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+      ],
+      "test_paths": [
+        "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+      ],
+      "evidence_paths": [
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+      ],
+      "verification_commands": [
+        "python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test",
+        "python3 scripts/generate_decision_registry.py --self-test --check"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-025"
+      ],
+      "vector_ids": []
+    },
+    {
+      "id": "NCP-THREAT-REQ-026",
+      "kind": "threat-control",
+      "requirement": "Prevent or fail closed for sensor availability is laundered, detached, or erased across overlays as specified by NCP-THREAT-026.",
+      "source_refs": [
+        "evidence/audit/threat-register.v1.json#/threats/25"
+      ],
+      "code_paths": [
+        "docs/adr/0004-observer-attach-grants-and-revocation.md",
+        "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+        "docs/adr/0010-plane-qos-retention-and-overload.md",
+        "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+      ],
+      "test_paths": [
+        "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs",
+        "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/self-test.ts"
+      ],
+      "evidence_paths": [
+        "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+        "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+      ],
+      "verification_commands": [
+        "python3 prototypes/b01-architecture-evidence/adr_example_semantics.py --self-test",
+        "cargo test --locked --manifest-path prototypes/b01-architecture-evidence/adr-example-semantics/rust/Cargo.toml",
+        "bun run --cwd prototypes/b01-architecture-evidence/adr-example-semantics/typescript check"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "claim_tier": "local-control-with-open-risk",
+      "release_effect": "release-blocking-open",
+      "threat_ids": [
+        "NCP-THREAT-026"
+      ],
+      "vector_ids": []
     }
   ],
   "edges": [
@@ -3853,6 +3933,11 @@
     },
     {
       "from": "NCP-ADR-004",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
+    },
+    {
+      "from": "NCP-ADR-004",
       "relation": "verified-by",
       "to": "scripts/check_adr_examples.py"
     },
@@ -3880,6 +3965,11 @@
       "from": "NCP-ADR-005",
       "relation": "implemented-by",
       "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-005",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
     },
     {
       "from": "NCP-ADR-005",
@@ -3948,6 +4038,11 @@
     },
     {
       "from": "NCP-ADR-007",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
+    },
+    {
+      "from": "NCP-ADR-007",
       "relation": "verified-by",
       "to": "scripts/check_adr_examples.py"
     },
@@ -3983,6 +4078,11 @@
     },
     {
       "from": "NCP-ADR-008",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
+    },
+    {
+      "from": "NCP-ADR-008",
       "relation": "verified-by",
       "to": "scripts/check_adr_examples.py"
     },
@@ -4040,6 +4140,11 @@
       "from": "NCP-ADR-010",
       "relation": "implemented-by",
       "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-ADR-010",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
     },
     {
       "from": "NCP-ADR-010",
@@ -4095,6 +4200,16 @@
       "from": "NCP-ADR-011",
       "relation": "mitigates",
       "to": "NCP-THREAT-024"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-025"
+    },
+    {
+      "from": "NCP-ADR-011",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
     },
     {
       "from": "NCP-ADR-011",
@@ -4185,6 +4300,16 @@
       "from": "NCP-RELEASE-PRE-CONSUMER-CERTIFICATION",
       "relation": "mitigates",
       "to": "NCP-THREAT-018"
+    },
+    {
+      "from": "NCP-RELEASE-PRE-CONSUMER-CERTIFICATION",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-025"
+    },
+    {
+      "from": "NCP-RELEASE-PRE-CONSUMER-CERTIFICATION",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
     },
     {
       "from": "NCP-RELEASE-PRE-CONSUMER-CERTIFICATION",
@@ -7495,6 +7620,101 @@
       "from": "NCP-THREAT-REQ-024",
       "relation": "verified-by",
       "to": "scripts/generate_decision_registry.py"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "evidenced-by",
+      "to": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "implemented-by",
+      "to": "docs/adr/0011-ecosystem-topology-and-handover.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "implemented-by",
+      "to": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-025"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "verified-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs"
+    },
+    {
+      "from": "NCP-THREAT-REQ-025",
+      "relation": "verified-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "evidenced-by",
+      "to": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "evidenced-by",
+      "to": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "implemented-by",
+      "to": "docs/adr/0004-observer-attach-grants-and-revocation.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "implemented-by",
+      "to": "docs/adr/0008-extension-namespace-and-galadriel-separation.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "implemented-by",
+      "to": "docs/adr/0010-plane-qos-retention-and-overload.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "implemented-by",
+      "to": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "implemented-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "implemented-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "mitigates",
+      "to": "NCP-THREAT-026"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "verified-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/corpus.v1.json"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "verified-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/profiles.rs"
+    },
+    {
+      "from": "NCP-THREAT-REQ-026",
+      "relation": "verified-by",
+      "to": "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/self-test.ts"
     }
   ]
 }

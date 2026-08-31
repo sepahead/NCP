@@ -8,21 +8,21 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "f7d2021e7c8887ab6a18683afd3da1617a7a7cb4daa24213a01b7565b268151c",
-      "bytes": 461317,
-      "records": 298
+      "sha256": "e6070e0802604424a076b25ce01af4a2e7eeafe66ca455793bf8af0ec2dcaf34",
+      "bytes": 465198,
+      "records": 305
     },
     {
       "path": "evidence/audit/requirement-traceability.v1.json",
-      "sha256": "9597a93c26a49065c751b11ed1d719af7474e108de902f78e3900e1363999451",
-      "bytes": 230804,
-      "records": 117
+      "sha256": "c202ebea56dd53cda13c77b77975d8598367c174a91b596be534033cc3b8058b",
+      "bytes": 238201,
+      "records": 119
     },
     {
       "path": "evidence/audit/threat-register.v1.json",
-      "sha256": "e210b43998469cb5b9447fa9ba7fc34a7a3e0d4be3a6fd5d983ff303240cd9c4",
-      "bytes": 63150,
-      "records": 24
+      "sha256": "8b0a8afe36114a23d03decbd73862ffcf5f76195199ba0afea8eb14a1c28197e",
+      "bytes": 70916,
+      "records": 26
     }
   ],
   "source_inputs": [
@@ -48,8 +48,8 @@
     },
     {
       "path": "docs/adr/decision-registry.proposed.v1.json",
-      "sha256": "5d6a94a6fde9273fd37630764aaab3538b117eb17b9cf705f3c6c14c077bd8d1",
-      "bytes": 64871
+      "sha256": "c961c1a39125132469b5cc8b4a005c4e7f9fb759611599d47aa82819dde88920",
+      "bytes": 38670
     },
     {
       "path": "Cargo.lock",

@@ -11,23 +11,32 @@ const CONTRACT_IDENTITY: &str = "ADR002_REALM_BOUND_CONTRACT_IDENTITY_V1";
 const FORWARDING_WRAPPER: &str = "ADR003_FLATTENED_FORWARDING_WRAPPER_V1";
 const PROTECTED_HEADER: &str = "ADR003_PROTECTED_HEADER_REQUIRED_MEMBER_PROJECTION_V1";
 const PENDING_RESERVATION: &str = "ADR004_PENDING_RELEASE_RESERVATION_NONALLOCATION_V1";
+const SENSOR_PROJECTION_ANTI_LAUNDERING: &str = "ADR004_SENSOR_PROJECTION_ANTI_LAUNDERING_V1";
 const DECLARE_STREAM: &str = "ADR005_DECLARE_STREAM_EXCERPT_V1";
 const UNDECLARED_FRAME: &str = "ADR005_UNDECLARED_FRAME_V1";
+const SENSOR_AVAILABILITY_SOURCE_BOUND: &str = "ADR005_SENSOR_AVAILABILITY_SOURCE_BOUND_V1";
+const SENSOR_AVAILABILITY_DETACHED_MASK: &str = "ADR005_SENSOR_AVAILABILITY_DETACHED_MASK_V1";
 const BODY_LEASE: &str = "ADR006_BODY_LEASE_EXCERPT_V1";
 const STALE_SELF_ISSUED_LEASE: &str = "ADR006_STALE_SELF_ISSUED_LEASE_V1";
 const DISPOSITION_QUERY: &str = "ADR007_DISPOSITION_QUERY_PROJECTION_V1";
 const RECEIVED_DISPOSITION: &str = "ADR007_RECEIVED_DISPOSITION_EXCERPT_V1";
 const INVALID_DISPOSITION: &str = "ADR007_INVALID_DISPOSITION_V1";
+const UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION: &str =
+    "ADR007_UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION_V1";
 const EXTENSION_ENVELOPE: &str = "ADR008_EXTENSION_ENVELOPE_PROJECTION_V1";
 const ASSESSMENT_ENVELOPE: &str = "ADR008_GALADRIEL_ASSESSMENT_ENVELOPE_V1";
 const POLICY_INJECTION: &str = "ADR008_GALADRIEL_POLICY_INJECTION_V1";
+const SENSOR_CONDITION_DETAIL: &str = "ADR008_SENSOR_CONDITION_DETAIL_V1";
 const SECURITY_STATE: &str = "ADR009_SECURITY_STATE_PROJECTION_V1";
 const INVALID_SECURITY_STATE: &str = "ADR009_INVALID_SECURITY_STATE_V1";
 const ACTION_QOS: &str = "ADR010_ACTION_QOS_PROFILE_V1";
 const INVALID_ACTION_QOS: &str = "ADR010_INVALID_ACTION_QOS_PROFILE_V1";
+const PERCEPTION_QUEUE_MISSINGNESS: &str = "ADR010_PERCEPTION_QUEUE_MISSINGNESS_V1";
 const REGISTERED_HALDIR_INTENT: &str = "ADR011_REGISTERED_HALDIR_INTENT_ENVELOPE_V1";
 const COMMAND_IDENTITY: &str = "ADR011_COMMAND_IDENTITY_AUTHORITY_SEPARATION_V1";
 const EFFECT_PATH_FENCING: &str = "ADR011_EFFECT_PATH_FENCING_PROJECTION_V1";
+const PREPARED_FRAME_PUBLISHER: &str = "ADR011_PREPARED_FRAME_PUBLISHER_BOUNDARY_V1";
+const X02_FLEET_AVAILABILITY_LAYOUT: &str = "ADR011_X02_FLEET_AVAILABILITY_LAYOUT_V1";
 const MAXIMUM_JSON_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Debug)]
@@ -50,14 +59,26 @@ pub(crate) fn evaluate(
         FORWARDING_WRAPPER => evaluate_forwarding_wrapper(document, fixture, &mut diagnostics)?,
         PROTECTED_HEADER => evaluate_protected_header(document, fixture, &mut diagnostics)?,
         PENDING_RESERVATION => evaluate_pending_reservation(document, fixture, &mut diagnostics)?,
+        SENSOR_PROJECTION_ANTI_LAUNDERING => {
+            evaluate_sensor_projection_anti_laundering(document, fixture, &mut diagnostics)?;
+        }
         DECLARE_STREAM => evaluate_declare_stream(document, fixture, &mut diagnostics)?,
         UNDECLARED_FRAME => evaluate_undeclared_frame(document, fixture, &mut diagnostics)?,
+        SENSOR_AVAILABILITY_SOURCE_BOUND => {
+            evaluate_sensor_availability_source_bound(document, fixture, &mut diagnostics)?;
+        }
+        SENSOR_AVAILABILITY_DETACHED_MASK => {
+            evaluate_sensor_availability_detached_mask(document, fixture, &mut diagnostics)?;
+        }
         BODY_LEASE | STALE_SELF_ISSUED_LEASE => {
             evaluate_lease(document, fixture, &mut diagnostics)?;
         }
         DISPOSITION_QUERY => evaluate_disposition_query(document, fixture, &mut diagnostics)?,
         RECEIVED_DISPOSITION | INVALID_DISPOSITION => {
             evaluate_disposition(document, fixture, &mut diagnostics)?;
+        }
+        UNAVAILABLE_SOURCE_RESTRICTIVE_ACTION => {
+            evaluate_unavailable_source_restrictive_action(document, fixture, &mut diagnostics)?;
         }
         EXTENSION_ENVELOPE => {
             evaluate_extension_envelope(document, fixture, &mut diagnostics)?;
@@ -66,6 +87,9 @@ pub(crate) fn evaluate(
             evaluate_assessment_envelope(document, fixture, &mut diagnostics)?;
         }
         POLICY_INJECTION => evaluate_policy_injection(document, fixture, &mut diagnostics)?,
+        SENSOR_CONDITION_DETAIL => {
+            evaluate_sensor_condition_detail(document, fixture, &mut diagnostics)?;
+        }
         SECURITY_STATE => {
             evaluate_security_state(document, fixture, &mut diagnostics)?;
         }
@@ -75,12 +99,21 @@ pub(crate) fn evaluate(
         ACTION_QOS | INVALID_ACTION_QOS => {
             evaluate_action_qos(document, fixture, &mut diagnostics)?;
         }
+        PERCEPTION_QUEUE_MISSINGNESS => {
+            evaluate_perception_queue_missingness(document, fixture, &mut diagnostics)?;
+        }
         REGISTERED_HALDIR_INTENT => {
             evaluate_registered_haldir_intent(document, fixture, &mut diagnostics)?;
         }
         COMMAND_IDENTITY => evaluate_command_identity(document, fixture, &mut diagnostics)?,
         EFFECT_PATH_FENCING => {
             evaluate_effect_path_fencing(document, fixture, &mut diagnostics)?;
+        }
+        PREPARED_FRAME_PUBLISHER => {
+            evaluate_prepared_frame_publisher(document, fixture, &mut diagnostics)?;
+        }
+        X02_FLEET_AVAILABILITY_LAYOUT => {
+            evaluate_x02_fleet_availability_layout(document, fixture, &mut diagnostics)?;
         }
         unknown => {
             return Err(EngineError::corpus(format!(
@@ -373,6 +406,66 @@ fn evaluate_pending_reservation(
     Ok(())
 }
 
+fn evaluate_sensor_projection_anti_laundering(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    let requirements = [
+        (
+            "availability_projection_is_tighten_only",
+            true,
+            "SENSOR_PROJECTION_TIGHTEN_ONLY_REQUIRED",
+        ),
+        (
+            "optional_detail_can_override_availability",
+            false,
+            "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN",
+        ),
+        (
+            "portable_origin_identity_preserved",
+            true,
+            "SENSOR_PROJECTION_ORIGIN_IDENTITY_REQUIRED",
+        ),
+        (
+            "projected_available_requires_origin_available_inputs",
+            true,
+            "SENSOR_PROJECTION_AVAILABLE_INPUT_REQUIRED",
+        ),
+        (
+            "projection_binds_origin_and_projected_availability",
+            true,
+            "SENSOR_PROJECTION_AVAILABILITY_BINDING_REQUIRED",
+        ),
+        (
+            "slot_removal_or_reorder_requires_new_layout_and_bitmap",
+            true,
+            "SENSOR_PROJECTION_LAYOUT_REBIND_REQUIRED",
+        ),
+        (
+            "source_unavailable_can_project_available",
+            false,
+            "SENSOR_PROJECTION_UNAVAILABLE_UPGRADE_FORBIDDEN",
+        ),
+        (
+            "unavailable_placeholder_can_be_observation",
+            false,
+            "SENSOR_PROJECTION_PLACEHOLDER_LAUNDERING_FORBIDDEN",
+        ),
+    ];
+    let fields: Vec<&str> = requirements.iter().map(|(field, _, _)| *field).collect();
+    require_exact_projection_members(
+        document,
+        &fields,
+        "SENSOR_PROJECTION_ANTI_LAUNDERING_INVALID",
+        diagnostics,
+    );
+    for (field, expected, diagnostic) in requirements {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
+    }
+    Ok(())
+}
+
 fn evaluate_declare_stream(
     document: &Value,
     fixture: &Value,
@@ -440,6 +533,142 @@ fn evaluate_undeclared_frame(
     if !epoch.is_some_and(|candidate| live.iter().any(|item| item.as_str() == Some(candidate))) {
         diagnostics.insert("STREAM_DECLARATION_NOT_LIVE");
     }
+    Ok(())
+}
+
+fn evaluate_sensor_availability_source_bound(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    let requirements = [
+        (
+            "availability_bitmap_mandatory",
+            true,
+            "SENSOR_AVAILABILITY_BITMAP_REQUIRED",
+        ),
+        (
+            "availability_covered_by_frame_digest",
+            true,
+            "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED",
+        ),
+        (
+            "group_decision_exactly_once",
+            true,
+            "SENSOR_AVAILABILITY_GROUP_DECISION_REQUIRED",
+        ),
+        (
+            "available_group_requires_all_values",
+            true,
+            "SENSOR_AVAILABLE_GROUP_COMPLETENESS_REQUIRED",
+        ),
+        (
+            "unavailable_group_forbids_caller_values",
+            true,
+            "SENSOR_UNAVAILABLE_GROUP_VALUE_FORBIDDEN",
+        ),
+        (
+            "unavailable_placeholder_is_internal",
+            true,
+            "SENSOR_UNAVAILABLE_PLACEHOLDER_INTERNAL_REQUIRED",
+        ),
+        (
+            "decoder_exposes_placeholder_values",
+            false,
+            "SENSOR_UNAVAILABLE_PLACEHOLDER_EXPOSURE_FORBIDDEN",
+        ),
+        (
+            "position_assigned_after_completeness",
+            true,
+            "SENSOR_AVAILABILITY_POSITION_ORDER_REQUIRED",
+        ),
+        (
+            "post_assignment_failure_emits_gap",
+            true,
+            "SENSOR_POST_ASSIGNMENT_FAILURE_GAP_REQUIRED",
+        ),
+        (
+            "receiver_rejection_unassigns_producer_position",
+            false,
+            "SENSOR_RECEIVER_REJECTION_POSITION_ROLLBACK_FORBIDDEN",
+        ),
+        (
+            "live_source_pin_is_evictable",
+            false,
+            "SENSOR_LIVE_SOURCE_PIN_EVICTION_FORBIDDEN",
+        ),
+        (
+            "live_source_pin_capacity_pre_reserved",
+            true,
+            "SENSOR_SOURCE_PIN_CAPACITY_RESERVATION_REQUIRED",
+        ),
+        (
+            "pin_retained_until_terminal_disposition_or_evidence_handoff",
+            true,
+            "SENSOR_SOURCE_PIN_RETENTION_REQUIRED",
+        ),
+        (
+            "restart_restores_pin_or_retires_generation",
+            true,
+            "SENSOR_SOURCE_PIN_RESTART_CLOSURE_REQUIRED",
+        ),
+        (
+            "compatibility_json_infers_availability_from_zero_or_absence",
+            false,
+            "SENSOR_COMPATIBILITY_AVAILABILITY_INFERENCE_FORBIDDEN",
+        ),
+        (
+            "compatibility_json_preserves_semantic_availability",
+            true,
+            "SENSOR_COMPATIBILITY_AVAILABILITY_PRESERVATION_REQUIRED",
+        ),
+        (
+            "source_reference_repeats_bitmap",
+            false,
+            "SENSOR_AVAILABILITY_SOURCE_DUPLICATION_FORBIDDEN",
+        ),
+    ];
+    let fields: Vec<&str> = requirements.iter().map(|(field, _, _)| *field).collect();
+    require_exact_projection_members(
+        document,
+        &fields,
+        "SENSOR_AVAILABILITY_PROJECTION_INVALID",
+        diagnostics,
+    );
+    for (field, expected, diagnostic) in requirements {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
+    }
+    Ok(())
+}
+
+fn evaluate_sensor_availability_detached_mask(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    require_exact_projection_members(
+        document,
+        &[
+            "availability_transport",
+            "availability_covered_by_frame_digest",
+        ],
+        "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN",
+        diagnostics,
+    );
+    require_exact_string_member(
+        document,
+        "availability_transport",
+        "INLINE_STABLE_CORE_SENSOR_FRAME",
+        "SENSOR_AVAILABILITY_DETACHED_FORBIDDEN",
+        diagnostics,
+    );
+    require_exact_projection_member(
+        document,
+        "availability_covered_by_frame_digest",
+        true,
+        "SENSOR_AVAILABILITY_DIGEST_BINDING_REQUIRED",
+        diagnostics,
+    );
     Ok(())
 }
 
@@ -612,6 +841,75 @@ fn evaluate_disposition(
             diagnostics.insert("DISPOSITION_TERMINALITY_INVALID");
         }
     }
+    Ok(())
+}
+
+fn evaluate_unavailable_source_restrictive_action(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    require_exact_projection_members(
+        document,
+        &[
+            "source_pin_retains_availability",
+            "unavailable_group_requires_installed_restrictive_lane",
+            "group_dependency_map_is_layout_bound",
+            "conflicting_dependency_overlap_rejects_preparation",
+            "restrictive_action_is_universal_zero",
+            "complete_command_rejects_on_lane_mismatch",
+            "correctly_restricted_active_disposition",
+            "optional_detail_can_authorize",
+        ],
+        "SOURCE_RESTRICTIVE_PROJECTION_INVALID",
+        diagnostics,
+    );
+    for (field, expected, diagnostic) in [
+        (
+            "source_pin_retains_availability",
+            true,
+            "SOURCE_PIN_AVAILABILITY_REQUIRED",
+        ),
+        (
+            "unavailable_group_requires_installed_restrictive_lane",
+            true,
+            "SOURCE_RESTRICTIVE_ACTION_REQUIRED",
+        ),
+        (
+            "group_dependency_map_is_layout_bound",
+            true,
+            "SOURCE_GROUP_DEPENDENCY_LAYOUT_BINDING_REQUIRED",
+        ),
+        (
+            "conflicting_dependency_overlap_rejects_preparation",
+            true,
+            "SOURCE_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED",
+        ),
+        (
+            "restrictive_action_is_universal_zero",
+            false,
+            "SOURCE_RESTRICTIVE_ACTION_UNIVERSAL_ZERO_FORBIDDEN",
+        ),
+        (
+            "complete_command_rejects_on_lane_mismatch",
+            true,
+            "SOURCE_RESTRICTIVE_COMMAND_ATOMIC_REJECT_REQUIRED",
+        ),
+        (
+            "optional_detail_can_authorize",
+            false,
+            "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN",
+        ),
+    ] {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
+    }
+    require_exact_string_member(
+        document,
+        "correctly_restricted_active_disposition",
+        "APPLIED",
+        "SOURCE_RESTRICTED_ACTIVE_DISPOSITION_INVALID",
+        diagnostics,
+    );
     Ok(())
 }
 
@@ -904,6 +1202,152 @@ fn evaluate_policy_injection(
     Ok(())
 }
 
+fn evaluate_sensor_condition_detail(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    let boolean_requirements = [
+        (
+            "available_or_unknown_group_rejects",
+            true,
+            "SENSOR_CONDITION_DETAIL_AVAILABLE_UNKNOWN_REJECTION_REQUIRED",
+        ),
+        (
+            "complete_normative_source_ref_required",
+            true,
+            "SENSOR_CONDITION_DETAIL_SOURCE_REQUIRED",
+        ),
+        (
+            "contradictory_group_rejects",
+            true,
+            "SENSOR_CONDITION_DETAIL_CONTRADICTION_REJECTION_REQUIRED",
+        ),
+        (
+            "detail_can_authorize",
+            false,
+            "SENSOR_CONDITION_DETAIL_AUTHORITY_FORBIDDEN",
+        ),
+        (
+            "detail_can_block_action",
+            false,
+            "SENSOR_CONDITION_DETAIL_ACTION_BLOCKING_FORBIDDEN",
+        ),
+        (
+            "detail_can_block_perception",
+            false,
+            "SENSOR_CONDITION_DETAIL_PERCEPTION_BLOCKING_FORBIDDEN",
+        ),
+        (
+            "detail_can_change_availability",
+            false,
+            "SENSOR_CONDITION_DETAIL_AVAILABILITY_AUTHORITY_FORBIDDEN",
+        ),
+        (
+            "detail_record_is_optional",
+            true,
+            "SENSOR_CONDITION_DETAIL_OPTIONALITY_REQUIRED",
+        ),
+        (
+            "detail_repeats_bitmap",
+            false,
+            "SENSOR_CONDITION_DETAIL_BITMAP_REPETITION_FORBIDDEN",
+        ),
+        (
+            "detail_repeats_layout",
+            false,
+            "SENSOR_CONDITION_DETAIL_LAYOUT_REPETITION_FORBIDDEN",
+        ),
+        (
+            "detail_repeats_scalars",
+            false,
+            "SENSOR_CONDITION_DETAIL_SCALAR_REPETITION_FORBIDDEN",
+        ),
+        (
+            "duplicate_group_rejects",
+            true,
+            "SENSOR_CONDITION_DETAIL_DUPLICATE_REJECTION_REQUIRED",
+        ),
+        (
+            "entries_bounded",
+            true,
+            "SENSOR_CONDITION_DETAIL_ENTRY_BOUNDS_REQUIRED",
+        ),
+        (
+            "entries_sorted_by_group_ordinal",
+            true,
+            "SENSOR_CONDITION_DETAIL_ENTRY_ORDER_REQUIRED",
+        ),
+        (
+            "exact_pinned_core_source_resolved_before_entry_checks",
+            true,
+            "SENSOR_CONDITION_DETAIL_SOURCE_RESOLUTION_ORDER_REQUIRED",
+        ),
+        (
+            "invalid_detail_rejects_extension_only",
+            true,
+            "SENSOR_CONDITION_DETAIL_FAILURE_SCOPE_REQUIRED",
+        ),
+        (
+            "reason_codes_bounded",
+            true,
+            "SENSOR_CONDITION_DETAIL_REASON_BOUNDS_REQUIRED",
+        ),
+        (
+            "separate_principal_and_resource_partition",
+            true,
+            "SENSOR_CONDITION_DETAIL_RESOURCE_ISOLATION_REQUIRED",
+        ),
+        (
+            "unknown_reason_code_rejects",
+            true,
+            "SENSOR_CONDITION_DETAIL_UNKNOWN_REASON_REJECTION_REQUIRED",
+        ),
+        (
+            "wrong_or_evicted_source_rejects",
+            true,
+            "SENSOR_CONDITION_DETAIL_SOURCE_CURRENTNESS_REJECTION_REQUIRED",
+        ),
+    ];
+    let mut fields = vec![
+        "absent_late_rejected_or_overflowed_result",
+        "detail_entry_members",
+        "detail_record_members",
+    ];
+    fields.extend(boolean_requirements.iter().map(|(field, _, _)| *field));
+    require_exact_projection_members(
+        document,
+        &fields,
+        "SENSOR_CONDITION_DETAIL_PROJECTION_INVALID",
+        diagnostics,
+    );
+    require_exact_string_array_member(
+        document,
+        "detail_entry_members",
+        &["group_ordinal", "reason_code"],
+        "SENSOR_CONDITION_DETAIL_ENTRY_SHAPE_INVALID",
+        diagnostics,
+    );
+    require_exact_string_array_member(
+        document,
+        "detail_record_members",
+        &["source", "entries"],
+        "SENSOR_CONDITION_DETAIL_RECORD_SHAPE_INVALID",
+        diagnostics,
+    );
+    require_exact_string_member(
+        document,
+        "absent_late_rejected_or_overflowed_result",
+        "REASON_UNAVAILABLE",
+        "SENSOR_CONDITION_DETAIL_ABSENCE_RESULT_INVALID",
+        diagnostics,
+    );
+    for (field, expected, diagnostic) in boolean_requirements {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
+    }
+    Ok(())
+}
+
 fn require_exact_projection_member(
     document: &Value,
     field: &str,
@@ -912,6 +1356,128 @@ fn require_exact_projection_member(
     diagnostics: &mut BTreeSet<&'static str>,
 ) {
     if document.get(field).and_then(Value::as_bool) != Some(expected) {
+        diagnostics.insert(diagnostic);
+    }
+}
+
+fn require_exact_string_member(
+    document: &Value,
+    field: &str,
+    expected: &str,
+    diagnostic: &'static str,
+    diagnostics: &mut BTreeSet<&'static str>,
+) {
+    if document.get(field).and_then(Value::as_str) != Some(expected) {
+        diagnostics.insert(diagnostic);
+    }
+}
+
+fn require_exact_u64_member(
+    document: &Value,
+    field: &str,
+    expected: u64,
+    diagnostic: &'static str,
+    diagnostics: &mut BTreeSet<&'static str>,
+) {
+    if document.get(field).and_then(Value::as_u64) != Some(expected) {
+        diagnostics.insert(diagnostic);
+    }
+}
+
+fn require_exact_string_array_member(
+    document: &Value,
+    field: &str,
+    expected: &[&str],
+    diagnostic: &'static str,
+    diagnostics: &mut BTreeSet<&'static str>,
+) {
+    if document
+        .get(field)
+        .and_then(Value::as_array)
+        .is_none_or(|actual| {
+            actual.len() != expected.len()
+                || actual
+                    .iter()
+                    .zip(expected.iter().copied())
+                    .any(|(actual, expected)| actual.as_str() != Some(expected))
+        })
+    {
+        diagnostics.insert(diagnostic);
+    }
+}
+
+fn require_exact_u64_array_member(
+    document: &Value,
+    field: &str,
+    expected: &[u64],
+    diagnostic: &'static str,
+    diagnostics: &mut BTreeSet<&'static str>,
+) {
+    if document
+        .get(field)
+        .and_then(Value::as_array)
+        .is_none_or(|actual| {
+            actual.len() != expected.len()
+                || actual
+                    .iter()
+                    .zip(expected.iter().copied())
+                    .any(|(actual, expected)| actual.as_u64() != Some(expected))
+        })
+    {
+        diagnostics.insert(diagnostic);
+    }
+}
+
+fn require_exact_string_matrix_member(
+    document: &Value,
+    field: &str,
+    expected: &[&[&str]],
+    diagnostic: &'static str,
+    diagnostics: &mut BTreeSet<&'static str>,
+) {
+    if document
+        .get(field)
+        .and_then(Value::as_array)
+        .is_none_or(|rows| {
+            rows.len() != expected.len()
+                || rows.iter().zip(expected.iter()).any(|(row, expected_row)| {
+                    row.as_array().is_none_or(|items| {
+                        items.len() != expected_row.len()
+                            || items
+                                .iter()
+                                .zip(expected_row.iter().copied())
+                                .any(|(item, expected)| item.as_str() != Some(expected))
+                    })
+                })
+        })
+    {
+        diagnostics.insert(diagnostic);
+    }
+}
+
+fn require_exact_u64_matrix_member(
+    document: &Value,
+    field: &str,
+    expected: &[&[u64]],
+    diagnostic: &'static str,
+    diagnostics: &mut BTreeSet<&'static str>,
+) {
+    if document
+        .get(field)
+        .and_then(Value::as_array)
+        .is_none_or(|rows| {
+            rows.len() != expected.len()
+                || rows.iter().zip(expected.iter()).any(|(row, expected_row)| {
+                    row.as_array().is_none_or(|items| {
+                        items.len() != expected_row.len()
+                            || items
+                                .iter()
+                                .zip(expected_row.iter().copied())
+                                .any(|(item, expected)| item.as_u64() != Some(expected))
+                    })
+                })
+        })
+    {
         diagnostics.insert(diagnostic);
     }
 }
@@ -990,6 +1556,336 @@ fn evaluate_effect_path_fencing(
             "hot_path_evaluates_proof_graph",
             false,
             "EFFECT_HOT_PATH_PROOF_GRAPH_FORBIDDEN",
+        ),
+    ] {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
+    }
+    Ok(())
+}
+
+fn evaluate_prepared_frame_publisher(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    let requirements = [
+        (
+            "layout_profile_defines_reusable_rules",
+            true,
+            "PREPARED_PROFILE_RULES_REQUIRED",
+        ),
+        (
+            "layout_instance_binds_roster_slots_and_resources",
+            true,
+            "PREPARED_LAYOUT_INSTANCE_REQUIRED",
+        ),
+        (
+            "prepared_publisher_owns_layout_bound_transport_slot",
+            true,
+            "PREPARED_LAYOUT_BOUND_TRANSPORT_SLOT_REQUIRED",
+        ),
+        (
+            "foreign_or_stale_slot_handle_is_accepted",
+            false,
+            "PREPARED_FOREIGN_SLOT_HANDLE_FORBIDDEN",
+        ),
+        (
+            "detached_buffer_context_rebind_is_exposed",
+            false,
+            "PREPARED_DETACHED_BUFFER_REBIND_FORBIDDEN",
+        ),
+        (
+            "all_bound_slots_materialized_once_by_packer",
+            true,
+            "PREPARED_COMPLETE_FRAME_WRITE_REQUIRED",
+        ),
+        (
+            "caller_writes_unavailable_slots",
+            false,
+            "PREPARED_CALLER_UNAVAILABLE_SLOT_WRITE_FORBIDDEN",
+        ),
+        (
+            "sensor_layout_requires_positive_group_count",
+            true,
+            "PREPARED_SENSOR_LAYOUT_POSITIVE_GROUP_COUNT_REQUIRED",
+        ),
+        (
+            "availability_groups_partition_sensor_slots_once",
+            true,
+            "PREPARED_AVAILABILITY_GROUP_PARTITION_REQUIRED",
+        ),
+        (
+            "availability_bitmap_inline_with_scalar_storage",
+            true,
+            "PREPARED_AVAILABILITY_INLINE_REQUIRED",
+        ),
+        (
+            "availability_byte_count_is_ceil_group_count_over_8",
+            true,
+            "PREPARED_AVAILABILITY_BYTE_COUNT_FORMULA_REQUIRED",
+        ),
+        (
+            "packer_is_only_application_direct_publisher",
+            true,
+            "PREPARED_APPLICATION_PUBLISHER_EXCLUSIVITY_REQUIRED",
+        ),
+        (
+            "final_position_assigned_before_transfer",
+            true,
+            "PREPARED_FINAL_POSITION_REQUIRED",
+        ),
+        (
+            "exact_serialized_bytes_transferred_once",
+            true,
+            "PREPARED_EXACT_BYTE_TRANSFER_REQUIRED",
+        ),
+        (
+            "application_mutable_alias_survives_transfer",
+            false,
+            "PREPARED_APPLICATION_MUTABLE_ALIAS_FORBIDDEN",
+        ),
+        (
+            "raw_application_publisher_exposed",
+            false,
+            "PREPARED_RAW_APPLICATION_PUBLISHER_FORBIDDEN",
+        ),
+        (
+            "separate_application_signer_or_publisher_holds_credentials",
+            false,
+            "PREPARED_SEPARATE_APPLICATION_CREDENTIAL_HOLDER_FORBIDDEN",
+        ),
+        (
+            "direct_frame_adds_preparation_tag",
+            false,
+            "PREPARED_HOT_FRAME_TAG_FORBIDDEN",
+        ),
+        (
+            "transport_record_protection_covers_exact_sealed_bytes",
+            true,
+            "PREPARED_SEALED_BYTE_PROTECTION_REQUIRED",
+        ),
+        (
+            "sealed_record_mutation_before_open_is_accepted",
+            false,
+            "PREPARED_SEALED_RECORD_MUTATION_FORBIDDEN",
+        ),
+        (
+            "sender_pre_seal_mutation_claimed_detectable",
+            false,
+            "PREPARED_SENDER_PRE_SEAL_DETECTION_OVERCLAIM",
+        ),
+        (
+            "receiver_post_open_mutation_claimed_detectable",
+            false,
+            "PREPARED_RECEIVER_POST_OPEN_DETECTION_OVERCLAIM",
+        ),
+        (
+            "receiver_attests_packer_output",
+            false,
+            "PREPARED_RECEIVER_ATTESTATION_OVERCLAIM",
+        ),
+        (
+            "pre_seal_same_unit_misassociation_claimed_detectable",
+            false,
+            "PREPARED_PRE_SEAL_DETECTION_OVERCLAIM",
+        ),
+        (
+            "equal_value_swap_claimed_detectable",
+            false,
+            "PREPARED_EQUAL_VALUE_DETECTION_OVERCLAIM",
+        ),
+        (
+            "packer_owns_shared_clock_semantics",
+            false,
+            "PREPARED_CLOCK_OWNERSHIP_FORBIDDEN",
+        ),
+    ];
+    let mut fields: Vec<&str> = requirements.iter().map(|(field, _, _)| *field).collect();
+    fields.extend([
+        "non_sensor_layout_availability_group_count",
+        "non_sensor_layout_availability_bytes",
+    ]);
+    require_exact_projection_members(
+        document,
+        &fields,
+        "PREPARED_APPLICATION_PUBLISHER_EXCLUSIVITY_REQUIRED",
+        diagnostics,
+    );
+    for (field, expected, diagnostic) in requirements {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
+    }
+    require_exact_u64_member(
+        document,
+        "non_sensor_layout_availability_group_count",
+        0,
+        "PREPARED_NON_SENSOR_GROUP_COUNT_INVALID",
+        diagnostics,
+    );
+    require_exact_u64_member(
+        document,
+        "non_sensor_layout_availability_bytes",
+        0,
+        "PREPARED_NON_SENSOR_AVAILABILITY_BYTES_INVALID",
+        diagnostics,
+    );
+    Ok(())
+}
+
+fn evaluate_x02_fleet_availability_layout(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    require_exact_projection_members(
+        document,
+        &[
+            "bitmap_polarity",
+            "bit_order",
+            "unused_high_bits_zero",
+            "availability_groups_per_drone",
+            "sensor_scalars_per_drone",
+            "command_scalars_per_drone",
+            "availability_bytes_n1_n2_n3",
+            "exhaustive_masks_hex_n1_n2_n3",
+            "all_available_hex_n1_n2_n3",
+            "first_drone_unavailable_hex_n1_n2_n3",
+            "group_to_command_slots_n3",
+            "conflicting_dependency_overlap_rejected_at_preparation",
+            "unavailable_placeholder_f64_bits",
+            "lane_state_sequence",
+            "fault_during_washout_returns_to",
+            "one_composite_session",
+            "one_nest_kernel",
+            "music_shared_clock_owned",
+        ],
+        "X02_FLEET_AVAILABILITY_PROJECTION_INVALID",
+        diagnostics,
+    );
+    require_exact_string_member(
+        document,
+        "bitmap_polarity",
+        "ONE_AVAILABLE_ZERO_UNAVAILABLE",
+        "X02_AVAILABILITY_BITMAP_POLARITY_INVALID",
+        diagnostics,
+    );
+    require_exact_string_member(
+        document,
+        "bit_order",
+        "LSB_FIRST_ROSTER_ORDER",
+        "X02_AVAILABILITY_BIT_ORDER_INVALID",
+        diagnostics,
+    );
+    require_exact_projection_member(
+        document,
+        "unused_high_bits_zero",
+        true,
+        "X02_AVAILABILITY_PADDING_INVALID",
+        diagnostics,
+    );
+    require_exact_u64_member(
+        document,
+        "availability_groups_per_drone",
+        1,
+        "X02_AVAILABILITY_GROUP_WIDTH_INVALID",
+        diagnostics,
+    );
+    require_exact_u64_member(
+        document,
+        "sensor_scalars_per_drone",
+        6,
+        "X02_SENSOR_SCALAR_WIDTH_INVALID",
+        diagnostics,
+    );
+    require_exact_u64_member(
+        document,
+        "command_scalars_per_drone",
+        3,
+        "X02_COMMAND_SCALAR_WIDTH_INVALID",
+        diagnostics,
+    );
+    require_exact_u64_array_member(
+        document,
+        "availability_bytes_n1_n2_n3",
+        &[1, 1, 1],
+        "X02_AVAILABILITY_BYTE_COUNTS_INVALID",
+        diagnostics,
+    );
+    require_exact_string_matrix_member(
+        document,
+        "exhaustive_masks_hex_n1_n2_n3",
+        &[
+            &["00", "01"],
+            &["00", "01", "02", "03"],
+            &["00", "01", "02", "03", "04", "05", "06", "07"],
+        ],
+        "X02_EXHAUSTIVE_MASKS_INVALID",
+        diagnostics,
+    );
+    require_exact_string_array_member(
+        document,
+        "all_available_hex_n1_n2_n3",
+        &["01", "03", "07"],
+        "X02_ALL_AVAILABLE_VECTOR_INVALID",
+        diagnostics,
+    );
+    require_exact_u64_matrix_member(
+        document,
+        "group_to_command_slots_n3",
+        &[&[0, 1, 2], &[3, 4, 5], &[6, 7, 8]],
+        "X02_GROUP_COMMAND_SLOT_MAP_INVALID",
+        diagnostics,
+    );
+    require_exact_projection_member(
+        document,
+        "conflicting_dependency_overlap_rejected_at_preparation",
+        true,
+        "X02_DEPENDENCY_OVERLAP_PREPARATION_REJECTION_REQUIRED",
+        diagnostics,
+    );
+    require_exact_string_array_member(
+        document,
+        "first_drone_unavailable_hex_n1_n2_n3",
+        &["00", "02", "06"],
+        "X02_FIRST_UNAVAILABLE_VECTOR_INVALID",
+        diagnostics,
+    );
+    require_exact_string_array_member(
+        document,
+        "lane_state_sequence",
+        &[
+            "NORMAL",
+            "UNAVAILABLE_RESTRICTIVE",
+            "RECOVERY_WASHOUT",
+            "NORMAL",
+        ],
+        "X02_LANE_STATE_SEQUENCE_INVALID",
+        diagnostics,
+    );
+    require_exact_string_member(
+        document,
+        "fault_during_washout_returns_to",
+        "UNAVAILABLE_RESTRICTIVE",
+        "X02_WASHOUT_FAULT_RETURN_INVALID",
+        diagnostics,
+    );
+    require_exact_string_member(
+        document,
+        "unavailable_placeholder_f64_bits",
+        "0000000000000000",
+        "X02_UNAVAILABLE_PLACEHOLDER_BITS_INVALID",
+        diagnostics,
+    );
+    for (field, expected, diagnostic) in [
+        (
+            "one_composite_session",
+            true,
+            "X02_COMPOSITE_SESSION_REQUIRED",
+        ),
+        ("one_nest_kernel", true, "X02_ONE_NEST_KERNEL_REQUIRED"),
+        (
+            "music_shared_clock_owned",
+            false,
+            "X02_MUSIC_CLOCK_OWNERSHIP_FORBIDDEN",
         ),
     ] {
         require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
@@ -1182,6 +2078,147 @@ fn evaluate_action_qos(
         Some(_) | None => {
             diagnostics.insert("QOS_FAIL_SAFE_PRIORITY_REQUIRED");
         }
+    }
+    Ok(())
+}
+
+fn evaluate_perception_queue_missingness(
+    document: &Value,
+    _fixture: &Value,
+    diagnostics: &mut BTreeSet<&'static str>,
+) -> EngineResult<()> {
+    let fields = [
+        "authenticated_received_item_may_bear_producer_position",
+        "availability_bitmap_and_scalar_storage_indivisible",
+        "closed_perception_states",
+        "item_digest_count",
+        "item_position_count",
+        "item_queue_slot_count",
+        "item_supersession_decision_count",
+        "partial_drop_or_replace_allowed",
+        "producer_encode_or_queue_failure_after_assignment_consumes_position",
+        "producer_incomplete_or_malformed_rejects_before_position_assignment",
+        "received_available_zero_is_observation",
+        "received_unavailable_exposes_observation",
+        "receiver_malformed_rejection_creates_admission",
+        "receiver_malformed_rejection_creates_pin",
+        "receiver_malformed_rejection_invokes_typed_callback",
+        "receiver_malformed_rejection_rolls_back_producer_position",
+        "transport_gap_implies_sensor_unavailable",
+        "whole_frame_loss_equals_transport_gap",
+        "zero_or_omission_infers_availability",
+    ];
+    require_exact_projection_members(
+        document,
+        &fields,
+        "PERCEPTION_QUEUE_MISSINGNESS_PROJECTION_INVALID",
+        diagnostics,
+    );
+    require_exact_projection_member(
+        document,
+        "availability_bitmap_and_scalar_storage_indivisible",
+        true,
+        "PERCEPTION_ITEM_INDIVISIBILITY_REQUIRED",
+        diagnostics,
+    );
+    require_exact_string_array_member(
+        document,
+        "closed_perception_states",
+        &[
+            "RECEIVED_AVAILABLE_ZERO",
+            "RECEIVED_UNAVAILABLE",
+            "MALFORMED_FRAME",
+            "TRANSPORT_GAP",
+            "WHOLE_FRAME_LOSS",
+        ],
+        "PERCEPTION_MISSINGNESS_STATES_INVALID",
+        diagnostics,
+    );
+    for (field, diagnostic) in [
+        ("item_digest_count", "PERCEPTION_ITEM_DIGEST_UNITY_REQUIRED"),
+        (
+            "item_position_count",
+            "PERCEPTION_ITEM_POSITION_UNITY_REQUIRED",
+        ),
+        (
+            "item_queue_slot_count",
+            "PERCEPTION_ITEM_QUEUE_SLOT_UNITY_REQUIRED",
+        ),
+        (
+            "item_supersession_decision_count",
+            "PERCEPTION_ITEM_SUPERSESSION_UNITY_REQUIRED",
+        ),
+    ] {
+        require_exact_u64_member(document, field, 1, diagnostic, diagnostics);
+    }
+    for (field, expected, diagnostic) in [
+        (
+            "authenticated_received_item_may_bear_producer_position",
+            true,
+            "PERCEPTION_AUTHENTICATED_PRODUCER_POSITION_PRESERVATION_REQUIRED",
+        ),
+        (
+            "partial_drop_or_replace_allowed",
+            false,
+            "PERCEPTION_ITEM_PARTIAL_MUTATION_FORBIDDEN",
+        ),
+        (
+            "producer_encode_or_queue_failure_after_assignment_consumes_position",
+            true,
+            "PERCEPTION_PRODUCER_POST_ASSIGNMENT_POSITION_CONSUMED_REQUIRED",
+        ),
+        (
+            "producer_incomplete_or_malformed_rejects_before_position_assignment",
+            true,
+            "PERCEPTION_PRODUCER_PRE_ASSIGNMENT_VALIDATION_REQUIRED",
+        ),
+        (
+            "received_available_zero_is_observation",
+            true,
+            "PERCEPTION_AVAILABLE_ZERO_OBSERVATION_REQUIRED",
+        ),
+        (
+            "received_unavailable_exposes_observation",
+            false,
+            "PERCEPTION_UNAVAILABLE_OBSERVATION_FORBIDDEN",
+        ),
+        (
+            "receiver_malformed_rejection_creates_admission",
+            false,
+            "PERCEPTION_RECEIVER_MALFORMED_ADMISSION_FORBIDDEN",
+        ),
+        (
+            "receiver_malformed_rejection_creates_pin",
+            false,
+            "PERCEPTION_RECEIVER_MALFORMED_PIN_FORBIDDEN",
+        ),
+        (
+            "receiver_malformed_rejection_invokes_typed_callback",
+            false,
+            "PERCEPTION_RECEIVER_MALFORMED_CALLBACK_FORBIDDEN",
+        ),
+        (
+            "receiver_malformed_rejection_rolls_back_producer_position",
+            false,
+            "PERCEPTION_RECEIVER_POSITION_ROLLBACK_FORBIDDEN",
+        ),
+        (
+            "transport_gap_implies_sensor_unavailable",
+            false,
+            "PERCEPTION_GAP_UNAVAILABILITY_INFERENCE_FORBIDDEN",
+        ),
+        (
+            "whole_frame_loss_equals_transport_gap",
+            false,
+            "PERCEPTION_LOSS_GAP_COLLAPSE_FORBIDDEN",
+        ),
+        (
+            "zero_or_omission_infers_availability",
+            false,
+            "PERCEPTION_ZERO_OMISSION_INFERENCE_FORBIDDEN",
+        ),
+    ] {
+        require_exact_projection_member(document, field, expected, diagnostic, diagnostics);
     }
     Ok(())
 }

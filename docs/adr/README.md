@@ -6,13 +6,16 @@ documents changes the current unreleased, release-blocked `1.0.0-rc.1`
 normative contract, compact proto hash, runtime authority, release status, or
 external evidence state.
 
-[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) is the immutable current review
-packet. Its subject binds the eleven proposed ADRs to clean pushed source commit
+[`B01_REVIEW_PACKET.md`](B01_REVIEW_PACKET.md) retains the superseded review
+packet. Its historical subject binds the eleven proposed ADRs to source commit
 `ca7fa729f982690a4d3d8b1829c20a842d9f5612` and decision-set digest
 `d26c2b88dcaed597ea3f2ea725ce842d311a95c4dae751105cb7db4ed363ecfd`.
-The packet contains no review records. It enables later human review capture
-without changing its subject. At this publication cut, the generated registry
-also contains no review records. Consult that registry for current coverage.
+It also binds the exact prior current packet at commit
+`c0302b79faf0543448a0240aa055be6a9dca7125`. The staging checker reconstructs
+the historical subject from that immutable packet.
+The packet contains no review records and no longer permits review capture.
+The amended source needs a new clean pushed subject before human review starts.
+The generated registry also contains no review records.
 All eleven decisions remain **PROPOSED**, and B01 remains `IN_PROGRESS`.
 
 The current candidate remains wire `1.0` with compact proto contract hash
@@ -34,6 +37,14 @@ services by default. A decision needs revision when its observable behavior
 cannot fit the minimal deployed object graph without losing an invariant.
 
 ## Staging rule
+
+A zero-review ADR source amendment uses the explicit
+`--b01-source-staging` gate mode. The mode accepts only a `SUPERSEDED` packet
+without a current subject. B01 must remain `IN_PROGRESS`. N01 must not have
+started. The registry must contain zero reviews and eleven `PROPOSED` decisions.
+Promotion must remain blocked. N01 must be exactly `OPEN` with no transitions.
+Normal gate mode rejects this state. Stop using the staging flag after a clean
+pushed commit receives a new current subject.
 
 The generated non-normative review registry is
 [`decision-registry.proposed.v1.json`](decision-registry.proposed.v1.json). Its
