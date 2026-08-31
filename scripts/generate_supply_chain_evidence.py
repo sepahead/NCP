@@ -95,6 +95,9 @@ GENERATOR_OUTPUTS = {
     "scripts/check_wire_baseline.py": ["conformance/baseline/v*/ frozen wire cut"],
     "scripts/gen_diagrams.py": ["docs/diagrams/*.svg"],
     "scripts/generate_audit_artifacts.py": ["evidence/audit/*.json"],
+    "scripts/generate_b01_review_request.py": [
+        "evidence/implementation/requests/B01/review-request.v1.json"
+    ],
     "scripts/generate_conformance_manifest.py": ["conformance/manifest.v1.json"],
     "scripts/generate_convergence_manifest.py": [
         "evidence/convergence/local-convergence.v1.json"

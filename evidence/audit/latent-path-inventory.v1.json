@@ -2437,9 +2437,9 @@
       },
       {
         "path": "evidence/supply-chain/inventory.v1.json",
-        "bytes": 128361,
-        "sha256": "368332d990c75384d7b58ab7ccc37a2598c44b473b3a73cdd55e8e3e70a4f2e2",
-        "git_blob_oid": "dab10bcf49239501579c4878afe578974c25998d",
+        "bytes": 128611,
+        "sha256": "8e8727e7cb896c9b2b2c16ff8125d8f02d9c3895886188f9e907eef3fee806ed",
+        "git_blob_oid": "03ad2df8403dcd65f9ebed3b980846ff30dd5100",
         "indexed": true
       },
       {
@@ -6937,6 +6937,13 @@
         "indexed": true
       },
       {
+        "path": "scripts/generate_b01_review_request.py",
+        "bytes": 194873,
+        "sha256": "564d97472c9c89b48b5e47955f2253e695ec78c8e42f7265ced1783c73056733",
+        "git_blob_oid": "63931a24b2d4a3dcc5bed2975950a4b3416b03a4",
+        "indexed": true
+      },
+      {
         "path": "scripts/generate_conformance_manifest.py",
         "bytes": 22838,
         "sha256": "12b8a069f8e5d393d08f0ec41318ee08e03050ef6d33c57c7f868860164943db",
@@ -7015,9 +7022,16 @@
       },
       {
         "path": "scripts/generate_supply_chain_evidence.py",
-        "bytes": 128227,
-        "sha256": "bee676c016fdc0df8578b1b03100612de432568f375011865a4d38ce04642931",
-        "git_blob_oid": "b9242308cf09656883826ad7b76f8b9000184a62",
+        "bytes": 128352,
+        "sha256": "80308df49006abea33149f0238c180cc6a7cce5085b99b7c24a08a9cfcace7ce",
+        "git_blob_oid": "79dd0c7b8ee2705c6e1487ac45dc41208c707310",
+        "indexed": true
+      },
+      {
+        "path": "scripts/immutable_git.py",
+        "bytes": 36713,
+        "sha256": "9d5500fb8427652e2c59cd7b7e584bdfdb74e01d136689f4135761a6d1810060",
+        "git_blob_oid": "1c99cf8222cfb67cfc5a5c78809c9dcb63883852",
         "indexed": true
       },
       {
@@ -7387,7 +7401,7 @@
     ]
   },
   "counts": {
-    "text_files": 1019,
+    "text_files": 1021,
     "binary_or_non_utf8_files": 26,
     "occurrences": 305,
     "by_token_id": {
@@ -7418,7 +7432,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "4b1fc5d9c01c967fcba1816924bce372fc4a94fc7791784dfa39b9183144f856",
+  "scanned_path_set_sha256": "9f8e50cacb3fb1c3b9acf90cab89ffdf98d5178cd959767d7671bb8317aed526",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

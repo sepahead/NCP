@@ -2227,6 +2227,13 @@
     },
     {
       "outputs": [
+        "evidence/implementation/requests/B01/review-request.v1.json"
+      ],
+      "path": "scripts/generate_b01_review_request.py",
+      "sha256": "564d97472c9c89b48b5e47955f2253e695ec78c8e42f7265ced1783c73056733"
+    },
+    {
+      "outputs": [
         "conformance/manifest.v1.json"
       ],
       "path": "scripts/generate_conformance_manifest.py",
@@ -2309,7 +2316,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "bee676c016fdc0df8578b1b03100612de432568f375011865a4d38ce04642931"
+      "sha256": "80308df49006abea33149f0238c180cc6a7cce5085b99b7c24a08a9cfcace7ce"
     },
     {
       "outputs": [
