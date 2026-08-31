@@ -876,7 +876,7 @@ pub(crate) fn review_packet_binding_self_test() -> EngineResult<usize> {
         .ok_or_else(|| EngineError::corpus("self-test review decisions are not an array"))?
         .reverse();
 
-    let controls = vec![
+    let controls = [
         validate_review_packet_binding(&current, &registered_identity).is_ok(),
         validate_review_packet_binding(&ordered_registry, &registered_identity).is_ok(),
         validate_review_packet_binding(

@@ -71,6 +71,17 @@ else
 fi
 "$evidence_schema_python" scripts/generate_decision_registry.py --self-test --check
 
+step "non-authorizing B01 review-request tooling"
+"$evidence_schema_python" -m ruff format --check -- \
+    scripts/generate_b01_review_request.py scripts/immutable_git.py
+"$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+    scripts/generate_b01_review_request.py scripts/immutable_git.py
+"$evidence_schema_python" -m py_compile \
+    scripts/generate_b01_review_request.py scripts/immutable_git.py
+"$evidence_schema_python" scripts/generate_b01_review_request.py \
+    --commit 3661d01c20445f84004e6f89bfa3aa9e85fe3a7f \
+    --authorized-ref refs/remotes/origin/main --self-test --check
+
 step "B01 fail-closed review-candidate integrity (non-completion)"
 selector_closure_status=0
 # This Rust/TypeScript harness parses every bound ADR fence. Hosted CI runs the
@@ -166,6 +177,7 @@ python3 -m py_compile \
     prototypes/b01-architecture-evidence/adr_example_semantics.py \
     scripts/generate_implementation_ledger.py \
     scripts/generate_decision_registry.py scripts/validate_evidence_schemas.py \
+    scripts/generate_b01_review_request.py scripts/immutable_git.py \
     scripts/check_adr_examples.py \
     scripts/selector_closure_codec.py \
     scripts/selector_allocation_inventory.py \

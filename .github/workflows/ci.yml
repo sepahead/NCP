@@ -69,6 +69,15 @@ jobs:
             --check
           "$evidence_schema_python" scripts/generate_decision_registry.py \
             --self-test --check
+          "$evidence_schema_python" -m ruff format --check -- \
+            scripts/generate_b01_review_request.py scripts/immutable_git.py
+          "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+            scripts/generate_b01_review_request.py scripts/immutable_git.py
+          "$evidence_schema_python" -m py_compile \
+            scripts/generate_b01_review_request.py scripts/immutable_git.py
+          "$evidence_schema_python" scripts/generate_b01_review_request.py \
+            --commit 3661d01c20445f84004e6f89bfa3aa9e85fe3a7f \
+            --authorized-ref refs/remotes/origin/main --self-test --check
 
       # The quarantined B04 syntax parser declares this exact Node engine.
       # This step does not claim its separate Node/OpenSSL crypto boundary.

@@ -245,45 +245,69 @@ case "$MODE" in
             exit 1
         fi
         pdftotext -layout "$ROOT/$COMMITTED" "$BUILD_DIR/committed.txt"
-        # Poppler releases can emit different horizontal padding for the same PDF
-        # text. Preserve page boundaries and every non-whitespace code point.
+        # TeX and Poppler releases can change horizontal padding and page-break
+        # placement. Preserve global text order and every non-whitespace code
+        # point. Require the same nonempty page count and A4 geometry separately.
+        # This mode does not prove visual equality or per-page text equality.
+        # Same-toolchain --check remains byte-exact.
         python3 - "$BUILD_DIR/built.txt" "$BUILD_DIR/committed.txt" <<'PY'
 import re
 import sys
 from pathlib import Path
 
 
-def canonical_pages(path: Path) -> list[str]:
-    text = path.read_text(encoding="utf-8")
+def canonical_text(text: str, label: str) -> tuple[int, str]:
     pages = text.split("\f")
     if pages and not pages[-1].strip():
         pages.pop()
-    canonical: list[str] = []
+    if not pages:
+        raise SystemExit(f"NCP system-design PDF check: {label} has no pages")
+    canonical_pages: list[str] = []
     for page_number, page in enumerate(pages, start=1):
         if "\ufffd" in page:
             raise SystemExit(
-                "NCP system-design PDF check: extracted text contains a "
-                f"replacement character on page {page_number}"
+                f"NCP system-design PDF check: {label} contains a replacement "
+                f"character on page {page_number}"
             )
-        canonical.append(re.sub(r"\s+", " ", page).strip())
-    return canonical
+        canonical_page = re.sub(r"\s+", " ", page).strip()
+        if not canonical_page:
+            raise SystemExit(
+                f"NCP system-design PDF check: {label} contains an empty page "
+                f"at page {page_number}"
+            )
+        canonical_pages.append(canonical_page)
+    return len(pages), " ".join(canonical_pages)
 
 
-built = canonical_pages(Path(sys.argv[1]))
-committed = canonical_pages(Path(sys.argv[2]))
-if len(built) != len(committed):
+def canonical_document(path: Path) -> tuple[int, str]:
+    return canonical_text(path.read_text(encoding="utf-8"), str(path))
+
+
+reflow_left = canonical_text("alpha beta\fgamma delta\f", "reflow left")
+reflow_right = canonical_text("alpha\fbeta gamma delta\f", "reflow right")
+if reflow_left != reflow_right:
+    raise SystemExit("NCP system-design PDF check: page-reflow control failed")
+for hostile in (
+    "alpha beta\fgamma epsilon\f",
+    "beta alpha\fgamma delta\f",
+):
+    if canonical_text(hostile, "hostile control") == reflow_left:
+        raise SystemExit(
+            "NCP system-design PDF check: canonical-text negative control failed"
+        )
+
+
+built_pages, built_text = canonical_document(Path(sys.argv[1]))
+committed_pages, committed_text = canonical_document(Path(sys.argv[2]))
+if built_pages != committed_pages:
     raise SystemExit(
         "NCP system-design PDF check: extracted page counts differ "
-        f"({len(built)} rebuilt, {len(committed)} committed)"
+        f"({built_pages} rebuilt, {committed_pages} committed)"
     )
-for page_number, (built_page, committed_page) in enumerate(
-    zip(built, committed, strict=True), start=1
-):
-    if built_page != committed_page:
-        raise SystemExit(
-            "NCP system-design PDF check: canonical extracted text differs "
-            f"on page {page_number}"
-        )
+if built_text != committed_text:
+    raise SystemExit(
+        "NCP system-design PDF check: ordered canonical extracted text differs"
+    )
 PY
         pdfinfo "$BUILT" | grep -E '^(Pages|Page size):' >"$BUILD_DIR/built.info"
         pdfinfo "$ROOT/$COMMITTED" | grep -E '^(Pages|Page size):' \

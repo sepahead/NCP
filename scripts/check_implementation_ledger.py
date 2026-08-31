@@ -14,7 +14,8 @@ import ipaddress
 import json
 import os
 import re
-import shutil
+import shlex
+import stat
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,14 @@ from bounded_json import (
     parse_json_bytes,
     read_bounded_regular_file,
 )
+from immutable_git import (
+    ImmutableGitError,
+    blob_snapshot as immutable_blob_snapshot,
+    commit_tree as immutable_commit_tree,
+    control_output as immutable_control_output,
+    require_ancestor as immutable_require_ancestor,
+    shared_operation as immutable_git_operation,
+)
 from validate_evidence_schemas import EvidenceSchemaError, validate_ledger_instance
 
 
@@ -47,6 +56,14 @@ DECISION_REGISTRY_SCHEMA = (
     ROOT / "docs" / "adr" / "decision-registry.proposed.schema.v1.json"
 )
 DECISION_REVIEW_PACKET = ROOT / "docs" / "adr" / "B01_REVIEW_PACKET.md"
+B01_REVIEW_REQUEST = (
+    ROOT / "evidence" / "implementation" / "requests" / "B01" / "review-request.v1.json"
+)
+B01_GENERATOR_SOURCE_PATHS = (
+    "scripts/generate_b01_review_request.py",
+    "scripts/immutable_git.py",
+)
+B01_REVIEW_PACKET_COMMIT = "3661d01c20445f84004e6f89bfa3aa9e85fe3a7f"
 HOSTED_CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 EXPECTED_B01_SOURCE_STAGING_PREDECESSOR = {
     "commit": "c0302b79faf0543448a0240aa055be6a9dca7125",
@@ -74,7 +91,7 @@ CONTRACT_MANIFEST = ROOT / "contract" / "manifest.v1.json"
 CONFORMANCE_MANIFEST = ROOT / "conformance" / "manifest.v1.json"
 EVIDENCE_REQUIREMENTS_INPUT = ROOT / "scripts" / "requirements-evidence-schema.in"
 EVIDENCE_REQUIREMENTS_LOCK = ROOT / "scripts" / "requirements-evidence-schema.txt"
-GIT = shutil.which("git")
+GIT = "/usr/bin/git"
 B01_GOVERNED_FIXED_PATHS = frozenset(
     {
         ".github/workflows/ci.yml",
@@ -96,6 +113,8 @@ B01_GOVERNED_FIXED_PATHS = frozenset(
         "scripts/check_implementation_ledger.py",
         "scripts/generate_decision_registry.py",
         "scripts/generate_implementation_ledger.py",
+        "scripts/generate_b01_review_request.py",
+        "scripts/immutable_git.py",
         "scripts/requirements-evidence-schema.in",
         "scripts/requirements-evidence-schema.txt",
         "scripts/validate_evidence_schemas.py",
@@ -11720,6 +11739,70 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
             _fail("hosted CI has an ambiguous B01 source-staging flag count")
     elif flag in text:
         _fail("hosted CI retains B01 source-staging mode for a current packet")
+    logical_lines = text.replace("\\\n", " ").splitlines()
+    try:
+        request_invocations = [
+            shlex.split(line)
+            for line in logical_lines
+            if line.strip().startswith(
+                '"$evidence_schema_python" scripts/generate_b01_review_request.py'
+            )
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed B01 shell syntax: {error}")
+    expected_request = [
+        "$evidence_schema_python",
+        "scripts/generate_b01_review_request.py",
+        "--commit",
+        B01_REVIEW_PACKET_COMMIT,
+        "--authorized-ref",
+        "refs/remotes/origin/main",
+        "--self-test",
+        "--check",
+    ]
+    if request_invocations != [expected_request]:
+        _fail("hosted CI lacks one exact hermetic B01 review-request check")
+    expected_python_tool_lines = [
+        (
+            "$evidence_schema_python",
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "--",
+            "scripts/generate_b01_review_request.py",
+            "scripts/immutable_git.py",
+        ),
+        (
+            "$evidence_schema_python",
+            "-m",
+            "ruff",
+            "check",
+            "--select",
+            "E,F,I,N,S,UP",
+            "--",
+            "scripts/generate_b01_review_request.py",
+            "scripts/immutable_git.py",
+        ),
+        (
+            "$evidence_schema_python",
+            "-m",
+            "py_compile",
+            "scripts/generate_b01_review_request.py",
+            "scripts/immutable_git.py",
+        ),
+    ]
+    try:
+        observed_python_tool_lines = [
+            tuple(shlex.split(line))
+            for line in logical_lines
+            if "scripts/generate_b01_review_request.py" in line
+            and any(marker in line for marker in ("-m ruff", "-m py_compile"))
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed B01 tool syntax: {error}")
+    if observed_python_tool_lines != expected_python_tool_lines:
+        _fail("hosted CI lacks exact Ruff and py_compile coverage for B01 tooling")
 
 
 # This catalog is the checked implementation DAG. Descriptive detail remains in
@@ -12476,9 +12559,12 @@ def _git_environment() -> dict[str, str]:
             environment.pop(key, None)
     environment.update(
         {
+            "PATH": "/usr/bin:/bin",
             "GIT_CONFIG_GLOBAL": os.devnull,
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_NO_REPLACE_OBJECTS": "1",
             "GIT_OPTIONAL_LOCKS": "0",
         }
     )
@@ -12486,50 +12572,37 @@ def _git_environment() -> dict[str, str]:
 
 
 def _run_git(repository_root: Path, arguments: list[str], path: str) -> str:
-    if GIT is None:
-        _fail(f"{path} cannot resolve Git objects because git is unavailable")
+    payload = _run_git_bytes(repository_root, arguments, path)
     try:
-        result = subprocess.run(  # noqa: S603
-            [GIT, "--no-replace-objects", *arguments],
-            cwd=repository_root,
-            env=_git_environment(),
-            check=False,
-            capture_output=True,
-            timeout=10,
-            text=True,
-        )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        _fail(f"{path} cannot resolve Git objects: {error}")
-    if result.returncode != 0:
-        detail = result.stderr.strip() or "git command failed"
-        _fail(f"{path} cannot resolve Git objects: {detail}")
-    return result.stdout.strip()
+        return payload.decode("utf-8", errors="strict").strip()
+    except UnicodeDecodeError as error:
+        _fail(f"{path} Git output is not UTF-8: {error}")
 
 
 def _run_git_bytes(repository_root: Path, arguments: list[str], path: str) -> bytes:
-    if GIT is None:
-        _fail(f"{path} cannot resolve Git objects because git is unavailable")
     try:
-        result = subprocess.run(  # noqa: S603
-            [GIT, "--no-replace-objects", *arguments],
-            cwd=repository_root,
-            env=_git_environment(),
-            check=False,
-            capture_output=True,
-            timeout=10,
+        return immutable_control_output(
+            arguments,
+            root=repository_root,
+            maximum=8_192,
+            label=path,
         )
-    except (OSError, subprocess.TimeoutExpired) as error:
+    except ImmutableGitError as error:
         _fail(f"{path} cannot resolve Git objects: {error}")
-    if result.returncode != 0:
-        detail = result.stderr.decode("utf-8", errors="replace").strip()
-        _fail(f"{path} cannot resolve Git objects: {detail or 'git command failed'}")
-    return result.stdout
 
 
 def _run_git_exact_line(repository_root: Path, arguments: list[str], path: str) -> str:
     """Return one exact Git output line without normalizing its content."""
 
-    payload = _run_git_bytes(repository_root, arguments, path)
+    try:
+        payload = immutable_control_output(
+            arguments,
+            root=repository_root,
+            maximum=1_024,
+            label=path,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot resolve Git objects: {error}")
     if payload.count(b"\n") != 1 or not payload.endswith(b"\n") or b"\r" in payload:
         _fail(f"{path} did not return one exact LF-terminated line")
     try:
@@ -12578,20 +12651,11 @@ def _authorized_origin_repository(
     return fetch_repository
 
 
-@lru_cache(maxsize=512)
 def _resolved_git_tree(repository_root: str, commit: str) -> str:
-    root = Path(repository_root)
-    object_type = _run_git(root, ["cat-file", "-t", commit], "receipt.source_commit")
-    if object_type != "commit":
-        _fail("receipt.source_commit does not identify a Git commit object")
-    tree = _run_git(
-        root,
-        ["rev-parse", "--verify", f"{commit}^{{tree}}"],
-        "receipt.source_tree",
-    )
-    if not HEX40.fullmatch(tree):
-        _fail("receipt.source_commit resolved an invalid Git tree")
-    return tree
+    try:
+        return immutable_commit_tree(commit, root=Path(repository_root))
+    except ImmutableGitError as error:
+        _fail(f"receipt.source_commit cannot be reopened literally: {error}")
 
 
 def _validate_git_commit_tree(
@@ -12605,48 +12669,22 @@ def _validate_git_commit_tree(
         _fail(f"{path}.source_tree differs from source_commit^{{tree}}")
 
 
-@lru_cache(maxsize=1024)
 def _resolved_git_blob(
     repository_root: str, commit: str, relative_path: str
 ) -> tuple[str, bytes]:
     """Resolve one path from an immutable Git tree without consulting the worktree."""
-    root = Path(repository_root)
-    listing = _run_git_bytes(
-        root,
-        ["ls-tree", "-z", commit, "--", relative_path],
-        f"committed subject {relative_path}",
-    )
-    records = [record for record in listing.split(b"\0") if record]
-    if len(records) != 1 or b"\t" not in records[0]:
-        _fail(f"committed subject {relative_path} is absent or ambiguous")
-    metadata, encoded_path = records[0].split(b"\t", 1)
     try:
-        mode, object_type, object_id = metadata.decode("ascii").split(" ")
-    except (UnicodeDecodeError, ValueError) as error:
-        _fail(f"committed subject {relative_path} has invalid Git metadata: {error}")
-    if encoded_path != relative_path.encode("utf-8"):
-        _fail(f"committed subject {relative_path} resolved a different path")
-    if mode not in {"100644", "100755"} or object_type != "blob":
-        _fail(f"committed subject {relative_path} is not a regular Git blob")
-    size_text = _run_git(
-        root,
-        ["cat-file", "-s", object_id],
-        f"committed subject size {relative_path}",
-    )
-    try:
-        byte_count = int(size_text)
-    except ValueError:
-        _fail(f"committed subject {relative_path} has an invalid byte size")
-    if not 1 <= byte_count <= MAX_EVIDENCE_FILE_BYTES:
-        _fail(f"committed subject {relative_path} exceeds the file-size bound")
-    content = _run_git_bytes(
-        root,
-        ["cat-file", "blob", object_id],
-        f"committed subject bytes {relative_path}",
-    )
-    if len(content) != byte_count:
-        _fail(f"committed subject {relative_path} changed while it was resolved")
-    return object_id, content
+        snapshot = immutable_blob_snapshot(
+            commit,
+            relative_path,
+            maximum=MAX_EVIDENCE_FILE_BYTES,
+            root=Path(repository_root),
+        )
+    except ImmutableGitError as error:
+        _fail(
+            f"committed subject {relative_path} cannot be reopened literally: {error}"
+        )
+    return snapshot.sha256, snapshot.raw
 
 
 def _resolved_git_blob_identity(
@@ -12724,67 +12762,37 @@ def _receipt_source_bytes(
 def _require_strict_git_ancestor(
     repository: str, ancestor: str, descendant: str, label: str
 ) -> None:
-    if ancestor == descendant:
-        _fail(f"{label} must be a strict ancestor, not the same commit")
     repository_root = GIT_ROOT_BY_RECEIPT_REPOSITORY[repository]
-    if GIT is None:
-        _fail(f"{label} cannot run because git is unavailable")
     try:
-        result = subprocess.run(  # noqa: S603
-            [
-                GIT,
-                "--no-replace-objects",
-                "merge-base",
-                "--is-ancestor",
-                ancestor,
-                descendant,
-            ],
-            cwd=repository_root,
-            env=_git_environment(),
-            check=False,
-            capture_output=True,
-            timeout=10,
+        immutable_require_ancestor(
+            ancestor,
+            descendant,
+            root=repository_root,
+            allow_equal=False,
+            label=label,
         )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        _fail(f"{label} cannot verify Git ancestry: {error}")
-    if result.returncode == 1:
-        _fail(f"{label} is not an ancestor of the required local evidence cut")
-    if result.returncode != 0:
-        detail = result.stderr.decode("utf-8", errors="replace").strip()
-        _fail(f"{label} cannot verify Git ancestry: {detail or 'git failed'}")
+    except ImmutableGitError as error:
+        if "does not establish the required ancestry" in str(error):
+            _fail(f"{label} is not an ancestor of the required local evidence cut")
+        _fail(f"{label} cannot verify literal Git ancestry: {error}")
 
 
 def _require_git_ancestor_or_equal(
     repository: str, ancestor: str, descendant: str, label: str
 ) -> None:
-    if ancestor == descendant:
-        return
     repository_root = GIT_ROOT_BY_RECEIPT_REPOSITORY[repository]
-    if GIT is None:
-        _fail(f"{label} cannot run because git is unavailable")
     try:
-        result = subprocess.run(  # noqa: S603
-            [
-                GIT,
-                "--no-replace-objects",
-                "merge-base",
-                "--is-ancestor",
-                ancestor,
-                descendant,
-            ],
-            cwd=repository_root,
-            env=_git_environment(),
-            check=False,
-            capture_output=True,
-            timeout=10,
+        immutable_require_ancestor(
+            ancestor,
+            descendant,
+            root=repository_root,
+            allow_equal=True,
+            label=label,
         )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        _fail(f"{label} cannot verify Git ancestry: {error}")
-    if result.returncode == 1:
-        _fail(f"{label} is not an ancestor of the required Git cut")
-    if result.returncode != 0:
-        detail = result.stderr.decode("utf-8", errors="replace").strip()
-        _fail(f"{label} cannot verify Git ancestry: {detail or 'git failed'}")
+    except ImmutableGitError as error:
+        if "does not establish the required ancestry" in str(error):
+            _fail(f"{label} is not an ancestor of the required Git cut")
+        _fail(f"{label} cannot verify literal Git ancestry: {error}")
 
 
 def _validate_evidence_cut(receipt: dict[str, Any], path: str) -> None:
@@ -12882,6 +12890,102 @@ def _load_bounded_json_file(path: Path, label: str) -> dict[str, Any]:
     except BoundedJsonError as error:
         _fail(str(error))
     return _load_bounded_json_bytes(raw, label)
+
+
+def _validate_b01_generator_identity_roster(
+    request: Mapping[str, Any],
+) -> tuple[str, str, list[dict[str, Any]]]:
+    generated_by = request.get("generated_by")
+    if not isinstance(generated_by, list) or len(generated_by) != len(
+        B01_GENERATOR_SOURCE_PATHS
+    ):
+        _fail(
+            "B01 request.generated_by must contain the exact ordered generator sources"
+        )
+    identities: list[dict[str, Any]] = []
+    for index, (identity, expected_path) in enumerate(
+        zip(generated_by, B01_GENERATOR_SOURCE_PATHS, strict=True)
+    ):
+        path = f"B01 request.generated_by[{index}]"
+        if not isinstance(identity, dict):
+            _fail(f"{path} must be one exact file identity")
+        _exact_keys(identity, {"path", "sha256", "bytes"}, path)
+        if identity["path"] != expected_path:
+            _fail(f"{path}.path differs from the fixed ordered generator roster")
+        _hex(identity["sha256"], HEX64, f"{path}.sha256")
+        _integer(
+            identity["bytes"],
+            f"{path}.bytes",
+            minimum=1,
+            maximum=MAX_TASK_SUBJECT_JSON_BYTES,
+        )
+        identities.append(identity)
+    subject_cut = request.get("subject_cut")
+    if not isinstance(subject_cut, dict):
+        _fail("B01 request.subject_cut must be an object")
+    currentness = subject_cut.get("issuance_currentness")
+    if not isinstance(currentness, dict):
+        _fail("B01 request lacks retained issuance currentness")
+    commit = _hex(
+        currentness.get("resolved_commit"),
+        HEX40,
+        "B01 request issuance commit",
+    )
+    tree = _hex(
+        currentness.get("resolved_tree"),
+        HEX40,
+        "B01 request issuance tree",
+    )
+    return commit, tree, identities
+
+
+def _validate_b01_review_request_provenance(
+    request: Mapping[str, Any] | None = None,
+) -> None:
+    if request is None:
+        request = _load_bounded_json_file(B01_REVIEW_REQUEST, "B01 review request")
+    if request.get("schema") != "ncp.b01-review-request.v1":
+        _fail("B01 review request has the wrong schema")
+    issuance_commit, issuance_tree, identities = (
+        _validate_b01_generator_identity_roster(request)
+    )
+    try:
+        observed_tree = immutable_commit_tree(issuance_commit, root=ROOT)
+    except ImmutableGitError as error:
+        _fail(f"B01 request issuance commit cannot be reopened literally: {error}")
+    if observed_tree != issuance_tree:
+        _fail("B01 request issuance tree differs from its literal Git commit")
+    for identity in identities:
+        relative = identity["path"]
+        try:
+            issued = immutable_blob_snapshot(
+                issuance_commit,
+                relative,
+                maximum=MAX_TASK_SUBJECT_JSON_BYTES,
+                root=ROOT,
+            )
+        except ImmutableGitError as error:
+            _fail(f"B01 issuance generator {relative} cannot be reopened: {error}")
+        if issued.identity() != identity:
+            _fail(
+                f"B01 issuance generator {relative} differs from request.generated_by"
+            )
+        try:
+            current = read_bounded_regular_file(
+                ROOT / relative,
+                limits=TASK_SUBJECT_FILE_LIMITS,
+                label=f"current B01 generator {relative}",
+            )
+        except BoundedJsonError as error:
+            _fail(str(error))
+        if (
+            len(current) != identity["bytes"]
+            or hashlib.sha256(current).hexdigest() != identity["sha256"]
+            or current != issued.raw
+        ):
+            _fail(
+                f"current B01 generator {relative} differs from the retained issuance bytes"
+            )
 
 
 def _load_bounded_json_from_git(
@@ -13195,21 +13299,12 @@ def _validate_branch_name(value: Any, path: str) -> str:
         or ".." in branch
     ):
         _fail(f"{path} is not an unambiguous Git branch name")
-    if GIT is None:
-        _fail(f"{path} cannot run git check-ref-format")
-    try:
-        result = subprocess.run(  # noqa: S603
-            [GIT, "check-ref-format", "--branch", branch],
-            cwd=ROOT,
-            env=_git_environment(),
-            check=False,
-            capture_output=True,
-            timeout=10,
-            text=True,
-        )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        _fail(f"{path} cannot run git check-ref-format: {error}")
-    if result.returncode != 0 or result.stdout.strip() != branch:
+    result = _run_git_exact_line(
+        ROOT,
+        ["check-ref-format", "--branch", branch],
+        f"{path} check-ref-format",
+    )
+    if result != branch:
         _fail(f"{path} fails git check-ref-format --branch")
     return branch
 
@@ -13256,11 +13351,19 @@ def _hex(value: Any, pattern: re.Pattern[str], path: str) -> str:
     return text
 
 
-def _integer(value: Any, path: str, *, minimum: int | None = None) -> int:
+def _integer(
+    value: Any,
+    path: str,
+    *,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> int:
     if type(value) is not int:
         _fail(f"{path} must be an integer")
     if minimum is not None and value < minimum:
         _fail(f"{path} must be at least {minimum}")
+    if maximum is not None and value > maximum:
+        _fail(f"{path} must be at most {maximum}")
     return value
 
 
@@ -15145,7 +15248,6 @@ def _parse_blueprint_task_acceptance_rows(
     return rows
 
 
-@lru_cache(maxsize=1)
 def _checked_blueprint_task_acceptance_rows() -> dict[str, dict[str, str]]:
     try:
         raw = read_bounded_regular_file(
@@ -15236,7 +15338,6 @@ def _parse_d21_task_acceptance_overlay(raw: bytes) -> dict[str, dict[str, str]]:
     return rows
 
 
-@lru_cache(maxsize=1)
 def _checked_d21_task_acceptance_overlay() -> dict[str, dict[str, str]]:
     try:
         raw = read_bounded_regular_file(
@@ -16238,7 +16339,6 @@ PY
         _fail("B01 reviewed registry retains a stale zero-review ledger checkpoint")
 
 
-@lru_cache(maxsize=1)
 def _require_b01_current_registry_gate() -> None:
     _run_exact_python_gate(
         DECISION_REGISTRY_GENERATOR,
@@ -18987,7 +19087,6 @@ def _validate_installed_schema_distributions(
         )
 
 
-@lru_cache(maxsize=1)
 def _validate_evidence_schema_supply_chain() -> None:
     for path in (EVIDENCE_REQUIREMENTS_INPUT, EVIDENCE_REQUIREMENTS_LOCK):
         if path.is_symlink() or not path.is_file():
@@ -19014,11 +19113,11 @@ def _validate_evidence_schema_supply_chain() -> None:
 
 def _validate_implementation_tool_bindings(implementation_tools: Any) -> None:
     _validate_evidence_schema_supply_chain()
-    if not isinstance(implementation_tools, list) or len(implementation_tools) != 5:
+    if not isinstance(implementation_tools, list) or len(implementation_tools) != 6:
         _fail(
             "$.implementation_tools must bind exactly the semantic checker, "
             "ledger generator, ledger schema, Draft 2020-12 validator, and "
-            "hash-locked validator environment"
+            "hash-locked validator environment, plus the immutable Git reader"
         )
     expected_tools = (
         "scripts/check_implementation_ledger.py",
@@ -19026,6 +19125,7 @@ def _validate_implementation_tool_bindings(implementation_tools: Any) -> None:
         "evidence/implementation/task-ledger.schema.v1.json",
         "scripts/validate_evidence_schemas.py",
         "scripts/requirements-evidence-schema.txt",
+        "scripts/immutable_git.py",
     )
     for index, (tool, expected_path) in enumerate(
         zip(implementation_tools, expected_tools, strict=True)
@@ -19096,8 +19196,14 @@ def _validate_ledger_root_identity(data: Any) -> dict[str, Any]:
 
 
 def validate(data: Any) -> None:
+    with immutable_git_operation(root=ROOT):
+        _validate(data)
+
+
+def _validate(data: Any) -> None:
     _walk_limits(data)
     _scan_sensitive(data)
+    _validate_b01_review_request_provenance()
     _validate_hosted_ci_b01_mode_text(
         _hosted_ci_workflow_text(),
         source_staging=B01_SOURCE_STAGING_AUTHORIZED,
@@ -22056,6 +22162,37 @@ def _self_test_local_admission_and_receipt_boundaries(
                 },
                 "self-test immutable local cuts",
             )
+            _, original_source = _resolved_git_blob(
+                str(repository), source_commit, "evidence.txt"
+            )
+            blob_id = _self_test_git(
+                repository,
+                "rev-parse",
+                f"{source_commit}:evidence.txt",
+            )
+            object_path = repository / ".git" / "objects" / blob_id[:2] / blob_id[2:]
+            original_object = object_path.read_bytes()
+            original_mode = stat.S_IMODE(object_path.stat().st_mode)
+            hostile_source = b"attack\n"
+            if len(hostile_source) != len(original_source):
+                _fail("self-test loose-object bodies differ in length")
+            object_path.chmod(original_mode | stat.S_IWUSR)
+            object_path.write_bytes(
+                zlib.compress(
+                    f"blob {len(hostile_source)}\0".encode("ascii") + hostile_source
+                )
+            )
+            try:
+                _must_fail(
+                    lambda: _resolved_git_blob(
+                        str(repository), source_commit, "evidence.txt"
+                    ),
+                    "fresh-operation loose-object corruption",
+                    "cannot be reopened literally",
+                )
+            finally:
+                object_path.write_bytes(original_object)
+                object_path.chmod(original_mode)
             _must_fail(
                 lambda: _require_git_ancestor_or_equal(
                     repository_name,
@@ -22111,7 +22248,102 @@ def _self_test_git_empty_tree() -> str:
 def self_test(data: dict[str, Any]) -> None:
     """Prove the clean ledger passes and representative hostile mutations fail closed."""
     validate(copy.deepcopy(data))
+    b01_request = _load_bounded_json_file(B01_REVIEW_REQUEST, "B01 review request")
+    mutant_request = copy.deepcopy(b01_request)
+    mutant_request["generated_by"].pop()
+    _must_fail(
+        lambda: _validate_b01_generator_identity_roster(mutant_request),
+        "B01 request missing immutable Git dependency identity",
+        "exact ordered generator sources",
+    )
+    mutant_request = copy.deepcopy(b01_request)
+    mutant_request["generated_by"].reverse()
+    _must_fail(
+        lambda: _validate_b01_generator_identity_roster(mutant_request),
+        "B01 request reordered generator identities",
+        "fixed ordered generator roster",
+    )
+    mutant_request = copy.deepcopy(b01_request)
+    mutant_request["generated_by"][0]["sha256"] = "0" * 64
+    _must_fail(
+        lambda: _validate_b01_review_request_provenance(mutant_request),
+        "B01 request substituted issuance generator digest",
+        "differs from request.generated_by",
+    )
+    mutant_request = copy.deepcopy(b01_request)
+    mutant_request["generated_by"][1]["path"] = "scripts/not-the-reader.py"
+    _must_fail(
+        lambda: _validate_b01_review_request_provenance(mutant_request),
+        "B01 request substituted generator dependency path",
+        "fixed ordered generator roster",
+    )
+    mutant_request = copy.deepcopy(b01_request)
+    mutant_request["generated_by"][0]["bytes"] = MAX_TASK_SUBJECT_JSON_BYTES + 1
+    _must_fail(
+        lambda: _validate_b01_generator_identity_roster(mutant_request),
+        "B01 request unbounded generator byte count",
+        f"must be at most {MAX_TASK_SUBJECT_JSON_BYTES}",
+    )
     ci_text = _hosted_ci_workflow_text()
+    review_command = (
+        '          "$evidence_schema_python" scripts/generate_b01_review_request.py '
+        "\\\n"
+        f"            --commit {B01_REVIEW_PACKET_COMMIT} \\\n"
+        "            --authorized-ref refs/remotes/origin/main --self-test --check"
+    )
+    if review_command not in ci_text:
+        _fail("self-test cannot locate the exact hosted B01 request command")
+    for label, hostile_ci in (
+        (
+            "removed B01 request command",
+            ci_text.replace(review_command, "", 1),
+        ),
+        (
+            "duplicated B01 request command",
+            ci_text + "\n" + review_command + "\n",
+        ),
+        (
+            "B01 request live-check substitution",
+            ci_text.replace(
+                review_command,
+                review_command.replace("--check", "--live-check"),
+                1,
+            ),
+        ),
+        (
+            "B01 request write substitution",
+            ci_text.replace(
+                review_command,
+                review_command.replace("--check", "--wri" + "te"),
+                1,
+            ),
+        ),
+    ):
+        _must_fail(
+            lambda hostile_ci=hostile_ci: _validate_hosted_ci_b01_mode_text(
+                hostile_ci,
+                source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+            ),
+            label,
+            "exact hermetic B01 review-request check",
+        )
+    _must_fail(
+        lambda: _validate_hosted_ci_b01_mode_text(
+            ci_text.replace(" scripts/immutable_git.py", "", 1),
+            source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+        ),
+        "hosted CI missing immutable Git Ruff coverage",
+        "exact Ruff and py_compile coverage",
+    )
+    _must_fail(
+        lambda: _validate_hosted_ci_b01_mode_text(
+            ci_text + '\n"$evidence_schema_python" -m py_compile '
+            "scripts/generate_b01_review_request.py scripts/immutable_git.py\n",
+            source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+        ),
+        "hosted CI duplicate B01 py_compile invocation",
+        "exact Ruff and py_compile coverage",
+    )
     if B01_SOURCE_STAGING_AUTHORIZED:
         _must_fail(
             lambda: _validate_hosted_ci_b01_mode_text(

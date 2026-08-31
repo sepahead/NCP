@@ -92,9 +92,9 @@
       },
       {
         "path": ".github/workflows/ci.yml",
-        "bytes": 29691,
-        "sha256": "1b98a24c7502d1bc9be4c5249e5a5e87a7103ba0d22f201852a36430e6d230b8",
-        "git_blob_oid": "788ed37dc88afcb5351585c97df7e3cbb37edb06",
+        "bytes": 30327,
+        "sha256": "e7e001c1dfba160221d12f5d7f377dda2312e505567f75294d075af2a4e66ce1",
+        "git_blob_oid": "48013d533ebd06fbb668a2908363951cd41e896c",
         "indexed": true
       },
       {
@@ -2150,16 +2150,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 31796,
-        "sha256": "7efb3f0ff5920e9fe148cb5509fb31cca64fb115fbd1aeb4b6d4eb515972ba31",
-        "git_blob_oid": "14d42e11ab6a3ffcca6719aa6351e8277be0ea88",
+        "bytes": 31844,
+        "sha256": "bf36470be4fbeb5b70d58d2249dfe5f5879419ec3f48570b65feef8b8973ba33",
+        "git_blob_oid": "251380103b3bac54f07082ebcf620a87f62db904",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 172522,
-        "sha256": "8c0a60a9a1ee6e4d1364843ddb014fa8245db24f9612db89987489fd734a145f",
-        "git_blob_oid": "82253d11260f3aa6fc769d89ad7a66e008780ddb",
+        "bytes": 172570,
+        "sha256": "e8d5fe1018984fbd984a8b5cdd39e688ea071f83e64fe26d91124d609ecd039c",
+        "git_blob_oid": "f5bbc1268c426bfb43b2c52ba4307ae83309c39c",
         "indexed": true
       },
       {
@@ -2401,17 +2401,31 @@
         "indexed": true
       },
       {
+        "path": "evidence/implementation/requests/B01/review-request.v1.json",
+        "bytes": 135557,
+        "sha256": "af8daf9ff4ab42969b729ddc20eeb7ba45bfd11648d748605a6422b804663829",
+        "git_blob_oid": "0ab74957d2586a474fa0cd8b8b94e7ffac7a5568",
+        "indexed": true
+      },
+      {
+        "path": "evidence/implementation/requests/README.md",
+        "bytes": 6263,
+        "sha256": "53a0b5127ea971e4bc23b131bf13f0331158db7bd3c3920b28412d78fd9d095e",
+        "git_blob_oid": "fac3f999d72edbed2509242d5dd60eb269be885c",
+        "indexed": true
+      },
+      {
         "path": "evidence/implementation/task-ledger.schema.v1.json",
         "bytes": 33557,
-        "sha256": "96cb04ed86ca56ca44b83145374d8309235d84cb773fde655d17cc4a7ab9a9fa",
-        "git_blob_oid": "fec02e4933310d58bb4bf7cc20ad7a91d102aa13",
+        "sha256": "883e723a2cb1eb9b97132e128f39c6ba18c58f70f2c6479d6af6c4198d5a0c90",
+        "git_blob_oid": "8f3d0756d0b7e6f65c174851cfb4b7a38fa2a6ae",
         "indexed": true
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 184754,
-        "sha256": "eac3a1f9d09f1bfa2930141236c5e82e653cffab6166fcf6b467c1445eab3810",
-        "git_blob_oid": "c27247fd18ec8a14bf2fac53b0586f0f1a9cf76a",
+        "bytes": 185151,
+        "sha256": "e7cd598d23fc902a969c2f46652322fffdeb7fdabafbd9eb1d84d3c90adb7ee1",
+        "git_blob_oid": "c53e248a586ead9beaa6ab1b97c0355257220891",
         "indexed": true
       },
       {
@@ -6280,9 +6294,9 @@
       },
       {
         "path": "prototypes/b01-architecture-evidence/adr-example-semantics/rust/src/decision.rs",
-        "bytes": 47747,
-        "sha256": "e6ffe08fd723ff55a3ab6f65f5c1b40c85a68f61ff5a5dfb211e01d8ea5e0e0c",
-        "git_blob_oid": "adee6f18a44c72795f732d35b94d36081820d802",
+        "bytes": 47743,
+        "sha256": "f0bf937a617df390512361735293b77e53b71db48e416a3b32e670b98f822849",
+        "git_blob_oid": "6ca4dc469019b06ceac44896afc3593d528f9e9f",
         "indexed": true
       },
       {
@@ -6686,9 +6700,9 @@
       },
       {
         "path": "scripts/README.md",
-        "bytes": 32174,
-        "sha256": "9acc255dd98103e57cc5c11177df58dc4fef7bfb3725104593b17ab15d58742e",
-        "git_blob_oid": "17c087ce70fbb7c9558dfb87278536cec95314e6",
+        "bytes": 32771,
+        "sha256": "9ab01c504ba07928612e0d1416dd09fb60d9d2fb45a7a9988f6ca1fe6111338b",
+        "git_blob_oid": "a0fc5cc9f5d5c42a962142fce4933a15985836e1",
         "indexed": true
       },
       {
@@ -6749,9 +6763,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 15132,
-        "sha256": "ace07ecf38fc9d762e6a8b861a6a444ef8d3b33ab8307a1ab8d4b8ccad3932e8",
-        "git_blob_oid": "c072197dd3f6a644e80cc87d53ad22a50d7e1aa2",
+        "bytes": 15809,
+        "sha256": "4b75bad33460db98adda9f242639f4c870f1d1705fe88bc9f51a7c6283eb0152",
+        "git_blob_oid": "1b3bbbadbcbe4de032deefbd2b44fbd28a5e8c13",
         "indexed": true
       },
       {
@@ -6826,9 +6840,9 @@
       },
       {
         "path": "scripts/check_implementation_ledger.py",
-        "bytes": 1143291,
-        "sha256": "94e6e51db82a8d04486753c817f5b73307310b9035acf71b1756311a4348f780",
-        "git_blob_oid": "c16f8855fd734b856e4b47bf40b735809704ed3c",
+        "bytes": 1151535,
+        "sha256": "e839f69ff06820963d5dbbbd9dce36451edfb99ce287fe2f1f3d80a8a637a7f4",
+        "git_blob_oid": "6abec7c0d0c15e873adaf73825c8a2cb17e82812",
         "indexed": true
       },
       {
@@ -6847,9 +6861,9 @@
       },
       {
         "path": "scripts/check_ncp_system_design_pdf.sh",
-        "bytes": 10432,
-        "sha256": "efc3af57e04d4390d02dc94d965f01d354b30225f02d3922391506391425fa61",
-        "git_blob_oid": "69551f5bd67129cac97ff41255dc466ac6352240",
+        "bytes": 11537,
+        "sha256": "cd1a55694c0d5a7cd236663d1d04aa8d8f5c4e9c217642cbd05e79af5c8f3da7",
+        "git_blob_oid": "55a64e27356d9838220a0d6b94acbdd667084c2f",
         "indexed": true
       },
       {
@@ -7401,7 +7415,7 @@
     ]
   },
   "counts": {
-    "text_files": 1021,
+    "text_files": 1023,
     "binary_or_non_utf8_files": 26,
     "occurrences": 305,
     "by_token_id": {
@@ -7432,7 +7446,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "9f8e50cacb3fb1c3b9acf90cab89ffdf98d5178cd959767d7671bb8317aed526",
+  "scanned_path_set_sha256": "042ca82af0de73d746b22c044d5d8d30a54b604e254f679d009edf9082aa515f",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -9091,7 +9105,7 @@
       "column": 59,
       "token_id": "M008",
       "line_sha256": "83a0de8a512144c0c838fd064c2c0a0fb9e53ed7bd2f8d9499a70d080c3fb70a",
-      "file_sha256": "7efb3f0ff5920e9fe148cb5509fb31cca64fb115fbd1aeb4b6d4eb515972ba31",
+      "file_sha256": "bf36470be4fbeb5b70d58d2249dfe5f5879419ec3f48570b65feef8b8973ba33",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -9105,7 +9119,7 @@
       "column": 59,
       "token_id": "M008",
       "line_sha256": "83a0de8a512144c0c838fd064c2c0a0fb9e53ed7bd2f8d9499a70d080c3fb70a",
-      "file_sha256": "8c0a60a9a1ee6e4d1364843ddb014fa8245db24f9612db89987489fd734a145f",
+      "file_sha256": "e8d5fe1018984fbd984a8b5cdd39e688ea071f83e64fe26d91124d609ecd039c",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -9595,13 +9609,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-1C4CAD1EB6169C9E918D",
+      "id": "NCP-LATENT-FCF26D4F7DB60612983A",
       "path": "evidence/implementation/task-ledger.v1.json",
-      "line": 1756,
+      "line": 1764,
       "column": 66,
       "token_id": "M008",
       "line_sha256": "d80450cb7715d4c045e02ac59e3acb42fa8b833e1b84bfee3716d7bce057f6ff",
-      "file_sha256": "eac3a1f9d09f1bfa2930141236c5e82e653cffab6166fcf6b467c1445eab3810",
+      "file_sha256": "e7cd598d23fc902a969c2f46652322fffdeb7fdabafbd9eb1d84d3c90adb7ee1",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -10385,13 +10399,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-630A534029C550BCB03C",
+      "id": "NCP-LATENT-AF481FB56256522D6391",
       "path": "scripts/README.md",
-      "line": 231,
+      "line": 233,
       "column": 342,
       "token_id": "M008",
       "line_sha256": "f2be892af7a9175ea1f92d292efd270923410fa422c396122195c4bfb8986a91",
-      "file_sha256": "9acc255dd98103e57cc5c11177df58dc4fef7bfb3725104593b17ab15d58742e",
+      "file_sha256": "9ab01c504ba07928612e0d1416dd09fb60d9d2fb45a7a9988f6ca1fe6111338b",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -10415,13 +10429,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-1DB6CE3970A5CE072951",
+      "id": "NCP-LATENT-692C27434E92C4206C2E",
       "path": "scripts/check_implementation_ledger.py",
-      "line": 11655,
+      "line": 11674,
       "column": 6,
       "token_id": "M007",
       "line_sha256": "94a068adc081fc0218562be78267b3cbdbf05e4ec3bcc5118790e5ce17e4403f",
-      "file_sha256": "94e6e51db82a8d04486753c817f5b73307310b9035acf71b1756311a4348f780",
+      "file_sha256": "e839f69ff06820963d5dbbbd9dce36451edfb99ce287fe2f1f3d80a8a637a7f4",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -10430,13 +10444,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9EA997A806391A53AB9A",
+      "id": "NCP-LATENT-7E122A3808465A4FCE9E",
       "path": "scripts/check_implementation_ledger.py",
-      "line": 17389,
+      "line": 17489,
       "column": 10,
       "token_id": "M007",
       "line_sha256": "05750a51f227030f2a88ff64ac69bd1c2256ddbd8b29e552996df724401d9c10",
-      "file_sha256": "94e6e51db82a8d04486753c817f5b73307310b9035acf71b1756311a4348f780",
+      "file_sha256": "e839f69ff06820963d5dbbbd9dce36451edfb99ce287fe2f1f3d80a8a637a7f4",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
