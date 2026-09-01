@@ -58,6 +58,7 @@ evidence_schema_python="$evidence_schema_venv/bin/python"
     prototypes/b01-architecture-evidence/source_inventory.py --self-test
 bun install --frozen-lockfile --backend=copyfile --force
 "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
+"$evidence_schema_python" scripts/validate_evidence_schemas.py
 
 step "NCP 1.0 implementation ledger + mandatory resumption views"
 if [[ -n "$b01_source_staging_arg" ]]; then
@@ -89,6 +90,16 @@ step "non-authorizing B01 reviewer preparation"
     scripts/generate_b01_reviewer_kit.py \
     scripts/validate_evidence_schemas.py
 "$evidence_schema_python" scripts/generate_b01_reviewer_kit.py \
+    --self-test --check
+
+step "read-only B01 review handoff status"
+"$evidence_schema_python" -m ruff format --check -- \
+    scripts/check_b01_review_handoff.py
+"$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+    scripts/check_b01_review_handoff.py
+"$evidence_schema_python" -m py_compile \
+    scripts/check_b01_review_handoff.py
+"$evidence_schema_python" -B scripts/check_b01_review_handoff.py \
     --self-test --check
 
 step "B01 fail-closed review-candidate integrity (non-completion)"

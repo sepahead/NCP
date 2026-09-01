@@ -206,6 +206,40 @@ It does not authenticate receipt origin, authorship, role authority, independenc
 An independently owned verifier must establish those facts outside this repository.
 That verifier remains required before B01 can pass.
 
+## Inspect the current handoff status
+
+Run the read-only status check from the repository root:
+
+```text
+python3 -B scripts/check_b01_review_handoff.py --check
+```
+
+Use JSON when another tool needs the same closed snapshot:
+
+```text
+python3 -B scripts/check_b01_review_handoff.py --json
+```
+
+The complete gate runs `--self-test --check`.
+The self-test rejects authority overclaims and malformed current state.
+
+The checker replays the exact current registry generator.
+It joins the retained reviewer kit to the current registry source.
+It reports structural counts for each open role.
+It also gives one deterministic materialization-slot suggestion.
+The suggestion does not report slot occupancy or grant review authority.
+The checker writes no repository file.
+It disables Git lazy fetch before local Git reads.
+
+The output describes only the observed current snapshot.
+It does not authenticate a reviewer, role, receipt, or independence claim.
+It does not prove append-only history or high-water currentness.
+It cannot accept an ADR, advance B01, or authorize a release.
+
+The closed output schema is
+[`B01/review-handoff-status.schema.v1.json`](B01/review-handoff-status.schema.v1.json).
+No status output is retained as evidence.
+
 ## Fixed minimum roster
 
 The request contains these minimum counts:

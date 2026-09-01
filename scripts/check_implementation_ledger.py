@@ -65,6 +65,7 @@ B01_GENERATOR_SOURCE_PATHS = (
 )
 B01_REVIEW_PACKET_COMMIT = "3661d01c20445f84004e6f89bfa3aa9e85fe3a7f"
 HOSTED_CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+LOCAL_CHECK_SCRIPT = ROOT / "scripts" / "check.sh"
 EXPECTED_B01_SOURCE_STAGING_PREDECESSOR = {
     "commit": "c0302b79faf0543448a0240aa055be6a9dca7125",
     "tree": "8f63cee02c46346bbc414e934753d9eb2528281c",
@@ -106,10 +107,12 @@ B01_GOVERNED_FIXED_PATHS = frozenset(
         "docs/implementation/NCP_1_0_RESUMPTION.md",
         "docs/implementation/NCP_1_0_TASK_LEDGER.md",
         "evidence/implementation/receipts/README.md",
+        ("evidence/implementation/requests/B01/review-handoff-status.schema.v1.json"),
         "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
         "scripts/README.md",
         "scripts/check.sh",
+        "scripts/check_b01_review_handoff.py",
         "scripts/check_implementation_ledger.py",
         "scripts/generate_decision_registry.py",
         "scripts/generate_implementation_ledger.py",
@@ -11698,6 +11701,142 @@ class LedgerError(ValueError):
 
 
 B01_SOURCE_STAGING_AUTHORIZED = False
+PROTECTED_B01_GATE_PATHS = (
+    "scripts/generate_b01_review_request.py",
+    "scripts/generate_b01_reviewer_kit.py",
+    "scripts/check_b01_review_handoff.py",
+    "scripts/validate_evidence_schemas.py",
+    "scripts/immutable_git.py",
+)
+EXPECTED_PROTECTED_B01_GATE_LINES = (
+    (
+        "$evidence_schema_python",
+        "scripts/validate_evidence_schemas.py",
+        "--self-test",
+    ),
+    ("$evidence_schema_python", "scripts/validate_evidence_schemas.py"),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "--",
+        "scripts/generate_b01_review_request.py",
+        "scripts/immutable_git.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "ruff",
+        "check",
+        "--select",
+        "E,F,I,N,S,UP",
+        "--",
+        "scripts/generate_b01_review_request.py",
+        "scripts/immutable_git.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "py_compile",
+        "scripts/generate_b01_review_request.py",
+        "scripts/immutable_git.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "--",
+        "scripts/generate_b01_reviewer_kit.py",
+        "scripts/validate_evidence_schemas.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "ruff",
+        "check",
+        "--select",
+        "E,F,I,N,S,UP",
+        "--",
+        "scripts/generate_b01_reviewer_kit.py",
+        "scripts/validate_evidence_schemas.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "py_compile",
+        "scripts/generate_b01_reviewer_kit.py",
+        "scripts/validate_evidence_schemas.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "scripts/generate_b01_reviewer_kit.py",
+        "--self-test",
+        "--check",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "--",
+        "scripts/check_b01_review_handoff.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "ruff",
+        "check",
+        "--select",
+        "E,F,I,N,S,UP",
+        "--",
+        "scripts/check_b01_review_handoff.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-m",
+        "py_compile",
+        "scripts/check_b01_review_handoff.py",
+    ),
+    (
+        "$evidence_schema_python",
+        "-B",
+        "scripts/check_b01_review_handoff.py",
+        "--self-test",
+        "--check",
+    ),
+)
+LOCAL_BROAD_PYCOMPILE_LINE = (
+    "python3",
+    "-m",
+    "py_compile",
+    "e2e/bounded_json.py",
+    "e2e/nest_five_networks.py",
+    "e2e/run_cross_language_e2e.py",
+    "e2e/test_bounded_json.py",
+    "e2e/test_runner_status.py",
+    "scripts/check_implementation_ledger.py",
+    "prototypes/b01-architecture-evidence/adr_example_semantics.py",
+    "scripts/generate_implementation_ledger.py",
+    "scripts/generate_decision_registry.py",
+    "scripts/validate_evidence_schemas.py",
+    "scripts/generate_b01_review_request.py",
+    "scripts/generate_b01_reviewer_kit.py",
+    "scripts/immutable_git.py",
+    "scripts/check_adr_examples.py",
+    "scripts/selector_closure_codec.py",
+    "scripts/selector_allocation_inventory.py",
+    "scripts/selector_allocation_review.py",
+    "scripts/selector_resource_closure.py",
+    "scripts/generate_selector_closure_source.py",
+    "scripts/check_selector_closure.py",
+    "scripts/generate_selector_closure_matrix.py",
+    "scripts/generate_selector_allocation_proposal.py",
+)
 
 
 def set_b01_source_staging_mode(enabled: bool) -> None:
@@ -11720,6 +11859,53 @@ def _hosted_ci_workflow_text() -> str:
         return raw.decode("utf-8")
     except UnicodeDecodeError as error:
         _fail(f"hosted CI workflow is not UTF-8: {error}")
+
+
+def _local_check_script_text() -> str:
+    try:
+        raw = read_bounded_regular_file(
+            LOCAL_CHECK_SCRIPT,
+            limits=TASK_SUBJECT_FILE_LIMITS,
+            label="local complete-gate script",
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        _fail(f"local complete-gate script is not UTF-8: {error}")
+
+
+def _validate_protected_b01_gate_lines(
+    text: str,
+    *,
+    label: str,
+    include_local_broad_compile: bool,
+) -> None:
+    if "\r" in text:
+        _fail(f"{label} contains carriage returns")
+    logical_lines = text.replace("\\\n", " ").splitlines()
+    try:
+        observed = tuple(
+            tuple(shlex.split(line))
+            for line in logical_lines
+            if any(path in line for path in PROTECTED_B01_GATE_PATHS)
+        )
+    except ValueError as error:
+        _fail(f"{label} contains malformed protected B01 shell syntax: {error}")
+    expected = EXPECTED_PROTECTED_B01_GATE_LINES + (
+        (LOCAL_BROAD_PYCOMPILE_LINE,) if include_local_broad_compile else ()
+    )
+    if observed != expected:
+        _fail(f"{label} differs from the exact protected B01 command allowlist")
+
+
+def _validate_local_b01_gate_text(text: str) -> None:
+    _validate_protected_b01_gate_lines(
+        text,
+        label="local complete gate",
+        include_local_broad_compile=True,
+    )
 
 
 def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> None:
@@ -11770,6 +11956,45 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
     ]
     if reviewer_kit_invocations != [expected_reviewer_kit]:
         _fail("hosted CI lacks one exact phase-safe B01 reviewer-kit check")
+    try:
+        schema_invocations = [
+            shlex.split(line)
+            for line in logical_lines
+            if line.strip().startswith(
+                '"$evidence_schema_python" scripts/validate_evidence_schemas.py'
+            )
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed evidence-schema syntax: {error}")
+    expected_schema_invocations = [
+        [
+            "$evidence_schema_python",
+            "scripts/validate_evidence_schemas.py",
+            "--self-test",
+        ],
+        ["$evidence_schema_python", "scripts/validate_evidence_schemas.py"],
+    ]
+    if schema_invocations != expected_schema_invocations:
+        _fail("hosted CI lacks exact hostile and current evidence-schema checks")
+    try:
+        handoff_invocations = [
+            shlex.split(line)
+            for line in logical_lines
+            if line.strip().startswith(
+                '"$evidence_schema_python" -B scripts/check_b01_review_handoff.py'
+            )
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed B01 handoff syntax: {error}")
+    expected_handoff = [
+        "$evidence_schema_python",
+        "-B",
+        "scripts/check_b01_review_handoff.py",
+        "--self-test",
+        "--check",
+    ]
+    if handoff_invocations != [expected_handoff]:
+        _fail("hosted CI lacks one exact read-only B01 handoff check")
     expected_python_tool_lines = [
         (
             "$evidence_schema_python",
@@ -11852,6 +12077,49 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
         _fail(f"hosted CI contains malformed reviewer-tool syntax: {error}")
     if observed_reviewer_tool_lines != expected_reviewer_tool_lines:
         _fail("hosted CI lacks exact Ruff and py_compile reviewer-tool coverage")
+    expected_handoff_tool_lines = [
+        (
+            "$evidence_schema_python",
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "--",
+            "scripts/check_b01_review_handoff.py",
+        ),
+        (
+            "$evidence_schema_python",
+            "-m",
+            "ruff",
+            "check",
+            "--select",
+            "E,F,I,N,S,UP",
+            "--",
+            "scripts/check_b01_review_handoff.py",
+        ),
+        (
+            "$evidence_schema_python",
+            "-m",
+            "py_compile",
+            "scripts/check_b01_review_handoff.py",
+        ),
+    ]
+    try:
+        observed_handoff_tool_lines = [
+            tuple(shlex.split(line))
+            for line in logical_lines
+            if "scripts/check_b01_review_handoff.py" in line
+            and any(marker in line for marker in ("-m ruff", "-m py_compile"))
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed handoff-tool syntax: {error}")
+    if observed_handoff_tool_lines != expected_handoff_tool_lines:
+        _fail("hosted CI lacks exact Ruff and py_compile handoff-tool coverage")
+    _validate_protected_b01_gate_lines(
+        text,
+        label="hosted CI",
+        include_local_broad_compile=False,
+    )
 
 
 # This catalog is the checked implementation DAG. Descriptive detail remains in
@@ -19257,6 +19525,7 @@ def _validate(data: Any) -> None:
         _hosted_ci_workflow_text(),
         source_staging=B01_SOURCE_STAGING_AUTHORIZED,
     )
+    _validate_local_b01_gate_text(_local_check_script_text())
     try:
         adr008_raw = read_bounded_regular_file(
             ADR008,
@@ -22349,6 +22618,24 @@ def self_test(data: dict[str, Any]) -> None:
     )
     if reviewer_kit_command not in ci_text:
         _fail("self-test cannot locate the exact hosted B01 reviewer-kit command")
+    handoff_command = (
+        '          "$evidence_schema_python" -B '
+        "scripts/check_b01_review_handoff.py "
+        "\\\n"
+        "            --self-test --check"
+    )
+    if handoff_command not in ci_text:
+        _fail("self-test cannot locate the exact hosted B01 handoff command")
+    schema_self_test_command = (
+        '          "$evidence_schema_python" '
+        "scripts/validate_evidence_schemas.py --self-test"
+    )
+    schema_current_command = (
+        '          "$evidence_schema_python" scripts/validate_evidence_schemas.py'
+    )
+    for schema_command in (schema_self_test_command, schema_current_command):
+        if schema_command not in ci_text:
+            _fail("self-test cannot locate both hosted evidence-schema commands")
     for label, hostile_ci in (
         (
             "removed B01 reviewer-kit command",
@@ -22383,6 +22670,54 @@ def self_test(data: dict[str, Any]) -> None:
                 else "exact phase-safe B01 reviewer-kit check"
             ),
         )
+    for label, hostile_ci in (
+        (
+            "removed B01 handoff command",
+            ci_text.replace(handoff_command, "", 1),
+        ),
+        (
+            "duplicated B01 handoff command",
+            ci_text + "\n" + handoff_command + "\n",
+        ),
+        (
+            "B01 handoff JSON substitution",
+            ci_text.replace(
+                handoff_command,
+                handoff_command.replace("--check", "--json"),
+                1,
+            ),
+        ),
+    ):
+        _must_fail(
+            lambda hostile_ci=hostile_ci: _validate_hosted_ci_b01_mode_text(
+                hostile_ci,
+                source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+            ),
+            label,
+            "exact read-only B01 handoff check",
+        )
+    for label, hostile_ci in (
+        (
+            "removed hostile evidence-schema check",
+            ci_text.replace(schema_self_test_command, "", 1),
+        ),
+        (
+            "removed current evidence-schema check",
+            ci_text.replace(schema_current_command + "\n", "", 1),
+        ),
+        (
+            "duplicated current evidence-schema check",
+            ci_text + "\n" + schema_current_command + "\n",
+        ),
+    ):
+        _must_fail(
+            lambda hostile_ci=hostile_ci: _validate_hosted_ci_b01_mode_text(
+                hostile_ci,
+                source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+            ),
+            label,
+            "exact hostile and current evidence-schema checks",
+        )
     _must_fail(
         lambda: _validate_hosted_ci_b01_mode_text(
             ci_text.replace(" scripts/immutable_git.py", "", 1),
@@ -22413,6 +22748,85 @@ def self_test(data: dict[str, Any]) -> None:
         "hosted CI missing reviewer schema-validator Ruff coverage",
         "exact Ruff and py_compile reviewer-tool coverage",
     )
+    _must_fail(
+        lambda: _validate_hosted_ci_b01_mode_text(
+            ci_text.replace(
+                "            scripts/check_b01_review_handoff.py",
+                "",
+                1,
+            ),
+            source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+        ),
+        "hosted CI missing handoff checker Ruff coverage",
+        "exact Ruff and py_compile handoff-tool coverage",
+    )
+    hosted_alias_mutations = (
+        "python3 scripts/generate_b01_reviewer_kit.py --wri" + "te",
+        "python3 scripts/check_b01_review_handoff.py --json",
+        "python3 scripts/validate_evidence_schemas.py",
+        "bash -c 'python3 scripts/generate_b01_reviewer_kit.py --wri" + "te'",
+    )
+    for index, injected in enumerate(hosted_alias_mutations):
+        _must_fail(
+            lambda injected=injected: _validate_hosted_ci_b01_mode_text(
+                ci_text + "\n" + injected + "\n",
+                source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+            ),
+            f"hosted CI protected-tool alias injection {index}",
+            "exact protected B01 command allowlist",
+        )
+
+    local_text = _local_check_script_text()
+    _validate_local_b01_gate_text(local_text)
+    local_handoff_command = (
+        '"$evidence_schema_python" -B scripts/check_b01_review_handoff.py '
+        "\\\n"
+        "    --self-test --check"
+    )
+    local_schema_current_command = (
+        '"$evidence_schema_python" scripts/validate_evidence_schemas.py\n'
+    )
+    for label, hostile_local in (
+        (
+            "local gate missing handoff command",
+            local_text.replace(local_handoff_command, "", 1),
+        ),
+        (
+            "local gate duplicate handoff command",
+            local_text + "\n" + local_handoff_command + "\n",
+        ),
+        (
+            "local gate handoff JSON substitution",
+            local_text.replace(
+                local_handoff_command,
+                local_handoff_command.replace("--check", "--json"),
+                1,
+            ),
+        ),
+        (
+            "local gate missing current schema validation",
+            local_text.replace(local_schema_current_command, "", 1),
+        ),
+        (
+            "local gate missing handoff Ruff path",
+            local_text.replace(
+                "    scripts/check_b01_review_handoff.py",
+                "",
+                1,
+            ),
+        ),
+        (
+            "local gate protected-tool alias injection",
+            local_text + "\npython3 scripts/check_b01_review_handoff.py --json\n",
+        ),
+    ):
+        _must_fail(
+            lambda hostile_local=hostile_local: _validate_local_b01_gate_text(
+                hostile_local
+            ),
+            label,
+            "exact protected B01 command allowlist",
+        )
     if B01_SOURCE_STAGING_AUTHORIZED:
         _must_fail(
             lambda: _validate_hosted_ci_b01_mode_text(
@@ -24004,6 +24418,14 @@ def self_test(data: dict[str, Any]) -> None:
         lambda: validate(mutant),
         "B01 changed-files omission of a governed schema gate",
         "changed_files omits governed path scripts/validate_evidence_schemas.py",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b01 = next(task for task in mutant["tasks"] if task["id"] == "B01")
+    mutant_b01["changed_files"].remove("scripts/check_b01_review_handoff.py")
+    _must_fail(
+        lambda: validate(mutant),
+        "B01 changed-files omission of the handoff status gate",
+        "changed_files omits governed path scripts/check_b01_review_handoff.py",
     )
 
     _must_fail(

@@ -64,6 +64,14 @@ B01_REVIEW_SOURCE_CANDIDATE_SCHEMA = (
     / "B01"
     / "review-source-candidate.schema.v1.json"
 )
+B01_REVIEW_HANDOFF_STATUS_SCHEMA = (
+    ROOT
+    / "evidence"
+    / "implementation"
+    / "requests"
+    / "B01"
+    / "review-handoff-status.schema.v1.json"
+)
 MAX_JSON_BYTES = 2 * 1024 * 1024
 MAX_SCHEMA_ERRORS = 64
 DRAFT_2020_12_ID = "https://json-schema.org/draft/2020-12/schema"
@@ -81,6 +89,9 @@ B01_REVIEW_RESPONSE_SCHEMA_ID = (
 )
 B01_REVIEW_SOURCE_CANDIDATE_SCHEMA_ID = (
     "https://sepahead.github.io/NCP/schemas/b01-review-source-candidate.v1.json"
+)
+B01_REVIEW_HANDOFF_STATUS_SCHEMA_ID = (
+    "https://sepahead.github.io/NCP/schemas/b01-review-handoff-status.v1.json"
 )
 LOCAL_DEFINITION_REF = re.compile(r"^#/\$defs/[A-Za-z][A-Za-z0-9]*$")
 MAX_SCHEMA_PATTERNS = 64
@@ -681,6 +692,15 @@ def validate_b01_review_source_candidate_schema() -> None:
     )
 
 
+def validate_b01_review_handoff_status_schema() -> None:
+    require_pinned_validator()
+    validate_schema_definition(
+        load_json(B01_REVIEW_HANDOFF_STATUS_SCHEMA),
+        "B01 review handoff status",
+        expected_schema_id=B01_REVIEW_HANDOFF_STATUS_SCHEMA_ID,
+    )
+
+
 def _must_fail(action: Any, label: str, expected: str) -> None:
     try:
         action()
@@ -770,6 +790,7 @@ def self_test() -> None:
     reviewer_kit = load_json(B01_REVIEWER_KIT)
     review_response_schema = load_json(B01_REVIEW_RESPONSE_SCHEMA)
     review_source_candidate_schema = load_json(B01_REVIEW_SOURCE_CANDIDATE_SCHEMA)
+    review_handoff_status_schema = load_json(B01_REVIEW_HANDOFF_STATUS_SCHEMA)
     registry_fixture = _open_decision_registry_fixture(registry)
     validate_instance(
         ledger_schema,
@@ -798,6 +819,11 @@ def self_test() -> None:
         review_source_candidate_schema,
         "B01 review source candidate",
         expected_schema_id=B01_REVIEW_SOURCE_CANDIDATE_SCHEMA_ID,
+    )
+    validate_schema_definition(
+        review_handoff_status_schema,
+        "B01 review handoff status",
+        expected_schema_id=B01_REVIEW_HANDOFF_STATUS_SCHEMA_ID,
     )
 
     _must_fail(
@@ -1066,10 +1092,11 @@ def main() -> int:
             validate_b01_reviewer_kit_instance(load_json(B01_REVIEWER_KIT))
             validate_b01_review_response_schema()
             validate_b01_review_source_candidate_schema()
+            validate_b01_review_handoff_status_schema()
             print(
                 "OK evidence schemas: implementation ledger, proposed decision "
-                "registry, and non-authorizing B01 review preparation conform "
-                "to Draft 2020-12"
+                "registry, and non-authorizing B01 review preparation and status "
+                "conform to Draft 2020-12"
             )
         return 0
     except (OSError, EvidenceSchemaError) as error:

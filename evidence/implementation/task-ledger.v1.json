@@ -266,7 +266,7 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "d9b942f2e0913ddaea49e47b8865b47a88e65253ec71603a9dbedc2940105bf7"
+      "sha256": "7f0c0ce050588a155526d99b28666304e05018f45b35266df231eb90266fba46"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
@@ -278,7 +278,7 @@
     },
     {
       "path": "scripts/validate_evidence_schemas.py",
-      "sha256": "60cd188fb9e476827ec2776057143819eb024478c8185d7e186eb0188a76a464"
+      "sha256": "5ca4da00758f66ffa106d4a4b639e29d7b50a256760fffb4c2ab372e9ae79537"
     },
     {
       "path": "scripts/requirements-evidence-schema.txt",
@@ -1641,6 +1641,7 @@
         "evidence/convergence/README.md",
         "evidence/convergence/local-convergence.v1.json",
         "evidence/implementation/receipts/README.md",
+        "evidence/implementation/requests/B01/review-handoff-status.schema.v1.json",
         "evidence/implementation/requests/B01/review-request.v1.json",
         "evidence/implementation/requests/B01/review-response.schema.v1.json",
         "evidence/implementation/requests/B01/review-source-candidate.schema.v1.json",
@@ -1699,6 +1700,7 @@
         "scripts/README.md",
         "scripts/check.sh",
         "scripts/check_adr_examples.py",
+        "scripts/check_b01_review_handoff.py",
         "scripts/check_implementation_ledger.py",
         "scripts/check_ncp_system_design_pdf.sh",
         "scripts/gen_diagrams.py",

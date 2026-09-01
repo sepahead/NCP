@@ -57,12 +57,15 @@ jobs:
         run: |
           python3 -m venv "${RUNNER_TEMP}/ncp-evidence-schema"
           evidence_schema_python="${RUNNER_TEMP}/ncp-evidence-schema/bin/python"
+          export PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/ncp-python-cache"
+          export RUFF_CACHE_DIR="${RUNNER_TEMP}/ncp-ruff-cache"
           "$evidence_schema_python" -m pip install \
             --disable-pip-version-check --require-hashes --only-binary=:all: \
             -r scripts/requirements-evidence-schema.txt
           "$evidence_schema_python" \
             prototypes/b01-architecture-evidence/source_inventory.py --self-test
           "$evidence_schema_python" scripts/validate_evidence_schemas.py --self-test
+          "$evidence_schema_python" scripts/validate_evidence_schemas.py
           "$evidence_schema_python" scripts/check_implementation_ledger.py \
             --self-test
           "$evidence_schema_python" scripts/generate_implementation_ledger.py \
@@ -85,6 +88,14 @@ jobs:
             scripts/generate_b01_reviewer_kit.py \
             scripts/validate_evidence_schemas.py
           "$evidence_schema_python" scripts/generate_b01_reviewer_kit.py \
+            --self-test --check
+          "$evidence_schema_python" -m ruff format --check -- \
+            scripts/check_b01_review_handoff.py
+          "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+            scripts/check_b01_review_handoff.py
+          "$evidence_schema_python" -m py_compile \
+            scripts/check_b01_review_handoff.py
+          "$evidence_schema_python" -B scripts/check_b01_review_handoff.py \
             --self-test --check
 
       # The quarantined B04 syntax parser declares this exact Node engine.
