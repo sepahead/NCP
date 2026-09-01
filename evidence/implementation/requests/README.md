@@ -59,6 +59,9 @@ Do not edit the generated JSON manually.
 
 ## Check the request
 
+This command is an issuance-phase diagnostic.
+It requires the current source and proposed registry to contain zero reviews.
+
 Run this command from the repository root:
 
 ```text
@@ -113,6 +116,95 @@ The output directory requires one trusted owner and no group or world write acce
 Callers must provide one exclusive or cooperating writer during installation.
 Portable path replacement cannot exclude uncooperative same-user or root mutation.
 Such mutation after the final rejoin is outside the instantaneous emission claim.
+
+## Prepare one human response
+
+The reviewer kit removes repeated machine-owned fields from the human response.
+It derives 53 slots from the retained request.
+It normalizes the exact subject once for each ADR.
+
+Run the pinned evidence-schema environment before these commands.
+Use the lock in `scripts/requirements-evidence-schema.txt`.
+
+Check the generated kit:
+
+```text
+python3 scripts/generate_b01_reviewer_kit.py --self-test --check
+```
+
+This command is the maintained complete-gate lifecycle check.
+It derives the phase from the exact current source and proposed registry.
+It reports `ZERO_REVIEW_ISSUANCE` before capture starts.
+It reports `REVIEW_CAPTURE_ACTIVE` after the first retained review.
+Both phases rejoin the immutable request, packet, tools, and Git ancestry.
+The active phase validates every current record with the exact registry generator.
+The issuance-only request checker does not run after capture starts.
+The lifecycle check runs the exact request self-tests at the retained issuance cut.
+Current review bytes never become issuance authority.
+
+The phase label describes one current snapshot.
+It is not an append-only high-water mark.
+It cannot prove that prior review records remain present.
+The external verifier must reject removal, rollback, replay, and equivocation.
+The adjudication chain must preserve this decision across later captures.
+
+List the available slots:
+
+```text
+python3 scripts/generate_b01_reviewer_kit.py --list
+```
+
+Inspect one slot:
+
+```text
+python3 scripts/generate_b01_reviewer_kit.py \
+  --slot adr-003.security-cryptography-reviewer.01
+```
+
+The slot output contains only machine-owned facts.
+It contains no blank response object or placeholder value.
+
+Create a response that conforms to
+[`B01/review-response.schema.v1.json`](B01/review-response.schema.v1.json).
+The response must contain `schema`, `slot_id`, and human-supplied fields.
+Do not add `adr_id`, `role_id`, `subject`, or `derived`.
+
+Materialize a completed response:
+
+```text
+python3 scripts/generate_b01_reviewer_kit.py \
+  --materialize-response /absolute/path/to/response.json
+```
+
+The command executes the exact bound registry-generator source bytes.
+It writes one closed non-authorizing candidate envelope to stdout.
+The envelope uses
+[`B01/review-source-candidate.schema.v1.json`](B01/review-source-candidate.schema.v1.json).
+Its context binds the kit, schema, generator, and registry source snapshot.
+It never edits the registry or retained evidence.
+It never fetches an external receipt.
+
+Do not redirect this output onto a repository path.
+Treat the enclosed source record as untrusted.
+Do not add it to the registry.
+An independently owned verifier must authenticate every required fact.
+It must rejoin the current aggregate registry source.
+Only then can that verifier supply or adopt a record.
+
+An independent slot can retain an honest non-independent response.
+That response does not satisfy the independent review obligation.
+The registry keeps the obligation open.
+
+The generated kit is
+[`B01/reviewer-kit.v1.json`](B01/reviewer-kit.v1.json).
+Its closed schema is
+[`B01/reviewer-kit.schema.v1.json`](B01/reviewer-kit.schema.v1.json).
+Do not edit the generated kit manually.
+
+Materialization verifies each retained local receipt byte identity.
+It does not authenticate receipt origin, authorship, role authority, independence, or external truth.
+An independently owned verifier must establish those facts outside this repository.
+That verifier remains required before B01 can pass.
 
 ## Fixed minimum roster
 

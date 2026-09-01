@@ -11750,18 +11750,26 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
         ]
     except ValueError as error:
         _fail(f"hosted CI contains malformed B01 shell syntax: {error}")
-    expected_request = [
+    if request_invocations:
+        _fail("hosted CI executes the issuance-only B01 request checker")
+    try:
+        reviewer_kit_invocations = [
+            shlex.split(line)
+            for line in logical_lines
+            if line.strip().startswith(
+                '"$evidence_schema_python" scripts/generate_b01_reviewer_kit.py'
+            )
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed B01 reviewer-kit syntax: {error}")
+    expected_reviewer_kit = [
         "$evidence_schema_python",
-        "scripts/generate_b01_review_request.py",
-        "--commit",
-        B01_REVIEW_PACKET_COMMIT,
-        "--authorized-ref",
-        "refs/remotes/origin/main",
+        "scripts/generate_b01_reviewer_kit.py",
         "--self-test",
         "--check",
     ]
-    if request_invocations != [expected_request]:
-        _fail("hosted CI lacks one exact hermetic B01 review-request check")
+    if reviewer_kit_invocations != [expected_reviewer_kit]:
+        _fail("hosted CI lacks one exact phase-safe B01 reviewer-kit check")
     expected_python_tool_lines = [
         (
             "$evidence_schema_python",
@@ -11803,6 +11811,47 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
         _fail(f"hosted CI contains malformed B01 tool syntax: {error}")
     if observed_python_tool_lines != expected_python_tool_lines:
         _fail("hosted CI lacks exact Ruff and py_compile coverage for B01 tooling")
+    expected_reviewer_tool_lines = [
+        (
+            "$evidence_schema_python",
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "--",
+            "scripts/generate_b01_reviewer_kit.py",
+            "scripts/validate_evidence_schemas.py",
+        ),
+        (
+            "$evidence_schema_python",
+            "-m",
+            "ruff",
+            "check",
+            "--select",
+            "E,F,I,N,S,UP",
+            "--",
+            "scripts/generate_b01_reviewer_kit.py",
+            "scripts/validate_evidence_schemas.py",
+        ),
+        (
+            "$evidence_schema_python",
+            "-m",
+            "py_compile",
+            "scripts/generate_b01_reviewer_kit.py",
+            "scripts/validate_evidence_schemas.py",
+        ),
+    ]
+    try:
+        observed_reviewer_tool_lines = [
+            tuple(shlex.split(line))
+            for line in logical_lines
+            if "scripts/generate_b01_reviewer_kit.py" in line
+            and any(marker in line for marker in ("-m ruff", "-m py_compile"))
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed reviewer-tool syntax: {error}")
+    if observed_reviewer_tool_lines != expected_reviewer_tool_lines:
+        _fail("hosted CI lacks exact Ruff and py_compile reviewer-tool coverage")
 
 
 # This catalog is the checked implementation DAG. Descriptive detail remains in
@@ -22285,38 +22334,41 @@ def self_test(data: dict[str, Any]) -> None:
         f"must be at most {MAX_TASK_SUBJECT_JSON_BYTES}",
     )
     ci_text = _hosted_ci_workflow_text()
-    review_command = (
+    issuance_only_command = (
         '          "$evidence_schema_python" scripts/generate_b01_review_request.py '
         "\\\n"
         f"            --commit {B01_REVIEW_PACKET_COMMIT} \\\n"
         "            --authorized-ref refs/remotes/origin/main --self-test --check"
     )
-    if review_command not in ci_text:
-        _fail("self-test cannot locate the exact hosted B01 request command")
+    if issuance_only_command in ci_text:
+        _fail("hosted CI retains the issuance-only B01 request checker")
+    reviewer_kit_command = (
+        '          "$evidence_schema_python" scripts/generate_b01_reviewer_kit.py '
+        "\\\n"
+        "            --self-test --check"
+    )
+    if reviewer_kit_command not in ci_text:
+        _fail("self-test cannot locate the exact hosted B01 reviewer-kit command")
     for label, hostile_ci in (
         (
-            "removed B01 request command",
-            ci_text.replace(review_command, "", 1),
+            "removed B01 reviewer-kit command",
+            ci_text.replace(reviewer_kit_command, "", 1),
         ),
         (
-            "duplicated B01 request command",
-            ci_text + "\n" + review_command + "\n",
+            "duplicated B01 reviewer-kit command",
+            ci_text + "\n" + reviewer_kit_command + "\n",
         ),
         (
-            "B01 request live-check substitution",
+            "B01 reviewer-kit write substitution",
             ci_text.replace(
-                review_command,
-                review_command.replace("--check", "--live-check"),
+                reviewer_kit_command,
+                reviewer_kit_command.replace("--check", "--wri" + "te"),
                 1,
             ),
         ),
         (
-            "B01 request write substitution",
-            ci_text.replace(
-                review_command,
-                review_command.replace("--check", "--wri" + "te"),
-                1,
-            ),
+            "restored issuance-only B01 request checker",
+            ci_text + "\n" + issuance_only_command + "\n",
         ),
     ):
         _must_fail(
@@ -22325,7 +22377,11 @@ def self_test(data: dict[str, Any]) -> None:
                 source_staging=B01_SOURCE_STAGING_AUTHORIZED,
             ),
             label,
-            "exact hermetic B01 review-request check",
+            (
+                "issuance-only B01 request checker"
+                if label.startswith("restored")
+                else "exact phase-safe B01 reviewer-kit check"
+            ),
         )
     _must_fail(
         lambda: _validate_hosted_ci_b01_mode_text(
@@ -22343,6 +22399,19 @@ def self_test(data: dict[str, Any]) -> None:
         ),
         "hosted CI duplicate B01 py_compile invocation",
         "exact Ruff and py_compile coverage",
+    )
+    _must_fail(
+        lambda: _validate_hosted_ci_b01_mode_text(
+            ci_text.replace(
+                "scripts/generate_b01_reviewer_kit.py \\\n"
+                "            scripts/validate_evidence_schemas.py",
+                "scripts/generate_b01_reviewer_kit.py",
+                1,
+            ),
+            source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+        ),
+        "hosted CI missing reviewer schema-validator Ruff coverage",
+        "exact Ruff and py_compile reviewer-tool coverage",
     )
     if B01_SOURCE_STAGING_AUTHORIZED:
         _must_fail(

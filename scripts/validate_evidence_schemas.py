@@ -37,6 +37,33 @@ DECISION_REGISTRY_SCHEMA = (
     ROOT / "docs" / "adr" / "decision-registry.proposed.schema.v1.json"
 )
 DECISION_REGISTRY = ROOT / "docs" / "adr" / "decision-registry.proposed.v1.json"
+B01_REVIEWER_KIT_SCHEMA = (
+    ROOT
+    / "evidence"
+    / "implementation"
+    / "requests"
+    / "B01"
+    / "reviewer-kit.schema.v1.json"
+)
+B01_REVIEWER_KIT = (
+    ROOT / "evidence" / "implementation" / "requests" / "B01" / "reviewer-kit.v1.json"
+)
+B01_REVIEW_RESPONSE_SCHEMA = (
+    ROOT
+    / "evidence"
+    / "implementation"
+    / "requests"
+    / "B01"
+    / "review-response.schema.v1.json"
+)
+B01_REVIEW_SOURCE_CANDIDATE_SCHEMA = (
+    ROOT
+    / "evidence"
+    / "implementation"
+    / "requests"
+    / "B01"
+    / "review-source-candidate.schema.v1.json"
+)
 MAX_JSON_BYTES = 2 * 1024 * 1024
 MAX_SCHEMA_ERRORS = 64
 DRAFT_2020_12_ID = "https://json-schema.org/draft/2020-12/schema"
@@ -45,6 +72,15 @@ LEDGER_SCHEMA_ID = (
 )
 DECISION_REGISTRY_SCHEMA_ID = (
     "https://sepahead.github.io/NCP/schemas/proposed-decision-registry.v1.json"
+)
+B01_REVIEWER_KIT_SCHEMA_ID = (
+    "https://sepahead.github.io/NCP/schemas/b01-reviewer-kit.v1.json"
+)
+B01_REVIEW_RESPONSE_SCHEMA_ID = (
+    "https://sepahead.github.io/NCP/schemas/b01-review-response.v1.json"
+)
+B01_REVIEW_SOURCE_CANDIDATE_SCHEMA_ID = (
+    "https://sepahead.github.io/NCP/schemas/b01-review-source-candidate.v1.json"
 )
 LOCAL_DEFINITION_REF = re.compile(r"^#/\$defs/[A-Za-z][A-Za-z0-9]*$")
 MAX_SCHEMA_PATTERNS = 64
@@ -75,6 +111,11 @@ ALLOWED_SCHEMA_PATTERNS = frozenset(
         r"^[A-Z0-9][A-Z0-9._-]{1,63}$",
         r"^[BEHNFGCPXR][0-9]{2}$",
         r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        r"^adr-(?:00[1-9]|01[01])\.[a-z0-9]+(?:-[a-z0-9]+)*\.[0-9]{2}$",
+        (
+            r"^adr-(?:00[1-9]|01[01])\.[a-z0-9]+(?:-[a-z0-9]+)*\.[0-9]{2}\."
+            r"(?:role-authorization|external-review-receipt|independence-assessment)$"
+        ),
         r"^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
         r"^[a-z0-9][a-z0-9._:-]{2,127}$",
         r"^adr(?:00[1-9]|01[01])\.[a-z0-9][a-z0-9.-]*\.v1$",
@@ -89,6 +130,10 @@ ALLOWED_SCHEMA_PATTERNS = frozenset(
         (
             r"^evidence/implementation/reviews/B01/"
             r"(?!.*(?:^|/)\.\.(?:/|$))[^\\]+$"
+        ),
+        (
+            r"^evidence/implementation/reviews/B01/"
+            r"(?!\.\.(?:/|$))(?!.*(?:^|/)\.\.(?:/|$))[^\\]+$"
         ),
     }
 )
@@ -526,12 +571,12 @@ def validate_instance(
     *,
     expected_schema_id: str | None = None,
 ) -> None:
+    validate_schema_definition(
+        schema,
+        label,
+        expected_schema_id=expected_schema_id,
+    )
     try:
-        validate_native_json_tree(
-            schema,
-            limits=EVIDENCE_JSON_LIMITS,
-            label=f"{label} schema",
-        )
         validate_native_json_tree(
             instance,
             limits=EVIDENCE_JSON_LIMITS,
@@ -539,15 +584,6 @@ def validate_instance(
         )
     except BoundedJsonError as error:
         _fail(str(error))
-    if type(schema) is not dict or schema.get("$schema") != DRAFT_2020_12_ID:
-        _fail(f"{label} does not declare Draft 2020-12")
-    if expected_schema_id is not None and schema.get("$id") != expected_schema_id:
-        _fail(f"{label} has an unexpected root schema identifier")
-    _validate_schema_resource_policy(schema, label)
-    try:
-        Draft202012Validator.check_schema(schema)
-    except SchemaError as error:
-        _fail(f"{label} schema is invalid: {error.message}")
     try:
         errors, truncated = _bounded_schema_errors(
             Draft202012Validator(schema).iter_errors(instance)
@@ -570,6 +606,33 @@ def validate_instance(
         )
 
 
+def validate_schema_definition(
+    schema: Any,
+    label: str,
+    *,
+    expected_schema_id: str | None = None,
+) -> None:
+    """Validate one closed local schema without accepting an instance."""
+
+    try:
+        validate_native_json_tree(
+            schema,
+            limits=EVIDENCE_JSON_LIMITS,
+            label=f"{label} schema",
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    if type(schema) is not dict or schema.get("$schema") != DRAFT_2020_12_ID:
+        _fail(f"{label} does not declare Draft 2020-12")
+    if expected_schema_id is not None and schema.get("$id") != expected_schema_id:
+        _fail(f"{label} has an unexpected root schema identifier")
+    _validate_schema_resource_policy(schema, label)
+    try:
+        Draft202012Validator.check_schema(schema)
+    except SchemaError as error:
+        _fail(f"{label} schema is invalid: {error.message}")
+
+
 def validate_ledger_instance(instance: Any) -> None:
     require_pinned_validator()
     validate_instance(
@@ -587,6 +650,34 @@ def validate_decision_registry_instance(instance: Any) -> None:
         instance,
         "proposed decision registry",
         expected_schema_id=DECISION_REGISTRY_SCHEMA_ID,
+    )
+
+
+def validate_b01_reviewer_kit_instance(instance: Any) -> None:
+    require_pinned_validator()
+    validate_instance(
+        load_json(B01_REVIEWER_KIT_SCHEMA),
+        instance,
+        "B01 reviewer kit",
+        expected_schema_id=B01_REVIEWER_KIT_SCHEMA_ID,
+    )
+
+
+def validate_b01_review_response_schema() -> None:
+    require_pinned_validator()
+    validate_schema_definition(
+        load_json(B01_REVIEW_RESPONSE_SCHEMA),
+        "B01 review response",
+        expected_schema_id=B01_REVIEW_RESPONSE_SCHEMA_ID,
+    )
+
+
+def validate_b01_review_source_candidate_schema() -> None:
+    require_pinned_validator()
+    validate_schema_definition(
+        load_json(B01_REVIEW_SOURCE_CANDIDATE_SCHEMA),
+        "B01 review source candidate",
+        expected_schema_id=B01_REVIEW_SOURCE_CANDIDATE_SCHEMA_ID,
     )
 
 
@@ -675,6 +766,10 @@ def self_test() -> None:
     ledger = load_json(LEDGER)
     registry_schema = load_json(DECISION_REGISTRY_SCHEMA)
     registry = load_json(DECISION_REGISTRY)
+    reviewer_kit_schema = load_json(B01_REVIEWER_KIT_SCHEMA)
+    reviewer_kit = load_json(B01_REVIEWER_KIT)
+    review_response_schema = load_json(B01_REVIEW_RESPONSE_SCHEMA)
+    review_source_candidate_schema = load_json(B01_REVIEW_SOURCE_CANDIDATE_SCHEMA)
     registry_fixture = _open_decision_registry_fixture(registry)
     validate_instance(
         ledger_schema,
@@ -687,6 +782,22 @@ def self_test() -> None:
         registry_fixture,
         "proposed decision registry",
         expected_schema_id=DECISION_REGISTRY_SCHEMA_ID,
+    )
+    validate_instance(
+        reviewer_kit_schema,
+        reviewer_kit,
+        "B01 reviewer kit",
+        expected_schema_id=B01_REVIEWER_KIT_SCHEMA_ID,
+    )
+    validate_schema_definition(
+        review_response_schema,
+        "B01 review response",
+        expected_schema_id=B01_REVIEW_RESPONSE_SCHEMA_ID,
+    )
+    validate_schema_definition(
+        review_source_candidate_schema,
+        "B01 review source candidate",
+        expected_schema_id=B01_REVIEW_SOURCE_CANDIDATE_SCHEMA_ID,
     )
 
     _must_fail(
@@ -952,9 +1063,13 @@ def main() -> int:
         else:
             validate_ledger_instance(load_json(LEDGER))
             validate_decision_registry_instance(load_json(DECISION_REGISTRY))
+            validate_b01_reviewer_kit_instance(load_json(B01_REVIEWER_KIT))
+            validate_b01_review_response_schema()
+            validate_b01_review_source_candidate_schema()
             print(
-                "OK evidence schemas: implementation ledger and proposed "
-                "decision registry conform to Draft 2020-12"
+                "OK evidence schemas: implementation ledger, proposed decision "
+                "registry, and non-authorizing B01 review preparation conform "
+                "to Draft 2020-12"
             )
         return 0
     except (OSError, EvidenceSchemaError) as error:

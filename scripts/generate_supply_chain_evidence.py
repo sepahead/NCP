@@ -98,6 +98,9 @@ GENERATOR_OUTPUTS = {
     "scripts/generate_b01_review_request.py": [
         "evidence/implementation/requests/B01/review-request.v1.json"
     ],
+    "scripts/generate_b01_reviewer_kit.py": [
+        "evidence/implementation/requests/B01/reviewer-kit.v1.json"
+    ],
     "scripts/generate_conformance_manifest.py": ["conformance/manifest.v1.json"],
     "scripts/generate_convergence_manifest.py": [
         "evidence/convergence/local-convergence.v1.json"
