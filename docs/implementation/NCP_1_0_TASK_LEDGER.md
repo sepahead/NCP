@@ -6,7 +6,7 @@
 > `--write` and verify with `--check`.
 > This is evidence bookkeeping, not release authorization or certification.
 
-Blueprint SHA-256: `c5b8f053315e14c930e94e656317edf4690241019a9dd2e3c69b852ba6d80aea`.
+Blueprint SHA-256: `6f7c0c7d655be321f3723833196dc54686bbc3a55e545451a7cb7daf12d41b79`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -16,7 +16,10 @@ The candidate remains **NO_GO**. A local pass means only that a bounded
 repository-local acceptance slice passed. External and independent obligations remain
 separate, and publication tasks cannot start through a status edit.
 
-| Status | Count |
+Authoritative completion denominator: **62** tasks.
+Prototype lanes excluded from that denominator: **1**.
+
+| Authoritative status | Count |
 |---|---:|
 | `OPEN` | 59 |
 | `IN_PROGRESS` | 1 |
@@ -26,9 +29,13 @@ separate, and publication tasks cannot start through a status edit.
 | `INDEPENDENT_PASS` | 0 |
 | `COMPLETE` | 0 |
 
-Active tasks: `B01`.
+Prototype lane status: `B05` (`OPEN`).
 
-Dependency-ready open tasks: none.
+Active authoritative tasks: `B01`.
+Active prototype lanes: none.
+
+Dependency-ready authoritative tasks: none.
+Dependency-ready prototype lanes: `B05`.
 
 The checked execution DAG is graph-theoretically transitively reduced. Each direct
 edge adds one ordering constraint; chained content-addressed receipts retain the
@@ -118,6 +125,8 @@ trust-root, qualification, revocation, and currentness acceptance parsers are
 absent from this checker, which has no cryptographic dependency or trust-root
 configuration path. Local claims cannot promote a task.
 B01 stays `IN_PROGRESS`; X05 stays `OPEN`; their external gates stay **NOT RUN**.
+B05 is a separate `PROTOTYPE_ONLY` local lane. Another task cannot cite a
+B05-reserved path. It must rerun the check and retain task-owned evidence.
 A future admission path requires an explicit reviewed checker and schema change
 that integrates a separately authenticated and independently qualified verifier.
 There is no configuration switch or trust-root entry that enables admission.
@@ -1856,6 +1865,7 @@ close a requirement, or change a task's evidence floor.
 |---|---|---|---|---|---|---|---|---|---:|
 | `B00` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | `B00-ledger-integrity`, `B00-no-optimistic-status`, `B00-resumption-control`, `B00-current-generation-evidence`, `B00-content-bound-receipts` | Create the live implementation and evidence ledger | — | NCP | `6381d2a7cc82` | 4 |
 | `B04` | `LOCAL_PASS` | `COORDINATION_ONLY` | `LOCAL` | `B04-acceptance` | Prove authenticated-ingress and independent-parser feasibility | `B00` | NCP prototypes | `3754635404f3` | 6 |
+| `B05` | `OPEN` | `PROTOTYPE_ONLY` | `LOCAL` | `B05-acceptance` | Exercise quarantined non-authorizing implementation prototypes | `B04` | NCP prototypes | `—` | 4 |
 | `B01` | `IN_PROGRESS` | `COORDINATION_ONLY` | `INDEPENDENT` | `B01-acceptance`, `D01`, `D02`, `D03`, `D04`, `D05`, `D06`, `D07`, `D08`, `D09`, `D10`, `D11`, `D12`, `D13`, `D14`, `D15`, `D16`, `D17`, `D18`, `D19`, `D20`, `D21` | Decide and ratify ADR-001 through ADR-011 | `B04` | NCP | `—` | 51 |
 | `B02` | `OPEN` | `COORDINATION_ONLY` | `EXTERNAL` | `B02-acceptance`, `D19`, `D21` | Authorize and identify the deliberate pre-release rebaseline | `B01` | NCP | `—` | 0 |
 | `B03` | `OPEN` | `COORDINATION_ONLY` | `LOCAL` | `B03-acceptance`, `D09`, `D13`, `D19`, `D21` | Reserve registries, namespaces, error codes, and owners | `B02` | NCP | `—` | 0 |
@@ -1916,6 +1926,42 @@ close a requirement, or change a task's evidence floor.
 | `R07` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R07-acceptance`, `D18`, `V11` | Repin and revalidate every consumer against the immutable tag | `R05` | all consumer repositories | `—` | 0 |
 | `R08` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R08-acceptance`, `V11` | Update ecosystem repository metadata and the public selected-work profile | `R06`, `R07` | ecosystem GitHub and profile | `—` | 0 |
 | `R09` | `OPEN` | `RELEASE_OPERATION` | `EXTERNAL` | `R09-acceptance` | Run post-publication installs and emergency-revocation exercise | `R05` | public install hosts and revocation lab | `—` | 0 |
+
+## Quarantined non-authorizing prototype lane
+
+B05 can run in parallel with B01 after B04. It can write only the checked
+prototype, local evidence, ledger-view, audit, and supply-chain paths.
+The gate inspects every prototype leaf and binds every non-manifest file.
+It inspects every B05 receipt path and every current or inherited file.
+The scan rejects host paths, credentials, and portable-path collisions.
+It rejects unsafe Git aliases, Windows devices, alternate data streams,
+unsafe characters, and bounded-path violations.
+Source paths stay in the prototype quarantine, required research record,
+or exact generated allowlist.
+The evidence commit directly follows its source. Its delta contains only listed artifacts.
+The focused result and portable preflight output bind the source cut.
+Preflight requires a clean tracked and untracked-nonignored worktree.
+The index must equal the source tree and use only normal index flags.
+A hash-bound canonical runner uses Python isolated mode.
+The runner passes immutable gate text to explicit system Bash.
+It never reopens the gate pathname during execution.
+It uses a minimal child environment and a checked tool-path policy.
+It removes shell, Git, Python, function, and tool-wrapper injection.
+It rejects dynamic-loader injection before child execution.
+It binds itself and the gate script before and after execution.
+It rechecks `HEAD`, the tree, index views, and worktree state after execution.
+Bounded streaming enforces timeout and raw-output limits during execution.
+Script, argument, line, portable-byte, and JSON bounds admit the real gate log.
+Timeout and overflow terminate every surviving process-group member.
+The output retains raw byte, line, and SHA-256 commitments without host paths.
+Ignored build caches remain environmental inputs without provenance authority.
+Accepted user tool directories remain local inputs without toolchain authority.
+B05 does not claim complete in-flight worktree immutability.
+Another task cannot cite a B05-reserved path. It must
+rerun the check and retain task-owned evidence.
+The gate recomputes the normative digest from immutable source blobs.
+B05 can reach only `LOCAL_PASS`. It cannot enter defect, qualification,
+governance, completion, or release closure.
 
 ## D21 compact-availability overlay ownership
 

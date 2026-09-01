@@ -22,7 +22,6 @@ from check_implementation_ledger import (
     set_b01_source_staging_mode,
 )
 
-
 LEDGER_VIEW = ROOT / "docs" / "implementation" / "NCP_1_0_TASK_LEDGER.md"
 RESUMPTION_VIEW = ROOT / "docs" / "implementation" / "NCP_1_0_RESUMPTION.md"
 V11_ATLAS_OWNER_TASK_IDS = ("N10", "E06", "H04", "G02", "C04", "P02")
@@ -181,8 +180,12 @@ def render_ledger(data: dict[str, object], *, b01_source_staging: bool = False) 
     assert isinstance(repositories, list)
     assert isinstance(perspectives, list)
     assert isinstance(lenses, list)
+    authoritative_tasks = [
+        task for task in tasks if task["claim_tier"] != "PROTOTYPE_ONLY"
+    ]
+    prototype_tasks = [task for task in tasks if task["claim_tier"] == "PROTOTYPE_ONLY"]
     counts = {
-        status: sum(task["status"] == status for task in tasks)
+        status: sum(task["status"] == status for task in authoritative_tasks)
         for status in (
             "OPEN",
             "IN_PROGRESS",
@@ -196,7 +199,17 @@ def render_ledger(data: dict[str, object], *, b01_source_staging: bool = False) 
     active_tasks = [
         task for task in tasks if task["status"] in {"IN_PROGRESS", "BLOCKED"}
     ]
-    active = [task["id"] for task in active_tasks]
+    active_authoritative = [
+        task["id"] for task in active_tasks if task["claim_tier"] != "PROTOTYPE_ONLY"
+    ]
+    active_prototypes = [
+        task["id"] for task in active_tasks if task["claim_tier"] == "PROTOTYPE_ONLY"
+    ]
+    ready = set(_next_tasks(data))
+    ready_authoritative = [
+        task["id"] for task in authoritative_tasks if task["id"] in ready
+    ]
+    ready_prototypes = [task["id"] for task in prototype_tasks if task["id"] in ready]
     lines = [
         "# NCP 1.0 implementation task ledger",
         "",
@@ -216,16 +229,38 @@ def render_ledger(data: dict[str, object], *, b01_source_staging: bool = False) 
         "repository-local acceptance slice passed. External and independent obligations remain",
         "separate, and publication tasks cannot start through a status edit.",
         "",
-        "| Status | Count |",
+        f"Authoritative completion denominator: **{len(authoritative_tasks)}** tasks.",
+        f"Prototype lanes excluded from that denominator: **{len(prototype_tasks)}**.",
+        "",
+        "| Authoritative status | Count |",
         "|---|---:|",
     ]
     lines.extend(f"| `{status}` | {count} |" for status, count in counts.items())
     lines.extend(
         [
             "",
-            f"Active tasks: {', '.join(f'`{task}`' for task in active) if active else 'none'}.",
+            "Prototype lane status: "
+            + (
+                ", ".join(
+                    f"`{task['id']}` (`{task['status']}`)" for task in prototype_tasks
+                )
+                or "none"
+            )
+            + ".",
             "",
-            f"Dependency-ready open tasks: {', '.join(f'`{task}`' for task in _next_tasks(data)) or 'none'}.",
+            "Active authoritative tasks: "
+            + (", ".join(f"`{task}`" for task in active_authoritative) or "none")
+            + ".",
+            "Active prototype lanes: "
+            + (", ".join(f"`{task}`" for task in active_prototypes) or "none")
+            + ".",
+            "",
+            "Dependency-ready authoritative tasks: "
+            + (", ".join(f"`{task}`" for task in ready_authoritative) or "none")
+            + ".",
+            "Dependency-ready prototype lanes: "
+            + (", ".join(f"`{task}`" for task in ready_prototypes) or "none")
+            + ".",
             "",
             "The checked execution DAG is graph-theoretically transitively reduced. Each direct",
             "edge adds one ordering constraint; chained content-addressed receipts retain the",
@@ -267,6 +302,8 @@ def render_ledger(data: dict[str, object], *, b01_source_staging: bool = False) 
             "absent from this checker, which has no cryptographic dependency or trust-root",
             "configuration path. Local claims cannot promote a task.",
             "B01 stays `IN_PROGRESS`; X05 stays `OPEN`; their external gates stay **NOT RUN**.",
+            "B05 is a separate `PROTOTYPE_ONLY` local lane. Another task cannot cite a",
+            "B05-reserved path. It must rerun the check and retain task-owned evidence.",
             "A future admission path requires an explicit reviewed checker and schema change",
             "that integrates a separately authenticated and independently qualified verifier.",
             "There is no configuration switch or trust-root entry that enables admission.",
@@ -1999,6 +2036,46 @@ def render_ledger(data: dict[str, object], *, b01_source_staging: bool = False) 
             f"{_cell(task['title'])} | {dependencies} | {_cell(task['repository'])} | "
             f"`{_short(task['source_commit'])}` | {len(task['residual_risks'])} |"
         )
+    lines.extend(
+        [
+            "",
+            "## Quarantined non-authorizing prototype lane",
+            "",
+            "B05 can run in parallel with B01 after B04. It can write only the checked",
+            "prototype, local evidence, ledger-view, audit, and supply-chain paths.",
+            "The gate inspects every prototype leaf and binds every non-manifest file.",
+            "It inspects every B05 receipt path and every current or inherited file.",
+            "The scan rejects host paths, credentials, and portable-path collisions.",
+            "It rejects unsafe Git aliases, Windows devices, alternate data streams,",
+            "unsafe characters, and bounded-path violations.",
+            "Source paths stay in the prototype quarantine, required research record,",
+            "or exact generated allowlist.",
+            "The evidence commit directly follows its source. Its delta contains only listed artifacts.",
+            "The focused result and portable preflight output bind the source cut.",
+            "Preflight requires a clean tracked and untracked-nonignored worktree.",
+            "The index must equal the source tree and use only normal index flags.",
+            "A hash-bound canonical runner uses Python isolated mode.",
+            "The runner passes immutable gate text to explicit system Bash.",
+            "It never reopens the gate pathname during execution.",
+            "It uses a minimal child environment and a checked tool-path policy.",
+            "It removes shell, Git, Python, function, and tool-wrapper injection.",
+            "It rejects dynamic-loader injection before child execution.",
+            "It binds itself and the gate script before and after execution.",
+            "It rechecks `HEAD`, the tree, index views, and worktree state after execution.",
+            "Bounded streaming enforces timeout and raw-output limits during execution.",
+            "Script, argument, line, portable-byte, and JSON bounds admit the real gate log.",
+            "Timeout and overflow terminate every surviving process-group member.",
+            "The output retains raw byte, line, and SHA-256 commitments without host paths.",
+            "Ignored build caches remain environmental inputs without provenance authority.",
+            "Accepted user tool directories remain local inputs without toolchain authority.",
+            "B05 does not claim complete in-flight worktree immutability.",
+            "Another task cannot cite a B05-reserved path. It must",
+            "rerun the check and retain task-owned evidence.",
+            "The gate recomputes the normative digest from immutable source blobs.",
+            "B05 can reach only `LOCAL_PASS`. It cannot enter defect, qualification,",
+            "governance, completion, or release closure.",
+        ]
+    )
     d21_owners = _d21_overlay_tasks(tasks)
     lines.extend(
         [
@@ -2136,7 +2213,17 @@ def render_resumption(
     assert isinstance(repositories, list)
     active = [task for task in tasks if task["status"] in {"IN_PROGRESS", "BLOCKED"}]
     dirty = [repository for repository in repositories if repository["dirty"]]
-    next_tasks = _next_tasks(data)
+    next_tasks = set(_next_tasks(data))
+    ready_authoritative = [
+        task["id"]
+        for task in tasks
+        if task["id"] in next_tasks and task["claim_tier"] != "PROTOTYPE_ONLY"
+    ]
+    ready_prototypes = [
+        task["id"]
+        for task in tasks
+        if task["id"] in next_tasks and task["claim_tier"] == "PROTOTYPE_ONLY"
+    ]
     lines = [
         "# Mandatory NCP 1.0 agent resumption brief",
         "",
@@ -2166,10 +2253,14 @@ def render_resumption(
         "   `SECURITY.md`, and `RELEASE_READINESS.md` before a protocol-facing change.",
         "5. The target consumer's owning runtime, security, scientific, and integration docs.",
         "",
-        "## Provisional topology boundary — ratify ADR-011 before code",
+        "## Provisional topology and prototype boundary",
         "",
         "- NCP is a project-neutral protocol/provider, not an application orchestrator and not",
         "  a dependency on any consumer application.",
+        "- B05 can run only inside the NCP prototype quarantine after B04. It is",
+        "  `PROTOTYPE_ONLY`. Another task must rerun its checks and retain task-owned",
+        "  evidence. B05 cannot supply another task or progress claim.",
+        "  B05 does not alter the frozen B01 subject or bypass B01, B02, or B03.",
         "- X05 is proposed protocol infrastructure, not an additional X03 role. Signature,",
         "  identity, revocation, and currentness requirements remain non-authorizing blueprint",
         "  material. This repository-local checker has no X05 acceptance parser, cryptographic",
@@ -2262,11 +2353,17 @@ def render_resumption(
     lines.extend(
         [
             "",
-            f"Dependency-ready open tasks: {', '.join(f'`{task}`' for task in next_tasks) or 'none'}.",
+            "Dependency-ready authoritative tasks: "
+            + (", ".join(f"`{task}`" for task in ready_authoritative) or "none")
+            + ".",
+            "Dependency-ready prototype lanes: "
+            + (", ".join(f"`{task}`" for task in ready_prototypes) or "none")
+            + ".",
             "",
-            "Do not start a descendant merely because its files are convenient. Provider changes",
-            "land and pass first; consumers then bind exact immutable provider commits. Cross-repo",
-            "work is never one atomic Git transaction.",
+            "Do not start an authoritative descendant merely because its files are convenient.",
+            "B05 experiments remain quarantined and non-crediting. Provider changes land and pass",
+            "first. Consumers then bind exact immutable provider commits. Cross-repo work is never",
+            "one atomic Git transaction.",
             "",
             "## Preserved stopped-agent state",
             "",

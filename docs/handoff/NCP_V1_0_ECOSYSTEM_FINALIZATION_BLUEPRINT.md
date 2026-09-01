@@ -5078,7 +5078,7 @@ are frozen.
 ```text
 L0  B00
 L1  B04
-L2  B01
+L2  B01, B05
 L3  B02
 L4  B03
 L5  N01
@@ -5249,6 +5249,103 @@ Ten-lens record:
 9. **L9:** exact probes, negative vectors and limitations are retained; advice is
    labeled non-evidence.
 10. **L10:** ADR owners decide from evidence and own cryptographic/transport change.
+
+#### B05 — exercise quarantined non-authorizing implementation prototypes
+
+**Status:** `OPEN`<br>
+**Depends on:** B04<br>
+**Repository/environment:** NCP prototype quarantine<br>
+**Create/update:** `prototypes/ncp10-implementation/`,
+`docs/research/ncp10-implementation-prototype.md`,
+`scripts/run_b05_preflight.py`, B05 receipt paths, the JSON ledger, its generated
+views, and derived audit or supply-chain evidence.
+
+B05 can start in parallel with B01 after B04 reaches its local evidence floor.
+B05 does not depend on B01 and does not bypass B01, B02, or B03.
+
+Implementation:
+
+- Keep all executable work under `prototypes/ncp10-implementation/`.
+- Define project and capability labels in an exact run manifest. Do not encode named consumers in
+  protocol behavior.
+- Make each passing source cut a single-parent commit.
+- Derive the exact changed paths from that immutable source cut.
+- Inspect every leaf in the complete prototype tree. Reject links, gitlinks, empty files,
+  oversized files, and portable-path collisions.
+- Bind every non-manifest prototype file in the manifest's sorted source roster.
+- Require a regular checker and the hash-bound canonical preflight runner.
+- Run the canonical preflight runner with Python isolated mode.
+- Require one implementation file, one test file, and one changed run manifest.
+- Require the research record to remain a nonempty regular file.
+- Permit only prototype files, the research record, and three exact generated evidence files.
+- Recompute the normative digest from every immutable normative source blob.
+- Make the evidence cut a direct child of the source cut.
+- Permit only listed regular artifacts in the B05 evidence delta.
+- Reject nonportable, non-normalized, control-character, or case-colliding artifact paths.
+- Reject reserved Git aliases and Windows device components.
+- Reject trailing spaces, trailing periods, alternate data streams, and unsafe Windows characters.
+- Enforce UTF-8, UTF-16, component, depth, and complete relative-path limits.
+- Inspect every file and directory path in the complete receipt subtree.
+- Scan every current and inherited receipt file for host paths and credentials.
+- Require the focused checker to emit its canonical source-bound result.
+- Parse the exact positive and hostile case rosters. Keep their identifiers disjoint.
+- Require a clean tracked and untracked-nonignored worktree before execution.
+- Require the index roster to equal the immutable source tree.
+- Reject staged, unmerged, sparse, skip-worktree, assume-unchanged, and fsmonitor-valid index state.
+- Bind `scripts/check.sh` to its immutable source-commit blob before execution.
+- Bind the canonical runner to its checked source identity.
+- Execute each script only when its worktree bytes match its source blob.
+- Pass the immutable gate text through explicit `/bin/bash --noprofile --norc -c`.
+- Do not reopen the gate pathname during execution.
+- Use a minimal child environment with a checked tool-path policy.
+- Remove shell, Git, Python, function-import, and tool-wrapper injection variables.
+- Reject dynamic-loader injection before the runner starts a child.
+- Require Git to resolve the runner's repository root.
+- Enforce a 64 KiB gate-script limit and an `ARG_MAX` safety margin.
+- Enforce the preflight timeout and output limit while reading bounded chunks.
+- Enforce exact raw-line and portable-output limits before result encoding.
+- Parse the result with dedicated limits that admit the real local-gate log.
+- Kill the complete process group after a timeout or output overflow.
+- Escalate from `SIGTERM` to `SIGKILL` while any group member remains.
+- Test Git redirection, dirty scripts, timeout, descendant survival, and overflow.
+- Test raw-byte, raw-line, portable-byte, and large-result boundaries.
+- Recheck the worktree, `HEAD`, source tree, runner, and gate after execution.
+- Recheck every index roster and hidden-state view after execution.
+- Require the checked preflight runner to execute the complete local gate.
+- Apply the exact portable line-redaction transform before retaining preflight output.
+- Redact nonterminal lines with slash, backslash, percent, control, or excessive length.
+- Bind the raw byte count, line count, and SHA-256. Do not retain raw host paths.
+- Bind the portable output, source cut, command, exit, and terminal count.
+- Treat ignored build caches as environmental inputs. B05 does not attest their provenance.
+- Treat accepted user tool directories as local inputs. B05 grants no toolchain authority.
+- Do not claim complete in-flight worktree immutability.
+- Use only local, non-independent reviewers. Record no external-gate credit.
+- Preserve standalone consumer operation and use NCP only at cross-project semantic
+  boundaries.
+- Use NCP for heterogeneous lifecycle, authority, bounded data, and evidence. Do
+  not replace MUSIC for shared-clock simulator coupling.
+- Keep B05 separate from authoritative implementation and release tasks. B05 can
+  never become `COMPLETE`.
+
+Acceptance: the exact B04 receipt is bound. Git-derived changed paths stay inside
+the quarantine and exact generated-evidence allowlist. Focused tests include
+positive and hostile cases. The recomputed normative digest is unchanged. The
+clean source commit is pushed and verified.
+Another task cannot cite a B05-reserved path. It must rerun the check and retain
+task-owned evidence.
+
+Ten-lens record:
+
+1. **L1:** prototypes cannot change a normative source or stable package surface.
+2. **L2:** unknown, default, unauthenticated, stale, or ambiguous inputs fail closed.
+3. **L3:** no prototype grants plant action, ESTOP, or physical-safety authority.
+4. **L4:** B05 binds B04 and records explicit lifecycle failure cases.
+5. **L5:** all inputs, queues, state, time, memory, and output remain bounded.
+6. **L6:** data-defined labels support future projects without changing protocol logic.
+7. **L7:** no simulation result becomes scientific evidence or a calibrated posterior.
+8. **L8:** one quarantine and one evidence pattern reduce developer coordination.
+9. **L9:** positive controls and hostile mutants cover each new accept or reject path.
+10. **L10:** B01 review, external qualification, governance, and release remain separate.
 
 #### B01 — decide and ratify ADR-001 through ADR-011
 

@@ -26,10 +26,14 @@ independent-review, clean-room, signing, publication, or consumer-role evidence.
    `SECURITY.md`, and `RELEASE_READINESS.md` before a protocol-facing change.
 5. The target consumer's owning runtime, security, scientific, and integration docs.
 
-## Provisional topology boundary — ratify ADR-011 before code
+## Provisional topology and prototype boundary
 
 - NCP is a project-neutral protocol/provider, not an application orchestrator and not
   a dependency on any consumer application.
+- B05 can run only inside the NCP prototype quarantine after B04. It is
+  `PROTOTYPE_ONLY`. Another task must rerun its checks and retain task-owned
+  evidence. B05 cannot supply another task or progress claim.
+  B05 does not alter the frozen B01 subject or bypass B01, B02, or B03.
 - X05 is proposed protocol infrastructure, not an additional X03 role. Signature,
   identity, revocation, and currentness requirements remain non-authorizing blueprint
   material. This repository-local checker has no X05 acceptance parser, cryptographic
@@ -83,7 +87,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `c5b8f053315e14c930e94e656317edf4690241019a9dd2e3c69b852ba6d80aea`.
+Blueprint SHA-256: `6f7c0c7d655be321f3723833196dc54686bbc3a55e545451a7cb7daf12d41b79`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -151,11 +155,13 @@ Current residual risks:
 - Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.
 
-Dependency-ready open tasks: none.
+Dependency-ready authoritative tasks: none.
+Dependency-ready prototype lanes: `B05`.
 
-Do not start a descendant merely because its files are convenient. Provider changes
-land and pass first; consumers then bind exact immutable provider commits. Cross-repo
-work is never one atomic Git transaction.
+Do not start an authoritative descendant merely because its files are convenient.
+B05 experiments remain quarantined and non-crediting. Provider changes land and pass
+first. Consumers then bind exact immutable provider commits. Cross-repo work is never
+one atomic Git transaction.
 
 ## Preserved stopped-agent state
 

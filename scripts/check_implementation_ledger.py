@@ -16,16 +16,20 @@ import os
 import re
 import shlex
 import stat
+import struct
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 import zlib
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
 from importlib import metadata as importlib_metadata
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable, Mapping, NoReturn
+from typing import Any, NoReturn
 from urllib.parse import unquote, urlsplit
 
 from bounded_json import (
@@ -36,15 +40,31 @@ from bounded_json import (
     read_bounded_regular_file,
 )
 from immutable_git import (
+    GitBlobSnapshot,
     ImmutableGitError,
+)
+from immutable_git import (
     blob_snapshot as immutable_blob_snapshot,
+)
+from immutable_git import (
     commit_tree as immutable_commit_tree,
+)
+from immutable_git import (
     control_output as immutable_control_output,
+)
+from immutable_git import (
+    read_commit as immutable_read_commit,
+)
+from immutable_git import (
+    read_object as immutable_read_object,
+)
+from immutable_git import (
     require_ancestor as immutable_require_ancestor,
+)
+from immutable_git import (
     shared_operation as immutable_git_operation,
 )
 from validate_evidence_schemas import EvidenceSchemaError, validate_ledger_instance
-
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "evidence" / "implementation" / "task-ledger.v1.json"
@@ -471,8 +491,11 @@ CLAIM_BOUNDARY = (
     "This ledger records bounded implementation progress only. It never authorizes "
     "runtime identity, plant action, a tag, publication, certification, physical safety, "
     "calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and "
-    "IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This "
-    "checker has no separately authenticated independent verifier boundary, so "
+    "IN_PROGRESS are not passes. PROTOTYPE_ONLY and its LOCAL_PASS are quarantined "
+    "repository-local experiments only. They grant no implementation-task, defect-closure, "
+    "qualification, governance, or release credit. Other LOCAL_PASS evidence is also "
+    "repository-local only. This checker has no separately authenticated independent "
+    "verifier boundary, so "
     "EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are "
     "intentionally disabled."
 )
@@ -12173,6 +12196,201 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
     )
 
 
+# B05 is a parallel, non-authorizing experiment lane. Its source cut contains
+# isolated prototype bytes, one research record, and exact generated evidence.
+B05_TASK_ID = "B05"
+B05_PROTOTYPE_PREFIX = "prototypes/ncp10-implementation/"
+B05_RESEARCH_RECORD = "docs/research/ncp10-implementation-prototype.md"
+B05_RECEIPT_PREFIX = "evidence/implementation/receipts/B05/"
+B05_CHECKER_PATH = f"{B05_PROTOTYPE_PREFIX}check.py"
+B05_PREFLIGHT_RUNNER_PATH = "scripts/run_b05_preflight.py"
+B05_PREFLIGHT_RUNNER_SHA256 = (
+    "0ff3e82aeca9807d698c263ff74dbda8e7015e49e4da40125db9c5948f4f7ef5"
+)
+B05_RUN_MANIFEST_SCHEMA = "ncp.prototype-run.v1"
+B05_FOCUSED_RESULT_SCHEMA = "ncp.prototype-focused-result.v1"
+B05_FULL_PREFLIGHT_SCHEMA = "ncp.prototype-full-preflight.v1"
+B05_FOCUSED_RESULT_SUBJECT = "b05-focused-result"
+B05_FULL_PREFLIGHT_SUBJECT = "b05-full-preflight"
+B05_RUN_MANIFEST = re.compile(
+    r"^prototypes/ncp10-implementation/runs/"
+    r"(?P<run_id>[a-z][a-z0-9]*(?:[-.][a-z0-9]+)*)/manifest\.v1\.json$",
+    re.ASCII,
+)
+B05_LABEL = re.compile(r"^[a-z][a-z0-9]*(?:[-.][a-z0-9]+)*$", re.ASCII)
+B05_CLAIM_BOUNDARY = (
+    "LOCAL_NON_AUTHORIZING_PROTOTYPE_ONLY_NO_IMPLEMENTATION_TASK_DEFECT_"
+    "QUALIFICATION_GOVERNANCE_RELEASE_RUNTIME_SAFETY_OR_SCIENTIFIC_CREDIT"
+)
+B05_NCP_SCOPE = "CROSS_PROJECT_SEMANTIC_BOUNDARIES_ONLY"
+B05_SHARED_CLOCK_BOUNDARY = "MUSIC_NOT_NCP"
+B05_FOCUSED_TERMINAL = "NCP B05 PROTOTYPE SELF-TEST PASSED"
+B05_PREFLIGHT_TERMINAL = (
+    "NCP LOCAL PREFLIGHT PASSED — EXTERNAL RELEASE GATES REMAIN NOT RUN"
+)
+B05_REQUIRED_COMMANDS = (
+    f"python3 {B05_CHECKER_PATH} --self-test",
+    f"python3 -I {B05_PREFLIGHT_RUNNER_PATH}",
+)
+B05_INVOKED_PREFLIGHT_COMMAND = "scripts/check.sh"
+B05_PREFLIGHT_LOG_TRANSFORM = "NCP_B05_PORTABLE_LINE_REDACTION_V1"
+B05_PREFLIGHT_ENVIRONMENT_POLICY = "NCP_B05_MINIMAL_CHILD_ENV_V1"
+B05_PREFLIGHT_EXECUTION_MODE = "BASH_C_IMMUTABLE_GIT_BLOB_V1"
+B05_PREFLIGHT_BASH_SELECTOR = "SYSTEM_BIN_BASH"
+B05_PREFLIGHT_GIT_SELECTOR = "SYSTEM_USR_BIN_GIT"
+B05_PREFLIGHT_LITERAL_MAX_CHARS = 2_048
+B05_PREFLIGHT_TIMEOUT_SECONDS = 3_600
+B05_PREFLIGHT_MAX_RAW_BYTES = 16 * 1024 * 1024
+B05_PREFLIGHT_CHUNK_BYTES = 64 * 1024
+B05_PREFLIGHT_MAX_LINES = 100_000
+B05_PREFLIGHT_MAX_PORTABLE_BYTES = 16 * 1024 * 1024
+B05_PREFLIGHT_MAX_GATE_SCRIPT_BYTES = 64 * 1024
+B05_PREFLIGHT_MAX_SYSTEM_TOOL_BYTES = 16 * 1024 * 1024
+B05_PREFLIGHT_ARG_MAX_MARGIN = 64 * 1024
+B05_PREFLIGHT_TERMINATION_GRACE_SECONDS = 1
+B05_PREFLIGHT_KILL_GRACE_SECONDS = 2
+B05_PREFLIGHT_INDEX_MAX_ENTRIES = 100_000
+B05_PREFLIGHT_INDEX_STAGE_COMMAND = "git[fixed-config] ls-files --stage -z"
+B05_PREFLIGHT_INDEX_TREE_COMMAND = (
+    "git[fixed-config] ls-tree -rz --full-tree SOURCE_COMMIT"
+)
+B05_PREFLIGHT_INDEX_TAG_COMMANDS = [
+    "git[fixed-config] ls-files -t -z",
+    "git[fixed-config] ls-files -v -z",
+    "git[fixed-config+fsmonitor-view] ls-files -f -z",
+]
+B05_PREFLIGHT_REQUIRED_ENVIRONMENT_KEYS = frozenset(
+    {
+        "GIT_CONFIG_GLOBAL",
+        "GIT_CONFIG_NOSYSTEM",
+        "GIT_CONFIG_SYSTEM",
+        "GIT_NO_LAZY_FETCH",
+        "GIT_NO_REPLACE_OBJECTS",
+        "GIT_OPTIONAL_LOCKS",
+        "HOME",
+        "LOGNAME",
+        "PATH",
+        "USER",
+    }
+)
+B05_PREFLIGHT_OPTIONAL_ENVIRONMENT_KEYS = frozenset(
+    {
+        "ALL_PROXY",
+        "CARGO_HOME",
+        "CARGO_NET_OFFLINE",
+        "CURL_CA_BUNDLE",
+        "DEVELOPER_DIR",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "MACOSX_DEPLOYMENT_TARGET",
+        "NCP_ADVISORY_DB_PATH",
+        "NODE_EXTRA_CA_CERTS",
+        "NO_COLOR",
+        "NO_PROXY",
+        "REQUESTS_CA_BUNDLE",
+        "RUSTUP_HOME",
+        "RUSTUP_TOOLCHAIN",
+        "SDKROOT",
+        "SSL_CERT_DIR",
+        "SSL_CERT_FILE",
+        "TERM",
+        "all_proxy",
+        "http_proxy",
+        "https_proxy",
+        "no_proxy",
+    }
+)
+B05_PREFLIGHT_OPTIONAL_ENVIRONMENT_PREFIXES = (
+    "CARGO_HTTP_",
+    "CARGO_NET_",
+    "CARGO_REGISTRIES_",
+    "LC_",
+)
+B05_FULL_PREFLIGHT_MAX_JSON_BYTES = 2 * B05_PREFLIGHT_MAX_PORTABLE_BYTES + 1024 * 1024
+B05_WORKTREE_STATUS_COMMAND = (
+    "git[fixed-config] status --porcelain=v1 -z "
+    "--untracked-files=all --ignore-submodules=none"
+)
+B05_FULL_PREFLIGHT_JSON_LIMITS = JsonLimits(
+    maximum_bytes=B05_FULL_PREFLIGHT_MAX_JSON_BYTES,
+    maximum_depth=16,
+    maximum_items=1_024,
+    maximum_object_members=64,
+    maximum_array_items=128,
+    maximum_key_utf8_bytes=128,
+    maximum_string_utf8_bytes=B05_PREFLIGHT_MAX_PORTABLE_BYTES,
+    maximum_total_string_utf8_bytes=B05_PREFLIGHT_MAX_PORTABLE_BYTES + 1024 * 1024,
+    maximum_integer_chars=32,
+    maximum_float_chars=32,
+    allow_floats=False,
+)
+B05_PREFLIGHT_REDACTED_LINE = re.compile(
+    r"^NCP B05 REDACTED LINE (?P<index>[0-9]{6}) BYTES "
+    r"(?P<bytes>[1-9][0-9]{0,8}) SHA256 (?P<sha256>[0-9a-f]{64})$",
+    re.ASCII,
+)
+B05_MAX_CHANGED_PATHS = 4_096
+B05_MAX_TREE_BYTES = 16 * 1024 * 1024
+B05_MAX_TREE_ENTRIES = 100_000
+B05_MAX_TREE_OBJECTS = 4_096
+B05_MAX_TREE_DEPTH = 64
+B05_MAX_NORMATIVE_BYTES = 64 * 1024 * 1024
+B05_MAX_SOURCE_FILE_BYTES = 4 * 1024 * 1024
+B05_MAX_SOURCE_TOTAL_BYTES = 64 * 1024 * 1024
+B05_MAX_PROTOTYPE_FILES = 2_048
+B05_MAX_PORTABLE_COMPONENT_BYTES = 255
+B05_MAX_PORTABLE_COMPONENT_UTF16_UNITS = 255
+B05_MAX_PORTABLE_PATH_BYTES = 240
+B05_MAX_PORTABLE_PATH_UTF16_UNITS = 240
+B05_WINDOWS_FORBIDDEN = frozenset('<>:"/\\|?*')
+B05_WINDOWS_DEVICES = frozenset(
+    {
+        "aux",
+        "clock$",
+        "con",
+        "conin$",
+        "conout$",
+        "nul",
+        "prn",
+    }
+)
+B05_WINDOWS_NUMBERED_DEVICE = re.compile(r"^(?:com|lpt)[1-9]$", re.ASCII)
+B05_DOT_GIT_83 = re.compile(r"^\.?git~[1-9][0-9]*$", re.ASCII)
+B05_DERIVED_SOURCE_PATHS = frozenset(
+    {
+        "evidence/audit/latent-path-inventory.v1.json",
+        "evidence/audit/manifest.v1.json",
+        "evidence/supply-chain/inventory.v1.json",
+    }
+)
+B05_CONTRACT_DIGEST_ALGORITHM = (
+    "sha256(domain || repeated(u64be(path_bytes) || path_utf8 || "
+    "u64be(content_bytes) || exact_content))"
+)
+B05_CONTRACT_DIGEST_DOMAIN = b"ncp.normative-contract.v1\x00"
+B05_ALLOWED_TRANSITIONS = {
+    "OPEN": {"IN_PROGRESS"},
+    "IN_PROGRESS": {"BLOCKED", "LOCAL_PASS"},
+    "BLOCKED": {"IN_PROGRESS"},
+    "LOCAL_PASS": {"IN_PROGRESS"},
+    "EXTERNAL_PASS": set(),
+    "INDEPENDENT_PASS": set(),
+    "COMPLETE": set(),
+}
+
+
+@dataclass(frozen=True)
+class B05ChangedEntry:
+    path: str
+    before_mode: str | None
+    before_object: str | None
+    after_mode: str | None
+    after_object: str | None
+
+
 # This catalog is the checked implementation DAG. Descriptive detail remains in
 # the blueprint; status and receipts live only in the JSON ledger.
 TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
@@ -12181,6 +12399,12 @@ TASK_CATALOG: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
         "B04",
         "Prove authenticated-ingress and independent-parser feasibility",
         ("B00",),
+        "NCP prototypes",
+    ),
+    (
+        B05_TASK_ID,
+        "Exercise quarantined non-authorizing implementation prototypes",
+        ("B04",),
         "NCP prototypes",
     ),
     ("B01", "Decide and ratify ADR-001 through ADR-011", ("B04",), "NCP"),
@@ -12610,6 +12834,7 @@ REQUIRED_EXTERNAL_GATES: dict[str, tuple[str, ...]] = {
 TASK_CLAIM_TIER: dict[str, str] = {
     **{task_id: "IMPLEMENTATION_ONLY" for task_id, _, _, _ in TASK_CATALOG},
     **{task_id: "COORDINATION_ONLY" for task_id in ("B00", "B04", "B01", "B02", "B03")},
+    B05_TASK_ID: "PROTOTYPE_ONLY",
     **{
         task_id: "QUALIFICATION_REQUIRED"
         for task_id in (
@@ -14700,6 +14925,87 @@ def _validate_task_wide_reviewer_owner_partition(
         )
 
 
+def _validate_b05_artifact_namespace(
+    task_id: str | None, relative: str, path: str
+) -> None:
+    if task_id == B05_TASK_ID and not relative.startswith(B05_RECEIPT_PREFIX):
+        _fail(f"{path} is outside the reserved B05 receipt root")
+    if task_id != B05_TASK_ID and relative.startswith(B05_RECEIPT_PREFIX):
+        _fail(f"{path} reserves B05 evidence for B05 only")
+
+
+def _b05_utf16_units(value: str, path: str) -> int:
+    try:
+        return len(value.encode("utf-16-le", errors="strict")) // 2
+    except UnicodeEncodeError as error:
+        _fail(f"{path} contains a nonportable Unicode scalar: {error}")
+
+
+def _b05_portable_component_key(value: str, path: str) -> str:
+    try:
+        encoded = value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as error:
+        _fail(f"{path} contains a nonportable Unicode scalar: {error}")
+    if (
+        not value
+        or value in {".", ".."}
+        or len(encoded) > B05_MAX_PORTABLE_COMPONENT_BYTES
+        or _b05_utf16_units(value, path) > B05_MAX_PORTABLE_COMPONENT_UTF16_UNITS
+        or value.endswith((" ", "."))
+        or any(character in B05_WINDOWS_FORBIDDEN for character in value)
+        or any(unicodedata.category(character) in {"Cc", "Cf"} for character in value)
+        or unicodedata.normalize("NFC", value) != value
+        or unicodedata.normalize("NFKC", value) != value
+    ):
+        _fail(f"{path} is not portable normalized Unicode or a safe path component")
+    key = unicodedata.normalize("NFKC", value.casefold())
+    windows_key = key.rstrip(" .")
+    stem = windows_key.split(".", 1)[0].rstrip(" ")
+    if (
+        windows_key == ".git"
+        or B05_DOT_GIT_83.fullmatch(windows_key) is not None
+        or stem in B05_WINDOWS_DEVICES
+        or B05_WINDOWS_NUMBERED_DEVICE.fullmatch(stem) is not None
+    ):
+        _fail(f"{path} uses a reserved Git or Windows path component")
+    return key
+
+
+def _validate_b05_portable_paths(
+    paths: list[str], path: str, *, all_are_files: bool = False
+) -> None:
+    collision_keys: dict[tuple[str, ...], str] = {}
+    for index, value in enumerate(paths):
+        relative = _relative_path(value, f"{path}[{index}]")
+        try:
+            encoded = relative.encode("utf-8", errors="strict")
+        except UnicodeEncodeError as error:
+            _fail(f"{path}[{index}] contains a nonportable Unicode scalar: {error}")
+        parts = relative.split("/")
+        if (
+            len(parts) > B05_MAX_TREE_DEPTH
+            or len(encoded) > B05_MAX_PORTABLE_PATH_BYTES
+            or _b05_utf16_units(relative, f"{path}[{index}]")
+            > B05_MAX_PORTABLE_PATH_UTF16_UNITS
+        ):
+            _fail(f"{path}[{index}] exceeds the portable path bound")
+        collision_key = tuple(
+            _b05_portable_component_key(
+                component, f"{path}[{index}] component[{component_index}]"
+            )
+            for component_index, component in enumerate(parts)
+        )
+        prior = collision_keys.get(collision_key)
+        if prior is not None and prior != relative:
+            _fail(f"{path} contains paths that collide after case folding")
+        collision_keys[collision_key] = relative
+    if all_are_files:
+        keys = set(collision_keys)
+        for key in keys:
+            if any(key[:length] in keys for length in range(1, len(key))):
+                _fail(f"{path} contains a portable file-directory prefix collision")
+
+
 def _validate_toolchain(toolchain: Any, path: str) -> None:
     if not isinstance(toolchain, list) or not toolchain or len(toolchain) > 32:
         _fail(f"{path} must retain between 1 and 32 tool versions")
@@ -14743,6 +15049,7 @@ def _validate_artifacts(
             _fail(f"{path} contains duplicate subject {subject}")
         subjects.add(subject)
         relative = _relative_path(artifact["path"], f"{artifact_path}.path")
+        _validate_b05_artifact_namespace(task_id, relative, f"{artifact_path}.path")
         if relative in relative_paths:
             _fail(f"{path} contains duplicate path {relative}")
         relative_paths.add(relative)
@@ -14781,6 +15088,10 @@ def _validate_artifacts(
             evidence_commit=evidence_commit,
         )
         validated.append(artifact)
+    if task_id == B05_TASK_ID:
+        _validate_b05_portable_paths(
+            [artifact["path"] for artifact in validated], path, all_are_files=True
+        )
     return validated
 
 
@@ -14905,6 +15216,7 @@ def _validate_coordination_receipt(
     *,
     budget: dict[str, int],
     repository: str,
+    task_id: str,
 ) -> None:
     if not isinstance(receipt, dict):
         _fail(f"{path} must be a coordination receipt object")
@@ -14942,6 +15254,8 @@ def _validate_coordination_receipt(
         f"{path}.evidence",
         repository=git_repository,
         evidence_commit=receipt["evidence_commit"],
+        task_id=task_id,
+        source_commit=source_commit,
         budget=budget,
     )
     if not evidence:
@@ -15383,6 +15697,1385 @@ def _validate_receipt_reviewers(
         )
 
 
+def _parse_b05_git_tree(raw: bytes, path: str) -> dict[str, tuple[str, str]]:
+    entries: dict[str, tuple[str, str]] = {}
+    position = 0
+    prior: bytes | None = None
+    while position < len(raw):
+        separator = raw.find(b" ", position)
+        terminator = raw.find(b"\x00", separator + 1) if separator >= 0 else -1
+        if separator <= position or terminator <= separator + 1:
+            _fail(f"{path} contains a malformed Git tree entry")
+        object_end = terminator + 21
+        if object_end > len(raw):
+            _fail(f"{path} contains a truncated Git object ID")
+        mode_raw = raw[position:separator]
+        name_raw = raw[separator + 1 : terminator]
+        if mode_raw not in {b"40000", b"100644", b"100755", b"120000", b"160000"}:
+            _fail(f"{path} contains an unsupported Git tree mode")
+        if not name_raw or b"/" in name_raw:
+            _fail(f"{path} contains an invalid Git tree name")
+        sort_key = name_raw + (b"/" if mode_raw == b"40000" else b"\x00")
+        if prior is not None and sort_key <= prior:
+            _fail(f"{path} contains noncanonical Git tree ordering")
+        prior = sort_key
+        try:
+            name = name_raw.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as error:
+            _fail(f"{path} contains a non-UTF-8 Git path: {error}")
+        if name in entries:
+            _fail(f"{path} contains a duplicate Git tree name")
+        entries[name] = (
+            mode_raw.decode("ascii"),
+            raw[terminator + 1 : object_end].hex(),
+        )
+        if len(entries) > B05_MAX_TREE_ENTRIES:
+            _fail(f"{path} exceeds the B05 Git tree-entry bound")
+        position = object_end
+    return entries
+
+
+def _b05_tree_entries(
+    repository_root: Path, tree_id: str, path: str
+) -> dict[str, tuple[str, str]]:
+    try:
+        raw = immutable_read_object(
+            tree_id,
+            "tree",
+            maximum=B05_MAX_TREE_BYTES,
+            label=path,
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot reopen the immutable Git tree: {error}")
+    return _parse_b05_git_tree(raw, path)
+
+
+def _b05_regular_blob(
+    repository_root: Path,
+    commit: str,
+    relative: str,
+    path: str,
+    *,
+    maximum: int = MAX_EVIDENCE_FILE_BYTES,
+) -> GitBlobSnapshot:
+    try:
+        snapshot = immutable_blob_snapshot(
+            commit,
+            relative,
+            maximum=maximum,
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} must resolve to one immutable regular file: {error}")
+    if snapshot.bytes < 1:
+        _fail(f"{path} must contain nonempty immutable bytes")
+    return snapshot
+
+
+def _validate_b05_changed_entry_modes(
+    entries: list[B05ChangedEntry], path: str, *, allow_deletions: bool
+) -> None:
+    regular_modes = {"100644", "100755"}
+    for index, entry in enumerate(entries):
+        entry_path = f"{path}[{index}]"
+        if entry.before_mode is not None and entry.before_mode not in regular_modes:
+            _fail(f"{entry_path} has a non-regular before mode")
+        if entry.after_mode is not None and entry.after_mode not in regular_modes:
+            _fail(f"{entry_path} has a non-regular after mode")
+        if not allow_deletions and entry.after_mode is None:
+            _fail(f"{entry_path} deletes retained B05 evidence")
+
+
+def _b05_changed_entries(
+    repository_root: Path,
+    before_commit: str,
+    after_commit: str,
+    path: str,
+) -> list[B05ChangedEntry]:
+    try:
+        before_tree, _ = immutable_read_commit(
+            before_commit,
+            label=f"{path} before commit",
+            root=repository_root,
+        )
+        after_tree, parents = immutable_read_commit(
+            after_commit,
+            label=f"{path} source commit",
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot reopen the immutable Git commits: {error}")
+    if parents != [before_commit]:
+        _fail(f"{path} source commit must have the exact declared single parent")
+
+    changed: dict[str, B05ChangedEntry] = {}
+    visited_trees = 0
+    visited_entries = 0
+
+    def entries(tree_id: str, tree_path: str) -> dict[str, tuple[str, str]]:
+        nonlocal visited_entries
+        value = _b05_tree_entries(repository_root, tree_id, tree_path)
+        visited_entries += len(value)
+        if visited_entries > B05_MAX_TREE_ENTRIES:
+            _fail(f"{path} exceeds the aggregate B05 Git tree-entry bound")
+        return value
+
+    def add(
+        relative: str,
+        before_entry: tuple[str, str] | None,
+        after_entry: tuple[str, str] | None,
+    ) -> None:
+        canonical = _relative_path(relative, f"{path} changed path")
+        candidate = B05ChangedEntry(
+            path=canonical,
+            before_mode=before_entry[0] if before_entry is not None else None,
+            before_object=before_entry[1] if before_entry is not None else None,
+            after_mode=after_entry[0] if after_entry is not None else None,
+            after_object=after_entry[1] if after_entry is not None else None,
+        )
+        existing = changed.get(canonical)
+        if existing is not None and existing != candidate:
+            _fail(f"{path} gives one changed path conflicting Git identities")
+        changed[canonical] = candidate
+        if len(changed) > B05_MAX_CHANGED_PATHS:
+            _fail(f"{path} exceeds the B05 changed-path bound")
+
+    def enumerate_tree(tree_id: str, prefix: str, depth: int, *, after: bool) -> int:
+        nonlocal visited_trees
+        if depth > B05_MAX_TREE_DEPTH:
+            _fail(f"{path} exceeds the B05 Git tree-depth bound")
+        visited_trees += 1
+        if visited_trees > B05_MAX_TREE_OBJECTS:
+            _fail(f"{path} exceeds the B05 Git tree-traversal bound")
+        terminal_entries = 0
+        for name, (mode, object_id) in entries(
+            tree_id, f"{path}:{prefix or '.'}"
+        ).items():
+            relative = f"{prefix}/{name}" if prefix else name
+            if mode == "40000":
+                terminal_entries += enumerate_tree(
+                    object_id, relative, depth + 1, after=after
+                )
+            else:
+                entry = (mode, object_id)
+                add(
+                    relative,
+                    None if after else entry,
+                    entry if after else None,
+                )
+                terminal_entries += 1
+        if terminal_entries == 0:
+            _fail(f"{path} contains a changed empty Git tree at {prefix or '.'}")
+        return terminal_entries
+
+    def compare(
+        before_id: str,
+        after_id: str,
+        prefix: str,
+        depth: int,
+    ) -> None:
+        nonlocal visited_trees
+        if before_id == after_id:
+            return
+        if depth > B05_MAX_TREE_DEPTH:
+            _fail(f"{path} exceeds the B05 Git tree-depth bound")
+        visited_trees += 2
+        if visited_trees > B05_MAX_TREE_OBJECTS:
+            _fail(f"{path} exceeds the B05 Git tree-traversal bound")
+        before_entries = entries(before_id, f"{path} before:{prefix or '.'}")
+        after_entries = entries(after_id, f"{path} after:{prefix or '.'}")
+        for name in sorted(set(before_entries) | set(after_entries)):
+            relative = f"{prefix}/{name}" if prefix else name
+            before_entry = before_entries.get(name)
+            after_entry = after_entries.get(name)
+            if before_entry == after_entry:
+                continue
+            if before_entry is None:
+                if after_entry is None:
+                    _fail(f"{path} internal Git delta entry is absent from both cuts")
+                if after_entry[0] == "40000":
+                    enumerate_tree(after_entry[1], relative, depth + 1, after=True)
+                else:
+                    add(relative, None, after_entry)
+                continue
+            if after_entry is None:
+                if before_entry[0] == "40000":
+                    enumerate_tree(before_entry[1], relative, depth + 1, after=False)
+                else:
+                    add(relative, before_entry, None)
+                continue
+            if before_entry[0] == "40000" and after_entry[0] == "40000":
+                compare(before_entry[1], after_entry[1], relative, depth + 1)
+                continue
+            if before_entry[0] != "40000" and after_entry[0] != "40000":
+                add(relative, before_entry, after_entry)
+                continue
+            if before_entry[0] == "40000":
+                enumerate_tree(before_entry[1], relative, depth + 1, after=False)
+            else:
+                add(relative, before_entry, None)
+            if after_entry[0] == "40000":
+                enumerate_tree(after_entry[1], relative, depth + 1, after=True)
+            else:
+                add(relative, None, after_entry)
+
+    compare(before_tree, after_tree, "", 0)
+    return [changed[relative] for relative in sorted(changed)]
+
+
+def _validate_b05_changed_blob_objects(
+    repository_root: Path,
+    entries: list[B05ChangedEntry],
+    path: str,
+) -> None:
+    total_bytes = 0
+    for index, entry in enumerate(entries):
+        for side, mode, object_id in (
+            ("before", entry.before_mode, entry.before_object),
+            ("after", entry.after_mode, entry.after_object),
+        ):
+            if mode is None:
+                continue
+            if mode not in {"100644", "100755"} or object_id is None:
+                _fail(f"{path}[{index}] has a non-regular {side} object")
+            try:
+                raw = immutable_read_object(
+                    object_id,
+                    "blob",
+                    maximum=B05_MAX_SOURCE_FILE_BYTES,
+                    label=f"{path}[{index}] {side} blob",
+                    root=repository_root,
+                )
+            except ImmutableGitError as error:
+                _fail(f"{path}[{index}] cannot reopen its {side} blob: {error}")
+            if side == "after" and not raw:
+                _fail(f"{path}[{index}] has an empty retained source blob")
+            total_bytes += len(raw)
+            if total_bytes > B05_MAX_SOURCE_TOTAL_BYTES:
+                _fail(f"{path} exceeds the aggregate changed-source byte bound")
+
+
+def _b05_prototype_snapshots(
+    repository_root: Path,
+    source_commit: str,
+    path: str,
+) -> dict[str, GitBlobSnapshot]:
+    try:
+        tree_id, _ = immutable_read_commit(
+            source_commit,
+            label=f"{path} source commit",
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot reopen its source commit: {error}")
+    prefix_parts = PurePosixPath(B05_PROTOTYPE_PREFIX.rstrip("/")).parts
+    traversed: list[str] = []
+    for part in prefix_parts:
+        traversed.append(part)
+        entries = _b05_tree_entries(
+            repository_root,
+            tree_id,
+            f"{path} tree {'/'.join(traversed[:-1]) or '.'}",
+        )
+        selected = entries.get(part)
+        if selected is None or selected[0] != "40000":
+            _fail(f"{path} lacks the exact prototype directory tree")
+        tree_id = selected[1]
+
+    snapshots: dict[str, GitBlobSnapshot] = {}
+    paths: list[str] = []
+    total_bytes = 0
+    visited_trees = 0
+
+    def walk(current_tree: str, prefix: str, depth: int) -> None:
+        nonlocal total_bytes, visited_trees
+        if depth > B05_MAX_TREE_DEPTH:
+            _fail(f"{path} prototype snapshot exceeds the tree-depth bound")
+        visited_trees += 1
+        if visited_trees > B05_MAX_TREE_OBJECTS:
+            _fail(f"{path} prototype snapshot exceeds the tree-object bound")
+        entries = _b05_tree_entries(
+            repository_root,
+            current_tree,
+            f"{path} prototype tree {prefix}",
+        )
+        if not entries:
+            _fail(f"{path} prototype snapshot contains an empty Git tree")
+        for name, (mode, object_id) in entries.items():
+            relative = f"{prefix}/{name}"
+            canonical = _relative_path(relative, f"{path} prototype path")
+            paths.append(canonical)
+            if len(paths) > B05_MAX_CHANGED_PATHS:
+                _fail(f"{path} prototype snapshot exceeds the path-count bound")
+            if mode == "40000":
+                walk(object_id, canonical, depth + 1)
+                continue
+            if mode not in {"100644", "100755"}:
+                _fail(f"{path} prototype snapshot contains a non-regular leaf")
+            try:
+                raw = immutable_read_object(
+                    object_id,
+                    "blob",
+                    maximum=B05_MAX_SOURCE_FILE_BYTES,
+                    label=f"{path} prototype blob {canonical}",
+                    root=repository_root,
+                )
+            except ImmutableGitError as error:
+                _fail(f"{path} cannot reopen prototype blob {canonical}: {error}")
+            if not raw:
+                _fail(f"{path} prototype file {canonical} must be nonempty")
+            total_bytes += len(raw)
+            if total_bytes > B05_MAX_SOURCE_TOTAL_BYTES:
+                _fail(f"{path} prototype snapshot exceeds the aggregate byte bound")
+            snapshots[canonical] = GitBlobSnapshot(
+                path=canonical,
+                sha256=hashlib.sha256(raw).hexdigest(),
+                bytes=len(raw),
+                raw=raw,
+            )
+            if len(snapshots) > B05_MAX_PROTOTYPE_FILES:
+                _fail(f"{path} prototype snapshot exceeds the file-count bound")
+
+    walk(tree_id, B05_PROTOTYPE_PREFIX.rstrip("/"), 0)
+    _validate_b05_portable_paths(paths, f"{path} prototype paths")
+    return snapshots
+
+
+def _validate_b05_complete_receipt_tree(
+    repository_root: Path,
+    repository: str,
+    source_commit: str,
+    evidence_commit: str,
+    path: str,
+) -> None:
+    try:
+        tree_id, _ = immutable_read_commit(
+            evidence_commit,
+            label=f"{path} evidence commit",
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot reopen its evidence commit: {error}")
+    prefix_parts = PurePosixPath(B05_RECEIPT_PREFIX.rstrip("/")).parts
+    traversed: list[str] = []
+    for part in prefix_parts:
+        traversed.append(part)
+        entries = _b05_tree_entries(
+            repository_root,
+            tree_id,
+            f"{path} tree {'/'.join(traversed[:-1]) or '.'}",
+        )
+        selected = entries.get(part)
+        if selected is None or selected[0] != "40000":
+            _fail(f"{path} lacks the exact B05 receipt directory tree")
+        tree_id = selected[1]
+
+    paths: list[str] = []
+    file_count = 0
+    total_bytes = 0
+    visited_trees = 0
+
+    def walk(current_tree: str, prefix: str, depth: int) -> None:
+        nonlocal file_count, total_bytes, visited_trees
+        if depth > B05_MAX_TREE_DEPTH:
+            _fail(f"{path} exceeds the receipt tree-depth bound")
+        visited_trees += 1
+        if visited_trees > B05_MAX_TREE_OBJECTS:
+            _fail(f"{path} exceeds the receipt tree-object bound")
+        entries = _b05_tree_entries(
+            repository_root,
+            current_tree,
+            f"{path} receipt tree {prefix}",
+        )
+        if not entries:
+            _fail(f"{path} contains an empty receipt Git tree")
+        for name, (mode, object_id) in entries.items():
+            relative = _relative_path(
+                f"{prefix}/{name}", f"{path} complete receipt path"
+            )
+            paths.append(relative)
+            if len(paths) > B05_MAX_CHANGED_PATHS:
+                _fail(f"{path} exceeds the complete receipt path-count bound")
+            if mode == "40000":
+                walk(object_id, relative, depth + 1)
+                continue
+            if mode not in {"100644", "100755"}:
+                _fail(f"{path} contains a non-regular receipt leaf")
+            try:
+                raw = immutable_read_object(
+                    object_id,
+                    "blob",
+                    maximum=MAX_EVIDENCE_FILE_BYTES,
+                    label=f"{path} receipt blob {relative}",
+                    root=repository_root,
+                )
+            except ImmutableGitError as error:
+                _fail(f"{path} cannot reopen receipt blob {relative}: {error}")
+            if not raw:
+                _fail(f"{path} receipt file {relative} must be nonempty")
+            total_bytes += len(raw)
+            if total_bytes > MAX_EVIDENCE_REFERENCED_BYTES:
+                _fail(f"{path} exceeds the aggregate receipt-tree byte bound")
+            file_count += 1
+            if file_count > MAX_EVIDENCE_FILES:
+                _fail(f"{path} exceeds the receipt-tree file-count bound")
+            _validate_receipt_artifact_portability(
+                {
+                    "path": relative,
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "bytes": len(raw),
+                },
+                raw,
+                f"{path} receipt blob {relative}",
+                repository=repository,
+                task_id=B05_TASK_ID,
+                source_commit=source_commit,
+                evidence_commit=evidence_commit,
+            )
+
+    walk(tree_id, B05_RECEIPT_PREFIX.rstrip("/"), 0)
+    _validate_b05_portable_paths(paths, f"{path} complete receipt paths")
+
+
+def _b05_contract_digest_at_commit(
+    repository_root: Path, commit: str, path: str
+) -> str:
+    _, manifest_raw = _resolved_git_blob(
+        str(repository_root),
+        commit,
+        CONTRACT_MANIFEST.relative_to(ROOT).as_posix(),
+    )
+    manifest = _load_bounded_json_bytes(manifest_raw, f"{path} contract manifest")
+    if (
+        manifest.get("schema") != "ncp.normative-contract-manifest.v1"
+        or manifest.get("contract_digest_algorithm") != B05_CONTRACT_DIGEST_ALGORITHM
+        or manifest.get("contract_digest_domain_hex")
+        != B05_CONTRACT_DIGEST_DOMAIN.hex()
+    ):
+        _fail(f"{path} contract manifest has an unknown digest contract")
+    sources = manifest.get("normative_sources")
+    if not isinstance(sources, list) or not sources or len(sources) > 512:
+        _fail(f"{path} contract manifest has an invalid normative source roster")
+    digest = hashlib.sha256(B05_CONTRACT_DIGEST_DOMAIN)
+    seen: set[str] = set()
+    prior: str | None = None
+    total_bytes = 0
+    for index, source in enumerate(sources):
+        source_path = f"{path} contract manifest normative_sources[{index}]"
+        if not isinstance(source, dict):
+            _fail(f"{source_path} must be an object")
+        _exact_keys(source, {"path", "sha256", "bytes"}, source_path)
+        relative = _relative_path(source["path"], f"{source_path}.path")
+        if relative in seen or (prior is not None and relative <= prior):
+            _fail(f"{path} contract manifest source roster is not unique and sorted")
+        seen.add(relative)
+        prior = relative
+        expected_sha = _hex(source["sha256"], HEX64, f"{source_path}.sha256")
+        expected_bytes = _integer(
+            source["bytes"],
+            f"{source_path}.bytes",
+            minimum=1,
+            maximum=MAX_EVIDENCE_FILE_BYTES,
+        )
+        total_bytes += expected_bytes
+        if total_bytes > B05_MAX_NORMATIVE_BYTES:
+            _fail(f"{path} contract manifest exceeds the normative byte bound")
+        _, content = _resolved_git_blob(str(repository_root), commit, relative)
+        if (
+            len(content) != expected_bytes
+            or hashlib.sha256(content).hexdigest() != expected_sha
+        ):
+            _fail(f"{source_path} differs from the immutable source blob")
+        encoded_path = relative.encode("utf-8")
+        digest.update(struct.pack(">Q", len(encoded_path)))
+        digest.update(encoded_path)
+        digest.update(struct.pack(">Q", len(content)))
+        digest.update(content)
+    computed = digest.hexdigest()
+    declared = _hex(
+        manifest.get("contract_digest_sha256"),
+        HEX64,
+        f"{path} contract manifest digest",
+    )
+    if declared != computed:
+        _fail(f"{path} contract manifest digest differs from immutable source bytes")
+    return computed
+
+
+def _b05_label_roster(value: Any, path: str, *, maximum: int) -> list[str]:
+    if not isinstance(value, list) or not value or len(value) > maximum:
+        _fail(f"{path} must contain between 1 and {maximum} labels")
+    labels = [
+        _string(label, f"{path}[{index}]", maximum=128)
+        for index, label in enumerate(value)
+    ]
+    if labels != sorted(set(labels)) or any(
+        B05_LABEL.fullmatch(label) is None for label in labels
+    ):
+        _fail(f"{path} must contain unique sorted canonical labels")
+    return labels
+
+
+def _validate_b05_source_roster(
+    manifest: Mapping[str, Any],
+    prototype_snapshots: Mapping[str, GitBlobSnapshot],
+    path: str,
+) -> None:
+    source_files = manifest.get("source_files")
+    if (
+        not isinstance(source_files, list)
+        or len(source_files) < 4
+        or len(source_files) > B05_MAX_PROTOTYPE_FILES
+    ):
+        _fail(f"{path} source_files must contain a bounded implementation roster")
+    expected_paths = {
+        relative
+        for relative in prototype_snapshots
+        if B05_RUN_MANIFEST.fullmatch(relative) is None
+    }
+    observed_paths: list[str] = []
+    roles: dict[str, str] = {}
+    for index, source in enumerate(source_files):
+        source_path = f"{path} source_files[{index}]"
+        if not isinstance(source, dict):
+            _fail(f"{source_path} must be an object")
+        _exact_keys(source, {"role", "path", "sha256", "bytes"}, source_path)
+        role = source["role"]
+        if role not in {
+            "CHECKER",
+            "PREFLIGHT_RUNNER",
+            "IMPLEMENTATION",
+            "TEST",
+            "SUPPORT",
+        }:
+            _fail(f"{source_path}.role is not a checked prototype source role")
+        relative = _relative_path(source["path"], f"{source_path}.path")
+        digest = _hex(source["sha256"], HEX64, f"{source_path}.sha256")
+        byte_count = _integer(
+            source["bytes"],
+            f"{source_path}.bytes",
+            minimum=1,
+            maximum=B05_MAX_SOURCE_FILE_BYTES,
+        )
+        snapshot = prototype_snapshots.get(relative)
+        if (
+            snapshot is None
+            or digest != snapshot.sha256
+            or byte_count != snapshot.bytes
+        ):
+            _fail(f"{source_path} differs from the complete prototype snapshot")
+        observed_paths.append(relative)
+        roles[relative] = role
+    if observed_paths != sorted(set(observed_paths)):
+        _fail(f"{path} source_files must be unique and sorted by path")
+    if set(observed_paths) != expected_paths:
+        _fail(f"{path} source_files must bind every non-manifest prototype file")
+    if roles.get(B05_CHECKER_PATH) != "CHECKER":
+        _fail(f"{path} source_files must identify the exact focused checker")
+    if roles.get(B05_PREFLIGHT_RUNNER_PATH) != "PREFLIGHT_RUNNER":
+        _fail(f"{path} source_files must identify the exact preflight runner")
+    if "IMPLEMENTATION" not in roles.values() or "TEST" not in roles.values():
+        _fail(f"{path} source_files require implementation and test roles")
+
+
+def _b05_run_manifest(
+    repository_root: Path,
+    source_commit: str,
+    source_entries: list[B05ChangedEntry],
+    prototype_snapshots: Mapping[str, GitBlobSnapshot],
+    path: str,
+) -> tuple[dict[str, Any], GitBlobSnapshot]:
+    manifest_entries = [
+        entry
+        for entry in source_entries
+        if B05_RUN_MANIFEST.fullmatch(entry.path) is not None
+        and entry.after_mode in {"100644", "100755"}
+    ]
+    if len(manifest_entries) != 1:
+        _fail(f"{path} must add or modify one exact prototype run manifest")
+    manifest_entry = manifest_entries[0]
+    match = B05_RUN_MANIFEST.fullmatch(manifest_entry.path)
+    if match is None:
+        _fail(f"{path} internal run-manifest selection failed")
+    snapshot = _b05_regular_blob(
+        repository_root,
+        source_commit,
+        manifest_entry.path,
+        f"{path} run manifest",
+        maximum=128 * 1024,
+    )
+    manifest = _load_bounded_json_bytes(snapshot.raw, f"{path} run manifest")
+    if not isinstance(manifest, dict):
+        _fail(f"{path} run manifest must contain one object")
+    _exact_keys(
+        manifest,
+        {
+            "schema",
+            "run_id",
+            "project_labels",
+            "capability_labels",
+            "positive_case_ids",
+            "hostile_case_ids",
+            "source_files",
+            "standalone_operation_preserved",
+            "ncp_scope",
+            "shared_clock_boundary",
+            "claim_boundary",
+        },
+        f"{path} run manifest",
+    )
+    if manifest["schema"] != B05_RUN_MANIFEST_SCHEMA:
+        _fail(f"{path} run manifest has an unknown schema")
+    run_id = _string(manifest["run_id"], f"{path} run manifest.run_id", maximum=128)
+    if B05_LABEL.fullmatch(run_id) is None or run_id != match.group("run_id"):
+        _fail(f"{path} run manifest ID differs from its canonical path")
+    _b05_label_roster(manifest["project_labels"], f"{path} project labels", maximum=64)
+    _b05_label_roster(
+        manifest["capability_labels"], f"{path} capability labels", maximum=128
+    )
+    positive_ids = _b05_label_roster(
+        manifest["positive_case_ids"], f"{path} positive case IDs", maximum=512
+    )
+    hostile_ids = _b05_label_roster(
+        manifest["hostile_case_ids"], f"{path} hostile case IDs", maximum=512
+    )
+    if set(positive_ids) & set(hostile_ids):
+        _fail(f"{path} positive and hostile case IDs must be disjoint")
+    _validate_b05_source_roster(manifest, prototype_snapshots, f"{path} run manifest")
+    if manifest["standalone_operation_preserved"] is not True:
+        _fail(f"{path} run manifest must preserve standalone operation")
+    if manifest["ncp_scope"] != B05_NCP_SCOPE:
+        _fail(f"{path} run manifest widens NCP beyond semantic project boundaries")
+    if manifest["shared_clock_boundary"] != B05_SHARED_CLOCK_BOUNDARY:
+        _fail(f"{path} run manifest attempts to replace MUSIC")
+    if manifest["claim_boundary"] != B05_CLAIM_BOUNDARY:
+        _fail(f"{path} run manifest changes the non-authorizing claim boundary")
+    return manifest, snapshot
+
+
+def _b05_artifact_by_subject(
+    receipt: Mapping[str, Any], subject: str, path: str
+) -> Mapping[str, Any]:
+    artifacts = receipt.get("artifacts")
+    if not isinstance(artifacts, list):
+        _fail(f"{path} artifacts must be an array")
+    matches = [
+        artifact
+        for artifact in artifacts
+        if isinstance(artifact, dict) and artifact.get("subject") == subject
+    ]
+    if len(matches) != 1:
+        _fail(f"{path} must retain one artifact with subject {subject}")
+    return matches[0]
+
+
+def _b05_case_results(
+    value: Any,
+    expected_ids: list[str],
+    expected_outcome: str,
+    path: str,
+) -> None:
+    if not isinstance(value, list) or len(value) != len(expected_ids):
+        _fail(f"{path} differs from the exact run-manifest case roster")
+    observed_ids: list[str] = []
+    for index, result in enumerate(value):
+        result_path = f"{path}[{index}]"
+        if not isinstance(result, dict):
+            _fail(f"{result_path} must be an object")
+        _exact_keys(result, {"case_id", "outcome"}, result_path)
+        observed_ids.append(
+            _string(result["case_id"], f"{result_path}.case_id", maximum=128)
+        )
+        if result["outcome"] != expected_outcome:
+            _fail(f"{result_path}.outcome is not the required result")
+    if observed_ids != expected_ids:
+        _fail(f"{path} differs from the exact run-manifest case order")
+
+
+def _validate_b05_focused_result(
+    receipt: Mapping[str, Any],
+    manifest: dict[str, Any],
+    manifest_snapshot: GitBlobSnapshot,
+    checker_snapshot: GitBlobSnapshot,
+    path: str,
+) -> None:
+    artifact = _b05_artifact_by_subject(receipt, B05_FOCUSED_RESULT_SUBJECT, path)
+    raw = _receipt_artifact_bytes(receipt, artifact["path"], f"{path} focused result")
+    result = _load_bounded_json_bytes(raw, f"{path} focused result")
+    if not isinstance(result, dict):
+        _fail(f"{path} focused result must contain one object")
+    _exact_keys(
+        result,
+        {
+            "schema",
+            "run_id",
+            "source_commit",
+            "source_tree",
+            "manifest",
+            "checker",
+            "positive_cases",
+            "hostile_cases",
+            "counts",
+            "claim_boundary",
+            "terminal",
+        },
+        f"{path} focused result",
+    )
+    if result["schema"] != B05_FOCUSED_RESULT_SCHEMA:
+        _fail(f"{path} focused result has an unknown schema")
+    if (
+        result["run_id"] != manifest["run_id"]
+        or result["source_commit"] != receipt["source_commit"]
+        or result["source_tree"] != receipt["source_tree"]
+        or result["claim_boundary"] != B05_CLAIM_BOUNDARY
+        or result["terminal"] != B05_FOCUSED_TERMINAL
+    ):
+        _fail(f"{path} focused result differs from its exact source and run binding")
+    expected_manifest = manifest_snapshot.identity()
+    expected_checker = checker_snapshot.identity()
+    if result["manifest"] != expected_manifest or result["checker"] != expected_checker:
+        _fail(f"{path} focused result has stale source-file identities")
+    positive_ids = manifest["positive_case_ids"]
+    hostile_ids = manifest["hostile_case_ids"]
+    _b05_case_results(
+        result["positive_cases"], positive_ids, "PASS", f"{path} positive cases"
+    )
+    _b05_case_results(
+        result["hostile_cases"],
+        hostile_ids,
+        "EXPECTED_REJECTION_OBSERVED",
+        f"{path} hostile cases",
+    )
+    counts = result["counts"]
+    if not isinstance(counts, dict):
+        _fail(f"{path} focused result counts must be an object")
+    _exact_keys(counts, {"passed", "failed", "skipped"}, f"{path} focused counts")
+    if counts != {
+        "passed": len(positive_ids) + len(hostile_ids),
+        "failed": 0,
+        "skipped": 0,
+    }:
+        _fail(f"{path} focused result counts differ from the exact case roster")
+    commands = receipt["commands"]
+    if (
+        commands[0]["output_artifact"] != artifact["path"]
+        or commands[0]["passed"] != counts["passed"]
+    ):
+        _fail(f"{path} focused command summary differs from its structured result")
+
+
+def _load_b05_full_preflight_json(raw: bytes, label: str) -> dict[str, Any]:
+    try:
+        result = parse_json_bytes(
+            raw,
+            limits=B05_FULL_PREFLIGHT_JSON_LIMITS,
+            label=label,
+        )
+    except BoundedJsonError as error:
+        _fail(str(error))
+    if not isinstance(result, dict):
+        _fail(f"{label} must contain one object")
+    return result
+
+
+def _validate_b05_system_tool_identity(value: Any, selector: str, path: str) -> None:
+    if not isinstance(value, dict):
+        _fail(f"{path} must be an object")
+    _exact_keys(value, {"selector", "sha256", "bytes"}, path)
+    if value["selector"] != selector:
+        _fail(f"{path}.selector differs from the fixed system launcher")
+    _hex(value["sha256"], HEX64, f"{path}.sha256")
+    _integer(
+        value["bytes"],
+        f"{path}.bytes",
+        minimum=1,
+        maximum=B05_PREFLIGHT_MAX_SYSTEM_TOOL_BYTES,
+    )
+
+
+def _validate_b05_preflight_execution(value: Any, path: str) -> None:
+    if not isinstance(value, dict):
+        _fail(f"{path} must be an object")
+    _exact_keys(
+        value,
+        {
+            "mode",
+            "pathname_reopened",
+            "argv_environment_bytes",
+            "arg_max",
+            "arg_max_margin",
+            "bash",
+            "git",
+        },
+        path,
+    )
+    if (
+        value["mode"] != B05_PREFLIGHT_EXECUTION_MODE
+        or value["pathname_reopened"] is not False
+    ):
+        _fail(f"{path} does not execute immutable Git bytes without pathname reopen")
+    arg_max = _integer(
+        value["arg_max"],
+        f"{path}.arg_max",
+        minimum=B05_PREFLIGHT_ARG_MAX_MARGIN + 1,
+        maximum=2**31 - 1,
+    )
+    margin = _integer(
+        value["arg_max_margin"],
+        f"{path}.arg_max_margin",
+        minimum=B05_PREFLIGHT_ARG_MAX_MARGIN,
+        maximum=B05_PREFLIGHT_ARG_MAX_MARGIN,
+    )
+    _integer(
+        value["argv_environment_bytes"],
+        f"{path}.argv_environment_bytes",
+        minimum=1,
+        maximum=arg_max - margin,
+    )
+    _validate_b05_system_tool_identity(
+        value["bash"], B05_PREFLIGHT_BASH_SELECTOR, f"{path}.bash"
+    )
+    _validate_b05_system_tool_identity(
+        value["git"], B05_PREFLIGHT_GIT_SELECTOR, f"{path}.git"
+    )
+
+
+def _validate_b05_preflight_environment(value: Any, path: str) -> None:
+    if not isinstance(value, dict):
+        _fail(f"{path} must be an object")
+    _exact_keys(
+        value,
+        {
+            "policy",
+            "retained_keys",
+            "removed_control_key_count",
+            "loader_variable_count",
+            "path_sha256",
+            "bash_launcher",
+            "git_launcher",
+        },
+        path,
+    )
+    if (
+        value["policy"] != B05_PREFLIGHT_ENVIRONMENT_POLICY
+        or value["bash_launcher"] != B05_PREFLIGHT_BASH_SELECTOR
+        or value["git_launcher"] != B05_PREFLIGHT_GIT_SELECTOR
+    ):
+        _fail(f"{path} differs from the fixed child-environment policy")
+    retained = value["retained_keys"]
+    if not isinstance(retained, list) or not retained or len(retained) > 64:
+        _fail(f"{path}.retained_keys must contain a bounded key roster")
+    keys = [
+        _string(item, f"{path}.retained_keys[{index}]", maximum=128)
+        for index, item in enumerate(retained)
+    ]
+    if keys != sorted(set(keys)):
+        _fail(f"{path}.retained_keys must be unique and sorted")
+    key_set = set(keys)
+    if not B05_PREFLIGHT_REQUIRED_ENVIRONMENT_KEYS <= key_set:
+        _fail(f"{path}.retained_keys omits a required fixed child key")
+    for key in key_set - B05_PREFLIGHT_REQUIRED_ENVIRONMENT_KEYS:
+        if key not in B05_PREFLIGHT_OPTIONAL_ENVIRONMENT_KEYS and not key.startswith(
+            B05_PREFLIGHT_OPTIONAL_ENVIRONMENT_PREFIXES
+        ):
+            _fail(f"{path}.retained_keys contains an unauthorized child key")
+    _integer(
+        value["removed_control_key_count"],
+        f"{path}.removed_control_key_count",
+        minimum=0,
+        maximum=4_096,
+    )
+    _integer(
+        value["loader_variable_count"],
+        f"{path}.loader_variable_count",
+        minimum=0,
+        maximum=0,
+    )
+    _hex(value["path_sha256"], HEX64, f"{path}.path_sha256")
+
+
+def _validate_b05_preflight_index(value: Any, path: str) -> None:
+    if not isinstance(value, dict):
+        _fail(f"{path} must be an object")
+    _exact_keys(
+        value,
+        {
+            "stage_command",
+            "tree_command",
+            "tag_commands",
+            "entries",
+            "head_roster_sha256",
+            "index_roster_sha256_before",
+            "index_roster_sha256_after",
+            "tag_roster_sha256_before",
+            "tag_roster_sha256_after",
+            "matches_head_before",
+            "matches_head_after",
+            "staged_or_unmerged_count",
+            "skip_or_sparse_count",
+            "assume_unchanged_count",
+            "fsmonitor_valid_count",
+            "nonignored_untracked_count",
+        },
+        path,
+    )
+    if (
+        value["stage_command"] != B05_PREFLIGHT_INDEX_STAGE_COMMAND
+        or value["tree_command"] != B05_PREFLIGHT_INDEX_TREE_COMMAND
+        or value["tag_commands"] != B05_PREFLIGHT_INDEX_TAG_COMMANDS
+    ):
+        _fail(f"{path} differs from the fixed index inspection commands")
+    _integer(
+        value["entries"],
+        f"{path}.entries",
+        minimum=1,
+        maximum=B05_PREFLIGHT_INDEX_MAX_ENTRIES,
+    )
+    for field in (
+        "head_roster_sha256",
+        "index_roster_sha256_before",
+        "index_roster_sha256_after",
+        "tag_roster_sha256_before",
+        "tag_roster_sha256_after",
+    ):
+        _hex(value[field], HEX64, f"{path}.{field}")
+    if (
+        value["index_roster_sha256_before"] != value["index_roster_sha256_after"]
+        or value["tag_roster_sha256_before"] != value["tag_roster_sha256_after"]
+        or value["matches_head_before"] is not True
+        or value["matches_head_after"] is not True
+    ):
+        _fail(f"{path} does not bind one unchanged normal index to the source tree")
+    for field in (
+        "staged_or_unmerged_count",
+        "skip_or_sparse_count",
+        "assume_unchanged_count",
+        "fsmonitor_valid_count",
+        "nonignored_untracked_count",
+    ):
+        _integer(value[field], f"{path}.{field}", minimum=0, maximum=0)
+
+
+def _validate_b05_full_preflight(receipt: Mapping[str, Any], path: str) -> None:
+    artifact = _b05_artifact_by_subject(receipt, B05_FULL_PREFLIGHT_SUBJECT, path)
+    raw = _receipt_artifact_bytes(
+        receipt, artifact["path"], f"{path} full-preflight result"
+    )
+    result = _load_b05_full_preflight_json(raw, f"{path} full-preflight result")
+    _exact_keys(
+        result,
+        {
+            "schema",
+            "source_commit",
+            "source_tree",
+            "command",
+            "invoked_command",
+            "process_exit_code",
+            "runner_script",
+            "preflight_script",
+            "execution",
+            "environment",
+            "index",
+            "worktree",
+            "execution_bounds",
+            "log",
+            "counts",
+            "terminal",
+            "terminal_count",
+            "claim_boundary",
+        },
+        f"{path} full-preflight result",
+    )
+    repository = receipt.get("repository")
+    repository_root = GIT_ROOT_BY_RECEIPT_REPOSITORY.get(repository)
+    if repository_root is None:
+        _fail(f"{path} full-preflight repository has no Git object authority")
+    source_commit = _hex(
+        receipt.get("source_commit"), HEX40, f"{path} full-preflight source commit"
+    )
+    expected_runner_script = _b05_regular_blob(
+        repository_root,
+        source_commit,
+        B05_PREFLIGHT_RUNNER_PATH,
+        f"{path} immutable canonical preflight runner",
+        maximum=B05_MAX_SOURCE_FILE_BYTES,
+    ).identity()
+    if (
+        expected_runner_script["sha256"] != B05_PREFLIGHT_RUNNER_SHA256
+        or result["runner_script"] != expected_runner_script
+    ):
+        _fail(f"{path} canonical preflight runner differs from checked semantics")
+    expected_preflight_script = _b05_regular_blob(
+        repository_root,
+        source_commit,
+        B05_INVOKED_PREFLIGHT_COMMAND,
+        f"{path} immutable preflight script",
+        maximum=B05_PREFLIGHT_MAX_GATE_SCRIPT_BYTES,
+    ).identity()
+    if result["preflight_script"] != expected_preflight_script:
+        _fail(f"{path} preflight script identity differs from its source blob")
+    _validate_b05_preflight_execution(
+        result["execution"], f"{path} full-preflight execution"
+    )
+    _validate_b05_preflight_environment(
+        result["environment"], f"{path} full-preflight environment"
+    )
+    _validate_b05_preflight_index(result["index"], f"{path} full-preflight index")
+    worktree = result["worktree"]
+    if not isinstance(worktree, dict):
+        _fail(f"{path} full-preflight worktree receipt must be an object")
+    _exact_keys(
+        worktree,
+        {
+            "status_command",
+            "clean_before",
+            "clean_after",
+            "head_unchanged",
+            "tree_unchanged",
+            "runner_unchanged",
+            "script_unchanged",
+        },
+        f"{path} full-preflight worktree receipt",
+    )
+    worktree_flags = (
+        "clean_before",
+        "clean_after",
+        "head_unchanged",
+        "tree_unchanged",
+        "runner_unchanged",
+        "script_unchanged",
+    )
+    if worktree["status_command"] != B05_WORKTREE_STATUS_COMMAND or any(
+        worktree[field] is not True for field in worktree_flags
+    ):
+        _fail(f"{path} full-preflight lacks exact clean immutable worktree checks")
+    execution_bounds = result["execution_bounds"]
+    if not isinstance(execution_bounds, dict):
+        _fail(f"{path} full-preflight execution bounds must be an object")
+    _exact_keys(
+        execution_bounds,
+        {
+            "timeout_seconds",
+            "max_raw_bytes",
+            "chunk_bytes",
+            "max_lines",
+            "max_portable_bytes",
+            "max_gate_script_bytes",
+            "termination_grace_seconds",
+            "kill_grace_seconds",
+        },
+        f"{path} full-preflight execution bounds",
+    )
+    expected_execution_bounds = {
+        "timeout_seconds": B05_PREFLIGHT_TIMEOUT_SECONDS,
+        "max_raw_bytes": B05_PREFLIGHT_MAX_RAW_BYTES,
+        "chunk_bytes": B05_PREFLIGHT_CHUNK_BYTES,
+        "max_lines": B05_PREFLIGHT_MAX_LINES,
+        "max_portable_bytes": B05_PREFLIGHT_MAX_PORTABLE_BYTES,
+        "max_gate_script_bytes": B05_PREFLIGHT_MAX_GATE_SCRIPT_BYTES,
+        "termination_grace_seconds": B05_PREFLIGHT_TERMINATION_GRACE_SECONDS,
+        "kill_grace_seconds": B05_PREFLIGHT_KILL_GRACE_SECONDS,
+    }
+    for field, expected in expected_execution_bounds.items():
+        _integer(
+            execution_bounds[field],
+            f"{path} full-preflight execution_bounds.{field}",
+            minimum=expected,
+            maximum=expected,
+        )
+    log = result["log"]
+    if not isinstance(log, dict):
+        _fail(f"{path} full-preflight log must be an object")
+    _exact_keys(
+        log,
+        {
+            "sha256",
+            "bytes",
+            "text",
+            "raw_sha256",
+            "raw_bytes",
+            "raw_line_count",
+            "transform",
+        },
+        f"{path} full-preflight log",
+    )
+    text = log["text"]
+    if not isinstance(text, str) or "\x00" in text:
+        _fail(f"{path} full-preflight log text must be UTF-8 text without NUL")
+    log_raw = text.encode()
+    declared_log_bytes = _integer(
+        log["bytes"],
+        f"{path} full-preflight log.bytes",
+        minimum=1,
+        maximum=B05_PREFLIGHT_MAX_PORTABLE_BYTES,
+    )
+    declared_log_sha = _hex(log["sha256"], HEX64, f"{path} full-preflight log.sha256")
+    if (
+        len(log_raw) != declared_log_bytes
+        or hashlib.sha256(log_raw).hexdigest() != declared_log_sha
+    ):
+        _fail(f"{path} full-preflight log identity differs from its embedded text")
+    raw_bytes = _integer(
+        log["raw_bytes"],
+        f"{path} full-preflight log.raw_bytes",
+        minimum=1,
+        maximum=B05_PREFLIGHT_MAX_RAW_BYTES,
+    )
+    _hex(log["raw_sha256"], HEX64, f"{path} full-preflight log.raw_sha256")
+    raw_line_count = _integer(
+        log["raw_line_count"],
+        f"{path} full-preflight log.raw_line_count",
+        minimum=1,
+        maximum=B05_PREFLIGHT_MAX_LINES,
+    )
+    if log["transform"] != B05_PREFLIGHT_LOG_TRANSFORM:
+        _fail(f"{path} full-preflight log has an unknown portability transform")
+    lines = text.splitlines()
+    if len(lines) != raw_line_count:
+        _fail(f"{path} full-preflight log differs from its raw line count")
+    for index, line in enumerate(lines):
+        redacted = B05_PREFLIGHT_REDACTED_LINE.fullmatch(line)
+        if redacted is not None:
+            if (
+                int(redacted.group("index")) != index
+                or int(redacted.group("bytes")) > raw_bytes
+            ):
+                _fail(f"{path} full-preflight redaction has invalid line metadata")
+            continue
+        if (
+            len(line) > B05_PREFLIGHT_LITERAL_MAX_CHARS
+            or (line and not line.isprintable())
+            or any(marker in line for marker in ("/", "\\", "%"))
+        ):
+            _fail(f"{path} full-preflight log contains an unredacted portable line")
+    expected_counts = {"passed": 1, "failed": 0, "skipped": 0}
+    if (
+        result["schema"] != B05_FULL_PREFLIGHT_SCHEMA
+        or result["source_commit"] != receipt["source_commit"]
+        or result["source_tree"] != receipt["source_tree"]
+        or result["command"] != B05_REQUIRED_COMMANDS[1]
+        or result["invoked_command"] != B05_INVOKED_PREFLIGHT_COMMAND
+        or result["process_exit_code"] != 0
+        or result["counts"] != expected_counts
+        or result["terminal"] != B05_PREFLIGHT_TERMINAL
+        or result["terminal_count"] != 1
+        or result["claim_boundary"] != B05_CLAIM_BOUNDARY
+    ):
+        _fail(f"{path} full-preflight result differs from its exact command and source")
+    lines = [line for line in lines if line.strip()]
+    if (
+        not lines
+        or lines[-1] != B05_PREFLIGHT_TERMINAL
+        or lines.count(B05_PREFLIGHT_TERMINAL) != 1
+    ):
+        _fail(f"{path} full-preflight log lacks one exact terminal success line")
+    if (
+        receipt["commands"][1]["output_artifact"] != artifact["path"]
+        or {
+            field: receipt["commands"][1][field]
+            for field in ("passed", "failed", "skipped")
+        }
+        != expected_counts
+    ):
+        _fail(f"{path} full-preflight command does not bind its structured result")
+
+
+def _validate_b05_passing_receipt_boundary(
+    receipt: Mapping[str, Any], path: str
+) -> list[str]:
+    repository = receipt.get("repository")
+    repository_root = GIT_ROOT_BY_RECEIPT_REPOSITORY.get(repository)
+    if repository_root is None:
+        _fail(f"{path} B05 repository has no configured Git object authority")
+    source_commit = _hex(receipt.get("source_commit"), HEX40, f"{path}.source_commit")
+    try:
+        source_tree, parents = immutable_read_commit(
+            source_commit,
+            label=f"{path} B05 source commit",
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot reopen the B05 source commit: {error}")
+    if len(parents) != 1:
+        _fail(f"{path} B05 source commit must have one parent")
+    if receipt.get("source_tree") != source_tree:
+        _fail(f"{path} B05 receipt has the wrong source tree")
+    before_commit = parents[0]
+    source_entries = _b05_changed_entries(
+        repository_root,
+        before_commit,
+        source_commit,
+        f"{path} B05 source delta",
+    )
+    _validate_b05_changed_entry_modes(
+        source_entries,
+        f"{path} B05 source delta",
+        allow_deletions=True,
+    )
+    _validate_b05_changed_blob_objects(
+        repository_root,
+        source_entries,
+        f"{path} B05 source delta",
+    )
+    if not source_entries or not any(
+        entry.path.startswith(B05_PROTOTYPE_PREFIX)
+        and entry.after_mode in {"100644", "100755"}
+        for entry in source_entries
+    ):
+        _fail(f"{path} B05 source delta must contain prototype implementation bytes")
+    for entry in source_entries:
+        relative = entry.path
+        if (
+            relative == B05_RESEARCH_RECORD
+            or relative.startswith(B05_PROTOTYPE_PREFIX)
+            or relative in B05_DERIVED_SOURCE_PATHS
+        ):
+            if relative == B05_RESEARCH_RECORD and entry.after_mode is None:
+                _fail(f"{path} B05 source delta deletes its required research record")
+            if relative in B05_DERIVED_SOURCE_PATHS and entry.after_mode is None:
+                _fail(f"{path} B05 source delta deletes required derived evidence")
+            continue
+        _fail(f"{path} B05 source delta changes a path outside the quarantine")
+    _b05_regular_blob(
+        repository_root,
+        source_commit,
+        B05_RESEARCH_RECORD,
+        f"{path} B05 research record",
+        maximum=1024 * 1024,
+    )
+    prototype_snapshots = _b05_prototype_snapshots(
+        repository_root,
+        source_commit,
+        f"{path} B05",
+    )
+    checker_snapshot = prototype_snapshots.get(B05_CHECKER_PATH)
+    if checker_snapshot is None:
+        _fail(f"{path} B05 source snapshot lacks its exact focused checker")
+    preflight_runner_snapshot = _b05_regular_blob(
+        repository_root,
+        source_commit,
+        B05_PREFLIGHT_RUNNER_PATH,
+        f"{path} B05 canonical preflight runner",
+        maximum=B05_MAX_SOURCE_FILE_BYTES,
+    )
+    if preflight_runner_snapshot.sha256 != B05_PREFLIGHT_RUNNER_SHA256:
+        _fail(f"{path} B05 canonical preflight runner differs from checked semantics")
+    source_snapshots = {
+        **prototype_snapshots,
+        B05_PREFLIGHT_RUNNER_PATH: preflight_runner_snapshot,
+    }
+    manifest, manifest_snapshot = _b05_run_manifest(
+        repository_root,
+        source_commit,
+        source_entries,
+        source_snapshots,
+        f"{path} B05 source delta",
+    )
+    evidence_commit = _hex(
+        receipt.get("evidence_commit"), HEX40, f"{path}.evidence_commit"
+    )
+    try:
+        evidence_tree, evidence_parents = immutable_read_commit(
+            evidence_commit,
+            label=f"{path} B05 evidence commit",
+            root=repository_root,
+        )
+    except ImmutableGitError as error:
+        _fail(f"{path} cannot reopen the B05 evidence commit: {error}")
+    if evidence_parents != [source_commit]:
+        _fail(f"{path} B05 evidence commit must directly descend from its source")
+    if receipt.get("evidence_tree") != evidence_tree:
+        _fail(f"{path} B05 receipt has the wrong evidence tree")
+    evidence_entries = _b05_changed_entries(
+        repository_root,
+        source_commit,
+        evidence_commit,
+        f"{path} B05 evidence delta",
+    )
+    _validate_b05_changed_entry_modes(
+        evidence_entries,
+        f"{path} B05 evidence delta",
+        allow_deletions=False,
+    )
+    for entry in evidence_entries:
+        if not entry.path.startswith(B05_RECEIPT_PREFIX):
+            _fail(f"{path} B05 evidence delta changes a path outside its receipt root")
+    _validate_b05_complete_receipt_tree(
+        repository_root,
+        repository,
+        source_commit,
+        evidence_commit,
+        f"{path} B05",
+    )
+    artifacts = receipt.get("artifacts")
+    if not isinstance(artifacts, list):
+        _fail(f"{path} B05 artifacts must be an array")
+    artifact_path_list: list[str] = []
+    for index, artifact in enumerate(artifacts):
+        if not isinstance(artifact, dict):
+            _fail(f"{path} B05 artifacts[{index}] must be an object")
+        artifact_path_list.append(
+            _relative_path(
+                artifact.get("path"),
+                f"{path} B05 artifacts[{index}].path",
+            )
+        )
+    _validate_b05_portable_paths(artifact_path_list, f"{path} B05 artifact paths")
+    artifact_paths = set(artifact_path_list)
+    evidence_paths = {entry.path for entry in evidence_entries}
+    if (
+        len(artifact_paths) != len(artifact_path_list)
+        or evidence_paths != artifact_paths
+    ):
+        _fail(f"{path} B05 evidence delta must equal its exact artifact roster")
+    before_digest = _b05_contract_digest_at_commit(
+        repository_root, before_commit, f"{path} before"
+    )
+    after_digest = _b05_contract_digest_at_commit(
+        repository_root, source_commit, f"{path} after"
+    )
+    evidence_digest = _b05_contract_digest_at_commit(
+        repository_root, evidence_commit, f"{path} evidence"
+    )
+    if (
+        receipt.get("normative_digest_before") != before_digest
+        or receipt.get("normative_digest_after") != after_digest
+        or before_digest != after_digest
+        or after_digest != evidence_digest
+    ):
+        _fail(f"{path} B05 receipt does not bind the unchanged normative source bytes")
+    if receipt.get("external_gates_run") != []:
+        _fail(f"{path} B05 cannot record or receive external-gate credit")
+    reviewers = receipt.get("reviewers")
+    if not isinstance(reviewers, list) or any(
+        not isinstance(reviewer, dict) or reviewer.get("independent") is not False
+        for reviewer in reviewers
+    ):
+        _fail(f"{path} B05 reviewers must be local and non-independent")
+    commands = receipt.get("commands")
+    if (
+        not isinstance(commands, list)
+        or tuple(
+            command.get("command") if isinstance(command, dict) else None
+            for command in commands
+        )
+        != B05_REQUIRED_COMMANDS
+    ):
+        _fail(f"{path} B05 must run the exact hostile-control and complete local gates")
+    if len({command["output_artifact"] for command in commands}) != len(commands):
+        _fail(f"{path} B05 command outputs must use distinct retained artifacts")
+    _validate_b05_focused_result(
+        receipt,
+        manifest,
+        manifest_snapshot,
+        checker_snapshot,
+        path,
+    )
+    _validate_b05_full_preflight(receipt, path)
+    return [entry.path for entry in source_entries]
+
+
 def _validate_receipt(
     receipt: Any,
     path: str,
@@ -15482,6 +17175,8 @@ def _validate_receipt(
                 f"missing={sorted(expected_gates - observed_gates)} "
                 f"extra={sorted(observed_gates - expected_gates)}"
             )
+    if task_id == B05_TASK_ID:
+        _validate_b05_passing_receipt_boundary(receipt, path)
     _string(
         receipt["rollback_or_recovery"], f"{path}.rollback_or_recovery", maximum=1024
     )
@@ -18856,6 +20551,48 @@ def _validate_current_review_independence(
         )
 
 
+def _validate_task_transition_allowed(
+    task_id: str, transition_from: str, transition_to: str, path: str
+) -> None:
+    allowed = (
+        B05_ALLOWED_TRANSITIONS
+        if task_id == B05_TASK_ID
+        else {
+            "OPEN": {"IN_PROGRESS"},
+            "IN_PROGRESS": {"BLOCKED", "LOCAL_PASS"},
+            "BLOCKED": {"IN_PROGRESS"},
+            "LOCAL_PASS": {"COMPLETE", "IN_PROGRESS"},
+            "EXTERNAL_PASS": set(),
+            "INDEPENDENT_PASS": set(),
+            "COMPLETE": {"IN_PROGRESS"},
+        }
+    )
+    if transition_to not in allowed[transition_from]:
+        _fail(f"{path} is not an allowed contiguous transition for task {task_id}")
+
+
+def _validate_b05_dependency_isolation(
+    dependency_graph: Mapping[str, tuple[str, ...]],
+) -> None:
+    if dependency_graph.get(B05_TASK_ID) != ("B04",):
+        _fail("B05 must remain a parallel child of B04 only")
+    for task_id in dependency_graph:
+        if task_id == B05_TASK_ID:
+            continue
+        pending = list(dependency_graph[task_id])
+        visited: set[str] = set()
+        while pending:
+            dependency_id = pending.pop()
+            if dependency_id == B05_TASK_ID:
+                _fail(
+                    f"task {task_id} cannot depend on the non-authorizing B05 prototype lane"
+                )
+            if dependency_id in visited:
+                continue
+            visited.add(dependency_id)
+            pending.extend(dependency_graph[dependency_id])
+
+
 def _validate_task(
     task: Any,
     expected: tuple[str, str, tuple[str, ...], str],
@@ -18865,6 +20602,7 @@ def _validate_task(
 ) -> None:
     if not isinstance(task, dict):
         _fail(f"{path} must be an object")
+    task_id, title, dependencies, repository = expected
     keys = {
         "id",
         "title",
@@ -18891,7 +20629,6 @@ def _validate_task(
         "reviewer_comment",
     }
     _exact_keys(task, keys, path)
-    task_id, title, dependencies, repository = expected
     if task["id"] != task_id or not TASK_ID.fullmatch(str(task["id"])):
         _fail(f"{path}.id is unknown or out of order")
     if task["title"] != title:
@@ -18972,6 +20709,18 @@ def _validate_task(
         missing_governed = sorted(governed - set(task["changed_files"]))
         if missing_governed:
             _fail(f"{path}.changed_files omits governed path {missing_governed[0]}")
+    if (
+        task_id == B05_TASK_ID
+        and status
+        not in {
+            "LOCAL_PASS",
+            "EXTERNAL_PASS",
+            "INDEPENDENT_PASS",
+            "COMPLETE",
+        }
+        and task["changed_files"]
+    ):
+        _fail(f"{path}.changed_files must be empty until B05 has a passing source cut")
     for field in ("requirement_ids", "adr_ids", "residual_risks"):
         if not isinstance(task[field], list):
             _fail(f"{path}.{field} must be an array")
@@ -19001,6 +20750,10 @@ def _validate_task(
         )
     if not required_base.issubset(task["requirement_ids"]):
         _fail(f"{path}.requirement_ids lacks the checked task acceptance requirement")
+    if task_id == B05_TASK_ID and (
+        task["requirement_ids"] != ["B05-acceptance"] or task["adr_ids"]
+    ):
+        _fail(f"{path} B05 cannot claim a defect, ADR, qualification, or release scope")
     if task_id == "B01" and task["adr_ids"] != [
         f"ADR-{number:03d}" for number in range(1, 12)
     ]:
@@ -19073,15 +20826,6 @@ def _validate_task(
         _fail(f"{path}.transitions must be an array of at most 128 transitions")
     previous = "OPEN"
     previous_time: datetime | None = None
-    allowed = {
-        "OPEN": {"IN_PROGRESS"},
-        "IN_PROGRESS": {"BLOCKED", "LOCAL_PASS"},
-        "BLOCKED": {"IN_PROGRESS"},
-        "LOCAL_PASS": {"COMPLETE", "IN_PROGRESS"},
-        "EXTERNAL_PASS": set(),
-        "INDEPENDENT_PASS": set(),
-        "COMPLETE": {"IN_PROGRESS"},
-    }
     passing_generation: dict[str, Any] | None = None
     for index, transition in enumerate(transitions):
         transition_path = f"{path}.transitions[{index}]"
@@ -19097,8 +20841,14 @@ def _validate_task(
             transition["to"],
             transition_path,
         )
-        if transition["from"] != previous or transition["to"] not in allowed[previous]:
+        if transition["from"] != previous:
             _fail(f"{transition_path} is not an allowed contiguous transition")
+        _validate_task_transition_allowed(
+            task_id,
+            transition["from"],
+            transition["to"],
+            transition_path,
+        )
         transition_time = _parse_timestamp(
             transition["timestamp_utc"], f"{transition_path}.timestamp_utc"
         )
@@ -19131,6 +20881,7 @@ def _validate_task(
                 f"{transition_path}.receipt",
                 budget=budget,
                 repository=task["repository"],
+                task_id=task_id,
             )
             receipt_time = _parse_timestamp(
                 transition["receipt"]["timestamp_utc"],
@@ -19217,6 +20968,14 @@ def _validate_task(
             _fail(
                 f"{path} current commit fields differ from the current passing receipt"
             )
+        if task_id == B05_TASK_ID:
+            derived_changed_paths = _validate_b05_passing_receipt_boundary(
+                latest, f"{path} current passing receipt"
+            )
+            if task["changed_files"] != derived_changed_paths:
+                _fail(
+                    f"{path}.changed_files differs from the immutable B05 source delta"
+                )
     elif task["commands"] or task["artifacts"] or task["reviewers"]:
         _fail(
             f"{path} non-passing current state must retain evidence only in transition receipts"
@@ -19481,11 +21240,12 @@ def _validate_evidence_schema_supply_chain() -> None:
 
 def _validate_implementation_tool_bindings(implementation_tools: Any) -> None:
     _validate_evidence_schema_supply_chain()
-    if not isinstance(implementation_tools, list) or len(implementation_tools) != 6:
+    if not isinstance(implementation_tools, list) or len(implementation_tools) != 7:
         _fail(
             "$.implementation_tools must bind exactly the semantic checker, "
             "ledger generator, ledger schema, Draft 2020-12 validator, and "
-            "hash-locked validator environment, plus the immutable Git reader"
+            "hash-locked validator environment, immutable Git reader, and "
+            "canonical B05 preflight runner"
         )
     expected_tools = (
         "scripts/check_implementation_ledger.py",
@@ -19494,6 +21254,7 @@ def _validate_implementation_tool_bindings(implementation_tools: Any) -> None:
         "scripts/validate_evidence_schemas.py",
         "scripts/requirements-evidence-schema.txt",
         "scripts/immutable_git.py",
+        B05_PREFLIGHT_RUNNER_PATH,
     )
     for index, (tool, expected_path) in enumerate(
         zip(implementation_tools, expected_tools, strict=True)
@@ -19727,6 +21488,13 @@ def _validate(data: Any) -> None:
         task_id: dependencies for task_id, _, dependencies, _ in TASK_CATALOG
     }
     _check_transitively_reduced(dependency_graph)
+    _validate_b05_dependency_isolation(dependency_graph)
+    if (
+        B05_TASK_ID in REQUIRED_EXTERNAL_GATES
+        or B05_TASK_ID in INDEPENDENT_REVIEWER_MINIMUM
+        or any(B05_TASK_ID in task_ids for task_ids in DEFECT_TRACEABILITY.values())
+    ):
+        _fail("B05 cannot enter external, independent, or defect-closure credit maps")
     catalog_repository_scopes = {repository for _, _, _, repository in TASK_CATALOG}
     if set(COORDINATION_GIT_REPOSITORY_BY_TASK_REPOSITORY) != (
         catalog_repository_scopes
@@ -20423,6 +22191,1843 @@ def _self_test_commit(repository: Path, message: str) -> tuple[str, str]:
     commit = _self_test_git(repository, "rev-parse", "HEAD")
     tree = _self_test_git(repository, "rev-parse", "HEAD^{tree}")
     return commit, tree
+
+
+def _self_test_b05_source_boundary() -> None:
+    with tempfile.TemporaryDirectory(prefix="ncp-b05-source-boundary-") as temporary:
+        repository = Path(temporary) / "repository"
+        repository.mkdir()
+        _self_test_git(repository, "init", "-b", "main")
+        _self_test_git(repository, "config", "user.name", "NCP self-test")
+        _self_test_git(
+            repository,
+            "config",
+            "user.email",
+            "ncp-self-test@example.invalid",
+        )
+        repository_name = "NCP B05 source-boundary self-test"
+        remote_verified_at = "2026-09-01T00:00:00Z"
+
+        normative_path = "contract/source.v1.json"
+        normative_raw = _self_test_write_json(
+            repository / normative_path,
+            {"schema": "ncp.self-test-source.v1", "value": 1},
+        )
+        encoded_path = normative_path.encode()
+        digest = hashlib.sha256(B05_CONTRACT_DIGEST_DOMAIN)
+        digest.update(struct.pack(">Q", len(encoded_path)))
+        digest.update(encoded_path)
+        digest.update(struct.pack(">Q", len(normative_raw)))
+        digest.update(normative_raw)
+        normative_digest = digest.hexdigest()
+        _self_test_write_json(
+            repository / "contract/manifest.v1.json",
+            {
+                "schema": "ncp.normative-contract-manifest.v1",
+                "contract_digest_algorithm": B05_CONTRACT_DIGEST_ALGORITHM,
+                "contract_digest_domain_hex": B05_CONTRACT_DIGEST_DOMAIN.hex(),
+                "contract_digest_sha256": normative_digest,
+                "normative_sources": [
+                    {
+                        "path": normative_path,
+                        "bytes": len(normative_raw),
+                        "sha256": hashlib.sha256(normative_raw).hexdigest(),
+                    }
+                ],
+            },
+        )
+        (repository / "README.md").write_text("baseline\n", encoding="utf-8")
+        try:
+            preflight_runner_source = (ROOT / B05_PREFLIGHT_RUNNER_PATH).read_text(
+                encoding="utf-8"
+            )
+        except OSError as error:
+            _fail(f"B05 canonical preflight runner cannot be read: {error}")
+        preflight_runner = repository / B05_PREFLIGHT_RUNNER_PATH
+        preflight_runner.parent.mkdir(parents=True, exist_ok=True)
+        preflight_runner.write_text(preflight_runner_source, encoding="utf-8")
+        preflight_runner.chmod(0o755)
+        preflight_gate = repository / B05_INVOKED_PREFLIGHT_COMMAND
+        preflight_gate.parent.mkdir(parents=True, exist_ok=True)
+        preflight_gate.write_text(
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "git --version >/dev/null\n"
+            "python3 -c 'raise SystemExit(0)'\n"
+            "printf '%s\\n' 'synthetic full gate'\n"
+            "for ((index=0; index<128; index++)); do\n"
+            "  printf 'synthetic bounded output line %03d abcdefghijklmnopqrstuvwxyz0123456789\\n' \"$index\"\n"
+            "done\n"
+            "printf '%s\\n' 'tool /opt/homebrew/bin/python3'\n"
+            "printf '%s\\n' 'scratch /private/var/folders/ncp/result.log'\n"
+            "printf '%s\\n' 'windows C:\\Users\\example\\result.log'\n"
+            f"printf '%s\\n' {shlex.quote(B05_PREFLIGHT_TERMINAL)}\n",
+            encoding="utf-8",
+        )
+        preflight_gate.chmod(0o755)
+        preflight_gate_bytes = preflight_gate.read_bytes()
+        baseline, baseline_tree = _self_test_commit(repository, "baseline")
+
+        run_id = "test-run"
+        run_manifest_path = f"{B05_PROTOTYPE_PREFIX}runs/{run_id}/manifest.v1.json"
+        adapter_path = f"{B05_PROTOTYPE_PREFIX}adapter.py"
+        vectors_path = f"{B05_PROTOTYPE_PREFIX}test-vectors.v1.json"
+        project_labels = ["alpha-project", "future-project"]
+        capability_labels = ["command-intent", "telemetry"]
+        positive_case_ids = ["round-trip", "standalone"]
+        hostile_case_ids = ["ambiguous-selector", "unauthenticated-ingress"]
+
+        checker_source = "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import hashlib",
+                "import json",
+                "import subprocess",
+                "import sys",
+                "from pathlib import Path",
+                "",
+                "ROOT = Path(__file__).resolve().parents[2]",
+                f"GIT = {str(GIT)!r}",
+                f"MANIFEST_PATH = {run_manifest_path!r}",
+                f"CHECKER_PATH = {B05_CHECKER_PATH!r}",
+                f"ADAPTER_PATH = {adapter_path!r}",
+                f"VECTORS_PATH = {vectors_path!r}",
+                "",
+                "def identity(relative):",
+                "    raw = (ROOT / relative).read_bytes()",
+                "    return {'path': relative, 'sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw)}",
+                "",
+                "def git(*arguments):",
+                "    result = subprocess.run([GIT, '--no-replace-objects', *arguments], cwd=ROOT, check=True, capture_output=True, text=True)",
+                "    return result.stdout.strip()",
+                "",
+                "if sys.argv[1:] != ['--self-test']:",
+                "    raise SystemExit(2)",
+                "manifest = json.loads((ROOT / MANIFEST_PATH).read_text(encoding='utf-8'))",
+                "for source in manifest['source_files']:",
+                "    observed = identity(source['path'])",
+                "    expected = {key: source[key] for key in ('path', 'sha256', 'bytes')}",
+                "    if observed != expected:",
+                "        raise SystemExit('stale source identity')",
+                "namespace = {}",
+                "exec((ROOT / ADAPTER_PATH).read_text(encoding='utf-8'), namespace)",
+                "vectors = json.loads((ROOT / VECTORS_PATH).read_text(encoding='utf-8'))",
+                "positive = []",
+                "for case_id in manifest['positive_case_ids']:",
+                "    if case_id == 'round-trip':",
+                "        passed = namespace['round_trip']('payload') == 'payload'",
+                "    elif case_id == 'standalone':",
+                "        passed = namespace['standalone'](7) == 7",
+                "    else:",
+                "        passed = False",
+                "    if not passed:",
+                "        raise SystemExit(f'positive case failed: {case_id}')",
+                "    positive.append({'case_id': case_id, 'outcome': 'PASS'})",
+                "hostile = []",
+                "hostile_inputs = {item['case_id']: item for item in vectors['hostile']} ",
+                "for case_id in manifest['hostile_case_ids']:",
+                "    item = hostile_inputs[case_id]",
+                "    try:",
+                "        namespace['admit']('payload', authenticated=item['authenticated'], selector=item['selector'])",
+                "    except ValueError:",
+                "        hostile.append({'case_id': case_id, 'outcome': 'EXPECTED_REJECTION_OBSERVED'})",
+                "    else:",
+                "        raise SystemExit(f'hostile case accepted: {case_id}')",
+                "source_commit = git('rev-parse', 'HEAD')",
+                "source_tree = git('rev-parse', 'HEAD^{tree}')",
+                "result = {",
+                f"    'schema': {B05_FOCUSED_RESULT_SCHEMA!r},",
+                f"    'run_id': {run_id!r},",
+                "    'source_commit': source_commit,",
+                "    'source_tree': source_tree,",
+                "    'manifest': identity(MANIFEST_PATH),",
+                "    'checker': identity(CHECKER_PATH),",
+                "    'positive_cases': positive,",
+                "    'hostile_cases': hostile,",
+                "    'counts': {'passed': len(positive) + len(hostile), 'failed': 0, 'skipped': 0},",
+                f"    'claim_boundary': {B05_CLAIM_BOUNDARY!r},",
+                f"    'terminal': {B05_FOCUSED_TERMINAL!r},",
+                "}",
+                "print(json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(',', ':')))",
+                "",
+            ]
+        )
+        adapter_source = """def admit(payload, *, authenticated, selector):
+    if not authenticated:
+        raise ValueError("unauthenticated")
+    if selector not in {"alpha", "future"}:
+        raise ValueError("ambiguous selector")
+    return payload.encode("utf-8")
+
+
+def round_trip(payload):
+    return admit(payload, authenticated=True, selector="alpha").decode("utf-8")
+
+
+def standalone(value):
+    return value
+"""
+        vectors = {
+            "positive": positive_case_ids,
+            "hostile": [
+                {
+                    "case_id": "ambiguous-selector",
+                    "authenticated": True,
+                    "selector": "unknown",
+                },
+                {
+                    "case_id": "unauthenticated-ingress",
+                    "authenticated": False,
+                    "selector": "alpha",
+                },
+            ],
+        }
+
+        def file_identity(relative: str) -> dict[str, str | int]:
+            raw = (repository / relative).read_bytes()
+            return {
+                "path": relative,
+                "sha256": hashlib.sha256(raw).hexdigest(),
+                "bytes": len(raw),
+            }
+
+        def install_source(
+            *,
+            include_checker: bool = True,
+            include_research_record: bool = True,
+        ) -> None:
+            (repository / adapter_path).parent.mkdir(parents=True, exist_ok=True)
+            (repository / adapter_path).write_text(adapter_source, encoding="utf-8")
+            _self_test_write_json(repository / vectors_path, vectors)
+            checker = repository / B05_CHECKER_PATH
+            if include_checker:
+                checker.write_text(checker_source, encoding="utf-8")
+            else:
+                checker.unlink(missing_ok=True)
+            role_paths = [
+                ("IMPLEMENTATION", adapter_path),
+                ("CHECKER", B05_CHECKER_PATH),
+                ("PREFLIGHT_RUNNER", B05_PREFLIGHT_RUNNER_PATH),
+                ("TEST", vectors_path),
+            ]
+            source_files = [
+                {"role": role, **file_identity(relative)}
+                for role, relative in sorted(role_paths, key=lambda item: item[1])
+                if (repository / relative).is_file()
+            ]
+            _self_test_write_json(
+                repository / run_manifest_path,
+                {
+                    "schema": B05_RUN_MANIFEST_SCHEMA,
+                    "run_id": run_id,
+                    "project_labels": project_labels,
+                    "capability_labels": capability_labels,
+                    "positive_case_ids": positive_case_ids,
+                    "hostile_case_ids": hostile_case_ids,
+                    "source_files": source_files,
+                    "standalone_operation_preserved": True,
+                    "ncp_scope": B05_NCP_SCOPE,
+                    "shared_clock_boundary": B05_SHARED_CLOCK_BOUNDARY,
+                    "claim_boundary": B05_CLAIM_BOUNDARY,
+                },
+            )
+            if include_research_record:
+                research_record = repository / B05_RESEARCH_RECORD
+                research_record.parent.mkdir(parents=True, exist_ok=True)
+                if research_record.is_symlink():
+                    research_record.unlink()
+                research_record.write_text(
+                    "# Prototype evidence\n\n"
+                    "This record grants no protocol authority.\n",
+                    encoding="utf-8",
+                )
+            for relative in B05_DERIVED_SOURCE_PATHS:
+                _self_test_write_json(
+                    repository / relative,
+                    {"schema": "ncp.self-test-derived.v1", "path": relative},
+                )
+
+        install_source()
+        source_commit, source_tree = _self_test_commit(repository, "prototype")
+        preflight_gate.write_bytes(preflight_gate_bytes + b"# dirty tracked bytes\n")
+        preflight_gate.chmod(0o755)
+        dirty_preflight_execution = subprocess.run(  # noqa: S603
+            [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+            cwd=repository,
+            env=_git_environment(),
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+        if (
+            dirty_preflight_execution.returncode == 0
+            or b"requires a clean tracked and untracked-nonignored worktree"
+            not in dirty_preflight_execution.stderr
+        ):
+            _fail("B05 preflight runner did not reject the dirty tracked gate script")
+        preflight_gate.write_bytes(preflight_gate_bytes)
+        preflight_gate.chmod(0o755)
+
+        def exercise_runner_bound(
+            *,
+            branch: str,
+            runner_source: str,
+            gate_bytes: bytes,
+            expected_error: bytes,
+            terminated_pid_path: Path | None = None,
+        ) -> None:
+            _self_test_git(repository, "checkout", "-b", branch, source_commit)
+            (repository / B05_PREFLIGHT_RUNNER_PATH).write_text(
+                runner_source, encoding="utf-8"
+            )
+            preflight_gate.write_bytes(gate_bytes)
+            preflight_gate.chmod(0o755)
+            _self_test_commit(repository, branch)
+            execution = subprocess.run(  # noqa: S603
+                [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+                cwd=repository,
+                env=_git_environment(),
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+            if execution.returncode == 0 or expected_error not in execution.stderr:
+                detail = execution.stderr.decode("utf-8", errors="replace").strip()
+                output_detail = execution.stdout.decode(
+                    "utf-8", errors="replace"
+                ).strip()
+                _fail(
+                    f"B05 preflight runner did not enforce {branch}: "
+                    f"exit={execution.returncode}, stderr={detail!r}, "
+                    f"stdout={output_detail!r}"
+                )
+            if terminated_pid_path is not None:
+                try:
+                    terminated_pid = int(terminated_pid_path.read_text().strip())
+                except (OSError, ValueError) as error:
+                    _fail(f"B05 descendant PID control is unreadable: {error}")
+                deadline = time.monotonic() + 2
+                while True:
+                    try:
+                        os.kill(terminated_pid, 0)
+                    except ProcessLookupError:
+                        break
+                    except PermissionError as error:
+                        _fail(f"B05 cannot inspect its hostile descendant: {error}")
+                    if time.monotonic() >= deadline:
+                        _fail("B05 bounded runner left a hostile descendant alive")
+                    time.sleep(0.05)
+            _self_test_git(repository, "checkout", "main")
+
+        timeout_runner_source = preflight_runner_source.replace(
+            "TIMEOUT_SECONDS = 3_600",
+            "TIMEOUT_SECONDS = 1",
+            1,
+        )
+        if timeout_runner_source == preflight_runner_source:
+            _fail("B05 timeout self-test could not specialize the runner")
+        descendant_pid_path = Path(temporary) / "hostile-descendant.pid"
+        descendant_script = (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "trap '' TERM\n"
+            "sleep 30 &\n"
+            "child=$!\n"
+            f"printf '%s\\n' \"$child\" > {shlex.quote(str(descendant_pid_path))}\n"
+            'wait "$child"\n'
+        ).encode()
+        exercise_runner_bound(
+            branch="runner-timeout",
+            runner_source=timeout_runner_source,
+            gate_bytes=descendant_script,
+            expected_error=b"bounded command exceeded its timeout",
+            terminated_pid_path=descendant_pid_path,
+        )
+        output_runner_source = preflight_runner_source.replace(
+            "MAX_RAW_BYTES = 16 * 1024 * 1024",
+            "MAX_RAW_BYTES = 1024",
+            1,
+        )
+        if output_runner_source == preflight_runner_source:
+            _fail("B05 output-bound self-test could not specialize the runner")
+        exercise_runner_bound(
+            branch="runner-output-limit",
+            runner_source=output_runner_source,
+            gate_bytes=(
+                b"#!/usr/bin/env bash\nset -euo pipefail\nprintf '%*s\\n' 2048 ''\n"
+            ),
+            expected_error=b"bounded command exceeded its output byte limit",
+        )
+        line_runner_source = preflight_runner_source.replace(
+            "MAX_LINES = 100_000",
+            "MAX_LINES = 10",
+            1,
+        )
+        if line_runner_source == preflight_runner_source:
+            _fail("B05 line-bound self-test could not specialize the runner")
+        exercise_runner_bound(
+            branch="runner-line-limit",
+            runner_source=line_runner_source,
+            gate_bytes=(
+                b"#!/usr/bin/env bash\nset -euo pipefail\n"
+                b"for ((index=0; index<11; index++)); do printf 'line %s\\n' \"$index\"; done\n"
+            ),
+            expected_error=b"preflight output is empty or exceeds its line-count bound",
+        )
+        portable_runner_source = preflight_runner_source.replace(
+            "MAX_PORTABLE_BYTES = 16 * 1024 * 1024",
+            "MAX_PORTABLE_BYTES = 1024",
+            1,
+        )
+        if portable_runner_source == preflight_runner_source:
+            _fail("B05 portable-bound self-test could not specialize the runner")
+        exercise_runner_bound(
+            branch="runner-portable-limit",
+            runner_source=portable_runner_source,
+            gate_bytes=(
+                b"#!/usr/bin/env bash\nset -euo pipefail\n"
+                b"for ((index=0; index<20; index++)); do printf '/\\n'; done\n"
+            ),
+            expected_error=b"portable preflight output exceeds its byte limit",
+        )
+        immutable_execution_needle = "    process_exit_code, raw = run_bounded(\n"
+        replacement_gate = (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "printf '%s\\n' 'pathname-replacement-marker'\n"
+            f"printf '%s\\n' {shlex.quote(B05_PREFLIGHT_TERMINAL)}\n"
+        ).encode()
+        immutable_gate = (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "/usr/bin/git show HEAD:scripts/check.sh > scripts/check.sh\n"
+            "printf '%s\\n' 'immutable-original-marker'\n"
+            f"printf '%s\\n' {shlex.quote(B05_PREFLIGHT_TERMINAL)}\n"
+        ).encode()
+        immutable_runner_source = preflight_runner_source.replace(
+            immutable_execution_needle,
+            (
+                f"    (ROOT / COMMAND).write_bytes({replacement_gate!r})\n\n"
+                + immutable_execution_needle
+            ),
+            1,
+        )
+        if immutable_runner_source == preflight_runner_source:
+            _fail("B05 immutable-execution self-test could not specialize the runner")
+        _self_test_git(
+            repository, "checkout", "-b", "runner-immutable-execution", source_commit
+        )
+        (repository / B05_PREFLIGHT_RUNNER_PATH).write_text(
+            immutable_runner_source, encoding="utf-8"
+        )
+        preflight_gate.write_bytes(immutable_gate)
+        preflight_gate.chmod(0o755)
+        _self_test_commit(repository, "runner immutable execution")
+        immutable_execution = subprocess.run(  # noqa: S603
+            [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+            cwd=repository,
+            env=_git_environment(),
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+        if immutable_execution.returncode != 0 or immutable_execution.stderr:
+            _fail("B05 immutable gate execution did not produce a clean result")
+        immutable_result = _load_b05_full_preflight_json(
+            immutable_execution.stdout, "B05 immutable gate execution output"
+        )
+        immutable_log = immutable_result.get("log")
+        if (
+            not isinstance(immutable_log, dict)
+            or "immutable-original-marker" not in immutable_log.get("text", "")
+            or "pathname-replacement-marker" in immutable_log.get("text", "")
+        ):
+            _fail("B05 runner reopened the replaced gate pathname")
+        _self_test_git(repository, "checkout", "main")
+        for flag, clear_flag, label in (
+            (
+                "--assume-unchanged",
+                "--no-assume-unchanged",
+                "assume-unchanged",
+            ),
+            ("--skip-worktree", "--no-skip-worktree", "skip-worktree"),
+            ("--fsmonitor-valid", "--no-fsmonitor-valid", "fsmonitor-valid"),
+        ):
+            fsmonitor_config = (
+                ("-c", "core.fsmonitor=true") if label == "fsmonitor-valid" else ()
+            )
+            _self_test_git(
+                repository,
+                *fsmonitor_config,
+                "update-index",
+                flag,
+                B05_INVOKED_PREFLIGHT_COMMAND,
+            )
+            hidden_index_execution = subprocess.run(  # noqa: S603
+                [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+                cwd=repository,
+                env=_git_environment(),
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+            _self_test_git(
+                repository,
+                *fsmonitor_config,
+                "update-index",
+                clear_flag,
+                B05_INVOKED_PREFLIGHT_COMMAND,
+            )
+            if (
+                hidden_index_execution.returncode == 0
+                or b"hidden or non-normal index flag"
+                not in hidden_index_execution.stderr
+            ):
+                _fail(f"B05 preflight runner did not reject {label} index state")
+        focused_execution = subprocess.run(  # noqa: S603
+            [sys.executable, str(repository / B05_CHECKER_PATH), "--self-test"],
+            cwd=repository,
+            env=_git_environment(),
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+        if focused_execution.returncode != 0 or focused_execution.stderr:
+            _fail("B05 positive checker execution did not produce a clean result")
+        focused_bytes = focused_execution.stdout
+        focused_value = _load_bounded_json_bytes(
+            focused_bytes, "B05 positive checker output"
+        )
+        if (
+            not isinstance(focused_value, dict)
+            or focused_value.get("terminal") != B05_FOCUSED_TERMINAL
+        ):
+            _fail("B05 positive checker output lacks its structured terminal")
+        shell_injection_sentinel = Path(temporary) / "shell-injection-ran"
+        hostile_bin = Path(temporary) / "hostile-bin"
+        hostile_bin.mkdir()
+        hostile_shell = (
+            "#!/bin/sh\n"
+            f"printf injected >> {shlex.quote(str(shell_injection_sentinel))}\n"
+            f"printf '%s\\n' {shlex.quote(B05_PREFLIGHT_TERMINAL)}\n"
+            "exit 0\n"
+        )
+        for tool_name in ("bash", "git", "python3"):
+            tool_path = hostile_bin / tool_name
+            tool_path.write_text(hostile_shell, encoding="utf-8")
+            tool_path.chmod(0o755)
+        bash_environment = Path(temporary) / "hostile-bash-env"
+        bash_environment.write_text(hostile_shell, encoding="utf-8")
+        hostile_preflight_environment = _git_environment()
+        hostile_preflight_environment.update(
+            {
+                "GIT_DIR": str(repository / "hostile-git-dir"),
+                "GIT_WORK_TREE": str(repository / "hostile-worktree"),
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.worktree",
+                "GIT_CONFIG_VALUE_0": str(repository / "redirected-worktree"),
+                "PATH": f"{hostile_bin}{os.pathsep}{hostile_preflight_environment['PATH']}",
+                "BASH_ENV": str(bash_environment),
+                "ENV": str(bash_environment),
+                "BASH_FUNC_git%%": (
+                    "() { printf injected >> "
+                    f"{shlex.quote(str(shell_injection_sentinel))}; }}"
+                ),
+            }
+        )
+        preflight_execution = subprocess.run(  # noqa: S603
+            [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+            cwd=repository,
+            env=hostile_preflight_environment,
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+        if preflight_execution.returncode != 0 or preflight_execution.stderr:
+            _fail("B05 positive preflight execution did not produce a clean result")
+        if shell_injection_sentinel.exists():
+            _fail("B05 preflight execution admitted ambient shell or PATH injection")
+        preflight_bytes = preflight_execution.stdout
+        preflight_value = _load_b05_full_preflight_json(
+            preflight_bytes, "B05 positive preflight output"
+        )
+        if (
+            len(preflight_bytes) <= 4_096
+            or len(preflight_bytes) > B05_FULL_PREFLIGHT_MAX_JSON_BYTES
+            or preflight_value.get("source_commit") != source_commit
+            or preflight_value.get("source_tree") != source_tree
+            or preflight_value.get("terminal") != B05_PREFLIGHT_TERMINAL
+            or preflight_value.get("terminal_count") != 1
+            or preflight_value.get("runner_script")
+            != file_identity(B05_PREFLIGHT_RUNNER_PATH)
+        ):
+            _fail("B05 positive preflight output lacks its source-bound terminal")
+        portable_log = preflight_value.get("log")
+        if not isinstance(portable_log, dict):
+            _fail("B05 positive preflight output lacks its portable log")
+        portable_text = portable_log.get("text")
+        if (
+            not isinstance(portable_text, str)
+            or portable_log.get("transform") != B05_PREFLIGHT_LOG_TRANSFORM
+            or portable_log.get("raw_line_count") != 133
+            or portable_text.count("NCP B05 REDACTED LINE ") != 3
+            or any(
+                private_path in portable_text
+                for private_path in (
+                    "/opt/homebrew",
+                    "/private/var/folders",
+                    "C:\\Users\\example",
+                )
+            )
+            or _classify_receipt_text_view(
+                portable_text, "B05 positive portable preflight log"
+            )[0]
+            != 0
+        ):
+            _fail("B05 positive preflight output did not redact host paths")
+
+        for label, environment_update, expected_error in (
+            (
+                "loader injection",
+                {"SHLIB_PATH": str(Path(temporary) / "hostile-loader")},
+                b"dynamic-loader injection variable",
+            ),
+            (
+                "relative PATH",
+                {"PATH": f"relative{os.pathsep}/usr/bin{os.pathsep}/bin"},
+                b"PATH contains an empty or relative component",
+            ),
+        ):
+            hostile_environment = _git_environment()
+            hostile_environment.update(environment_update)
+            hostile_execution = subprocess.run(  # noqa: S603
+                [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+                cwd=repository,
+                env=hostile_environment,
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+            if (
+                hostile_execution.returncode == 0
+                or expected_error not in hostile_execution.stderr
+            ):
+                _fail(f"B05 preflight runner did not reject {label}")
+
+        focused_path = f"{B05_RECEIPT_PREFIX}focused-result.v1.json"
+        preflight_path = f"{B05_RECEIPT_PREFIX}preflight-result.v1.json"
+        remote_path = f"{B05_RECEIPT_PREFIX}remote-verification.v1.json"
+
+        def replace_preflight_log(value: dict[str, Any], text: str) -> None:
+            raw = text.encode()
+            value["log"].update(
+                {
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "bytes": len(raw),
+                    "text": text,
+                }
+            )
+
+        def replace_preflight_line(
+            value: dict[str, Any], index: int, replacement: str
+        ) -> None:
+            lines = value["log"]["text"].splitlines()
+            lines[index] = replacement
+            replace_preflight_log(value, "\n".join(lines) + "\n")
+
+        def write_evidence_files(
+            *,
+            mutate_focused: Callable[[dict[str, Any]], None] | None = None,
+            mutate_preflight: Callable[[dict[str, Any]], None] | None = None,
+            extra_files: Mapping[str, bytes] | None = None,
+        ) -> None:
+            result = copy.deepcopy(focused_value)
+            if mutate_focused is None:
+                destination = repository / focused_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(focused_bytes)
+            else:
+                mutate_focused(result)
+                _self_test_write_json(repository / focused_path, result)
+            preflight = copy.deepcopy(preflight_value)
+            if mutate_preflight is None:
+                destination = repository / preflight_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(preflight_bytes)
+            else:
+                mutate_preflight(preflight)
+                _self_test_write_json(repository / preflight_path, preflight)
+            _self_test_write_json(
+                repository / remote_path,
+                {
+                    "source": {
+                        "repository": repository_name,
+                        "branch": "main",
+                        "commit": source_commit,
+                        "tree": source_tree,
+                    },
+                    "remote_verification": {
+                        "remote": "origin",
+                        "ref": "refs/heads/main",
+                        "remote_advertised_object": source_commit,
+                        "verified_at_utc": remote_verified_at,
+                        "local_head": source_commit,
+                        "remote_tracking_object": source_commit,
+                        "worktree_clean": True,
+                    },
+                },
+            )
+            for relative, content in (extra_files or {}).items():
+                destination = repository / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+
+        def write_evidence(
+            branch: str,
+            **options: Any,
+        ) -> tuple[str, str]:
+            _self_test_git(repository, "checkout", "-b", branch, source_commit)
+            write_evidence_files(**options)
+            return _self_test_commit(repository, f"evidence {branch}")
+
+        evidence_commit, evidence_tree = write_evidence("positive-evidence")
+        artifact_subjects = {
+            focused_path: B05_FOCUSED_RESULT_SUBJECT,
+            preflight_path: B05_FULL_PREFLIGHT_SUBJECT,
+            remote_path: "remote-verification",
+        }
+
+        def artifact_record(commit: str, relative: str, subject: str) -> dict[str, Any]:
+            snapshot = immutable_blob_snapshot(
+                commit,
+                relative,
+                maximum=MAX_EVIDENCE_FILE_BYTES,
+                root=repository,
+            )
+            return {"subject": subject, **snapshot.identity()}
+
+        def passing_receipt(
+            commit: str,
+            tree: str,
+            *,
+            artifacts: list[dict[str, Any]] | None = None,
+        ) -> dict[str, Any]:
+            records = (
+                artifacts
+                if artifacts is not None
+                else [
+                    artifact_record(commit, relative, subject)
+                    for relative, subject in artifact_subjects.items()
+                ]
+            )
+            return {
+                "repository": repository_name,
+                "source_commit": source_commit,
+                "source_tree": source_tree,
+                "evidence_commit": commit,
+                "evidence_tree": tree,
+                "normative_digest_before": normative_digest,
+                "normative_digest_after": normative_digest,
+                "external_gates_run": [],
+                "reviewers": [
+                    {
+                        "identity": "local:b05-reviewer",
+                        "role": "local-prototype-reviewer",
+                        "independent": False,
+                        "implementation_owner": "local:b05-implementer",
+                        "decision": "PASS",
+                    }
+                ],
+                "commands": [
+                    {
+                        "command": B05_REQUIRED_COMMANDS[0],
+                        "exit_code": 0,
+                        "output_artifact": focused_path,
+                        "passed": 4,
+                        "failed": 0,
+                        "skipped": 0,
+                    },
+                    {
+                        "command": B05_REQUIRED_COMMANDS[1],
+                        "exit_code": 0,
+                        "output_artifact": preflight_path,
+                        "passed": 1,
+                        "failed": 0,
+                        "skipped": 0,
+                    },
+                ],
+                "artifacts": records,
+            }
+
+        GIT_ROOT_BY_RECEIPT_REPOSITORY[repository_name] = repository
+        receipt = passing_receipt(evidence_commit, evidence_tree)
+        try:
+            changed = _validate_b05_passing_receipt_boundary(
+                receipt, "positive B05 source boundary"
+            )
+            expected_changed = sorted(
+                {
+                    B05_RESEARCH_RECORD,
+                    B05_CHECKER_PATH,
+                    adapter_path,
+                    vectors_path,
+                    run_manifest_path,
+                    *B05_DERIVED_SOURCE_PATHS,
+                }
+            )
+            if changed != expected_changed:
+                _fail("positive B05 source boundary returned the wrong Git delta")
+
+            public_receipt = {
+                **copy.deepcopy(receipt),
+                "kind": "passing",
+                "branch": "main",
+                "environment": "isolated B05 self-test repository",
+                "toolchain": [{"name": "python", "version": "self-test"}],
+                "external_gates_not_run": [],
+                "residual_risks": ["Prototype evidence grants no release authority."],
+                "rollback_or_recovery": "Delete only the isolated prototype source cut.",
+                "commit": source_commit,
+                "push_remote": "origin",
+                "push_ref": "refs/heads/main",
+                "push_object_kind": "branch",
+                "pushed_object": source_commit,
+                "remote_verification_artifact": remote_path,
+                "remote_verified_at_utc": remote_verified_at,
+                "dependency_receipts": [],
+                "task_subject": None,
+                "transition_subject": {
+                    "schema": LOCAL_TRANSITION_SUBJECT_SCHEMA,
+                    "receipt_kind": "passing",
+                    "task_id": B05_TASK_ID,
+                    "from": "IN_PROGRESS",
+                    "to": "LOCAL_PASS",
+                    "requirement_acceptance_sha256": "0" * 64,
+                    "repository": "NCP prototypes",
+                    "branch": "main",
+                    "source_commit": source_commit,
+                    "source_tree": source_tree,
+                    "evidence_commit": evidence_commit,
+                    "evidence_tree": evidence_tree,
+                    "dependency_receipts": [],
+                    "task_subject_sha256": None,
+                    "correlation_id": "b05-public-receipt-self-test",
+                },
+                "timestamp_utc": "2026-09-01T00:00:01Z",
+            }
+            _validate_receipt(
+                public_receipt,
+                "positive B05 public passing receipt",
+                task_id=B05_TASK_ID,
+                transition_to="LOCAL_PASS",
+                budget={"references": 0, "bytes": 0},
+            )
+
+            for field, value, label, message in (
+                (
+                    "normative_digest_before",
+                    "0" * 64,
+                    "B05 fabricated equal normative digests",
+                    "does not bind the unchanged normative source bytes",
+                ),
+                (
+                    "external_gates_run",
+                    ["prototype-is-production"],
+                    "B05 external-gate credit",
+                    "cannot record or receive external-gate credit",
+                ),
+            ):
+                hostile = copy.deepcopy(receipt)
+                hostile[field] = value
+                if field == "normative_digest_before":
+                    hostile["normative_digest_after"] = value
+                _must_fail(
+                    lambda hostile=hostile: _validate_b05_passing_receipt_boundary(
+                        hostile, f"hostile {label}"
+                    ),
+                    label,
+                    message,
+                )
+            hostile = copy.deepcopy(receipt)
+            hostile["commands"] = hostile["commands"][:1]
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 missing complete gate"
+                ),
+                "B05 missing complete local gate",
+                "exact hostile-control and complete local gates",
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["reviewers"][0]["independent"] = True
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 independent claim"
+                ),
+                "B05 independent-review claim",
+                "reviewers must be local and non-independent",
+            )
+            for label, artifact_paths, expected in (
+                (
+                    "case-folding artifact collision",
+                    [
+                        f"{B05_RECEIPT_PREFIX}Portable.json",
+                        f"{B05_RECEIPT_PREFIX}portable.json",
+                    ],
+                    "collide after case folding",
+                ),
+                (
+                    "non-normalized artifact path",
+                    [f"{B05_RECEIPT_PREFIX}e\u0301.json"],
+                    "not portable normalized Unicode",
+                ),
+                (
+                    "control-character artifact path",
+                    [f"{B05_RECEIPT_PREFIX}control\u0001.json"],
+                    "must be a bounded repository-relative path",
+                ),
+            ):
+                hostile = copy.deepcopy(receipt)
+                for artifact, hostile_path in zip(
+                    hostile["artifacts"], artifact_paths, strict=False
+                ):
+                    artifact["path"] = hostile_path
+                _must_fail(
+                    lambda hostile=hostile: _validate_b05_passing_receipt_boundary(
+                        hostile, f"hostile B05 {label}"
+                    ),
+                    f"B05 {label}",
+                    expected,
+                )
+
+            _self_test_git(repository, "checkout", "-b", "forbidden", baseline)
+            install_source()
+            (repository / "README.md").write_text("forbidden\n", encoding="utf-8")
+            forbidden_commit, forbidden_tree = _self_test_commit(
+                repository, "forbidden path"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = forbidden_commit
+            hostile["source_tree"] = forbidden_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 forbidden path"
+                ),
+                "B05 undeclared forbidden Git change",
+                "outside the quarantine",
+            )
+
+            _self_test_git(repository, "checkout", "-b", "no-prototype", baseline)
+            (repository / B05_RESEARCH_RECORD).parent.mkdir(parents=True)
+            (repository / B05_RESEARCH_RECORD).write_text(
+                "# Documentation only\n", encoding="utf-8"
+            )
+            no_prototype_commit, no_prototype_tree = _self_test_commit(
+                repository, "no prototype"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = no_prototype_commit
+            hostile["source_tree"] = no_prototype_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 no-prototype source"
+                ),
+                "B05 source without prototype bytes",
+                "must contain prototype implementation bytes",
+            )
+
+            _self_test_git(repository, "checkout", "-b", "missing-research", baseline)
+            install_source(include_research_record=False)
+            missing_research_commit, missing_research_tree = _self_test_commit(
+                repository, "missing research record"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = missing_research_commit
+            hostile["source_tree"] = missing_research_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 missing research record"
+                ),
+                "B05 missing research record",
+                "research record must resolve to one immutable regular file",
+            )
+
+            _self_test_git(
+                repository, "checkout", "-b", "research-symlink-parent", baseline
+            )
+            research_symlink = repository / B05_RESEARCH_RECORD
+            research_symlink.parent.mkdir(parents=True, exist_ok=True)
+            research_symlink.symlink_to("../../README.md")
+            research_symlink_parent, _ = _self_test_commit(
+                repository, "preexisting research symlink"
+            )
+            _self_test_git(
+                repository,
+                "checkout",
+                "-b",
+                "research-symlink-child",
+                research_symlink_parent,
+            )
+            install_source(include_research_record=False)
+            inherited_symlink_commit, inherited_symlink_tree = _self_test_commit(
+                repository, "prototype with inherited research symlink"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = inherited_symlink_commit
+            hostile["source_tree"] = inherited_symlink_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 inherited research symlink"
+                ),
+                "B05 inherited research symlink",
+                "research record must resolve to one immutable regular file",
+            )
+
+            _self_test_git(
+                repository, "checkout", "-b", "mutated-runner-parent", baseline
+            )
+            (repository / B05_PREFLIGHT_RUNNER_PATH).write_text(
+                preflight_runner_source + "\n# unreviewed runner semantics\n",
+                encoding="utf-8",
+            )
+            mutated_runner_parent, _ = _self_test_commit(
+                repository, "mutated canonical runner parent"
+            )
+            _self_test_git(
+                repository,
+                "checkout",
+                "-b",
+                "mutated-runner-child",
+                mutated_runner_parent,
+            )
+            install_source()
+            mutated_runner_commit, mutated_runner_tree = _self_test_commit(
+                repository, "prototype with inherited mutated runner"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = mutated_runner_commit
+            hostile["source_tree"] = mutated_runner_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 inherited mutated runner"
+                ),
+                "B05 inherited mutated canonical runner",
+                "canonical preflight runner differs from checked semantics",
+            )
+
+            _self_test_git(repository, "checkout", "-b", "symlink", baseline)
+            install_source()
+            (repository / B05_CHECKER_PATH).unlink()
+            (repository / B05_CHECKER_PATH).symlink_to("adapter.py")
+            symlink_commit, symlink_tree = _self_test_commit(repository, "symlink")
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = symlink_commit
+            hostile["source_tree"] = symlink_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 symlink checker"
+                ),
+                "B05 symlink source",
+                "non-regular after mode",
+            )
+            _must_fail(
+                lambda: _validate_b05_changed_entry_modes(
+                    [
+                        B05ChangedEntry(
+                            path=B05_CHECKER_PATH,
+                            before_mode=None,
+                            before_object=None,
+                            after_mode="160000",
+                            after_object="1" * 40,
+                        )
+                    ],
+                    "hostile B05 gitlink",
+                    allow_deletions=True,
+                ),
+                "B05 gitlink source",
+                "non-regular after mode",
+            )
+
+            _self_test_git(repository, "checkout", "-b", "missing-checker", baseline)
+            install_source(include_checker=False)
+            missing_commit, missing_tree = _self_test_commit(
+                repository, "missing checker"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = missing_commit
+            hostile["source_tree"] = missing_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 missing checker"
+                ),
+                "B05 missing checker",
+                "lacks its exact focused checker",
+            )
+
+            _self_test_git(repository, "checkout", "-b", "stale-roster", baseline)
+            install_source()
+            (repository / adapter_path).write_text(
+                adapter_source + "\n# unbound change\n", encoding="utf-8"
+            )
+            stale_source_commit, stale_source_tree = _self_test_commit(
+                repository, "stale roster"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = stale_source_commit
+            hostile["source_tree"] = stale_source_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 stale source roster"
+                ),
+                "B05 stale source roster",
+                "differs from the complete prototype snapshot",
+            )
+
+            _self_test_git(repository, "checkout", "-b", "preexisting", baseline)
+            install_source()
+            preexisting_commit, _ = _self_test_commit(repository, "preexisting")
+            _self_test_git(
+                repository,
+                "checkout",
+                "-b",
+                "deleted-research",
+                preexisting_commit,
+            )
+            (repository / B05_RESEARCH_RECORD).unlink()
+            (repository / adapter_path).write_text(
+                adapter_source + "\n# changed with deleted research record\n",
+                encoding="utf-8",
+            )
+            deleted_research_commit, deleted_research_tree = _self_test_commit(
+                repository, "delete research record"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = deleted_research_commit
+            hostile["source_tree"] = deleted_research_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 deleted research record"
+                ),
+                "B05 deleted research record",
+                "deletes its required research record",
+            )
+            _self_test_git(
+                repository, "checkout", "-b", "deletion-only", preexisting_commit
+            )
+            for relative in (
+                B05_CHECKER_PATH,
+                adapter_path,
+                vectors_path,
+                run_manifest_path,
+            ):
+                (repository / relative).unlink()
+            deletion_commit, deletion_tree = _self_test_commit(
+                repository, "deletion only"
+            )
+            hostile = copy.deepcopy(receipt)
+            hostile["source_commit"] = deletion_commit
+            hostile["source_tree"] = deletion_tree
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 deletion-only source"
+                ),
+                "B05 deletion-only source",
+                "must contain prototype implementation bytes",
+            )
+
+            outside_commit, outside_tree = write_evidence(
+                "outside-evidence",
+                extra_files={"README.md": b"evidence changed source\n"},
+            )
+            hostile = passing_receipt(outside_commit, outside_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 evidence source change"
+                ),
+                "B05 evidence changes a source path",
+                "outside its receipt root",
+            )
+            extra_path = f"{B05_RECEIPT_PREFIX}unlisted.txt"
+            extra_commit, extra_tree = write_evidence(
+                "extra-evidence",
+                extra_files={extra_path: b"unlisted\n"},
+            )
+            hostile = passing_receipt(extra_commit, extra_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 unlisted evidence"
+                ),
+                "B05 unlisted evidence",
+                "equal its exact artifact roster",
+            )
+            stale_commit, stale_tree = write_evidence(
+                "stale-result",
+                mutate_focused=lambda result: result["positive_cases"].pop(),
+            )
+            hostile = passing_receipt(stale_commit, stale_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 stale focused result"
+                ),
+                "B05 stale focused case roster",
+                "exact run-manifest case roster",
+            )
+            terminal_commit, terminal_tree = write_evidence(
+                "missing-terminal",
+                mutate_preflight=lambda value: replace_preflight_line(
+                    value, -1, "preflight ended without the checked terminal"
+                ),
+            )
+            hostile = passing_receipt(terminal_commit, terminal_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 missing preflight terminal"
+                ),
+                "B05 missing preflight terminal",
+                "lacks one exact terminal success line",
+            )
+            unredacted_commit, unredacted_tree = write_evidence(
+                "unredacted-preflight",
+                mutate_preflight=lambda value: replace_preflight_line(
+                    value, 1, "tool /Users/example/private/python3"
+                ),
+            )
+            hostile = passing_receipt(unredacted_commit, unredacted_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 unredacted preflight log"
+                ),
+                "B05 unredacted preflight log",
+                "contains an absolute host path",
+            )
+            binding_commit, binding_tree = write_evidence(
+                "stale-preflight-binding",
+                mutate_preflight=lambda value: value.__setitem__(
+                    "source_commit", baseline
+                ),
+            )
+            hostile = passing_receipt(binding_commit, binding_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 stale preflight binding"
+                ),
+                "B05 stale preflight binding",
+                "differs from its exact command and source",
+            )
+            script_identity_commit, script_identity_tree = write_evidence(
+                "stale-preflight-script-identity",
+                mutate_preflight=lambda value: value["preflight_script"].__setitem__(
+                    "sha256", "0" * 64
+                ),
+            )
+            hostile = passing_receipt(script_identity_commit, script_identity_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 stale preflight script identity"
+                ),
+                "B05 stale preflight script identity",
+                "preflight script identity differs from its source blob",
+            )
+            runner_identity_commit, runner_identity_tree = write_evidence(
+                "stale-canonical-runner-identity",
+                mutate_preflight=lambda value: value["runner_script"].__setitem__(
+                    "sha256", "0" * 64
+                ),
+            )
+            hostile = passing_receipt(runner_identity_commit, runner_identity_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 stale canonical runner identity"
+                ),
+                "B05 stale canonical runner identity",
+                "canonical preflight runner differs from checked semantics",
+            )
+            dirty_claim_commit, dirty_claim_tree = write_evidence(
+                "false-clean-preflight-claim",
+                mutate_preflight=lambda value: value["worktree"].__setitem__(
+                    "clean_before", False
+                ),
+            )
+            hostile = passing_receipt(dirty_claim_commit, dirty_claim_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 false clean-worktree claim"
+                ),
+                "B05 false clean-worktree claim",
+                "lacks exact clean immutable worktree checks",
+            )
+            pathname_commit, pathname_tree = write_evidence(
+                "pathname-reopened-claim",
+                mutate_preflight=lambda value: value["execution"].__setitem__(
+                    "pathname_reopened", True
+                ),
+            )
+            hostile = passing_receipt(pathname_commit, pathname_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 pathname-reopened claim"
+                ),
+                "B05 pathname-reopened execution claim",
+                "without pathname reopen",
+            )
+
+            def add_hostile_environment_key(value: dict[str, Any]) -> None:
+                retained = value["environment"]["retained_keys"]
+                retained.append("BASH_ENV")
+                retained.sort()
+
+            environment_commit, environment_tree = write_evidence(
+                "hostile-environment-claim",
+                mutate_preflight=add_hostile_environment_key,
+            )
+            hostile = passing_receipt(environment_commit, environment_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 child-environment claim"
+                ),
+                "B05 unauthorized child-environment claim",
+                "unauthorized child key",
+            )
+            index_commit, index_tree = write_evidence(
+                "hidden-index-claim",
+                mutate_preflight=lambda value: value["index"].__setitem__(
+                    "assume_unchanged_count", 1
+                ),
+            )
+            hostile = passing_receipt(index_commit, index_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 hidden-index claim"
+                ),
+                "B05 hidden-index claim",
+                "must be at most 0",
+            )
+            bounds_commit, bounds_tree = write_evidence(
+                "weakened-preflight-bounds",
+                mutate_preflight=lambda value: value["execution_bounds"].__setitem__(
+                    "max_raw_bytes", B05_PREFLIGHT_MAX_RAW_BYTES + 1
+                ),
+            )
+            hostile = passing_receipt(bounds_commit, bounds_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 weakened preflight bounds"
+                ),
+                "B05 weakened preflight bounds",
+                "must be at most",
+            )
+
+            _self_test_git(
+                repository, "checkout", "-b", "indirect-evidence", source_commit
+            )
+            intermediate_path = f"{B05_RECEIPT_PREFIX}intermediate.txt"
+            (repository / intermediate_path).parent.mkdir(parents=True, exist_ok=True)
+            (repository / intermediate_path).write_text(
+                "intermediate\n", encoding="utf-8"
+            )
+            _self_test_commit(repository, "intermediate evidence")
+            write_evidence_files()
+            indirect_commit, indirect_tree = _self_test_commit(
+                repository, "indirect evidence"
+            )
+            hostile = passing_receipt(indirect_commit, indirect_tree)
+            _must_fail(
+                lambda: _validate_b05_passing_receipt_boundary(
+                    hostile, "hostile B05 indirect evidence"
+                ),
+                "B05 indirect evidence cut",
+                "must directly descend from its source",
+            )
+
+            empty_tree = _self_test_git(
+                repository,
+                "hash-object",
+                "-t",
+                "tree",
+                "-w",
+                "--stdin",
+                input_bytes=b"",
+            )
+
+            def raw_tree(
+                entries: list[tuple[str, str, str]],
+            ) -> str:
+                ordered = sorted(
+                    entries,
+                    key=lambda item: (
+                        item[1].encode() + (b"/" if item[0] == "40000" else b"\x00")
+                    ),
+                )
+                raw = b"".join(
+                    mode.encode()
+                    + b" "
+                    + name.encode()
+                    + b"\x00"
+                    + bytes.fromhex(object_id)
+                    for mode, name, object_id in ordered
+                )
+                return _self_test_git(
+                    repository,
+                    "hash-object",
+                    "--literally",
+                    "-t",
+                    "tree",
+                    "-w",
+                    "--stdin",
+                    input_bytes=raw,
+                )
+
+            def raw_commit(tree: str, parent: str, message: str) -> str:
+                return _self_test_git(
+                    repository,
+                    "commit-tree",
+                    tree,
+                    "-p",
+                    parent,
+                    input_bytes=f"{message}\n".encode(),
+                )
+
+            inherited_collision_blob = _self_test_git(
+                repository,
+                "hash-object",
+                "-t",
+                "blob",
+                "-w",
+                "--stdin",
+                input_bytes=b'{"status":"PASS"}\n',
+            )
+
+            def raw_receipt_root_from_b05(
+                b05_entries: list[tuple[str, str, str]],
+            ) -> str:
+                b05_tree = raw_tree(b05_entries)
+                receipts_tree = raw_tree([("40000", "B05", b05_tree)])
+                implementation_tree = raw_tree([("40000", "receipts", receipts_tree)])
+                evidence_tree = raw_tree(
+                    [("40000", "implementation", implementation_tree)]
+                )
+                return raw_tree([("40000", "evidence", evidence_tree)])
+
+            def raw_receipt_root(names: list[str]) -> str:
+                history_tree = raw_tree(
+                    [("100644", name, inherited_collision_blob) for name in names]
+                )
+                return raw_receipt_root_from_b05([("40000", "history", history_tree)])
+
+            inherited_receipt_parent = raw_commit(
+                raw_receipt_root(["portable.json"]),
+                baseline,
+                "inherited receipt parent",
+            )
+            inherited_collision_commit = raw_commit(
+                raw_receipt_root(["portable.json", "Portable.json"]),
+                inherited_receipt_parent,
+                "inherited receipt collision",
+            )
+            _must_fail(
+                lambda: _validate_b05_complete_receipt_tree(
+                    repository,
+                    repository_name,
+                    source_commit,
+                    inherited_collision_commit,
+                    "hostile B05 inherited artifact collision",
+                ),
+                "B05 inherited artifact collision",
+                "complete receipt paths contains paths that collide after case folding",
+            )
+
+            inherited_host_blob = _self_test_git(
+                repository,
+                "hash-object",
+                "-t",
+                "blob",
+                "-w",
+                "--stdin",
+                input_bytes=b"/Users/example/private/result.log\n",
+            )
+            inherited_host_root = raw_receipt_root_from_b05(
+                [("100644", "inherited-host.log", inherited_host_blob)]
+            )
+            inherited_host_parent = raw_commit(
+                inherited_host_root,
+                source_commit,
+                "inherited host receipt parent",
+            )
+            inherited_host_commit = raw_commit(
+                inherited_host_root,
+                inherited_host_parent,
+                "inherited host receipt child",
+            )
+            _must_fail(
+                lambda: _validate_b05_complete_receipt_tree(
+                    repository,
+                    repository_name,
+                    source_commit,
+                    inherited_host_commit,
+                    "hostile B05 inherited host receipt",
+                ),
+                "B05 inherited host receipt content",
+                "absolute host path",
+            )
+
+            nested_receipt_tree = raw_tree(
+                [("100644", "x.txt", inherited_collision_blob)]
+            )
+            file_directory_collision_root = raw_receipt_root_from_b05(
+                [
+                    ("100644", "Foo.json", inherited_collision_blob),
+                    ("40000", "foo.JSON", nested_receipt_tree),
+                ]
+            )
+            file_directory_collision_parent = raw_commit(
+                file_directory_collision_root,
+                source_commit,
+                "inherited file-directory collision parent",
+            )
+            file_directory_collision_commit = raw_commit(
+                file_directory_collision_root,
+                file_directory_collision_parent,
+                "inherited file-directory collision child",
+            )
+            _must_fail(
+                lambda: _validate_b05_complete_receipt_tree(
+                    repository,
+                    repository_name,
+                    source_commit,
+                    file_directory_collision_commit,
+                    "hostile B05 inherited file-directory collision",
+                ),
+                "B05 inherited file-directory collision",
+                "collide after case folding",
+            )
+
+            baseline_entries = [
+                (mode, name, object_id)
+                for name, (mode, object_id) in _b05_tree_entries(
+                    repository, baseline_tree, "B05 baseline raw tree"
+                ).items()
+            ]
+            empty_root = raw_tree(
+                [*baseline_entries, ("40000", "outside-empty", empty_tree)]
+            )
+            empty_commit = raw_commit(empty_root, baseline, "empty tree")
+            _must_fail(
+                lambda: _b05_changed_entries(
+                    repository,
+                    baseline,
+                    empty_commit,
+                    "hostile B05 empty-tree delta",
+                ),
+                "B05 changed empty tree",
+                "changed empty Git tree",
+            )
+
+            for label, object_id in (
+                ("wrong object type", empty_tree),
+                ("missing object", "0" * 40),
+                (
+                    "oversized blob",
+                    _self_test_git(
+                        repository,
+                        "hash-object",
+                        "-t",
+                        "blob",
+                        "-w",
+                        "--stdin",
+                        input_bytes=b"x" * (B05_MAX_SOURCE_FILE_BYTES + 1),
+                    ),
+                ),
+            ):
+                _must_fail(
+                    lambda object_id=object_id: _validate_b05_changed_blob_objects(
+                        repository,
+                        [
+                            B05ChangedEntry(
+                                path=f"{B05_PROTOTYPE_PREFIX}hostile.bin",
+                                before_mode=None,
+                                before_object=None,
+                                after_mode="100644",
+                                after_object=object_id,
+                            )
+                        ],
+                        f"hostile B05 {label}",
+                    ),
+                    f"B05 {label}",
+                    "cannot reopen its after blob",
+                )
+
+            one_byte_blob = _self_test_git(
+                repository,
+                "hash-object",
+                "-t",
+                "blob",
+                "-w",
+                "--stdin",
+                input_bytes=b"x",
+            )
+            for safe_component in (
+                ".gitignore",
+                ".github",
+                "COM10",
+                "LPT0",
+                "auxiliary.txt",
+                "future-project",
+            ):
+                _b05_portable_component_key(
+                    safe_component, f"positive B05 component {safe_component}"
+                )
+            _b05_portable_component_key(
+                "x" * B05_MAX_PORTABLE_COMPONENT_BYTES,
+                "positive B05 maximum component",
+            )
+            _validate_b05_portable_paths(
+                ["x" * B05_MAX_PORTABLE_PATH_BYTES],
+                "positive B05 maximum path",
+                all_are_files=True,
+            )
+            for label, component, expected in (
+                ("dot Git", ".git", "reserved Git or Windows"),
+                ("Git short alias", "git~1", "reserved Git or Windows"),
+                ("Windows device", "NUL.json", "reserved Git or Windows"),
+                ("Windows numbered device", "COM1.log", "reserved Git or Windows"),
+                ("trailing dot", "unsafe.", "not portable normalized Unicode"),
+                ("trailing space", "unsafe ", "not portable normalized Unicode"),
+                (
+                    "alternate data stream",
+                    "report:stream",
+                    "not portable normalized Unicode",
+                ),
+                ("format control", "a\u200db", "not portable normalized Unicode"),
+                (
+                    "overlong component",
+                    "x" * (B05_MAX_PORTABLE_COMPONENT_BYTES + 1),
+                    "not portable normalized Unicode",
+                ),
+            ):
+                _must_fail(
+                    lambda component=component: _b05_portable_component_key(
+                        component, f"hostile B05 {label}"
+                    ),
+                    f"B05 {label}",
+                    expected,
+                )
+            _must_fail(
+                lambda: _validate_b05_portable_paths(
+                    ["x" * (B05_MAX_PORTABLE_PATH_BYTES + 1)],
+                    "hostile B05 overlong path",
+                    all_are_files=True,
+                ),
+                "B05 overlong full path",
+                "exceeds the portable path bound",
+            )
+            _must_fail(
+                lambda: _validate_b05_portable_paths(
+                    ["Foo", "foo/bar"],
+                    "hostile B05 file-directory prefix",
+                    all_are_files=True,
+                ),
+                "B05 portable file-directory prefix collision",
+                "file-directory prefix collision",
+            )
+            for label, names, expected in (
+                (
+                    "case-fold collision",
+                    ["Alpha.py", "alpha.py"],
+                    "collide after case folding",
+                ),
+                (
+                    "non-normalized Unicode",
+                    ["e\u0301.py"],
+                    "not portable normalized Unicode",
+                ),
+                (
+                    "compatibility Unicode",
+                    ["ｆｕｌｌ.py"],
+                    "not portable normalized Unicode",
+                ),
+                (
+                    "Unicode case-fold collision",
+                    ["Straße.py", "STRASSE.py"],
+                    "collide after case folding",
+                ),
+                ("dot Git component", [".git"], "reserved Git or Windows"),
+                ("Git short alias", ["git~2"], "reserved Git or Windows"),
+                ("Windows device", ["CON.json"], "reserved Git or Windows"),
+                (
+                    "trailing-dot component",
+                    ["directory."],
+                    "not portable normalized Unicode",
+                ),
+                (
+                    "alternate-data-stream component",
+                    ["artifact:stream"],
+                    "not portable normalized Unicode",
+                ),
+            ):
+                prototype_tree = raw_tree(
+                    [("100644", name, one_byte_blob) for name in names]
+                )
+                prototypes_tree = raw_tree(
+                    [("40000", "ncp10-implementation", prototype_tree)]
+                )
+                root_tree = raw_tree([("40000", "prototypes", prototypes_tree)])
+                commit = raw_commit(root_tree, baseline, label)
+                _must_fail(
+                    lambda commit=commit: _b05_prototype_snapshots(
+                        repository, commit, f"hostile B05 {label}"
+                    ),
+                    f"B05 {label}",
+                    expected,
+                )
+
+            positive_portable_tree = raw_tree(
+                [
+                    ("100644", name, one_byte_blob)
+                    for name in (
+                        ".gitignore",
+                        ".github",
+                        "COM10",
+                        "LPT0",
+                        "auxiliary.txt",
+                    )
+                ]
+            )
+            positive_prototypes_tree = raw_tree(
+                [("40000", "ncp10-implementation", positive_portable_tree)]
+            )
+            positive_portable_root = raw_tree(
+                [("40000", "prototypes", positive_prototypes_tree)]
+            )
+            positive_portable_commit = raw_commit(
+                positive_portable_root, baseline, "portable positive controls"
+            )
+            if (
+                len(
+                    _b05_prototype_snapshots(
+                        repository,
+                        positive_portable_commit,
+                        "positive B05 portable components",
+                    )
+                )
+                != 5
+            ):
+                _fail("B05 portable positive controls lost a safe component")
+
+            _self_test_git(
+                repository, "checkout", "-b", "unchanged-symlink-parent", baseline
+            )
+            install_source()
+            legacy_link = repository / f"{B05_PROTOTYPE_PREFIX}legacy-link.py"
+            legacy_link.symlink_to("adapter.py")
+            symlink_parent, _ = _self_test_commit(
+                repository, "preexisting prototype symlink"
+            )
+            _self_test_git(
+                repository,
+                "checkout",
+                "-b",
+                "unchanged-symlink-child",
+                symlink_parent,
+            )
+            (repository / adapter_path).write_text(
+                adapter_source + "\n# changed child\n", encoding="utf-8"
+            )
+            symlink_child, _ = _self_test_commit(
+                repository, "change with unchanged symlink"
+            )
+            _must_fail(
+                lambda: _b05_prototype_snapshots(
+                    repository, symlink_child, "hostile B05 unchanged symlink"
+                ),
+                "B05 unchanged symlink",
+                "non-regular leaf",
+            )
+
+            prior_ncp_root = GIT_ROOT_BY_RECEIPT_REPOSITORY["NCP"]
+            GIT_ROOT_BY_RECEIPT_REPOSITORY["NCP"] = repository
+            try:
+                coordination_artifact = artifact_record(
+                    evidence_commit, remote_path, "b05-blocker"
+                )
+                transition_subject = {
+                    "schema": LOCAL_TRANSITION_SUBJECT_SCHEMA,
+                    "receipt_kind": "coordination",
+                    "task_id": B05_TASK_ID,
+                    "from": "IN_PROGRESS",
+                    "to": "BLOCKED",
+                    "requirement_acceptance_sha256": "0" * 64,
+                    "repository": "NCP prototypes",
+                    "branch": "main",
+                    "source_commit": source_commit,
+                    "source_tree": source_tree,
+                    "evidence_commit": evidence_commit,
+                    "evidence_tree": evidence_tree,
+                    "dependency_receipts": [],
+                    "task_subject_sha256": None,
+                    "correlation_id": "b05-self-test",
+                }
+                coordination = {
+                    "kind": "coordination",
+                    "repository": "NCP",
+                    "branch": "main",
+                    "source_commit": source_commit,
+                    "source_tree": source_tree,
+                    "evidence_commit": evidence_commit,
+                    "evidence_tree": evidence_tree,
+                    "evidence": [coordination_artifact],
+                    "dependency_receipts": [],
+                    "transition_subject": transition_subject,
+                    "timestamp_utc": remote_verified_at,
+                }
+                _validate_coordination_receipt(
+                    coordination,
+                    "positive B05 coordination",
+                    budget={"references": 0, "bytes": 0},
+                    repository="NCP prototypes",
+                    task_id=B05_TASK_ID,
+                )
+                hostile_coordination = copy.deepcopy(coordination)
+                hostile_coordination["evidence"][0]["path"] = (
+                    "evidence/implementation/receipts/N01/stolen.json"
+                )
+                _must_fail(
+                    lambda: _validate_coordination_receipt(
+                        hostile_coordination,
+                        "hostile B05 coordination",
+                        budget={"references": 0, "bytes": 0},
+                        repository="NCP prototypes",
+                        task_id=B05_TASK_ID,
+                    ),
+                    "B05 coordination artifact outside its namespace",
+                    "outside the reserved B05 receipt root",
+                )
+            finally:
+                GIT_ROOT_BY_RECEIPT_REPOSITORY["NCP"] = prior_ncp_root
+        finally:
+            GIT_ROOT_BY_RECEIPT_REPOSITORY.pop(repository_name, None)
+
+    _validate_b05_artifact_namespace(
+        B05_TASK_ID,
+        f"{B05_RECEIPT_PREFIX}focused.log",
+        "positive B05 artifact",
+    )
+    _must_fail(
+        lambda: _validate_b05_artifact_namespace(
+            B05_TASK_ID,
+            "evidence/implementation/receipts/N01/stolen.log",
+            "hostile B05 artifact",
+        ),
+        "B05 artifact outside its receipt namespace",
+        "outside the reserved B05 receipt root",
+    )
+    _must_fail(
+        lambda: _validate_b05_artifact_namespace(
+            "N01",
+            f"{B05_RECEIPT_PREFIX}stolen.log",
+            "hostile N01 artifact",
+        ),
+        "authoritative task reuses B05 evidence",
+        "reserves B05 evidence for B05 only",
+    )
 
 
 def _self_test_receipt_artifact_portability(data: dict[str, Any]) -> None:
@@ -24474,6 +28079,7 @@ def self_test(data: dict[str, Any]) -> None:
             "coordination",
             budget={"references": 0, "bytes": 0},
             repository="NCP",
+            task_id="B00",
         ),
         "empty coordination evidence",
         "must retain the blocker or reopen basis",
@@ -24639,6 +28245,109 @@ def self_test(data: dict[str, Any]) -> None:
     _must_fail(
         lambda: validate(mutant), "weakened review mapping", "review mappings differ"
     )
+    _self_test_b05_source_boundary()
+    _validate_task_transition_allowed(
+        B05_TASK_ID,
+        "LOCAL_PASS",
+        "IN_PROGRESS",
+        "positive B05 reopen",
+    )
+    mutant = copy.deepcopy(data)
+    mutant["tasks"] = [task for task in mutant["tasks"] if task["id"] != B05_TASK_ID]
+    _must_fail(
+        lambda: validate(mutant),
+        "missing B05 prototype lane",
+        "exact bounded catalog",
+    )
+    mutant = copy.deepcopy(data)
+    b05_index = next(
+        index for index, task in enumerate(mutant["tasks"]) if task["id"] == B05_TASK_ID
+    )
+    b01_index = next(
+        index for index, task in enumerate(mutant["tasks"]) if task["id"] == "B01"
+    )
+    mutant["tasks"][b05_index], mutant["tasks"][b01_index] = (
+        mutant["tasks"][b01_index],
+        mutant["tasks"][b05_index],
+    )
+    _must_fail(
+        lambda: validate(mutant),
+        "reordered B05 prototype lane",
+        "out-of-order task IDs",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b05 = next(task for task in mutant["tasks"] if task["id"] == B05_TASK_ID)
+    mutant_b05["claim_tier"] = "IMPLEMENTATION_ONLY"
+    _must_fail(
+        lambda: validate(mutant),
+        "B05 promoted to implementation credit",
+        "checked claim boundary",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b05 = next(task for task in mutant["tasks"] if task["id"] == B05_TASK_ID)
+    mutant_b05["dependencies"] = ["B01"]
+    _must_fail(
+        lambda: validate(mutant),
+        "B05 made dependent on B01 ratification",
+        "dependencies differ from the checked DAG",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b05 = next(task for task in mutant["tasks"] if task["id"] == B05_TASK_ID)
+    mutant_b05["minimum_terminal_class"] = "EXTERNAL"
+    _must_fail(
+        lambda: validate(mutant),
+        "B05 external evidence floor",
+        "checked evidence class",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b05 = next(task for task in mutant["tasks"] if task["id"] == B05_TASK_ID)
+    mutant_b05["changed_files"] = ["contract/message-types.v1.json"]
+    _must_fail(
+        lambda: validate(mutant),
+        "B05 claims changed paths before a passing cut",
+        "must be empty until B05 has a passing source cut",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b05 = next(task for task in mutant["tasks"] if task["id"] == B05_TASK_ID)
+    mutant_b05["requirement_ids"].append("D01")
+    _must_fail(
+        lambda: validate(mutant),
+        "B05 defect-closure claim",
+        "cannot claim a defect, ADR, qualification, or release scope",
+    )
+    mutant = copy.deepcopy(data)
+    mutant["defect_traceability"][0]["task_ids"].append(B05_TASK_ID)
+    _must_fail(
+        lambda: validate(mutant),
+        "B05 inserted into defect traceability",
+        "differs from the checked closure map",
+    )
+    hostile_dependency_graph = {
+        task_id: dependencies for task_id, _, dependencies, _ in TASK_CATALOG
+    }
+    hostile_dependency_graph["N01"] = ("B03", B05_TASK_ID)
+    _must_fail(
+        lambda: _validate_b05_dependency_isolation(hostile_dependency_graph),
+        "authoritative task depends on B05",
+        "cannot depend on the non-authorizing B05 prototype lane",
+    )
+    for label, transition_from, transition_to in (
+        ("completion", "LOCAL_PASS", "COMPLETE"),
+        ("external admission", "IN_PROGRESS", "EXTERNAL_PASS"),
+        ("independent admission", "IN_PROGRESS", "INDEPENDENT_PASS"),
+    ):
+        _must_fail(
+            lambda transition_from=transition_from, transition_to=transition_to: (
+                _validate_task_transition_allowed(
+                    B05_TASK_ID,
+                    transition_from,
+                    transition_to,
+                    "hostile B05 transition",
+                )
+            ),
+            f"B05 {label}",
+            "not an allowed contiguous transition for task B05",
+        )
     mutant = copy.deepcopy(data)
     mutant["tasks"][0]["claim_tier"] = "RELEASE_OPERATION"
     _must_fail(

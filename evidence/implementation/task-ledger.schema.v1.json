@@ -47,8 +47,8 @@
     },
     "implementation_tools": {
       "type": "array",
-      "minItems": 6,
-      "maxItems": 6,
+      "minItems": 7,
+      "maxItems": 7,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -177,8 +177,8 @@
     },
     "tasks": {
       "type": "array",
-      "minItems": 62,
-      "maxItems": 62,
+      "minItems": 63,
+      "maxItems": 63,
       "items": {
         "$ref": "#/$defs/task"
       }
@@ -1250,6 +1250,7 @@
         "claim_tier": {
           "enum": [
             "COORDINATION_ONLY",
+            "PROTOTYPE_ONLY",
             "IMPLEMENTATION_ONLY",
             "QUALIFICATION_REQUIRED",
             "GOVERNANCE_OPERATION",

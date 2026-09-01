@@ -2281,7 +2281,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "f8a433076f75777588e78523467f1e5fa48d8022b1983b5009433037e1d3be02"
+      "sha256": "c56428289978396ddeea8127f98ac81c05b5ac0e93605fbbf1b16e0d2a87f991"
     },
     {
       "outputs": [

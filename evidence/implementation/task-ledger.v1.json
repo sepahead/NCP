@@ -1,9 +1,9 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "c5b8f053315e14c930e94e656317edf4690241019a9dd2e3c69b852ba6d80aea"
+    "sha256": "6f7c0c7d655be321f3723833196dc54686bbc3a55e545451a7cb7daf12d41b79"
   },
-  "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. LOCAL_PASS is repository-local evidence only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
+  "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. PROTOTYPE_ONLY and its LOCAL_PASS are quarantined repository-local experiments only. They grant no implementation-task, defect-closure, qualification, governance, or release credit. Other LOCAL_PASS evidence is also repository-local only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
     {
       "closure_rule": "Close only when distinct typed simulation and plant vectors plus live role tests pass.",
@@ -266,15 +266,15 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "73d8c3ecbc53cdd98ac8cf0883bbb48ba6a2c836b4826a9cbae0946aa5d21d9f"
+      "sha256": "c89fbf87314c50c04193e6a433efd44f77ae0b4bad3b94115b1c6187cab66180"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "f8a433076f75777588e78523467f1e5fa48d8022b1983b5009433037e1d3be02"
+      "sha256": "c56428289978396ddeea8127f98ac81c05b5ac0e93605fbbf1b16e0d2a87f991"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",
-      "sha256": "883e723a2cb1eb9b97132e128f39c6ba18c58f70f2c6479d6af6c4198d5a0c90"
+      "sha256": "edccedc70314bf5430da000dfad6eaeb01ee4b629d9949eaf0e178fcfb75ca4e"
     },
     {
       "path": "scripts/validate_evidence_schemas.py",
@@ -287,6 +287,10 @@
     {
       "path": "scripts/immutable_git.py",
       "sha256": "9d5500fb8427652e2c59cd7b7e584bdfdb74e01d136689f4135761a6d1810060"
+    },
+    {
+      "path": "scripts/run_b05_preflight.py",
+      "sha256": "0ff3e82aeca9807d698c263ff74dbda8e7015e49e4da40125db9c5948f4f7ef5"
     }
   ],
   "ledger_grants_release_authorization": false,
@@ -1554,6 +1558,40 @@
           "to": "LOCAL_PASS"
         }
       ]
+    },
+    {
+      "adr_ids": [],
+      "artifacts": [],
+      "changed_files": [],
+      "claim_tier": "PROTOTYPE_ONLY",
+      "commands": [],
+      "dependencies": [
+        "B04"
+      ],
+      "dirty_state_disposition": "NOT_EVALUATED",
+      "id": "B05",
+      "invalidates": [],
+      "minimum_terminal_class": "LOCAL",
+      "perspective_reviews": [],
+      "repository": "NCP prototypes",
+      "requirement_ids": [
+        "B05-acceptance"
+      ],
+      "residual_risks": [
+        "B05 is OPEN. No prototype implementation or local passing receipt exists.",
+        "A future B05 LOCAL_PASS remains quarantined and grants no implementation-task, defect-closure, qualification, governance, or release credit.",
+        "B01 review and normative allocation remain separate and NOT RUN.",
+        "Consumer integration, external qualification, and release gates remain separate. Each gate requires its exact task evidence."
+      ],
+      "reviewer_comment": null,
+      "reviewers": [],
+      "rollback_or_recovery": "Revert only the B05 bootstrap if its checker or generated views prove defective. Preserve B01 bytes, B04 evidence, normative sources, packages, consumers, and unrelated work.",
+      "source_commit": null,
+      "status": "OPEN",
+      "target_commit": null,
+      "ten_lens_reviews": [],
+      "title": "Exercise quarantined non-authorizing implementation prototypes",
+      "transitions": []
     },
     {
       "adr_ids": [
