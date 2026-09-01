@@ -16,6 +16,11 @@ capture after its immutable bytes are pushed and content-addressed.
 The generated registry also contains no review records.
 All eleven decisions remain **PROPOSED**, and B01 remains `IN_PROGRESS`.
 
+Use the [current private Version 2 response and preflight workflow](../../evidence/implementation/requests/README.md#prepare-one-human-response).
+Version 1 responses are historical.
+Version 2 changes transport only.
+It does not change the packet subject or source-record contract.
+
 The current candidate remains wire `1.0` with compact proto contract hash
 `163acc57d8a62b66`. The immutable `v0.8.0` release remains a different wire and
 is not edited or silently translated by these records.

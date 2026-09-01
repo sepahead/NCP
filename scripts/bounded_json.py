@@ -1033,7 +1033,11 @@ def read_bounded_regular_file(
             phase_hook("pre-open")
         file_descriptor = os.open(
             leaf,
-            os.O_RDONLY | no_follow | getattr(os, "O_CLOEXEC", 0),
+            os.O_RDONLY
+            | no_follow
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+            | getattr(os, "O_NOCTTY", 0),
             dir_fd=parent,
         )
         opened = os.fstat(file_descriptor)
@@ -1538,6 +1542,25 @@ def run_self_test() -> None:
             ),
             "changed before",
         )
+
+        if hasattr(os, "mkfifo"):
+            pre_open_fifo = root / "pre-open-fifo.json"
+            pre_open_fifo.write_bytes(exact_raw)
+
+            def replace_with_fifo_before_open(phase: str) -> None:
+                if phase == "pre-open":
+                    pre_open_fifo.unlink()
+                    os.mkfifo(pre_open_fifo)
+
+            _must_fail(
+                lambda: read_bounded_regular_file(
+                    pre_open_fifo,
+                    limits=snapshot_limits,
+                    label="pre-open FIFO replacement",
+                    phase_hook=replace_with_fifo_before_open,
+                ),
+                "changed before",
+            )
 
         read_race = root / "read-race.json"
         read_race.write_bytes(exact_raw)

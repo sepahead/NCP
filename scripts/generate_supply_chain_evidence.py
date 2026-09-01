@@ -99,7 +99,7 @@ GENERATOR_OUTPUTS = {
         "evidence/implementation/requests/B01/review-request.v1.json"
     ],
     "scripts/generate_b01_reviewer_kit.py": [
-        "evidence/implementation/requests/B01/reviewer-kit.v1.json"
+        "evidence/implementation/requests/B01/reviewer-kit.v2.json"
     ],
     "scripts/generate_conformance_manifest.py": ["conformance/manifest.v1.json"],
     "scripts/generate_convergence_manifest.py": [
@@ -1019,9 +1019,7 @@ def _load_bun_lock(path: Path) -> dict[str, Any]:
     return _parse_bun_lock(text)
 
 
-def _validate_npm_dependency_surface(
-    manifest: dict[str, Any], *, context: str
-) -> str:
+def _validate_npm_dependency_surface(manifest: dict[str, Any], *, context: str) -> str:
     unexpected = [
         field for field in NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS if field in manifest
     ]
@@ -1047,7 +1045,9 @@ def _validate_npm_dependency_surface(
 
 def _validate_python_runtime_dependency_surface(project: dict[str, Any]) -> None:
     if project.get("dependencies") not in (None, []):
-        raise EvidenceError("Python runtime dependency surface changed and needs review")
+        raise EvidenceError(
+            "Python runtime dependency surface changed and needs review"
+        )
     if "optional-dependencies" in project:
         raise EvidenceError(
             "Python optional runtime dependency surface changed and needs review"
@@ -2858,15 +2858,13 @@ def _self_test() -> None:
         ),
         (
             "unexpected Bun root workspace field",
-            lambda manifest, lock: lock["workspaces"][""].update(
-                {"dependencies": {}}
-            ),
+            lambda manifest, lock: lock["workspaces"][""].update({"dependencies": {}}),
         ),
         (
             "extra Bun root dependency",
-            lambda manifest, lock: lock["workspaces"][""][
-                "devDependencies"
-            ].update({"evil": "1.0.0"}),
+            lambda manifest, lock: lock["workspaces"][""]["devDependencies"].update(
+                {"evil": "1.0.0"}
+            ),
         ),
         (
             "unreviewed Bun package",
@@ -2888,9 +2886,7 @@ def _self_test() -> None:
                 )
             ),
         )
-    _validate_python_runtime_dependency_surface(
-        {"name": "ncp", "dynamic": ["version"]}
-    )
+    _validate_python_runtime_dependency_surface({"name": "ncp", "dynamic": ["version"]})
     for label, hostile_project in (
         ("Python dependencies", {"dependencies": ["evil>=1"]}),
         ("Python optional dependencies", {"optional-dependencies": {}}),

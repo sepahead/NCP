@@ -2234,10 +2234,10 @@
     },
     {
       "outputs": [
-        "evidence/implementation/requests/B01/reviewer-kit.v1.json"
+        "evidence/implementation/requests/B01/reviewer-kit.v2.json"
       ],
       "path": "scripts/generate_b01_reviewer_kit.py",
-      "sha256": "e0cd2b60eac18f80e2a139c8ff51ffcd15cb2ee2e28b1e0fda3b285dd10fba4b"
+      "sha256": "9e1ae0a9dcafc778e1f7235d7a55e24b444a50275872df1d63a7d3e80dbc1b87"
     },
     {
       "outputs": [
@@ -2316,14 +2316,14 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "b1b1784707a7098476cf1c1f6b13ee8a76c5b331d34abbda5d9c00b19da0e69b"
+      "sha256": "805d0ea33876a1ba0e3ed118b3f7b305c2786cfe0882e5ea4b2c715663a435b3"
     },
     {
       "outputs": [
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "32fe2f200b20a66fc6792c25439bb63705d24ffd68cb77cccdc004d07cf14348"
+      "sha256": "67bf39deb8d5f7a4504ab1f21d3641005491a76eae345bdd4396f717135557aa"
     },
     {
       "outputs": [

@@ -97,9 +97,11 @@ B01_GOVERNED_FIXED_PATHS = frozenset(
     {
         ".github/workflows/ci.yml",
         "RELEASE_READINESS.md",
+        "SECURITY.md",
         "docs/1.0-candidate-receipts.md",
         "docs/adr/B01_REVIEW_PACKET.md",
         "docs/adr/README.md",
+        "docs/adr/selector-closure.authoring.schema.v1.json",
         "docs/adr/decision-registry.proposed.schema.v1.json",
         "docs/adr/decision-registry.proposed.v1.json",
         "docs/adr/decision-registry.source.v1.json",
@@ -108,16 +110,27 @@ B01_GOVERNED_FIXED_PATHS = frozenset(
         "docs/implementation/NCP_1_0_TASK_LEDGER.md",
         "evidence/implementation/receipts/README.md",
         ("evidence/implementation/requests/B01/review-handoff-status.schema.v1.json"),
+        ("evidence/implementation/requests/B01/review-handoff-status.schema.v2.json"),
+        "evidence/implementation/requests/B01/review-response.schema.v2.json",
+        "evidence/implementation/requests/B01/review-source-candidate.schema.v2.json",
+        "evidence/implementation/requests/B01/reviewer-kit.schema.v2.json",
+        "evidence/implementation/requests/B01/reviewer-kit.v2.json",
+        "evidence/implementation/requests/README.md",
         "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
+        "evidence/supply-chain/inventory.v1.json",
+        "evidence/supply-chain/vulnerability-report.v1.json",
         "scripts/README.md",
+        "scripts/bounded_json.py",
         "scripts/check.sh",
         "scripts/check_b01_review_handoff.py",
         "scripts/check_implementation_ledger.py",
         "scripts/generate_decision_registry.py",
         "scripts/generate_implementation_ledger.py",
         "scripts/generate_b01_review_request.py",
+        "scripts/generate_b01_reviewer_kit.py",
         "scripts/immutable_git.py",
+        "scripts/preflight_b01_review_bundle.py",
         "scripts/requirements-evidence-schema.in",
         "scripts/requirements-evidence-schema.txt",
         "scripts/validate_evidence_schemas.py",
@@ -11702,8 +11715,10 @@ class LedgerError(ValueError):
 
 B01_SOURCE_STAGING_AUTHORIZED = False
 PROTECTED_B01_GATE_PATHS = (
+    "scripts/bounded_json.py",
     "scripts/generate_b01_review_request.py",
     "scripts/generate_b01_reviewer_kit.py",
+    "scripts/preflight_b01_review_bundle.py",
     "scripts/check_b01_review_handoff.py",
     "scripts/validate_evidence_schemas.py",
     "scripts/immutable_git.py",
@@ -11750,7 +11765,9 @@ EXPECTED_PROTECTED_B01_GATE_LINES = (
         "format",
         "--check",
         "--",
+        "scripts/bounded_json.py",
         "scripts/generate_b01_reviewer_kit.py",
+        "scripts/preflight_b01_review_bundle.py",
         "scripts/validate_evidence_schemas.py",
     ),
     (
@@ -11761,14 +11778,18 @@ EXPECTED_PROTECTED_B01_GATE_LINES = (
         "--select",
         "E,F,I,N,S,UP",
         "--",
+        "scripts/bounded_json.py",
         "scripts/generate_b01_reviewer_kit.py",
+        "scripts/preflight_b01_review_bundle.py",
         "scripts/validate_evidence_schemas.py",
     ),
     (
         "$evidence_schema_python",
         "-m",
         "py_compile",
+        "scripts/bounded_json.py",
         "scripts/generate_b01_reviewer_kit.py",
+        "scripts/preflight_b01_review_bundle.py",
         "scripts/validate_evidence_schemas.py",
     ),
     (
@@ -11776,6 +11797,12 @@ EXPECTED_PROTECTED_B01_GATE_LINES = (
         "scripts/generate_b01_reviewer_kit.py",
         "--self-test",
         "--check",
+    ),
+    (
+        "$evidence_schema_python",
+        "-B",
+        "scripts/preflight_b01_review_bundle.py",
+        "--self-test",
     ),
     (
         "$evidence_schema_python",
@@ -11957,6 +11984,24 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
     if reviewer_kit_invocations != [expected_reviewer_kit]:
         _fail("hosted CI lacks one exact phase-safe B01 reviewer-kit check")
     try:
+        preflight_invocations = [
+            shlex.split(line)
+            for line in logical_lines
+            if line.strip().startswith(
+                '"$evidence_schema_python" -B scripts/preflight_b01_review_bundle.py'
+            )
+        ]
+    except ValueError as error:
+        _fail(f"hosted CI contains malformed B01 private-preflight syntax: {error}")
+    expected_preflight = [
+        "$evidence_schema_python",
+        "-B",
+        "scripts/preflight_b01_review_bundle.py",
+        "--self-test",
+    ]
+    if preflight_invocations != [expected_preflight]:
+        _fail("hosted CI lacks one exact B01 private-bundle preflight self-test")
+    try:
         schema_invocations = [
             shlex.split(line)
             for line in logical_lines
@@ -12044,7 +12089,9 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
             "format",
             "--check",
             "--",
+            "scripts/bounded_json.py",
             "scripts/generate_b01_reviewer_kit.py",
+            "scripts/preflight_b01_review_bundle.py",
             "scripts/validate_evidence_schemas.py",
         ),
         (
@@ -12055,14 +12102,18 @@ def _validate_hosted_ci_b01_mode_text(text: str, *, source_staging: bool) -> Non
             "--select",
             "E,F,I,N,S,UP",
             "--",
+            "scripts/bounded_json.py",
             "scripts/generate_b01_reviewer_kit.py",
+            "scripts/preflight_b01_review_bundle.py",
             "scripts/validate_evidence_schemas.py",
         ),
         (
             "$evidence_schema_python",
             "-m",
             "py_compile",
+            "scripts/bounded_json.py",
             "scripts/generate_b01_reviewer_kit.py",
+            "scripts/preflight_b01_review_bundle.py",
             "scripts/validate_evidence_schemas.py",
         ),
     ]
@@ -22618,6 +22669,12 @@ def self_test(data: dict[str, Any]) -> None:
     )
     if reviewer_kit_command not in ci_text:
         _fail("self-test cannot locate the exact hosted B01 reviewer-kit command")
+    preflight_command = (
+        '          "$evidence_schema_python" -B '
+        "scripts/preflight_b01_review_bundle.py --self-test"
+    )
+    if preflight_command not in ci_text:
+        _fail("self-test cannot locate the exact hosted B01 private-preflight command")
     handoff_command = (
         '          "$evidence_schema_python" -B '
         "scripts/check_b01_review_handoff.py "
@@ -22669,6 +22726,32 @@ def self_test(data: dict[str, Any]) -> None:
                 if label.startswith("restored")
                 else "exact phase-safe B01 reviewer-kit check"
             ),
+        )
+    for label, hostile_ci in (
+        (
+            "removed B01 private-preflight command",
+            ci_text.replace(preflight_command, "", 1),
+        ),
+        (
+            "duplicated B01 private-preflight command",
+            ci_text + "\n" + preflight_command + "\n",
+        ),
+        (
+            "B01 private-preflight live-bundle substitution",
+            ci_text.replace(
+                preflight_command,
+                preflight_command.replace("--self-test", "--bundle /tmp/review"),
+                1,
+            ),
+        ),
+    ):
+        _must_fail(
+            lambda hostile_ci=hostile_ci: _validate_hosted_ci_b01_mode_text(
+                hostile_ci,
+                source_staging=B01_SOURCE_STAGING_AUTHORIZED,
+            ),
+            label,
+            "exact B01 private-bundle preflight self-test",
         )
     for label, hostile_ci in (
         (
@@ -22739,8 +22822,10 @@ def self_test(data: dict[str, Any]) -> None:
         lambda: _validate_hosted_ci_b01_mode_text(
             ci_text.replace(
                 "scripts/generate_b01_reviewer_kit.py \\\n"
+                "            scripts/preflight_b01_review_bundle.py \\\n"
                 "            scripts/validate_evidence_schemas.py",
-                "scripts/generate_b01_reviewer_kit.py",
+                "scripts/generate_b01_reviewer_kit.py \\\n"
+                "            scripts/preflight_b01_review_bundle.py",
                 1,
             ),
             source_staging=B01_SOURCE_STAGING_AUTHORIZED,
@@ -22783,6 +22868,10 @@ def self_test(data: dict[str, Any]) -> None:
         "\\\n"
         "    --self-test --check"
     )
+    local_preflight_command = (
+        '"$evidence_schema_python" -B '
+        "scripts/preflight_b01_review_bundle.py --self-test"
+    )
     local_schema_current_command = (
         '"$evidence_schema_python" scripts/validate_evidence_schemas.py\n'
     )
@@ -22790,6 +22879,14 @@ def self_test(data: dict[str, Any]) -> None:
         (
             "local gate missing handoff command",
             local_text.replace(local_handoff_command, "", 1),
+        ),
+        (
+            "local gate missing private-preflight command",
+            local_text.replace(local_preflight_command, "", 1),
+        ),
+        (
+            "local gate duplicate private-preflight command",
+            local_text + "\n" + local_preflight_command + "\n",
         ),
         (
             "local gate duplicate handoff command",
@@ -24426,6 +24523,48 @@ def self_test(data: dict[str, Any]) -> None:
         lambda: validate(mutant),
         "B01 changed-files omission of the handoff status gate",
         "changed_files omits governed path scripts/check_b01_review_handoff.py",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b01 = next(task for task in mutant["tasks"] if task["id"] == "B01")
+    mutant_b01["changed_files"].remove("scripts/generate_b01_reviewer_kit.py")
+    _must_fail(
+        lambda: validate(mutant),
+        "B01 changed-files omission of the reviewer-kit generator",
+        "changed_files omits governed path scripts/generate_b01_reviewer_kit.py",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b01 = next(task for task in mutant["tasks"] if task["id"] == "B01")
+    mutant_b01["changed_files"].remove("scripts/preflight_b01_review_bundle.py")
+    _must_fail(
+        lambda: validate(mutant),
+        "B01 changed-files omission of the private-bundle preflight",
+        "changed_files omits governed path scripts/preflight_b01_review_bundle.py",
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b01 = next(task for task in mutant["tasks"] if task["id"] == "B01")
+    mutant_b01["changed_files"].remove(
+        "evidence/supply-chain/vulnerability-report.v1.json"
+    )
+    _must_fail(
+        lambda: validate(mutant),
+        "B01 changed-files omission of regenerated vulnerability evidence",
+        (
+            "changed_files omits governed path "
+            "evidence/supply-chain/vulnerability-report.v1.json"
+        ),
+    )
+    mutant = copy.deepcopy(data)
+    mutant_b01 = next(task for task in mutant["tasks"] if task["id"] == "B01")
+    mutant_b01["changed_files"].remove(
+        "docs/adr/selector-closure.authoring.schema.v1.json"
+    )
+    _must_fail(
+        lambda: validate(mutant),
+        "B01 changed-files omission of the selector authoring schema",
+        (
+            "changed_files omits governed path "
+            "docs/adr/selector-closure.authoring.schema.v1.json"
+        ),
     )
 
     _must_fail(

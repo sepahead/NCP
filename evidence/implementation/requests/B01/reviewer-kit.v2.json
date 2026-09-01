@@ -1,0 +1,1915 @@
+{
+  "authorizing": false,
+  "claim_boundary": "STRUCTURAL_REVIEW_PREPARATION_ONLY_NO_REVIEWER_DECISION_IDENTITY_ROLE_AUTHORITY_INDEPENDENCE_EVIDENCE_AUTHENTICATION_ADR_ACCEPTANCE_TASK_STATUS_PROTOCOL_CHANGE_OR_RELEASE_AUTHORITY",
+  "counts": {
+    "decisions": 11,
+    "independent_obligations": 5,
+    "minimum_evidence_requirements": 112,
+    "minimum_identity_slots": 53,
+    "minimum_independent_identity_slots": 6,
+    "role_obligations": 52
+  },
+  "decisions": [
+    {
+      "adr_id": "ADR-001",
+      "subject": {
+        "adr_bytes": 163669,
+        "adr_content_sha256": "126daf508c8bc2123ccaf705f0209dd2d341e8598e5ba943c663dcf34d2e9325",
+        "adr_source_set": {
+          "decision_id": "ADR-001",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "a4fef4b32d7984d880d2d64068988505982ec836cb9f22984fce032bd5fae9d0",
+          "sources": [
+            {
+              "bytes": 163669,
+              "kind": "main",
+              "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
+              "sha256": "126daf508c8bc2123ccaf705f0209dd2d341e8598e5ba943c663dcf34d2e9325"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-002",
+      "subject": {
+        "adr_bytes": 21943,
+        "adr_content_sha256": "e01d2cb2eb6e11bbc78ed3149dae46bbc80243f5202bf5749c26affd4a268689",
+        "adr_source_set": {
+          "decision_id": "ADR-002",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "3a234d7196cc920b809a9abf19765a28ed72e3f2846a40a2dcc9ff3c2aa1a764",
+          "sources": [
+            {
+              "bytes": 21943,
+              "kind": "main",
+              "path": "docs/adr/0002-contract-identity-and-release-authorization.md",
+              "sha256": "e01d2cb2eb6e11bbc78ed3149dae46bbc80243f5202bf5749c26affd4a268689"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-003",
+      "subject": {
+        "adr_bytes": 24082,
+        "adr_content_sha256": "08aa3d60d4c050daaa52b5c16d864272bb1c7a48a37e59c5ad1bfea5cfb5fb88",
+        "adr_source_set": {
+          "decision_id": "ADR-003",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "cb9d0948d5e5277a81ca57e3fbaa5d1fc1d8c41441237a3ce8016a314895413a",
+          "sources": [
+            {
+              "bytes": 24082,
+              "kind": "main",
+              "path": "docs/adr/0003-authenticated-production-ingress.md",
+              "sha256": "08aa3d60d4c050daaa52b5c16d864272bb1c7a48a37e59c5ad1bfea5cfb5fb88"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "subject": {
+        "adr_bytes": 262142,
+        "adr_content_sha256": "77e0e420665d6b7b2af13be203d84d43b531db897a4b53f70e1021734c0eddfc",
+        "adr_source_set": {
+          "decision_id": "ADR-004",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "d70f1297dffee51a6cfeb2ea8ed03006d06eaf547b45b0eff65d57ec6c4cdc28",
+          "sources": [
+            {
+              "bytes": 262142,
+              "kind": "main",
+              "path": "docs/adr/0004-observer-attach-grants-and-revocation.md",
+              "sha256": "77e0e420665d6b7b2af13be203d84d43b531db897a4b53f70e1021734c0eddfc"
+            },
+            {
+              "bytes": 118688,
+              "kind": "module",
+              "path": "docs/adr/modules/adr-004-cross-store-observer-closure-and-enrollment.md",
+              "sha256": "24c4b431ef1b5add127b832858d2b38539f1ae6e7da30cc53da7cbb706c627ee"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "subject": {
+        "adr_bytes": 45226,
+        "adr_content_sha256": "1620292c21142ec153670e039ce24baefb32702998a9262f22b3a13483367356",
+        "adr_source_set": {
+          "decision_id": "ADR-005",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "6705dccd0466c41ff7a62a0047e8b191dd0460679e8aaa1d5df440518b08a4a6",
+          "sources": [
+            {
+              "bytes": 45226,
+              "kind": "main",
+              "path": "docs/adr/0005-declared-stream-lifecycle.md",
+              "sha256": "1620292c21142ec153670e039ce24baefb32702998a9262f22b3a13483367356"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-006",
+      "subject": {
+        "adr_bytes": 59342,
+        "adr_content_sha256": "d066e8b83a5422f431e95d071f99c25c84ad2c27b00343f2689378f5e0ea4dd1",
+        "adr_source_set": {
+          "decision_id": "ADR-006",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "8b79bad8223797d5ba2e962817be574ae20e472fad3d5c878db4f0b45bffa407",
+          "sources": [
+            {
+              "bytes": 59342,
+              "kind": "main",
+              "path": "docs/adr/0006-body-issued-authority-and-time.md",
+              "sha256": "d066e8b83a5422f431e95d071f99c25c84ad2c27b00343f2689378f5e0ea4dd1"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-007",
+      "subject": {
+        "adr_bytes": 231553,
+        "adr_content_sha256": "57aeafcb3db1ee565797dcaddaeb5f77a231896e2054758702a89307280cc5e7",
+        "adr_source_set": {
+          "decision_id": "ADR-007",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "c9e09aa0fe0cfc588953f773f28191b1364d35dff68c1fc7d20f2a3adb8f0887",
+          "sources": [
+            {
+              "bytes": 231553,
+              "kind": "main",
+              "path": "docs/adr/0007-command-disposition-journal.md",
+              "sha256": "57aeafcb3db1ee565797dcaddaeb5f77a231896e2054758702a89307280cc5e7"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-008",
+      "subject": {
+        "adr_bytes": 182936,
+        "adr_content_sha256": "2e01889e4ba266a2b7a1e37612a5225bbd2493b2ae9fa6fe651d78ddba3be2bc",
+        "adr_source_set": {
+          "decision_id": "ADR-008",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "1f3dc5b2396f4156b546ea533f5f171d0a389c5e445bb8f2e76318ff429f2bf9",
+          "sources": [
+            {
+              "bytes": 182936,
+              "kind": "main",
+              "path": "docs/adr/0008-extension-namespace-and-galadriel-separation.md",
+              "sha256": "2e01889e4ba266a2b7a1e37612a5225bbd2493b2ae9fa6fe651d78ddba3be2bc"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-009",
+      "subject": {
+        "adr_bytes": 260084,
+        "adr_content_sha256": "c69f9bce33f576518b966c457acc58a195de97b613f91161f313c40b1a64fb66",
+        "adr_source_set": {
+          "decision_id": "ADR-009",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "1858eba7ad14008757382d0921b03517828f8bacc2c43201b76846c7504ed114",
+          "sources": [
+            {
+              "bytes": 260084,
+              "kind": "main",
+              "path": "docs/adr/0009-security-state-rotation-and-revocation.md",
+              "sha256": "c69f9bce33f576518b966c457acc58a195de97b613f91161f313c40b1a64fb66"
+            },
+            {
+              "bytes": 74277,
+              "kind": "module",
+              "path": "docs/adr/modules/adr-009-cross-store-producer-and-compromise-evidence.md",
+              "sha256": "47420d1b7a3b9bfa3ff767510c26e66520caa44ef735371d08faf4c16cc11800"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "subject": {
+        "adr_bytes": 25225,
+        "adr_content_sha256": "826e9e5dc471c3ab4f48add4b441dbc94c6513ad25a3cd4cddf2e19b06bf9809",
+        "adr_source_set": {
+          "decision_id": "ADR-010",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "f4ba27f269db247e2f7ed03799c41d37a851172a1586c6c13f4be673dbb40ea0",
+          "sources": [
+            {
+              "bytes": 25225,
+              "kind": "main",
+              "path": "docs/adr/0010-plane-qos-retention-and-overload.md",
+              "sha256": "826e9e5dc471c3ab4f48add4b441dbc94c6513ad25a3cd4cddf2e19b06bf9809"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "subject": {
+        "adr_bytes": 84415,
+        "adr_content_sha256": "0a4fa4404e9d13f2e873ebd86a804fe4f9136f0b6ae80c2d5bf4ba8de6ca6881",
+        "adr_source_set": {
+          "decision_id": "ADR-011",
+          "digest_algorithm": "sha256(domain || u64be(projection_bytes) || projection)",
+          "domain_hex": "6e63702e6230312d6164722d736f757263652d7365742e763100",
+          "schema": "ncp.b01-adr-source-set.v1",
+          "sha256": "97b55623419650db210013fa4281935aabca179986526c2486846fb23d90a747",
+          "sources": [
+            {
+              "bytes": 84415,
+              "kind": "main",
+              "path": "docs/adr/0011-ecosystem-topology-and-handover.md",
+              "sha256": "0a4fa4404e9d13f2e873ebd86a804fe4f9136f0b6ae80c2d5bf4ba8de6ca6881"
+            },
+            {
+              "bytes": 19789,
+              "kind": "module",
+              "path": "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
+              "sha256": "af6eac1c07c3551ebaf22190efa9153e31633a2bfeca03e046f87a389d9ecfab"
+            }
+          ]
+        },
+        "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+        "review_packet_sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79",
+        "source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+        "source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+      }
+    }
+  ],
+  "generated_by": {
+    "bytes": 155144,
+    "path": "scripts/generate_b01_reviewer_kit.py",
+    "sha256": "9e1ae0a9dcafc778e1f7235d7a55e24b444a50275872df1d63a7d3e80dbc1b87"
+  },
+  "inputs": {
+    "bounded_json_reader": {
+      "bytes": 51681,
+      "path": "scripts/bounded_json.py",
+      "sha256": "33599371dea7a30b157ac730db8012654707c926e8537c571e6c29b96ac00168"
+    },
+    "decision_registry_generator": {
+      "bytes": 256310,
+      "path": "scripts/generate_decision_registry.py",
+      "sha256": "175bb668ed4f78f0d28cb3b9f85cb29d4aa9419cc1507c81e71fbb3460ab7418"
+    },
+    "decision_registry_schema": {
+      "bytes": 31036,
+      "path": "docs/adr/decision-registry.proposed.schema.v1.json",
+      "sha256": "635a35065702116401a95358f09ba7b225b0e159e12e6f2b16fdbd46cb5821e7"
+    },
+    "immutable_git_reader": {
+      "bytes": 36713,
+      "path": "scripts/immutable_git.py",
+      "sha256": "9d5500fb8427652e2c59cd7b7e584bdfdb74e01d136689f4135761a6d1810060"
+    },
+    "private_bundle_preflight": {
+      "bytes": 40530,
+      "path": "scripts/preflight_b01_review_bundle.py",
+      "sha256": "6a97478f28bac9d0f8b97ba1a82727a635cb8308544b340c2c1416740a316d43"
+    },
+    "review_request": {
+      "bytes": 135557,
+      "path": "evidence/implementation/requests/B01/review-request.v1.json",
+      "sha256": "af8daf9ff4ab42969b729ddc20eeb7ba45bfd11648d748605a6422b804663829"
+    },
+    "review_response_schema": {
+      "bytes": 8053,
+      "path": "evidence/implementation/requests/B01/review-response.schema.v2.json",
+      "sha256": "a0fa8925fdd42f57253ce008ef75b5f28ac094077e0059fa171fa0f63f0eda5b"
+    },
+    "review_source_candidate_schema": {
+      "bytes": 20929,
+      "path": "evidence/implementation/requests/B01/review-source-candidate.schema.v2.json",
+      "sha256": "06ab549e7b25a56c4b1d717ca824c715ed8f312c38354173f820fe44cc9fefe1"
+    },
+    "reviewer_kit_schema": {
+      "bytes": 17319,
+      "path": "evidence/implementation/requests/B01/reviewer-kit.schema.v2.json",
+      "sha256": "d6cab531dd7710f5468ae99ac9faa581900b82ad4f8fa28112068f991827e2c7"
+    },
+    "schema_validator": {
+      "bytes": 38570,
+      "path": "scripts/validate_evidence_schemas.py",
+      "sha256": "d3c0eb910fc2bf6eb021d0c421be85cf08f60cd2bea8cb1336f31404471ed66b"
+    }
+  },
+  "materialization_contract": {
+    "claim_boundary": "OWNER_MODE_RESTRICTED_BUNDLE_STRUCTURAL_VALIDATION_ONLY_NO_AUTHORSHIP_HUMANNESS_SIGNATURE_CHALLENGE_ROLE_AUTHORITY_INDEPENDENCE_EXTERNAL_RECEIPT_TRUTH_ADMISSION_ADR_ACCEPTANCE_TASK_STATUS_PROTOCOL_CHANGE_OR_RELEASE_AUTHORITY",
+    "derived_member_forbidden": true,
+    "human_response_members": [
+      "review_id",
+      "reviewer",
+      "decision",
+      "conditions",
+      "role_authorization",
+      "independence_assessment",
+      "external_receipt",
+      "timestamp_utc",
+      "supersedes"
+    ],
+    "human_transport_members": [
+      "subject_binding"
+    ],
+    "machine_injected_source_members": [
+      "adr_id",
+      "role_id",
+      "subject"
+    ],
+    "output": "OWNER_MODE_RESTRICTED_BUNDLE_STDOUT_ONLY_STRUCTURAL_CANDIDATE",
+    "output_schema": "ncp.b01-review-source-candidate.v2",
+    "raw_response_identity_required": true,
+    "registry_mutation": false,
+    "response_selector": "slot_id"
+  },
+  "minimum_only": true,
+  "normative": false,
+  "ordering": "PACKET_DECISION_ORDER_THEN_REQUIRED_REVIEW_ORDER_THEN_ONE_BASED_IDENTITY_ORDINAL",
+  "schema": "ncp.b01-reviewer-kit.v2",
+  "slots": [
+    {
+      "adr_id": "ADR-001",
+      "distinct_identity_group": "adr-001.ncp-maintainer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-001.ncp-maintainer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-001.ncp-maintainer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "ncp-maintainer",
+      "role_label": "NCP maintainer",
+      "slot_id": "adr-001.ncp-maintainer.01",
+      "subject_binding": {
+        "sha256": "db842085f7b07ae0b6e1192353aec9cd951b6f0f946eb64785f95147e3b12ea1",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-001",
+      "distinct_identity_group": "adr-001.engram-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-001.engram-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-001.engram-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "engram-owner",
+      "role_label": "Engram owner",
+      "slot_id": "adr-001.engram-owner.01",
+      "subject_binding": {
+        "sha256": "af3956f69c0e0964f674c496cd7795da5b79ace04e0077dbcc9ad545d0eb2495",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-001",
+      "distinct_identity_group": "adr-001.crebain-body-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-001.crebain-body-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-001.crebain-body-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-body-owner",
+      "role_label": "Crebain body owner",
+      "slot_id": "adr-001.crebain-body-owner.01",
+      "subject_binding": {
+        "sha256": "e215ba502cf82f577ee43b58f7b36babb7bad104ff5246f218011cc9833c6de4",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-001",
+      "distinct_identity_group": "adr-001.independent-protocol-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-001.independent-protocol-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-001.independent-protocol-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-001.independent-protocol-reviewer.01.independence-assessment",
+          "exclusive": true,
+          "kind": "INDEPENDENCE_ASSESSMENT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": true,
+      "role_id": "independent-protocol-reviewer",
+      "role_label": "independent protocol reviewer",
+      "slot_id": "adr-001.independent-protocol-reviewer.01",
+      "subject_binding": {
+        "sha256": "2c9309c808c7aa957f5179f20fcb254950a053262e89e89eaed0da629cb8dedb",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-002",
+      "distinct_identity_group": "adr-002.protocol-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-002.protocol-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-002.protocol-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "protocol-reviewer",
+      "role_label": "protocol reviewer",
+      "slot_id": "adr-002.protocol-reviewer.01",
+      "subject_binding": {
+        "sha256": "c85c7d9012a8d820df71f652e961c1e3c7c6408e97c547b0d124ff7785e509da",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-002",
+      "distinct_identity_group": "adr-002.release-supply-chain-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-002.release-supply-chain-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-002.release-supply-chain-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "release-supply-chain-reviewer",
+      "role_label": "release and supply-chain reviewer",
+      "slot_id": "adr-002.release-supply-chain-reviewer.01",
+      "subject_binding": {
+        "sha256": "a48d407be1df59d34dbb2934840969b84e44cb772d56578ba3a151924dc6a195",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-003",
+      "distinct_identity_group": "adr-003.security-cryptography-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-003.security-cryptography-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-003.security-cryptography-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-003.security-cryptography-reviewer.01.independence-assessment",
+          "exclusive": true,
+          "kind": "INDEPENDENCE_ASSESSMENT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": true,
+      "role_id": "security-cryptography-reviewer",
+      "role_label": "security and cryptography reviewer",
+      "slot_id": "adr-003.security-cryptography-reviewer.01",
+      "subject_binding": {
+        "sha256": "ac4ec5a5237a0f4ceb8602748b5493408f30584833252f394afa489b998672b3",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-003",
+      "distinct_identity_group": "adr-003.security-cryptography-reviewer",
+      "identity_ordinal": 2,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-003.security-cryptography-reviewer.02.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-003.security-cryptography-reviewer.02.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-003.security-cryptography-reviewer.02.independence-assessment",
+          "exclusive": true,
+          "kind": "INDEPENDENCE_ASSESSMENT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": true,
+      "role_id": "security-cryptography-reviewer",
+      "role_label": "security and cryptography reviewer",
+      "slot_id": "adr-003.security-cryptography-reviewer.02",
+      "subject_binding": {
+        "sha256": "2567c1cb41b4a6cac20b98349c58adc6e4a74803b4f1e1e1e282ff0bde3d160e",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-003",
+      "distinct_identity_group": "adr-003.transport-implementer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-003.transport-implementer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-003.transport-implementer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "transport-implementer",
+      "role_label": "transport implementer",
+      "slot_id": "adr-003.transport-implementer.01",
+      "subject_binding": {
+        "sha256": "f845a484b7f57e164f6bf3d8963ace2240809f819cf6aa4cc278ab506f130c8c",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "distinct_identity_group": "adr-004.prisoma-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-004.prisoma-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.prisoma-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "prisoma-owner",
+      "role_label": "Prisoma owner",
+      "slot_id": "adr-004.prisoma-owner.01",
+      "subject_binding": {
+        "sha256": "ace65f65028c71e18c5c8965d96b07702524bad050bfe00760023c3b479baecf",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "distinct_identity_group": "adr-004.galadriel-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-004.galadriel-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.galadriel-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "galadriel-owner",
+      "role_label": "Galadriel owner",
+      "slot_id": "adr-004.galadriel-owner.01",
+      "subject_binding": {
+        "sha256": "2226bfb34d10c521a78841bbdafe1bad910b0152b34d9ca2b5d77078b7c200ba",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "distinct_identity_group": "adr-004.security-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-004.security-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.security-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "security-reviewer",
+      "role_label": "security reviewer",
+      "slot_id": "adr-004.security-reviewer.01",
+      "subject_binding": {
+        "sha256": "075ef699da1732ac83b0927c676684939241663f57ba6e65fb267408b56fd1ec",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "distinct_identity_group": "adr-004.ncp-source-provider-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-004.ncp-source-provider-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.ncp-source-provider-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "ncp-source-provider-owner",
+      "role_label": "NCP/source-provider owner",
+      "slot_id": "adr-004.ncp-source-provider-owner.01",
+      "subject_binding": {
+        "sha256": "14670840e0a7d95384fd1775caa85af4dc41f545fb8c9a2360e0af41139a13df",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "distinct_identity_group": "adr-004.observer-anchor-infrastructure-owner-operator",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-004.observer-anchor-infrastructure-owner-operator.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.observer-anchor-infrastructure-owner-operator.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "observer-anchor-infrastructure-owner-operator",
+      "role_label": "observer-anchor infrastructure owner/operator",
+      "slot_id": "adr-004.observer-anchor-infrastructure-owner-operator.01",
+      "subject_binding": {
+        "sha256": "f952f9fc959ea9d054fbb950ed0d4cccf39249a1c35a472227a00e29588f7158",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-004",
+      "distinct_identity_group": "adr-004.independent-anchor-security-distributed-systems-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-004.independent-anchor-security-distributed-systems-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.independent-anchor-security-distributed-systems-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-004.independent-anchor-security-distributed-systems-reviewer.01.independence-assessment",
+          "exclusive": true,
+          "kind": "INDEPENDENCE_ASSESSMENT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": true,
+      "role_id": "independent-anchor-security-distributed-systems-reviewer",
+      "role_label": "independent anchor security/distributed-systems reviewer",
+      "slot_id": "adr-004.independent-anchor-security-distributed-systems-reviewer.01",
+      "subject_binding": {
+        "sha256": "f9ed59ac8556665bc9915fe06981c736fa22ccc1c756f31973e4eb1920556c99",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "distinct_identity_group": "adr-005.distributed-systems-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-005.distributed-systems-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-005.distributed-systems-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "distributed-systems-reviewer",
+      "role_label": "distributed-systems reviewer",
+      "slot_id": "adr-005.distributed-systems-reviewer.01",
+      "subject_binding": {
+        "sha256": "c1e9bf42ca10a8118ae5e1e59c4fbd7091f8bcd90174331b832025e0e8fe57d3",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "distinct_identity_group": "adr-005.engram-stream-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-005.engram-stream-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-005.engram-stream-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "engram-stream-owner",
+      "role_label": "Engram stream owner",
+      "slot_id": "adr-005.engram-stream-owner.01",
+      "subject_binding": {
+        "sha256": "f388ca45b660fa282eb6a018007d4c6d5268e6b8997d0b9ccb1aacca67345cf1",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "distinct_identity_group": "adr-005.haldir-stream-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-005.haldir-stream-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-005.haldir-stream-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "haldir-stream-owner",
+      "role_label": "Haldir stream owner",
+      "slot_id": "adr-005.haldir-stream-owner.01",
+      "subject_binding": {
+        "sha256": "4494ff4d379c05163df2a3377e3281825c6542004f750b2e25065422edf9fa28",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "distinct_identity_group": "adr-005.galadriel-stream-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-005.galadriel-stream-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-005.galadriel-stream-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "galadriel-stream-owner",
+      "role_label": "Galadriel stream owner",
+      "slot_id": "adr-005.galadriel-stream-owner.01",
+      "subject_binding": {
+        "sha256": "2acf7a6cdc01ea9ecd2eeb4ed478f0efd26c2566ecee24601909f6ba41ad3d24",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "distinct_identity_group": "adr-005.crebain-stream-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-005.crebain-stream-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-005.crebain-stream-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-stream-owner",
+      "role_label": "Crebain stream owner",
+      "slot_id": "adr-005.crebain-stream-owner.01",
+      "subject_binding": {
+        "sha256": "efcc36f9611c7236086fc413da852228e37acd4df7e64111dd832f6c5dc269f9",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-005",
+      "distinct_identity_group": "adr-005.prisoma-stream-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-005.prisoma-stream-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-005.prisoma-stream-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "prisoma-stream-owner",
+      "role_label": "Prisoma stream owner",
+      "slot_id": "adr-005.prisoma-stream-owner.01",
+      "subject_binding": {
+        "sha256": "64a2ff033731d23bc83576d5c853433c0b368d55e0ede41b1b36215c509004fd",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-006",
+      "distinct_identity_group": "adr-006.safety-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-006.safety-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-006.safety-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "safety-reviewer",
+      "role_label": "safety reviewer",
+      "slot_id": "adr-006.safety-reviewer.01",
+      "subject_binding": {
+        "sha256": "7a0021a6926b754a4763b6805f7d1181ad0baede18c3c9bdfb7b6b1e416e209c",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-006",
+      "distinct_identity_group": "adr-006.distributed-systems-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-006.distributed-systems-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-006.distributed-systems-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "distributed-systems-reviewer",
+      "role_label": "distributed-systems reviewer",
+      "slot_id": "adr-006.distributed-systems-reviewer.01",
+      "subject_binding": {
+        "sha256": "fd3f01d0e049702a5eca4ae7a4c627e79b01b442a17dfd994321b7da55e593b8",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-006",
+      "distinct_identity_group": "adr-006.haldir-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-006.haldir-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-006.haldir-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "haldir-owner",
+      "role_label": "Haldir owner",
+      "slot_id": "adr-006.haldir-owner.01",
+      "subject_binding": {
+        "sha256": "549d552b4f7adc1d22ae6b2fdf8622a5de7deb2b419b2562943582057eaea51e",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-006",
+      "distinct_identity_group": "adr-006.crebain-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-006.crebain-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-006.crebain-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-owner",
+      "role_label": "Crebain owner",
+      "slot_id": "adr-006.crebain-owner.01",
+      "subject_binding": {
+        "sha256": "b21ea9a0143185b339b3334c9392bde10ffe3076d5ffce7ee9c289b316f49bcb",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-007",
+      "distinct_identity_group": "adr-007.plant-safety-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-007.plant-safety-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-007.plant-safety-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "plant-safety-reviewer",
+      "role_label": "plant and safety reviewer",
+      "slot_id": "adr-007.plant-safety-reviewer.01",
+      "subject_binding": {
+        "sha256": "d32af28c8c2784f6169e550708954824a3952d7777750dbffb6ef94383456589",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-007",
+      "distinct_identity_group": "adr-007.haldir-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-007.haldir-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-007.haldir-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "haldir-owner",
+      "role_label": "Haldir owner",
+      "slot_id": "adr-007.haldir-owner.01",
+      "subject_binding": {
+        "sha256": "d85761a4693b5bb6a924e167d6923b0b65db8e2f2f1e37e6e7cb174f333c63cc",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-007",
+      "distinct_identity_group": "adr-007.crebain-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-007.crebain-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-007.crebain-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-owner",
+      "role_label": "Crebain owner",
+      "slot_id": "adr-007.crebain-owner.01",
+      "subject_binding": {
+        "sha256": "734daae0952a878fcec7a7f2e80a6d120189b830744b5c71db465b17918a9733",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-008",
+      "distinct_identity_group": "adr-008.protocol-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-008.protocol-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-008.protocol-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "protocol-reviewer",
+      "role_label": "protocol reviewer",
+      "slot_id": "adr-008.protocol-reviewer.01",
+      "subject_binding": {
+        "sha256": "69f0a8e814955ad5db32f38889677a510120017fcdebe9bf237b36643c6209da",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-008",
+      "distinct_identity_group": "adr-008.galadriel-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-008.galadriel-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-008.galadriel-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "galadriel-owner",
+      "role_label": "Galadriel owner",
+      "slot_id": "adr-008.galadriel-owner.01",
+      "subject_binding": {
+        "sha256": "70ccc24fd4f751936e4b84e6b42e0f6e4e970b5909011af2a2b1a1c2e5bcad8c",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-008",
+      "distinct_identity_group": "adr-008.haldir-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-008.haldir-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-008.haldir-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "haldir-owner",
+      "role_label": "Haldir owner",
+      "slot_id": "adr-008.haldir-owner.01",
+      "subject_binding": {
+        "sha256": "c52a5681eb4aeaafe07362d78c279ef61f6733b8fec7a4920cf2f42398d989b3",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-008",
+      "distinct_identity_group": "adr-008.crebain-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-008.crebain-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-008.crebain-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-owner",
+      "role_label": "Crebain owner",
+      "slot_id": "adr-008.crebain-owner.01",
+      "subject_binding": {
+        "sha256": "60e0c9235c803d2c3f8b2cb0c21b1ebc007583b6231ba9594c929de982367a54",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-008",
+      "distinct_identity_group": "adr-008.engram-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-008.engram-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-008.engram-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "engram-owner",
+      "role_label": "Engram owner",
+      "slot_id": "adr-008.engram-owner.01",
+      "subject_binding": {
+        "sha256": "d35aad08ff01d87f7ee3f773b9cd04bccf186bdb82fd91b3de8f4f1031e6c8d0",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-009",
+      "distinct_identity_group": "adr-009.security-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-009.security-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-009.security-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "security-reviewer",
+      "role_label": "security reviewer",
+      "slot_id": "adr-009.security-reviewer.01",
+      "subject_binding": {
+        "sha256": "299a57d5c6ce856174c4ae8d5f9b3a26ca66886574321f38a9ade61eb64b1bff",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-009",
+      "distinct_identity_group": "adr-009.operations-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-009.operations-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-009.operations-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "operations-reviewer",
+      "role_label": "operations reviewer",
+      "slot_id": "adr-009.operations-reviewer.01",
+      "subject_binding": {
+        "sha256": "db335f82a35daa248f0c68ac7fafda83662b2ace7efc25e0767f3a1611d74234",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-009",
+      "distinct_identity_group": "adr-009.supply-chain-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-009.supply-chain-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-009.supply-chain-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "supply-chain-reviewer",
+      "role_label": "supply-chain reviewer",
+      "slot_id": "adr-009.supply-chain-reviewer.01",
+      "subject_binding": {
+        "sha256": "b14fb898151ef3735d394b20da28d1bf71b11934bcdab949cb0b2fd8d2431ed6",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-009",
+      "distinct_identity_group": "adr-009.security-artifact-anchor-infrastructure-owner-operator",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-009.security-artifact-anchor-infrastructure-owner-operator.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-009.security-artifact-anchor-infrastructure-owner-operator.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "security-artifact-anchor-infrastructure-owner-operator",
+      "role_label": "security-artifact-anchor infrastructure owner/operator",
+      "slot_id": "adr-009.security-artifact-anchor-infrastructure-owner-operator.01",
+      "subject_binding": {
+        "sha256": "53d9c4d300f4e6a1e2c12c4a74a6f00742d25f2742df64f9bdb6447d86f87c55",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-009",
+      "distinct_identity_group": "adr-009.independent-anchor-security-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-009.independent-anchor-security-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-009.independent-anchor-security-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-009.independent-anchor-security-reviewer.01.independence-assessment",
+          "exclusive": true,
+          "kind": "INDEPENDENCE_ASSESSMENT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": true,
+      "role_id": "independent-anchor-security-reviewer",
+      "role_label": "independent anchor security reviewer",
+      "slot_id": "adr-009.independent-anchor-security-reviewer.01",
+      "subject_binding": {
+        "sha256": "1a70ee4fd8e4869dde86f3362339c0022a74e011f7a769247e56c9716d34a4a6",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "distinct_identity_group": "adr-010.real-time-performance-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-010.real-time-performance-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-010.real-time-performance-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "real-time-performance-reviewer",
+      "role_label": "real-time and performance reviewer",
+      "slot_id": "adr-010.real-time-performance-reviewer.01",
+      "subject_binding": {
+        "sha256": "dd669bbd274ee0864d9f6f4c4f5d14e4d1bb351838c49bd7dcd0b5e82cc20516",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "distinct_identity_group": "adr-010.engram-consumer-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-010.engram-consumer-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-010.engram-consumer-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "engram-consumer-reviewer",
+      "role_label": "Engram consumer reviewer",
+      "slot_id": "adr-010.engram-consumer-reviewer.01",
+      "subject_binding": {
+        "sha256": "302d7e7a696ed685aa0e40be77fc64747d61b16eb1f06f8a9d9675de67f6893d",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "distinct_identity_group": "adr-010.haldir-consumer-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-010.haldir-consumer-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-010.haldir-consumer-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "haldir-consumer-reviewer",
+      "role_label": "Haldir consumer reviewer",
+      "slot_id": "adr-010.haldir-consumer-reviewer.01",
+      "subject_binding": {
+        "sha256": "4f72ad3867954a5d6f45674e5e65986b268f54818284e792ac0e04777516e79e",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "distinct_identity_group": "adr-010.galadriel-consumer-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-010.galadriel-consumer-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-010.galadriel-consumer-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "galadriel-consumer-reviewer",
+      "role_label": "Galadriel consumer reviewer",
+      "slot_id": "adr-010.galadriel-consumer-reviewer.01",
+      "subject_binding": {
+        "sha256": "ff78b93563be92017e260a5a842e9802f02d908f0e3968294afbf566d0dc2068",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "distinct_identity_group": "adr-010.crebain-consumer-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-010.crebain-consumer-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-010.crebain-consumer-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-consumer-reviewer",
+      "role_label": "Crebain consumer reviewer",
+      "slot_id": "adr-010.crebain-consumer-reviewer.01",
+      "subject_binding": {
+        "sha256": "d42c9e2b7fd42324a2ca30df9a7cfd4df0c3f6db9545f0ed8a04fd217843d701",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-010",
+      "distinct_identity_group": "adr-010.prisoma-consumer-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-010.prisoma-consumer-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-010.prisoma-consumer-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "prisoma-consumer-reviewer",
+      "role_label": "Prisoma consumer reviewer",
+      "slot_id": "adr-010.prisoma-consumer-reviewer.01",
+      "subject_binding": {
+        "sha256": "61140564f146d55d7f716feffbbcedb8ed3063ae546877818653237be8d674fd",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.engram-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.engram-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.engram-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "engram-owner",
+      "role_label": "Engram owner",
+      "slot_id": "adr-011.engram-owner.01",
+      "subject_binding": {
+        "sha256": "3c2df8e4f1bc8783364615c818590ca066130deed2c50b0ad7f51d7e7af6d34a",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.haldir-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.haldir-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.haldir-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "haldir-owner",
+      "role_label": "Haldir owner",
+      "slot_id": "adr-011.haldir-owner.01",
+      "subject_binding": {
+        "sha256": "a8f9900fa558535e5117fb874e99c0b2e3f9d9fc0867b339bac89e201e5d6ed6",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.galadriel-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.galadriel-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.galadriel-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "galadriel-owner",
+      "role_label": "Galadriel owner",
+      "slot_id": "adr-011.galadriel-owner.01",
+      "subject_binding": {
+        "sha256": "f8cf1ef33d47820b01e1e6d6ffd3ae6279cb8ff4fc8198c40c87c39ab1fe5147",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.crebain-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.crebain-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.crebain-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-owner",
+      "role_label": "Crebain owner",
+      "slot_id": "adr-011.crebain-owner.01",
+      "subject_binding": {
+        "sha256": "2794e378ce1e3a91775fa627958597b76dad3e3b37643d0b0a9b996ddb0f8513",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.prisoma-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.prisoma-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.prisoma-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "prisoma-owner",
+      "role_label": "Prisoma owner",
+      "slot_id": "adr-011.prisoma-owner.01",
+      "subject_binding": {
+        "sha256": "cd721c8be6c231bb831ee9b4496e13eecda4980415db5b58bd0cc0142f89cfe8",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.pid-rs-owner",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.pid-rs-owner.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.pid-rs-owner.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "pid-rs-owner",
+      "role_label": "pid-rs owner",
+      "slot_id": "adr-011.pid-rs-owner.01",
+      "subject_binding": {
+        "sha256": "6b69580e34a176006883756fc39ac89698d82803a911f5ddae7e87f69bbea98b",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.independent-security-distributed-systems-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.independent-security-distributed-systems-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.independent-security-distributed-systems-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.independent-security-distributed-systems-reviewer.01.independence-assessment",
+          "exclusive": true,
+          "kind": "INDEPENDENCE_ASSESSMENT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": true,
+      "role_id": "independent-security-distributed-systems-reviewer",
+      "role_label": "independent security and distributed-systems reviewer",
+      "slot_id": "adr-011.independent-security-distributed-systems-reviewer.01",
+      "subject_binding": {
+        "sha256": "12b95dc96b6ae441d999ad6e2bdcf2758ada61cc70d1cbc1eac0f6ce99444115",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.release-package-tooling-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.release-package-tooling-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.release-package-tooling-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "release-package-tooling-reviewer",
+      "role_label": "release and package-tooling reviewer",
+      "slot_id": "adr-011.release-package-tooling-reviewer.01",
+      "subject_binding": {
+        "sha256": "e725579760ff8f18d1ad2b337fafb4c2cc94df0a59e1371969ea6956a59bd36c",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    },
+    {
+      "adr_id": "ADR-011",
+      "distinct_identity_group": "adr-011.crebain-plant-safety-reviewer",
+      "identity_ordinal": 1,
+      "required_evidence": [
+        {
+          "evidence_requirement_id": "adr-011.crebain-plant-safety-reviewer.01.role-authorization",
+          "exclusive": true,
+          "kind": "ROLE_AUTHORIZATION",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        },
+        {
+          "evidence_requirement_id": "adr-011.crebain-plant-safety-reviewer.01.external-review-receipt",
+          "exclusive": true,
+          "kind": "EXTERNAL_REVIEW_RECEIPT",
+          "required_path_prefix": "evidence/implementation/reviews/B01/"
+        }
+      ],
+      "requires_independence": false,
+      "role_id": "crebain-plant-safety-reviewer",
+      "role_label": "Crebain plant and safety reviewer",
+      "slot_id": "adr-011.crebain-plant-safety-reviewer.01",
+      "subject_binding": {
+        "sha256": "69efe567f73c9cbfbc54b88cc5b9f0ed5dc50227952c2c8866a09b4c6c8b58f2",
+        "suite": "ncp.b01-slot-subject-sha256.v1"
+      }
+    }
+  ],
+  "subject_cut": {
+    "decision_set_sha256": "1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4",
+    "issuance_currentness": {
+      "authorized_ref": "refs/remotes/origin/main",
+      "policy": "ISSUANCE_COMMIT_RETAINED_LIVE_CANONICAL_REMOTE_AND_LOCAL_MAIN_MUST_DESCEND_AND_PRESERVE_EXACT_CURRENT_ZERO_REVIEW_PACKET_SUBJECT",
+      "remote_observation": {
+        "authorizing": false,
+        "claim_boundary": "REMOTE_REF_OBSERVATION_ONLY_NO_REVIEWER_IDENTITY_REVIEW_DECISION_ROLE_AUTHORITY_PROTOCOL_AUTHORITY_TASK_AUTHORITY_RELEASE_AUTHORITY_OR_REMOTE_OWNER_AUTHENTICATION_OR_HISTORICAL_REMOTE_STATE_ATTESTATION",
+        "configured_remote": "origin",
+        "host_key_fingerprint": "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU",
+        "host_key_line_sha256": "6233fddbb0a29afc8c4e8c699733c1a188c3a41f2fb63a2640653dc4aea624ce",
+        "local_main_ref": "refs/heads/main",
+        "local_tracking_ref": "refs/remotes/origin/main",
+        "policy": "LIVE_CANONICAL_LS_REMOTE_MAIN_EQUALS_LOCAL_ORIGIN_MAIN_AND_LOCAL_MAIN_RETAINED_COMMIT_IS_AUDIT_IDENTITY_ONLY",
+        "queried_ref": "refs/heads/main",
+        "queried_url": "git@github.com:sepahead/NCP.git",
+        "repository": "github.com/sepahead/NCP",
+        "retained_observed_commit": "4b9ec565fb7870cd6f086a83d53158be364cc774",
+        "state": "NON_AUTHORIZING_REMOTE_REF_OBSERVATION",
+        "transport_profile": "PINNED_GITHUB_ED25519_SSH_AGENT_V1"
+      },
+      "resolved_commit": "4b9ec565fb7870cd6f086a83d53158be364cc774",
+      "resolved_tree": "6586d3bd135cc2c39b0a7efd373ad5aab5a58612"
+    },
+    "packet_commit": "3661d01c20445f84004e6f89bfa3aa9e85fe3a7f",
+    "packet_tree": "1561d201bad27dfff0a3564bc4e7f3ee7f4ef013",
+    "proposed_registry": {
+      "bytes": 65063,
+      "path": "docs/adr/decision-registry.proposed.v1.json",
+      "sha256": "8b0fca650bb8fd13bee7fcf4a8005eca695e7922e8bc888a932123a90b4f871f"
+    },
+    "review_packet": {
+      "bytes": 47576,
+      "path": "docs/adr/B01_REVIEW_PACKET.md",
+      "sha256": "e9dd33d10fbb0df5e70264dd82c0c6beefb97b7fcd98ced4750e32f742d80c79"
+    },
+    "zero_review_source_commit": "adfb064d901cc8ae459dbddd5d7b26cda7ba02c0",
+    "zero_review_source_tree": "21b1e14fe6cb80950d251a68347c4007b67d6410"
+  }
+}

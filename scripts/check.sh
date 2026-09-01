@@ -81,16 +81,23 @@ step "non-authorizing B01 review-request tooling"
     scripts/generate_b01_review_request.py scripts/immutable_git.py
 step "non-authorizing B01 reviewer preparation"
 "$evidence_schema_python" -m ruff format --check -- \
+    scripts/bounded_json.py \
     scripts/generate_b01_reviewer_kit.py \
+    scripts/preflight_b01_review_bundle.py \
     scripts/validate_evidence_schemas.py
 "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+    scripts/bounded_json.py \
     scripts/generate_b01_reviewer_kit.py \
+    scripts/preflight_b01_review_bundle.py \
     scripts/validate_evidence_schemas.py
 "$evidence_schema_python" -m py_compile \
+    scripts/bounded_json.py \
     scripts/generate_b01_reviewer_kit.py \
+    scripts/preflight_b01_review_bundle.py \
     scripts/validate_evidence_schemas.py
 "$evidence_schema_python" scripts/generate_b01_reviewer_kit.py \
     --self-test --check
+"$evidence_schema_python" -B scripts/preflight_b01_review_bundle.py --self-test
 
 step "read-only B01 review handoff status"
 "$evidence_schema_python" -m ruff format --check -- \

@@ -43,10 +43,10 @@ B01_REVIEWER_KIT_SCHEMA = (
     / "implementation"
     / "requests"
     / "B01"
-    / "reviewer-kit.schema.v1.json"
+    / "reviewer-kit.schema.v2.json"
 )
 B01_REVIEWER_KIT = (
-    ROOT / "evidence" / "implementation" / "requests" / "B01" / "reviewer-kit.v1.json"
+    ROOT / "evidence" / "implementation" / "requests" / "B01" / "reviewer-kit.v2.json"
 )
 B01_REVIEW_RESPONSE_SCHEMA = (
     ROOT
@@ -54,7 +54,7 @@ B01_REVIEW_RESPONSE_SCHEMA = (
     / "implementation"
     / "requests"
     / "B01"
-    / "review-response.schema.v1.json"
+    / "review-response.schema.v2.json"
 )
 B01_REVIEW_SOURCE_CANDIDATE_SCHEMA = (
     ROOT
@@ -62,7 +62,7 @@ B01_REVIEW_SOURCE_CANDIDATE_SCHEMA = (
     / "implementation"
     / "requests"
     / "B01"
-    / "review-source-candidate.schema.v1.json"
+    / "review-source-candidate.schema.v2.json"
 )
 B01_REVIEW_HANDOFF_STATUS_SCHEMA = (
     ROOT
@@ -70,7 +70,7 @@ B01_REVIEW_HANDOFF_STATUS_SCHEMA = (
     / "implementation"
     / "requests"
     / "B01"
-    / "review-handoff-status.schema.v1.json"
+    / "review-handoff-status.schema.v2.json"
 )
 MAX_JSON_BYTES = 2 * 1024 * 1024
 MAX_SCHEMA_ERRORS = 64
@@ -82,16 +82,16 @@ DECISION_REGISTRY_SCHEMA_ID = (
     "https://sepahead.github.io/NCP/schemas/proposed-decision-registry.v1.json"
 )
 B01_REVIEWER_KIT_SCHEMA_ID = (
-    "https://sepahead.github.io/NCP/schemas/b01-reviewer-kit.v1.json"
+    "https://sepahead.github.io/NCP/schemas/b01-reviewer-kit.v2.json"
 )
 B01_REVIEW_RESPONSE_SCHEMA_ID = (
-    "https://sepahead.github.io/NCP/schemas/b01-review-response.v1.json"
+    "https://sepahead.github.io/NCP/schemas/b01-review-response.v2.json"
 )
 B01_REVIEW_SOURCE_CANDIDATE_SCHEMA_ID = (
-    "https://sepahead.github.io/NCP/schemas/b01-review-source-candidate.v1.json"
+    "https://sepahead.github.io/NCP/schemas/b01-review-source-candidate.v2.json"
 )
 B01_REVIEW_HANDOFF_STATUS_SCHEMA_ID = (
-    "https://sepahead.github.io/NCP/schemas/b01-review-handoff-status.v1.json"
+    "https://sepahead.github.io/NCP/schemas/b01-review-handoff-status.v2.json"
 )
 LOCAL_DEFINITION_REF = re.compile(r"^#/\$defs/[A-Za-z][A-Za-z0-9]*$")
 MAX_SCHEMA_PATTERNS = 64
@@ -145,6 +145,11 @@ ALLOWED_SCHEMA_PATTERNS = frozenset(
         (
             r"^evidence/implementation/reviews/B01/"
             r"(?!\.\.(?:/|$))(?!.*(?:^|/)\.\.(?:/|$))[^\\]+$"
+        ),
+        (
+            r"^evidence/implementation/reviews/B01/"
+            r"(?!\.\.(?:/|$))(?!.*(?:^|/)\.\.(?:/|$))"
+            r"[^\u0000-\u001f\u007f\\]+$"
         ),
     }
 )

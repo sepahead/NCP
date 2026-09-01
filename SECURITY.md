@@ -181,6 +181,45 @@ principal, entity, or operation IDs into metric labels. The local SHA-256 audit 
 detects mutation but is not a signature; production evidence requires an independent
 external anchor.
 
+## Private B01 review bundles
+
+The B01 preflight accepts one owner-mode-restricted bundle on a supported POSIX file system.
+Directories require mode `0700`.
+Files require mode `0600` and one hard link.
+Remove extended ACL entries before use.
+The preflight checks ownership and POSIX mode bits only.
+It does not inspect extended ACLs.
+Keep the bundle outside the NCP worktree and its Git metadata.
+The preflight compares exact path bytes.
+It does not detect case-folded or Unicode-normalized destination aliases.
+External admission must reject destination aliases before any repository write.
+
+The preflight uses descriptor-relative no-follow reads and two complete snapshots.
+It rejects links, special files, aliases, unexpected entries, and observed mutation.
+Its file lock coordinates only cooperating processes.
+It cannot defeat a privileged or uncooperative same-owner filesystem adversary.
+
+Registry replay binds the exact closed input roster and validates its output schema.
+It replaces repository helper modules with their captured source bytes.
+It rejects `PATH`-selected Git and unbound repository reads.
+It checks promotion-target absence before and after replay.
+These checks do not provide atomic filesystem isolation.
+Replay still uses the installed interpreter, standard library, and pinned validator packages.
+It is not hermetic execution or runtime provenance.
+
+The candidate on standard output contains sensitive reviewer data.
+Send it only through the private external-verifier channel.
+Never retain it in the repository or a public issue.
+
+The intake bundle can remain private before admission.
+Admission requires explicit authorization for each retained repository blob.
+Those blobs include the adopted source record and its admitted review evidence.
+The raw response, candidate, and challenge are not retained repository artifacts.
+
+Preflight establishes structure and local byte identity only.
+It grants no identity, review, admission, high-water, ADR, task, protocol, or release authority.
+The external verifier must authenticate and admit an acyclic envelope independently.
+
 ## Release decision
 
 Passing local tests does not make `production-secure` available or certified. The

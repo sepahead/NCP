@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   review-candidate validation. B01 remains `IN_PROGRESS`; the allocation state
   remains `INCOMPLETE_FAIL_CLOSED` and `NOT_REVIEWED`; external, independent,
   consumer, and release gates remain **NOT RUN**.
+- Replaced the B01 review transport with closed Version 2 schemas and tools.
+  Version 1 responses are historical and cannot enter the current route.
+  No wrapper or upgrade path converts them.
+  The packet, request subject, decision set, and source-record contract remain unchanged.
+  Private preflight emits an unauthenticated candidate and grants no authority.
+  External verification, admission, and adjudication remain unimplemented.
+  The shared reader now rejects FIFO replacement without blocking.
+  The selector evidence closure rotates that identity without changing its review subject.
 - Added a non-normative B01 low-overhead runtime and ecosystem recommendation.
   It selects prepared contexts, bounded single-owner state, one-decode data
   paths, an allocation-independent local ESTOP latch, and provider-first role

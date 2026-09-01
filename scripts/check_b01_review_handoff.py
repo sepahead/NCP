@@ -28,11 +28,11 @@ reviewer_kit = importlib.import_module("generate_b01_reviewer_kit")
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_RELATIVE = "scripts/check_b01_review_handoff.py"
 STATUS_SCHEMA_RELATIVE = (
-    "evidence/implementation/requests/B01/review-handoff-status.schema.v1.json"
+    "evidence/implementation/requests/B01/review-handoff-status.schema.v2.json"
 )
-STATUS_SCHEMA = "ncp.b01-review-handoff-status.v1"
+STATUS_SCHEMA = "ncp.b01-review-handoff-status.v2"
 STATUS_SCHEMA_ID = (
-    "https://sepahead.github.io/NCP/schemas/b01-review-handoff-status.v1.json"
+    "https://sepahead.github.io/NCP/schemas/b01-review-handoff-status.v2.json"
 )
 STATUS_CLAIM_BOUNDARY = (
     "CURRENT_STRUCTURAL_SNAPSHOT_ONLY_NO_AUTHENTICATED_REVIEWER_ROLE_"
@@ -58,6 +58,9 @@ EXPECTED_AUTHORITY = {
 }
 EXPECTED_INPUT_PATHS = {
     "status_schema": STATUS_SCHEMA_RELATIVE,
+    "private_bundle_preflight": reviewer_kit.PREFLIGHT_RELATIVE,
+    "bounded_json_reader": reviewer_kit.BOUNDED_JSON_RELATIVE,
+    "schema_validator": reviewer_kit.SCHEMA_VALIDATOR_RELATIVE,
     "reviewer_kit": reviewer_kit.OUTPUT_RELATIVE,
     "reviewer_kit_generator": reviewer_kit.SCRIPT_RELATIVE,
     "review_request": reviewer_kit.REQUEST_RELATIVE,
@@ -135,11 +138,40 @@ def snapshot_inputs() -> dict[str, bytes]:
         if relative in snapshots:
             fail(f"duplicate B01 handoff snapshot path: {relative}")
         snapshots[relative] = reviewer_kit.read_file(relative, maximum)
+    source = reviewer_kit.parse_object(
+        snapshots[reviewer_kit.REGISTRY_SOURCE_RELATIVE],
+        reviewer_kit.REGISTRY_SOURCE_RELATIVE,
+        reviewer_kit.MAX_INPUT_BYTES,
+    )
+    repository, evidence = reviewer_kit.snapshot_registry_replay_inputs(source)
+    for relative, raw in {**repository, **evidence}.items():
+        if relative in snapshots and snapshots[relative] != raw:
+            fail("B01 handoff replay input differs across one snapshot")
+        snapshots[relative] = raw
     return snapshots
 
 
+def replay_maps(
+    snapshots: dict[str, bytes], source: dict[str, Any]
+) -> tuple[dict[str, bytes], dict[str, bytes]]:
+    repository = {
+        relative: snapshots[relative]
+        for relative in reviewer_kit.registry_replay_repository_paths(source)
+    }
+    evidence = {
+        relative: snapshots[relative]
+        for relative in reviewer_kit.registry_evidence_paths(source)
+    }
+    return repository, evidence
+
+
 def current_snapshot() -> tuple[
-    dict[str, Any], str, dict[str, bytes], dict[str, Any], dict[str, Any]
+    dict[str, Any],
+    str,
+    dict[str, bytes],
+    dict[str, Any],
+    dict[str, Any],
+    list[dict[str, str | int]],
 ]:
     kit = reviewer_kit.build_kit()
     kit_bytes = reviewer_kit.generated_bytes(kit)
@@ -155,6 +187,10 @@ def current_snapshot() -> tuple[
     ):
         fail("reviewer-kit generator differs from the retained reviewer kit")
     for input_name, relative in (
+        ("private_bundle_preflight", reviewer_kit.PREFLIGHT_RELATIVE),
+        ("bounded_json_reader", reviewer_kit.BOUNDED_JSON_RELATIVE),
+        ("immutable_git_reader", reviewer_kit.IMMUTABLE_GIT_RELATIVE),
+        ("schema_validator", reviewer_kit.SCHEMA_VALIDATOR_RELATIVE),
         ("review_request", reviewer_kit.REQUEST_RELATIVE),
         ("reviewer_kit_schema", reviewer_kit.KIT_SCHEMA_RELATIVE),
         ("review_response_schema", reviewer_kit.RESPONSE_SCHEMA_RELATIVE),
@@ -178,10 +214,15 @@ def current_snapshot() -> tuple[
         reviewer_kit.REGISTRY_SOURCE_RELATIVE,
         reviewer_kit.MAX_INPUT_BYTES,
     )
+    repository_snapshots, evidence_snapshots = replay_maps(snapshots, source)
     generated, serialized = reviewer_kit.execute_exact_registry_generator(
         snapshots[reviewer_kit.REGISTRY_GENERATOR_RELATIVE],
         source,
-        artifact_overrides=None,
+        artifact_overrides=evidence_snapshots,
+        immutable_git_source=snapshots[reviewer_kit.IMMUTABLE_GIT_RELATIVE],
+        bounded_json_source=snapshots[reviewer_kit.BOUNDED_JSON_RELATIVE],
+        schema_validator_source=snapshots[reviewer_kit.SCHEMA_VALIDATOR_RELATIVE],
+        repository_snapshots=repository_snapshots,
     )
     if serialized != snapshots[reviewer_kit.CURRENT_PROPOSED_REGISTRY_RELATIVE]:
         fail("current proposed registry differs from its exact source replay")
@@ -193,7 +234,11 @@ def current_snapshot() -> tuple[
     final_generated, final_serialized = reviewer_kit.execute_exact_registry_generator(
         snapshots[reviewer_kit.REGISTRY_GENERATOR_RELATIVE],
         source,
-        artifact_overrides=None,
+        artifact_overrides=evidence_snapshots,
+        immutable_git_source=snapshots[reviewer_kit.IMMUTABLE_GIT_RELATIVE],
+        bounded_json_source=snapshots[reviewer_kit.BOUNDED_JSON_RELATIVE],
+        schema_validator_source=snapshots[reviewer_kit.SCHEMA_VALIDATOR_RELATIVE],
+        repository_snapshots=repository_snapshots,
     )
     if (
         final_serialized != snapshots[reviewer_kit.CURRENT_PROPOSED_REGISTRY_RELATIVE]
@@ -202,7 +247,11 @@ def current_snapshot() -> tuple[
         fail("transitive registry inputs changed during the handoff snapshot")
     if snapshot_inputs() != snapshots:
         fail("B01 handoff inputs changed during the final transitive replay")
-    return kit, observed_phase, snapshots, source, generated
+    replay_inputs = reviewer_kit.registry_replay_input_identities(
+        repository_snapshots,
+        evidence_snapshots,
+    )
+    return kit, observed_phase, snapshots, source, generated, replay_inputs
 
 
 def _qualifying_identities(
@@ -235,7 +284,9 @@ def build_status(
     snapshots: dict[str, bytes],
     source: dict[str, Any],
     generated: dict[str, Any],
+    registry_replay_inputs: list[dict[str, str | int]],
 ) -> dict[str, Any]:
+    reviewer_kit.validate_registry_replay_identities(registry_replay_inputs)
     records = generated.get("review_records")
     decisions = generated.get("decisions")
     if type(records) is not list or type(decisions) is not list:
@@ -424,6 +475,11 @@ def build_status(
         )
 
     subject_cut = kit["subject_cut"]
+    status_inputs = {
+        name: identity(relative, snapshots[relative])
+        for name, relative in EXPECTED_INPUT_PATHS.items()
+    }
+    status_inputs["registry_replay_inputs"] = copy.deepcopy(registry_replay_inputs)
     status = {
         "schema": STATUS_SCHEMA,
         "normative": False,
@@ -442,10 +498,7 @@ def build_status(
             "zero_review_source_commit": subject_cut["zero_review_source_commit"],
             "zero_review_source_tree": subject_cut["zero_review_source_tree"],
         },
-        "inputs": {
-            name: identity(relative, snapshots[relative])
-            for name, relative in EXPECTED_INPUT_PATHS.items()
-        },
+        "inputs": status_inputs,
         "counts": {
             "decisions_total": EXPECTED_DECISION_COUNT,
             "decisions_accepted": sum(
@@ -502,6 +555,7 @@ def validate_status_semantics(
     status: dict[str, Any],
     snapshots: dict[str, bytes],
     subject_cut: dict[str, Any],
+    registry_replay_inputs: list[dict[str, str | int]],
 ) -> None:
     exact_keys(
         status,
@@ -594,7 +648,7 @@ def validate_status_semantics(
 
     inputs = exact_keys(
         status["inputs"],
-        set(EXPECTED_INPUT_PATHS),
+        set(EXPECTED_INPUT_PATHS) | {"registry_replay_inputs"},
         "B01 review handoff status.inputs",
     )
     for name, expected_path in EXPECTED_INPUT_PATHS.items():
@@ -605,6 +659,10 @@ def validate_status_semantics(
         )
         if inputs[name] != identity(expected_path, snapshots[expected_path]):
             fail(f"status input {name} differs from the captured bytes")
+    reviewer_kit.validate_registry_replay_identities(inputs["registry_replay_inputs"])
+    reviewer_kit.validate_registry_replay_identities(registry_replay_inputs)
+    if inputs["registry_replay_inputs"] != registry_replay_inputs:
+        fail("status registry replay inputs differ from the captured byte roster")
 
     decisions = status["decisions"]
     if type(decisions) is not list or len(decisions) != EXPECTED_DECISION_COUNT:
@@ -807,6 +865,7 @@ def validate_status(
     schema_raw: bytes,
     snapshots: dict[str, bytes],
     subject_cut: dict[str, Any],
+    registry_replay_inputs: list[dict[str, str | int]],
 ) -> None:
     schema = reviewer_kit.parse_object(
         schema_raw,
@@ -819,18 +878,24 @@ def validate_status(
         "B01 review handoff status",
         STATUS_SCHEMA_ID,
     )
-    validate_status_semantics(status, snapshots, subject_cut)
+    validate_status_semantics(
+        status,
+        snapshots,
+        subject_cut,
+        registry_replay_inputs,
+    )
     encoded(status)
 
 
 def build_current_status() -> dict[str, Any]:
-    kit, phase, snapshots, source, generated = current_snapshot()
-    status = build_status(kit, phase, snapshots, source, generated)
+    kit, phase, snapshots, source, generated, replay_inputs = current_snapshot()
+    status = build_status(kit, phase, snapshots, source, generated, replay_inputs)
     validate_status(
         status,
         snapshots[STATUS_SCHEMA_RELATIVE],
         snapshots,
         kit["subject_cut"],
+        replay_inputs,
     )
     if snapshot_inputs() != snapshots:
         fail("B01 handoff inputs changed during final status validation")
@@ -882,6 +947,11 @@ def projected_active_status(
     *,
     satisfied_role: tuple[str, str] | None,
 ) -> dict[str, Any]:
+    repository_snapshots, evidence_snapshots = replay_maps(snapshots, source)
+    registry_replay_inputs = reviewer_kit.registry_replay_input_identities(
+        repository_snapshots,
+        evidence_snapshots,
+    )
     active_source = copy.deepcopy(source)
     active_source["review_records"] = copy.deepcopy(records)
     active_generated = copy.deepcopy(generated)
@@ -918,12 +988,14 @@ def projected_active_status(
         projection_snapshots,
         active_source,
         active_generated,
+        registry_replay_inputs,
     )
     validate_status(
         projected,
         projection_snapshots[STATUS_SCHEMA_RELATIVE],
         projection_snapshots,
         kit["subject_cut"],
+        registry_replay_inputs,
     )
     return projected
 
@@ -931,27 +1003,40 @@ def projected_active_status(
 def self_test() -> None:
     if not sys.dont_write_bytecode or os.environ.get("GIT_NO_LAZY_FETCH") != "1":
         fail("B01 handoff runtime lost its no-bytecode or no-lazy-fetch guard")
-    kit, phase, snapshots, source, generated = current_snapshot()
-    status = build_status(kit, phase, snapshots, source, generated)
+    kit, phase, snapshots, source, generated, replay_inputs = current_snapshot()
+    status = build_status(kit, phase, snapshots, source, generated, replay_inputs)
     validate_status(
         status,
         snapshots[STATUS_SCHEMA_RELATIVE],
         snapshots,
         kit["subject_cut"],
+        replay_inputs,
     )
     if encoded(status) != encoded(
-        build_status(kit, phase, snapshots, source, generated)
+        build_status(kit, phase, snapshots, source, generated, replay_inputs)
     ):
         fail("B01 handoff status is not deterministic")
 
     projection_source = copy.deepcopy(source)
     projection_source["review_records"] = []
+    projection_repository, projection_evidence = replay_maps(
+        snapshots,
+        projection_source,
+    )
     projection_generated, projection_serialized = (
         reviewer_kit.execute_exact_registry_generator(
             snapshots[reviewer_kit.REGISTRY_GENERATOR_RELATIVE],
             projection_source,
-            artifact_overrides=None,
+            artifact_overrides=projection_evidence,
+            immutable_git_source=snapshots[reviewer_kit.IMMUTABLE_GIT_RELATIVE],
+            bounded_json_source=snapshots[reviewer_kit.BOUNDED_JSON_RELATIVE],
+            schema_validator_source=snapshots[reviewer_kit.SCHEMA_VALIDATOR_RELATIVE],
+            repository_snapshots=projection_repository,
         )
+    )
+    projection_replay_inputs = reviewer_kit.registry_replay_input_identities(
+        projection_repository,
+        projection_evidence,
     )
     if (
         reviewer_kit.review_capture_phase_value(projection_source, projection_generated)
@@ -977,12 +1062,14 @@ def self_test() -> None:
         projection_snapshots,
         projection_source,
         projection_generated,
+        projection_replay_inputs,
     )
     validate_status(
         projection_status,
         projection_snapshots[STATUS_SCHEMA_RELATIVE],
         projection_snapshots,
         kit["subject_cut"],
+        projection_replay_inputs,
     )
 
     counts = projection_status["counts"]
@@ -1167,6 +1254,7 @@ def self_test() -> None:
                 snapshots[STATUS_SCHEMA_RELATIVE],
                 snapshots,
                 kit["subject_cut"],
+                replay_inputs,
             ),
             label,
         )
@@ -1179,6 +1267,7 @@ def self_test() -> None:
             snapshots[STATUS_SCHEMA_RELATIVE],
             snapshots,
             kit["subject_cut"],
+            replay_inputs,
         ),
         "extra status field",
     )
@@ -1197,6 +1286,11 @@ def self_test() -> None:
             "registry-source byte-count substitution",
             ("inputs", "registry_source", "bytes"),
             status["inputs"]["registry_source"]["bytes"] + 1,
+        ),
+        (
+            "registry replay digest substitution",
+            ("inputs", "registry_replay_inputs", 0, "sha256"),
+            "0" * 64,
         ),
         (
             "review-packet digest substitution",
@@ -1220,9 +1314,41 @@ def self_test() -> None:
                 snapshots[STATUS_SCHEMA_RELATIVE],
                 snapshots,
                 kit["subject_cut"],
+                replay_inputs,
             ),
             label,
         )
+
+    hostile = copy.deepcopy(status)
+    hostile["inputs"]["registry_replay_inputs"] = hostile["inputs"][
+        "registry_replay_inputs"
+    ][:-1]
+    must_fail(
+        lambda: validate_status(
+            hostile,
+            snapshots[STATUS_SCHEMA_RELATIVE],
+            snapshots,
+            kit["subject_cut"],
+            replay_inputs,
+        ),
+        "missing registry replay input",
+    )
+    hostile = copy.deepcopy(status)
+    hostile_replay_inputs = hostile["inputs"]["registry_replay_inputs"]
+    hostile_replay_inputs[0], hostile_replay_inputs[1] = (
+        hostile_replay_inputs[1],
+        hostile_replay_inputs[0],
+    )
+    must_fail(
+        lambda: validate_status(
+            hostile,
+            snapshots[STATUS_SCHEMA_RELATIVE],
+            snapshots,
+            kit["subject_cut"],
+            replay_inputs,
+        ),
+        "reordered registry replay inputs",
+    )
 
     hostile = copy.deepcopy(status)
     hostile["counts"]["identity_slots_structurally_satisfied"] = 1
@@ -1232,6 +1358,7 @@ def self_test() -> None:
             snapshots[STATUS_SCHEMA_RELATIVE],
             snapshots,
             kit["subject_cut"],
+            replay_inputs,
         ),
         "incoherent aggregate count",
     )
@@ -1245,6 +1372,7 @@ def self_test() -> None:
             snapshots[STATUS_SCHEMA_RELATIVE],
             snapshots,
             kit["subject_cut"],
+            replay_inputs,
         ),
         "incoherent suggested slot",
     )
@@ -1259,6 +1387,7 @@ def self_test() -> None:
             snapshots[STATUS_SCHEMA_RELATIVE],
             snapshots,
             kit["subject_cut"],
+            replay_inputs,
         ),
         "reordered status decisions",
     )
@@ -1300,6 +1429,7 @@ def self_test() -> None:
             encoded(authority_schema),
             snapshots,
             kit["subject_cut"],
+            replay_inputs,
         ),
         "co-mutated authority schema and status",
     )
@@ -1312,6 +1442,7 @@ def self_test() -> None:
             projection_snapshots,
             projection_source,
             hostile,
+            projection_replay_inputs,
         ),
         "missing decision",
     )
@@ -1327,6 +1458,7 @@ def self_test() -> None:
             projection_snapshots,
             projection_source,
             hostile,
+            projection_replay_inputs,
         ),
         "reordered decisions",
     )
@@ -1339,6 +1471,7 @@ def self_test() -> None:
             projection_snapshots,
             projection_source,
             hostile,
+            projection_replay_inputs,
         ),
         "accepted decision with blockers",
     )
@@ -1351,6 +1484,7 @@ def self_test() -> None:
             projection_snapshots,
             {**projection_source, "review_records": [{}]},
             hostile,
+            projection_replay_inputs,
         ),
         "malformed active record",
     )
@@ -1361,6 +1495,7 @@ def self_test() -> None:
             projection_snapshots,
             projection_source,
             {**projection_generated, "review_records": []},
+            projection_replay_inputs,
         ),
         "empty active phase",
     )
@@ -1389,6 +1524,7 @@ def self_test() -> None:
             projection_snapshots,
             {**projection_source, "review_records": over_limit_records},
             {**projection_generated, "review_records": over_limit_records},
+            projection_replay_inputs,
         ),
         "review-record bound plus one",
     )

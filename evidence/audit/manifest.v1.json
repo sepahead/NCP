@@ -8,9 +8,9 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "60b455443f6e1380bb0a3ffd8627079c78ba32a838d21eda7fadbe57b83a6169",
-      "bytes": 468398,
-      "records": 305
+      "sha256": "fce43a1e31867278a5ea758b204bfab79885fe3dd39eccdae9b369bd95693cc8",
+      "bytes": 470699,
+      "records": 306
     },
     {
       "path": "evidence/audit/requirement-traceability.v1.json",
@@ -63,7 +63,7 @@
     },
     {
       "path": "evidence/supply-chain/vulnerability-report.v1.json",
-      "sha256": "41ba00fcc532da4cd49a90939f4d70bdc14c99dab24aed2288a3d76f6d946dba",
+      "sha256": "e0131e87c010e8ee1b3b1f87d1be43a0c688f287e74d50ff61f7eeacf63c9762",
       "bytes": 2342
     }
   ],

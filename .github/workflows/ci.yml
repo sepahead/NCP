@@ -79,16 +79,23 @@ jobs:
           "$evidence_schema_python" -m py_compile \
             scripts/generate_b01_review_request.py scripts/immutable_git.py
           "$evidence_schema_python" -m ruff format --check -- \
+            scripts/bounded_json.py \
             scripts/generate_b01_reviewer_kit.py \
+            scripts/preflight_b01_review_bundle.py \
             scripts/validate_evidence_schemas.py
           "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+            scripts/bounded_json.py \
             scripts/generate_b01_reviewer_kit.py \
+            scripts/preflight_b01_review_bundle.py \
             scripts/validate_evidence_schemas.py
           "$evidence_schema_python" -m py_compile \
+            scripts/bounded_json.py \
             scripts/generate_b01_reviewer_kit.py \
+            scripts/preflight_b01_review_bundle.py \
             scripts/validate_evidence_schemas.py
           "$evidence_schema_python" scripts/generate_b01_reviewer_kit.py \
             --self-test --check
+          "$evidence_schema_python" -B scripts/preflight_b01_review_bundle.py --self-test
           "$evidence_schema_python" -m ruff format --check -- \
             scripts/check_b01_review_handoff.py
           "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \

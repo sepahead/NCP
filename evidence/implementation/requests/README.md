@@ -119,17 +119,30 @@ Such mutation after the final rejoin is outside the instantaneous emission claim
 
 ## Prepare one human response
 
-The reviewer kit removes repeated machine-owned fields from the human response.
-It derives 53 slots from the retained request.
-It normalizes the exact subject once for each ADR.
+The Version 2 reviewer kit derives 53 slots from the retained request.
+Each slot contains one exact subject binding.
+Version 1 review tooling is historical and cannot enter the current route.
+Recreate each Version 1 response as Version 2.
+Do not wrap or automatically upgrade a Version 1 response.
 
-Run the pinned evidence-schema environment before these commands.
-Use the lock in `scripts/requirements-evidence-schema.txt`.
+The preflight CLI requires POSIX directory descriptors, no-follow opens, file locks, and Unix modes.
+Use Linux, macOS, or WSL on a POSIX file system.
+
+Create the pinned evidence-schema environment outside the repository:
+
+```text
+review_venv=/absolute/private/path/ncp-evidence-venv
+python3 -m venv "$review_venv"
+"$review_venv/bin/python" -m pip install \
+  --disable-pip-version-check --require-hashes --only-binary=:all: \
+  -r scripts/requirements-evidence-schema.txt
+review_python="$review_venv/bin/python"
+```
 
 Check the generated kit:
 
 ```text
-python3 scripts/generate_b01_reviewer_kit.py --self-test --check
+"$review_python" -B scripts/generate_b01_reviewer_kit.py --self-test --check
 ```
 
 This command is the maintained complete-gate lifecycle check.
@@ -146,63 +159,136 @@ The phase label describes one current snapshot.
 It is not an append-only high-water mark.
 It cannot prove that prior review records remain present.
 The external verifier must reject removal, rollback, replay, and equivocation.
-The adjudication chain must preserve this decision across later captures.
+The adjudication chain must preserve that decision across later captures.
 
 List the available slots:
 
 ```text
-python3 scripts/generate_b01_reviewer_kit.py --list
+"$review_python" -B scripts/generate_b01_reviewer_kit.py --list
 ```
 
 Inspect one slot:
 
 ```text
-python3 scripts/generate_b01_reviewer_kit.py \
+"$review_python" -B scripts/generate_b01_reviewer_kit.py \
   --slot adr-003.security-cryptography-reviewer.01
 ```
 
-The slot output contains only machine-owned facts.
+The slot output contains machine-owned facts and the required subject binding.
 It contains no blank response object or placeholder value.
 
+The frozen review packet defines the eventual registry source record.
+Version 2 defines a separate private transport response.
+Preflight removes the transport binding from the source record.
+It injects the exact slot `adr_id`, `role_id`, and `subject`.
+This workflow replaces only the Version 1 submission mechanics.
+It does not change the packet, request subject, or source-record contract.
+
 Create a response that conforms to
-[`B01/review-response.schema.v1.json`](B01/review-response.schema.v1.json).
-The response must contain `schema`, `slot_id`, and human-supplied fields.
+[`B01/review-response.schema.v2.json`](B01/review-response.schema.v2.json).
+Copy the exact `subject_binding` from the selected slot output.
+The binding covers every generated slot field except `subject_binding`.
+It also covers the complete ADR subject.
+It uses the `ncp.b01-slot-subject-sha256.v1` domain.
+The slot projection includes identity, role, independence, and evidence policy.
 Do not add `adr_id`, `role_id`, `subject`, or `derived`.
 
-Materialize a completed response:
+Place the response and every referenced evidence file in one private bundle:
 
 ```text
-python3 scripts/generate_b01_reviewer_kit.py \
-  --materialize-response /absolute/path/to/response.json
+/absolute/physical/private-bundle/
+  response.json
+  evidence/implementation/reviews/B01/<referenced files>
 ```
 
-The command executes the exact bound registry-generator source bytes.
-It writes one closed non-authorizing candidate envelope to stdout.
-The envelope uses
-[`B01/review-source-candidate.schema.v1.json`](B01/review-source-candidate.schema.v1.json).
-Its context binds the kit, schema, generator, and registry source snapshot.
-It never edits the registry or retained evidence.
-It never fetches an external receipt.
+Set every bundle directory to mode `0700`.
+Set every bundle file to mode `0600`.
+Remove all extended ACL entries before use.
+Preflight checks ownership and POSIX mode bits only.
+It does not inspect extended ACLs.
+Keep the bundle outside the NCP worktree and every Git metadata directory.
+Use a physical path without symbolic-link ancestors.
+Preflight compares exact path bytes.
+It does not detect case-folded or Unicode-normalized destination aliases.
+
+Preflight the complete bundle:
+
+```text
+"$review_python" -B scripts/preflight_b01_review_bundle.py \
+  --bundle /absolute/physical/private-bundle
+```
+
+From the bundle, the command reads only the exact response-derived roster.
+It rejects links, special files, wrong modes, extra files, exact aliases, and mutation.
+It enforces the existing 16 MiB aggregate evidence limit.
+It performs no network fetch and writes no application file.
+Failures use fixed messages and do not echo private input values.
+
+The command emits one sensitive candidate to standard output.
+Accept output only when the process exits with status zero.
+Require exactly one complete candidate-schema JSON document.
+The candidate uses
+[`B01/review-source-candidate.schema.v2.json`](B01/review-source-candidate.schema.v2.json).
+Its context binds checked helper, schema, kit, packet, and registry file snapshots.
+It also binds the complete closed registry-replay input roster.
+Its evidence roster binds every staged evidence file.
+Its raw identity hashes the exact descriptor-read response bytes.
+Its semantic identity hashes the validated response value.
+
+The semantic projection uses UTF-8 JSON.
+It sorts object keys and uses no insignificant whitespace.
+It preserves non-ASCII scalar values without ASCII escaping.
+The bounded parser rejects duplicate keys, floats, non-finite values, and invalid Unicode.
+The digest prefixes the domain and unsigned 64-bit projection length.
+
+Replay executes the captured repository helper sources.
+It rejects ambient repository helper modules and `PATH`-selected Git.
+It rejects every registry or evidence input outside the source-derived replay roster.
+It validates the generated registry against the captured registry schema.
+It checks promotion-target absence before and after replay.
+The replay enforces a 32 MiB aggregate input limit before each read.
+Each retained review-evidence file remains limited to 1 MiB.
+
+The pinned validator checks its installed package versions.
+Replay does not bind interpreter, standard-library, wheel, dynamic-library, or kernel bytes.
+It is a local structural replay, not hermetic execution or runtime provenance.
+
+The raw response hash is a correlation identifier.
+Neither response identity is a receipt signature target in this milestone.
+This milestone defines no signature projection.
+The external verifier must define a separate acyclic authenticated envelope.
+That envelope must bind the required subject and reviewer statement.
 
 Do not redirect this output onto a repository path.
+Do not publish intake responses, candidates, or challenges in GitHub coordination.
+Do not publish staged evidence before admission authorization.
+Keep the original bundle unchanged.
+Transfer the bundle and candidate through the approved private verifier channel.
 Treat the enclosed source record as untrusted.
 Do not add it to the registry.
 An independently owned verifier must authenticate every required fact.
 It must rejoin the current aggregate registry source.
-Only then can that verifier supply or adopt a record.
+It must rerun preflight before authenticated envelope evaluation or admission.
+Before admission, it must identify each required retained repository blob.
+Those blobs include the source record and admitted review evidence.
+The verifier must obtain authorization to publish those exact bytes.
+It must reject case-folded and Unicode-normalized destination aliases.
+The raw response, candidate, and challenge are not retained repository artifacts.
+Only then can the verifier supply or adopt a record.
 
 An independent slot can retain an honest non-independent response.
 That response does not satisfy the independent review obligation.
 The registry keeps the obligation open.
 
 The generated kit is
-[`B01/reviewer-kit.v1.json`](B01/reviewer-kit.v1.json).
+[`B01/reviewer-kit.v2.json`](B01/reviewer-kit.v2.json).
 Its closed schema is
-[`B01/reviewer-kit.schema.v1.json`](B01/reviewer-kit.schema.v1.json).
+[`B01/reviewer-kit.schema.v2.json`](B01/reviewer-kit.schema.v2.json).
 Do not edit the generated kit manually.
 
-Materialization verifies each retained local receipt byte identity.
+Preflight verifies each staged receipt byte identity.
 It does not authenticate receipt origin, authorship, role authority, independence, or external truth.
+It does not validate a signature, challenge, replay fence, revocation, or admission.
 An independently owned verifier must establish those facts outside this repository.
 That verifier remains required before B01 can pass.
 
@@ -211,19 +297,22 @@ That verifier remains required before B01 can pass.
 Run the read-only status check from the repository root:
 
 ```text
-python3 -B scripts/check_b01_review_handoff.py --check
+"$review_python" -B scripts/check_b01_review_handoff.py --check
 ```
 
 Use JSON when another tool needs the same closed snapshot:
 
 ```text
-python3 -B scripts/check_b01_review_handoff.py --json
+"$review_python" -B scripts/check_b01_review_handoff.py --json
 ```
 
 The complete gate runs `--self-test --check`.
 The self-test rejects authority overclaims and malformed current state.
 
 The checker replays the exact current registry generator.
+Replay uses the kit-bound immutable Git reader and fixed trusted Git executable.
+It does not select Git from `PATH`.
+The status binds the complete closed registry-replay input roster.
 It joins the retained reviewer kit to the current registry source.
 It reports structural counts for each open role.
 It also gives one deterministic materialization-slot suggestion.
@@ -237,7 +326,7 @@ It does not prove append-only history or high-water currentness.
 It cannot accept an ADR, advance B01, or authorize a release.
 
 The closed output schema is
-[`B01/review-handoff-status.schema.v1.json`](B01/review-handoff-status.schema.v1.json).
+[`B01/review-handoff-status.schema.v2.json`](B01/review-handoff-status.schema.v2.json).
 No status output is retained as evidence.
 
 ## Fixed minimum roster

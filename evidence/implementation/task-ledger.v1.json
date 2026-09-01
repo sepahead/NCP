@@ -266,7 +266,7 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "7f0c0ce050588a155526d99b28666304e05018f45b35266df231eb90266fba46"
+      "sha256": "73d8c3ecbc53cdd98ac8cf0883bbb48ba6a2c836b4826a9cbae0946aa5d21d9f"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
@@ -278,7 +278,7 @@
     },
     {
       "path": "scripts/validate_evidence_schemas.py",
-      "sha256": "5ca4da00758f66ffa106d4a4b639e29d7b50a256760fffb4c2ab372e9ae79537"
+      "sha256": "d3c0eb910fc2bf6eb021d0c421be85cf08f60cd2bea8cb1336f31404471ed66b"
     },
     {
       "path": "scripts/requirements-evidence-schema.txt",
@@ -1580,6 +1580,7 @@
         "README.md",
         "RELEASE_READINESS.md",
         "ROADMAP.md",
+        "SECURITY.md",
         "docs/1.0-candidate-receipts.md",
         "docs/1.0-scope.md",
         "docs/adr/0001-separate-simulation-and-plant-sessions.md",
@@ -1606,6 +1607,7 @@
         "docs/adr/modules/adr-011-ecosystem-integration-boundary.md",
         "docs/adr/selector-allocation.authoring.v1.json",
         "docs/adr/selector-allocation.proposal.v1.json",
+        "docs/adr/selector-closure.authoring.schema.v1.json",
         "docs/adr/selector-closure.authoring.v1.json",
         "docs/adr/selector-closure.source.v1.json",
         "docs/diagrams/admission-dark.svg",
@@ -1642,11 +1644,16 @@
         "evidence/convergence/local-convergence.v1.json",
         "evidence/implementation/receipts/README.md",
         "evidence/implementation/requests/B01/review-handoff-status.schema.v1.json",
+        "evidence/implementation/requests/B01/review-handoff-status.schema.v2.json",
         "evidence/implementation/requests/B01/review-request.v1.json",
         "evidence/implementation/requests/B01/review-response.schema.v1.json",
+        "evidence/implementation/requests/B01/review-response.schema.v2.json",
         "evidence/implementation/requests/B01/review-source-candidate.schema.v1.json",
+        "evidence/implementation/requests/B01/review-source-candidate.schema.v2.json",
         "evidence/implementation/requests/B01/reviewer-kit.schema.v1.json",
+        "evidence/implementation/requests/B01/reviewer-kit.schema.v2.json",
         "evidence/implementation/requests/B01/reviewer-kit.v1.json",
+        "evidence/implementation/requests/B01/reviewer-kit.v2.json",
         "evidence/implementation/requests/README.md",
         "evidence/implementation/task-ledger.schema.v1.json",
         "evidence/implementation/task-ledger.v1.json",
@@ -1656,6 +1663,7 @@
         "evidence/implementation/working/B01/preliminary-architecture-8194195.log.gz",
         "evidence/implementation/working/B01/preliminary-architecture-8194195.v1.json",
         "evidence/supply-chain/inventory.v1.json",
+        "evidence/supply-chain/vulnerability-report.v1.json",
         "ncp-core/src/messages.rs",
         "ncp-cpp/Cargo.toml",
         "ncp-ts/README.md",
@@ -1698,6 +1706,7 @@
         "prototypes/b01-architecture-evidence/source_inventory.py",
         "prototypes/b01-architecture-evidence/verify_result.py",
         "scripts/README.md",
+        "scripts/bounded_json.py",
         "scripts/check.sh",
         "scripts/check_adr_examples.py",
         "scripts/check_b01_review_handoff.py",
@@ -1714,6 +1723,7 @@
         "scripts/generate_selector_closure_source.py",
         "scripts/generate_supply_chain_evidence.py",
         "scripts/immutable_git.py",
+        "scripts/preflight_b01_review_bundle.py",
         "scripts/requirements-evidence-schema.in",
         "scripts/requirements-evidence-schema.txt",
         "scripts/validate_evidence_schemas.py"
@@ -1761,7 +1771,8 @@
         "The 30 maintained main-ADR JSON fences remain proposed semantic excerpts, not accepted production wire. The current exact-cut local replay passes all 33 cases and rejects 289 registered bounded mutations in separate Rust and TypeScript engines. This is non-authorizing local evidence. No passing B01 receipt exists.",
         "Local semantic closure is current only when the source-bound 33-case, 289-mutation corpus and all eight B03 deferral envelopes validate against the maintained design. This is non-authorizing bookkeeping, not ADR acceptance or review evidence. The superseded selector artifact remains a non-gating historical diagnostic. Rust and TypeScript execution remains part of the complete local gate, not a retained parser receipt or acceptance authority. Human role reviews still block every ADR.",
         "B01 inventories the full 72-file set under 72-file and 8 MiB caps, including this architecture. Python imports precede its first snapshot, so this is not pre-import attestation or complete execution provenance. The root lock pins TypeScript 5.9.2. Installed TypeScript, Rust, Cargo, and Bun identities are unretained. CI pins Rust 1.88.0 and Bun 1.3.14 without provenance. The reader rejects leaf links and in-read changes. Privileged parent replacement is outside the claim.",
-        "Decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 has zero review records. All 52 obligations and 53 minimum identity slots remain unfilled. The request and kit expose 112 evidence requirements with machine-owned subjects only. The lifecycle gate preserves immutable issuance and replays the current aggregate with exact generator bytes. Materialization emits a validated stdout candidate only. No owner or independent review, adjudication, or passing B01 receipt exists.",
+        "Decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 has zero review records. All 52 obligations and 53 minimum identity slots remain unfilled. The request and kit expose 112 evidence requirements with machine-owned subjects only. The lifecycle gate preserves immutable issuance and replays the current aggregate with exact generator bytes.",
+        "Private-bundle preflight emits a structurally validated, unauthenticated stdout candidate only. No owner or independent review, adjudication, or passing B01 receipt exists.",
         "Phase derivation is a current-snapshot structural check. It does not prove append-only history or detect removal, rollback, replay, or equivocation. External verification and adjudication must preserve an authenticated high-water mark.",
         "The declared 256-entry metadata ceiling has no accepted trusted-message-class and decoded-path registry or equal Rust, TypeScript, and Python preallocation enforcement. The current Python developer reader applies a post-parse name heuristic. N01, N02, N03, N06, N07, N08, B02, and B03 remain open.",
         "Checked codec paths can invent midpoint or zero values, accept sparse components, and select a unit by mapping order. The plant helper is not integrated into Active admission, and `PlantCommand` erases units. `PlantProfile::validate_active_command` also revalidates, hashes, and rebuilds a name set per call. The ADR-007 target now selects an ESTOP-only early latch and ordinary HOLD admission. B02, B03, N01, N03, N05, N07, N08, E04, H02, and C02 remain open.",
@@ -1805,7 +1816,7 @@
         "Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.",
         "The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked."
       ],
-      "reviewer_comment": "ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, D18 through D21, and consumer scopes changed after cross-repository review. Earlier requests, model results, and gates bind superseded bytes only. The review packet is CURRENT. It binds source commit adfb064d901cc8ae459dbddd5d7b26cda7ba02c0 and tree 21b1e14fe6cb80950d251a68347c4007b67d6410. The current proposed decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 has zero reviews. The retained request exposes all 53 unfilled identity slots and 112 evidence requirements without supplying identities or decisions. The reviewer kit adds bounded slot discovery, phase-safe retained-issuance validation, current aggregate-registry replay, and response materialization without changing that authority boundary. Composite local runs covered every command in `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed out during the Python source-distribution build. The exact failed step and remaining suffix then passed separately. The exact clean B01 runner passed. The current bounded 33-case, 289-mutation semantic replay passes in separate Rust and TypeScript engines. The selector authoring artifact retains a superseded pre-atomic-HOLD allocation as an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED diagnostic outside the semantic-closure subject. It cannot accept an ADR or replace required human review. These local results do not satisfy B01's independent evidence floor and are not passing task evidence. The Ed25519 screen uses a fixed-sample p95 computational tripwire of 100,000 microseconds for thread and process CPU. Maximum CPU and wall time remain observational. This coordination entry has no passing task-source receipt, authenticated owner or independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. Use the retained request for qualifying human reviews and external adjudications. Do not create the normative registry, start descendants, or infer release readiness.",
+      "reviewer_comment": "ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, ADR-011, D18 through D21, and consumer scopes changed after cross-repository review. Earlier requests, model results, and gates bind superseded bytes only. The review packet is CURRENT. It binds source commit adfb064d901cc8ae459dbddd5d7b26cda7ba02c0 and tree 21b1e14fe6cb80950d251a68347c4007b67d6410. The current proposed decision set 1113dd7ca5a333a3f0a91632b8d8c52f8ac576045f959830434ba74067953bc4 has zero reviews. The retained request exposes all 53 unfilled identity slots and 112 evidence requirements without supplying identities or decisions. The reviewer kit adds bounded slot discovery, retained-issuance validation, aggregate-registry replay, and private preflight without changing that authority boundary. Composite local runs covered every command in `scripts/check.sh`. One uninterrupted attempt stopped only when crates.io timed out during the Python source-distribution build. The exact failed step and remaining suffix then passed separately. The exact clean B01 runner passed. The current bounded 33-case, 289-mutation semantic replay passes in separate Rust and TypeScript engines. The selector authoring artifact retains a superseded pre-atomic-HOLD allocation as an INCOMPLETE_FAIL_CLOSED and NOT_REVIEWED diagnostic outside the semantic-closure subject. It cannot accept an ADR or replace required human review. These local results do not satisfy B01's independent evidence floor and are not passing task evidence. The Ed25519 screen uses a fixed-sample p95 computational tripwire of 100,000 microseconds for thread and process CPU. Maximum CPU and wall time remain observational. This coordination entry has no passing task-source receipt, authenticated owner or independent review, command receipt, or artifact receipt. All ADRs remain PROPOSED, and B01 remains IN_PROGRESS. Use the retained request for qualifying human reviews and external adjudications. Do not create the normative registry, start descendants, or infer release readiness.",
       "reviewers": [],
       "rollback_or_recovery": "Return to the last pushed dependency-valid commit, invalidate exact descendant receipts, and preserve unrelated work.",
       "source_commit": null,
