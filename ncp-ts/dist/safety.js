@@ -25,7 +25,7 @@
 // Extension-full specifier so the EMITTED dist/safety.js resolves under plain
 // node ESM (the behavior runner imports dist/*.js directly; see
 // scripts/check-behavior.mjs) — tsc still type-resolves this to ./client.ts.
-import { assertNcpMessage, checkVersion, hasWireControlCharacters, JSON_SAFE_INTEGER_MAX, MAX_CHANNELS, MAX_HORIZON_STEPS, NCP_VERSION, NcpVersionError, } from './client.js';
+import { assertNcpMessage, checkVersion, hasWireControlCharacters, JSON_SAFE_INTEGER_MAX, MAX_CHANNELS, MAX_COMMAND_TTL_MS, MAX_HORIZON_STEPS, NCP_VERSION, NcpVersionError, } from './client.js';
 import { JSON_LIMITS, preflightJson } from './bounded-json.js';
 import { canonicalDataPlaneByteLength, canonicalizeNcpMessage } from './canonical-json.js';
 /** Structural (JSON-wire) view of a `CommandFrame` — the fields the safety layer
@@ -35,7 +35,7 @@ import { canonicalDataPlaneByteLength, canonicalizeNcpMessage } from './canonica
 const UUID_V4_SAFETY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 /** Upper bound on an enforced command ttl (ms) — mirrors `safety.rs::MAX_TTL_MS`:
  *  the wire field is unbounded, but the plant-side deadline must stay finite. */
-export const MAX_TTL_MS = 60_000;
+export const MAX_TTL_MS = MAX_COMMAND_TTL_MS;
 /** Factor in the total-silence ESTOP threshold
  *  `min(factor * min(timeout, MAX_TTL_MS), MAX_TTL_MS)` (mirrors
  *  `safety.rs::LINK_LOSS_ESTOP_FACTOR`). */

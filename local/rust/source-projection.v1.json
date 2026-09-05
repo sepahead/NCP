@@ -1,0 +1,97 @@
+{
+  "schema": "ncp.local-rust-source-projection.v1",
+  "scope": "source byte parity; not installed qualification or release authorization",
+  "files": [
+    {
+      "source": "LICENSE-APACHE",
+      "destination": "LICENSE-APACHE",
+      "transformation": "identity",
+      "source_sha256": "bea3a5ebc1671071bb1bb157c18313a08821abd3d5e5e1915043b18cf78a0cfd",
+      "destination_sha256": "bea3a5ebc1671071bb1bb157c18313a08821abd3d5e5e1915043b18cf78a0cfd"
+    },
+    {
+      "source": "LICENSE-MIT",
+      "destination": "LICENSE-MIT",
+      "transformation": "identity",
+      "source_sha256": "faa815fa3c5afee4349c48ea3740b75d82d9e2b6f10835daf224709f00348b33",
+      "destination_sha256": "faa815fa3c5afee4349c48ea3740b75d82d9e2b6f10835daf224709f00348b33"
+    },
+    {
+      "source": "ncp-core/examples/local_contract_probe.rs",
+      "destination": "examples/local_contract_probe.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "48e298572b05925541f6761e9933a9f0acd6ad8511fcc761e0446189a966e7af",
+      "destination_sha256": "fc28110f4456a4098c4d613c585a0a59926cfb54ddfe3fdadab8e9664f9289f7"
+    },
+    {
+      "source": "ncp-core/local-profile.v1.json",
+      "destination": "local-profile.v1.json",
+      "transformation": "identity",
+      "source_sha256": "8a800efcd3efabee00aa68c6751dc52c723569fe6db3ad54ca71943a91fb1e7b",
+      "destination_sha256": "8a800efcd3efabee00aa68c6751dc52c723569fe6db3ad54ca71943a91fb1e7b"
+    },
+    {
+      "source": "ncp-core/src/bounded_json.rs",
+      "destination": "src/bounded_json.rs",
+      "transformation": "identity",
+      "source_sha256": "ba98fa40784da4d6ac10c1d0d803041c77cd70cd02900b5a3dfeb982e0bd1550",
+      "destination_sha256": "ba98fa40784da4d6ac10c1d0d803041c77cd70cd02900b5a3dfeb982e0bd1550"
+    },
+    {
+      "source": "ncp-core/src/canonical_digest.rs",
+      "destination": "src/canonical_digest.rs",
+      "transformation": "identity",
+      "source_sha256": "d72eddd2a5ea0fdb23d19bdc699b6a1c7af1580b5d6f0debc4f080433a06345f",
+      "destination_sha256": "d72eddd2a5ea0fdb23d19bdc699b6a1c7af1580b5d6f0debc4f080433a06345f"
+    },
+    {
+      "source": "ncp-core/src/local.rs",
+      "destination": "src/local.rs",
+      "transformation": "identity",
+      "source_sha256": "17f98485da3cee7386c7e1f217777617f6ac0863464adef029ad0cc23c4a9874",
+      "destination_sha256": "17f98485da3cee7386c7e1f217777617f6ac0863464adef029ad0cc23c4a9874"
+    },
+    {
+      "source": "ncp-core/src/local_data.rs",
+      "destination": "src/local_data.rs",
+      "transformation": "identity",
+      "source_sha256": "ae171199dbad67f7570bb850b61b69477f513a05592f1c4ad156486efba35b37",
+      "destination_sha256": "ae171199dbad67f7570bb850b61b69477f513a05592f1c4ad156486efba35b37"
+    },
+    {
+      "source": "ncp-core/tests/fixtures/local-binary64.json",
+      "destination": "tests/fixtures/local-binary64.json",
+      "transformation": "identity",
+      "source_sha256": "31fdf907c41dc5093e31b63c258223bf6c606a73badd88eab40b9eac926272e9",
+      "destination_sha256": "31fdf907c41dc5093e31b63c258223bf6c606a73badd88eab40b9eac926272e9"
+    },
+    {
+      "source": "ncp-core/tests/fixtures/local-profile-identity.json",
+      "destination": "tests/fixtures/local-profile-identity.json",
+      "transformation": "identity",
+      "source_sha256": "254956dc1659dee62e66a1f61219127d9b17a9e5a2b1a4b00dbacaa73e5a6709",
+      "destination_sha256": "254956dc1659dee62e66a1f61219127d9b17a9e5a2b1a4b00dbacaa73e5a6709"
+    },
+    {
+      "source": "ncp-core/tests/local.rs",
+      "destination": "tests/local.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "a1f74c41f34fafe432440350035628140b0082b3216e0aa68c5fde8648c3b833",
+      "destination_sha256": "7512288656e198a8f2953cf7abfc8a9301f3a324ad263fae226916b6c9e82073"
+    },
+    {
+      "source": "ncp-core/tests/local_binary64.rs",
+      "destination": "tests/local_binary64.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "47fc48504342ee8688694389c004231c6ba5ae868973efeb08c47507ccbf1069",
+      "destination_sha256": "a7a5573e3fb4ea32f1c1a669da3287dc41a89ddb10df878ac013e8b2981afaf4"
+    },
+    {
+      "source": "ncp-core/tests/local_profile_contract.rs",
+      "destination": "tests/local_profile_contract.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "6b172d1e624fd8f217f31b1f5aa4542c60d7e23f7434e6fc75478fccf36a8650",
+      "destination_sha256": "2a6822b4ef8c082cdfcfb27bcec4bb5e022d02e3e2c4bbb2293b8180f83f6d6d"
+    }
+  ]
+}

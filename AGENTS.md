@@ -26,7 +26,26 @@ Before an NCP 1.0 provider or consumer task, read these files completely:
 
 Also read all scoped instructions in the target repository.
 
-## Current release boundary
+## Current development-profile boundary
+
+The first bounded local development profile remains a reference control.
+It does not define the complete final product v1 scope.
+Final v1 requires independently selectable adapters, optional compositions, and declared profiles for many entities and multiple sensor modalities.
+CREBAIN must work standalone.
+Prisoma must own embodied-agent and world-model experiments.
+Engram integration must be optional, with no mandatory all-project bundle.
+These product requirements remain open until their implementations and qualification gates pass.
+Read the [reference-profile registry](local/release.v1.json) and [owning scope](docs/local-v1/README.md) before changing that surface.
+The reference profile's intended tag remains `local-v1.0.0`.
+Its standalone Rust and independent Python packages have separate identities from the broader candidate.
+The local descriptor defines contract identity only; publication requires separate immutable evidence.
+Local scope decisions cannot promote a failed scientific, provenance, or operating requirement.
+The bootstrap and operational gates both remain required before local publication.
+
+The remaining candidate-specific rules apply to the broader protocol and its retained migration surfaces.
+They do not silently add remote capabilities or authority to this reference profile.
+
+## Broader candidate boundary
 
 Repository HEAD is the unreleased and release-blocked `1.0.0-rc.1` candidate.
 Its wire is `1.0`. Its compact proto contract hash is `163acc57d8a62b66`.

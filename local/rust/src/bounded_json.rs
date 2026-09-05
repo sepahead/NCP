@@ -1,0 +1,490 @@
+//! Universal bounded-JSON preflight for every NCP 1.0 ingress.
+//!
+//! `serde_json` correctly rejects malformed JSON, but its default `Value` decoder
+//! accepts duplicate object keys (last value wins) and only discovers aggregate
+//! resource use while allocating. NCP runs this bounded structural pass before
+//! semantic decoding so every transport and FFI entry point shares one rejection
+//! boundary. The limits mirror `contract/limits.v1.json` and are intentionally
+//! constants rather than deployment knobs: changing one changes the contract.
+
+use serde::Serialize;
+use serde_json::Value;
+use std::collections::HashSet;
+use std::fmt;
+use std::io::Write;
+
+pub const MAX_FRAME_BYTES: usize = 1_048_576;
+pub const MAX_NESTING_DEPTH: usize = 32;
+pub const MAX_OBJECTS: usize = 4_096;
+pub const MAX_ARRAYS: usize = 4_096;
+pub const MAX_TOTAL_MEMBERS: usize = 16_384;
+pub const MAX_TOTAL_ARRAY_ITEMS: usize = 262_144;
+pub const MAX_OBJECT_MEMBERS: usize = 4_096;
+pub const MAX_ARRAY_ITEMS: usize = 65_536;
+pub const MAX_KEY_BYTES: usize = 128;
+pub const MAX_STRING_BYTES: usize = 65_536;
+pub const MAX_TOTAL_STRING_BYTES: usize = 1_048_576;
+pub const SAFE_INTEGER_MIN: i64 = -9_007_199_254_740_991;
+pub const SAFE_INTEGER_MAX: i64 = 9_007_199_254_740_991;
+pub const MAX_FINITE_NUMBER_MAGNITUDE: f64 = 1e300;
+
+struct CappedJsonWriter {
+    bytes: Vec<u8>,
+}
+
+impl CappedJsonWriter {
+    fn new() -> Self {
+        Self {
+            bytes: Vec::with_capacity(MAX_FRAME_BYTES.min(64 * 1024)),
+        }
+    }
+}
+
+impl Write for CappedJsonWriter {
+    fn write(&mut self, input: &[u8]) -> std::io::Result<usize> {
+        let remaining = MAX_FRAME_BYTES.saturating_sub(self.bytes.len());
+        if input.len() > remaining {
+            return Err(std::io::Error::other("NCP frame byte limit exceeded"));
+        }
+        self.bytes.extend_from_slice(input);
+        Ok(input.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Serialize a typed value without ever retaining more than
+/// [`MAX_FRAME_BYTES`] output bytes.
+///
+/// This is a preallocation boundary for programmatic callers. It does not replace
+/// [`preflight`], which must still check the exact returned bytes for structural
+/// budgets, duplicate keys, Unicode, and numeric limits.
+pub fn to_bounded_vec<T: Serialize + ?Sized>(value: &T) -> Result<Vec<u8>, serde_json::Error> {
+    let mut writer = CappedJsonWriter::new();
+    serde_json::to_writer(&mut writer, value)?;
+    Ok(writer.bytes)
+}
+
+const SAFE_INTEGER_MAX_DECIMAL: &[u8] = b"9007199254740991";
+
+fn json_integer_magnitude(token: &[u8]) -> Option<&[u8]> {
+    // Only canonical integer spellings take the early limit path. Malformed
+    // numeric spellings must retain their NCP-LIMIT-009 classification below.
+    let magnitude = token.strip_prefix(b"-").unwrap_or(token);
+    match magnitude.first() {
+        Some(b'0') if magnitude.len() == 1 => Some(magnitude),
+        Some(b'1'..=b'9') if magnitude[1..].iter().all(u8::is_ascii_digit) => Some(magnitude),
+        _ => None,
+    }
+}
+
+fn integer_token_exceeds_safe_range(token: &[u8]) -> bool {
+    let Some(magnitude) = json_integer_magnitude(token) else {
+        return false;
+    };
+    magnitude.len() > SAFE_INTEGER_MAX_DECIMAL.len()
+        || (magnitude.len() == SAFE_INTEGER_MAX_DECIMAL.len()
+            && magnitude > SAFE_INTEGER_MAX_DECIMAL)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JsonLimitCode {
+    FrameBytes,
+    NestingDepth,
+    ObjectBudget,
+    ArrayBudget,
+    StringBudget,
+    NumericBudget,
+    DuplicateKey,
+    InvalidUnicode,
+    Malformed,
+}
+
+impl JsonLimitCode {
+    pub const fn stable_code(self) -> &'static str {
+        match self {
+            Self::FrameBytes => "NCP-LIMIT-001",
+            Self::NestingDepth => "NCP-LIMIT-002",
+            Self::ObjectBudget => "NCP-LIMIT-003",
+            Self::ArrayBudget => "NCP-LIMIT-004",
+            Self::StringBudget => "NCP-LIMIT-005",
+            Self::NumericBudget => "NCP-LIMIT-006",
+            Self::DuplicateKey => "NCP-LIMIT-007",
+            Self::InvalidUnicode => "NCP-LIMIT-008",
+            Self::Malformed => "NCP-LIMIT-009",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoundedJsonError {
+    pub code: JsonLimitCode,
+    pub offset: usize,
+    pub detail: &'static str,
+}
+
+impl fmt::Display for BoundedJsonError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "{} at byte {}: {}",
+            self.code.stable_code(),
+            self.offset,
+            self.detail
+        )
+    }
+}
+
+impl std::error::Error for BoundedJsonError {}
+
+#[derive(Default)]
+struct Counts {
+    objects: usize,
+    arrays: usize,
+    members: usize,
+    array_items: usize,
+    string_bytes: usize,
+}
+
+struct Scanner<'a> {
+    input: &'a [u8],
+    position: usize,
+    counts: Counts,
+}
+
+impl<'a> Scanner<'a> {
+    fn error(&self, code: JsonLimitCode, detail: &'static str) -> BoundedJsonError {
+        BoundedJsonError {
+            code,
+            offset: self.position,
+            detail,
+        }
+    }
+
+    fn skip_whitespace(&mut self) {
+        while self
+            .input
+            .get(self.position)
+            .is_some_and(|byte| matches!(byte, b' ' | b'\n' | b'\r' | b'\t'))
+        {
+            self.position += 1;
+        }
+    }
+
+    fn expect(&mut self, expected: u8) -> Result<(), BoundedJsonError> {
+        if self.input.get(self.position) != Some(&expected) {
+            return Err(self.error(JsonLimitCode::Malformed, "unexpected token"));
+        }
+        self.position += 1;
+        Ok(())
+    }
+
+    fn parse_value(&mut self, depth: usize) -> Result<(), BoundedJsonError> {
+        self.skip_whitespace();
+        if depth > MAX_NESTING_DEPTH {
+            return Err(self.error(JsonLimitCode::NestingDepth, "JSON nesting depth exceeded"));
+        }
+        match self.input.get(self.position).copied() {
+            Some(b'{') => self.parse_object(depth + 1),
+            Some(b'[') => self.parse_array(depth + 1),
+            Some(b'"') => self.parse_string(false).map(drop),
+            Some(b't') => self.parse_literal(b"true"),
+            Some(b'f') => self.parse_literal(b"false"),
+            Some(b'n') => self.parse_literal(b"null"),
+            Some(b'-' | b'0'..=b'9') => self.parse_number(),
+            _ => Err(self.error(JsonLimitCode::Malformed, "expected a JSON value")),
+        }
+    }
+
+    fn parse_literal(&mut self, literal: &[u8]) -> Result<(), BoundedJsonError> {
+        let end = self.position.saturating_add(literal.len());
+        if self.input.get(self.position..end) != Some(literal) {
+            return Err(self.error(JsonLimitCode::Malformed, "invalid JSON literal"));
+        }
+        self.position = end;
+        Ok(())
+    }
+
+    fn parse_number(&mut self) -> Result<(), BoundedJsonError> {
+        let start = self.position;
+        while self
+            .input
+            .get(self.position)
+            .is_some_and(|byte| matches!(byte, b'0'..=b'9' | b'-' | b'+' | b'.' | b'e' | b'E'))
+        {
+            self.position += 1;
+        }
+        let token = &self.input[start..self.position];
+        // Compare decimal digits before serde_json can coerce an unsafe integer
+        // through a floating-point representation.
+        if integer_token_exceeds_safe_range(token) {
+            return Err(self.error(
+                JsonLimitCode::NumericBudget,
+                "integer exceeds the exact JSON range",
+            ));
+        }
+        let number: serde_json::Number = serde_json::from_slice(token)
+            .map_err(|_| self.error(JsonLimitCode::Malformed, "invalid JSON number"))?;
+        let value = number
+            .as_f64()
+            .ok_or_else(|| self.error(JsonLimitCode::NumericBudget, "number is not finite"))?;
+        if !value.is_finite() || value.abs() > MAX_FINITE_NUMBER_MAGNITUDE {
+            return Err(self.error(
+                JsonLimitCode::NumericBudget,
+                "number exceeds the finite magnitude budget",
+            ));
+        }
+        Ok(())
+    }
+
+    fn parse_string(&mut self, key: bool) -> Result<String, BoundedJsonError> {
+        let start = self.position;
+        self.expect(b'"')?;
+        let mut escaped = false;
+        loop {
+            let Some(byte) = self.input.get(self.position).copied() else {
+                return Err(self.error(JsonLimitCode::Malformed, "unterminated JSON string"));
+            };
+            self.position += 1;
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            match byte {
+                b'\\' => escaped = true,
+                b'"' => break,
+                0x00..=0x1f => {
+                    return Err(self.error(
+                        JsonLimitCode::InvalidUnicode,
+                        "unescaped control byte in JSON string",
+                    ))
+                }
+                _ => {}
+            }
+        }
+        let decoded: String =
+            serde_json::from_slice(&self.input[start..self.position]).map_err(|_| {
+                self.error(
+                    JsonLimitCode::InvalidUnicode,
+                    "invalid JSON string or Unicode",
+                )
+            })?;
+        let limit = if key { MAX_KEY_BYTES } else { MAX_STRING_BYTES };
+        if decoded.len() > limit {
+            return Err(self.error(
+                JsonLimitCode::StringBudget,
+                "JSON string exceeds byte limit",
+            ));
+        }
+        self.counts.string_bytes = self
+            .counts
+            .string_bytes
+            .checked_add(decoded.len())
+            .ok_or_else(|| self.error(JsonLimitCode::StringBudget, "string budget overflow"))?;
+        if self.counts.string_bytes > MAX_TOTAL_STRING_BYTES {
+            return Err(self.error(
+                JsonLimitCode::StringBudget,
+                "aggregate JSON string budget exceeded",
+            ));
+        }
+        Ok(decoded)
+    }
+
+    fn parse_object(&mut self, depth: usize) -> Result<(), BoundedJsonError> {
+        if depth > MAX_NESTING_DEPTH {
+            return Err(self.error(JsonLimitCode::NestingDepth, "JSON nesting depth exceeded"));
+        }
+        self.counts.objects += 1;
+        if self.counts.objects > MAX_OBJECTS {
+            return Err(self.error(JsonLimitCode::ObjectBudget, "object count exceeded"));
+        }
+        self.expect(b'{')?;
+        self.skip_whitespace();
+        if self.input.get(self.position) == Some(&b'}') {
+            self.position += 1;
+            return Ok(());
+        }
+        let mut keys = HashSet::new();
+        loop {
+            self.skip_whitespace();
+            let key = self.parse_string(true)?;
+            if !keys.insert(key) {
+                return Err(self.error(JsonLimitCode::DuplicateKey, "duplicate JSON object key"));
+            }
+            self.counts.members += 1;
+            if keys.len() > MAX_OBJECT_MEMBERS || self.counts.members > MAX_TOTAL_MEMBERS {
+                return Err(
+                    self.error(JsonLimitCode::ObjectBudget, "object member budget exceeded")
+                );
+            }
+            self.skip_whitespace();
+            self.expect(b':')?;
+            self.parse_value(depth)?;
+            self.skip_whitespace();
+            match self.input.get(self.position) {
+                Some(b',') => self.position += 1,
+                Some(b'}') => {
+                    self.position += 1;
+                    return Ok(());
+                }
+                _ => return Err(self.error(JsonLimitCode::Malformed, "expected ',' or '}'")),
+            }
+        }
+    }
+
+    fn parse_array(&mut self, depth: usize) -> Result<(), BoundedJsonError> {
+        if depth > MAX_NESTING_DEPTH {
+            return Err(self.error(JsonLimitCode::NestingDepth, "JSON nesting depth exceeded"));
+        }
+        self.counts.arrays += 1;
+        if self.counts.arrays > MAX_ARRAYS {
+            return Err(self.error(JsonLimitCode::ArrayBudget, "array count exceeded"));
+        }
+        self.expect(b'[')?;
+        self.skip_whitespace();
+        if self.input.get(self.position) == Some(&b']') {
+            self.position += 1;
+            return Ok(());
+        }
+        let mut local_items = 0usize;
+        loop {
+            local_items += 1;
+            self.counts.array_items += 1;
+            if local_items > MAX_ARRAY_ITEMS || self.counts.array_items > MAX_TOTAL_ARRAY_ITEMS {
+                return Err(self.error(JsonLimitCode::ArrayBudget, "array item budget exceeded"));
+            }
+            self.parse_value(depth)?;
+            self.skip_whitespace();
+            match self.input.get(self.position) {
+                Some(b',') => self.position += 1,
+                Some(b']') => {
+                    self.position += 1;
+                    return Ok(());
+                }
+                _ => return Err(self.error(JsonLimitCode::Malformed, "expected ',' or ']'")),
+            }
+        }
+    }
+}
+
+/// Verify all universal budgets without constructing the message value.
+pub fn preflight(input: &[u8]) -> Result<(), BoundedJsonError> {
+    if input.len() > MAX_FRAME_BYTES {
+        return Err(BoundedJsonError {
+            code: JsonLimitCode::FrameBytes,
+            offset: MAX_FRAME_BYTES,
+            detail: "JSON frame byte limit exceeded",
+        });
+    }
+    let mut scanner = Scanner {
+        input,
+        position: 0,
+        counts: Counts::default(),
+    };
+    scanner.parse_value(0)?;
+    scanner.skip_whitespace();
+    if scanner.position != input.len() {
+        return Err(scanner.error(JsonLimitCode::Malformed, "trailing bytes after JSON value"));
+    }
+    Ok(())
+}
+
+/// Preflight and then decode exactly once into a `serde_json::Value`.
+pub fn parse_value(input: &[u8]) -> Result<Value, BoundedJsonError> {
+    preflight(input)?;
+    serde_json::from_slice(input).map_err(|_| BoundedJsonError {
+        code: JsonLimitCode::Malformed,
+        offset: 0,
+        detail: "JSON decode failed after structural preflight",
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_duplicate_keys_before_semantic_decode() {
+        let error = parse_value(br#"{"kind":"command_frame","kind":"sensor_frame"}"#)
+            .expect_err("duplicate keys are ambiguous across implementations");
+        assert_eq!(error.code, JsonLimitCode::DuplicateKey);
+    }
+
+    #[test]
+    fn enforces_depth_string_number_and_frame_boundaries() {
+        let at_depth = format!(
+            "{}0{}",
+            "[".repeat(MAX_NESTING_DEPTH),
+            "]".repeat(MAX_NESTING_DEPTH)
+        );
+        assert!(preflight(at_depth.as_bytes()).is_ok());
+        let over_depth = format!(
+            "{}0{}",
+            "[".repeat(MAX_NESTING_DEPTH + 1),
+            "]".repeat(MAX_NESTING_DEPTH + 1)
+        );
+        assert_eq!(
+            preflight(over_depth.as_bytes()).unwrap_err().code,
+            JsonLimitCode::NestingDepth
+        );
+
+        let at_string = serde_json::to_vec(&"x".repeat(MAX_STRING_BYTES)).unwrap();
+        assert!(preflight(&at_string).is_ok());
+        let over_string = serde_json::to_vec(&"x".repeat(MAX_STRING_BYTES + 1)).unwrap();
+        assert_eq!(
+            preflight(&over_string).unwrap_err().code,
+            JsonLimitCode::StringBudget
+        );
+        assert_eq!(
+            preflight(b"1e301").unwrap_err().code,
+            JsonLimitCode::NumericBudget
+        );
+        assert_eq!(
+            preflight(&vec![b' '; MAX_FRAME_BYTES + 1])
+                .unwrap_err()
+                .code,
+            JsonLimitCode::FrameBytes
+        );
+    }
+
+    #[test]
+    fn escaped_key_identity_is_compared_after_decoding() {
+        let error = preflight(br#"{"a":1,"\u0061":2}"#).unwrap_err();
+        assert_eq!(error.code, JsonLimitCode::DuplicateKey);
+    }
+
+    #[test]
+    fn accepts_safe_integer_boundaries_in_unknown_extensions() {
+        let value = parse_value(
+            br#"{"future_extension":{"positive":9007199254740991,"negative":-9007199254740991}}"#,
+        )
+        .expect("exact JSON integer boundaries must remain admissible");
+
+        assert_eq!(value["future_extension"]["positive"], SAFE_INTEGER_MAX);
+        assert_eq!(value["future_extension"]["negative"], SAFE_INTEGER_MIN);
+    }
+
+    #[test]
+    fn rejects_positive_unsafe_integer_in_unknown_extension() {
+        let error = preflight(br#"{"future_extension":9007199254740992}"#)
+            .expect_err("unknown members must not bypass the universal integer budget");
+
+        assert_eq!(error.code, JsonLimitCode::NumericBudget);
+    }
+
+    #[test]
+    fn rejects_negative_unsafe_integer_in_unknown_extension() {
+        let error = preflight(br#"{"future_extension":[-9007199254740992]}"#)
+            .expect_err("negative unsafe integers must fail at the same ingress boundary");
+
+        assert_eq!(error.code, JsonLimitCode::NumericBudget);
+    }
+
+    #[test]
+    fn preserves_the_finite_non_integer_magnitude_policy() {
+        preflight(br#"{"future_extension":9007199254740992.5}"#)
+            .expect("finite non-integer numbers remain governed by the magnitude budget");
+    }
+}

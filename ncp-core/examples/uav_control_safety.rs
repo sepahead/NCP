@@ -116,7 +116,7 @@ fn main() {
     let clock = Arc::new(AtomicU64::new(0)); // milliseconds
     let ck = clock.clone();
     let mut loop_ = NeuroControlLoop::new(
-        InProcessTransport::new(),
+        InProcessTransport::new("uav1", ex_session()).expect("example session is valid"),
         ReflexController {
             kp: 1.0,
             kd: 0.3,
@@ -144,7 +144,7 @@ fn main() {
         clock.fetch_add((dt * 1000.0) as u64, Ordering::Relaxed);
         loop_
             .transport
-            .push_sensor(sensor_at(k, k as f64 * dt, pos, vel));
+            .push_sensor_at(k as f64 * dt, sensor_at(k, k as f64 * dt, pos, vel));
         let cmd = loop_
             .tick()
             .expect("example command identity remains attributable");

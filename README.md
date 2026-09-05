@@ -4,301 +4,174 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
-    <img src="assets/logo-light.svg" width="180" alt="NCP logo: paired contract bounds hold one quartered four-plane knot while proposal and receipt remain distinct.">
+    <img src="assets/logo-light.svg" width="180" alt="NCP logo: paired contract bounds surround a four-plane knot. Proposal and receipt remain distinct.">
   </picture>
 </p>
 
-NCP is a versioned, project-agnostic canonical-JSON contract for connecting a
-neural simulator or neuromorphic controller to robots, UAVs, simulators, and
-read-only analysis clients.
+NCP connects independently owned neural simulations, simulated bodies, capture tools, and monitors through explicit data contracts.
+The first bounded development profile demonstrates exact causal steps and retained outcomes in one local experiment.
+Final product v1 requirements remain open.
 
-> **Current status:** repository HEAD is the **unreleased, release-blocked**
-> `1.0.0-rc.1` candidate: wire `1.0`, compact proto contract hash
-> `163acc57d8a62b66`. The latest immutable annotated source tag is `v0.8.0`; it is a
-> different, incompatible wire. Do not describe this candidate as the NCP 1.0 release,
-> production-certified, published, signed, or consumer-certified.
+**Release status: unreleased.**
+The [local release registry](local/release.v1.json) records this reference profile's contract, packages, application roles, and required gates.
+Native development controls have passed.
+Immutable installed qualification and final publication remain open.
+The reference profile's intended tag remains `local-v1.0.0`.
+That profile does not define the complete final product scope.
 
-The complete normative SHA-256 contract digest and exact source list are generated
-in [`contract/manifest.v1.json`](contract/manifest.v1.json). The short 16-hex
-`CONTRACT_HASH` is an advisory FNV-1a digest of the canonical protobuf structure.
-It is not the complete normative digest.
+The broader `1.0.0-rc.1` protocol candidate remains release-blocked under its [separate scope](docs/1.0-scope.md).
+Its Zenoh, remote-security, physical-control, and eleven-role gates remain unpassed.
+The latest published legacy release remains `v0.8.0`, with an incompatible wire.
+No local test promotes either historical surface.
 
-## System at a glance
+## Open final v1 requirements
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/overview-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/overview-light.svg">
-  <img alt="Informative NCP function overview for the unreleased, release-blocked 1.0.0-rc.1 candidate. A received frame passes five shared gates in order: raw bounds, authenticated ingress, wire and stable-core identity, session and stream checks, and typed delivery. Action adds a sixth, conditional body-effect predicate. Four bounded planes then apply distinct ownership and overload rules. Direct production-secure Zenoh ingress is unavailable. The figure is not implementation, release, performance, interoperability, or certification evidence." src="docs/diagrams/overview-light.svg" width="1060">
-</picture>
+NCP must support independently selectable adapters and optional project combinations.
+Using one project must not require a mandatory all-project bundle.
+The final product also requires:
 
-The figure shows the proposed admission order for one typed delivery. It is the
-B01 target, not the current end-to-end implementation.
+- Declared profiles for many entities and multiple actual sensor modalities, with exact units, layouts, missingness, and measured bounds.
+- CREBAIN standalone operation and many-drone experiments, with declared camera/3DGS, audio, and heat sensor profiles.
+- Prisoma ownership of embodied-agent and world-model experiments, with CREBAIN available as a simulation dependency.
+- Optional Engram integration and independent qualification of each supported project combination.
 
-1. The receiver bounds raw bytes and structure before semantic allocation.
-2. The receiver binds the verified transport principal to the installed manifest,
-   audience, route, and security profile.
-3. The receiver requires a canonical same-major wire and the exact stable-core
-   identity.
-4. The receiver checks the live session generation, stream epoch, position,
-   lease, deadline, and no-reuse state.
-5. The receiver uses a prepared layout and a finite plane-specific queue before
-   it calls typed application code.
+These requirements need implementation and qualification evidence.
+The current four-owner controls cover only the bounded reference profile below.
 
-These five gates apply to every frame. An action frame also passes the sixth,
-body-owned effect predicate before software admission can succeed.
+## Development reference: one experiment, four owners
 
-The Control plane rejects overflow. The Perception plane replaces the latest
-item and exposes loss. The Observation plane drops the oldest item and counts
-gaps. The Action plane preserves fail-safe severity and terminates at the body
-effect gate. The body remains the final software authority before an actuator
-boundary.
+![Engram owns NEST and sequences private NCP exchanges with the CREBAIN body, Prisoma capture, and record-only Galadriel monitor.](docs/local-v1/architecture.svg)
 
-NCP is a contract and a set of admission rules, libraries, and transport
-bindings. It is not a central broker, an actuator, or a physical-safety
-certification.
+[Open the scalable architecture SVG](docs/local-v1/architecture.svg).
+The figure shows this reference experiment's ownership and communication.
+It is not a release receipt.
 
-The complete proposed architecture is available in maintained
-[Markdown](docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md) and
-[LaTeX source](docs/publication/ncp-system-design.tex). A checked
-[system-design PDF](output/pdf/ncp-system-design.pdf) provides the publication
-view. The report derives its
-latency, memory, lifecycle, retry, queue, step, freshness, and reassembly
-equations from named assumptions. It remains informative B01 material.
+| Owner | Responsibility | Authority boundary |
+| --- | --- | --- |
+| Engram | Maintain one NEST network and sequence the experiment. | Own neural execution and scientific interpretation. |
+| CREBAIN | Advance simulated bodies and produce actual fusion diagnostics. | Apply the final simulated acceleration. |
+| Prisoma | Reserve journal capacity and capture exact causal step pairs. | Verify storage completeness; grant no command authority. |
+| Galadriel | Run its actual statistical detector on the supplied diagnostics. | Record results and abstentions; grant no command authority. |
+| NCP | Define shared shapes, limits, identities, and outcomes. | Provide a contract and SDKs; own no central runtime process. |
 
-## What the 1.0 candidate changes
+In this reference, the run owner uses separate private process pipes for each peer.
+Peer engines and stores cannot become alternative runtime integration paths.
+Each request binds the exact profile, role, run, generation, sequence, operation, and body.
+The receiver retains its complete outcome until the caller acknowledges that outcome's digest.
 
-Wire 1.0 is an intentional break from 0.8. It adds authenticated principal/entity/
-role/plane claims, named security profiles and digests, session generations and
-stream epochs, bounded
-authority leases, idempotent lifecycle operation contexts, authenticated responder
-receipts, content-addressed plant profiles, closed stable capability negotiation,
-universal JSON limits, and explicit channel requirements.
+Capture reservation precedes dependent neural and body mutation.
+A lost response does not establish whether execution occurred.
+The owner preserves known results, records unresolved dispatches, and retires uncertain generations.
+Same-generation crash resume is excluded.
 
-Four planes have distinct ownership and queue policies:
+## Supported reference envelope
 
-| Plane | Publisher | Key family | Queue policy |
-|---|---|---|---|
-| Control | commander or body | `{realm}/rpc/{request_kind}` | bounded; reject overflow |
-| Perception | body | `{realm}/session/{session_id}/sensor[/{channel}]` | replace latest |
-| Action | commander or operator | `{realm}/session/{session_id}/command[/{channel}]` | highest fail-safe severity: ESTOP, then HOLD/non-active, then Active; equal severity replaces latest |
-| Observation | body | `{realm}/session/{session_id}/observation` | drop oldest and count |
+| Property | Reference contract |
+| --- | --- |
+| Host qualification target | Darwin, trusted installed applications, private pipes, and the selected process sandbox. |
+| Entities | One through three, with a frozen ordered roster. |
+| Run length | At most 1,024 coupled steps. |
+| Shared step duration | 1 through 1,000 milliseconds; applications can impose stricter limits. |
+| Coordinates | East, north, up; position in meters, velocity in meters per second. |
+| Action | Simulated acceleration in meters per second squared. |
+| Wire | A four-byte big-endian length followed by at most 65,536 JSON bytes. |
+| Identity | Closed typed data and domain-separated digests with exact binary64 round trips. |
+| Capture | Bounded lossless capture with complete terminal verification. |
+| Monitoring | Record-only output with explicit insufficient-evidence results. |
+| Recovery | Exact live result lookup and acknowledgement; no re-execution of a released operation. |
 
-Every typed data-plane boundary requires the live `SessionRef` returned by
-`SessionOpened`, verifies that the payload `session_id` equals the concrete route,
-and rejects a stale generation before callback or safety-latch mutation. Remote
-ESTOP has no malformed-envelope bypass; only its authority lease may be absent after
-authenticated actor/plane and exact live-session admission.
+Engram's reference application targets NEST Simulator 3.9.0.
+It supports five fixed neuron profiles and one tested persistent update/readout mechanism.
+The [local guide](docs/local-v1/README.md) states the stricter application bounds.
 
-Wire 1.0 defines no stable ESTOP-reset RPC. A successful authorized body-local or
-out-of-band reset is a session-generation cut: the body retires the current
-generation, authority and lease, and every associated stream state, and remains
-non-actuating until a fresh `SessionOpened` supplies a new generation, publishers
-establish new streams, and a new matching authority lease is acquired. Local
-governor or buffer reset helpers do not restore remote authority. Frames from the
-retired pre-reset generation, including ESTOP, fail route/session binding before
-latch or control processing.
+This CREBAIN adapter supplies one Visual modality per entity.
+Galadriel's selected detector requires at least two modalities.
+A ready Visual channel therefore remains insufficient for a cross-modal verdict.
+Three innovation dimensions do not become three modalities.
 
-Authority renewal authenticates both issuer and holder, requires an exact match to
-the current immutable lease, and is legal only before the receiver's monotonic
-deadline. Expiry moves the generation to HOLD and requires a newer acquisition;
-serialized lease possession alone cannot renew. Stream expiry likewise grants no
-replay exception: each declared sensor, command, or status stream remains bound to
-one epoch and strictly increasing high-water mark until fresh declaration state is
-created. Status sequence zero is invalid.
+Haldir-gated execution is unsupported by this profile.
+Haldir's existing velocity-command semantics do not define this acceleration interface.
+A gated request must fail before preparation.
+Remote endpoints, physical actuation, and real-time guarantees are also excluded.
 
-Zenoh is the only `stable-1.0` transport binding in the unreleased candidate.
-WebSocket/JSON remains experimental. gRPC, transparent proxying, delegation,
-protobuf as a runtime wire,
-`BulkObservation`, and bare `NCPB` transport frames are excluded. The bounded
-`BulkBlock` codec remains available only for local/offline experiments. See
-[`docs/1.0-scope.md`](docs/1.0-scope.md).
+## Learn the contract
 
-The current `stable-1.0` Zenoh action wrapper owns one command epoch/sequence
-allocator across
-Active, HOLD, and ESTOP. An attempted put consumes its position. If fail-safe
-delivery is ambiguous, Active admission stays blocked until the caller submits a
-new logical fail-safe at a new position and it publishes successfully; the adapter
-never busy-retries the ambiguous bytes at the old position.
+The [mathematical guide](docs/local-v1/math-guide.md) defines the symbols, units, assumptions, and operating bounds.
+It explains delayed spike readout, innovation statistics, exact outcomes, and capture completeness through worked examples.
 
-The current `ncp-zenoh` adapter cannot obtain a transport-authenticated remote
-principal from its callback surface and therefore cannot bind `IdentityClaim` to
-the verified peer. Its `open_secure` path fails closed. The `stable-1.0`
-transport shape and QoS implementation must not be confused with an available
-`production-secure` adapter.
+- [Eight-page vector PDF](docs/local-v1/ncp-local-v1-guide.pdf)
+- [Scalable step-order SVG](docs/local-v1/step-order.svg)
+- [Exact profile and semantic contract](docs/local-v1/profile-contract.md)
+- [Ten-approach reference-profile decision and five review lenses](docs/local-v1/decision.md)
+- [Original 70 acceptance requirements and current evidence status](docs/local-v1/acceptance-70.md)
 
-## Scientific and safety boundary
+The JSON descriptor is canonical for this reference profile's local wire.
+The [release registry](local/release.v1.json) registers that descriptor and its separate publication requirements.
+Application profiles own their additional configuration and execution rules.
+An inconsistency between these sources and an implementation blocks release.
 
-NCP transports raw simulation output and control artifacts. It does not validate a
-paper reproduction, provide a calibrated posterior, certify a physical plant, or
-define a universal safe action. An `ObservationFrame` must retain
-`calibrated_posterior=false` and `is_simulation_output=true`.
+The older `contract/*.v1.json`, protobuf, schema, and conformance hierarchy continues to govern the broader candidate only.
+The [historical overview](https://github.com/sepahead/NCP/blob/11a1931871fbd27235bf53dbb5e55227b78d857e/README.md) preserves that earlier release scope.
+Its retained [light diagram](docs/diagrams/overview-light.svg) and [dark diagram](docs/diagrams/overview-dark.svg) describe the broader candidate's proposed admission architecture.
+Those historical diagrams do not describe an implemented local-v1 runtime or close their original gates.
 
-The reference governor, command watchdog, action buffer, ESTOP latch, and plant
-profile checks are deterministic software controls. A deployment still needs a
-plant-owned safety case, tested safe actions, an independent hardware or plant-local
-ESTOP interlock, and a transport adapter that fully implements the `production-secure`
-profile. The current Zenoh adapter does not. Mode and TTL are not network security.
+## Implementations and verification
 
-## Normative contract
+| Package | Selected purpose | Independence |
+| --- | --- | --- |
+| [Local Rust SDK](local/rust/README.md) | Standalone local framing, data validation, and outcome ownership. | Rust reference implementation. |
+| [Local Python SDK](local/python/README.md) | Equivalent local contract and bounded client/owner implementation. | Independent pure-Python implementation; no Rust FFI. |
+| [Broader candidate packages](docs/1.0-scope.md) | Historical migration and broader protocol development. | Separate candidate identities and unpassed release gates. |
 
-The precedence order is:
+The standalone Rust package has no dependency on the broader `ncp-core` candidate.
+Its generated projection preserves the exact canonical module bytes.
+Only test and example package imports change.
+The projection gate checks every selected source and descriptor.
 
-1. [`contract/*.v1.json`](contract/) registries, explicitly excluding the derived
-   `contract/manifest.v1.json` so the digest is not self-referential;
-2. [`proto/ncp.proto`](proto/ncp.proto) field numbers and message shapes;
-3. [`schemas/index.json`](schemas/index.json) and generated JSON Schemas;
-4. [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md);
-5. [`conformance/manifest.v1.json`](conformance/manifest.v1.json) and its corpus.
+From the repository root, run the focused source and Rust gates:
 
-An inconsistency is a release-blocking defect; implementations fail closed. The
-Rust code and language bindings are informative implementations, not an additional
-normative layer. The generated contract manifest lists and hashes the complete
-normative source set; it describes that set but is not itself one of its inputs.
-
-## Packages
-
-| Package | Candidate role | Independence |
-|---|---|---|
-| [`ncp-core`](ncp-core/) | Rust reference types, validators, limits, authority, idempotency, safety | reference |
-| [`ncp-zenoh`](ncp-zenoh/) | `stable-1.0` Zenoh wire/QoS binding. Production peer-identity binding unavailable. | Rust reference |
-| [`@sepahead/ncp`](ncp-ts/) | independent TypeScript validator/client and experimental WebSocket binding | independent decision code; live external certification **NOT RUN** |
-| [`ncp-python`](ncp-python/) | Python/PyO3 interface | Rust FFI, not independent |
-| [`ncp-cpp`](ncp-cpp/) | C ABI and C++ header | Rust FFI, not independent |
-| [`ncp-gateway`](ncp-gateway/) | same-wire Rust-to-Python lifecycle edge | requires a native wire-1.0 `SessionService`; not the 0.8 migration gateway |
-
-All manifests currently identify `1.0.0-rc.1`. These artifacts are candidates and
-have not been published. The 0.8-to-1.0 translator is a separate, labeled,
-authenticated terminating-gateway API in `ncp-core::migration`; it rejects any
-mapping that would require inventing identity, authority, security, plant, or
-channel-requirement context.
-
-Every package exposes coordinated package/wire/contract identity. Rust exports
-`PACKAGE_VERSION`, `NCP_VERSION`, `CONTRACT_HASH`,
-`NORMATIVE_CONTRACT_DIGEST`, and `BUILD_IDENTITY`; TypeScript and Python expose the
-same concepts, the C ABI provides owned-string accessors, and
-`ncp-gateway --identity-json` reports them without opening a transport. The
-checked-in RC build identity is `unreleased-worktree`: it is a deliberate
-non-certifying sentinel, not a source revision or release provenance claim.
-
-## Build and verify
-
-Required local tools are Rust 1.88+, Python 3.11+, Node.js 18+, a C++17 compiler,
-Bun, npm, Buf, `cargo-deny` 0.19.9, `latexmk`, `rsvg-convert`, and the Poppler
-PDF tools. The LaTeX installation must provide the packages imported by the
-maintained system-design report. The complete gate invokes Bun and npm. Hosted
-CI pins Node.js 24.18.0 and Bun 1.3.14. One hosted syntax-only replay uses
-Node.js 26.3.0, then restores Node.js 24.18.0. The complete gate reproduces the
-system-design PDF and compares its rendered content across publication
-toolchains. Maintainers also require byte identity on the publication toolchain.
-
-```bash
-scripts/check.sh
+```sh
+python3 scripts/project_local_rust.py --check
+cargo test --manifest-path local/rust/Cargo.toml --locked
+cargo clippy --manifest-path local/rust/Cargo.toml --all-targets --locked -- -D warnings
 ```
 
-The complete gate formats and lints the workspace, builds/tests Rust, builds and
-installs the Python wheel, compiles the C/C++ demo, regenerates and tests
-TypeScript, replays the mandatory corpus, checks proto/schema/baseline parity,
-replays independent Rust/Python security-state and plant-profile digest vectors,
-validates security and plant profiles, checks package archives, runs dependency
-policy, lints/builds protobuf, and either compares it with the latest verified
-same-major release or explicitly reports that an initial major has no released
-baseline.
+The [release registry](local/release.v1.json) lists this reference profile's bootstrap and operational requirements.
+Final product v1 also requires the open modular and multimodal capabilities stated above.
+A source test does not qualify an installed application.
+The operational gate must start from immutable, pushed source and exact installed artifacts.
+Terminal release evidence follows that gate.
 
-Useful focused commands:
+The broader candidate's complete local regression command remains `scripts/check.sh`.
+Its separate external gates remain required for a broader release.
+Local profile qualification cannot close those gates.
 
-```bash
-cargo test -p ncp-core --all-features
-bun run check:behavior
-python3 scripts/check_conformance_vectors.py
-python3 scripts/generate_conformance_manifest.py
-python3 scripts/generate_contract_manifest.py
-python3 scripts/check_profile_digests.py
-python3 scripts/check_released_baselines.py
-python3 scripts/check_buf_breaking.py --self-test
-python3 scripts/check_buf_breaking.py
-python3 scripts/check_wire_baseline.py
-python3 scripts/check_release_gates.py --self-test
-python3 scripts/check_markdown_links.py --self-test
-```
+## Scientific and operating limits
 
-Local green tests do not satisfy the external pre-release gates. A transport-visible
-authenticated-principal binding must first be implemented before the live
-mTLS/ACL/certificate rotation and revocation campaign can run. Two independently
-installed non-Rust peers, fault/soak, duration fuzzing and sanitizers, performance
-qualification, signed SBOM/provenance, and clean-room reproduction remain
-required. All eleven exact consumer and extension role qualifications are also
-required. These gates are explicitly **NOT RUN** for this candidate. Publication
-follows those gates. The separate post-publication checks validate the published
-artifacts and cannot be prerequisites for their own publication.
+Protocol success does not validate a paper reproduction, calibrated posterior, controller stability, or physical safety.
+Simulation records retain `calibrated_posterior=false`.
+Missing data, malformed output, and unusable traces cannot become successful measurements.
 
-## Downstream compatibility
+Digests identify supplied bytes and labels.
+They are not scientific signatures or loaded-model attestations.
+The Darwin boundary assumes trusted installed applications.
+It does not isolate arbitrary malicious code or all Mach and process metadata.
 
-The candidate registry retains a historical six-surface handoff inventory across
-five canonical consumer repositories: `Engram`, `crebain`,
-`crebain-galadriel-producer`, `galadriel`, `haldir`, and `prisoma`. The producer
-surface belongs to canonical Crebain; it is not a sixth repository. Release
-authorization requires these eleven exact role subjects:
+The neural controller is a bounded research example.
+Its fixed encoding and readout do not claim training, optimality, or state-of-the-art control performance.
+Measured timing and resource results must state their exact host, workload, and artifact scope.
 
-- Engram simulation responder
-- Engram plant commander
-- Engram Haldir-intent extension publisher
-- Haldir NCP commander
-- Haldir Engram-intent extension receiver
-- Haldir Galadriel-assessment receiver
-- Galadriel NCP observer
-- Galadriel raw-advisory publisher
-- Crebain body
-- Crebain Galadriel-producer surface
-- Prisoma NCP observer
+## Project documents
 
-A historical surface entry is not a role receipt. Engram has an explicit local
-native-1.0 migration in progress. Its installed roles and live transport are not
-qualified. The other five historical handoff surfaces remain on wire 0.8. None
-of the eleven roles is qualified for 1.0. The frozen v0.8 Engram inventory is
-historical migration input. It does not describe the mutable migration worktree.
-A consumer cannot claim native 1.0 support before its exact installed role and
-live-transport matrix passes.
+- [Local scope, owners, and remaining gates](docs/local-v1/README.md)
+- [Broad candidate specification](NEURO_CYBERNETIC_PROTOCOL.md)
+- [Broad candidate security contract](SECURITY.md)
+- [Broad candidate release ledger](RELEASE_READINESS.md)
+- [Frozen wire-0.8 baseline](docs/0.8-current-baseline.md)
+- [Documentation style](DOCUMENTATION_STYLE.md)
+- [Contribution workflow](CONTRIBUTING.md)
+- [Versioning policy](VERSIONING.md)
 
-The separately pinned PhD thesis wire-0.8 counterexample harness is auxiliary
-research audit tooling. It is not an installed NCP peer, is outside the historical
-handoff and role inventories, and receives no role receipt.
-
-See [`INTEGRATING.md`](INTEGRATING.md) for the breaking migration checklist and
-[`docs/0.8-current-baseline.md`](docs/0.8-current-baseline.md) for the frozen legacy
-baseline.
-
-## Documentation map
-
-- [`NEURO_CYBERNETIC_PROTOCOL.md`](NEURO_CYBERNETIC_PROTOCOL.md): normative prose.
-- [`SECURITY.md`](SECURITY.md): profiles, trust boundary, and deployment checks.
-- [`RELEASE_READINESS.md`](RELEASE_READINESS.md): evidence ledger and blockers.
-- [`docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md`](docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md):
-  non-normative B01 low-overhead runtime and ecosystem architecture recommendation,
-  direct implementation gaps, and explicit later-task boundary.
-- [`docs/research/authenticated-ingress-feasibility.md`](docs/research/authenticated-ingress-feasibility.md):
-  non-normative B04 source review, prototype decisions, hostile matrix, and explicit
-  local-versus-external evidence boundary; direct Zenoh remains fail-closed.
-- [`docs/1.0-candidate-receipts.md`](docs/1.0-candidate-receipts.md): per-task local
-  receipts and exact not-run acceptance gaps.
-- [`evidence/audit/README.md`](evidence/audit/README.md): generated, non-normative
-  threat, latent-path, and requirement-traceability audit controls.
-- [`evidence/supply-chain/README.md`](evidence/supply-chain/README.md): generated
-  dependency, SBOM, license, vulnerability, and provenance-policy evidence.
-- [`evidence/convergence/README.md`](evidence/convergence/README.md): deterministic
-  local `NO_GO` identity and explicit non-local handoff boundary.
-- [`docs/handoff/README.md`](docs/handoff/README.md): separate non-normative
-  standalone `T000`–`T119` and current max-effort `T000`–`T145` audit records;
-  both expose guarded reviewer-comment fields and authorize no release.
-- [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md): current residual risks.
-- [`VERSIONING.md`](VERSIONING.md): compatibility and release policy.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.
-- [`DOCUMENTATION_STYLE.md`](DOCUMENTATION_STYLE.md): STE-aligned technical writing
-  and documentation review rules.
-- [`CHANGELOG.md`](CHANGELOG.md): candidate and historical changes.
-
-## License and citation
-
-NCP is dual-licensed under either [MIT](LICENSE-MIT) or
-[Apache-2.0](LICENSE-APACHE) at your option. [`CITATION.cff`](CITATION.cff)
-describes repository HEAD as an unreleased candidate; use the metadata from the
-immutable `v0.8.0` tag when citing the latest release.
+NCP uses either the [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) license.
+Use an immutable release's citation metadata when citing that release.
+Repository HEAD and the local candidate are not published release evidence.

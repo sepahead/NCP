@@ -441,6 +441,37 @@ for (const c of corpus.cases.action_buffer) {
   check(maxHorizonLen(Infinity, 50) === 0, 'maxHorizonLen: non-finite ttl -> 0')
   check(maxHorizonLen(200, 0) === 0, 'maxHorizonLen: dt<=0 -> 0')
   check(maxHorizonLen(60_000, 0.5) === 65_536, 'maxHorizonLen: resource ceiling')
+  const horizonFrame = (ttlMs, horizonDtMs, length) => ({
+    kind: 'command_frame',
+    ncp_version: NCP_VERSION,
+    mode: 'active',
+    stream: { epoch: EP, seq: 1 },
+    session: { generation: GEN },
+    session_id: 's',
+    authority: AUTHORITY,
+    ttl_ms: ttlMs,
+    channels: { velocity_setpoint: { data: [0] } },
+    horizon: Array.from({ length }, () => ({ velocity_setpoint: { data: [0] } })),
+    horizon_dt_ms: horizonDtMs,
+  })
+  for (const [name, frame] of [
+    ['effective 60-second TTL', horizonFrame(120_000, 30_000, 2)],
+    ['overflowing cadence ratio', horizonFrame(60_000, 1e-320, 1)],
+    ['exact expiry', horizonFrame(40, 20, 2)],
+  ]) {
+    let rejected = false
+    try { assertNcpMessage(frame, 'command_frame') } catch { rejected = true }
+    check(rejected, `command horizon: ${name} rejects an unexecutable future step`)
+  }
+  for (const [name, frame] of [
+    ['clamped TTL valid prefix', horizonFrame(120_000, 30_000, 1)],
+    ['empty overflowing horizon', horizonFrame(60_000, 1e-320, 0)],
+    ['strict expiry valid prefix', horizonFrame(40, 20, 1)],
+  ]) {
+    let accepted = true
+    try { assertNcpMessage(frame, 'command_frame') } catch { accepted = false }
+    check(accepted, `command horizon: ${name} remains accepted`)
+  }
 
   // Universal raw-JSON boundary: duplicate decoded keys and lone surrogates are
   // rejected before JSON.parse can collapse/accept them.

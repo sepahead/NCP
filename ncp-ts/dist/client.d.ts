@@ -31,6 +31,8 @@ export declare const NCP_CONTRACT_HASH = "163acc57d8a62b66";
 export declare const JSON_SAFE_INTEGER_MAX = 9007199254740991;
 export declare const JSON_SAFE_INTEGER_MIN: number;
 export declare const MAX_HORIZON_STEPS = 65536;
+/** Receiver watchdog ceiling shared with the independent safety implementation. */
+export declare const MAX_COMMAND_TTL_MS = 60000;
 export declare const MAX_CHANNELS = 4096;
 /** Closed stable wire-1.0 error-code registry. Keep this in exact parity with
  * `contract/errors.v1.json`; the shared mandatory corpus exercises rejection of

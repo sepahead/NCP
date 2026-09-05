@@ -1,0 +1,27 @@
+[package]
+name = "ncp-local"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+authors = ["Sepehr Mahmoudian"]
+repository = "https://github.com/sepahead/NCP"
+description = "Bounded local NCP lockstep contracts with exact retained outcomes"
+readme = "README.md"
+include = ["src/**", "tests/**", "examples/**", "local-profile.v1.json", "source-projection.v1.json", "README.md", "LICENSE-*", "Cargo.toml", "Cargo.lock"]
+
+# This distribution does not inherit the broader candidate's package identity,
+# dependencies, security profiles, transport claims, or release gates.
+[workspace]
+resolver = "2"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = { version = "=1.0.150", features = ["float_roundtrip"] }
+sha2 = "=0.10.9"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

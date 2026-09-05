@@ -1,0 +1,1244 @@
+{
+  "schema": "ncp.local.profile.v1",
+  "profile": "ncp.local-lockstep.v1",
+  "encoding": "bounded-canonical-json",
+  "framing": "uint32-big-endian-length",
+  "max_frame_bytes": 65536,
+  "origin": "supervisor-owned-private-process-channel",
+  "generation_policy": "fresh-endpoint-generation-per-launch-no-resume",
+  "authority_modes": [
+    "direct_simulation"
+  ],
+  "clock": "logical-integer-microseconds",
+  "causality": "sample-neural-propose-apply-observe",
+  "result_retention": "one-exact-response-until-digest-bound-acknowledgement",
+  "released_result": "unavailable-never-reexecute",
+  "unknown_execution": "retire-coupled-generation",
+  "request_digest_domain": "ncp.local.request.v1",
+  "response_digest_domain": "ncp.local.response.v1",
+  "digest_encoding": "ncp-typed-binary64-v1",
+  "request_digest_exclusion": "request_digest",
+  "response_digest_exclusion": "result_digest",
+  "roles": {
+    "neural": [
+      "prepare",
+      "step",
+      "finish",
+      "abort",
+      "result",
+      "ack"
+    ],
+    "body": [
+      "prepare",
+      "step",
+      "finish",
+      "abort",
+      "result",
+      "ack"
+    ],
+    "capture": [
+      "prepare",
+      "reserve",
+      "capture",
+      "finish",
+      "abort",
+      "result",
+      "ack"
+    ],
+    "monitor": [
+      "prepare",
+      "assess",
+      "finish",
+      "abort",
+      "result",
+      "ack"
+    ]
+  },
+  "excluded": [
+    "remote-listener",
+    "physical-actuation",
+    "haldir-gated-command",
+    "real-time-guarantee",
+    "same-generation-crash-resume",
+    "host-api-tunnel",
+    "arbitrary-executable-model",
+    "observer-control-authority",
+    "calibrated-posterior"
+  ],
+  "contract_revision": 2,
+  "normative_closure": {
+    "identity": "Hash the complete descriptor value. No descriptor member is excluded.",
+    "references": "All shape references resolve inside this descriptor. No external schema or mutable documentation is normative input.",
+    "layers": {
+      "ingress_and_owner": "Every endpoint enforces bounded ingress, fixed binding, permitted operations, exact outcomes, and serial lifecycle.",
+      "shared_application_data": "Selected application profiles enforce these shared shapes and semantic assertions when they consume or produce these types.",
+      "application_owned": "Exact configuration schemas, model support, scientific algorithms, producer authenticity, detector reports, and capture records remain application-profile contracts."
+    },
+    "schema_limit": "JSON Schema expresses structural constraints only. Named assertions add lexical, byte-count, digest, state, and cross-object requirements.",
+    "interpretation": "Assertions are normative requirements, not executable expressions or authorization to evaluate received code."
+  },
+  "ingress": {
+    "frame_prefix_bytes": 4,
+    "frame_length_byte_order": "big_endian",
+    "minimum_frame_bytes": 1,
+    "maximum_frame_bytes": 65536,
+    "maximum_depth": 32,
+    "maximum_objects": 4096,
+    "maximum_arrays": 4096,
+    "maximum_total_members": 16384,
+    "maximum_total_array_items": 262144,
+    "maximum_object_members": 4096,
+    "maximum_array_items": 65536,
+    "maximum_key_utf8_bytes": 128,
+    "maximum_string_utf8_bytes": 65536,
+    "maximum_total_string_utf8_bytes": 1048576,
+    "maximum_integer_magnitude": 9007199254740991,
+    "maximum_finite_number_magnitude": 1e+300,
+    "preflight": "Check the bounded UTF-8 frame before generic object materialization. Reject duplicate decoded keys, unpaired surrogates, malformed JSON, invalid UTF-8, trailing values, non-finite or out-of-bound numbers.",
+    "integer_fields": "Fields marked x-lexical-integer require a nonnegative integer token without sign, fraction, exponent, or negative zero. Boolean and floating-point values do not satisfy these fields.",
+    "other_integer_tokens": "All integral JSON tokens must lie within the inclusive safe integer magnitude bound, even inside application bodies.",
+    "strings": "Count decoded UTF-8 bytes. Do not normalize Unicode. Escaped and literal forms of one decoded key are duplicates.",
+    "framing_failure": "Zero length, oversize length, short prefix, short body, malformed frame, or channel loss ends the generation. EOF before a new prefix is clean transport EOF and still retires the generation.",
+    "allocation_scope": "Reserve one maximum-sized retained wire buffer before backend execution. Bound result traversal to 16384 nodes and depth 32 before digest staging. This is not a no-allocation guarantee."
+  },
+  "typed_digest": {
+    "algorithm": "sha256",
+    "output": "64 lowercase hexadecimal digits",
+    "domain_terminator_hex": "00",
+    "domains": [
+      "ncp.local.request.v1",
+      "ncp.local.response.v1",
+      "ncp.local.profile.v1",
+      "ncp.local.snapshot.v1",
+      "ncp.local.plan.v1",
+      "ncp.local.capture.v1"
+    ],
+    "projection": "ASCII domain, one zero byte, then the recursively encoded typed value.",
+    "maximum_projection_bytes": 2097152,
+    "length_encoding": "unsigned 64-bit big-endian",
+    "tags": {
+      "null": "00",
+      "false": "01",
+      "true": "02",
+      "number": "03",
+      "string": "04",
+      "array": "05",
+      "object": "06"
+    },
+    "number": "Tag followed by the exact IEEE 754 binary64 bits in big-endian order. Parse decimal JSON to nearest binary64 with ties to even and lossless round trips. Preserve negative zero. Do not quantize scientific values.",
+    "string": "Tag, decoded UTF-8 byte length, then those bytes without Unicode normalization.",
+    "array": "Tag, item count, then each item encoding in original order.",
+    "object": "Tag, member count, then encoded key and value pairs. Sort keys lexicographically by unsigned decoded UTF-8 bytes.",
+    "null_and_boolean": "The tag is the complete encoding.",
+    "request_projection": "Exclude only the root request_digest member. Preserve every nested body member and omission.",
+    "response_projection": "Exclude only the root result_digest member. Preserve every nested body member and omission.",
+    "plan_projection": "Validate the complete RunPlan and include every member under ncp.local.plan.v1.",
+    "snapshot_projection": "Validate typed Snapshot content. Insert null for omitted ScalarInnovation.nis and ScalarInnovation.source. Exclude only root snapshot_digest under ncp.local.snapshot.v1.",
+    "meaning": "Semantic integrity and exact correlation are not signatures, loaded-byte attestation, scientific calibration, or authority grants."
+  },
+  "data_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "Digest": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "UuidV4": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+      },
+      "EntityId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_-]{1,64}$"
+      },
+      "Sequence": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "x-lexical-integer": true
+      },
+      "ActionMode": {
+        "enum": [
+          "active",
+          "zero_acceleration"
+        ]
+      },
+      "LocalBinding": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_digest",
+          "run_id",
+          "generation",
+          "role"
+        ],
+        "properties": {
+          "profile_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "run_id": {
+            "$ref": "#/$defs/UuidV4"
+          },
+          "generation": {
+            "$ref": "#/$defs/UuidV4"
+          },
+          "role": {
+            "enum": [
+              "neural",
+              "body",
+              "capture",
+              "monitor"
+            ]
+          }
+        }
+      },
+      "LocalRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "profile_digest",
+          "run_id",
+          "generation",
+          "sequence",
+          "operation",
+          "body",
+          "request_digest"
+        ],
+        "properties": {
+          "schema": {
+            "const": "ncp.local.request.v1"
+          },
+          "profile_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "run_id": {
+            "$ref": "#/$defs/UuidV4"
+          },
+          "generation": {
+            "$ref": "#/$defs/UuidV4"
+          },
+          "sequence": {
+            "$ref": "#/$defs/Sequence"
+          },
+          "operation": {
+            "enum": [
+              "prepare",
+              "step",
+              "reserve",
+              "capture",
+              "assess",
+              "finish",
+              "abort",
+              "result",
+              "ack"
+            ]
+          },
+          "body": {},
+          "request_digest": {
+            "$ref": "#/$defs/Digest"
+          }
+        }
+      },
+      "LocalResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "binding",
+          "sequence",
+          "operation",
+          "request_digest",
+          "outcome",
+          "code",
+          "body",
+          "result_digest"
+        ],
+        "properties": {
+          "schema": {
+            "const": "ncp.local.response.v1"
+          },
+          "binding": {
+            "$ref": "#/$defs/LocalBinding"
+          },
+          "sequence": {
+            "$ref": "#/$defs/Sequence"
+          },
+          "operation": {
+            "enum": [
+              "prepare",
+              "step",
+              "reserve",
+              "capture",
+              "assess",
+              "finish",
+              "abort",
+              "result",
+              "ack"
+            ]
+          },
+          "request_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "outcome": {
+            "enum": [
+              "committed",
+              "rejected_before_execution",
+              "indeterminate",
+              "unavailable",
+              "acknowledged"
+            ]
+          },
+          "code": {
+            "enum": [
+              "ok",
+              "wire",
+              "binding",
+              "role",
+              "state",
+              "conflict",
+              "result_pending",
+              "result_released",
+              "invalid_input",
+              "capacity",
+              "execution_unknown",
+              "retired"
+            ]
+          },
+          "body": {},
+          "result_digest": {
+            "$ref": "#/$defs/Digest"
+          }
+        }
+      },
+      "ResultQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_digest"
+        ],
+        "properties": {
+          "request_digest": {
+            "$ref": "#/$defs/Digest"
+          }
+        }
+      },
+      "Acknowledgement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result_digest"
+        ],
+        "properties": {
+          "result_digest": {
+            "$ref": "#/$defs/Digest"
+          }
+        }
+      },
+      "RunPlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "entity_ids",
+          "planned_steps",
+          "step_us",
+          "resolution_us",
+          "readout_delay_us",
+          "seed",
+          "execution_mode",
+          "capture_mode",
+          "monitor_mode",
+          "calibrated_posterior",
+          "observation_layout",
+          "action_layout"
+        ],
+        "properties": {
+          "schema": {
+            "const": "ncp.local.plan.v1"
+          },
+          "entity_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/EntityId"
+            },
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true
+          },
+          "planned_steps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024,
+            "x-lexical-integer": true
+          },
+          "step_us": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 1000000,
+            "x-lexical-integer": true,
+            "multipleOf": 1000
+          },
+          "resolution_us": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "x-lexical-integer": true
+          },
+          "readout_delay_us": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999999,
+            "x-lexical-integer": true
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "x-lexical-integer": true
+          },
+          "execution_mode": {
+            "const": "direct_simulation"
+          },
+          "capture_mode": {
+            "const": "lossless_bounded"
+          },
+          "monitor_mode": {
+            "const": "record_only"
+          },
+          "calibrated_posterior": {
+            "type": "boolean",
+            "const": false
+          },
+          "observation_layout": {
+            "const": [
+              {
+                "quantity": "position",
+                "unit": "m",
+                "axis": "east",
+                "frame": "enu"
+              },
+              {
+                "quantity": "position",
+                "unit": "m",
+                "axis": "north",
+                "frame": "enu"
+              },
+              {
+                "quantity": "position",
+                "unit": "m",
+                "axis": "up",
+                "frame": "enu"
+              },
+              {
+                "quantity": "velocity",
+                "unit": "m/s",
+                "axis": "east",
+                "frame": "enu"
+              },
+              {
+                "quantity": "velocity",
+                "unit": "m/s",
+                "axis": "north",
+                "frame": "enu"
+              },
+              {
+                "quantity": "velocity",
+                "unit": "m/s",
+                "axis": "up",
+                "frame": "enu"
+              }
+            ]
+          },
+          "action_layout": {
+            "const": [
+              {
+                "quantity": "acceleration",
+                "unit": "m/s^2",
+                "axis": "east",
+                "frame": "enu"
+              },
+              {
+                "quantity": "acceleration",
+                "unit": "m/s^2",
+                "axis": "north",
+                "frame": "enu"
+              },
+              {
+                "quantity": "acceleration",
+                "unit": "m/s^2",
+                "axis": "up",
+                "frame": "enu"
+              }
+            ]
+          }
+        }
+      },
+      "PrepareData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "plan",
+          "application_profile",
+          "configuration"
+        ],
+        "properties": {
+          "plan": {
+            "$ref": "#/$defs/RunPlan"
+          },
+          "application_profile": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 65536,
+            "x-max-utf8-bytes": 65536
+          },
+          "configuration": {}
+        }
+      },
+      "InnovationSource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sensor_id",
+          "fusion_track_id",
+          "fusion_sequence",
+          "measurement_time_us",
+          "residual_m",
+          "covariance_m2"
+        ],
+        "properties": {
+          "sensor_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-max-utf8-bytes": 128
+          },
+          "fusion_track_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "fusion_sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "measurement_time_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "residual_m": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -200000,
+              "maximum": 200000
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "covariance_m2": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": -1000000000000.0,
+                "maximum": 1000000000000.0
+              },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      },
+      "ScalarInnovation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "modality",
+          "dof",
+          "status"
+        ],
+        "properties": {
+          "entity_id": {
+            "$ref": "#/$defs/EntityId"
+          },
+          "modality": {
+            "const": "visual"
+          },
+          "dof": {
+            "type": "integer",
+            "const": 3,
+            "x-lexical-integer": true
+          },
+          "status": {
+            "enum": [
+              "observed",
+              "birth",
+              "unavailable"
+            ]
+          },
+          "nis": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000000000.0
+              }
+            ]
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/InnovationSource"
+              }
+            ]
+          }
+        }
+      },
+      "Snapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "plan_digest",
+          "step",
+          "time_us",
+          "entity_ids",
+          "available",
+          "values",
+          "innovations",
+          "snapshot_digest"
+        ],
+        "properties": {
+          "schema": {
+            "const": "ncp.local.snapshot.v1"
+          },
+          "plan_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1024,
+            "x-lexical-integer": true
+          },
+          "time_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "entity_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/EntityId"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "available": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -100000,
+              "maximum": 100000
+            },
+            "minItems": 6,
+            "maxItems": 18
+          },
+          "innovations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ScalarInnovation"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "snapshot_digest": {
+            "$ref": "#/$defs/Digest"
+          }
+        }
+      },
+      "NeuralProposal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "plan_digest",
+          "step",
+          "source_snapshot_digest",
+          "selected_modes",
+          "values",
+          "neural_time_us",
+          "completed_end_us",
+          "window_start_us",
+          "spike_counts",
+          "neural_model"
+        ],
+        "properties": {
+          "schema": {
+            "const": "ncp.local.neural-result.v1"
+          },
+          "plan_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024,
+            "x-lexical-integer": true
+          },
+          "source_snapshot_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "selected_modes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ActionMode"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -50,
+              "maximum": 50
+            },
+            "minItems": 3,
+            "maxItems": 9
+          },
+          "neural_time_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "completed_end_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "window_start_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "x-lexical-integer": true
+          },
+          "spike_counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "x-lexical-integer": true
+            },
+            "minItems": 6,
+            "maxItems": 18
+          },
+          "neural_model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "x-max-utf8-bytes": 64
+          }
+        }
+      },
+      "NeuralStep": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_snapshot"
+        ],
+        "properties": {
+          "source_snapshot": {
+            "$ref": "#/$defs/Snapshot"
+          }
+        }
+      },
+      "BodyStep": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "neural_response"
+        ],
+        "properties": {
+          "neural_response": {
+            "$ref": "#/$defs/LocalResponse"
+          }
+        }
+      },
+      "BodyResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "plan_digest",
+          "step",
+          "source_snapshot_digest",
+          "neural_result_digest",
+          "selected_modes",
+          "proposed_values",
+          "applied_values",
+          "saturated",
+          "snapshot"
+        ],
+        "properties": {
+          "schema": {
+            "const": "ncp.local.body-result.v1"
+          },
+          "plan_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024,
+            "x-lexical-integer": true
+          },
+          "source_snapshot_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "neural_result_digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "selected_modes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ActionMode"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "proposed_values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -50,
+              "maximum": 50
+            },
+            "minItems": 3,
+            "maxItems": 9
+          },
+          "applied_values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -50,
+              "maximum": 50
+            },
+            "minItems": 3,
+            "maxItems": 9
+          },
+          "saturated": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "snapshot": {
+            "$ref": "#/$defs/Snapshot"
+          }
+        }
+      }
+    }
+  },
+  "message_contract": {
+    "request": "LocalRequest",
+    "response": "LocalResponse",
+    "binding": "LocalBinding",
+    "query_bodies": {
+      "result": "ResultQuery",
+      "ack": "Acknowledgement"
+    },
+    "shared_application_bodies": {
+      "prepare": "PrepareData",
+      "neural.step": "NeuralStep",
+      "body.step": "BodyStep"
+    },
+    "shared_application_results": {
+      "neural.step": "NeuralProposal",
+      "body.step": "BodyResult"
+    },
+    "response_outcomes": {
+      "committed": {
+        "codes": [
+          "ok"
+        ],
+        "operations": [
+          "prepare",
+          "step",
+          "reserve",
+          "capture",
+          "assess",
+          "finish",
+          "abort"
+        ]
+      },
+      "indeterminate": {
+        "codes": [
+          "execution_unknown"
+        ],
+        "operations": [
+          "prepare",
+          "step",
+          "reserve",
+          "capture",
+          "assess",
+          "finish",
+          "abort"
+        ]
+      },
+      "acknowledged": {
+        "codes": [
+          "ok"
+        ],
+        "operations": [
+          "ack"
+        ]
+      },
+      "unavailable": {
+        "codes": [
+          "result_released"
+        ],
+        "operations": [
+          "prepare",
+          "step",
+          "reserve",
+          "capture",
+          "assess",
+          "finish",
+          "abort",
+          "result"
+        ]
+      },
+      "rejected_before_execution": {
+        "codes": [
+          "wire",
+          "binding",
+          "role",
+          "state",
+          "conflict",
+          "result_pending",
+          "invalid_input",
+          "capacity",
+          "retired"
+        ],
+        "operations": [
+          "prepare",
+          "step",
+          "reserve",
+          "capture",
+          "assess",
+          "finish",
+          "abort",
+          "result",
+          "ack"
+        ]
+      }
+    },
+    "binding_rule": "Require exact installed profile_digest, run_id, generation, and endpoint role. Payload data cannot replace the launch binding.",
+    "correlation_rule": "Verify response identity, sequence, operation, request_digest, complete result_digest, and outcome/code coherence against the original request.",
+    "role_rejection_exception": "A disallowed operation can appear only with rejected_before_execution and role. This exception grants no execution authority.",
+    "successful_result_query": "Return exact retained original response bytes, retaining original operation and request_digest. Verify the result query and the original request independently.",
+    "other_query_response": "Unavailable and rejection responses correlate to the query itself.",
+    "owner_empty_responses": "Acknowledgement, rejection, unavailable, and indeterminate responses produced by the owner contain an empty object body. Clients require an empty acknowledgement body."
+  },
+  "semantic_assertions": [
+    {
+      "id": "PLAN-ROSTER",
+      "applies_to": "RunPlan",
+      "requirement": "Require one to three unique entity IDs in strictly increasing ASCII order. Keep this roster and both exact component layouts immutable.",
+      "parameters": {
+        "maximum_entities": 3
+      },
+      "positive_controls": [
+        "valid_plan"
+      ],
+      "negative_controls": [
+        "plan_entity_ids_[]",
+        "plan_entity_ids_['b', 'a']",
+        "layout_unit_drift",
+        "layout_axis_drift"
+      ]
+    },
+    {
+      "id": "PLAN-GRID",
+      "applies_to": "RunPlan",
+      "requirement": "Require step_us divisible by 1000 and resolution_us. Require resolution_us <= readout_delay_us < step_us and readout_delay_us divisible by resolution_us.",
+      "parameters": {},
+      "positive_controls": [
+        "valid_plan"
+      ],
+      "negative_controls": [
+        "plan_resolution_us_333",
+        "plan_step_us_20001",
+        "plan_readout_delay_us_20000",
+        "plan_readout_delay_us_101"
+      ]
+    },
+    {
+      "id": "PLAN-BOUNDS",
+      "applies_to": "RunPlan",
+      "requirement": "Enforce all closed shape bounds and exact supported modes. A calibrated posterior request fails before application mutation.",
+      "parameters": {},
+      "positive_controls": [
+        "valid_plan"
+      ],
+      "negative_controls": [
+        "plan_planned_steps_1025",
+        "plan_planned_steps_0",
+        "plan_planned_steps_4.0",
+        "plan_calibrated_posterior_True",
+        "plan_unknown_field"
+      ]
+    },
+    {
+      "id": "SNAPSHOT-JOIN",
+      "applies_to": "Snapshot",
+      "requirement": "Validate the complete plan. Require matching plan digest and exact roster. Require 0 <= step <= planned_steps and time_us = step * step_us.",
+      "parameters": {},
+      "positive_controls": [
+        "valid_missing_snapshot"
+      ],
+      "negative_controls": [
+        "wrong_time",
+        "wrong_roster",
+        "boolean_time"
+      ]
+    },
+    {
+      "id": "SNAPSHOT-WIDTH",
+      "applies_to": "Snapshot",
+      "requirement": "For n entities, require n availability entries, n innovations, and 6*n observation values in entity-major order. Position is ENU metres; velocity is ENU metres per second.",
+      "parameters": {
+        "observation_width": 6
+      },
+      "positive_controls": [
+        "valid_missing_snapshot"
+      ],
+      "negative_controls": [
+        "truncated_vector",
+        "availability_must_be_bool"
+      ]
+    },
+    {
+      "id": "SNAPSHOT-MISSING",
+      "applies_to": "Snapshot",
+      "requirement": "Every observation value is finite. Position magnitude is at most 100000; velocity magnitude is at most 100. An unavailable entity has six numerically zero values. Signed zero remains allowed and retains its digest sign.",
+      "parameters": {
+        "maximum_position_m": 100000,
+        "maximum_velocity_mps": 100
+      },
+      "positive_controls": [
+        "valid_missing_snapshot"
+      ],
+      "negative_controls": [
+        "missing_is_nonzero"
+      ]
+    },
+    {
+      "id": "INNOVATION-STATUS",
+      "applies_to": "ScalarInnovation",
+      "requirement": "Require the matching roster ID, visual modality, and dof=3. Observed requires available=true, numeric NIS, and source. Birth requires available=true with absent/null NIS and source. Unavailable requires absent/null NIS and source, independently of observation availability.",
+      "parameters": {},
+      "positive_controls": [
+        "observed_zero_nis_with_actual_source",
+        "valid_missing_snapshot"
+      ],
+      "negative_controls": [
+        "birth_is_not_observed_zero",
+        "unavailable_is_not_observed_zero",
+        "missing_source_for_observed",
+        "wrong_degrees_of_freedom"
+      ]
+    },
+    {
+      "id": "INNOVATION-SOURCE",
+      "applies_to": "InnovationSource",
+      "requirement": "An observed source has nonempty sensor_id of at most 128 UTF-8 bytes. Require safe nonnegative IDs, exact snapshot measurement time, three finite residuals of magnitude at most 200000, and a finite 3x3 covariance of magnitude at most 1e12. Scalar NIS lies in [0,1e12].",
+      "parameters": {},
+      "positive_controls": [
+        "observed_zero_nis_with_actual_source"
+      ],
+      "negative_controls": [
+        "observed_without_source",
+        "wrong_measurement_time",
+        "truncated_covariance"
+      ]
+    },
+    {
+      "id": "SNAPSHOT-DIGEST",
+      "applies_to": "Snapshot",
+      "requirement": "Recompute the complete typed snapshot digest with the declared optional-null projection. Missing members do not silently become numeric zero.",
+      "parameters": {},
+      "positive_controls": [
+        "typed_optional_null_projection",
+        "valid_missing_snapshot"
+      ],
+      "negative_controls": [
+        "forged_snapshot_digest"
+      ]
+    },
+    {
+      "id": "NEURAL-CAUSALITY",
+      "applies_to": "NeuralProposal",
+      "requirement": "Validate the source Snapshot. Require matching plan and source digests, step=source.step+1, and neural_time_us=step*step_us within the planned run.",
+      "parameters": {},
+      "positive_controls": [
+        "valid_proposal_and_real_silence"
+      ],
+      "negative_controls": [
+        "future_step",
+        "wrong_source_digest"
+      ]
+    },
+    {
+      "id": "NEURAL-WINDOW",
+      "applies_to": "NeuralProposal",
+      "requirement": "Require completed_end_us=neural_time_us-readout_delay_us and window_start_us=max(source.time_us-readout_delay_us,0). The declared readout interval is (window_start_us,completed_end_us].",
+      "parameters": {},
+      "positive_controls": [
+        "valid_proposal_and_real_silence"
+      ],
+      "negative_controls": [
+        "future_readout",
+        "reused_window"
+      ]
+    },
+    {
+      "id": "NEURAL-READOUT",
+      "applies_to": "NeuralProposal",
+      "requirement": "Require 6*n integer counts, each in [0,1000000]. Order each entity as east-positive, east-negative, north-positive, north-negative, up-positive, up-negative. Zero counts can represent recorded silence. Require a nonempty neural_model token of at most 64 UTF-8 bytes.",
+      "parameters": {
+        "spike_width": 6,
+        "maximum_spike_count": 1000000
+      },
+      "positive_controls": [
+        "valid_proposal_and_real_silence"
+      ],
+      "negative_controls": [
+        "truncated_readout",
+        "readout_float"
+      ]
+    },
+    {
+      "id": "NEURAL-ACTION",
+      "applies_to": "NeuralProposal",
+      "requirement": "Require n selected modes and 3*n finite acceleration values with magnitude at most 50 m/s^2. A zero_acceleration mode has three numerically zero values. An unavailable source entity requires zero_acceleration.",
+      "parameters": {
+        "action_width": 3,
+        "maximum_acceleration_mps2": 50
+      },
+      "positive_controls": [
+        "valid_proposal_and_real_silence"
+      ],
+      "negative_controls": [
+        "unavailable_lane_active",
+        "unknown_mode",
+        "unbounded_action",
+        "noninert_missing_lane"
+      ]
+    },
+    {
+      "id": "BODY-JOIN",
+      "applies_to": "BodyResult",
+      "requirement": "Validate the next Snapshot and matching plan digest. Require 1 <= step=snapshot.step<=planned_steps. Require lowercase SHA-256 source_snapshot_digest and neural_result_digest.",
+      "parameters": {},
+      "positive_controls": [
+        "valid_body_result"
+      ],
+      "negative_controls": [
+        "body_step_0",
+        "body_step_2",
+        "body_neural_result_digest_not_a_digest"
+      ]
+    },
+    {
+      "id": "BODY-ACTION",
+      "applies_to": "BodyResult",
+      "requirement": "Require n modes, n Boolean saturation flags, and 3*n proposed plus 3*n applied acceleration values. Every value is finite with magnitude at most 50. A zero_acceleration entity has zero proposed and applied values.",
+      "parameters": {
+        "action_width": 3,
+        "maximum_acceleration_mps2": 50
+      },
+      "positive_controls": [
+        "valid_body_result"
+      ],
+      "negative_controls": [
+        "body_saturated_[False]",
+        "body_saturated_[0, False]",
+        "body_selected_modes_['active']",
+        "body_proposed_values_[1, -2, 3]",
+        "body_applied_values_[1, -2, 3, 1, 0, 0]"
+      ]
+    }
+  ],
+  "lifecycle": {
+    "ownership": "One serial owner, one immutable binding, one high-water sequence, and at most one retained exact response per generation.",
+    "initial_state": {
+      "high_water": 0,
+      "prepared": false,
+      "finished": false,
+      "retired": false,
+      "retained": false
+    },
+    "ordered_dispatch_rules": [
+      "Preflight and validate the closed request envelope and digest before interpreting identity or operation.",
+      "Reject identity drift, then reject disallowed roles. Neither changes high-water state.",
+      "Handle result and ack as nonexecuting queries, including after retirement.",
+      "If a result is retained, return its exact bytes for the same sequence and request digest. Reject changed input as conflict and another sequence as result_pending.",
+      "With no retained result, a sequence at or below high-water returns unavailable/result_released and never executes again.",
+      "Reject a retired generation. Reject a finished generation, sequence gaps, a non-prepare first mutation, or repeated prepare.",
+      "Run side-effect-free application validation. Normalize invalid success-like validation codes to invalid_input. Rejection does not consume a sequence.",
+      "Reserve retained wire capacity before backend execution. Failure before execution grants no mutation success.",
+      "Consume exactly high_water+1 before entering backend execution.",
+      "On a complete representable outcome, retain committed/ok. Successful prepare establishes prepared; successful finish or abort establishes finished.",
+      "If execution, panic handling, or result production cannot establish a complete outcome, retire the generation and retain indeterminate/execution_unknown when it can be represented. Otherwise channel failure remains execution-unknown."
+    ],
+    "result_query": "Require exactly request_digest in the body. A retained matching sequence and digest returns the original response. A changed retained digest conflicts. An old released sequence is unavailable; a future sequence is state rejection.",
+    "acknowledgement": "Require exactly result_digest in the body. Release only the matching retained sequence and digest. Retain the latest acknowledgement identity for identical repeated ACK. A wrong ACK conflicts and cannot release another result.",
+    "retirement": "Retirement prevents every later backend mutation and calls backend retirement at most once. It preserves an owed result for lookup and ACK. Every server exit, including clean EOF, retires its generation.",
+    "client": "A verified ACK alone advances the next sequence. Persist the exact in-flight request before dispatch when durable run evidence is claimed. After timeout, malformed response, cancellation, or channel loss, retire the coupled generation and never blindly retry mutation.",
+    "application_order": "For each coupled step reserve capture capacity, complete neural proposal, apply in the body, assess in the record-only monitor, and close the causal capture pair. A failed or uncertain dependency forbids the next dependent step.",
+    "no_resume": "A new launch has a fresh endpoint generation. No profile operation resumes mutable state after a crash or recreates an acknowledged result."
+  },
+  "application_boundaries": {
+    "prepare": "Each installed application selects one exact application_profile and validates its complete closed configuration before mutation. Unknown profile or configuration data cannot select code, a filesystem path, an import, or an executable.",
+    "neural": "The installed neural application owns model support, actual population construction, stimulus mapping, NEST event arrays, source use, and readout-count provenance. A model token alone proves none of these.",
+    "body": "The body owns final simulated application and validates the complete retained neural response against its prepared neural binding. The shared BodyResult shape validator alone does not authenticate that producer or compare its proposal to an external source.",
+    "body_capture_joins": "The run owner and capture application must join source_snapshot_digest and neural_result_digest to the exact predecessor envelopes. They must distinguish proposed values from actual applied values and preserve complete step closure.",
+    "innovation": "The shared shape validates finite residual/covariance structure. It does not prove symmetry, positive definiteness, residual provenance, NIS recomputation, reference-distribution assumptions, or posterior calibration.",
+    "monitor": "The monitor owns its closed assessment schema and advisory algorithm. It cannot change commands, grant actuation authority, invent unavailable modalities, or convert insufficiency into a nominal statistical pass.",
+    "capture": "The capture application owns closed reserve, capture, terminal, and journal schemas, capacity admission, independent causal verification, and terminal accounting. Its result is local observed evidence, not scientific attestation.",
+    "zero_acceleration": "Zero acceleration is a simulator action meaning. Existing velocity can continue. It is not physical stop, hover, universal safe output, or certification.",
+    "qualification": "This descriptor identifies required contract behavior. It grants no publication status, installed qualification, scientific calibration, or release authority."
+  }
+}

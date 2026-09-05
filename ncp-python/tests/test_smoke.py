@@ -289,9 +289,16 @@ def test_unknown_mode_roundtrips_losslessly_and_governs_as_hold():
     assert governed["mode"] == "hold"
 
 
-def test_decode_command_defaults_to_hold():
-    command = json.loads(ncp.decode_command(CODEC, "{}", seq=1, epoch=_EP, session_generation=_GEN, session_id="s"))
+def test_decode_command_rejects_missing_required_population():
+    with pytest.raises(ValueError, match='required population readout "err_x" is unavailable'):
+        ncp.decode_command(CODEC, "{}", seq=1, epoch=_EP, session_generation=_GEN, session_id="s")
+
+
+def test_decode_command_accepts_measured_neutral_population():
+    command = json.loads(ncp.decode_command(CODEC, '{"err_x":100.0}', seq=1, epoch=_EP, session_generation=_GEN, session_id="s"))
+    # The binding's declared mode defaults to hold, independently of readout values.
     assert command["mode"] == "hold"
+    assert command["channels"]["velocity_setpoint"]["data"] == [0.0]
 
 
 def test_action_buffer_enforces_horizon_ttl_and_replay():

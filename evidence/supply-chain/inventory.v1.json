@@ -2223,7 +2223,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "0920956b30fb4f908af63179615f929e7b58bf397e3efa8c9a4374021ffd7876"
+      "sha256": "3750bce592b7838073daa9c6f957e9281de6f9928e19607da60b07550da2b68c"
     },
     {
       "outputs": [
@@ -2323,7 +2323,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "67bf39deb8d5f7a4504ab1f21d3641005491a76eae345bdd4396f717135557aa"
+      "sha256": "eae9d807d94fae1f87a0d0cf646ca9e8bd996cbd57f880a0e249e59faf2fe9cc"
     },
     {
       "outputs": [
@@ -2331,6 +2331,19 @@
       ],
       "path": "scripts/plot_perf.py",
       "sha256": "87d8e3c788bd0c00a2580b2f68e64b63df2485e504a2bf87f41cbcc9ba9fbe5e"
+    },
+    {
+      "outputs": [
+        "local/rust/src/{local,local_data,bounded_json,canonical_digest}.rs",
+        "local/rust/local-profile.v1.json",
+        "local/rust/tests/{local,local_binary64,local_profile_contract}.rs",
+        "local/rust/tests/fixtures/{local-profile-identity,local-binary64}.json",
+        "local/rust/examples/local_contract_probe.rs",
+        "local/rust/LICENSE-{MIT,APACHE}",
+        "local/rust/source-projection.v1.json"
+      ],
+      "path": "scripts/project_local_rust.py",
+      "sha256": "8b9a80b016b8ae4fddb05e30fadf45e38dd2f2c15097a43401382517ec853aab"
     },
     {
       "outputs": [
@@ -2349,7 +2362,7 @@
   ],
   "locked_inputs": {
     "Cargo.lock": "66dc7e6a8eaba70369d87cc6685d5f8f596f33730090bb57588618abc837379e",
-    "Cargo.toml": "00c21fa1aff2071927ca63b552730fb2e8da6c73893ac3768b7e462ac7473e2a",
+    "Cargo.toml": "7c7da37433f9f39bc277bc45580db5c0fb932cd3332d77c86bc1ef7130f5e273",
     "buf.gen.yaml": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
     "buf.yaml": "62f7a56b96555a24f90ec0f258d17e480600e484a04481aa2c21d9d64d2f9ea3",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
@@ -2657,7 +2670,9 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "float_roundtrip"
+          ],
           "kind": "normal",
           "name": "serde_json",
           "optional": false,
@@ -2712,7 +2727,9 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "float_roundtrip"
+          ],
           "kind": "normal",
           "name": "serde_json",
           "optional": false,
@@ -2748,7 +2765,9 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "float_roundtrip"
+          ],
           "kind": "normal",
           "name": "serde_json",
           "optional": false,
@@ -2813,7 +2832,9 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "float_roundtrip"
+          ],
           "kind": "normal",
           "name": "serde_json",
           "optional": false,
@@ -2856,7 +2877,9 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "float_roundtrip"
+          ],
           "kind": "normal",
           "name": "serde_json",
           "optional": false,

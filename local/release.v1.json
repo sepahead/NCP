@@ -1,0 +1,67 @@
+{
+  "schema": "ncp.local-release-scope.v1",
+  "release_name": "NCP local simulation v1",
+  "intended_tag": "local-v1.0.0",
+  "status": "unreleased",
+  "profile": "ncp.local-lockstep.v1",
+  "descriptor": "ncp-core/local-profile.v1.json",
+  "descriptor_raw_sha256": "8a800efcd3efabee00aa68c6751dc52c723569fe6db3ad54ca71943a91fb1e7b",
+  "descriptor_typed_digest": "35f8165789c853778298ec844d235da390a6e0fc5fa3e5ff7f4213ed02b3fabc",
+  "normative_precedence": [
+    "ncp-core/local-profile.v1.json",
+    "local/release.v1.json: selected scope and publication gates only",
+    "docs/local-v1/README.md: application envelope and ownership",
+    "docs/local-v1/profile-contract.md: explanatory contract mapping"
+  ],
+  "packages": [
+    {"name": "ncp-local", "ecosystem": "Rust", "manifest": "local/rust/Cargo.toml"},
+    {"name": "ncp-local", "ecosystem": "Python", "manifest": "local/python/pyproject.toml"}
+  ],
+  "application_roles": [
+    {"role": "neural", "owner": "Engram", "profile": "engram.local-nest-rate-controller.v1", "source_visibility": "private"},
+    {"role": "body", "owner": "CREBAIN", "profile": "crebain.local-kinematic-kalman.v1", "source_visibility": "public"},
+    {"role": "capture", "owner": "Prisoma", "profile": "prisoma.local-causal-capture.v1", "source_visibility": "public"},
+    {"role": "monitor", "owner": "Galadriel", "profile": "galadriel.scalar-nis-record-only.v1", "source_visibility": "public"}
+  ],
+  "supported_host_target": "Darwin with the exact qualified trusted-application sandbox and guardian",
+  "excluded_capabilities": [
+    "remote endpoints", "physical actuation", "Haldir-gated commands",
+    "real-time guarantees", "same-generation crash resume", "arbitrary executable models",
+    "calibrated posterior inference", "arbitrary malicious-code containment"
+  ],
+  "bootstrap_requirements": [
+    "Exact descriptor, scope, package identities, and complete source projection parity.",
+    "All applicable Rust, Python, schema, cross-language, lifecycle, data, and negative controls.",
+    "Complete applicable consumer regressions with source inventory and security closure.",
+    "Standalone package build, locked dependencies, license inventory, and current vulnerability review.",
+    "Markdown, SVG, PDF, mathematical source parity, and accessible rendered-document verification.",
+    "Exact pushed code-and-documentation commits; no provider or scientific completion claim."
+  ],
+  "operational_requirements": [
+    "Fresh installation from the exact bootstrap commits and immutable artifact roster.",
+    "Independent Rust/Python wire, semantic, digest, and retained-outcome qualification.",
+    "Actual four-owner NEST/CREBAIN/Galadriel/Prisoma simulation for every declared model and entity count.",
+    "Independent numerical and isolated kernel oracles; deterministic repeat and negative controls.",
+    "Every selected causal cut, response-loss, owner-death, resource, and capture-completeness control.",
+    "Actual host sandbox denial, private descriptor custody, lifecycle termination, and cleanup controls.",
+    "Exact installed configuration, latency/resource measurements, reproducibility commands, and disclosed limits.",
+    "Individual resolution of all 70 original acceptance requirements; exclusions remain explicitly excluded.",
+    "Matching terminal evidence, exact source/artifact hashes, and public/private distribution boundaries."
+  ],
+  "post_publication_requirements": [
+    "Verify the exact remote tag and published artifact hashes.",
+    "Install and exercise the published artifacts through the documented access paths.",
+    "Verify repository, portfolio, SVG, and PDF status against the release receipt."
+  ],
+  "historical_scope": {
+    "candidate": "1.0.0-rc.1",
+    "scope": "docs/1.0-scope.md",
+    "gates": "contract/release-gates.v1.json",
+    "status": "release-blocked",
+    "local_release_can_promote_historical_gates": false
+  },
+  "bootstrap_receipt": null,
+  "operational_receipt": null,
+  "publication_receipt": null,
+  "scientific_validation": false
+}

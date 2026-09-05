@@ -1,0 +1,5 @@
+# Tools for the optional mathematical PDF build. Runtime NCP has no dependency on these packages.
+reportlab==4.4.10
+svglib==1.5.1
+matplotlib==3.10.8
+pypdf==6.7.4

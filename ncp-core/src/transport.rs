@@ -34,7 +34,7 @@ pub enum ControlLoopTickError {
     CommandPublicationRejected,
     /// The transport claimed admission with an invalid position, changed its
     /// action-stream epoch, failed to advance a new position, or claimed a
-    /// replacement at anything other than the last admitted position. The loop
+    /// replacement that does not advance the admitted stream. The loop
     /// latches this error; recovery requires a fresh loop/transport generation.
     InvalidTransportAdmission,
     /// The safety governor could not produce a bounded, semantically valid command
@@ -128,13 +128,12 @@ pub fn mint_stream_epoch() -> Result<String, ControlLoopConfigError> {
 /// Result of handing one governed command to a transport-owned publication slot.
 ///
 /// An admitted outcome carries the exact stream position assigned to the stored
-/// command. A replacement reuses the not-yet-published position and therefore
-/// must not advance the loop's candidate counter. `Accepted` is bounded local
+/// command. Every admitted replacement receives a fresh position. `Accepted` is bounded local
 /// slot admission, not a delivery acknowledgement; an asynchronous put can still
 /// be delivery-ambiguous and must consume its transport position. Within one
 /// transport binding, `Accepted` must retain one canonical epoch and strictly
-/// advance its position; `ReplacedPending` must equal the most recently admitted
-/// position. A malformed or inconsistent admitted outcome is a transport contract
+/// advance its position; `ReplacedPending` must also advance that stream.
+/// Local coalescing can leave unpublished positions. A malformed outcome is a transport contract
 /// violation, never operation success. A panic is also an ambiguous admission:
 /// the loop contains the unwind and permanently retires that transport binding.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -149,33 +148,192 @@ pub enum CommandSendOutcome {
 pub trait ControlTransport: Send + Sync {
     fn send_command(&self, command: &CommandFrame) -> CommandSendOutcome;
     fn latest_sensor(&self) -> Option<SensorFrame>;
+    /// Return the session-bound ingress sample and counters. Consumption cannot renew its timestamp.
+    fn sensor_snapshot(&self) -> SensorIngressSnapshot;
     fn send_status(&self, _status: &ControlStatus) {}
+}
+
+/// Original receiver-clock metadata retained with a validated sensor frame.
+#[derive(Clone, Debug)]
+pub struct ReceivedSensor {
+    pub frame: SensorFrame,
+    /// Seconds in the same clock domain used by the receiving control loop.
+    pub received_at_s: f64,
+}
+
+/// Local ingress accounting. Counters saturate at the JSON-safe integer ceiling.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SensorIngressCounters {
+    pub received: i64,
+    pub lost: i64,
+    pub duplicates: i64,
+    pub late: i64,
+    pub coalesced: i64,
+    pub rejected: i64,
+    /// At least one admitted ingress event ended above the loss threshold.
+    /// This remains true until the receiver generation is replaced.
+    pub burst_observed: bool,
+}
+
+/// One atomic snapshot of a receiver's session-bound latest slot and ingress accounting.
+#[derive(Clone, Debug)]
+pub struct SensorIngressSnapshot {
+    pub session_id: String,
+    pub session: SessionRef,
+    pub latest: Option<ReceivedSensor>,
+    pub counters: SensorIngressCounters,
+}
+
+/// Bounded sensor admission before latest-value replacement.
+///
+/// The enclosing transport establishes origin and route. This inbox enforces its
+/// immutable session, one stream epoch, wire shape, receiver clock, and source order.
+/// It retains one frame and at most 4096 missing positions for late reconciliation.
+pub struct SensorInbox {
+    session_id: String,
+    session: SessionRef,
+    latest: Option<ReceivedSensor>,
+    link: crate::resilience::LinkMonitor,
+    counters: SensorIngressCounters,
+    unread: bool,
+    clock_floor: Option<f64>,
+}
+
+impl SensorInbox {
+    pub fn new(
+        session_id: impl Into<String>,
+        session: SessionRef,
+    ) -> Result<Self, ControlLoopConfigError> {
+        let session_id = session_id.into();
+        if !crate::valid_id_segment(&session_id)
+            || !crate::is_canonical_uuid_v4(&session.generation)
+        {
+            return Err(ControlLoopConfigError(
+                "sensor inbox requires a valid session binding".into(),
+            ));
+        }
+        Ok(Self {
+            link: crate::resilience::LinkMonitor::with_defaults(session_id.clone()),
+            session_id,
+            session,
+            latest: None,
+            counters: SensorIngressCounters::default(),
+            unread: false,
+            clock_floor: None,
+        })
+    }
+
+    fn increment(counter: &mut i64) {
+        *counter = counter.saturating_add(1).min(JSON_SAFE_INTEGER_MAX);
+    }
+
+    /// Record a frame rejected by the enclosing bounded decoder before typed admission.
+    pub fn reject_frame(&mut self) {
+        Self::increment(&mut self.counters.rejected);
+    }
+
+    /// Admit one decoded frame at its original receiver time. False means no latest-slot replacement.
+    pub fn admit(&mut self, received_at_s: f64, frame: SensorFrame) -> bool {
+        if !received_at_s.is_finite()
+            || received_at_s < 0.0
+            || self
+                .clock_floor
+                .is_some_and(|previous| received_at_s < previous)
+            || frame.session_id != self.session_id
+            || frame.session != self.session
+            || frame.validate_wire().is_err()
+            || self.latest.as_ref().is_some_and(|previous| {
+                frame.stream.epoch != previous.frame.stream.epoch
+                    || (frame.stream.seq > previous.frame.stream.seq && frame.t < previous.frame.t)
+            })
+        {
+            Self::increment(&mut self.counters.rejected);
+            return false;
+        }
+        self.clock_floor = Some(received_at_s);
+        let received_before = self.link.received_count();
+        self.link.on_seq(&frame.stream.epoch, frame.stream.seq);
+        self.counters.received = self.link.received_count();
+        self.counters.lost = self.link.lost_count();
+        self.counters.burst_observed |= self.link.is_burst();
+        if self
+            .latest
+            .as_ref()
+            .is_some_and(|previous| frame.stream.seq <= previous.frame.stream.seq)
+        {
+            if self.link.received_count() > received_before {
+                Self::increment(&mut self.counters.late);
+            } else {
+                Self::increment(&mut self.counters.duplicates);
+            }
+            return false;
+        }
+        if self.unread {
+            Self::increment(&mut self.counters.coalesced);
+        }
+        self.latest = Some(ReceivedSensor {
+            frame,
+            received_at_s,
+        });
+        self.unread = true;
+        true
+    }
+
+    /// Read the current frame without changing receipt metadata or consumption accounting.
+    pub fn latest(&self) -> Option<SensorFrame> {
+        self.latest.as_ref().map(|sample| sample.frame.clone())
+    }
+
+    /// Consume a snapshot. Only the local unread marker changes.
+    pub fn snapshot(&mut self) -> SensorIngressSnapshot {
+        self.unread = false;
+        SensorIngressSnapshot {
+            session_id: self.session_id.clone(),
+            session: self.session.clone(),
+            latest: self.latest.clone(),
+            counters: self.counters,
+        }
+    }
 }
 
 /// Bidirectional in-process channel (tests / co-process SITL). The plant calls
 /// `push_sensor` / `last_command`; the controller uses `ControlTransport`.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct InProcessTransport {
     inner: Arc<Mutex<InProcessInner>>,
 }
 
-#[derive(Default)]
 struct InProcessInner {
-    latest_sensor: Option<SensorFrame>,
+    sensors: SensorInbox,
     last_command: Option<CommandFrame>,
     commands: Vec<CommandFrame>,
     statuses: Vec<ControlStatus>,
 }
 
 impl InProcessTransport {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(
+        session_id: impl Into<String>,
+        session: SessionRef,
+    ) -> Result<Self, ControlLoopConfigError> {
+        Ok(Self {
+            inner: Arc::new(Mutex::new(InProcessInner {
+                sensors: SensorInbox::new(session_id, session)?,
+                last_command: None,
+                commands: Vec::new(),
+                statuses: Vec::new(),
+            })),
+        })
     }
     pub fn push_sensor(&self, frame: SensorFrame) {
+        self.push_sensor_at(monotonic_secs(), frame);
+    }
+    /// Inject receiver time from the same explicit clock used by the loop.
+    pub fn push_sensor_at(&self, received_at_s: f64, frame: SensorFrame) {
         self.inner
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .latest_sensor = Some(frame);
+            .sensors
+            .admit(received_at_s, frame);
     }
     pub fn last_command(&self) -> Option<CommandFrame> {
         self.inner
@@ -211,8 +369,15 @@ impl ControlTransport for InProcessTransport {
         self.inner
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .latest_sensor
-            .clone()
+            .sensors
+            .latest()
+    }
+    fn sensor_snapshot(&self) -> SensorIngressSnapshot {
+        self.inner
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .sensors
+            .snapshot()
     }
     fn send_status(&self, status: &ControlStatus) {
         self.inner
@@ -373,15 +538,12 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     command_seq: i64,
     /// Last transport-owned action position accepted by this loop. It binds all
     /// later admission receipts to one epoch, strict advancement for new slots,
-    /// and exact position reuse for pre-publication replacement.
+    /// and strict advancement for every pre-publication replacement.
     last_admitted_command_position: Option<StreamPosition>,
     status_stream_epoch: String,
     /// Last consumed position in the loop-owned status stream. Zero means no
     /// status has been published yet and is never emitted on the wire.
     status_seq: i64,
-    /// Link-health monitor over the inbound sensor `seq` stream. A sustained loss
-    /// burst feeds the HOLD-to-ESTOP escalation without identifying its cause.
-    link: crate::resilience::LinkMonitor,
     last_sensor_t: Option<f64>,
     /// Last accepted sensor's `(t, seq)`, to detect a frozen/cached stream. The
     /// watchdog clock (`last_sensor_t`) only advances when the sensor STRICTLY
@@ -444,7 +606,6 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
             last_admitted_command_position: None,
             status_stream_epoch,
             status_seq: 0,
-            link: crate::resilience::LinkMonitor::with_defaults("ncp-loop"),
             last_sensor_t: None,
             last_sensor_ts: None,
             active_sensor_epoch: None,
@@ -520,8 +681,19 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         // Wire 1.0: an unstamped sensor (`seq < 1`) is not a wire-legal frame —
         // treat it as ABSENT entirely (no freshness refresh, no link feed, no
         // correlate, not even geofence input): an invalid frame is no frame.
-        let candidate = self.transport.latest_sensor().filter(|sensor| {
+        let ingress = self.transport.sensor_snapshot();
+        let ingress_bound =
+            ingress.session_id == self.session_id && ingress.session == self.session;
+        if ingress_bound {
+            self.gov.note_link(ingress.counters.burst_observed);
+        }
+        let candidate = ingress.latest.filter(|sample| {
+            let sensor = &sample.frame;
             tick_clock_ok
+                && ingress_bound
+                && sample.received_at_s.is_finite()
+                && sample.received_at_s >= 0.0
+                && sample.received_at_s <= now
                 && sensor.validate_wire().is_ok()
                 && sensor.session_id == self.session_id
                 && sensor.session == self.session
@@ -531,7 +703,8 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         // alone never refreshes the watchdog, including after expiry. A lower seq or
         // foreign epoch cannot re-anchor this live loop; publisher restart requires
         // a fresh loop/route declaration with new controller and LinkMonitor state.
-        if let Some(s) = candidate {
+        if let Some(sample) = candidate {
+            let s = sample.frame;
             let same_epoch = self
                 .active_sensor_epoch
                 .as_deref()
@@ -546,11 +719,8 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                 if self.active_sensor_epoch.is_none() {
                     self.active_sensor_epoch = Some(s.stream.epoch.clone());
                 }
-                self.last_sensor_t = Some(now);
+                self.last_sensor_t = Some(sample.received_at_s);
                 self.last_sensor_ts = Some((s.t, s.stream.seq));
-                // Feed the link monitor only on a genuinely-new sensor (a frozen
-                // re-delivery is a duplicate no-op in the monitor regardless).
-                self.link.on_seq(&s.stream.epoch, s.stream.seq);
                 self.accepted_sensor = Some(s);
             }
         }
@@ -641,7 +811,6 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         // burst. An installed body executor must map ESTOP through its plant
         // profile; the burst does not prove jamming or define a universal physical
         // action. Checked every tick so the latch persists once tripped.
-        self.gov.note_link(self.link.is_burst());
         let mut cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t)?;
         // loop_latency_ms is a real health field: emit the measured tick cost (not a
         // constant 0.0) and flag an overrun past the loop period in `note`. Measure
@@ -695,15 +864,19 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
                     self.command_seq = command_seq;
                 }
                 CommandSendOutcome::ReplacedPending(position) => {
-                    let reuses_pending = self
+                    let advances_pending = self
                         .last_admitted_command_position
                         .as_ref()
-                        .is_some_and(|previous| previous == &position);
-                    cmd.stream = position;
-                    if !reuses_pending || cmd.validate_wire().is_err() {
+                        .is_some_and(|previous| {
+                            previous.epoch == position.epoch && position.seq > previous.seq
+                        });
+                    cmd.stream = position.clone();
+                    if !advances_pending || cmd.validate_wire().is_err() {
                         self.transport_failed = true;
                         return Err(ControlLoopTickError::InvalidTransportAdmission);
                     }
+                    self.last_admitted_command_position = Some(position);
+                    self.command_seq = command_seq;
                 }
                 CommandSendOutcome::StreamExhausted => {
                     return Err(ControlLoopTickError::TransportCommandStreamExhausted);
@@ -759,10 +932,12 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
     }
 }
 
-fn monotonic_secs() -> f64 {
+/// Process-wide monotonic seconds shared by ingress and default control-loop clocks.
+/// Values cannot cross a process boundary without an explicit clock-domain contract.
+pub fn monotonic_secs() -> f64 {
     use std::time::Instant;
-    thread_local! { static START: Instant = Instant::now(); }
-    START.with(|s| s.elapsed().as_secs_f64())
+    static START: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    START.get_or_init(Instant::now).elapsed().as_secs_f64()
 }
 
 #[cfg(test)]
@@ -891,6 +1066,10 @@ mod tests {
             Some(self.sensor.clone())
         }
 
+        fn sensor_snapshot(&self) -> SensorIngressSnapshot {
+            scripted_snapshot(&self.sensor)
+        }
+
         fn send_status(&self, status: &ControlStatus) {
             self.statuses
                 .lock()
@@ -935,8 +1114,121 @@ mod tests {
             Some(self.sensor.clone())
         }
 
+        fn sensor_snapshot(&self) -> SensorIngressSnapshot {
+            self.sensor_reads.fetch_add(1, Ordering::SeqCst);
+            scripted_snapshot(&self.sensor)
+        }
+
         fn send_status(&self, _status: &ControlStatus) {
             self.status_attempts.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    fn in_process() -> InProcessTransport {
+        InProcessTransport::new(SID, session()).unwrap()
+    }
+
+    #[test]
+    fn complete_ingress_with_latest_consumption_does_not_report_loss() {
+        let transport = in_process();
+        let clock = Arc::new(Mutex::new(0.0));
+        let clock_for_loop = clock.clone();
+        let mut control = bound_loop(
+            transport.clone(),
+            ReflexController::default(),
+            50.0,
+            SafetyLimits {
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_authority(test_authority())
+        .with_clock(Box::new(move || *clock_for_loop.lock().unwrap()));
+        for seq in 1..=12 {
+            let t = seq as f64 * 0.005;
+            transport.push_sensor_at(t, sensor_with_motion(t, seq, 0.0));
+            if seq % 4 == 0 {
+                *clock.lock().unwrap() = t;
+                assert_eq!(control.tick().unwrap().mode, Mode::Active);
+            }
+        }
+        let snapshot = transport.sensor_snapshot();
+        assert_eq!(snapshot.counters.received, 12);
+        assert_eq!(snapshot.counters.lost, 0);
+        assert_eq!(snapshot.counters.coalesced, 9);
+        assert!(!snapshot.counters.burst_observed);
+    }
+
+    #[test]
+    fn stalled_consumer_cannot_renew_a_pending_samples_age() {
+        let transport = in_process();
+        transport.push_sensor_at(0.0, sensor_with_motion(0.0, 1, 1.0));
+        let mut control = bound_loop(
+            transport.clone(),
+            ReflexController::default(),
+            50.0,
+            SafetyLimits {
+                command_timeout_ms: 200.0,
+                ..Default::default()
+            },
+        )
+        .with_authority(test_authority())
+        .with_clock(Box::new(|| 0.5));
+        assert_eq!(control.tick().unwrap().mode, Mode::Hold);
+        transport.push_sensor_at(0.5, sensor_with_motion(0.0, 1, 1.0));
+        assert_eq!(control.tick().unwrap().mode, Mode::Hold);
+        let snapshot = transport.sensor_snapshot();
+        assert_eq!(snapshot.latest.unwrap().received_at_s, 0.0);
+        assert_eq!(snapshot.counters.duplicates, 1);
+    }
+
+    #[test]
+    fn ingress_distinguishes_gaps_late_arrivals_duplicates_and_rejections() {
+        let mut inbox = SensorInbox::new(SID, session()).unwrap();
+        assert!(inbox.admit(0.01, sensor_with_motion(0.01, 1, 0.0)));
+        assert!(inbox.admit(0.04, sensor_with_motion(0.04, 4, 0.0)));
+        assert!(!inbox.admit(0.05, sensor_with_motion(0.03, 3, 0.0)));
+        assert!(!inbox.admit(0.06, sensor_with_motion(0.03, 3, 0.0)));
+        let mut foreign = sensor_with_motion(0.07, 1000, 0.0);
+        foreign.session.generation = "90000000-0000-4000-8000-000000000001".into();
+        assert!(!inbox.admit(0.07, foreign));
+        let snapshot = inbox.snapshot();
+        assert_eq!(snapshot.counters.received, 3);
+        assert_eq!(snapshot.counters.lost, 1);
+        assert_eq!(snapshot.counters.late, 1);
+        assert_eq!(snapshot.counters.duplicates, 1);
+        assert_eq!(snapshot.counters.rejected, 1);
+        assert_eq!(snapshot.latest.unwrap().received_at_s, 0.04);
+    }
+
+    #[test]
+    fn ingress_burst_remains_visible_when_controller_skips_intermediate_events() {
+        let mut inbox = SensorInbox::new(SID, session()).unwrap();
+        inbox.admit(0.0, sensor_with_motion(0.0, 1, 0.0));
+        for seq in 20..=200 {
+            inbox.admit(seq as f64, sensor_with_motion(seq as f64, seq, 0.0));
+        }
+        assert!(inbox.snapshot().counters.burst_observed);
+    }
+
+    #[test]
+    fn default_receiver_clock_survives_execution_thread_migration() {
+        let _ = monotonic_secs();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        let before = monotonic_secs();
+        let after = std::thread::spawn(monotonic_secs).join().unwrap();
+        assert!(after >= before);
+    }
+
+    fn scripted_snapshot(sensor: &SensorFrame) -> SensorIngressSnapshot {
+        SensorIngressSnapshot {
+            session_id: sensor.session_id.clone(),
+            session: sensor.session.clone(),
+            latest: Some(ReceivedSensor {
+                frame: sensor.clone(),
+                received_at_s: sensor.t,
+            }),
+            counters: SensorIngressCounters::default(),
         }
     }
 
@@ -975,7 +1267,7 @@ mod tests {
 
     #[test]
     fn reflex_loop_holds_without_sensor_then_drives() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let controller = ReflexController::default();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
@@ -1010,14 +1302,17 @@ mod tests {
             "pose_velocity".into(),
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
-        transport.push_sensor(SensorFrame {
-            stream: stream(1),
+        transport.push_sensor_at(
+            0.0,
+            SensorFrame {
+                stream: stream(1),
 
-            session: session(),
-            session_id: SID.into(),
-            channels: ch,
-            ..Default::default()
-        });
+                session: session(),
+                session_id: SID.into(),
+                channels: ch,
+                ..Default::default()
+            },
+        );
         *clock.lock().unwrap() = 0.05;
         let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Active);
@@ -1032,8 +1327,8 @@ mod tests {
 
     #[test]
     fn control_loop_never_self_authorizes_active_output() {
-        let transport = InProcessTransport::new();
-        transport.push_sensor(sensor_with_motion(0.0, 1, 1.0));
+        let transport = in_process();
+        transport.push_sensor_at(0.0, sensor_with_motion(0.0, 1, 1.0));
         let mut loop_ = bound_loop(
             transport,
             ReflexController::default(),
@@ -1051,7 +1346,7 @@ mod tests {
     fn unstamped_sensor_is_treated_as_absent() {
         // Wire 1.0: a seq<1 sensor is not wire-legal — the loop must treat it as
         // NO sensor (stale HOLD), never actuate from it or cite it as a source.
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1071,13 +1366,16 @@ mod tests {
             "pose_position".into(),
             ChannelValue::vec3(1.0, 0.0, 0.0, Some("m")),
         );
-        transport.push_sensor(SensorFrame {
-            stream: stream(0), // unstamped
-            session: session(),
-            session_id: SID.into(),
-            channels: ch,
-            ..Default::default()
-        });
+        transport.push_sensor_at(
+            0.0,
+            SensorFrame {
+                stream: stream(0), // unstamped
+                session: session(),
+                session_id: SID.into(),
+                channels: ch,
+                ..Default::default()
+            },
+        );
         let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Hold, "an unstamped sensor must not drive");
     }
@@ -1087,7 +1385,7 @@ mod tests {
         // FIX 4: a sensor that keeps arriving with the SAME (t, seq) is a frozen
         // stream; the watchdog clock must not advance, so once the timeout elapses
         // the loop HOLDs even though frames are "arriving" every tick.
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1113,15 +1411,18 @@ mod tests {
             "pose_velocity".into(),
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
-        transport.push_sensor(SensorFrame {
-            t: 0.0,
-            stream: stream(1),
+        transport.push_sensor_at(
+            0.0,
+            SensorFrame {
+                t: 0.0,
+                stream: stream(1),
 
-            session: session(),
-            session_id: SID.into(),
-            channels: ch,
-            ..Default::default()
-        });
+                session: session(),
+                session_id: SID.into(),
+                channels: ch,
+                ..Default::default()
+            },
+        );
 
         // First tick at t=0 accepts it -> ACTIVE.
         let cmd = must_tick(&mut loop_);
@@ -1165,7 +1466,7 @@ mod tests {
 
     #[test]
     fn restarted_sensor_stream_requires_a_fresh_loop_declaration() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1200,12 +1501,12 @@ mod tests {
             }
         };
         // Live stream at a high seq.
-        transport.push_sensor(frame(0.0, 500));
+        transport.push_sensor_at(0.0, frame(0.0, 500));
         assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
         // Restart frame arrives BEFORE expiry: rejected while the old anchor is
         // live — it must neither steer the controller nor replace correlation.
         *clock.lock().unwrap() = 0.1;
-        transport.push_sensor(frame(0.1, 1));
+        transport.push_sensor_at(0.1, frame(0.1, 1));
         let cmd = must_tick(&mut loop_);
         assert_eq!(cmd.mode, Mode::Active, "old anchor still fresh");
         assert_eq!(
@@ -1233,7 +1534,7 @@ mod tests {
         // Only a position that advances the already-declared epoch can resume this
         // loop. A real publisher restart constructs a fresh transport/loop.
         *clock.lock().unwrap() = 2.1;
-        transport.push_sensor(frame(2.1, 501));
+        transport.push_sensor_at(2.1, frame(2.1, 501));
         assert_eq!(
             must_tick(&mut loop_).mode,
             Mode::Active,
@@ -1247,7 +1548,7 @@ mod tests {
         use crate::messages::StreamPosition;
         let ep_a = "aaaaaaaa-0000-4000-8000-000000000001";
         let ep_b = "bbbbbbbb-0000-4000-8000-000000000002";
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1285,7 +1586,7 @@ mod tests {
             }
         };
         // Establish epoch A, live.
-        transport.push_sensor(frame(0.0, ep_a, 5));
+        transport.push_sensor_at(0.0, frame(0.0, ep_a, 5));
         assert_eq!(
             must_tick(&mut loop_)
                 .source
@@ -1296,7 +1597,7 @@ mod tests {
         );
         // A foreign epoch with a huge seq must NOT hijack the LIVE stream.
         *clock.lock().unwrap() = 0.1;
-        transport.push_sensor(frame(0.1, ep_b, 9999));
+        transport.push_sensor_at(0.1, frame(0.1, ep_b, 9999));
         assert_eq!(
             must_tick(&mut loop_)
                 .source
@@ -1314,7 +1615,7 @@ mod tests {
         );
         // The already-bound epoch can still advance with a fresh position.
         *clock.lock().unwrap() = 1.0;
-        transport.push_sensor(frame(1.0, ep_a, 6));
+        transport.push_sensor_at(1.0, frame(1.0, ep_a, 6));
         assert_eq!(
             must_tick(&mut loop_).mode,
             Mode::Active,
@@ -1327,7 +1628,7 @@ mod tests {
         // Wire 1.0: the command owns a contiguous publisher stream and local
         // creation time. The driving sensor is correlated only through
         // source/source_t, so decimation is not misclassified as command loss.
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1357,16 +1658,19 @@ mod tests {
             "pose_velocity".into(),
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
-        transport.push_sensor(SensorFrame {
-            t: 0.1,
-            stream: stream(7),
+        transport.push_sensor_at(
+            0.0,
+            SensorFrame {
+                t: 0.1,
+                stream: stream(7),
 
-            session: session(),
-            session_id: SID.into(),
-            frame_id: "map".into(),
-            channels: ch,
-            ..Default::default()
-        });
+                session: session(),
+                session_id: SID.into(),
+                frame_id: "map".into(),
+                channels: ch,
+                ..Default::default()
+            },
+        );
         *clock.lock().unwrap() = 0.05;
         let cmd = must_tick(&mut loop_);
         assert_eq!(
@@ -1382,7 +1686,7 @@ mod tests {
 
     #[test]
     fn loop_session_binding_is_immutable_and_rejects_new_generation_payloads() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1397,14 +1701,14 @@ mod tests {
         .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
 
-        transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
+        transport.push_sensor_at(0.0, sensor_with_motion(0.0, 1, 0.0));
         let first = must_tick(&mut loop_);
         assert_eq!(first.session, session());
         assert_eq!(first.source.as_ref().map(|source| source.seq), Some(1));
 
         let mut foreign_generation = sensor_with_motion(0.05, 2, 0.0);
         foreign_generation.session.generation = "50000000-0000-4000-8000-000000000005".into();
-        transport.push_sensor(foreign_generation);
+        transport.push_sensor_at(0.0, foreign_generation);
         *clock.lock().unwrap() = 0.05;
         let second = must_tick(&mut loop_);
         assert_eq!(second.session, session());
@@ -1425,7 +1729,7 @@ mod tests {
     #[test]
     fn loop_construction_rejects_invalid_binding_and_epochs_are_csprng_fresh() {
         let invalid = NeuroControlLoop::new(
-            InProcessTransport::new(),
+            in_process(),
             ReflexController::default(),
             20.0,
             SafetyLimits::default(),
@@ -1447,7 +1751,7 @@ mod tests {
 
     #[test]
     fn controller_is_not_stepped_on_a_stale_sensor() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let steps = Arc::new(AtomicUsize::new(0));
@@ -1467,7 +1771,7 @@ mod tests {
         )
         .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
-        transport.push_sensor(sensor_with_motion(0.0, 1, 0.0));
+        transport.push_sensor_at(0.0, sensor_with_motion(0.0, 1, 0.0));
         assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
         assert_eq!(steps.load(Ordering::SeqCst), 1);
 
@@ -1482,8 +1786,8 @@ mod tests {
 
     #[test]
     fn controller_panic_retires_partially_mutated_controller() {
-        let transport = InProcessTransport::new();
-        transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        let transport = in_process();
+        transport.push_sensor_at(1.0, sensor_with_motion(1.0, 1, 0.0));
         let steps = Arc::new(AtomicUsize::new(0));
         let mut loop_ = bound_loop(
             transport.clone(),
@@ -1525,8 +1829,8 @@ mod tests {
 
     #[test]
     fn ttl_is_normalized_before_geofence_projection() {
-        let transport = InProcessTransport::new();
-        transport.push_sensor(sensor_with_motion(1.0, 1, 9.5));
+        let transport = in_process();
+        transport.push_sensor_at(1.0, sensor_with_motion(1.0, 1, 9.5));
         let mut loop_ = bound_loop(
             transport,
             TrackingController {
@@ -1554,8 +1858,8 @@ mod tests {
 
     #[test]
     fn backward_tick_clock_holds_until_the_high_water_mark_is_recovered() {
-        let transport = InProcessTransport::new();
-        transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        let transport = in_process();
+        transport.push_sensor_at(1.0, sensor_with_motion(1.0, 1, 0.0));
         let times = Arc::new(Mutex::new(std::collections::VecDeque::from([
             1.0, 1.0, 0.5, 0.5, 1.1, 1.1,
         ])));
@@ -1575,7 +1879,7 @@ mod tests {
         }));
         assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
 
-        transport.push_sensor(sensor_with_motion(1.1, 2, 0.0));
+        transport.push_sensor_at(1.1, sensor_with_motion(1.1, 2, 0.0));
         assert_eq!(
             must_tick(&mut loop_).mode,
             Mode::Hold,
@@ -1590,7 +1894,7 @@ mod tests {
 
     #[test]
     fn controller_is_not_reset_by_replayed_lower_sensor_sequence() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let resets = Arc::new(AtomicUsize::new(0));
@@ -1610,12 +1914,12 @@ mod tests {
         )
         .with_authority(test_authority())
         .with_clock(Box::new(move || *clock2.lock().unwrap()));
-        transport.push_sensor(sensor_with_motion(0.0, 500, 0.0));
+        transport.push_sensor_at(0.0, sensor_with_motion(0.0, 500, 0.0));
         assert_eq!(must_tick(&mut loop_).mode, Mode::Active);
         assert_eq!(resets.load(Ordering::SeqCst), 0);
 
         *clock.lock().unwrap() = 0.5;
-        transport.push_sensor(sensor_with_motion(0.5, 1, 0.0));
+        transport.push_sensor_at(0.5, sensor_with_motion(0.5, 1, 0.0));
         assert_eq!(must_tick(&mut loop_).mode, Mode::Hold);
         assert_eq!(
             resets.load(Ordering::SeqCst),
@@ -1653,7 +1957,7 @@ mod tests {
     fn link_loss_burst_escalates_to_latched_estop() {
         // A sustained loss burst on the sensor seq stream must latch ESTOP via the
         // loop's LinkMonitor -> SafetyGovernor::note_link escalation (not mere HOLD).
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1691,7 +1995,7 @@ mod tests {
         for (i, seq) in [0_i64, 1, 2, 50].into_iter().enumerate() {
             let t = (i as f64 + 1.0) * 0.05;
             *clock.lock().unwrap() = t;
-            transport.push_sensor(frame(t, seq));
+            transport.push_sensor_at(t, frame(t, seq));
             let cmd = must_tick(&mut loop_);
             if seq == 50 {
                 assert_eq!(
@@ -1703,7 +2007,7 @@ mod tests {
         }
         // Latched: a subsequent clean frame must STILL be ESTOP.
         *clock.lock().unwrap() = 0.30;
-        transport.push_sensor(frame(0.30, 51));
+        transport.push_sensor_at(0.30, frame(0.30, 51));
         assert_eq!(
             must_tick(&mut loop_).mode,
             Mode::Estop,
@@ -1715,7 +2019,7 @@ mod tests {
     fn loop_latency_ms_is_measured() {
         // A clock advancing per read => the post-send read exceeds the tick-start
         // read, so loop_latency_ms is a real measured value, not a constant 0.0.
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();
         let mut loop_ = bound_loop(
@@ -1741,7 +2045,7 @@ mod tests {
 
     #[test]
     fn status_stream_starts_at_one_and_advances_strictly() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
@@ -1762,7 +2066,7 @@ mod tests {
 
     #[test]
     fn status_stream_exhaustion_never_reuses_the_last_position() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let mut loop_ = bound_loop(
             transport.clone(),
             ReflexController::default(),
@@ -1785,7 +2089,7 @@ mod tests {
 
     #[test]
     fn command_stream_exhaustion_returns_no_controller_or_wire_frame() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let steps = Arc::new(AtomicUsize::new(0));
         let mut loop_ = bound_loop(
             transport.clone(),
@@ -1796,7 +2100,7 @@ mod tests {
             SafetyLimits::default(),
         )
         .with_clock(Box::new(|| 1.0));
-        transport.push_sensor(sensor_with_motion(1.0, 1, 0.0));
+        transport.push_sensor_at(1.0, sensor_with_motion(1.0, 1, 0.0));
         loop_.command_seq = JSON_SAFE_INTEGER_MAX;
 
         let error = loop_
@@ -1951,10 +2255,7 @@ mod tests {
                 seq: 43,
             }),
             CommandSendOutcome::Accepted(first.clone()),
-            CommandSendOutcome::ReplacedPending(StreamPosition {
-                epoch: first.epoch.clone(),
-                seq: 43,
-            }),
+            CommandSendOutcome::ReplacedPending(first.clone()),
         ] {
             assert_inconsistent_admission_retires_binding(hostile);
         }
@@ -1970,12 +2271,16 @@ mod tests {
             epoch: first.epoch.clone(),
             seq: 43,
         };
+        let after_replacement = StreamPosition {
+            epoch: first.epoch.clone(),
+            seq: 44,
+        };
         let transport = ScriptedTransport::new(
             sensor_with_motion(1.0, 1, 0.0),
             vec![
                 CommandSendOutcome::Accepted(first.clone()),
-                CommandSendOutcome::ReplacedPending(first.clone()),
-                CommandSendOutcome::Accepted(next.clone()),
+                CommandSendOutcome::ReplacedPending(next.clone()),
+                CommandSendOutcome::Accepted(after_replacement.clone()),
             ],
         );
         let mut loop_ = bound_loop(
@@ -1990,10 +2295,10 @@ mod tests {
 
         assert_eq!(loop_.tick().unwrap().stream, first);
         assert_eq!(loop_.command_seq, 1);
-        assert_eq!(loop_.tick().unwrap().stream, first);
-        assert_eq!(loop_.command_seq, 1);
         assert_eq!(loop_.tick().unwrap().stream, next);
         assert_eq!(loop_.command_seq, 2);
+        assert_eq!(loop_.tick().unwrap().stream, after_replacement);
+        assert_eq!(loop_.command_seq, 3);
         assert_eq!(transport.statuses.lock().unwrap().len(), 3);
     }
 
@@ -2143,7 +2448,7 @@ mod tests {
     #[test]
     fn invalid_or_unwatchdoggable_rate_forces_hold() {
         for rate_hz in [0.0, -20.0, f64::NAN, 0.01] {
-            let transport = InProcessTransport::new();
+            let transport = in_process();
             let mut channels = crate::messages::Map::new();
             channels.insert(
                 "pose_position".into(),
@@ -2153,14 +2458,17 @@ mod tests {
                 "pose_velocity".into(),
                 ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
             );
-            transport.push_sensor(SensorFrame {
-                stream: stream(1),
+            transport.push_sensor_at(
+                0.0,
+                SensorFrame {
+                    stream: stream(1),
 
-                session: session(),
-                session_id: SID.into(),
-                channels,
-                ..Default::default()
-            });
+                    session: session(),
+                    session_id: SID.into(),
+                    channels,
+                    ..Default::default()
+                },
+            );
             let mut loop_ = bound_loop(
                 transport.clone(),
                 ReflexController::default(),
@@ -2180,7 +2488,7 @@ mod tests {
 
     #[test]
     fn clock_failure_during_tick_forces_current_command_hold() {
-        let transport = InProcessTransport::new();
+        let transport = in_process();
         let mut channels = crate::messages::Map::new();
         channels.insert(
             "pose_position".into(),
@@ -2190,14 +2498,17 @@ mod tests {
             "pose_velocity".into(),
             ChannelValue::vec3(0.0, 0.0, 0.0, Some("m/s")),
         );
-        transport.push_sensor(SensorFrame {
-            stream: stream(1),
+        transport.push_sensor_at(
+            0.0,
+            SensorFrame {
+                stream: stream(1),
 
-            session: session(),
-            session_id: SID.into(),
-            channels,
-            ..Default::default()
-        });
+                session: session(),
+                session_id: SID.into(),
+                channels,
+                ..Default::default()
+            },
+        );
         let times = Arc::new(Mutex::new(std::collections::VecDeque::from([1.0, 0.0])));
         let times2 = times.clone();
         let mut loop_ = bound_loop(

@@ -224,8 +224,8 @@ pub struct LinkMonitor {
 }
 
 impl LinkMonitor {
-    /// `ref_loss` is the tolerated baseline loss fraction; `threshold` is the
-    /// CUSUM trip level (higher = slower but fewer false alarms).
+    /// `ref_loss` is the tolerated baseline loss fraction; `threshold` is the CUSUM trip level.
+    /// Burst reports the final state after each arrived frame, not transient crossings inside its gap.
     pub fn new(session_id: impl Into<String>, ref_loss: f64, threshold: f64) -> Self {
         // Validate the detector params. The CUSUM jam trigger is load-bearing
         // (it gates the HOLD→ESTOP fail-safe): a `ref_loss >= 1.0` makes the
@@ -297,14 +297,8 @@ impl LinkMonitor {
             return;
         }
         self.observed_epoch = Some(epoch.to_string());
-        // Cap the CUSUM bookkeeping iterations per call so a huge/hostile seq jump
-        // (peer restart, counter glitch, malicious sender, e.g. seq=9_000_000_000)
-        // cannot stall this thread. The one-sided CUSUM trips at
-        // ~threshold/(1-ref_loss) losses (~6 for the defaults), far below the cap,
-        // so a larger real gap changes nothing observable past the trip point.
-        const MAX_GAP_OBSERVE: i64 = 256;
         // Bound on the reconciliation set so a hostile/huge gap cannot grow it
-        // without limit; `lost` stays exact regardless (see saturating_add).
+        // without limit. Late arrivals outside this retained set cannot reconcile loss.
         const MISSING_CAP: usize = 4096;
         if self.first_seq.is_none() {
             self.first_seq = Some(seq);
@@ -333,9 +327,11 @@ impl LinkMonitor {
                     }
                     self.missing.insert(s);
                 }
-                for _ in 0..missed.min(MAX_GAP_OBSERVE) {
-                    self.observe(true);
-                }
+                // Missing events have a nonnegative increment. Batch their exact
+                // real-arithmetic recurrence with bounded binary64 arithmetic.
+                // Accepted JSON-safe sequence spans keep this finite. The final
+                // delivery update below determines the reported crossing state.
+                self.cusum += missed as f64 * (1.0 - self.ref_loss);
             } else if seq < e {
                 // Out-of-order / duplicate. If this seq was previously counted as
                 // lost, it actually arrived late: reconcile by decrementing `lost`
@@ -384,6 +380,16 @@ impl LinkMonitor {
         self.burst
     }
 
+    /// Number of distinct admitted arrivals, including retained late reconciliation.
+    pub fn received_count(&self) -> i64 {
+        self.received
+    }
+
+    /// Unreconciled missing positions within the observed sequence span.
+    pub fn lost_count(&self) -> i64 {
+        self.lost
+    }
+
     /// Build a [`LinkStatus`] at publisher time `t`. The caller (the status
     /// publisher) supplies its OWN `stream` position and the live `session` — the
     /// LinkStatus envelope identity a consumer validates *before* trusting any
@@ -426,6 +432,53 @@ mod tests {
     use super::*;
     use crate::messages::test_ids::{session, stream, EPOCH, SID};
     use crate::messages::AuthorityLease;
+
+    #[test]
+    fn large_gap_preserves_the_full_final_cusum_state() {
+        let mut monitor = LinkMonitor::new(SID, 0.05, 300.0);
+        monitor.on_seq(EPOCH, 1);
+        monitor.on_seq(EPOCH, 1002);
+        assert!((monitor.cusum - 949.95).abs() < 1e-10);
+        assert!(monitor.is_burst());
+        assert_eq!(monitor.lost, 1000);
+    }
+
+    #[test]
+    fn gap_burst_reports_the_final_state_not_a_transient_crossing() {
+        let mut monitor = LinkMonitor::new(SID, 0.5, 1.25);
+        monitor.on_seq(EPOCH, 1);
+        monitor.on_seq(EPOCH, 5);
+        assert_eq!(monitor.cusum, 1.0);
+        assert!(!monitor.is_burst());
+    }
+
+    #[test]
+    fn batched_gap_matches_independent_event_recurrence() {
+        for reference in [0.0, 0.05, 0.5, 0.99] {
+            for misses in [0, 1, 3, 255, 256, 257, 1000] {
+                let mut monitor = LinkMonitor::new(SID, reference, 300.0);
+                monitor.on_seq(EPOCH, 1);
+                monitor.on_seq(EPOCH, misses + 2);
+                let mut expected = 0.0_f64;
+                for _ in 0..misses {
+                    expected = (expected + 1.0 - reference).max(0.0);
+                }
+                expected = (expected - reference).max(0.0);
+                assert!((monitor.cusum - expected).abs() < 1e-8);
+                assert_eq!(monitor.is_burst(), expected >= 300.0);
+            }
+        }
+    }
+
+    #[test]
+    fn largest_wire_gap_keeps_reconciliation_storage_bounded() {
+        let mut monitor = LinkMonitor::new(SID, 0.05, 300.0);
+        monitor.on_seq(EPOCH, 1);
+        monitor.on_seq(EPOCH, JSON_SAFE_INTEGER_MAX);
+        assert!(monitor.cusum.is_finite());
+        assert!(monitor.is_burst());
+        assert!(monitor.missing.len() <= 4096);
+    }
 
     fn authority() -> AuthorityLease {
         AuthorityLease {

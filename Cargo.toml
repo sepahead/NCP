@@ -39,7 +39,8 @@ rust-version = "1.88.0"
 ncp-core = { path = "ncp-core", version = "1.0.0-rc.1" }
 ncp-zenoh = { path = "ncp-zenoh", version = "1.0.0-rc.1" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# Typed digests require exact binary64 round trips for actual scientific values.
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
 sha2 = "0.10"
 getrandom = "0.3.4"
 

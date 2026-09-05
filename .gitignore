@@ -1,4 +1,5 @@
 /target
+/local/rust/target/
 /candidate-dossier/
 
 # TS package

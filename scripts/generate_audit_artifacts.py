@@ -113,6 +113,26 @@ PUBLICATION_REVIEWED_GAP_LINES = {
     ),
 }
 
+# Reviewed development-scope text, not evidence that its requirements passed.
+# Exact path, marker, and line identity prevent a changed runtime claim from
+# inheriting this disposition. Source and generated acceptance prose stay paired.
+LOCAL_REVIEWED_SCOPE_LINES = {
+    ("docs/local-v1/README.md", "M005"): {
+        "| LV1-10 | Enforce fixed endpoint roles and reject unimplemented profiles without fallback. |": "NEGATIVE_POLICY_GUARD",
+    },
+    ("docs/local-v1/acceptance-70.md", "M008"): {
+        "**Original requirement:** Missingness and fallback are per entity. Valid peers are neither fabricated nor inadvertently discarded.": "REVIEWED_ACCEPTANCE_CHALLENGE",
+        "## 60. Select Haldir-gated mode, then attempt direct Engram command and gate-timeout fallback.": "REVIEWED_ACCEPTANCE_CHALLENGE",
+    },
+    ("docs/local-v1/acceptance-70.source.json", "M008"): {
+        '"original_requirement": "Missingness and fallback are per entity. Valid peers are neither fabricated nor inadvertently discarded.",': "REVIEWED_ACCEPTANCE_CHALLENGE",
+        '"case": "Select Haldir-gated mode, then attempt direct Engram command and gate-timeout fallback.",': "REVIEWED_ACCEPTANCE_CHALLENGE",
+    },
+    ("docs/local-v1/decision.md", "M008"): {
+        "| Enable Haldir and online guard immediately | Policy-constrained experiments are required now. | Missing acceleration semantics or advisory authority creates an unsafe fallback. | Select gated mode and test all direct-command bypasses. |": "REVIEWED_DESIGN_FAILURE_MODE",
+    },
+}
+
 COUNTERFACTUALS = {
     "CF-01": "valid syntax with contradictory semantics",
     "CF-02": "authenticated but unauthorized producer",
@@ -2443,6 +2463,9 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
                 "RELEASE_READINESS.md",
             ],
         )
+    reviewed = LOCAL_REVIEWED_SCOPE_LINES.get((path, token_id), {}).get(line.strip())
+    if reviewed is not None:
+        return reviewed, "NO_RUNTIME_OR_RELEASE_AUTHORIZATION", [path]
     if token_id in {"M001", "M002", "M003", "M004", "M005", "M006"}:
         return (
             "UNREVIEWED_ACTION_PATH",
@@ -2828,6 +2851,25 @@ def self_test() -> None:
         raise AssertionError("latent scanner missed a hostile multi-token line")
     if any(item["disposition"] != "UNREVIEWED_ACTION_PATH" for item in hostile):
         raise AssertionError("unknown hostile markers did not remain unreviewed")
+    for (path, token_id), reviewed_lines in LOCAL_REVIEWED_SCOPE_LINES.items():
+        for line, disposition in reviewed_lines.items():
+            expected = (disposition, "NO_RUNTIME_OR_RELEASE_AUTHORIZATION", [path])
+            if _classification(path, token_id, line) != expected:
+                raise AssertionError(
+                    "reviewed local scope text lost its bounded disposition"
+                )
+            for altered_path, altered_line in (
+                (path, line + " Permissive runtime enabled."),
+                ("unreviewed/source.rs", line),
+                (path, "TODO: enable permissive fallback"),
+            ):
+                if (
+                    _classification(altered_path, token_id, altered_line)[0]
+                    != "UNREVIEWED_ACTION_PATH"
+                ):
+                    raise AssertionError(
+                        "reviewed local text admitted changed or foreign semantics"
+                    )
     quarantined, is_text = _scan_content(
         "prototypes/authenticated-ingress/example.md",
         b"fallback\n",

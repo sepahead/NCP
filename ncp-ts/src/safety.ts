@@ -33,6 +33,7 @@ import {
   hasWireControlCharacters,
   JSON_SAFE_INTEGER_MAX,
   MAX_CHANNELS,
+  MAX_COMMAND_TTL_MS,
   MAX_HORIZON_STEPS,
   NCP_VERSION,
   NcpVersionError,
@@ -93,7 +94,7 @@ export interface SensorLike {
 
 /** Upper bound on an enforced command ttl (ms) — mirrors `safety.rs::MAX_TTL_MS`:
  *  the wire field is unbounded, but the plant-side deadline must stay finite. */
-export const MAX_TTL_MS = 60_000
+export const MAX_TTL_MS = MAX_COMMAND_TTL_MS
 /** Factor in the total-silence ESTOP threshold
  *  `min(factor * min(timeout, MAX_TTL_MS), MAX_TTL_MS)` (mirrors
  *  `safety.rs::LINK_LOSS_ESTOP_FACTOR`). */

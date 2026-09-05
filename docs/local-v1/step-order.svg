@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="240" viewBox="0 0 1000 240" role="img" aria-labelledby="title desc">
+<title id="title">Exact local step order</title>
+<desc id="desc">Source snapshot, neural advance, proposal, body application, next snapshot, and capture closure are distinct ordered states. A missing or indeterminate pair blocks dependent progress.</desc>
+<defs><marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#315D9B"/></marker><marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#006D77"/></marker></defs>
+<rect width="1000" height="240" rx="16" fill="white"/>
+<g font-family="DejaVu Sans, Arial, sans-serif"><text x="24" y="35" fill="#17324D" font-size="28" font-weight="bold" text-anchor="start">A closed step retains the complete causal chain.</text>
+<rect x="20" y="68" width="142" height="113" rx="9" fill="#F2F6FA" stroke="#B8CBD8"/>
+<text x="91" y="97" fill="#17324D" font-size="22" font-weight="bold" text-anchor="middle">Source</text>
+<text x="91" y="131" fill="#006D77" font-size="23" font-weight="bold" text-anchor="middle">x[k]</text>
+<text x="91" y="158" fill="#526575" font-size="12" font-weight="normal" text-anchor="middle">immutable snapshot</text>
+<path d="M 164 122 H 174" stroke="#315D9B" stroke-width="2"/>
+<polygon points="171,117 171,127 181,122" fill="#315D9B"/>
+<rect x="182" y="68" width="142" height="113" rx="9" fill="#F2F6FA" stroke="#B8CBD8"/>
+<text x="253" y="97" fill="#17324D" font-size="22" font-weight="bold" text-anchor="middle">Neural</text>
+<text x="253" y="131" fill="#006D77" font-size="23" font-weight="bold" text-anchor="middle">z[k+1]</text>
+<text x="253" y="158" fill="#526575" font-size="12" font-weight="normal" text-anchor="middle">actual NEST advance</text>
+<path d="M 326 122 H 336" stroke="#315D9B" stroke-width="2"/>
+<polygon points="333,117 333,127 343,122" fill="#315D9B"/>
+<rect x="344" y="68" width="142" height="113" rx="9" fill="#F2F6FA" stroke="#B8CBD8"/>
+<text x="415" y="97" fill="#17324D" font-size="22" font-weight="bold" text-anchor="middle">Proposal</text>
+<text x="415" y="131" fill="#006D77" font-size="23" font-weight="bold" text-anchor="middle">u[k+1]</text>
+<text x="415" y="158" fill="#526575" font-size="12" font-weight="normal" text-anchor="middle">bounded acceleration</text>
+<path d="M 488 122 H 498" stroke="#315D9B" stroke-width="2"/>
+<polygon points="495,117 495,127 505,122" fill="#315D9B"/>
+<rect x="506" y="68" width="142" height="113" rx="9" fill="#F2F6FA" stroke="#B8CBD8"/>
+<text x="577" y="97" fill="#17324D" font-size="22" font-weight="bold" text-anchor="middle">Body</text>
+<text x="577" y="131" fill="#006D77" font-size="23" font-weight="bold" text-anchor="middle">apply</text>
+<text x="577" y="158" fill="#526575" font-size="12" font-weight="normal" text-anchor="middle">actual CREBAIN step</text>
+<path d="M 650 122 H 660" stroke="#315D9B" stroke-width="2"/>
+<polygon points="657,117 657,127 667,122" fill="#315D9B"/>
+<rect x="668" y="68" width="142" height="113" rx="9" fill="#F2F6FA" stroke="#B8CBD8"/>
+<text x="739" y="97" fill="#17324D" font-size="22" font-weight="bold" text-anchor="middle">Snapshot</text>
+<text x="739" y="131" fill="#006D77" font-size="23" font-weight="bold" text-anchor="middle">x[k+1]</text>
+<text x="739" y="158" fill="#526575" font-size="12" font-weight="normal" text-anchor="middle">next source sample</text>
+<path d="M 812 122 H 822" stroke="#315D9B" stroke-width="2"/>
+<polygon points="819,117 819,127 829,122" fill="#315D9B"/>
+<rect x="830" y="68" width="142" height="113" rx="9" fill="#F2F6FA" stroke="#B8CBD8"/>
+<text x="901" y="97" fill="#17324D" font-size="22" font-weight="bold" text-anchor="middle">Closure</text>
+<text x="901" y="131" fill="#006D77" font-size="23" font-weight="bold" text-anchor="middle">step k+1</text>
+<text x="901" y="158" fill="#526575" font-size="12" font-weight="normal" text-anchor="middle">known captured pair</text>
+<text x="500" y="219" fill="#17324D" font-size="20" font-weight="normal" text-anchor="middle">One dependent step is outstanding. Capture capacity exists before mutation.</text>
+</g>
+</svg>

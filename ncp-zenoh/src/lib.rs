@@ -1512,7 +1512,6 @@ enum CommandPriority {
 
 #[derive(Debug)]
 struct PendingCommand {
-    command: ncp_core::CommandFrame,
     bytes: Vec<u8>,
     priority: CommandPriority,
 }
@@ -1543,7 +1542,7 @@ fn candidate_command_sequence(counter: &std::sync::atomic::AtomicI64) -> Option<
 
 /// Store at most one not-yet-published command. The transport is the action-stream
 /// publisher, so it assigns every new slot one position from a single allocator.
-/// Replacing an unattempted slot reuses that slot's position without a false gap.
+/// Replacing an unattempted slot consumes a fresh position and reports local replacement.
 fn enqueue_command(
     state: &std::sync::Mutex<CommandDispatchState>,
     mut command: ncp_core::CommandFrame,
@@ -1565,25 +1564,31 @@ fn enqueue_command(
     {
         return ncp_core::transport::CommandSendOutcome::Rejected;
     }
-    let (replaced, position) = if let Some(current) = state.pending.as_ref() {
-        // This candidate has not crossed the publication boundary. Reuse the
-        // selected slot's position so intentional local conflation cannot create
-        // an artificial action-stream loss gap.
-        command.stream = current.command.stream.clone();
-        (true, command.stream.clone())
-    } else {
-        // Stage the next position under the dispatch-state mutex. Commit the
-        // allocator only after the exact final bytes pass every slot-admission
-        // check; a synchronous rejection must not create a fake receiver gap.
-        let Some(seq) = candidate_command_sequence(sequence) else {
-            return ncp_core::transport::CommandSendOutcome::StreamExhausted;
-        };
-        command.stream = ncp_core::StreamPosition {
-            epoch: stream_epoch.to_owned(),
-            seq,
-        };
-        (false, command.stream.clone())
+    let replaced = state.pending.is_some();
+    // One admitted position must never identify different payloads, including
+    // proposals observed before publication. Coalescing can leave an unpublished gap.
+    let Some(seq) = candidate_command_sequence(sequence) else {
+        if priority != CommandPriority::Active {
+            state.required_fail_safe = Some(
+                state
+                    .required_fail_safe
+                    .map_or(priority, |old| old.max(priority)),
+            );
+            if state
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.priority < priority)
+            {
+                state.pending = None;
+            }
+        }
+        return ncp_core::transport::CommandSendOutcome::StreamExhausted;
     };
+    command.stream = ncp_core::StreamPosition {
+        epoch: stream_epoch.to_owned(),
+        seq,
+    };
+    let position = command.stream.clone();
     // The transport-owned position is the final wire identity. Validate and
     // serialize after assigning it so sequence-digit growth cannot move an
     // otherwise near-limit frame past the universal byte ceiling in the async
@@ -1615,14 +1620,8 @@ fn enqueue_command(
         }
         return ncp_core::transport::CommandSendOutcome::Rejected;
     };
-    if !replaced {
-        sequence.store(position.seq, std::sync::atomic::Ordering::Relaxed);
-    }
-    state.pending = Some(PendingCommand {
-        command,
-        bytes,
-        priority,
-    });
+    sequence.store(position.seq, std::sync::atomic::Ordering::Relaxed);
+    state.pending = Some(PendingCommand { bytes, priority });
     if replaced {
         ncp_core::transport::CommandSendOutcome::ReplacedPending(position)
     } else {
@@ -1707,7 +1706,7 @@ pub struct ZenohControlTransport {
     _bus: ZenohBus,
     session_id: String,
     session: ncp_core::SessionRef,
-    latest: Arc<std::sync::Mutex<Option<ncp_core::SensorFrame>>>,
+    latest: Arc<std::sync::Mutex<ncp_core::transport::SensorInbox>>,
     command_state: Arc<std::sync::Mutex<CommandDispatchState>>,
     command_notify: Arc<tokio::sync::Notify>,
     command_worker: tokio::task::JoinHandle<()>,
@@ -1726,21 +1725,40 @@ impl ZenohControlTransport {
         check_live_session_ref(&session)?;
         let command_stream_epoch = ncp_core::transport::mint_stream_epoch()
             .map_err(|error| ZenohError(error.to_string()))?;
-        let latest: Arc<std::sync::Mutex<Option<ncp_core::SensorFrame>>> =
-            Arc::new(std::sync::Mutex::new(None));
+        let latest = Arc::new(std::sync::Mutex::new(
+            ncp_core::transport::SensorInbox::new(session_id.clone(), session.clone())
+                .map_err(|error| ZenohError(error.to_string()))?,
+        ));
         let sink = latest.clone();
-        bus.subscribe_sensors(&session_id, &session, move |_key, bytes| {
-            // Wire 1.0 candidate data-plane ingress gate. The typed subscriber has
-            // already rejected a wrong id/generation; `decode_validated` rejects an
+        let route = bus.keys.sensor(&session_id);
+        let expected_route = route.clone();
+        // This private typed boundary validates and accounts before latest replacement.
+        // SensorInbox owns the one-epoch fence, including bounded late reconciliation.
+        bus.subscribe(&route, move |key, bytes| {
+            let received_at_s = ncp_core::transport::monotonic_secs();
+            if key != expected_route {
+                return;
+            }
+            // Wire 1.0 candidate data-plane ingress gate. SensorInbox rejects a
+            // wrong id/generation; `decode_validated` rejects an
             // unparseable, kind-mismatched, version-less/incompatible, or
             // unstamped (`seq < 1`) frame — dropped with a diagnostic so a
             // mismatched peer is observable, never silently steering the loop.
             match ncp_core::decode_validated::<ncp_core::SensorFrame>(&bytes) {
-                Ok(sf) => *sink.lock().unwrap_or_else(|e| e.into_inner()) = Some(sf),
-                Err(e) => match ncp_core::diagnose_version(&bytes) {
-                    Some(ve) => eprintln!("ncp: dropped sensor frame ({ve})"),
-                    None => eprintln!("ncp: dropped sensor frame: {e}"),
-                },
+                Ok(sf) => {
+                    sink.lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .admit(received_at_s, sf);
+                }
+                Err(e) => {
+                    sink.lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .reject_frame();
+                    match ncp_core::diagnose_version(&bytes) {
+                        Some(ve) => eprintln!("ncp: dropped sensor frame ({ve})"),
+                        None => eprintln!("ncp: dropped sensor frame: {e}"),
+                    }
+                }
             }
         })
         .await?;
@@ -1966,7 +1984,14 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
         self.latest
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .clone()
+            .latest()
+    }
+
+    fn sensor_snapshot(&self) -> ncp_core::transport::SensorIngressSnapshot {
+        self.latest
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .snapshot()
     }
 }
 
@@ -3160,7 +3185,10 @@ mod tests {
         );
         assert_eq!(
             enqueue_command(&state, command(2, CommandPriority::Hold), STREAM, &sequence,),
-            ncp_core::transport::CommandSendOutcome::ReplacedPending(first.clone())
+            ncp_core::transport::CommandSendOutcome::ReplacedPending(ncp_core::StreamPosition {
+                epoch: STREAM.into(),
+                seq: 2,
+            })
         );
         assert_eq!(
             enqueue_command(
@@ -3179,7 +3207,10 @@ mod tests {
                 STREAM,
                 &sequence,
             ),
-            ncp_core::transport::CommandSendOutcome::ReplacedPending(first)
+            ncp_core::transport::CommandSendOutcome::ReplacedPending(ncp_core::StreamPosition {
+                epoch: STREAM.into(),
+                seq: 3,
+            })
         );
         assert_eq!(
             enqueue_command(&state, command(5, CommandPriority::Hold), STREAM, &sequence,),
@@ -3187,14 +3218,15 @@ mod tests {
             "HOLD must not overwrite a pending ESTOP"
         );
         let queued = state.into_inner().unwrap().pending.unwrap();
+        let queued_command: ncp_core::CommandFrame = serde_json::from_slice(&queued.bytes).unwrap();
         assert_eq!(queued.priority, CommandPriority::Estop);
-        assert_eq!(queued.command.frame_id, "4");
-        assert_eq!(queued.command.stream.epoch, STREAM);
+        assert_eq!(queued_command.frame_id, "4");
+        assert_eq!(queued_command.stream.epoch, STREAM);
         assert_eq!(
-            queued.command.stream.seq, 1,
-            "every pre-publication replacement reuses the selected slot position"
+            queued_command.stream.seq, 3,
+            "every admitted replacement has one distinct payload position"
         );
-        assert_eq!(sequence.load(std::sync::atomic::Ordering::Relaxed), 1);
+        assert_eq!(sequence.load(std::sync::atomic::Ordering::Relaxed), 3);
     }
 
     #[test]
@@ -3229,7 +3261,8 @@ mod tests {
             })
         );
         let failed = state.lock().unwrap().pending.take().unwrap();
-        assert_eq!(failed.command.stream.seq, 1);
+        let failed_command: ncp_core::CommandFrame = serde_json::from_slice(&failed.bytes).unwrap();
+        assert_eq!(failed_command.stream.seq, 1);
         note_publish_failure(&state, failed.priority);
 
         assert_eq!(
@@ -3247,8 +3280,9 @@ mod tests {
             })
         );
         let retry = state.lock().unwrap().pending.take().unwrap();
+        let retry_command: ncp_core::CommandFrame = serde_json::from_slice(&retry.bytes).unwrap();
         assert_eq!(
-            retry.command.stream.seq, 2,
+            retry_command.stream.seq, 2,
             "recovery is a new logical frame"
         );
         note_publish_success(&state, retry.priority);
@@ -3267,7 +3301,7 @@ mod tests {
     fn final_position_preflight_rejects_and_displaces_weaker_pending_command() {
         const STREAM: &str = "40000000-0000-4000-8000-000000000004";
         let state = std::sync::Mutex::new(CommandDispatchState::default());
-        let sequence = std::sync::atomic::AtomicI64::new(ncp_core::JSON_SAFE_INTEGER_MAX - 1);
+        let sequence = std::sync::atomic::AtomicI64::new(ncp_core::JSON_SAFE_INTEGER_MAX - 2);
         let mut active_channels = ncp_core::Map::new();
         active_channels.insert("setpoint".into(), ncp_core::ChannelValue::scalar(0.0, None));
         let active = ncp_core::CommandFrame {
@@ -3286,7 +3320,7 @@ mod tests {
             enqueue_command(&state, active.clone(), STREAM, &sequence),
             ncp_core::transport::CommandSendOutcome::Accepted(ncp_core::StreamPosition {
                 epoch: STREAM.into(),
-                seq: ncp_core::JSON_SAFE_INTEGER_MAX,
+                seq: ncp_core::JSON_SAFE_INTEGER_MAX - 1,
             })
         );
 
@@ -3366,6 +3400,39 @@ mod tests {
             ncp_core::transport::CommandSendOutcome::StreamExhausted
         );
         assert!(state.lock().unwrap().pending.is_none());
+    }
+
+    #[test]
+    fn exhausted_restrictive_replacement_cannot_leave_pending_active() {
+        const STREAM: &str = "40000000-0000-4000-8000-000000000004";
+        let state = std::sync::Mutex::new(CommandDispatchState::default());
+        let sequence = std::sync::atomic::AtomicI64::new(ncp_core::JSON_SAFE_INTEGER_MAX - 1);
+        let mut active = ncp_core::CommandFrame {
+            stream: ncp_core::StreamPosition {
+                epoch: STREAM.into(),
+                seq: 1,
+            },
+            session: live_session(),
+            session_id: "s".into(),
+            mode: ncp_core::Mode::Active,
+            authority: Some(test_authority()),
+            channels: [("setpoint".into(), ncp_core::ChannelValue::scalar(0.0, None))]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+        assert!(matches!(
+            enqueue_command(&state, active.clone(), STREAM, &sequence),
+            ncp_core::transport::CommandSendOutcome::Accepted(_)
+        ));
+        active.mode = ncp_core::Mode::Hold;
+        assert_eq!(
+            enqueue_command(&state, active, STREAM, &sequence),
+            ncp_core::transport::CommandSendOutcome::StreamExhausted
+        );
+        let guarded = state.lock().unwrap();
+        assert!(guarded.pending.is_none());
+        assert_eq!(guarded.required_fail_safe, Some(CommandPriority::Hold));
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

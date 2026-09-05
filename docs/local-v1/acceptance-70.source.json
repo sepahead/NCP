@@ -1,0 +1,1263 @@
+{
+  "schema": "ncp.local.acceptance-mapping.v1",
+  "status": "draft_open",
+  "source": {
+    "name": "NCP_acceptance_plan_70.md",
+    "sha256": "26674219d478830d544acca6eb1d19d894d459aa1180def6a7801ca246af2116",
+    "review_name": "NCP_closed_loop_review.md",
+    "review_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f"
+  },
+  "scope": "ncp.local-lockstep.v1",
+  "note": "Scope mapping preserves the original case and requirement. Exclusion is not a pass. Component pointers are not immutable release receipts.",
+  "cases": [
+    {
+      "id": "01",
+      "priority": "P0",
+      "case": "Drive a known plant observation through neural input, one neural advance, controller output, and one plant advance.",
+      "original_requirement": "Every returned observation and applied action has the declared step index and causal predecessor. No action is applied a step early or late.",
+      "local_requirements": [
+        "LV1-02",
+        "LV1-15"
+      ],
+      "disposition": "required",
+      "required_control": "Drive an actual source through one NEST advance, proposal, CREBAIN application, and next snapshot. Verify every causal digest and index.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "02",
+      "priority": "P0",
+      "case": "Request a neural/plant cadence that cannot be represented by the selected common integer timebase.",
+      "original_requirement": "Preparation rejects it; there is no silent rounding or accumulated drift.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-03"
+      ],
+      "disposition": "required",
+      "required_control": "Reject fractional or incompatible step, resolution, and delay grids before preparation. Accept the exact supported grid.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "03",
+      "priority": "P0",
+      "case": "Mix timestamps from unrelated monotonic clock domains.",
+      "original_requirement": "The runtime refuses unsupported age/one-way-latency calculations. Logical time remains independent of wall-clock measurements.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-10"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Use logical microseconds only. Reject unsupported wall-clock age or unrelated-domain configuration without inventing latency.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "04",
+      "priority": "P0",
+      "case": "Receive a valid advancing sensor, stall the control loop past its freshness budget, then consume the pending sample.",
+      "original_requirement": "Original receive time is retained; consuming the frame does not make it fresh again. This bounds post-ingress waiting; test 55 covers body-source-to-application age.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-10"
+      ],
+      "disposition": "excluded",
+      "required_control": "Real-time freshness budgets are outside this profile. Reject that selection and retain logical sample identity during a paused request.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "05",
+      "priority": "P0",
+      "case": "Execute the same prepared deterministic case at different wall-clock pacing rates, without changing logical inputs.",
+      "original_requirement": "Results satisfy the declared reproducibility policy. Wall-clock pacing does not silently change the numerical experiment.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-15"
+      ],
+      "disposition": "required",
+      "required_control": "Repeat identical logical inputs with varied wall-clock pauses. Compare full native outputs under the declared numerical policy.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "06",
+      "priority": "P0",
+      "case": "Deliver every 200 Hz sensor sample while a 50 Hz controller intentionally consumes only the latest.",
+      "original_requirement": "Ingress loss remains zero. Coalescing is counted separately. No loss-triggered emergency latch is set solely by downsampling.",
+      "local_requirements": [
+        "LV1-02",
+        "LV1-10"
+      ],
+      "disposition": "excluded",
+      "required_control": "Independent sensor/controller rates and latest-value coalescing are not negotiated. Reject those cadence or queue fields before preparation.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "07",
+      "priority": "P0",
+      "case": "Inject genuine ingress gaps, duplicates, and bounded reordering separately.",
+      "original_requirement": "Counters distinguish the cases; duplicates cannot refresh freshness or conceal missing positions. Attribution is not stronger than the evidence.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-06"
+      ],
+      "disposition": "required",
+      "required_control": "Reject gaps and changed retries. Replay exact retained responses. Verify no duplicate mutation or artificial time refresh.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "08",
+      "priority": "P0",
+      "case": "Use a very large accepted loss-detector threshold and a huge sequence gap.",
+      "original_requirement": "Configuration is rejected or the bounded-time mathematical update gives the correct restrictive result. No iteration cap silently suppresses the threshold crossing.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-13"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Local steps use a bounded exact cursor, not a configurable loss detector. Reject huge sequence jumps before execution.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "09",
+      "priority": "P0",
+      "case": "Deliver an old generation after reconnect, including an emergency command.",
+      "original_requirement": "It cannot change the new generation's state. Restart requires a new prepared binding.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-07"
+      ],
+      "disposition": "required",
+      "required_control": "Replay old run and endpoint generations after a fresh launch. Require rejection before role or backend state changes.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "10",
+      "priority": "P0",
+      "case": "Replace an unsent latest-value command while a recorder observes controller proposals.",
+      "original_requirement": "Candidate identity, transport admission, actual publication, and application remain distinguishable. One published stream position never acquires conflicting committed payloads.",
+      "local_requirements": [
+        "LV1-02",
+        "LV1-09"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Local execution has no unsent latest-value queue. Capture proposal and applied values separately, and reject queue-profile selection.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "11",
+      "priority": "P0",
+      "case": "Lose a successful step reply and resend the identical operation identity and payload.",
+      "original_requirement": "The retained outcome is returned; the neural simulator and plant are not advanced again.",
+      "local_requirements": [
+        "LV1-06"
+      ],
+      "disposition": "required",
+      "required_control": "Lose an actual successful step reply and retrieve identical retained bytes. Confirm native mutation counts remain one.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "12",
+      "priority": "P0",
+      "case": "Reuse an operation identity with changed input bytes or semantic content.",
+      "original_requirement": "Conflict is rejected before mutation. Canonicalization policy is explicit.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-06"
+      ],
+      "disposition": "required",
+      "required_control": "Reuse a retained identity with changed semantic input. Reject conflict before mutation and document typed canonicalization.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "13",
+      "priority": "P0",
+      "case": "Fill the outcome store while all retained outcomes are still contractually owed.",
+      "original_requirement": "New mutations are rejected before execution, or an explicitly negotiated acknowledgement releases retention. Required outcomes are not silently evicted.",
+      "local_requirements": [
+        "LV1-06",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Hold the single owed result and submit a successor. Reject before execution until its exact digest is acknowledged.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "14",
+      "priority": "P0",
+      "case": "Query a retained result after the original execution deadline or lease expires.",
+      "original_requirement": "An authorized result-lookup policy can recover the outcome without granting new mutation authority. Unauthorized callers receive no protected result.",
+      "local_requirements": [
+        "LV1-06",
+        "LV1-10"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Allow lookup through the still-owned private channel after mutation retirement. Remote principals and leases are excluded and grant no lookup capability.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "15",
+      "priority": "P0",
+      "case": "Kill, time out, or cancel a backend after execution starts but before commit can be established.",
+      "original_requirement": "The result is marked indeterminate and that mutable generation is retired. Cancellation is not reported as rollback. No retry advances uncertain state again.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Kill, stall, and cancel real owners after mutation starts. Retire coupled state and classify an unresolved effect as indeterminate.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "16",
+      "priority": "P0",
+      "case": "Transport a six-component position/velocity observation and a three-component acceleration action.",
+      "original_requirement": "Units and frames remain component-correct. Position is not labeled as velocity, and velocity setpoints are not silently treated as acceleration.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-09"
+      ],
+      "disposition": "required",
+      "required_control": "Verify exact six-component position/velocity and three-component acceleration layouts. Reject unit or axis substitution.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "17",
+      "priority": "P0",
+      "case": "Omit a required population readout whose configured command range is [0, 10].",
+      "original_requirement": "The absence is explicit. It cannot become an apparently observed Active command of 5 merely through midpoint substitution.",
+      "local_requirements": [
+        "LV1-04"
+      ],
+      "disposition": "required",
+      "required_control": "Remove required recording evidence. Require explicit failure or declared missingness, never a fabricated midpoint Active value.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "18",
+      "priority": "P0",
+      "case": "Compare an available zero-valued signal, an unavailable signal, an empty spike window, and missing recording evidence.",
+      "original_requirement": "All four retain their distinct meanings through NCP and Prisoma.",
+      "local_requirements": [
+        "LV1-04",
+        "LV1-08"
+      ],
+      "disposition": "required",
+      "required_control": "Carry available zero, absent observation, declared empty spike window, and missing recorder evidence through capture as distinct states.",
+      "evidence": {
+        "state": "focused_component_tests_passed",
+        "source": "https://github.com/sepahead/galadriel/tree/main/crates/galadriel-local-adapter",
+        "note": "The working native adapter passed 13 native, 14 scalar, and one documentation test. Only the directly exercised assertions receive component credit. Publication and actual producer evidence are open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "19",
+      "priority": "P0",
+      "case": "Prepare duplicate, sparse, contradictory-unit, or reordered component mappings.",
+      "original_requirement": "Invalid layouts are rejected before running. Accepted permutations have explicit immutable mappings and identical interpreted meaning.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-05"
+      ],
+      "disposition": "required",
+      "required_control": "Reject duplicate, sparse, reordered, and contradictory layouts. The initial profile admits only its exact frozen layout.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "20",
+      "priority": "P0",
+      "case": "Inject non-finite values, overflowing counters, wrong arity, invalid availability padding, and forbidden numeric ranges.",
+      "original_requirement": "Bounded rejection occurs before state mutation. An invalid frame is not repaired into valid actuation.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-14"
+      ],
+      "disposition": "required",
+      "required_control": "Reject non-finite numbers, oversized counters, wrong arity, nonzero unavailable padding, and forbidden ranges before mutation.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "21",
+      "priority": "P0",
+      "case": "Execute many control steps with a prepared persistent NEST network.",
+      "original_requirement": "The network is built and prepared according to the selected adapter contract, not reset or rebuilt per tick. Neural state persists. A single Prepare across all steps is required only when the qualified update mechanism permits it.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-15"
+      ],
+      "disposition": "required",
+      "required_control": "Run a persistent actual NEST network over many steps. Count network construction and preserve neural state under the selected update mechanism.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "22",
+      "priority": "P0",
+      "case": "Change each supported stimulus parameter between successive Run calls in the exact selected NEST build.",
+      "original_requirement": "Measured neuron/device behavior proves the input actually takes effect in the promised interval. Unsupported mutations are rejected at preparation.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-15"
+      ],
+      "disposition": "required",
+      "required_control": "Vary every admitted stimulus between actual Run calls. Measure effects in the specified interval and reject unsupported mutations.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "23",
+      "priority": "P0",
+      "case": "Place spikes exactly on observation-window boundaries and, where supported, off-grid timestamps.",
+      "original_requirement": "Every event is counted once under the declared endpoint convention; precise offsets are not silently rounded away.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-14"
+      ],
+      "disposition": "required",
+      "required_control": "Place events on each readout endpoint and verify exactly one count. Reject unsupported off-grid model or timing selections.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "24",
+      "priority": "P1",
+      "case": "Compare long-run per-step extraction cost for counters and bounded event tails.",
+      "original_requirement": "Cost and retained memory do not grow with total historical recording length when only a bounded current window is requested. Counter reset semantics are handled explicitly.",
+      "local_requirements": [
+        "LV1-13",
+        "LV1-17"
+      ],
+      "disposition": "required",
+      "required_control": "Measure bounded current-window extraction over short and long runs. Demonstrate storage and work independent of historical event count.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "25",
+      "priority": "P1",
+      "case": "Repeat the adapter workload with declared thread/MPI configurations and transport/observer contention.",
+      "original_requirement": "Reproducibility and deadline claims remain scoped to measured configurations. Simulator workers do not silently consume all service capacity needed for feedback.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-17"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Qualify the exact thread/MPI placement and interference tested. Reject undeclared execution configurations and publish no broader deadline claim.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "A source implementation or synthetic test cannot replace the exact persistent-NEST native campaign."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "26",
+      "priority": "P0",
+      "case": "Run one-, two-, and three-entity cases through the selected real CREBAIN adapter.",
+      "original_requirement": "Roster ordering, per-entity state, and action routing remain exact. No cross-entity substitution occurs.",
+      "local_requirements": [
+        "LV1-09",
+        "LV1-15"
+      ],
+      "disposition": "required",
+      "required_control": "Run actual one-, two-, and three-entity CREBAIN cases. Compare identity, state, innovation sources, and routed actions for every entity.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The actual body and isolated direct-oracle comparison need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "27",
+      "priority": "P0",
+      "case": "Compare a direct closed-loop baseline against the NCP-bound loop using the same controller, inputs, seeds, and schedule.",
+      "original_requirement": "Trajectory and event differences satisfy the declared numerical policy; transport introduction does not change the experiment unintentionally. The direct oracle is an isolated test target, unreachable as an alternative path in the distributed runtime.",
+      "local_requirements": [
+        "LV1-15"
+      ],
+      "disposition": "required",
+      "required_control": "Compare matched direct-oracle and NCP runs using identical actual kernels, controller, seeds, and logical schedule. Keep the oracle unreachable in deployment.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The actual body and isolated direct-oracle comparison need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "28",
+      "priority": "P0",
+      "case": "Remove one entity's observation while others remain valid.",
+      "original_requirement": "Missingness and fallback are per entity. Valid peers are neither fabricated nor inadvertently discarded.",
+      "local_requirements": [
+        "LV1-04",
+        "LV1-09"
+      ],
+      "disposition": "required",
+      "required_control": "Remove one entity's observation. Verify that its missingness remains explicit while valid peers retain their actual observations and actions.",
+      "evidence": {
+        "state": "focused_component_tests_passed",
+        "source": "https://github.com/sepahead/galadriel/tree/main/crates/galadriel-local-adapter",
+        "note": "The working native adapter passed 13 native, 14 scalar, and one documentation test. Only the directly exercised assertions receive component credit. Publication and actual producer evidence are open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "29",
+      "priority": "P0",
+      "case": "Trigger HOLD and emergency behavior for every declared plant profile.",
+      "original_requirement": "The runtime applies the profile-specific behavior. Zero acceleration is not represented as a universal physical stop.",
+      "local_requirements": [
+        "LV1-09",
+        "LV1-10"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Exercise active and zero_acceleration simulation modes. Reject physical HOLD/ESTOP profiles and never label zero acceleration a physical stop.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The actual body and isolated direct-oracle comparison need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "30",
+      "priority": "P0",
+      "case": "Expire or revoke command authority at the actual application boundary.",
+      "original_requirement": "An accepted or queued command cannot bypass current application-time authority and freshness checks. Simulator-only credentials cannot authorize physical actuation.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-10"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Retire the local endpoint before a queued mutation and reject further work. Physical leases and application-time authority are excluded without fallback.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "31",
+      "priority": "P0",
+      "case": "Record a successful step end to end.",
+      "original_requirement": "Evidence binds input snapshot, neural request/result, controller proposal, admitted/applied action, output snapshot, and outcome without conflating them.",
+      "local_requirements": [
+        "LV1-02",
+        "LV1-08"
+      ],
+      "disposition": "required",
+      "required_control": "Bind source snapshot, exact neural response, proposal, body response, applied action, next snapshot, and capture outcome in one step pair.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The native Prisoma capture, terminal closure, and fault campaign need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "32",
+      "priority": "P0",
+      "case": "Remove every event belonging to one whole step.",
+      "original_requirement": "The terminal plan/progress record reveals incomplete capture. A self-consistent retained subset is not declared complete.",
+      "local_requirements": [
+        "LV1-08"
+      ],
+      "disposition": "required",
+      "required_control": "Delete one complete captured step while retaining valid neighbors. Require terminal count and contiguous-prefix verification to fail.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The native Prisoma capture, terminal closure, and fault campaign need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "33",
+      "priority": "P0",
+      "case": "Deliver observation and command events out of order, twice, and with conflicting payloads.",
+      "original_requirement": "Bounded joins, duplicate handling, and conflicts are explicit; arrival order does not fabricate causality.",
+      "local_requirements": [
+        "LV1-06",
+        "LV1-08"
+      ],
+      "disposition": "required",
+      "required_control": "Reorder, duplicate, and conflict complete captured pairs. Reject invalid joins without using arrival order as causality.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The native Prisoma capture, terminal closure, and fault campaign need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "34",
+      "priority": "P0",
+      "case": "Exceed recording capacity under the lossless logical-time profile.",
+      "original_requirement": "The host pauses at a defined boundary or terminates the capture/run according to policy. It does not silently lose records while claiming completeness.",
+      "local_requirements": [
+        "LV1-08",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Exhaust lossless capture capacity before the next step. Verify neither neural nor body owner mutates without its reservation.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The native Prisoma capture, terminal closure, and fault campaign need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "35",
+      "priority": "P1",
+      "case": "Exceed recording capacity under the real-time best-effort profile.",
+      "original_requirement": "Feedback stays within its selected resource policy; drops and affected completeness claims are explicitly recorded. Recorder lag is not mislabeled as simulator or network failure.",
+      "local_requirements": [
+        "LV1-08",
+        "LV1-10"
+      ],
+      "disposition": "excluded",
+      "required_control": "Reject real-time best-effort capture mode before preparation. The selected profile cannot silently drop records.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "36",
+      "priority": "P1",
+      "case": "Send maximum-size accepted observation messages to all permitted subscribers.",
+      "original_requirement": "Aggregate bytes, not only item counts, stay within declared reservations including retained buffer ownership.",
+      "local_requirements": [
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Exercise maximum admitted frame sizes across all four channels and result slots. Measure aggregate owned buffers rather than item counts alone.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "37",
+      "priority": "P1",
+      "case": "Use a slow, continuously busy, panicking, and non-returning observer callback.",
+      "original_requirement": "Observer work cannot monopolize the control executor. Containment and teardown policy are demonstrated, not inferred from an async function name.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Stall, panic, and never return from an actual monitor process. Demonstrate bounded containment and cleanup without a command-capable callback in the coordinator.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "38",
+      "priority": "P1",
+      "case": "Saturate lifecycle/backend requests with slow or stuck operations.",
+      "original_requirement": "Admission remains bounded. Per-backend mutation is serialized, and terminal cleanup/containment has a defined path.",
+      "local_requirements": [
+        "LV1-06",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Saturate the single operation/result slot with slow and stuck calls. Measure serialized execution, rejection, and bounded process teardown.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "39",
+      "priority": "P1",
+      "case": "Instrument a warmed-up small-frame step with allocation, copy, serialization, and profile-hash counters.",
+      "original_requirement": "The selected fast-path budget is met; unexpected repeated work is a test failure rather than an undocumented optimization opportunity.",
+      "local_requirements": [
+        "LV1-13",
+        "LV1-17"
+      ],
+      "disposition": "required",
+      "required_control": "Instrument allocations, copies, serialization, and descriptor hashing on warmed steps. Declare and enforce the measured local budget.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "40",
+      "priority": "P1",
+      "case": "Repeatedly prepare, run, cancel, finish, and disconnect sessions.",
+      "original_requirement": "Threads, tasks, subscribers, handles, memory, and generation state return to their declared baseline or bounded retained state.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Repeat native prepare, run, finish, cancel, and disconnect cycles. Check process, descriptor, memory, and generation-state baselines.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "41",
+      "priority": "P0",
+      "case": "Use a valid certificate or local capability for the wrong principal, route, operation, role, or session kind.",
+      "original_requirement": "Receiver-owned authorization rejects it; a payload identity claim cannot substitute for authenticated origin.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-10"
+      ],
+      "disposition": "required",
+      "required_control": "Use a valid installed local channel with the wrong role, operation, run, or generation. Reject before execution. Do not describe payload labels as authentication.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "42",
+      "priority": "P0",
+      "case": "Rotate/revoke a principal while messages are queued.",
+      "original_requirement": "Each admission is tied to a defined immutable policy generation, and the selected revocation boundary is enforced consistently.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-10"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Rotate local process generations and reject queued old work. Remote principal and certificate rotation remain excluded and unqualified.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "43",
+      "priority": "P0",
+      "case": "Request an unavailable secure profile or attempt downgrade to an unauthenticated binding.",
+      "original_requirement": "Connection/admission fails closed. Local research transport is selected explicitly, never as a silent fallback.",
+      "local_requirements": [
+        "LV1-10"
+      ],
+      "disposition": "required",
+      "required_control": "Reject remote secure or downgrade selections before launch. Require explicit local profile selection with no automatic fallback.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "44",
+      "priority": "P1",
+      "case": "Run horizon vectors at exact expiry, beyond the maximum TTL, and with a non-finite ratio.",
+      "original_requirement": "Independent implementations produce identical acceptance and executable-window decisions.",
+      "local_requirements": [
+        "LV1-10",
+        "LV1-14"
+      ],
+      "disposition": "excluded",
+      "required_control": "Action horizons and TTL scheduling are outside the local application. Reject horizon fields. Retain separate broad-candidate horizon conformance without importing its claims.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "45",
+      "priority": "P1",
+      "case": "Omit or alter the selected semantic/profile identity during preparation.",
+      "original_requirement": "A prepared strict session cannot form from advisory compatibility alone. Optional-feature negotiation does not change already-prepared meaning.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-10"
+      ],
+      "disposition": "required",
+      "required_control": "Reject missing, changed, or unregistered profile/plan identities before preparation. Later inputs cannot change prepared meaning.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "46",
+      "priority": "P1",
+      "case": "Measure complete sample-to-application latency and each internal stage.",
+      "original_requirement": "Report p50, p99, p99.9, maximum observed, deadlines, and failures. A timer ending before serialization or publication is not called closed-loop latency.",
+      "local_requirements": [
+        "LV1-17"
+      ],
+      "disposition": "required",
+      "required_control": "Measure complete source-to-body-response timing and separate stages. Publish p50, p99, p99.9, maximum, sample count, failures, and measurement limits.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "47",
+      "priority": "P1",
+      "case": "Compare matched direct and NCP runs, including instrumentation overhead.",
+      "original_requirement": "Attribute transport/integration cost with a justified paired methodology; do not subtract unrelated percentile summaries.",
+      "local_requirements": [
+        "LV1-15",
+        "LV1-17"
+      ],
+      "disposition": "required",
+      "required_control": "Use paired matched direct and NCP trials. Measure instrumentation cost. Do not subtract unrelated percentile summaries.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "48",
+      "priority": "P1",
+      "case": "Exercise scheduled arrivals during stalls, background load, and slow recording.",
+      "original_requirement": "Missed work and delay are counted against the intended schedule. The benchmark does not hide stalls by generating less offered work.",
+      "local_requirements": [
+        "LV1-10",
+        "LV1-17"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Scheduled real-time arrivals are excluded. Measure deliberate stalls in logical-time runs and reject a real-time scheduling profile.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "49",
+      "priority": "P2",
+      "case": "Install and build CREBAIN/Prisoma consumers outside the NCP workspace, from the intended published artifacts.",
+      "original_requirement": "Dependency pins, patches, features, names, schemas, and bindings work without undocumented workspace inheritance.",
+      "local_requirements": [
+        "LV1-16"
+      ],
+      "disposition": "required",
+      "required_control": "Install CREBAIN and Prisoma outside the NCP workspace from exact intended artifacts. Reject hidden path dependencies and inherited root patches.",
+      "evidence": {
+        "state": "installed_gate_open",
+        "source": null,
+        "note": "Clean external builds, artifact identities, and full native runs have not been qualified by this documentation draft."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "50",
+      "priority": "P2",
+      "case": "Reproduce the complete chosen-profile run from clean artifacts and retained inputs.",
+      "original_requirement": "Another operator obtains the declared behavior and scoped performance results. Unsupported profiles remain visibly unsupported.",
+      "local_requirements": [
+        "LV1-16"
+      ],
+      "disposition": "required",
+      "required_control": "Reproduce the complete selected run from clean artifacts and retained inputs. Keep all unsupported profiles visibly rejected.",
+      "evidence": {
+        "state": "installed_gate_open",
+        "source": null,
+        "note": "Clean external builds, artifact identities, and full native runs have not been qualified by this documentation draft."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "51",
+      "priority": "P0",
+      "case": "Run Engram against all approved ecosystem peers with only NCP endpoints enabled.",
+      "original_requirement": "The full declared workflow succeeds without Host API, custom HTTP/IPC, direct engine import, shared storage, or file-polling integration. NEST remains private to its owner.",
+      "local_requirements": [
+        "LV1-02",
+        "LV1-18"
+      ],
+      "disposition": "required",
+      "required_control": "Run the actual Engram host with native NCP endpoints for all selected peers. Trace communication and keep NEST private to its owning process.",
+      "evidence": {
+        "state": "installed_gate_open",
+        "source": null,
+        "note": "Clean external builds, artifact identities, and full native runs have not been qualified by this documentation draft."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "52",
+      "priority": "P0",
+      "case": "Attempt each forbidden cross-project path deliberately.",
+      "original_requirement": "Package policy and runtime sandboxing reject the bypass. Log the rejection without granting access through a helper process or broad inherited credential.",
+      "local_requirements": [
+        "LV1-18"
+      ],
+      "disposition": "required",
+      "required_control": "Attempt direct engine imports, private HTTP/IPC, shared-store writes, file polling, and helper-process bypasses. Require enforced package and OS-boundary rejection.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "53",
+      "priority": "P1",
+      "case": "Move a control-loop object between execution threads with different thread-local elapsed origins.",
+      "original_requirement": "Time remains in one defined domain or migration is disallowed explicitly. A valid move does not create false expiry or a spurious clock-rewind hold.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-13"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "A mutable owner stays in its declared execution context. Reject or test any thread-migration mode. Logical time cannot inherit a thread-local clock origin.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "54",
+      "priority": "P0",
+      "case": "Encode endpoints of a finite positive range narrower than machine epsilon near one.",
+      "original_requirement": "The upper endpoint maps to the declared upper output, or preparation rejects the explicitly unsupported scale. Unit changes do not silently collapse valid ranges.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-14"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Retain exact endpoint arithmetic tests in the generic codec. The local fixed-layout application must reject unsupported arbitrary encoding scales.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "55",
+      "priority": "P0",
+      "case": "Delay a body-originated source grant by 15 ms in each direction with a 20 ms budget.",
+      "original_requirement": "Final application rejects expiry relative to the original body event. No receiver or relay restarts the deadline.",
+      "local_requirements": [
+        "LV1-03",
+        "LV1-10"
+      ],
+      "disposition": "excluded",
+      "required_control": "Physical source-age grants and 20 ms wall-clock budgets are unsupported. Reject this selection rather than restarting a deadline or claiming physical freshness.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "56",
+      "priority": "P0",
+      "case": "Return a grant from a different source, generation, authority term, or evicted record.",
+      "original_requirement": "No application occurs from a guessed or substituted reference. A receiver never falls back to the newest grant.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-02"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Reject substituted snapshot, response, run, or generation digests. Local execution has no newest-grant fallback or admitted physical authority term.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "57",
+      "priority": "P0",
+      "case": "Cut execution after each neural/body commit and before each receipt or pair closure.",
+      "original_requirement": "The maximal known closed prefix is preserved. The uncertain suffix is explicitly classified and no dependent step advances an unresolved coupled generation.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-08"
+      ],
+      "disposition": "required",
+      "required_control": "Cut each real owner after commit and before response or pair closure. Preserve the maximal known closed prefix and block its uncertain suffix.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "58",
+      "priority": "P0",
+      "case": "Lose a committed response, then retrieve it after the result was acknowledged or while still retained.",
+      "original_requirement": "Retained exact payload and receipt are replayed when owed. After payload release, high-water state prevents re-execution and the declared unavailable outcome is returned.",
+      "local_requirements": [
+        "LV1-06",
+        "LV1-07"
+      ],
+      "disposition": "required",
+      "required_control": "Retrieve owed exact bytes before acknowledgement. After release, require unavailable with unchanged mutation high-water state.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "59",
+      "priority": "P0",
+      "case": "Force result serialization or byte-reservation failure after a backend mutation.",
+      "original_requirement": "The outcome is never labeled rejected-before-execution. Required containment or retirement occurs and no alternate operation ID retries the uncertain effect.",
+      "local_requirements": [
+        "LV1-07",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Force reservation failure before mutation and serialization failure after mutation. Preserve the distinct rejection and indeterminate classes.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "60",
+      "priority": "P0",
+      "case": "Select Haldir-gated mode, then attempt direct Engram command and gate-timeout fallback.",
+      "original_requirement": "CREBAIN rejects Engram as commander. Gate failure follows the prepared restrictive policy; it does not activate a parallel direct route.",
+      "local_requirements": [
+        "LV1-10"
+      ],
+      "disposition": "excluded",
+      "required_control": "Reject Haldir-gated plan selection before any endpoint preparation. Attempt direct-command and gate-timeout fallback and require no run to begin.",
+      "evidence": {
+        "state": "focused_component_tests_passed",
+        "source": "https://github.com/sepahead/galadriel/tree/main/crates/galadriel-local-adapter",
+        "note": "The working native adapter passed 13 native, 14 scalar, and one documentation test. Only the directly exercised assertions receive component credit. Publication and actual producer evidence are open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "61",
+      "priority": "P0",
+      "case": "Feed the Galadriel adapter missing uncertainty, wrong units, invalid covariance, or an unsupported detector profile.",
+      "original_requirement": "The actual selected detector contract rejects or abstains explicitly. It does not fabricate uncertainty or label absent assessment nominal.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-11"
+      ],
+      "disposition": "required",
+      "required_control": "Reject absent required source uncertainty, wrong units, malformed covariance, or a wrong detector profile. Preserve actual scalar research insufficiency and no fabricated nominal report.",
+      "evidence": {
+        "state": "focused_component_tests_passed",
+        "source": "https://github.com/sepahead/galadriel/tree/main/crates/galadriel-local-adapter",
+        "note": "The working native adapter passed 13 native, 14 scalar, and one documentation test. Only the directly exercised assertions receive component credit. Publication and actual producer evidence are open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "62",
+      "priority": "P0",
+      "case": "Submit a favorable or forged Galadriel assessment without independently granted action authority.",
+      "original_requirement": "No lease, permission widening, final command, or reset capability is created. Advisory composition is monotone with respect to existing permission.",
+      "local_requirements": [
+        "LV1-10",
+        "LV1-12"
+      ],
+      "disposition": "required",
+      "required_control": "Forge favorable monitor output and request command, lease, or reset operations. Require fixed-role rejection and no change to body authority.",
+      "evidence": {
+        "state": "focused_component_tests_passed",
+        "source": "https://github.com/sepahead/galadriel/tree/main/crates/galadriel-local-adapter",
+        "note": "The working native adapter passed 13 native, 14 scalar, and one documentation test. Only the directly exercised assertions receive component credit. Publication and actual producer evidence are open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "63",
+      "priority": "P0",
+      "case": "Compare asynchronous monitoring and step-bound online-guard profiles under reordered assessments.",
+      "original_requirement": "Monitoring cannot affect state. The guard consumes only its declared exact-step dependency and has explicit missing/stale/abstention policy.",
+      "local_requirements": [
+        "LV1-11",
+        "LV1-12"
+      ],
+      "disposition": "partial_exclusion",
+      "required_control": "Admit only exact-step record-only monitoring. Reject online-guard and asynchronous-control profiles. Reordered assessments cannot control a body step.",
+      "evidence": {
+        "state": "focused_component_tests_passed",
+        "source": "https://github.com/sepahead/galadriel/tree/main/crates/galadriel-local-adapter",
+        "note": "The working native adapter passed 13 native, 14 scalar, and one documentation test. Only the directly exercised assertions receive component credit. Publication and actual producer evidence are open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "64",
+      "priority": "P0",
+      "case": "Give a private worker, presentation panel, or extension parser an attempted out-of-role request.",
+      "original_requirement": "It has neither credentials nor inherited handles that allow role escalation, command publication, or direct access to another project's mutable state.",
+      "local_requirements": [
+        "LV1-10",
+        "LV1-18"
+      ],
+      "disposition": "required",
+      "required_control": "Audit inherited descriptors and credentials, then attempt out-of-role requests from workers and presentation code. Protocol role tests alone do not prove OS isolation.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "65",
+      "priority": "P2",
+      "case": "Rebuild the real Engram host and all adapters from the recorded repository identities.",
+      "original_requirement": "The executable host, not a placeholder repository, is used. Dirty or mismatched builds and unrecorded private patches cannot receive a qualification receipt.",
+      "local_requirements": [
+        "LV1-16"
+      ],
+      "disposition": "required",
+      "required_control": "Build executable Paper2Brain/Engram and every selected adapter from recorded immutable objects. Reject dirty, mismatched, or privately patched artifacts.",
+      "evidence": {
+        "state": "installed_gate_open",
+        "source": null,
+        "note": "Clean external builds, artifact identities, and full native runs have not been qualified by this documentation draft."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "66",
+      "priority": "P0",
+      "case": "Remove or conflict the terminal run record while all retained individual rows remain valid.",
+      "original_requirement": "Capture completeness is unresolved or invalid, not inferred from the apparently consistent subset. Planned versus completed counts stay distinct.",
+      "local_requirements": [
+        "LV1-08"
+      ],
+      "disposition": "required",
+      "required_control": "Remove or conflict the terminal run record after valid individual rows exist. Require incomplete or invalid capture, never inferred completeness.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The native Prisoma capture, terminal closure, and fault campaign need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "67",
+      "priority": "P1",
+      "case": "Saturate observer and result reservations before the next lossless logical step.",
+      "original_requirement": "Admission pauses or rejects before neural/body mutation. Reservation release after acknowledgement is bounded and cannot be counted twice.",
+      "local_requirements": [
+        "LV1-06",
+        "LV1-08",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Saturate capture and retained-result reservations before a new step. Reject before mutation and prove acknowledgement cannot release capacity twice.",
+      "evidence": {
+        "state": "operational_not_run_in_this_draft",
+        "source": null,
+        "note": "The native Prisoma capture, terminal closure, and fault campaign need an immutable installed run receipt."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "68",
+      "priority": "P0",
+      "case": "Make a GUI projection stale, altered, or disconnected while the NCP data path remains active.",
+      "original_requirement": "No agent/controller consumes the presentation projection as authoritative input. UI status cannot refresh source grants or authority.",
+      "local_requirements": [
+        "LV1-12",
+        "LV1-18"
+      ],
+      "disposition": "required",
+      "required_control": "Alter or disconnect a presentation projection during a native run. Verify it has no authoritative read or command path and cannot refresh state.",
+      "evidence": {
+        "state": "acceptance_gate_open",
+        "source": null,
+        "note": "This row specifies required evidence. No passing result is asserted."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "69",
+      "priority": "P0",
+      "case": "Request oversized simulation creation or embedded executable code through an external data field.",
+      "original_requirement": "The bounded model-creation contract rejects unsupported resource requests and code execution. Cancellation/cleanup does not leak an uncontrolled worker.",
+      "local_requirements": [
+        "LV1-01",
+        "LV1-05",
+        "LV1-13"
+      ],
+      "disposition": "required",
+      "required_control": "Reject excess entity/step/resource requests and executable code fields before creating a simulator. Demonstrate bounded worker cleanup.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    },
+    {
+      "id": "70",
+      "priority": "P1",
+      "case": "Run independent decoders against exact integers, changed semantic identities, unknown enums, duplicate keys, availability padding, and horizon boundaries.",
+      "original_requirement": "Every advertised public path agrees with the chosen contract. Unknown diagnostic data cannot become executable control semantics; private dialects fail qualification.",
+      "local_requirements": [
+        "LV1-05",
+        "LV1-14"
+      ],
+      "disposition": "required",
+      "required_control": "Run independent Rust and Python decoders over integers, profile identities, enums, duplicate keys, padding, and rejected horizon fields. Reject semantic disagreement.",
+      "evidence": {
+        "state": "component_test_sources_present",
+        "source": "../../ncp-core/tests/local.rs",
+        "note": "Local Rust owner and shared-data controls exist. Independent Python controls remain a separate implementation. The exact immutable operating gate is open."
+      },
+      "release_status": "open"
+    }
+  ]
+}

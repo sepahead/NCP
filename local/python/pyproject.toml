@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ncp-local"
+version = "1.0.0"
+description = "Independent pure-Python SDK for the local NCP lockstep simulation profile"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+authors = [{ name = "Sepehr Mahmoudian" }]
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+]
+
+[project.urls]
+Repository = "https://github.com/sepahead/NCP"
+
+[tool.setuptools.packages.find]
+include = ["ncp_local*"]
+
+[tool.setuptools.package-data]
+ncp_local = ["local-profile.v1.json", "py.typed"]

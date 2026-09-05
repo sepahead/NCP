@@ -11,6 +11,8 @@ pub mod codec;
 pub mod contract_identity;
 pub mod idempotency;
 pub mod keys;
+pub mod local;
+pub mod local_data;
 pub mod messages;
 pub mod migration;
 pub mod plant;

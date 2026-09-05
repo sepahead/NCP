@@ -134,6 +134,15 @@ GENERATOR_OUTPUTS = {
     ],
     "scripts/generate_supply_chain_evidence.py": ["evidence/supply-chain/*.json"],
     "scripts/plot_perf.py": ["docs/plots/*.svg"],
+    "scripts/project_local_rust.py": [
+        "local/rust/src/{local,local_data,bounded_json,canonical_digest}.rs",
+        "local/rust/local-profile.v1.json",
+        "local/rust/tests/{local,local_binary64,local_profile_contract}.rs",
+        "local/rust/tests/fixtures/{local-profile-identity,local-binary64}.json",
+        "local/rust/examples/local_contract_probe.rs",
+        "local/rust/LICENSE-{MIT,APACHE}",
+        "local/rust/source-projection.v1.json",
+    ],
     "scripts/render_acl_template.py": ["operator-selected concrete Zenoh ACL config"],
     "scripts/sync_rust_package_testdata.py": ["ncp-{core,zenoh,cpp}/testdata/**"],
 }

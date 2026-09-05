@@ -59,7 +59,7 @@ async fn zenoh_closed_loop_roundtrip() {
     .unwrap();
 
     // Controller: ZenohControlTransport (subscribe sensor / publish command) + a
-    // reflex loop. Fixed clock so the safety governor sees the sensor as fresh.
+    // reflex loop. Ingress and control use the same process-wide monotonic clock.
     let transport = ZenohControlTransport::new(bus.clone(), "uav1", live_session.clone())
         .await
         .unwrap();
@@ -76,8 +76,7 @@ async fn zenoh_closed_loop_roundtrip() {
         live_session.clone(),
     )
     .expect("loopback session binding is canonical")
-    .with_authority(authority())
-    .with_clock(Box::new(|| 0.0));
+    .with_authority(authority());
     // Let the subscription declarations settle.
     tokio::time::sleep(Duration::from_millis(300)).await;
 
@@ -136,5 +135,55 @@ async fn zenoh_closed_loop_roundtrip() {
         "command should drive back toward origin, got vx={vx}"
     );
 
+    let _ = bus.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn delivered_sensor_frames_are_counted_before_local_coalescing() {
+    let bus = ZenohBus::with_config(loopback_cfg(), Keys::default())
+        .await
+        .unwrap();
+    let session = ncp_core::SessionRef {
+        generation: "00000000-0000-4000-8000-0000000000a2".into(),
+    };
+    let transport = ZenohControlTransport::new(bus.clone(), "uav1", session.clone())
+        .await
+        .unwrap();
+    for seq in 1..=12 {
+        let frame = SensorFrame {
+            stream: ncp_core::StreamPosition {
+                epoch: "00000000-0000-4000-8000-000000000001".into(),
+                seq,
+            },
+            session: session.clone(),
+            session_id: "uav1".into(),
+            t: seq as f64 * 0.005,
+            ..Default::default()
+        };
+        bus.put_sensor("uav1", &session, &serde_json::to_vec(&frame).unwrap())
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while transport
+                .latest_sensor()
+                .is_none_or(|sample| sample.stream.seq != seq)
+            {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .expect("the declared frame must arrive before the next test publication");
+    }
+    let snapshot = transport.sensor_snapshot();
+    assert_eq!(snapshot.counters.received, 12);
+    assert_eq!(snapshot.counters.lost, 0);
+    assert_eq!(snapshot.counters.coalesced, 11);
+    assert!(!snapshot.counters.burst_observed);
+    let received_at = snapshot.latest.unwrap().received_at_s;
+    tokio::time::sleep(Duration::from_millis(5)).await;
+    assert_eq!(
+        transport.sensor_snapshot().latest.unwrap().received_at_s,
+        received_at
+    );
     let _ = bus.close().await;
 }

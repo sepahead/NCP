@@ -1,0 +1,7 @@
+{
+  "schema": "ncp.local.profile-identity.v1",
+  "contract_revision": 2,
+  "previous_candidate_digest": "40a40e5e715d47ffb8580a5c8090153628dc1d6d15a6325b989ad06a11676618",
+  "typed_profile_digest": "35f8165789c853778298ec844d235da390a6e0fc5fa3e5ff7f4213ed02b3fabc",
+  "descriptor_sha256": "8a800efcd3efabee00aa68c6751dc52c723569fe6db3ad54ca71943a91fb1e7b"
+}

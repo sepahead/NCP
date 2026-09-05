@@ -31,6 +31,8 @@ export const NCP_CONTRACT_HASH = '163acc57d8a62b66';
 export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991;
 export const JSON_SAFE_INTEGER_MIN = -JSON_SAFE_INTEGER_MAX;
 export const MAX_HORIZON_STEPS = 65_536;
+/** Receiver watchdog ceiling shared with the independent safety implementation. */
+export const MAX_COMMAND_TTL_MS = 60_000;
 export const MAX_CHANNELS = 4_096;
 const MAX_CLIENT_GENERATIONS = 4_096;
 const MAX_CLIENT_OBSERVATION_POSITIONS = 4_096;
@@ -449,6 +451,16 @@ function requireResponderReceipt(value, path, context = 'terminal') {
     requireBoundedId(receipt.responder_principal_id, `${path}.responder_principal_id`);
     requireBoundedId(receipt.responder_entity_id, `${path}.responder_entity_id`);
     return receipt;
+}
+/** Bound the executable horizon by the receiver watchdog ceiling. */
+function maximumExecutableHorizon(ttlMs, horizonDtMs) {
+    if (!Number.isFinite(ttlMs) || !Number.isFinite(horizonDtMs) || horizonDtMs <= 0)
+        return 0;
+    const ratio = Math.min(Math.max(ttlMs, 0), MAX_COMMAND_TTL_MS) / horizonDtMs;
+    const steps = Math.max(Math.ceil(ratio) - 1, 0);
+    if (!Number.isFinite(steps))
+        return 0;
+    return Math.min(steps, MAX_HORIZON_STEPS);
 }
 /** Wire 1.0: a transport-neutral session_id (1..=64 UTF-8 bytes, safe key segment). */
 function requireSessionId(value, path) {
@@ -910,8 +922,7 @@ export function assertNcpMessage(value, expectedKind) {
                         if (dt <= 0)
                             throw new Error('command_frame predictive horizon requires horizon_dt_ms > 0');
                         const ttl = message.ttl_ms;
-                        if (message.horizon.length > MAX_HORIZON_STEPS ||
-                            message.horizon.length > Math.max(Math.ceil(ttl / dt) - 1, 0)) {
+                        if (message.horizon.length > maximumExecutableHorizon(ttl, dt)) {
                             throw new Error(`command_frame.horizon future steps must occur strictly before ttl_ms and N <= ${MAX_HORIZON_STEPS}`);
                         }
                     }

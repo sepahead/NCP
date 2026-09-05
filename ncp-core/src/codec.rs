@@ -206,11 +206,20 @@ fn clamp(x: f64, lo: f64, hi: f64) -> f64 {
     }
 }
 
+fn midpoint(lo: f64, hi: f64) -> f64 {
+    // The checked range has a finite span even when adding both endpoints overflows.
+    lo + 0.5 * (hi - lo)
+}
+
 fn lerp(x: f64, in_lo: f64, in_hi: f64, out_lo: f64, out_hi: f64) -> f64 {
-    if (in_hi - in_lo).abs() < f64::EPSILON {
+    let input_span = in_hi - in_lo;
+    // The checked contract accepts every positive finite span, including subnormals.
+    if !input_span.is_finite() || input_span <= 0.0 {
         return out_lo;
     }
-    let frac = clamp((x - in_lo) / (in_hi - in_lo), 0.0, 1.0);
+    // Bound the input before subtraction to avoid overflow outside the interval.
+    let bounded_x = clamp(x, in_lo, in_hi);
+    let frac = (bounded_x - in_lo) / input_span;
     out_lo + frac * (out_hi - out_lo)
 }
 
@@ -366,6 +375,7 @@ impl CodecSpec {
         }
 
         let mut decoder_components = BTreeSet::new();
+        let mut decoder_layouts: Map<(BTreeSet<usize>, Option<&str>)> = Map::new();
         for (index, mapping) in self.decoder.iter().enumerate() {
             let path = format!("decoder[{index}]");
             if !valid_codec_name(&mapping.population) || !valid_codec_name(&mapping.command_channel)
@@ -413,19 +423,47 @@ impl CodecSpec {
                     mapping.command_channel, mapping.component
                 )));
             }
+            let (components, unit) = decoder_layouts
+                .entry(mapping.command_channel.clone())
+                .or_insert_with(|| (BTreeSet::new(), mapping.unit.as_deref()));
+            if *unit != mapping.unit.as_deref() {
+                return Err(CodecError(format!(
+                    "{path}.unit conflicts with another component of {:?}",
+                    mapping.command_channel
+                )));
+            }
+            components.insert(mapping.component);
+        }
+        for (channel, (components, _)) in decoder_layouts {
+            if components.iter().copied().ne(0..components.len()) {
+                return Err(CodecError(format!(
+                    "decoder channel {channel:?} must map every component from zero without holes"
+                )));
+            }
         }
         Ok(())
     }
 
-    /// Checked wire-ingress form used by language bindings. `None` is an
-    /// intentional missing sensor and maps every population to its neutral rate;
-    /// a supplied frame must be a complete compatible SensorFrame.
+    /// Encode a complete observed input. Missing required components return an error.
+    /// The unchecked mapper's midpoint policy cannot supply observed evidence.
     pub fn encode_checked(&self, sensor: Option<&SensorFrame>) -> Result<Map<f64>, CodecError> {
         self.validate()?;
         if let Some(sensor) = sensor {
             sensor
                 .validate_wire()
                 .map_err(|error| CodecError(format!("invalid sensor frame: {error}")))?;
+        }
+        for mapping in &self.encoder {
+            if sensor
+                .and_then(|frame| frame.channels.get(&mapping.channel))
+                .and_then(|channel| channel.data.get(mapping.component))
+                .is_none()
+            {
+                return Err(CodecError(format!(
+                    "required sensor component {:?}[{}] is unavailable",
+                    mapping.channel, mapping.component
+                )));
+            }
         }
         let rates = self.encode(sensor);
         if rates.values().any(|rate| !rate.is_finite()) {
@@ -479,6 +517,14 @@ impl CodecSpec {
                 "population rates must have non-empty names and finite values".into(),
             ));
         }
+        for mapping in &self.decoder {
+            if !pop_rates.contains_key(&mapping.population) {
+                return Err(CodecError(format!(
+                    "required population readout {:?} is unavailable",
+                    mapping.population
+                )));
+            }
+        }
         if !t.is_finite() {
             return Err(CodecError("command timestamp must be finite".into()));
         }
@@ -517,11 +563,11 @@ impl CodecSpec {
                     // Missing/short sensor data must not masquerade as the
                     // value-range minimum. For a position/error codec that low
                     // rate represents a real extreme and can provoke a full-scale
-                    // response downstream. Preserve shape but encode the neutral
-                    // midpoint instead.
+                    // response downstream. This unchecked compatibility mapper
+                    // preserves shape with a midpoint. It supplies no observed evidence.
                     rates.insert(
                         m.population.clone(),
-                        0.5 * (m.rate_range_hz.0 + m.rate_range_hz.1),
+                        midpoint(m.rate_range_hz.0, m.rate_range_hz.1),
                     );
                 }
             }
@@ -558,10 +604,8 @@ impl CodecSpec {
             // low end of the range": for a symmetric range that lerps to the most
             // negative command (e.g. -1.5 m/s — full-reverse actuation), which the
             // governor only magnitude-clamps, so it passes as commanded motion.
-            // Map an absent population to the documented NEUTRAL value (the
-            // midpoint of value_range — 0.0 for a symmetric range), keeping the
-            // command channel shape intact but never emitting max-magnitude
-            // actuation for missing data.
+            // This unchecked compatibility mapper preserves shape with a midpoint.
+            // The checked path rejects absence before reaching this branch.
             let value = match pop_rates.get(&m.population) {
                 Some(rate) => lerp(
                     *rate,
@@ -570,7 +614,7 @@ impl CodecSpec {
                     m.value_range.0,
                     m.value_range.1,
                 ),
-                None => 0.5 * (m.value_range.0 + m.value_range.1),
+                None => midpoint(m.value_range.0, m.value_range.1),
             };
             let buf = buffers.entry(m.command_channel.clone()).or_default();
             while buf.len() <= m.component {
@@ -669,8 +713,113 @@ mod tests {
             stream: stream(1),
             session: session(),
             session_id: SID.into(),
+            channels: Map::from([(
+                "pose_error".into(),
+                ChannelValue::vec3(0.0, 0.0, 0.0, Some("m")),
+            )]),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn interpolation_preserves_tiny_endpoints_and_unit_scaling() {
+        for span in [f64::from_bits(1), 2.0_f64.powi(-60), 1.0, 1000.0] {
+            validate_range((0.0, span), "input", false).unwrap();
+            assert_eq!(lerp(0.0, 0.0, span, 0.0, 200.0), 0.0);
+            assert_eq!(lerp(span, 0.0, span, 0.0, 200.0), 200.0);
+        }
+    }
+
+    #[test]
+    fn interpolation_clamps_extreme_finite_input_before_subtraction() {
+        validate_range((-1.0e308, -5.0e307), "input", false).unwrap();
+        assert_eq!(lerp(f64::MAX, -1.0e308, -5.0e307, -1.0, 1.0), 1.0);
+        assert_eq!(lerp(-f64::MAX, -1.0e308, -5.0e307, -1.0, 1.0), -1.0);
+    }
+
+    #[test]
+    fn checked_decoder_rejects_missing_readout_in_asymmetric_range() {
+        let mut codec = default_uav_velocity_codec();
+        codec.decoder[0].value_range = (0.0, 10.0);
+        let rates: Map<f64> = codec
+            .decoder
+            .iter()
+            .skip(1)
+            .map(|mapping| (mapping.population.clone(), 0.0))
+            .collect();
+        assert!(codec
+            .decode_checked_with_authority(
+                &rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+                Some(authority()),
+            )
+            .is_err());
+    }
+
+    #[test]
+    fn checked_decoder_distinguishes_observed_zero_from_absence() {
+        let codec = default_uav_velocity_codec();
+        let rates: Map<f64> = codec
+            .decoder
+            .iter()
+            .map(|mapping| (mapping.population.clone(), 0.0))
+            .collect();
+        let command = codec
+            .decode_checked_with_authority(
+                &rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+                Some(authority()),
+            )
+            .unwrap();
+        assert_eq!(command.channels["velocity_setpoint"].data, vec![-1.5; 3]);
+    }
+
+    #[test]
+    fn checked_codec_rejects_sparse_or_inconsistent_unit_layouts() {
+        let mut sparse = default_uav_velocity_codec();
+        sparse.decoder.remove(1);
+        assert!(sparse.validate().is_err());
+        let mut units = default_uav_velocity_codec();
+        units.decoder[1].unit = Some("m/s^2".into());
+        assert!(units.validate().is_err());
+    }
+
+    #[test]
+    fn checked_codec_preserves_explicit_component_permutations() {
+        let codec = default_uav_velocity_codec();
+        let mut reordered = codec.clone();
+        reordered.decoder.reverse();
+        reordered.validate().unwrap();
+        let rates: Map<f64> = codec
+            .decoder
+            .iter()
+            .enumerate()
+            .map(|(index, mapping)| (mapping.population.clone(), index as f64 * 50.0))
+            .collect();
+        let decode = |spec: &CodecSpec| {
+            spec.decode_checked_with_authority(
+                &rates,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Active,
+                session(),
+                SID,
+                Some(authority()),
+            )
+            .unwrap()
+        };
+        assert_eq!(decode(&codec).channels, decode(&reordered).channels);
     }
 
     #[test]
@@ -680,8 +829,21 @@ mod tests {
         let rates = codec.encode_checked(Some(&stamped_sensor())).unwrap();
         assert!(rates.values().all(|rate| rate.is_finite()));
 
+        let readouts: Map<f64> = codec
+            .decoder
+            .iter()
+            .map(|m| (m.population.clone(), 100.0))
+            .collect();
         let command = codec
-            .decode_checked(&rates, 0.0, stream(1), "world", Mode::Hold, session(), SID)
+            .decode_checked(
+                &readouts,
+                0.0,
+                stream(1),
+                "world",
+                Mode::Hold,
+                session(),
+                SID,
+            )
             .unwrap();
         assert_eq!(command.mode, Mode::Hold);
         command.validate_wire().unwrap();
@@ -745,7 +907,11 @@ mod tests {
     #[test]
     fn checked_codec_requires_explicit_matching_authority_for_active_output() {
         let codec = default_uav_velocity_codec();
-        let rates = codec.encode_checked(Some(&stamped_sensor())).unwrap();
+        let rates: Map<f64> = codec
+            .decoder
+            .iter()
+            .map(|m| (m.population.clone(), 100.0))
+            .collect();
 
         assert!(codec
             .decode_checked(
@@ -791,13 +957,12 @@ mod tests {
     }
 
     #[test]
-    fn missing_or_short_sensor_channel_encodes_neutral_not_extreme() {
+    fn checked_encoder_rejects_missing_or_short_sensor_channel() {
         let codec = default_uav_velocity_codec();
-        let sensor = stamped_sensor();
-        let rates = codec.encode_checked(Some(&sensor)).unwrap();
-        assert_eq!(rates["err_x"], 100.0);
-        assert_eq!(rates["err_y"], 100.0);
-        assert_eq!(rates["err_z"], 100.0);
+        assert!(codec.encode_checked(None).is_err());
+        let mut sensor = stamped_sensor();
+        sensor.channels.clear();
+        assert!(codec.encode_checked(Some(&sensor)).is_err());
 
         let mut short = stamped_sensor();
         short.channels.insert(
@@ -807,10 +972,9 @@ mod tests {
                 unit: Some("m".into()),
             },
         );
-        let rates = codec.encode_checked(Some(&short)).unwrap();
-        assert_eq!(rates["err_x"], 200.0);
-        assert_eq!(rates["err_y"], 100.0);
-        assert_eq!(rates["err_z"], 100.0);
+        assert!(codec.encode_checked(Some(&short)).is_err());
+        short.channels.get_mut("pose_error").unwrap().data = vec![0.0; 3];
+        assert_eq!(codec.encode_checked(Some(&short)).unwrap()["err_x"], 100.0);
     }
 
     #[test]
