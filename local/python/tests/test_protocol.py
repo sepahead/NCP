@@ -294,6 +294,30 @@ class OwnerTests(unittest.TestCase):
                 owner.retire_generation()
                 self.assertEqual((backend.executions, backend.retires), (1, 1))
 
+    def test_wrong_role_response_cannot_forge_success_or_another_rejection(self):
+        for role in ("monitor", "capture"):
+            binding = fixed_binding(role)
+            backend = CounterBackend()
+            owner = LocalOwner(binding, backend)
+            request = make_request(binding, 1, "step", {})
+            response = decode(owner.handle(encode(request)))
+            verify_response(response, binding, request)
+            for outcome, code in (
+                ("committed", "ok"),
+                ("rejected_before_execution", "invalid_input"),
+            ):
+                with self.subTest(role=role, outcome=outcome, code=code):
+                    changed = copy.deepcopy(response)
+                    changed["outcome"] = outcome
+                    changed["code"] = code
+                    changed["result_digest"] = digest_without(
+                        "ncp.local.response.v1", changed, "result_digest"
+                    )
+                    with self.assertRaises(LocalError) as caught:
+                        verify_response(changed, binding, request)
+                    self.assertEqual(caught.exception.code, "binding")
+            self.assertEqual(backend.executions, 0)
+
     def test_role_and_launch_identity_cannot_be_selected_by_payload(self):
         binding = fixed_binding("monitor")
         backend = CounterBackend()

@@ -2745,9 +2745,9 @@
       },
       {
         "path": "local/python/tests/test_protocol.py",
-        "bytes": 20688,
-        "sha256": "0f0d9e8035b339774f5443a02b9ab3356fd25103afcc93a564c58d299fb6092a",
-        "git_blob_oid": "067a8486d54609720ed194c6deb137af4fc45d79",
+        "bytes": 21907,
+        "sha256": "c257ce5de8e2d7578431ffd42b416bd032f7cf4e0bb9e8cd766159920263fc49",
+        "git_blob_oid": "04cdd98559a7d798a8ef3e87d3fe4374fc66b031",
         "indexed": true
       },
       {
@@ -2809,8 +2809,8 @@
       {
         "path": "local/rust/source-projection.v1.json",
         "bytes": 4515,
-        "sha256": "dbfc1b5f7f2e3a4af09e677bd3f3e2d1d8b2f233e7b7948176217b01b2e285c1",
-        "git_blob_oid": "6f9f389e776e456301364f4ed73e84d217bf9120",
+        "sha256": "52641e752f607a7c24b2b7a79f6e6b8fe28754e805b03224d8246532f459693c",
+        "git_blob_oid": "a85304e442b5165de6af85c227d8f326deaf139d",
         "indexed": true
       },
       {
@@ -2836,9 +2836,9 @@
       },
       {
         "path": "local/rust/src/local.rs",
-        "bytes": 29206,
-        "sha256": "17f98485da3cee7386c7e1f217777617f6ac0863464adef029ad0cc23c4a9874",
-        "git_blob_oid": "3f7a5992ce98e3b11c102b75dfacf3b52cdd5a31",
+        "bytes": 29205,
+        "sha256": "1018977f42d0779d3218db0e676e7f1a67c21229cb09f1cc8e2d238683882619",
+        "git_blob_oid": "dc86297a7fc29fd5a3b5e779cad1f9a67de226ed",
         "indexed": true
       },
       {
@@ -2864,9 +2864,9 @@
       },
       {
         "path": "local/rust/tests/local.rs",
-        "bytes": 16524,
-        "sha256": "7512288656e198a8f2953cf7abfc8a9301f3a324ad263fae226916b6c9e82073",
-        "git_blob_oid": "522797be1d1b6fce0487492c95c9494185a47c52",
+        "bytes": 17753,
+        "sha256": "fed00912a2fc64c601ac729bb1de866997f16cfd562b3e6d1ee399a988d6524d",
+        "git_blob_oid": "37dd7015cef3aa25c2e520931d08d61ab90fbcb9",
         "indexed": true
       },
       {
@@ -3382,9 +3382,9 @@
       },
       {
         "path": "ncp-core/src/local.rs",
-        "bytes": 29206,
-        "sha256": "17f98485da3cee7386c7e1f217777617f6ac0863464adef029ad0cc23c4a9874",
-        "git_blob_oid": "3f7a5992ce98e3b11c102b75dfacf3b52cdd5a31",
+        "bytes": 29205,
+        "sha256": "1018977f42d0779d3218db0e676e7f1a67c21229cb09f1cc8e2d238683882619",
+        "git_blob_oid": "dc86297a7fc29fd5a3b5e779cad1f9a67de226ed",
         "indexed": true
       },
       {
@@ -3788,9 +3788,9 @@
       },
       {
         "path": "ncp-core/tests/local.rs",
-        "bytes": 16522,
-        "sha256": "a1f74c41f34fafe432440350035628140b0082b3216e0aa68c5fde8648c3b833",
-        "git_blob_oid": "e5176ca8e12a53ba4a64db79a62c40e881560581",
+        "bytes": 17751,
+        "sha256": "d1172e1a12144a4e13b2e83b895e5f050a1cadcc8449fe14c70ed96a200c795e",
+        "git_blob_oid": "83d0213c1c3d7573a13e2a49d22c322ff6b0267f",
         "indexed": true
       },
       {

@@ -176,6 +176,38 @@ fn invalid_data_and_wrong_role_do_not_consume_the_next_position() {
 }
 
 #[test]
+fn wrong_role_response_cannot_forge_success_or_another_rejection() {
+    for role in [LocalRole::Monitor, LocalRole::Capture] {
+        let (mut owner, counts) = owner(role);
+        let step = request(role, 1, LocalOperation::Step, json!({}));
+        let rejected = send(&mut owner, &step);
+        rejected.verify(owner.binding(), &step).unwrap();
+        for (outcome, code) in [
+            (LocalOutcome::Committed, LocalCode::Ok),
+            (
+                LocalOutcome::RejectedBeforeExecution,
+                LocalCode::InvalidInput,
+            ),
+        ] {
+            let mut forged = rejected.clone();
+            forged.outcome = outcome;
+            forged.code = code;
+            let mut digest_input = serde_json::to_value(&forged).unwrap();
+            digest_input
+                .as_object_mut()
+                .unwrap()
+                .remove("result_digest");
+            forged.result_digest = local_digest("ncp.local.response.v1", &digest_input).unwrap();
+            assert_eq!(
+                forged.verify(owner.binding(), &step),
+                Err(LocalError(LocalCode::Binding))
+            );
+        }
+        assert_eq!(counts.executions.load(Ordering::SeqCst), 0);
+    }
+}
+
+#[test]
 fn every_post_execution_fault_is_retained_unknown_and_permanently_retires() {
     for fault in ["error", "panic", "oversize", "deep"] {
         let (mut owner, counts) = owner(LocalRole::Neural);

@@ -285,8 +285,8 @@ impl LocalResponse {
             || binding.profile_digest != local_profile_digest()?
             || !valid_uuid(&binding.run_id)
             || !valid_uuid(&binding.generation)
-            || (!binding.role.permits(self.operation)
-                && !(self.outcome == LocalOutcome::RejectedBeforeExecution
+            || !(binding.role.permits(self.operation)
+                || (self.outcome == LocalOutcome::RejectedBeforeExecution
                     && self.code == LocalCode::Role))
             || self.sequence == 0
             || self.sequence > MAX_SEQUENCE

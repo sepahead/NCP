@@ -48,8 +48,8 @@
       "source": "ncp-core/src/local.rs",
       "destination": "src/local.rs",
       "transformation": "identity",
-      "source_sha256": "17f98485da3cee7386c7e1f217777617f6ac0863464adef029ad0cc23c4a9874",
-      "destination_sha256": "17f98485da3cee7386c7e1f217777617f6ac0863464adef029ad0cc23c4a9874"
+      "source_sha256": "1018977f42d0779d3218db0e676e7f1a67c21229cb09f1cc8e2d238683882619",
+      "destination_sha256": "1018977f42d0779d3218db0e676e7f1a67c21229cb09f1cc8e2d238683882619"
     },
     {
       "source": "ncp-core/src/local_data.rs",
@@ -76,8 +76,8 @@
       "source": "ncp-core/tests/local.rs",
       "destination": "tests/local.rs",
       "transformation": "test_import_only",
-      "source_sha256": "a1f74c41f34fafe432440350035628140b0082b3216e0aa68c5fde8648c3b833",
-      "destination_sha256": "7512288656e198a8f2953cf7abfc8a9301f3a324ad263fae226916b6c9e82073"
+      "source_sha256": "d1172e1a12144a4e13b2e83b895e5f050a1cadcc8449fe14c70ed96a200c795e",
+      "destination_sha256": "fed00912a2fc64c601ac729bb1de866997f16cfd562b3e6d1ee399a988d6524d"
     },
     {
       "source": "ncp-core/tests/local_binary64.rs",
