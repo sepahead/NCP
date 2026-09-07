@@ -4,7 +4,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
-    <img src="assets/logo-light.svg" width="180" alt="NCP logo: paired contract bounds surround a four-plane knot. Proposal and receipt remain distinct.">
+    <img src="assets/logo-light.svg" width="180" alt="NCP: opposed contract rails with separate request and outcome paths.">
   </picture>
 </p>
 
